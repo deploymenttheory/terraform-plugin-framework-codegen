@@ -27,6 +27,20 @@
 /pkg/
 coverage.out
 coverage.html
+golangci-lint-report.sarif
+
+# Go workspaces are deliberately not committed: they break dependabot's
+# per-directory module resolution and golangci-lint's new-from-merge-base.
+# CI enters the nested pilot module explicitly instead.
+go.work
+go.work.sum
+
+# tfprovidergen
+/bin/tfprovidergen
+.tfprovidergen/cache/
+
+# Emitted when a template renders unparseable Go, kept for inspection only.
+*.broken
 
 # Python virtual environments
 scripts/python/venv/

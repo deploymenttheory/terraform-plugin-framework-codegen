@@ -5,3 +5,15 @@
 * text=auto
 
 *.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.tmpl text eol=lf
+*.tf text eol=lf
+
+# Collapse generated artefacts in the GitHub diff view. Regenerating twenty
+# resources is thousands of lines of emitted Go that nobody should read line by
+# line -- the reviewable change is the blueprint, so point reviewers there.
+blueprints/** linguist-generated=true
+probe-evidence/** linguist-generated=true
+openapi-specs/** linguist-generated=true
+pilot/*/internal/services/** linguist-generated=true

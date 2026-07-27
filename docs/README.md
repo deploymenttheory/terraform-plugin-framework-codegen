@@ -1,70 +1,51 @@
-# Project Title
+# Documentation
 
-Simple overview of your project and its use or purpose.
+Toolkit documentation. Start with the [repository README](../README.md) for what
+this project is and why it exists.
 
->Make use of the [Markdow Syntax Guide](markdown-syntax-guide.md).
+Documents are added as the phase that needs them lands, rather than up front as
+empty stubs — a stub describing an unbuilt design is worse than no document,
+because it reads as settled.
 
-## Description
+| Document | Contents | Lands in |
+|---|---|---|
+| `architecture.md` | the pipeline stages, and where logic is allowed to live | Phase 1 |
+| `cli.md` | full CLI reference, generated from the subcommand usage strings | Phase 1 |
+| `blueprint.md` | the IR: every field, and what it exists to express | Phase 1 |
+| `generated-boundary.md` | how generated and hand-written code stay apart, and the escape hatch | Phase 1 |
+| `onboarding-a-new-api.md` | numbered runbook for taking on a new API end to end | Phase 2 |
+| `interop.md` | reading and writing Provider Code Specification v0.1, and what it cannot carry | Phase 3 |
+| `probing.md` | the probe catalogue, confidence levels, safety model and cleanup guarantees | Phase 4 |
+| `pilot-thousandeyes.md` | the pilot: what was generated, and the before/after against the existing provider | Phase 6 |
+| `adr/` | decision records, so settled questions are not re-litigated in six months | ongoing |
 
-Describe your project.
+## Decisions already taken
 
-## Getting Started
+Recorded here until `adr/` exists, because they shape everything else and are the
+questions most likely to be asked again.
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+1. **Provider layer only.** The toolkit generates the Terraform provider. SDKs
+   already exist and are generated elsewhere; this project binds to them.
+2. **Own IR, HashiCorp's specification as an interop format.** The Provider Code
+   Specification cannot express CRUD wiring, SDK binding, observed behaviour or
+   test scaffolding, so it is a format this project reads and writes — not its
+   model.
+3. **Full-lifecycle probing, gated and recorded.** Mutating probes require an
+   explicit flag *and* a profile that proves at runtime that it is a sandbox.
+   Every transcript is committed, and facts are re-derived from it offline in CI.
+4. **The pilot is a new provider, not a migration.** Generating onto a clean
+   slate keeps state-upgrade work off the toolkit's critical path.
 
-### Prerequisites
+## Conventions worth knowing before reading the code
 
-Describe any prerequisites or dependencies.
-
-### Installation
-
-* How/where to download your program
-* Any modifications needed to be made to files/folders
-
-  ```bash
-  iex "&amp; { $(irm https://aka.ms/install-powershell.ps1) } -UseMSI"
-  ```
-
-## Usage
-
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
-
-
-## FAQ and Known Issues
-
-Any advise for common problems or issues.
-  ```bash
-  command to run if program contains helper info
-  ```
-
-## Contributors
-
-Contributors names and contact info
-
-* You, Yourself and the Universe
-* [@your_twitter](<https://twitter.com/your_username>)
-
-## Contribution
-
-If you would like to become an active contributor to this repository or project, please follow the instructions provided in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
-
-<!-- CONTACT -->
-## Contact
-
-Your Name - [@your_twitter](<https://twitter.com/your_username>) - email@example.com
-
-Project Link: [https://github.com/your_username/repo_name](<https://github.com/your_username/repo_name>)
-
-
-<!-- LICENSE -->
-## License
-
-Distributed under the MIT License. See [`LICENSE`](`../../LICENSE`).
-
-## References
-
-* [Emoji Cheat Sheet](<https://github.com/ikatyang/emoji-cheat-sheet>)
-* [License Helper](<https://choosealicense.com/>)
+- **Templates carry no logic.** Everything a template consumes is a finished
+  string or a boolean, precomputed in `internal/render`. Templates branch on
+  presence, never on meaning. This is why the emitted shape can be reviewed as
+  ordinary text without reading the generator.
+- **Generated output is deterministic.** No timestamps, no tool version, no
+  absolute paths, no map-iteration order. Two runs over the same inputs produce
+  byte-identical trees, which is the only thing that makes the drift check
+  meaningful.
+- **Nothing is deleted silently.** A merge layer may add to a blueprint but only
+  the hand-authored override layer may remove from it. A probe run against a
+  tenant that can see nothing therefore cannot quietly delete half a schema.

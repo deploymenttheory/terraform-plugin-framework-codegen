@@ -1,0 +1,19 @@
+{{ .Header }}
+{{ if .DocRefComment }}
+{{ .DocRefComment }}
+{{- end }}
+package {{ .Package }}
+
+import (
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// {{ .ModelTypeName }} is the Terraform state for a {{ .ResourceName }}.
+//
+// Field order follows the schema, and the timeouts value is last.
+type {{ .ModelTypeName }} struct {
+{{- range .ModelFields }}
+	{{ . }}
+{{- end }}
+}

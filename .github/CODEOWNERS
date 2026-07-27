@@ -10,4 +10,16 @@
 .azuredevops/** @ShocOne
 .github/** @ShocOne
 .pipelines/** @ShocOne
-workload/** @ShocOne
+
+# The generator, its IR and the emitted shape. A change to any of these rewrites
+# committed output across every provider the toolkit generates.
+internal/** @ShocOne
+cmd/** @ShocOne
+
+# Committed generated artefacts. The reviewable change is upstream of these, in a
+# blueprint or a template -- a diff here on its own usually means something was
+# hand-edited.
+blueprints/** @ShocOne
+probe-evidence/** @ShocOne
+openapi-specs/** @ShocOne
+pilot/** @ShocOne

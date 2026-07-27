@@ -1,0 +1,26 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.State }}
+)
+
+// mapRemoteStateToTerraform maps the API's response onto Terraform state.
+//
+// This function replaces what a reflection-based provider does at runtime. Being
+// generated code, a field whose conversion is wrong is a compile error rather
+// than a surprise during apply.
+func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) {
+	if remote == nil {
+		tflog.Debug(ctx, "remote resource is nil, leaving state untouched", map[string]any{
+			"resource": ResourceName,
+		})
+		return
+	}
+{{ range .State.Assignments }}
+	{{ . }}
+{{- end }}
+
+	tflog.Debug(ctx, "mapped remote state", map[string]any{"resource": ResourceName})
+}

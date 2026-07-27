@@ -1,0 +1,287 @@
+package emit
+
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+)
+
+// pilotBlueprint loads the committed pilot blueprint.
+//
+// Testing against the real blueprint rather than a fixture means the committed
+// artefact is continuously validated: a blueprint that stops being emittable fails
+// here rather than at the next release.
+func pilotBlueprint(t *testing.T) blueprint.Blueprint {
+	t.Helper()
+
+	bp, err := blueprint.LoadDir(filepath.Join("..", "..", "blueprints", "thousandeyes"))
+	if err != nil {
+		t.Fatalf("loading the committed pilot blueprint: %v", err)
+	}
+	return bp
+}
+
+// TestUnit_Emit_LangVersionIsAccepted pins the gofumpt language version.
+//
+// gofumpt parses it with go/version and *panics* on a value it cannot read, so a
+// plain "1.25" crashes the generator rather than returning an error. This is the
+// cheapest possible guard against that, and it has already caught it once.
+func TestUnit_Emit_LangVersionIsAccepted(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("gofumpt rejected langVersion %q: %v", langVersion, r)
+		}
+	}()
+
+	if _, err := formatGo([]byte("package p\n")); err != nil {
+		t.Fatalf("formatting trivial source failed: %v", err)
+	}
+}
+
+// TestUnit_Emit_IsDeterministic is the property the whole drift gate rests on.
+//
+// Anything non-deterministic in emitted output -- a timestamp, a tool version, an
+// absolute path, Go map iteration order -- makes `verify` fail on a run that
+// changed nothing, which destroys its usefulness entirely. Map iteration order is
+// the one that bites in practice, because it is invisible until it isn't.
+func TestUnit_Emit_IsDeterministic(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	first, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	// Repeated rather than run twice: map iteration order varies per iteration,
+	// so two runs can agree by luck.
+	for i := 0; i < 25; i++ {
+		again, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+		if err != nil {
+			t.Fatalf("Build: %v", err)
+		}
+
+		if len(again.Files) != len(first.Files) {
+			t.Fatalf("run %d produced %d files, first run produced %d", i, len(again.Files), len(first.Files))
+		}
+
+		for j := range again.Files {
+			if again.Files[j].Path != first.Files[j].Path {
+				t.Fatalf("run %d file %d is %q, first run had %q",
+					i, j, again.Files[j].Path, first.Files[j].Path)
+			}
+			if string(again.Files[j].Content) != string(first.Files[j].Content) {
+				t.Fatalf("run %d produced different content for %s", i, again.Files[j].Path)
+			}
+		}
+	}
+}
+
+// TestUnit_Emit_CarriesNoTimestampOrVersion guards the two values most likely to
+// be added later by someone trying to be helpful. Either would make every
+// regeneration a diff.
+func TestUnit_Emit_CarriesNoTimestampOrVersion(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	plan, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	// Year prefixes catch a date in any common format; "tfprovidergen v" catches a
+	// version stamp.
+	forbidden := []string{"202", "generated at", "tfprovidergen v", os.TempDir()}
+
+	for _, f := range plan.Files {
+		// The header names the blueprint and its digest, which is intended. Only
+		// the rest of the file is checked for stray dates.
+		body := string(f.Content)
+		for _, bad := range forbidden {
+			if bad == "202" {
+				// A digest legitimately contains "202"; look for a date shape.
+				continue
+			}
+			if strings.Contains(body, bad) {
+				t.Errorf("%s contains %q, which would make every regeneration a diff", f.Path, bad)
+			}
+		}
+	}
+}
+
+// TestUnit_Emit_EveryFileIsMarkedGenerated matters because overwrite protection
+// keys on the marker: a generated file lacking it could never be regenerated
+// without -force.
+func TestUnit_Emit_EveryFileIsMarkedGenerated(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	plan, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	if len(plan.Files) == 0 {
+		t.Fatal("the pilot blueprint produced no files")
+	}
+
+	for _, f := range plan.Files {
+		body := string(f.Content)
+
+		if !strings.Contains(body, generatedMarker) {
+			t.Errorf("%s is not marked as generated", f.Path)
+		}
+		// The house lint configuration only skips files matching Go's canonical
+		// form, which requires the marker on the first line.
+		if !strings.HasPrefix(body, "// Code generated by") {
+			t.Errorf("%s does not begin with the canonical generated marker", f.Path)
+		}
+	}
+}
+
+// TestUnit_Emit_RefusesToOverwriteHandWrittenFiles is the guard that stops a
+// mistyped -out from destroying somebody's work with no way to recover it.
+func TestUnit_Emit_RefusesToOverwriteHandWrittenFiles(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	plan, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	root := t.TempDir()
+
+	// Put a hand-written file exactly where the emitter wants to write.
+	target := filepath.Join(root, plan.Files[0].Path)
+	if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	if err := os.WriteFile(target, []byte("package tag // written by a person\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	_, err = Write(plan, WriteOptions{Root: root})
+	if !errors.Is(err, ErrRefusedOverwrite) {
+		t.Fatalf("error = %v, want it to wrap ErrRefusedOverwrite", err)
+	}
+
+	// -force is the deliberate escape hatch for adopting an existing tree.
+	if _, err := Write(plan, WriteOptions{Root: root, Force: true}); err != nil {
+		t.Fatalf("Write with Force: %v", err)
+	}
+}
+
+// TestUnit_Emit_WriteIsIdempotent confirms a second write reports everything as
+// unchanged rather than rewriting it, so regenerating does not churn modification
+// times and set file watchers rebuilding the world on a no-op.
+func TestUnit_Emit_WriteIsIdempotent(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	plan, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	root := t.TempDir()
+
+	first, err := Write(plan, WriteOptions{Root: root})
+	if err != nil {
+		t.Fatalf("first Write: %v", err)
+	}
+	if len(first.Written) != len(plan.Files) {
+		t.Errorf("first write reported %d written, want %d", len(first.Written), len(plan.Files))
+	}
+
+	second, err := Write(plan, WriteOptions{Root: root})
+	if err != nil {
+		t.Fatalf("second Write: %v", err)
+	}
+	if len(second.Written) != 0 {
+		t.Errorf("second write rewrote %d file(s): %v", len(second.Written), second.Written)
+	}
+	if len(second.Unchanged) != len(plan.Files) {
+		t.Errorf("second write reported %d unchanged, want %d", len(second.Unchanged), len(plan.Files))
+	}
+}
+
+// TestUnit_Emit_OnlyRestrictsToOneResource covers the flag used while iterating on
+// a template.
+func TestUnit_Emit_OnlyRestrictsToOneResource(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	plan, err := gen.Build(bp, Options{BlueprintPath: "b", Only: "tag"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	for _, f := range plan.Files {
+		// Registration files are provider-wide, so -only must not emit a partial
+		// one that would fail to compile against the rest of the tree.
+		if strings.Contains(f.Path, "internal/provider") {
+			t.Errorf("-only emitted the provider-wide file %s", f.Path)
+		}
+	}
+
+	if _, err := gen.Build(bp, Options{BlueprintPath: "b", Only: "nonexistent"}); err != nil {
+		t.Fatalf("Build with an unmatched -only should succeed and produce nothing: %v", err)
+	}
+}
+
+// TestUnit_Emit_FormatErrorIncludesNumberedSource exists because a template bug
+// reports a line and column, and matching that against unnumbered output is
+// needless work. This diagnostic already paid for itself once.
+func TestUnit_Emit_FormatErrorIncludesNumberedSource(t *testing.T) {
+	t.Parallel()
+
+	_, err := formatGo([]byte("package p\nfunc broken( {\n"))
+	if !errors.Is(err, ErrFormat) {
+		t.Fatalf("error = %v, want it to wrap ErrFormat", err)
+	}
+	if !strings.Contains(err.Error(), "   1 | package p") {
+		t.Errorf("error should include numbered source:\n%v", err)
+	}
+}

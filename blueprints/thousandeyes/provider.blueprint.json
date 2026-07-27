@@ -1,0 +1,52 @@
+{
+  "formatVersion": "1",
+  "provider": {
+    "name": "thousandeyes",
+    "goModule": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes",
+    "typePrefix": "thousandeyes",
+    "sdk": {
+      "dialect": "restyService",
+      "modulePath": "github.com/deploymenttheory/go-sdk-thousandeyes",
+      "clientType": "*thousandeyes.Client",
+      "clientImport": {
+        "path": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes",
+        "alias": "thousandeyes"
+      }
+    },
+    "conventions": {
+      "resourceRoot": "internal/services/resources",
+      "dataSourceRoot": "internal/services/datasources",
+      "providerPkgDir": "internal/provider",
+      "defaultTimeouts": {
+        "createSeconds": 180,
+        "readSeconds": 180,
+        "updateSeconds": 180,
+        "deleteSeconds": 180
+      }
+    },
+    "support": {
+      "convert": {
+        "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/services/common/convert"
+      },
+      "crud": {
+        "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/services/common/crud"
+      },
+      "commonSchema": {
+        "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/services/common/schema",
+        "alias": "commonschema"
+      },
+      "errors": {
+        "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/services/common/errors"
+      },
+      "client": {
+        "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/client"
+      }
+    }
+  },
+  "source": {
+    "specFile": "api.yaml",
+    "specVersion": "7.0.97",
+    "snapshotDir": "7.0.97-t1785152261691",
+    "sdkVersion": "v0.1.0"
+  }
+}

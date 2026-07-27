@@ -1,0 +1,69 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.Resource }}
+)
+
+const (
+	// ResourceName is the Terraform type this resource registers as.
+	ResourceName = "{{ .ResourceName }}"
+
+	// Default per-operation timeouts, in seconds. A practitioner overrides them
+	// with the resource's timeouts block.
+	CreateTimeout = {{ .Timeouts.Create }}
+	ReadTimeout   = {{ .Timeouts.Read }}
+	UpdateTimeout = {{ .Timeouts.Update }}
+	DeleteTimeout = {{ .Timeouts.Delete }}
+)
+
+// Compile-time assertions that this resource implements what it claims to. They
+// turn a missing method into a build failure rather than a runtime surprise.
+var (
+{{- range .Interfaces }}
+	{{ . }}
+{{- end }}
+)
+
+// {{ .ConstructorFn }} returns the {{ .ResourceName }} resource.
+func {{ .ConstructorFn }}() resource.Resource {
+	return &{{ .GoTypeName }}{}
+}
+
+// {{ .GoTypeName }} implements the {{ .ResourceName }} resource.
+type {{ .GoTypeName }} struct {
+	client {{ .SDKClientType }}
+}
+
+// Metadata returns the resource type name.
+func (r *{{ .GoTypeName }}) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = ResourceName
+}
+
+// Configure receives the configured SDK client from the provider.
+func (r *{{ .GoTypeName }}) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	r.client = client.ForResource(ctx, req, resp, ResourceName)
+}
+{{ if .ImportState }}
+// ImportState maps a terraform import into state.
+func (r *{{ .GoTypeName }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	{{ .ImportState }}
+}
+{{ end }}
+// Schema returns the resource schema.
+func (r *{{ .GoTypeName }}) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+{{- if .MarkdownDescription }}
+		MarkdownDescription: {{ printf "%q" .MarkdownDescription }},
+{{- end }}
+		Attributes: map[string]schema.Attribute{
+{{- range .SchemaAttributes }}
+			{{ . }},
+{{- end }}
+		},
+		Blocks: map[string]schema.Block{
+			"timeouts": commonschema.ResourceTimeouts(ctx),
+		},
+	}
+}
