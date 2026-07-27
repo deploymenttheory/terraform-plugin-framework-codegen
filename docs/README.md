@@ -7,12 +7,12 @@ Documents are added as the phase that needs them lands, rather than up front as
 empty stubs — a stub describing an unbuilt design is worse than no document,
 because it reads as settled.
 
-| Document | Contents | Lands in |
+| Document | Contents | State |
 |---|---|---|
-| `architecture.md` | the pipeline stages, and where logic is allowed to live | Phase 1 |
-| `cli.md` | full CLI reference, generated from the subcommand usage strings | Phase 1 |
-| `blueprint.md` | the IR: every field, and what it exists to express | Phase 1 |
-| `generated-boundary.md` | how generated and hand-written code stay apart, and the escape hatch | Phase 1 |
+| [`architecture.md`](architecture.md) | the pipeline stages, and where logic is allowed to live | **written** |
+| [`cli.md`](cli.md) | command reference, flags and exit codes | **written** |
+| [`blueprint.md`](blueprint.md) | the IR: every field, and what it exists to express | **written** |
+| [`generated-boundary.md`](generated-boundary.md) | how generated and hand-written code stay apart, and the escape hatch | **written** |
 | `onboarding-a-new-api.md` | numbered runbook for taking on a new API end to end | Phase 2 |
 | `interop.md` | reading and writing Provider Code Specification v0.1, and what it cannot carry | Phase 3 |
 | `probing.md` | the probe catalogue, confidence levels, safety model and cleanup guarantees | Phase 4 |

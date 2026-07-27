@@ -10,6 +10,7 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/emit"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
 )
 
 // driftError reports that the committed provider no longer matches its
@@ -59,12 +60,18 @@ func runVerify(args []string) error {
 		return err
 	}
 
-	// Two failure classes, reported separately because they have different
-	// causes: drift means somebody edited generated output or changed a template
-	// without regenerating, missing means a file was deleted or never written.
+	// Three failure classes, reported separately because they have different
+	// causes and different fixes: drift means somebody edited generated output or
+	// changed a template without regenerating; missing means a file was deleted or
+	// never written; orphaned means the blueprints no longer produce a file that
+	// is still on disk, which is what renaming a resource leaves behind.
 	var drifted, missing []string
 
+	produced := make(map[string]bool, len(plan.Files))
+
 	for _, f := range plan.Files {
+		produced[filepath.ToSlash(f.Path)] = true
+
 		target := filepath.Join(*out, f.Path)
 
 		existing, err := os.ReadFile(target) //nolint:gosec // the path is operator-supplied by design
@@ -78,12 +85,33 @@ func runVerify(args []string) error {
 		}
 	}
 
-	if len(drifted) == 0 && len(missing) == 0 {
-		log.Printf("✅ %d generated file(s) match their blueprints", len(plan.Files))
+	// Orphans can only be found against a record of what the last run produced.
+	// A tree with no manifest is not an error: it has simply never been generated
+	// by a version that wrote one, and saying so beats silently reporting none.
+	var orphaned []string
+
+	m, haveManifest, err := manifest.Load(*out)
+	if err != nil {
+		return err
+	}
+	if haveManifest {
+		orphaned, err = m.Orphans(*out, produced)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(drifted) == 0 && len(missing) == 0 && len(orphaned) == 0 {
+		if !haveManifest {
+			log.Printf("✅ %d generated file(s) match their blueprints "+
+				"(no manifest present, so orphans were not checked)", len(plan.Files))
+			return nil
+		}
+		log.Printf("✅ %d generated file(s) match their blueprints, with no orphans", len(plan.Files))
 		return nil
 	}
 
-	report := buildDriftReport(*blueprintPath, *out, drifted, missing)
+	report := buildDriftReport(*blueprintPath, *out, drifted, missing, orphaned)
 
 	fmt.Fprint(os.Stderr, report)
 	// The GitHub annotation makes the failure visible in the checks UI rather
@@ -98,10 +126,10 @@ func runVerify(args []string) error {
 		}
 	}
 
-	return &driftError{n: len(drifted) + len(missing)}
+	return &driftError{n: len(drifted) + len(missing) + len(orphaned)}
 }
 
-func buildDriftReport(blueprintPath, out string, drifted, missing []string) string {
+func buildDriftReport(blueprintPath, out string, drifted, missing, orphaned []string) string {
 	var b strings.Builder
 
 	b.WriteString("### ❌ Generated code is out of date\n\n")
@@ -122,6 +150,15 @@ func buildDriftReport(blueprintPath, out string, drifted, missing []string) stri
 			b.WriteString(p + "\n")
 		}
 		b.WriteString("```\n\n</details>\n\n")
+	}
+
+	if len(orphaned) > 0 {
+		fmt.Fprintf(&b, "<details><summary>%d file(s) are orphaned: previously generated, "+
+			"no longer produced, still on disk</summary>\n\n```\n", len(orphaned))
+		for _, p := range orphaned {
+			b.WriteString(p + "\n")
+		}
+		b.WriteString("```\n\nDelete them, then regenerate.\n\n</details>\n\n")
 	}
 
 	return b.String()

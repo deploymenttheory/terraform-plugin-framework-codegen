@@ -1,0 +1,41 @@
+{
+  "formatVersion": "1",
+  "toolVersion": "dev",
+  "files": [
+    {
+      "path": "internal/provider/datasources.go",
+      "sha256": "2358b81604bb18f58b6a2ec11b662882e28504183e9c5baf017e25249e8ced18",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/provider/resources.go",
+      "sha256": "d850934387bbfcc729a303be11a1cf2a63f46d6a38afcef2a9ac1baacfcfedcb",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/construct.go",
+      "sha256": "fc11465ffd0d41c50f94339b24d0b26e5727e4a5090f55300a836db29caf7062",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/crud.go",
+      "sha256": "0f54e9c5f62fc59d80ee696e03e27efecdb218f9209c7f0be729255a519fcda2",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/model.go",
+      "sha256": "bf66dfb963d8c4c94c14a9eeca7f3082135be260674d793ddcc6c7130b4a509d",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/resource.go",
+      "sha256": "10ebf02a3f937cf8ba1121f98ef66c3950f57002a1cf5bd3a1a392159fbad6f8",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/state.go",
+      "sha256": "eb4939216bd95e1d5535e43346a31f022025c21752cedf6c2f155f5ce745d0ce",
+      "blueprint": "blueprints/thousandeyes"
+    }
+  ]
+}
