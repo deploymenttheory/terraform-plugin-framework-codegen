@@ -62,8 +62,23 @@ jobs:
           VALIDATE_CPD: false # Disable CPD (Copy Paste Detection) for all languages
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # To report GitHub Actions status checks
           MARKDOWN_CONFIG_FILE: .markdown-lint.yml
-          FILTER_REGEX_EXCLUDE: |
-            .*\.md$|                # Exclude all markdown files
-            .*test/.*|              # Exclude all files in any test directory
-            .*_test\.go$|           # Exclude Go test files (e.g., *_test.go)
-            .*\.json$               # Exclude all JSON files
+          # One regex on one line, deliberately.
+          #
+          # This was previously a YAML block scalar with trailing "# ..." comments.
+          # A block scalar has no comments: the "#" text became part of the regex,
+          # so the alternatives after the first never matched and .*\.json$ was
+          # silently doing nothing. That is why JSON was still being linted despite
+          # being listed here.
+          #
+          # Excluded, and why:
+          #   .*\.md$        prose, linted by the markdown validator instead
+          #   .*_test\.go$   test files
+          #   .*/test/.*     test fixtures
+          #   .*\.json$      blueprints and manifests, whose formatting this
+          #                  repository defines and asserts in its own tests
+          #   ^pilot/.*      generated output. Third-party style opinions about
+          #                  generated code are noise: the shape is decided by the
+          #                  templates, and duplicate-code detection in particular
+          #                  will always fire on it, because near-identical CRUD
+          #                  bodies are the point of generating them.
+          FILTER_REGEX_EXCLUDE: '(.*\.md$|.*_test\.go$|.*/test/.*|.*\.json$|^pilot/.*)'
