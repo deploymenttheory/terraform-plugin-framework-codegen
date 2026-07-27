@@ -11,6 +11,20 @@ import (
 // This function replaces what a reflection-based provider does at runtime. Being
 // generated code, a field whose conversion is wrong is a compile error rather
 // than a surprise during apply.
+{{- if .State.NeedsDiagnostics }}
+func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) diag.Diagnostics {
+	var (
+		diags diag.Diagnostics
+		d     diag.Diagnostics
+	)
+
+	if remote == nil {
+		tflog.Debug(ctx, "remote resource is nil, leaving state untouched", map[string]any{
+			"resource": ResourceName,
+		})
+		return diags
+	}
+{{- else }}
 func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) {
 	if remote == nil {
 		tflog.Debug(ctx, "remote resource is nil, leaving state untouched", map[string]any{
@@ -18,9 +32,68 @@ func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, 
 		})
 		return
 	}
+{{- end }}
 {{ range .State.Assignments }}
 	{{ . }}
 {{- end }}
 
 	tflog.Debug(ctx, "mapped remote state", map[string]any{"resource": ResourceName})
+{{- if .State.NeedsDiagnostics }}
+
+	return diags
+{{- end }}
 }
+{{ range .State.Nested }}
+// {{ .FuncName }} converts SDK structs into the framework value state holds.
+{{- if .IsCollection }}
+func {{ .FuncName }}(ctx context.Context, in []{{ .SDKType }}) ({{ .FrameworkType }}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+{{- if .NeedsDiagnostics }}
+	var d diag.Diagnostics
+{{- end }}
+
+	// A nil slice is null and an empty slice is empty. Conflating them produces a
+	// diff no configuration change can resolve.
+	if in == nil {
+		return types.SetNull({{ .ObjectTypeVar }}), diags
+	}
+
+	models := make([]{{ .ModelType }}, 0, len(in))
+	for _, item := range in {
+		var m {{ .ModelType }}
+{{ range .Assignments }}
+		{{ . }}
+{{- end }}
+		models = append(models, m)
+	}
+
+	out, d2 := types.SetValueFrom(ctx, {{ .ObjectTypeVar }}, models)
+	diags.Append(d2...)
+
+	return out, diags
+}
+{{- else }}
+func {{ .FuncName }}(ctx context.Context, in *{{ .SDKType }}) ({{ .FrameworkType }}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+{{- if .NeedsDiagnostics }}
+	var d diag.Diagnostics
+{{- end }}
+
+	if in == nil {
+		return types.ObjectNull({{ .ObjectTypeVar }}.AttrTypes), diags
+	}
+
+	item := *in
+
+	var m {{ .ModelType }}
+{{ range .Assignments }}
+	{{ . }}
+{{- end }}
+
+	out, d2 := types.ObjectValueFrom(ctx, {{ .ObjectTypeVar }}.AttrTypes, m)
+	diags.Append(d2...)
+
+	return out, diags
+}
+{{- end }}
+{{ end }}

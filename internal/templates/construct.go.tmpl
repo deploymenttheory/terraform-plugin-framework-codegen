@@ -10,13 +10,82 @@ import (
 //
 // Only writable attributes appear here. A computed attribute has no expand
 // conversion, so it cannot be sent by construction rather than by discipline.
+{{- if .Construct.NeedsDiagnostics }}
+func constructResource(ctx context.Context, data *{{ .ModelTypeName }}) (*{{ .Construct.RequestType }}, diag.Diagnostics) {
+	var (
+		diags diag.Diagnostics
+		d     diag.Diagnostics
+	)
+{{- else }}
 func constructResource(ctx context.Context, data *{{ .ModelTypeName }}) *{{ .Construct.RequestType }} {
+{{- end }}
 	tflog.Debug(ctx, "constructing request body", map[string]any{"resource": ResourceName})
 
 	body := {{ .Construct.ConstructorExpr }}
 {{ range .Construct.Assignments }}
 	{{ . }}
 {{- end }}
-
+{{ if .Construct.NeedsDiagnostics }}
+	return body, diags
+{{- else }}
 	return body
+{{- end }}
 }
+{{ range .Construct.Nested }}
+// {{ .FuncName }} converts the configured {{ .ModelType }} values into SDK structs.
+{{- if .IsCollection }}
+func {{ .FuncName }}(ctx context.Context, v {{ .FrameworkType }}) ([]{{ .SDKType }}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+{{- if .NeedsDiagnostics }}
+	var d diag.Diagnostics
+{{- end }}
+
+	// Null and unknown both yield nil so the field is omitted from the request,
+	// which is distinct from an empty collection asking the API to clear it.
+	if v.IsNull() || v.IsUnknown() {
+		return nil, diags
+	}
+
+	var models []{{ .ModelType }}
+	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	out := make([]{{ .SDKType }}, 0, len(models))
+	for _, m := range models {
+		var item {{ .SDKType }}
+{{ range .Assignments }}
+		{{ . }}
+{{- end }}
+		out = append(out, item)
+	}
+
+	return out, diags
+}
+{{- else }}
+func {{ .FuncName }}(ctx context.Context, v {{ .FrameworkType }}) (*{{ .SDKType }}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+{{- if .NeedsDiagnostics }}
+	var d diag.Diagnostics
+{{- end }}
+
+	if v.IsNull() || v.IsUnknown() {
+		return nil, diags
+	}
+
+	var m {{ .ModelType }}
+	diags.Append(v.As(ctx, &m, basetypes.ObjectAsOptions{})...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var item {{ .SDKType }}
+{{ range .Assignments }}
+	{{ . }}
+{{- end }}
+
+	return &item, diags
+}
+{{- end }}
+{{ end }}

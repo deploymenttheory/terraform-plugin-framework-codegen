@@ -29,3 +29,21 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
+
+  # The pilot provider is a separate Go module, so the entry above does not see
+  # it. Without this its terraform-plugin-framework and SDK pins would never be
+  # offered an update, and the pilot would silently drift away from the framework
+  # version the rest of the organisation's providers are on.
+  #
+  # Note that an SDK bump here can invalidate the bindings recorded in
+  # blueprints/: the "Verify SDK bindings" job in codegen-verify.yml is what
+  # catches that, so review those pull requests on its result rather than on the
+  # diff alone.
+  - package-ecosystem: "gomod"
+    directory: "/pilot/thousandeyes"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"

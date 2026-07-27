@@ -228,6 +228,16 @@ const (
 	KindList TypeKind = "list"
 	KindSet  TypeKind = "set"
 	KindMap  TypeKind = "map"
+
+	// The nested kinds hold an object shape rather than an element type.
+	//
+	// These are nested *attributes*, not blocks. Blocks are the older syntax and
+	// the choice between them is permanent for a published provider, so it is made
+	// deliberately here rather than inferred: HashiCorp's own OpenAPI generator
+	// emits no blocks at all, which means there is no upstream signal to follow.
+	KindListNested   TypeKind = "list_nested"
+	KindSetNested    TypeKind = "set_nested"
+	KindSingleNested TypeKind = "single_nested"
 )
 
 // IsCollection reports whether the kind needs an element type.
@@ -235,11 +245,48 @@ func (k TypeKind) IsCollection() bool {
 	return k == KindList || k == KindSet || k == KindMap
 }
 
-// AttrType is an attribute's type. Phase 1 supports scalars and collections of
-// scalars; nested object kinds arrive with the nested-attribute work.
+// IsNested reports whether the kind holds a nested object shape.
+func (k TypeKind) IsNested() bool {
+	return k == KindListNested || k == KindSetNested || k == KindSingleNested
+}
+
+// IsNestedCollection reports whether the kind holds many nested objects, as
+// opposed to exactly one.
+func (k TypeKind) IsNestedCollection() bool {
+	return k == KindListNested || k == KindSetNested
+}
+
+// AttrType is an attribute's type.
 type AttrType struct {
-	Kind TypeKind  `json:"kind"`
+	Kind TypeKind `json:"kind"`
+	// Elem is the element type of a list, set or map of scalars.
 	Elem *AttrType `json:"elem,omitempty"`
+	// Nested is the object shape of a nested kind.
+	Nested *Nested `json:"nested,omitempty"`
+}
+
+// Nested is the object shape a nested attribute holds.
+type Nested struct {
+	// GoTypeName is the generated tfsdk model for this level, e.g.
+	// "TagAssignmentModel". It is a sibling of the parent model, not an inner type,
+	// because the framework needs a named type to decode elements into.
+	GoTypeName string `json:"goTypeName"`
+
+	// SDKType is the SDK struct one element maps to, e.g. "tags.Assignment".
+	SDKType string `json:"sdkType"`
+
+	// AttrTypesVar is the generated package-level variable holding this shape's
+	// attr.Type map. Both the expand and the flatten helper reference it, so it is
+	// declared once rather than repeated and allowed to drift.
+	AttrTypesVar string `json:"attrTypesVar"`
+	// ObjectTypeVar is the generated variable holding the types.ObjectType.
+	ObjectTypeVar string `json:"objectTypeVar"`
+
+	// ExpandFunc and FlattenFunc are the generated per-shape conversion helpers.
+	ExpandFunc  string `json:"expandFunc"`
+	FlattenFunc string `json:"flattenFunc"`
+
+	Attributes []Attribute `json:"attributes"`
 }
 
 // Attribute is one Terraform schema attribute.

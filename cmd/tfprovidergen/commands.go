@@ -72,6 +72,12 @@ var commands = []command{
 		run:     notImplemented("scaffold"),
 	},
 	{
+		name:    "bindings",
+		summary: "check blueprint SDK bindings against the pinned SDK",
+		usage:   "bindings -blueprint DIR -module DIR",
+		run:     runBindings,
+	},
+	{
 		name:    "interop",
 		summary: "export or import terraform-plugin-codegen-spec v0.1 JSON",
 		usage:   "interop <export|import> [flags]",

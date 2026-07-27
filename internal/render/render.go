@@ -33,6 +33,9 @@ const (
 	pkgTflog     = "github.com/hashicorp/terraform-plugin-log/tflog"
 	pkgPlanModif = "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	pkgStringPM  = "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	pkgAttr      = "github.com/hashicorp/terraform-plugin-framework/attr"
+	pkgDiag      = "github.com/hashicorp/terraform-plugin-framework/diag"
+	pkgBaseTypes = "github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 // ResourceView is everything the per-resource templates need.
@@ -77,6 +80,10 @@ type ResourceView struct {
 	SchemaAttributes []string
 	// ModelFields are finished struct field declarations.
 	ModelFields []string
+	// NestedModels are the sibling model structs a nested attribute needs. They
+	// are siblings rather than inner types because the framework decodes elements
+	// into a named type.
+	NestedModels []NestedModelView
 
 	// ImportState renders the ImportState method body, or is empty when the
 	// resource does not support import.
@@ -107,15 +114,54 @@ type TimeoutsView struct {
 type ConstructView struct {
 	RequestType     string
 	ConstructorExpr string
-	// Assignments are finished `body.X = convert.Y(data.X)` lines.
+	// Assignments are finished statements assigning to the request body.
 	Assignments []string
+	// Nested are the per-shape expand helpers this resource needs.
+	Nested []NestedFuncView
+	// NeedsDiagnostics is true when any assignment can fail, which decides
+	// whether the generated function returns diagnostics at all.
+	NeedsDiagnostics bool
 }
 
 // StateView is the flatten function.
 type StateView struct {
 	ResponseType string
-	// Assignments are finished `data.X = convert.Y(remote.X)` lines.
+	// Assignments are finished statements assigning to the model.
 	Assignments []string
+	// Nested are the per-shape flatten helpers this resource needs.
+	Nested           []NestedFuncView
+	NeedsDiagnostics bool
+}
+
+// NestedModelView is one generated nested model, its attr.Type map and its
+// object type.
+type NestedModelView struct {
+	GoTypeName string
+	// Fields are finished struct field declarations.
+	Fields []string
+	// AttrTypesVar and AttrTypeEntries render the attr.Type map that both the
+	// expand and flatten helpers reference, so the shape is declared once.
+	AttrTypesVar     string
+	AttrTypeEntries  []string
+	ObjectTypeVar    string
+	CollectionGoType string
+}
+
+// NestedFuncView is one generated expand or flatten helper.
+type NestedFuncView struct {
+	FuncName string
+	// FrameworkType is the framework value the helper converts to or from.
+	FrameworkType string
+	SDKType       string
+	ObjectTypeVar string
+	ModelType     string
+	// IsCollection distinguishes a helper over many objects from one over a
+	// single object.
+	IsCollection bool
+	// Assignments are finished per-field statements inside the helper.
+	Assignments []string
+	// NeedsDiagnostics is true when a field conversion inside the helper can fail.
+	NeedsDiagnostics bool
 }
 
 // CRUDView holds one entry per operation the resource supports.
@@ -254,8 +300,44 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 		impResource.add(pkgTypes, "")
 	}
 
-	v.Construct = constructView(r)
-	v.State = stateView(r)
+	shapes, err := nestedShapes(r)
+	if err != nil {
+		return ResourceView{}, err
+	}
+
+	for _, sh := range shapes {
+		nm, err := nestedModelView(sh)
+		if err != nil {
+			return ResourceView{}, err
+		}
+		v.NestedModels = append(v.NestedModels, nm)
+	}
+
+	// A nested shape puts attr.Type maps in model.go, whose imports the template
+	// declares itself, and gives the conversion helpers framework values and
+	// diagnostics to carry. It adds nothing to crud.go, which only ever appends to
+	// resp.Diagnostics.
+	if len(shapes) > 0 {
+		impResource.add(pkgTypes, "")
+		for _, s := range []*importSet{impConstruct, impState} {
+			s.add(pkgTypes, "")
+			s.add(pkgDiag, "")
+		}
+		// A single nested object is decoded with basetypes.ObjectAsOptions, which
+		// a collection does not need.
+		for _, sh := range shapes {
+			if sh.attr.Type.Kind == blueprint.KindSingleNested {
+				impConstruct.add(pkgBaseTypes, "")
+			}
+		}
+	}
+
+	v.Construct = constructView(r, shapes)
+	v.State = stateView(r, shapes)
+
+	// A fallible conversion anywhere means construct or state returns diagnostics,
+	// which changes the shape of the generated CRUD call sites. crud.go needs no
+	// extra import for that: it appends to resp.Diagnostics.
 
 	crud, err := crudView(bp, r)
 	if err != nil {
@@ -328,6 +410,10 @@ var frameworkSchemaType = map[blueprint.TypeKind]string{
 	blueprint.KindList:    "ListAttribute",
 	blueprint.KindSet:     "SetAttribute",
 	blueprint.KindMap:     "MapAttribute",
+
+	blueprint.KindListNested:   "ListNestedAttribute",
+	blueprint.KindSetNested:    "SetNestedAttribute",
+	blueprint.KindSingleNested: "SingleNestedAttribute",
 }
 
 // frameworkModelType maps a type kind to the model field's Go type.
@@ -342,6 +428,10 @@ var frameworkModelType = map[blueprint.TypeKind]string{
 	blueprint.KindList:    "types.List",
 	blueprint.KindSet:     "types.Set",
 	blueprint.KindMap:     "types.Map",
+
+	blueprint.KindListNested:   "types.List",
+	blueprint.KindSetNested:    "types.Set",
+	blueprint.KindSingleNested: "types.Object",
 }
 
 // frameworkElemType maps a scalar kind to its attr.Type expression.
@@ -401,6 +491,10 @@ func attributes(r blueprint.Resource, imports *importSet) (attrs, fields []strin
 }
 
 func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet) (string, error) {
+	if a.Type.Kind.IsNested() {
+		return nestedAttributeDecl(a, imports)
+	}
+
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "%q: schema.%s{\n", a.Name, schemaType)
@@ -422,18 +516,7 @@ func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet)
 		fmt.Fprintf(&b, "ElementType: %s,\n", elem)
 	}
 
-	if a.Presence.IsRequired() {
-		b.WriteString("Required: true,\n")
-	}
-	if a.Presence.IsOptional() {
-		b.WriteString("Optional: true,\n")
-	}
-	if a.Presence.IsComputed() {
-		b.WriteString("Computed: true,\n")
-	}
-	if a.Sensitive {
-		b.WriteString("Sensitive: true,\n")
-	}
+	writeAttributeFlags(&b, a)
 
 	if a.MarkdownDescription != "" {
 		fmt.Fprintf(&b, "MarkdownDescription: %s,\n", goStringLit(a.MarkdownDescription))
@@ -486,6 +569,23 @@ func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet)
 	b.WriteString("}")
 
 	return b.String(), nil
+}
+
+// writeAttributeFlags writes the presence and sensitivity flags shared by every
+// attribute kind, nested or not.
+func writeAttributeFlags(b *strings.Builder, a blueprint.Attribute) {
+	if a.Presence.IsRequired() {
+		b.WriteString("Required: true,\n")
+	}
+	if a.Presence.IsOptional() {
+		b.WriteString("Optional: true,\n")
+	}
+	if a.Presence.IsComputed() {
+		b.WriteString("Computed: true,\n")
+	}
+	if a.Sensitive {
+		b.WriteString("Sensitive: true,\n")
+	}
 }
 
 // validatorKind is the framework's per-type sub-package suffix, which both the
@@ -570,16 +670,34 @@ func goStringLit(s string) string {
 	return strings.Join(parts, " +\n")
 }
 
-func constructView(r blueprint.Resource) ConstructView {
+func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 	v := ConstructView{
 		RequestType:     r.Binding.Body.RequestType,
 		ConstructorExpr: r.Binding.Body.ConstructorExpr,
+	}
+
+	for _, sh := range shapes {
+		if sh.attr.Wire.SkipExpand {
+			continue
+		}
+		v.Nested = append(v.Nested, nestedExpandView(sh))
 	}
 
 	for _, a := range r.Attributes {
 		if a.Drop || a.Wire.SkipExpand || a.Wire.Expand == nil {
 			continue
 		}
+
+		// A fallible conversion becomes two statements plus a diagnostics append,
+		// which is why the enclosing function has to return diagnostics at all.
+		if a.Wire.Expand.ReturnsError {
+			v.NeedsDiagnostics = true
+			v.Assignments = append(v.Assignments, fmt.Sprintf(
+				"body.%s, d = %s\ndiags.Append(d...)",
+				a.Wire.SDKField, convertExpr(*a.Wire.Expand, "data."+a.GoField)))
+			continue
+		}
+
 		v.Assignments = append(v.Assignments, fmt.Sprintf("body.%s = %s",
 			a.Wire.SDKField, convertExpr(*a.Wire.Expand, "data."+a.GoField)))
 	}
@@ -587,13 +705,29 @@ func constructView(r blueprint.Resource) ConstructView {
 	return v
 }
 
-func stateView(r blueprint.Resource) StateView {
+func stateView(r blueprint.Resource, shapes []nestedShape) StateView {
 	v := StateView{ResponseType: r.Binding.Body.ResponseType}
+
+	for _, sh := range shapes {
+		if sh.attr.Wire.SkipFlatten {
+			continue
+		}
+		v.Nested = append(v.Nested, nestedFlattenView(sh))
+	}
 
 	for _, a := range r.Attributes {
 		if a.Drop || a.Wire.SkipFlatten || a.Wire.Flatten == nil {
 			continue
 		}
+
+		if a.Wire.Flatten.ReturnsError {
+			v.NeedsDiagnostics = true
+			v.Assignments = append(v.Assignments, fmt.Sprintf(
+				"data.%s, d = %s\ndiags.Append(d...)",
+				a.GoField, convertExpr(*a.Wire.Flatten, "remote."+a.Wire.SDKField)))
+			continue
+		}
+
 		v.Assignments = append(v.Assignments, fmt.Sprintf("data.%s = %s",
 			a.GoField, convertExpr(*a.Wire.Flatten, "remote."+a.Wire.SDKField)))
 	}
