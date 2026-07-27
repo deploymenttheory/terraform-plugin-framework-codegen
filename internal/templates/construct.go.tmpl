@@ -1,0 +1,22 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.Construct }}
+)
+
+// constructResource maps Terraform configuration onto the API's request body.
+//
+// Only writable attributes appear here. A computed attribute has no expand
+// conversion, so it cannot be sent by construction rather than by discipline.
+func constructResource(ctx context.Context, data *{{ .ModelTypeName }}) *{{ .Construct.RequestType }} {
+	tflog.Debug(ctx, "constructing request body", map[string]any{"resource": ResourceName})
+
+	body := {{ .Construct.ConstructorExpr }}
+{{ range .Construct.Assignments }}
+	{{ . }}
+{{- end }}
+
+	return body
+}

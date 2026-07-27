@@ -1,0 +1,154 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.CRUD }}
+)
+
+{{ with .CRUD.Create }}
+// Create provisions a new {{ $.ResourceName }}.
+func (r *{{ $.GoTypeName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan {{ $.ModelTypeName }}
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "creating resource", map[string]any{"resource": ResourceName})
+
+	timeout := crud.Timeout(ctx, plan.Timeouts, {{ .Phase }}, {{ .TimeoutConst }}*time.Second, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	body := constructResource(ctx, &plan)
+
+	{{ .Assign }} {{ .Call }}
+	if err != nil {
+		errors.Handle(&resp.Diagnostics, ResourceName, {{ .ErrorOp }}, err)
+		return
+	}
+
+	// The identifier is assigned before mapping the rest of the response, so that
+	// a partially-successful create still leaves a resource Terraform can find
+	// and delete rather than an orphan it has no record of.
+	{{ $.CRUD.IDAssign }}
+	mapRemoteStateToTerraform(ctx, &plan, {{ .ResultVar }})
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}
+{{ end }}
+{{ with .CRUD.Read }}
+// Read refreshes {{ $.ResourceName }} state from the API.
+func (r *{{ $.GoTypeName }}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state {{ $.ModelTypeName }}
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "reading resource", map[string]any{"resource": ResourceName})
+
+	timeout := crud.Timeout(ctx, state.Timeouts, {{ .Phase }}, {{ .TimeoutConst }}*time.Second, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	{{ .Assign }} {{ .Call }}
+	if err != nil {
+		// Something deleted outside Terraform must produce a plan that recreates
+		// it, not an error the practitioner has no way to clear.
+		if errors.IsNotFound(err) {
+			tflog.Debug(ctx, "resource no longer exists, removing it from state", map[string]any{
+				"resource": ResourceName,
+			})
+			resp.State.RemoveResource(ctx)
+			return
+		}
+
+		errors.Handle(&resp.Diagnostics, ResourceName, {{ .ErrorOp }}, err)
+		return
+	}
+
+	mapRemoteStateToTerraform(ctx, &state, {{ .ResultVar }})
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+{{ end }}
+{{ with .CRUD.Update }}
+// Update applies configuration changes to an existing {{ $.ResourceName }}.
+func (r *{{ $.GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan, state {{ $.ModelTypeName }}
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "updating resource", map[string]any{"resource": ResourceName})
+
+	timeout := crud.Timeout(ctx, plan.Timeouts, {{ .Phase }}, {{ .TimeoutConst }}*time.Second, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	body := constructResource(ctx, &plan)
+
+	{{ .Assign }} {{ .Call }}
+	if err != nil {
+		errors.Handle(&resp.Diagnostics, ResourceName, {{ .ErrorOp }}, err)
+		return
+	}
+
+	// The plan carries no identifier, since it is computed. Carrying it over from
+	// prior state keeps it in the model in case the response omits it.
+	plan.{{ $.IDField }} = state.{{ $.IDField }}
+	mapRemoteStateToTerraform(ctx, &plan, {{ .ResultVar }})
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}
+{{ end }}
+{{ with .CRUD.Delete }}
+// Delete removes a {{ $.ResourceName }}.
+func (r *{{ $.GoTypeName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state {{ $.ModelTypeName }}
+
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "deleting resource", map[string]any{"resource": ResourceName})
+
+	timeout := crud.Timeout(ctx, state.Timeouts, {{ .Phase }}, {{ .TimeoutConst }}*time.Second, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	{{ .Assign }} {{ .Call }}
+	if err != nil {
+{{- if $.CRUD.DeleteToleratesNotFound }}
+		// Already gone is the outcome delete was asking for.
+		if errors.IsNotFound(err) {
+			return
+		}
+{{- end }}
+		errors.Handle(&resp.Diagnostics, ResourceName, {{ .ErrorOp }}, err)
+		return
+	}
+
+	// State is removed by the framework once Delete returns without error.
+}
+{{ end }}

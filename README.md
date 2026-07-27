@@ -1,75 +1,182 @@
-# Template
+# terraform-plugin-framework-codegen
 
-This repository serves as a **Default Template Repository** according official [GitHub Contributing Guidelines][ProjectSetup] for healthy contributions. It brings you clean default Templates for several areas:
+A toolkit that programmatically generates [terraform-plugin-framework][framework]
+providers from an API specification **plus recorded API behaviour**, so that
+state mapping is compile-checked generated code instead of runtime reflection.
 
-- [Azure DevOps Pull Requests](.azuredevops/PULL_REQUEST_TEMPLATE.md) ([`.azuredevops\PULL_REQUEST_TEMPLATE.md`](`.azuredevops\PULL_REQUEST_TEMPLATE.md`))
-- [Azure Pipelines](.pipelines/pipeline.yml) ([`.pipelines/pipeline.yml`](`.pipelines/pipeline.yml`))
-- [GitHub Workflows](.github/workflows/)
-  - [Super Linter](.github/workflows/linter.yml) ([`.github/workflows/linter.yml`](`.github/workflows/linter.yml`))
-  - [Sample Workflows](.github/workflows/workflow.yml) ([`.github/workflows/workflow.yml`](`.github/workflows/workflow.yml`))
-- [GitHub Pull Requests](.github/PULL_REQUEST_TEMPLATE.md) ([`.github/PULL_REQUEST_TEMPLATE.md`](`.github/PULL_REQUEST_TEMPLATE.md`))
-- [GitHub Issues](.github/ISSUE_TEMPLATE/)
-  - [Feature Requests](.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md) ([`.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md`](`.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md`))
-  - [Bug Reports](.github/ISSUE_TEMPLATE/BUG_REPORT.md) ([`.github/ISSUE_TEMPLATE/BUG_REPORT.md`](`.github/ISSUE_TEMPLATE/BUG_REPORT.md`))
-- [Codeowners](.github/CODEOWNERS) ([`.github/CODEOWNERS`](`.github/CODEOWNERS`)) _adjust usernames once cloned_
-- [Wiki and Documentation](docs/) ([`docs/`](`docs/`))
-- [gitignore](.gitignore) ([`.gitignore`](.gitignore))
-- [gitattributes](.gitattributes) ([`.gitattributes`](.gitattributes))
-- [Changelog](CHANGELOG.md) ([`CHANGELOG.md`](`CHANGELOG.md`))
-- [Code of Conduct](CODE_OF_CONDUCT.md) ([`CODE_OF_CONDUCT.md`](`CODE_OF_CONDUCT.md`))
-- [Contribution](CONTRIBUTING.md) ([`CONTRIBUTING.md`](`CONTRIBUTING.md`))
-- [License](LICENSE) ([`LICENSE`](`LICENSE`)) _adjust projectname once cloned_
-- [Readme](README.md) ([`README.md`](`README.md`))
-- [Security](SECURITY.md) ([`SECURITY.md`](`SECURITY.md`))
+> **Status: early. Phase 0 of 7.** The CLI skeleton, module and CI gates exist.
+> Every pipeline stage is registered and documented but not yet built — running
+> one tells you so and exits non-zero. See [Roadmap](#roadmap).
 
+## Why
 
-## Status
+An OpenAPI document tells you what an API's fields are *called*. It does not
+tell you the things that decide whether a Terraform provider actually works:
 
-[![Super Linter](<https://github.com/segraef/Template/actions/workflows/linter.yml/badge.svg>)](<https://github.com/segraef/Template/actions/workflows/linter.yml>)
+- which fields are genuinely writable, versus accepted and silently discarded
+- which are immutable, and so need `RequiresReplace`
+- what the server rewrites on the way in — case, whitespace, URL form, list
+  order, timestamp format — every one of which is a perpetual diff
+- what it defaults when you omit a field, and whether that default is a real
+  constant or a derived value that must simply be `Computed`
+- whether `PATCH` merges or replaces, whether create returns the object, and how
+  long after create the thing is actually readable
 
-[![Sample Workflow](<https://github.com/segraef/Template/actions/workflows/workflow.yml/badge.svg>)](<https://github.com/segraef/Template/actions/workflows/workflow.yml>)
+A generator that trusts the specification produces providers with perpetual
+diffs, spurious replacements, and `provider produced inconsistent result after
+apply`. The alternative, historically, is discovering each fact one production
+bug at a time and encoding it as a hand-maintained special case.
 
-## Creating a repository from a template
+So this toolkit **pokes the live API and records what it does**. The probe
+transcripts are committed as evidence, facts are re-derived from them offline in
+CI, and they feed the generator alongside the specification.
 
-You can [generate](https://github.com/segraef/Template/generate) a new repository with the same directory structure and files as an existing repository. More details can be found [here][CreateFromTemplate].
+## Pipeline
 
-## Reporting Issues and Feedback
+```
+OpenAPI snapshot ──ingest──┐
+                            ├──merge──► blueprint.json ──emit──► provider Go tree
+live API ────────probe──────┤                                    + tests, mocks,
+                            │                                      fixtures, docs
+human overrides ────────────┘
+```
 
-### Issues and Bugs
+Each arrow writes a **committed, reviewable artefact**. CI regenerates every one
+of them and fails on drift, then builds and tests the result — because a
+generator change can produce a clean diff and broken code.
 
-If you find any bugs, please file an issue in the [GitHub Issues][GitHubIssues] page. Please fill out the provided template with the appropriate information.
+## Quick start
 
-If you are taking the time to mention a problem, even a seemingly minor one, it is greatly appreciated, and a totally valid contribution to this project. **Thank you!**
+Nothing below works yet except `version`. It is the intended shape, kept in the
+README so the target is legible while it is being built.
 
-## Feedback
+```bash
+# 0. pin an upstream spec snapshot
+tfprovidergen specs -output-dir openapi-specs/thousandeyes
 
-If there is a feature you would like to see in here, please file an issue or feature request in the [GitHub Issues][GitHubIssues] page to provide direct feedback.
+# 1. see what the spec offers before committing to anything
+tfprovidergen ingest -only Tags -list
 
-## Contribution
+# 2. infer a blueprint, bound against SDK methods that provably exist
+tfprovidergen ingest -only Tags -out blueprints/thousandeyes
 
-If you would like to become an active contributor to this repository or project, please follow the instructions provided in [`CONTRIBUTING.md`][Contributing].
+# 3. probe a sandbox, recording evidence. Both guards are required.
+tfprovidergen probe -blueprint blueprints/thousandeyes/resources/tag.blueprint.json \
+  -mode record --allow-mutations -profile .tfprovidergen/sandbox/thousandeyes.yaml
 
-## Learn More
+# 4. fold the evidence in; conflicts with the spec are surfaced, never resolved silently
+tfprovidergen merge -blueprint ... -facts ... -strategy annotate
 
-* [GitHub Documentation][GitHubDocs]
-* [Azure DevOps Documentation][AzureDevOpsDocs]
-* [Microsoft Azure Documentation][MicrosoftAzureDocs]
+# 5. emit. Dry run first, always.
+tfprovidergen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes -dry-run
+tfprovidergen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes
 
-<!-- References -->
+# 6. the actual proof
+cd pilot/thousandeyes && go build ./... && go test ./... && terraform plan
 
-<!-- Local -->
-[ProjectSetup]: <https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions>
-[CreateFromTemplate]: <https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/creating-a-repository-from-a-template>
-[GitHubDocs]: <https://docs.github.com/>
-[AzureDevOpsDocs]: <https://docs.microsoft.com/en-us/azure/devops/?view=azure-devops>
-[GitHubIssues]: <https://github.com/segraef/Template/issues>
-[Contributing]: CONTRIBUTING.md
+# 7. the CI gate
+tfprovidergen verify -blueprint blueprints/thousandeyes -out pilot/thousandeyes
+tfprovidergen probe  -blueprint blueprints/thousandeyes -mode verify   # no network
+```
 
-<!-- External -->
-[Az]: <https://img.shields.io/powershellgallery/v/Az.svg?style=flat-square&label=Az>
-[AzGallery]: <https://www.powershellgallery.com/packages/Az/>
-[PowerShellCore]: <https://github.com/PowerShell/PowerShell/releases/latest>
+## What is generated and what is yours
 
-<!-- Docs -->
-[MicrosoftAzureDocs]: <https://docs.microsoft.com/en-us/azure/>
-[PowerShellDocs]: <https://docs.microsoft.com/en-us/powershell/>
+The boundary is the most important thing to understand about a generated
+provider. It is enforced four ways: a per-file header, the emission manifest,
+`.gitattributes`, and `tfprovidergen verify`.
+
+| Path | Owner | Change it by |
+|---|---|---|
+| `internal/services/**/{resource,model,construct,state,crud}.go` | toolkit | editing the blueprint, then `emit` |
+| `internal/services/**/{modify_plan,validate}.go` | **you** | editing them; `emit` never touches them again |
+| `internal/services/**/mocks/`, `tests/` | toolkit | re-probing, then `emit` |
+| `internal/provider/{resources,datasources,provider}.go` marked regions | toolkit | `emit -register` |
+| `internal/provider/configure_clients.go`, `internal/client/` | **you** | editing them — auth is always bespoke |
+| `internal/services/common/convert/` | toolkit | editing the templates |
+| `internal/services/common/{crud,errors,schema}/` | **you** | editing them |
+
+Generated files carry exactly this header, and nothing else may:
+
+```go
+// Code generated by tfprovidergen from blueprints/<path> (sha256:…). DO NOT EDIT.
+```
+
+There is deliberately **no** preserved-region mechanism inside a generated file:
+ownership is all-or-nothing per file. When a file genuinely cannot be generated,
+a blueprint declares it hand-written and `emit` skips it forever.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `cmd/tfprovidergen/` | the one installable binary; stdlib `flag` subcommand dispatch |
+| `internal/blueprint/` | the IR, its validation, and the layered-merge engine |
+| `internal/ingest/` | OpenAPI → blueprint, and `terraform-plugin-codegen-spec` interop |
+| `internal/probe/` | the API behaviour prober |
+| `internal/cassette/` | HTTP record/replay, redaction, deterministic canonicalisation |
+| `internal/emit/`, `internal/render/` | blueprint → Go; all logic lives in `render` |
+| `internal/templates/` | embedded `.tmpl` files — the emitted shape, as reviewable text |
+| `blueprints/` | committed blueprints, one directory per provider |
+| `probe-evidence/` | committed probe cassettes and derived facts |
+| `openapi-specs/` | pinned, immutable specification snapshots |
+| `pilot/thousandeyes/` | a nested module: a fully generated provider, built and plan-tested in CI |
+| `docs/` | architecture, CLI reference, and the new-API onboarding runbook |
+
+## Relationship to HashiCorp's code generation tooling
+
+This toolkit is **not** a wrapper around `tfplugingen-openapi` or
+`tfplugingen-framework`. Those generate a schema and a model struct and stop:
+they emit no CRUD logic at all, and they cannot express `dynamic` attributes,
+`int32`/`float32`, blocks, resource identity, or write-only attributes. Their
+renderers live under `internal/`, so there is nothing to import.
+
+What this project does adopt is the **Provider Code Specification** as an
+interop format: `tfprovidergen interop` reads and writes v0.1 JSON, so
+`tfplugingen-openapi` output can be ingested and the schema slice can be handed
+to other tools. Everything that format cannot carry — CRUD wiring, SDK binding,
+observed behaviour, test scaffolding — lives in this project's own richer IR.
+
+## Roadmap
+
+| Phase | Delivers | State |
+|---|---|---|
+| 0 | module, CLI skeleton, CI gates | **done** |
+| 1 | walking skeleton: one resource, hand-authored blueprint → `terraform plan` | next |
+| 1b | nested attributes and enums | |
+| 2 | `ingest`: OpenAPI → the same blueprint, byte-identical | |
+| 3 | `terraform-plugin-codegen-spec` v0.1 interop | |
+| 4 | the prober: record, replay, gating, cleanup | |
+| 5 | tests, mocks and fixtures derived from probe evidence | |
+| 6 | breadth — ~20 resources, docs, weekly spec refresh | |
+| 7 | a second API, proving nothing is pilot-shaped | |
+
+Deferred beyond v0.1.0: ephemeral resources, actions, list resources,
+provider-defined functions, state upgraders.
+
+## Limitations
+
+- **Probing needs a sandbox tenant and consumes its quota.** Mutating probes
+  refuse to run unless the profile asserts, at runtime, that it really is a
+  sandbox. Read-only probing is safe anywhere.
+- **A wrong fact is worse than no fact.** Inferred field interdependencies and
+  scraped enum values are emitted as documentation and commented-out validators,
+  never as active constraints — an over-tight validator rejects configurations
+  the API would have accepted, and the user cannot work around it.
+- **The prober cannot learn everything.** Licence-gated behaviour, cross-object
+  constraints, RBAC, production latency, and whether a field is *semantically* a
+  secret all need a human. The probe plan's deny list is where that boundary is
+  drawn honestly.
+- **`ingest` refuses partial resources by default.** A resource whose CRUD set is
+  incomplete is a curation decision, not something to guess at.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). The one rule specific to this
+repository: **generated artefacts are regenerated, never hand-edited.** Change
+the blueprint, the templates, or the generator, and re-run. CI enforces this.
+
+## License
+
+[MIT](LICENSE).
+
+[framework]: https://developer.hashicorp.com/terraform/plugin/framework

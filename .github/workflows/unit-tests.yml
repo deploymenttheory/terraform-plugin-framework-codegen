@@ -1,0 +1,145 @@
+name: go | Unit Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '.github/workflows/unit-tests.yml'
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+
+permissions:
+  contents: read
+  pull-requests: write  # Needed for commenting on PR
+  issues: write  # Needed for commenting on PR
+
+jobs:
+  unit-tests:
+    name: '🧪 Run Unit Tests'
+    runs-on: ubuntu-24.04-arm
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Check Out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0  # Get full history for coverage analysis
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: 'go.sum'
+          cache: true
+
+      - name: Download Dependencies
+        run: |
+          echo "::group::📦 Downloading Go modules"
+          go mod download
+          go mod verify
+          echo "::endgroup::"
+
+      - name: Run Unit Tests
+        run: |
+          echo "::group::🧪 Unit Tests"
+          go test -v -race -coverprofile=coverage.out -covermode=atomic \
+            $(go list ./... | grep -v '/acceptance' | grep -v '/examples') 2>&1 | tee test_output.txt
+          echo "::endgroup::"
+
+          echo ""
+          echo "::group::📊 Coverage Summary"
+          go tool cover -func=coverage.out | tail -1
+          echo "::endgroup::"
+
+      - name: Generate Test Statistics
+        if: always()
+        run: |
+          echo "::group::📈 Test Statistics"
+          # Tests are named TestUnit_<Subject>_<Case>, so the subject is the
+          # second underscore-delimited field.
+          grep "^=== RUN" test_output.txt | awk '
+          {
+            name = $3
+            if (name ~ /^TestUnit_/) {
+              sub(/^TestUnit_/, "", name)
+              split(name, parts, "_")
+              subject_tests[parts[1]]++
+              total++
+            }
+          }
+          END {
+            for (s in subject_tests) printf "%s %d\n", s, subject_tests[s]
+            printf "TOTAL_SUBJECTS:%d\n", length(subject_tests) > "/dev/stderr"
+            printf "TOTAL_TESTS:%d\n", total > "/dev/stderr"
+          }
+          ' 2> test_stats_totals.txt | sort -k1,1 > test_stats_sorted.txt
+
+          printf "%-40s %s\n" "Subject" "Tests"
+          printf "%-40s %s\n" "-------" "-----"
+          awk '{printf "%-40s %5d\n", $1, $2}' test_stats_sorted.txt
+          echo ""
+          grep "TOTAL_SUBJECTS:" test_stats_totals.txt | awk -F: '{printf "%-40s %5d\n", "Total Subjects:", $2}'
+          grep "TOTAL_TESTS:"    test_stats_totals.txt | awk -F: '{printf "%-40s %5d\n", "Total Unit Tests:", $2}'
+
+          rm -f test_output.txt test_stats_sorted.txt test_stats_totals.txt
+          echo "::endgroup::"
+
+      - name: Generate Coverage Report
+        if: always()
+        run: |
+          echo "::group::📈 Detailed Coverage Report"
+          go tool cover -func=coverage.out
+          echo "::endgroup::"
+
+      - name: Upload Coverage Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
+          path: coverage.out
+          retention-days: 30
+
+      # Save artifacts on failure
+      - name: Save artifacts
+        if: failure()
+        run: |
+          mkdir -p wr_actions
+          echo ${{ github.repository_owner }} > wr_actions/ghowner.txt
+          echo ${{ github.event.repository.name }} > wr_actions/ghrepo.txt
+          echo ${{ github.event.pull_request.number }} > wr_actions/prnumber.txt
+
+      - name: Upload artifacts
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: artifact
+          path: wr_actions
+
+      # Comment on failure
+      - name: Get run url
+        if: failure()
+        run: |
+          echo "gha_url=https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}" >> $GITHUB_ENV
+
+      - name: Send build failure comment
+        if: failure() && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          GHA_URL: ${{ env.gha_url }}
+        with:
+          result-encoding: string
+          script: |
+            const runUrl = process.env.GHA_URL;
+            github.rest.issues.createComment({
+              issue_number: ${{ github.event.pull_request.number }},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `<b>🧪 Unit Test Failure</b> \n\n This pull request contains failing unit tests which need to be addressed [here](${runUrl}) .`
+            })
