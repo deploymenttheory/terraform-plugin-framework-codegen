@@ -70,9 +70,10 @@ func TestUnit_CLI_Dispatch_ExitCodes(t *testing.T) {
 // here is part of implementing it, and the test below checks the claim in both
 // directions so the list cannot quietly go stale.
 var builtCommands = map[string]bool{
-	"version": true,
-	"emit":    true,
-	"verify":  true,
+	"version":  true,
+	"emit":     true,
+	"verify":   true,
+	"bindings": true,
 }
 
 // TestUnit_CLI_Dispatch_ImplementationClaimsAreTrue guards two failure modes at

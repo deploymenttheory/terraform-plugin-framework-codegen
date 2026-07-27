@@ -1,0 +1,194 @@
+# Fails when the committed generated code no longer matches the blueprints it was
+# generated from.
+#
+# Everything under pilot/ is produced by cmd/tfprovidergen. Nothing stops a change
+# to the generator, a template or a blueprint from landing without the output being
+# regenerated, and stale generated code compiles perfectly well -- so the drift
+# would be invisible. This regenerates and fails if anything moved.
+name: go | Verify generated code
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '.github/workflows/codegen-verify.yml'
+      - 'blueprints/**'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'pilot/**'
+      - 'go.mod'
+      - 'go.sum'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: '🔁 Regenerate and diff'
+    runs-on: ubuntu-24.04-arm
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Check Out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: 'go.sum'
+          cache: true
+
+      - name: Download Dependencies
+        run: |
+          echo "::group::📦 Downloading Go modules"
+          go mod download
+          go mod verify
+          echo "::endgroup::"
+
+      # Generation reads only committed blueprints, so this needs no network and no
+      # credentials.
+      - name: Regenerate
+        run: |
+          echo "::group::🔁 Regenerating the pilot provider"
+          go run ./cmd/tfprovidergen emit \
+            -blueprint blueprints/thousandeyes \
+            -out pilot/thousandeyes
+          echo "::endgroup::"
+
+      # git diff rather than `tfprovidergen verify`, deliberately. verify compares
+      # the files the blueprints produce against disk, so it cannot see a stale file
+      # the blueprints no longer produce. Diffing the worktree after a real
+      # regeneration catches that too.
+      - name: Check for drift
+        run: |
+          if git diff --quiet; then
+            echo "✅ Generated code matches the blueprints."
+            exit 0
+          fi
+
+          echo "::error::Generated code is out of date. Run 'go run ./cmd/tfprovidergen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes' and commit the result."
+          {
+            echo "### ❌ Generated code is out of date"
+            echo ""
+            echo "Run this locally and commit the result:"
+            echo ""
+            echo '```bash'
+            echo 'go run ./cmd/tfprovidergen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes'
+            echo '```'
+            echo ""
+            echo "<details><summary>Files that differ</summary>"
+            echo ""
+            echo '```'
+            git diff --stat
+            echo '```'
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          git diff --stat
+          exit 1
+
+      # The toolkit's own gates. A generator change can produce a clean diff and
+      # broken code, so a matching diff is necessary but not sufficient.
+      - name: Build and test the toolkit
+        run: |
+          echo "::group::🔨 Build"
+          go build ./...
+          echo "::endgroup::"
+          echo "::group::🧪 Test"
+          go test ./...
+          echo "::endgroup::"
+
+      # The pilot is a separate module, so a root `go build ./...` silently skips
+      # every generated file. This explicit entry is the only thing that compiles
+      # the emitted code, which makes it the load-bearing step in this workflow.
+      - name: Build and test the emitted provider
+        working-directory: pilot/thousandeyes
+        run: |
+          echo "::group::📦 Download"
+          go mod download
+          echo "::endgroup::"
+          echo "::group::🔨 Build"
+          go build ./...
+          echo "::endgroup::"
+          echo "::group::🧪 Test"
+          go test ./...
+          echo "::endgroup::"
+
+      # Emitted code must already be in the shape the target repository's formatter
+      # would leave it, or a developer's editor rewrites it on first open and it
+      # then shows as drift with no source change.
+      #
+      # Note the 2>/dev/null: gofumpt writes progress to stderr, and merging that
+      # into the file list turns a cold module cache into a spurious failure.
+      - name: Formatting is a fixed point
+        run: |
+          echo "::group::✨ gofumpt"
+          unformatted=$(go run mvdan.cc/gofumpt@v0.9.1 -l . 2>/dev/null)
+          echo "::endgroup::"
+
+          if [ -z "$unformatted" ]; then
+            echo "✅ Emitted code is a gofumpt fixed point."
+            exit 0
+          fi
+
+          echo "::error::Emitted code is not gofumpt-clean. The generator must produce already-formatted output."
+          {
+            echo "### ❌ Emitted code is not gofumpt-clean"
+            echo ""
+            echo "The generator must emit already-formatted code, or the target repository's"
+            echo "formatter will rewrite it and the next run will report drift."
+            echo ""
+            echo '```'
+            echo "$unformatted"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "$unformatted"
+          exit 1
+
+  bindings:
+    name: '🔗 Verify SDK bindings'
+    runs-on: ubuntu-24.04-arm
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Check Out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: 'go.sum'
+          cache: true
+
+      # A blueprint names SDK symbols as strings, so it can name one that does not
+      # exist. That surfaces as a pile of identical compile errors in generated
+      # code; this reports it against the blueprint field that is actually wrong.
+      #
+      # It runs as its own job because it type-checks the SDK, which is slower than
+      # everything above it and independent of it.
+      - name: Verify bindings against the pinned SDK
+        run: |
+          echo "::group::🔗 Bindings"
+          go run ./cmd/tfprovidergen bindings \
+            -blueprint blueprints/thousandeyes \
+            -module pilot/thousandeyes
+          echo "::endgroup::"
