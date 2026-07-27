@@ -272,6 +272,10 @@ func (a Attribute) validate(at string, p *problems) {
 }
 
 func (t AttrType) validate(at string, p *problems) {
+	if t.Nested != nil && !t.Kind.IsNested() {
+		p.add(at+".nested", "is set on non-nested kind %q", t.Kind)
+	}
+
 	switch t.Kind {
 	case KindBool, KindString, KindInt32, KindInt64, KindFloat32, KindFloat64, KindNumber:
 		if t.Elem != nil {
@@ -283,10 +287,51 @@ func (t AttrType) validate(at string, p *problems) {
 			return
 		}
 		t.Elem.validate(at+".elem", p)
+	case KindListNested, KindSetNested, KindSingleNested:
+		if t.Elem != nil {
+			p.add(at+".elem", "is set on nested kind %q, which uses nested instead", t.Kind)
+		}
+		if t.Nested == nil {
+			p.add(at+".nested", "is required for nested kind %q", t.Kind)
+			return
+		}
+		t.Nested.validate(at+".nested", p)
 	case "":
 		p.add(at+".kind", "is required")
 	default:
 		p.add(at+".kind", "%q is not a known type kind", t.Kind)
+	}
+}
+
+func (n Nested) validate(at string, p *problems) {
+	required(p, at+".goTypeName", n.GoTypeName)
+	required(p, at+".sdkType", n.SDKType)
+	required(p, at+".attrTypesVar", n.AttrTypesVar)
+	required(p, at+".objectTypeVar", n.ObjectTypeVar)
+	required(p, at+".expandFunc", n.ExpandFunc)
+	required(p, at+".flattenFunc", n.FlattenFunc)
+
+	if len(n.Attributes) == 0 {
+		p.add(at+".attributes", "a nested object with no attributes cannot be emitted")
+		return
+	}
+
+	seenNames := map[string]bool{}
+	seenFields := map[string]bool{}
+
+	for i, a := range n.Attributes {
+		aat := fmt.Sprintf("%s.attributes[%d]", at, i)
+		if a.Name != "" {
+			aat = fmt.Sprintf("%s.attributes[%s]", at, a.Name)
+		}
+		if a.Drop {
+			continue
+		}
+
+		a.validate(aat, p)
+
+		dup(p, seenNames, a.Name, aat+".name", "attribute name")
+		dup(p, seenFields, a.GoField, aat+".goField", "model field")
 	}
 }
 

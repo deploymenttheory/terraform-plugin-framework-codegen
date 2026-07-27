@@ -25,7 +25,15 @@ func (r *{{ $.GoTypeName }}) Create(ctx context.Context, req resource.CreateRequ
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+{{- if $.Construct.NeedsDiagnostics }}
+	body, constructDiags := constructResource(ctx, &plan)
+	resp.Diagnostics.Append(constructDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- else }}
 	body := constructResource(ctx, &plan)
+{{- end }}
 
 	{{ .Assign }} {{ .Call }}
 	if err != nil {
@@ -37,7 +45,14 @@ func (r *{{ $.GoTypeName }}) Create(ctx context.Context, req resource.CreateRequ
 	// a partially-successful create still leaves a resource Terraform can find
 	// and delete rather than an orphan it has no record of.
 	{{ $.CRUD.IDAssign }}
+{{- if $.State.NeedsDiagnostics }}
+	resp.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &plan, {{ .ResultVar }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- else }}
 	mapRemoteStateToTerraform(ctx, &plan, {{ .ResultVar }})
+{{- end }}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
@@ -77,7 +92,14 @@ func (r *{{ $.GoTypeName }}) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
+{{- if $.State.NeedsDiagnostics }}
+	resp.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &state, {{ .ResultVar }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- else }}
 	mapRemoteStateToTerraform(ctx, &state, {{ .ResultVar }})
+{{- end }}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -102,7 +124,15 @@ func (r *{{ $.GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequ
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+{{- if $.Construct.NeedsDiagnostics }}
+	body, constructDiags := constructResource(ctx, &plan)
+	resp.Diagnostics.Append(constructDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- else }}
 	body := constructResource(ctx, &plan)
+{{- end }}
 
 	{{ .Assign }} {{ .Call }}
 	if err != nil {
@@ -113,7 +143,14 @@ func (r *{{ $.GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequ
 	// The plan carries no identifier, since it is computed. Carrying it over from
 	// prior state keeps it in the model in case the response omits it.
 	plan.{{ $.IDField }} = state.{{ $.IDField }}
+{{- if $.State.NeedsDiagnostics }}
+	resp.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &plan, {{ .ResultVar }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- else }}
 	mapRemoteStateToTerraform(ctx, &plan, {{ .ResultVar }})
+{{- end }}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

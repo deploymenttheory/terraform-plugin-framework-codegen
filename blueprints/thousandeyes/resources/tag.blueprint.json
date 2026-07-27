@@ -16,7 +16,9 @@
         {
           "name": "id",
           "goField": "ID",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "computed",
           "markdownDescription": "The tag's unique identifier, assigned by the API.",
           "wire": {
@@ -24,125 +26,186 @@
             "sdkField": "ID",
             "sdkGoType": "*string",
             "skipExpand": true,
-            "flatten": { "func": "convert.PtrStringToFramework" }
+            "flatten": {
+              "func": "convert.PtrStringToFramework"
+            }
           }
         },
         {
           "name": "key",
           "goField": "Key",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "required",
           "markdownDescription": "The tag's key. Together with `value` this forms the label applied to assigned objects.",
           "wire": {
             "jsonPath": "key",
             "sdkField": "Key",
             "sdkGoType": "*string",
-            "expand": { "func": "convert.FrameworkToPtrString" },
-            "flatten": { "func": "convert.PtrStringToFramework" }
+            "expand": {
+              "func": "convert.FrameworkToPtrString"
+            },
+            "flatten": {
+              "func": "convert.PtrStringToFramework"
+            }
           }
         },
         {
           "name": "value",
           "goField": "Value",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "optional",
           "markdownDescription": "The tag's value.",
           "wire": {
             "jsonPath": "value",
             "sdkField": "Value",
             "sdkGoType": "*string",
-            "expand": { "func": "convert.FrameworkToPtrString" },
-            "flatten": { "func": "convert.PtrStringToFramework" }
+            "expand": {
+              "func": "convert.FrameworkToPtrString"
+            },
+            "flatten": {
+              "func": "convert.PtrStringToFramework"
+            }
           }
         },
         {
           "name": "color",
           "goField": "Color",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "computed_optional",
           "markdownDescription": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.",
           "wire": {
             "jsonPath": "color",
             "sdkField": "Color",
             "sdkGoType": "*string",
-            "expand": { "func": "convert.FrameworkToPtrString" },
-            "flatten": { "func": "convert.PtrStringToFramework" }
+            "expand": {
+              "func": "convert.FrameworkToPtrString"
+            },
+            "flatten": {
+              "func": "convert.PtrStringToFramework"
+            }
           }
         },
         {
           "name": "description",
           "goField": "Description",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "optional",
           "markdownDescription": "A human-readable description of the tag.",
           "wire": {
             "jsonPath": "description",
             "sdkField": "Description",
             "sdkGoType": "*string",
-            "expand": { "func": "convert.FrameworkToPtrString" },
-            "flatten": { "func": "convert.PtrStringToFramework" }
+            "expand": {
+              "func": "convert.FrameworkToPtrString"
+            },
+            "flatten": {
+              "func": "convert.PtrStringToFramework"
+            }
           }
         },
         {
           "name": "icon",
           "goField": "Icon",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "optional",
           "markdownDescription": "The tag's icon.",
           "wire": {
             "jsonPath": "icon",
             "sdkField": "Icon",
             "sdkGoType": "*string",
-            "expand": { "func": "convert.FrameworkToPtrString" },
-            "flatten": { "func": "convert.PtrStringToFramework" }
+            "expand": {
+              "func": "convert.FrameworkToPtrString"
+            },
+            "flatten": {
+              "func": "convert.PtrStringToFramework"
+            }
           }
         },
         {
           "name": "object_type",
           "goField": "ObjectType",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "required",
           "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.",
           "wire": {
             "jsonPath": "objectType",
             "sdkField": "ObjectType",
             "sdkGoType": "tags.ObjectType",
-            "expand": { "func": "convert.FrameworkToEnum", "typeArgs": ["tags.ObjectType"] },
-            "flatten": { "func": "convert.EnumToFramework" }
+            "expand": {
+              "func": "convert.FrameworkToEnum",
+              "typeArgs": [
+                "tags.ObjectType"
+              ]
+            },
+            "flatten": {
+              "func": "convert.EnumToFramework"
+            }
           }
         },
         {
           "name": "access_type",
           "goField": "AccessType",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "computed_optional",
           "markdownDescription": "The tag's access level. Documented values are `all`, `partner` and `system`.",
           "wire": {
             "jsonPath": "accessType",
             "sdkField": "AccessType",
             "sdkGoType": "tags.AccessType",
-            "expand": { "func": "convert.FrameworkToEnum", "typeArgs": ["tags.AccessType"] },
-            "flatten": { "func": "convert.EnumToFramework" }
+            "expand": {
+              "func": "convert.FrameworkToEnum",
+              "typeArgs": [
+                "tags.AccessType"
+              ]
+            },
+            "flatten": {
+              "func": "convert.EnumToFramework"
+            }
           }
         },
         {
           "name": "match_type",
           "goField": "MatchType",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "computed_optional",
           "markdownDescription": "How the tag's filters combine when it is assigned dynamically.",
           "wire": {
             "jsonPath": "matchType",
             "sdkField": "MatchType",
             "sdkGoType": "tags.TagMatchType",
-            "expand": { "func": "convert.FrameworkToEnum", "typeArgs": ["tags.TagMatchType"] },
-            "flatten": { "func": "convert.EnumToFramework" }
+            "expand": {
+              "func": "convert.FrameworkToEnum",
+              "typeArgs": [
+                "tags.TagMatchType"
+              ]
+            },
+            "flatten": {
+              "func": "convert.EnumToFramework"
+            }
           }
         },
         {
           "name": "type",
           "goField": "Type",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "computed",
           "markdownDescription": "The tag's type, assigned by the API.",
           "wire": {
@@ -150,13 +213,17 @@
             "sdkField": "Type",
             "sdkGoType": "tags.Type",
             "skipExpand": true,
-            "flatten": { "func": "convert.EnumToFramework" }
+            "flatten": {
+              "func": "convert.EnumToFramework"
+            }
           }
         },
         {
           "name": "built_in",
           "goField": "BuiltIn",
-          "type": { "kind": "bool" },
+          "type": {
+            "kind": "bool"
+          },
           "presence": "computed",
           "markdownDescription": "Whether the tag is built in rather than user-created.",
           "wire": {
@@ -164,13 +231,17 @@
             "sdkField": "BuiltIn",
             "sdkGoType": "*bool",
             "skipExpand": true,
-            "flatten": { "func": "convert.PtrBoolToFramework" }
+            "flatten": {
+              "func": "convert.PtrBoolToFramework"
+            }
           }
         },
         {
           "name": "account_group_id",
           "goField": "AccountGroupID",
-          "type": { "kind": "int64" },
+          "type": {
+            "kind": "int64"
+          },
           "presence": "computed",
           "markdownDescription": "The account group the tag belongs to. Computed rather than configurable: the provider scopes every request through its own `account_group_id` setting, so accepting a second value here would let the two disagree.",
           "wire": {
@@ -178,13 +249,17 @@
             "sdkField": "AID",
             "sdkGoType": "*int64",
             "skipExpand": true,
-            "flatten": { "func": "convert.PtrInt64ToFramework" }
+            "flatten": {
+              "func": "convert.PtrInt64ToFramework"
+            }
           }
         },
         {
           "name": "create_date",
           "goField": "CreateDate",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "computed",
           "markdownDescription": "When the tag was created.",
           "wire": {
@@ -192,13 +267,17 @@
             "sdkField": "CreateDate",
             "sdkGoType": "*string",
             "skipExpand": true,
-            "flatten": { "func": "convert.PtrStringToFramework" }
+            "flatten": {
+              "func": "convert.PtrStringToFramework"
+            }
           }
         },
         {
           "name": "modified_date",
           "goField": "ModifiedDate",
-          "type": { "kind": "string" },
+          "type": {
+            "kind": "string"
+          },
           "presence": "computed",
           "markdownDescription": "When the tag was last modified.",
           "wire": {
@@ -206,13 +285,17 @@
             "sdkField": "ModifiedDate",
             "sdkGoType": "*string",
             "skipExpand": true,
-            "flatten": { "func": "convert.PtrStringToFramework" }
+            "flatten": {
+              "func": "convert.PtrStringToFramework"
+            }
           }
         },
         {
           "name": "legacy_id",
           "goField": "LegacyID",
-          "type": { "kind": "float64" },
+          "type": {
+            "kind": "float64"
+          },
           "presence": "computed",
           "markdownDescription": "The tag's identifier in the v6 API. Typed as a number because the specification declares it as one, although observed values are integral; probing will settle whether this should be an integer.",
           "wire": {
@@ -220,7 +303,213 @@
             "sdkField": "LegacyID",
             "sdkGoType": "*float64",
             "skipExpand": true,
-            "flatten": { "func": "convert.PtrFloat64ToFramework" }
+            "flatten": {
+              "func": "convert.PtrFloat64ToFramework"
+            }
+          }
+        },
+        {
+          "name": "assignments",
+          "goField": "Assignments",
+          "type": {
+            "kind": "set_nested",
+            "nested": {
+              "goTypeName": "TagAssignmentModel",
+              "sdkType": "tags.Assignment",
+              "attrTypesVar": "tagAssignmentAttrTypes",
+              "objectTypeVar": "tagAssignmentObjectType",
+              "expandFunc": "expandTagAssignments",
+              "flattenFunc": "flattenTagAssignments",
+              "attributes": [
+                {
+                  "name": "id",
+                  "goField": "ID",
+                  "type": {
+                    "kind": "string"
+                  },
+                  "presence": "required",
+                  "markdownDescription": "The identifier of the object the tag is assigned to.",
+                  "wire": {
+                    "jsonPath": "id",
+                    "sdkField": "ID",
+                    "sdkGoType": "*string",
+                    "expand": {
+                      "func": "convert.FrameworkToPtrString"
+                    },
+                    "flatten": {
+                      "func": "convert.PtrStringToFramework"
+                    }
+                  }
+                },
+                {
+                  "name": "type",
+                  "goField": "Type",
+                  "type": {
+                    "kind": "string"
+                  },
+                  "presence": "required",
+                  "markdownDescription": "The kind of object assigned. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`.",
+                  "wire": {
+                    "jsonPath": "type",
+                    "sdkField": "Type",
+                    "sdkGoType": "tags.AssignmentType",
+                    "expand": {
+                      "func": "convert.FrameworkToEnum",
+                      "typeArgs": [
+                        "tags.AssignmentType"
+                      ]
+                    },
+                    "flatten": {
+                      "func": "convert.EnumToFramework"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "presence": "computed_optional",
+          "markdownDescription": "Objects this tag is assigned to. A set rather than a list because the API does not preserve ordering.",
+          "wire": {
+            "jsonPath": "assignments",
+            "sdkField": "Assignments",
+            "sdkGoType": "[]tags.Assignment",
+            "expand": {
+              "func": "expandTagAssignments",
+              "needsCtx": true,
+              "returnsError": true
+            },
+            "flatten": {
+              "func": "flattenTagAssignments",
+              "needsCtx": true,
+              "returnsError": true
+            }
+          }
+        },
+        {
+          "name": "filters",
+          "goField": "Filters",
+          "type": {
+            "kind": "set_nested",
+            "nested": {
+              "goTypeName": "TagFilterModel",
+              "sdkType": "tags.TagFilter",
+              "attrTypesVar": "tagFilterAttrTypes",
+              "objectTypeVar": "tagFilterObjectType",
+              "expandFunc": "expandTagFilters",
+              "flattenFunc": "flattenTagFilters",
+              "attributes": [
+                {
+                  "name": "key",
+                  "goField": "Key",
+                  "type": {
+                    "kind": "string"
+                  },
+                  "presence": "required",
+                  "markdownDescription": "The filter key used for matching.",
+                  "wire": {
+                    "jsonPath": "key",
+                    "sdkField": "Key",
+                    "sdkGoType": "*string",
+                    "expand": {
+                      "func": "convert.FrameworkToPtrString"
+                    },
+                    "flatten": {
+                      "func": "convert.PtrStringToFramework"
+                    }
+                  }
+                },
+                {
+                  "name": "mode",
+                  "goField": "Mode",
+                  "type": {
+                    "kind": "string"
+                  },
+                  "presence": "computed_optional",
+                  "markdownDescription": "How the filter values are matched.",
+                  "wire": {
+                    "jsonPath": "mode",
+                    "sdkField": "Mode",
+                    "sdkGoType": "tags.TagFilterMode",
+                    "expand": {
+                      "func": "convert.FrameworkToEnum",
+                      "typeArgs": [
+                        "tags.TagFilterMode"
+                      ]
+                    },
+                    "flatten": {
+                      "func": "convert.EnumToFramework"
+                    }
+                  }
+                },
+                {
+                  "name": "scope",
+                  "goField": "Scope",
+                  "type": {
+                    "kind": "string"
+                  },
+                  "presence": "computed_optional",
+                  "markdownDescription": "The scope the filter applies within.",
+                  "wire": {
+                    "jsonPath": "scope",
+                    "sdkField": "Scope",
+                    "sdkGoType": "tags.TagFilterScope",
+                    "expand": {
+                      "func": "convert.FrameworkToEnum",
+                      "typeArgs": [
+                        "tags.TagFilterScope"
+                      ]
+                    },
+                    "flatten": {
+                      "func": "convert.EnumToFramework"
+                    }
+                  }
+                },
+                {
+                  "name": "values",
+                  "goField": "Values",
+                  "type": {
+                    "kind": "set",
+                    "elem": {
+                      "kind": "string"
+                    }
+                  },
+                  "presence": "required",
+                  "markdownDescription": "The values the filter matches against.",
+                  "wire": {
+                    "jsonPath": "values",
+                    "sdkField": "Values",
+                    "sdkGoType": "[]string",
+                    "expand": {
+                      "func": "convert.FrameworkSetToStringSlice",
+                      "needsCtx": true,
+                      "returnsError": true
+                    },
+                    "flatten": {
+                      "func": "convert.StringSliceToFrameworkSet",
+                      "needsCtx": true,
+                      "returnsError": true
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "presence": "computed_optional",
+          "markdownDescription": "Filters that dynamically assign this tag to endpoint agents.",
+          "wire": {
+            "jsonPath": "filters",
+            "sdkField": "Filters",
+            "sdkGoType": "[]tags.TagFilter",
+            "expand": {
+              "func": "expandTagFilters",
+              "needsCtx": true,
+              "returnsError": true
+            },
+            "flatten": {
+              "func": "flattenTagFilters",
+              "needsCtx": true,
+              "returnsError": true
+            }
           }
         }
       ],
@@ -233,41 +522,83 @@
         "create": {
           "style": "method",
           "method": "CreateTag",
-          "args": [{ "kind": "ctx" }, { "kind": "body" }],
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "body"
+            }
+          ],
           "return": "resultTransportError",
           "resultType": "tags.Tag",
           "httpMethod": "POST",
           "pathTemplate": "/tags",
-          "successCodes": [201]
+          "successCodes": [
+            201
+          ]
         },
         "read": {
           "style": "method",
           "method": "GetTag",
-          "args": [{ "kind": "ctx" }, { "kind": "stateField", "field": "ID" }],
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            }
+          ],
           "return": "resultTransportError",
           "resultType": "tags.Tag",
           "httpMethod": "GET",
           "pathTemplate": "/tags/{id}",
-          "successCodes": [200]
+          "successCodes": [
+            200
+          ]
         },
         "update": {
           "style": "method",
           "method": "UpdateTag",
-          "args": [{ "kind": "ctx" }, { "kind": "stateField", "field": "ID" }, { "kind": "body" }],
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            },
+            {
+              "kind": "body"
+            }
+          ],
           "return": "resultTransportError",
           "resultType": "tags.Tag",
           "httpMethod": "PUT",
           "pathTemplate": "/tags/{id}",
-          "successCodes": [200]
+          "successCodes": [
+            200
+          ]
         },
         "delete": {
           "style": "method",
           "method": "DeleteTag",
-          "args": [{ "kind": "ctx" }, { "kind": "stateField", "field": "ID" }],
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            }
+          ],
           "return": "transportError",
           "httpMethod": "DELETE",
           "pathTemplate": "/tags/{id}",
-          "successCodes": [204]
+          "successCodes": [
+            204
+          ]
         },
         "id": {
           "attribute": "id",
@@ -284,7 +615,9 @@
       },
       "policy": {
         "updateStyle": "putFull",
-        "delete": { "notFoundIsSuccess": true }
+        "delete": {
+          "notFoundIsSuccess": true
+        }
       },
       "import": {
         "style": "passthroughId",
