@@ -5,11 +5,11 @@
 // exercising a probe against a real API: a live tenant tells you what *that* API does,
 // while a quirk server tells you whether the probe would notice if it did something else.
 //
-// Each switch on Quirks encodes one behaviour observed in a real API, and most of them are
-// drawn from the hardcoded special cases in the existing ThousandEyes provider's
-// util.go -- resourceFixups, normalizeStringInterfaceSlice, sensitiveFields. Those are a
-// catalogue of quirks discovered the hard way, one production bug at a time, and turning
-// them into switches is what lets a probe be *validated* rather than merely run.
+// Each switch on Quirks encodes one behaviour observed in a real API. Most were drawn from the
+// hardcoded special cases that accumulate in hand-written providers -- fixup tables, runtime
+// re-normalisers, lists of fields to treat specially. Those are a catalogue of quirks
+// discovered the hard way, one production bug at a time, and turning them into switches is
+// what lets a probe be *validated* rather than merely run.
 //
 // Every quirk is asserted to be exhibited by TestUnit_Quirkserver_EachQuirkIsExhibited. A
 // switch that silently stopped working would make the probe tests that depend on it pass
@@ -30,9 +30,9 @@ import (
 
 // EnvelopeKind is one of the error body shapes a real API uses.
 //
-// Four, because the ThousandEyes API genuinely returns four and its client/errors.go tries
-// them in turn. A prober that assumed one shape could not tell "rejected because the field
-// is immutable" from "rejected because the token expired", and that distinction is what
+// Four, because an API can genuinely use all four across one endpoint family -- see
+// internal/probe/apierr. A prober that assumed one shape could not tell "rejected because the
+// field is immutable" from "rejected because the token expired", and that distinction is what
 // makes the immutability protocol possible at all.
 type EnvelopeKind string
 
@@ -49,9 +49,9 @@ const (
 
 // Conditional describes a requirement that depends on another field's value.
 //
-// This is the ICMP/port case from resourceFixups: port matters only when protocol is tcp or
-// udp. It is the quirk that proves one-field-at-a-time omission reports half a truth, and
-// that a probe must emit a note rather than a fact when two fixtures disagree.
+// The archetypal case is a port field that matters only when a protocol field says tcp. It is
+// the quirk that proves one-field-at-a-time omission reports half a truth, and that a probe
+// must emit a note rather than a fact when two fixtures disagree.
 type Conditional struct {
 	// When is the field/value pair that triggers the requirement.
 	WhenField string
@@ -106,8 +106,8 @@ type Quirks struct {
 
 	// WriteSideEffects sets one field as a consequence of another being written.
 	//
-	// The networkMeasurements to bandwidthMeasurements coupling: the one quirk in util.go
-	// a human would never have guessed and a prober genuinely can find. Maps trigger
+	// Enabling one measurement silently enabling another: the class of quirk a human would
+	// never guess from a specification and a prober genuinely can find. Maps the trigger
 	// field to the field it also sets.
 	WriteSideEffects map[string]string
 
@@ -117,16 +117,16 @@ type Quirks struct {
 	TrimsWhitespace []string
 	// SortsLists sorts these list-valued fields.
 	//
-	// normalizeStringInterfaceSlice exists in the current provider purely to suppress the
-	// drift this causes, at runtime, which is the wrong layer to fix it at.
+	// Hand-written providers carry runtime helpers that re-sort collections purely to
+	// suppress the drift this causes, which is the wrong layer to fix it at.
 	SortsLists []string
 
 	// ExpansionGated returns these fields only when the matching expansion query
 	// parameter is present.
 	//
-	// The assignments trap. A probe that reads back once concludes the field is never
-	// returned, and the generated state mapper then blanks a real value on every refresh.
-	// Maps field name to the expand value that reveals it.
+	// A probe that reads back once concludes the field is never returned, and the generated
+	// state mapper then blanks a real value on every refresh. Any API with an expand,
+	// include or fields parameter can do this. Maps field name to the value that reveals it.
 	ExpansionGated map[string]string
 
 	// PutClearsOmitted makes update replace rather than merge.
@@ -152,8 +152,8 @@ type Quirks struct {
 	// DeleteFlakyEvery makes every Nth delete fail.
 	DeleteFlakyEvery int
 
-	// RateLimitHeaders emits the x-organization-rate-limit-* headers, and 429s once the
-	// budget is spent. Lets pacing be tested with no live tenant.
+	// RateLimitHeaders emits a rate-limit header trio and 429s once the budget is spent,
+	// which lets pacing be tested with no live tenant.
 	RateLimitHeaders bool
 	// RateLimit is the budget when RateLimitHeaders is set.
 	RateLimit int
@@ -164,8 +164,8 @@ type Quirks struct {
 	// IgnoresUnknownQueryParams returns 200 for an unrecognised query parameter rather
 	// than 400.
 	//
-	// Calibrates every probe that depends on unknown *body* fields being ignored.
-	// pagination.go records the real API doing exactly this.
+	// Calibrates every probe that depends on unknown *body* fields being ignored rather
+	// than rejected.
 	IgnoresUnknownQueryParams bool
 
 	// TypedQueryParams reject a bad value, which is how the error-envelope probe provokes
@@ -198,10 +198,17 @@ type Server struct {
 	spent int
 }
 
-// collectionPath and itemPrefix are the paths the server serves.
+// collectionPath and itemPrefix are the paths this fixture serves.
+//
+// Arbitrary: a probe is driven by a blueprint's path templates, so the fixture only has to be
+// self-consistent. "/things" rather than any real resource name, to keep the fixture from
+// reading as a claim about a particular API.
 const (
-	collectionPath = "/tags"
-	itemPrefix     = "/tags/"
+	collectionPath = "/things"
+	itemPrefix     = "/things/"
+	// envelopeKey is the key a list response wraps its items under, which probes discover
+	// rather than assume.
+	envelopeKey = "things"
 )
 
 // New starts a quirk server. It is closed when the test finishes.
@@ -349,7 +356,7 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 		items = append(items, s.project(id, r))
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{"tags": items})
+	writeJSON(w, http.StatusOK, map[string]any{envelopeKey: items})
 }
 
 func (s *Server) create(w http.ResponseWriter, r *http.Request) {

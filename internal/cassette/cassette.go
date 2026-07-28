@@ -132,16 +132,18 @@ var recordedRequestHeaders = map[string]bool{
 // recordedResponseHeaders is the allow list for response headers.
 //
 // Every entry earns its place by being something a probe reads or a fact cites.
-// Deliberately absent: date and x-request-id (churn), the -remaining and -reset
-// rate-limit headers (churn), set-cookie (a session credential -- both house transports
-// log these in cleartext, which is exactly why they are excluded here), and traceparent.
+// Deliberately absent: date and request-id headers (churn), the remaining/reset half of a
+// rate-limit trio (churn -- the limit is stable and useful, the countdown is neither),
+// set-cookie (a session credential), and trace headers.
 var recordedResponseHeaders = map[string]bool{
-	"content-type":                    true,
-	"location":                        true,
-	"deprecation":                     true,
-	"sunset":                          true,
-	"retry-after":                     true,
-	"www-authenticate":                true,
+	"content-type":     true,
+	"location":         true,
+	"deprecation":      true,
+	"sunset":           true,
+	"retry-after":      true,
+	"www-authenticate": true,
+	// A rate-limit *ceiling*, which is stable and lets a prober pace itself. Vendors spell
+	// this differently; add the header your API uses.
 	"x-organization-rate-limit-limit": true,
 }
 
@@ -265,7 +267,7 @@ func looksLikeJSON(raw []byte) bool {
 //
 // Probes need this for the observations that turn on the bytes rather than the
 // structure -- notably whether a 404 has an empty body at all, which is one of the four
-// error shapes the ThousandEyes API uses.
+// error shapes the pilot API uses.
 func (r Response) RawBody() ([]byte, error) {
 	switch {
 	case r.BodyBase64 != "":

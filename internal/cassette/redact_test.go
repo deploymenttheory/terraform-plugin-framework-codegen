@@ -351,7 +351,7 @@ func TestUnit_Cassette_PlantedTokenWritesNothing(t *testing.T) {
 		Response: Response{Status: 200, Body: map[string]any{"token": testToken}},
 	}}
 
-	meta := Metadata{Provider: "thousandeyes", Resource: "tag", Host: "api.thousandeyes.com"}
+	meta := Metadata{Provider: "example", Resource: "thing", Host: "api.example.com"}
 
 	_, err := Write(root, meta, interactions, map[string]string{"bearer": testToken}, time.Unix(0, 0))
 	if !errors.Is(err, ErrSecretFound) {

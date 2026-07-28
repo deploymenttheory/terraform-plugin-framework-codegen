@@ -26,10 +26,10 @@ func sampleInteractions() []Interaction {
 
 func sampleMetadata() Metadata {
 	return Metadata{
-		Provider:     "thousandeyes",
+		Provider:     "example",
 		Resource:     "tag",
 		APIVersion:   "7.0.97",
-		Host:         "api.thousandeyes.com",
+		Host:         "api.example.com",
 		ProbeVersion: "1",
 	}
 }

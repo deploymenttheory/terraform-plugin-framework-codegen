@@ -214,7 +214,7 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 	t.Run("ConditionallyRequired", func(t *testing.T) {
 		t.Parallel()
 
-		// The ICMP/port case from resourceFixups: the quirk that proves one-field-at-a-time
+		// The ICMP/port case from a fixup table: the quirk that proves one-field-at-a-time
 		// omission from a single fixture reports half a truth either way.
 		s := New(t, Quirks{ConditionallyRequired: &Conditional{
 			WhenField: "protocol", WhenValue: "tcp", Then: "port",
@@ -276,7 +276,7 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 	t.Run("SortsLists", func(t *testing.T) {
 		t.Parallel()
 
-		// normalizeStringInterfaceSlice exists in the current provider purely to suppress
+		// a runtime collection re-sorter exists in the current provider purely to suppress
 		// the drift this causes, at runtime, which is the wrong layer to fix it at.
 		s := New(t, Quirks{SortsLists: []string{"values"}})
 
@@ -501,7 +501,7 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 	t.Run("IgnoresUnknownQueryParams", func(t *testing.T) {
 		t.Parallel()
 
-		// pagination.go records the real API doing exactly this, and it calibrates every
+		// real APIs do exactly this, and it calibrates every
 		// probe that depends on unknown *body* fields being ignored.
 		strict := New(t, Quirks{})
 		lax := New(t, Quirks{IgnoresUnknownQueryParams: true})
@@ -577,7 +577,7 @@ func TestUnit_Quirkserver_ZeroValueIsWellBehaved(t *testing.T) {
 	if status != http.StatusOK {
 		t.Errorf("list status = %d, want 200", status)
 	}
-	if items, _ := listed["tags"].([]any); len(items) != 1 {
+	if items, _ := listed["things"].([]any); len(items) != 1 {
 		t.Errorf("the list should hold one object: %v", listed)
 	}
 
