@@ -83,6 +83,11 @@ var builtCommands = map[string]bool{
 	// ingest: `interop` with no verb reports that it needs one, which is a real
 	// answer rather than a claim that the subcommand does not exist.
 	"interop": true,
+	// probe has its catalogue and -list; the transports and the gate are not written
+	// yet. It counts as built because it loads a real blueprint, flattens it and
+	// reports real costs -- and because an unbuilt *mode* returns errNotImplemented
+	// rather than exiting zero, which is asserted separately.
+	"probe": true,
 }
 
 // TestUnit_CLI_Dispatch_ImplementationClaimsAreTrue guards two failure modes at

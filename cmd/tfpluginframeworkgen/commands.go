@@ -44,8 +44,8 @@ var commands = []command{
 	{
 		name:    "probe",
 		summary: "exercise a resource's lifecycle; record or replay cassettes",
-		usage:   "probe [-mode record|replay|verify] [-blueprint FILE] [--allow-mutations]",
-		run:     notImplemented("probe"),
+		usage:   usageProbe,
+		run:     runProbe,
 	},
 	{
 		name:    "merge",
