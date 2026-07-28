@@ -1,0 +1,549 @@
+package probe
+
+import (
+	"context"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+)
+
+// This file is the catalogue.
+//
+// Every probe is registered here with its name, kind, worst-case cost, and a doc
+// comment stating three things: what it sends, what Terraform-relevant fact it infers,
+// and **how it can be wrong**. The third is not documentation etiquette. A probe whose
+// failure mode nobody has written down is a probe whose facts nobody can weigh, and the
+// whole store is worth only as much as it is trusted.
+//
+// Registering the catalogue before implementing it is deliberate. It makes the costs,
+// the priorities and the stated failure modes reviewable before a single request is
+// issued at anybody's tenant, and it makes `probe -list` useful with no credentials.
+//
+// # Order
+//
+// The read-only tier runs first and is safe against any API including production. Within
+// it, R4 runs before everything because it calibrates the others. The mutating tier runs
+// only behind the full gating conjunction.
+//
+// # Not in this catalogue, on purpose
+//
+//   - POST idempotency. It deliberately creates a duplicate; the cleanup story is worse
+//     than the fact is worth.
+//   - Pagination exhaustion. Needs a tenant with enough data, and the SDK already
+//     documents it as unverifiable.
+//   - Rate-limit exhaustion. Antisocial in somebody's sandbox, and the
+//     x-organization-rate-limit headers already state the budget.
+//   - Delete cascade, and whether a 202 delete ever completes. Both need deliberate
+//     destruction of related objects or open-ended waiting, and neither is something a
+//     prefix sweep can guarantee to undo.
+//   - Auth-scope checking. Marginal.
+func init() {
+	// Read-only tier, in run order.
+	registerRead(unknownParamTolerance{})
+	registerRead(notFoundShape{})
+	registerRead(listShape{})
+	registerRead(volatileOnRead{})
+	registerRead(errorEnvelope{})
+	registerRead(returnedOnReadWeak{})
+
+	// Mutating tier, in run order.
+	registerMutating(requiredByAPI{})
+	registerMutating(readYourWrites{})
+	registerMutating(writableAndReturned{})
+	registerMutating(updateStyle{})
+	registerMutating(serverDefault{})
+	registerMutating(immutability{})
+	registerMutating(enumBoundary{})
+	registerMutating(writeSideEffect{})
+	registerMutating(normalisation{})
+}
+
+// ---------------------------------------------------------------------------
+// Read-only tier
+// ---------------------------------------------------------------------------
+
+// unknownParamTolerance sends one GET to the collection with a query parameter the API
+// cannot know, and observes whether it is ignored or rejected.
+//
+// It infers no Terraform fact directly. Its job is to **calibrate every other probe**:
+// an API that silently ignores an unknown query parameter very likely also ignores an
+// unknown body field, and "unknown fields are ignored rather than rejected" is the
+// assumption the writability and server-default protocols rest on. Running it first
+// means those protocols know whether their own premise holds.
+//
+// The ThousandEyes SDK already records this observation in pagination.go -- ?bogusParam=abc
+// returns 200 while ?cursor=abc returns 400 -- so this formalises something a human
+// discovered by hand.
+//
+// How it can be wrong: a gateway rather than the application may reject the parameter,
+// in which case tolerance of body fields does not follow. The fact is emitted at
+// Observed for the query-parameter claim itself and never used to conclude anything about
+// bodies on its own.
+type unknownParamTolerance struct{}
+
+func (unknownParamTolerance) Name() string     { return "read.unknown-param" }
+func (unknownParamTolerance) Kind() Kind       { return KindRead }
+func (unknownParamTolerance) Cost(Subject) int { return 1 }
+
+func (unknownParamTolerance) Observe(context.Context, ReadSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// notFoundShape sends one GET for a well-formed but absent identifier, and observes the
+// status and body shape.
+//
+// It infers whether policy.delete.notFoundIsSuccess is implementable, and it feeds the
+// generated error mapper. This matters more than it looks: internal/ingest currently
+// hardcodes NotFoundIsSuccess to true with no evidence at all, and if the API in fact
+// returns 403 or an empty 200 for an absent object, the generated delete swallows a real
+// failure.
+//
+// How it can be wrong: an API that returns 403 for another tenant's identifier is
+// indistinguishable from one that returns 403 for an absent one. That is itself worth
+// recording, so the outcome is a fact about the observed status rather than a claim about
+// absence.
+type notFoundShape struct{}
+
+func (notFoundShape) Name() string     { return "read.not-found-shape" }
+func (notFoundShape) Kind() Kind       { return KindRead }
+func (notFoundShape) Cost(Subject) int { return 1 }
+
+func (notFoundShape) Observe(context.Context, ReadSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// listShape sends one GET to the collection and observes the envelope key, whether a
+// next-page link is present, and the shape of an item.
+//
+// Its intrinsic value is low; its job is to be the fixture source for later probes and
+// the evidence for the sandbox-size assertion.
+//
+// How it can be wrong: it does not, so much as it frequently observes nothing. An empty
+// tenant is the *normal* state of a good sandbox, so this must degrade to "no
+// observation" cleanly rather than erroring -- a probe that failed on an empty collection
+// would make a clean sandbox look like a broken one.
+type listShape struct{}
+
+func (listShape) Name() string     { return "read.list-shape" }
+func (listShape) Kind() Kind       { return KindRead }
+func (listShape) Cost(Subject) int { return 1 }
+
+func (listShape) Observe(context.Context, ReadSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// volatileOnRead reads the same item three times, spaced by an interval, and observes
+// which fields differ.
+//
+// It infers Volatile, which is what catches the perpetual-diff class: a modifiedDate that
+// changes on every read makes every plan report drift forever, and the only fix is
+// marking it Computed before anybody publishes the provider.
+//
+// A diff across all three reads is Observed. No diff produces **no fact at all** --
+// stability over five seconds is not evidence of stability, and emitting Volatile=false
+// would license merge to act on an absence.
+//
+// How it can be wrong: something else in the tenant may be editing the object
+// concurrently, which manufactures a false Volatile. Mitigated by preferring an object
+// the prober created itself, where nothing else has a reason to touch it.
+type volatileOnRead struct{}
+
+func (volatileOnRead) Name() string     { return "read.volatile" }
+func (volatileOnRead) Kind() Kind       { return KindRead }
+func (volatileOnRead) Cost(Subject) int { return 3 }
+
+func (volatileOnRead) Observe(context.Context, ReadSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// errorEnvelope sends one deliberately malformed read -- a typed query parameter given a
+// bad value -- and observes which error shape comes back for which status.
+//
+// The ThousandEyes API returns three distinct envelopes depending on the endpoint: RFC
+// 7807 problem+json, an OAuth {error, error_description} pair, and a legacy
+// {errorMessage} form, plus empty-bodied 404s. Its client/errors.go handles all four.
+// Knowing which appears where feeds the generated mocks in Phase 5, and it validates the
+// prober's own classifier -- which every other probe depends on, because telling "rejected
+// because immutable" from "rejected because the token expired" is what makes the
+// immutability protocol possible at all.
+//
+// How it can be wrong: one malformed request exercises one code path. An API may use a
+// different envelope for authorisation failures than for validation failures, so the fact
+// is scoped to the status actually observed rather than generalised.
+type errorEnvelope struct{}
+
+func (errorEnvelope) Name() string     { return "read.error-envelope" }
+func (errorEnvelope) Kind() Kind       { return KindRead }
+func (errorEnvelope) Cost(Subject) int { return 1 }
+
+func (errorEnvelope) Observe(context.Context, ReadSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// returnedOnReadWeak reads one item and notes which of the schema's JSON paths are absent.
+//
+// Deliberately capped at Suspected. An absent field could mean "never returned", or "null
+// for this particular object", or "returned only with an expansion parameter" -- and
+// nothing in a single read distinguishes them. The trustworthy version of this fact
+// requires having *written* the field first, which is what write.writable-returned does.
+//
+// It is registered separately only so that read-only mode produces something for a
+// resource with no create operation, where the stronger probe cannot run.
+//
+// How it can be wrong: in all three ways above, which is exactly why it may never be
+// merged. Its output is a prompt to look, not a conclusion.
+type returnedOnReadWeak struct{}
+
+func (returnedOnReadWeak) Name() string     { return "read.returned-weak" }
+func (returnedOnReadWeak) Kind() Kind       { return KindRead }
+func (returnedOnReadWeak) Cost(Subject) int { return 1 }
+
+func (returnedOnReadWeak) Observe(context.Context, ReadSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// ---------------------------------------------------------------------------
+// Mutating tier
+// ---------------------------------------------------------------------------
+
+// requiredByAPI creates once with a full fixture, then once per candidate field with
+// exactly that field omitted, and observes which omissions are refused.
+//
+// It infers RequiredByAPI, which is frequently not what the specification declares -- in
+// both directions. The pilot has two live examples: key and object_type are marked
+// required although TagInfo declares no required list at all.
+//
+// A 2xx on omission gives RequiredByAPI=false at Observed, because a success is
+// unambiguous. A 4xx gives true at Observed only when the error body *names the field*;
+// otherwise Inferred, because the request may have failed for an unrelated reason.
+//
+// How it can be wrong: **conditional requirement.** resourceFixups in the existing
+// ThousandEyes provider encodes exactly this -- port matters only when protocol is tcp or
+// udp -- and one-field-at-a-time omission from a single fixture reports half a truth
+// either way. Mitigated by running every fixture variant the plan declares: a field whose
+// requiredness differs between variants produces a Note and an Alternatives entry, never
+// a Fact.
+type requiredByAPI struct{}
+
+func (requiredByAPI) Name() string { return "write.required" }
+func (requiredByAPI) Kind() Kind   { return KindMutating }
+
+// Cost is one create for the baseline plus one per omittable field, per fixture.
+func (requiredByAPI) Cost(
+	s Subject,
+) int {
+	return fixtureMultiplier(s) * (1 + len(s.WritableFields()))
+}
+
+// Creates matches Cost: every request in this probe is a create.
+func (requiredByAPI) Creates(s Subject) int {
+	return fixtureMultiplier(s) * (1 + len(s.WritableFields()))
+}
+
+func (requiredByAPI) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// readYourWrites reads each created object immediately, retrying with backoff when the
+// read 404s or comes back missing fields.
+//
+// It infers policy.readBack: whether the generated create and update need a re-read loop,
+// how many retries, and how long between them.
+//
+// The confidence is deliberately asymmetric. enabled=true is Observed, because the
+// failure was seen. enabled=false is only Inferred -- one fast success does not prove
+// consistency. So merge may **add** a read-back but never remove one, which is the safe
+// direction: a needless re-read costs a request, a missing one costs a failed apply.
+//
+// How it can be wrong: a consistency window measured on an idle sandbox is not
+// production's. The measured interval is recorded as a floor with its provenance attached,
+// never as a property of the real system.
+type readYourWrites struct{}
+
+func (readYourWrites) Name() string { return "write.read-your-writes" }
+func (readYourWrites) Kind() Kind   { return KindMutating }
+
+// Nearly free: the first read after a create is one this probe would be doing anyway.
+func (readYourWrites) Cost(s Subject) int    { return fixtureMultiplier(s) * 4 }
+func (readYourWrites) Creates(s Subject) int { return fixtureMultiplier(s) }
+
+func (readYourWrites) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// writableAndReturned creates with every writable field set to a distinctive value, then
+// reads back and compares.
+//
+// It infers Writable and ReturnedOnRead -- the pair that decides between Computed and
+// Optional+Computed, and the pair that settles the pilot's colour, access_type and
+// match_type guesses in the writable direction.
+//
+// Equal means Writable=true and ReturnedOnRead=true. Absent means ReturnedOnRead=false,
+// and here it *is* Observed rather than Suspected, because the field was demonstrably
+// sent. Present but different is **not** Writable=false: that is a normalisation fact, and
+// conflating the two would mark a perfectly writable field as computed.
+//
+// How it can be wrong: **expansion-gated fields.** The tags endpoint returns assignments
+// only when asked with an expansion parameter. A probe that reads back once concludes
+// ReturnedOnRead=false, and the generated state mapper then blanks a real value on every
+// refresh. So this reads back twice: bare, and with every expansion the plan lists.
+type writableAndReturned struct{}
+
+func (writableAndReturned) Name() string { return "write.writable-returned" }
+func (writableAndReturned) Kind() Kind   { return KindMutating }
+
+// One create plus a bare read plus one read per expansion.
+func (writableAndReturned) Cost(s Subject) int    { return fixtureMultiplier(s) * 4 }
+func (writableAndReturned) Creates(s Subject) int { return fixtureMultiplier(s) }
+
+func (writableAndReturned) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// updateStyle creates with two fields set, reads to confirm both, updates sending only
+// the first, then reads again.
+//
+// It infers policy.updateStyle. If the second field survived, the API merges; if it was
+// cleared, the request must carry the whole object. internal/ingest currently derives this
+// from the HTTP verb alone, and the IR's own comment says what getting it wrong costs:
+// the generated provider "silently erases attributes the practitioner never mentioned".
+//
+// This is one of the few facts a single sequence genuinely settles, provided the
+// interstitial read happened -- without it, "the field was never set" and "the field was
+// cleared" are the same observation.
+//
+// How it can be wrong: an API that distinguishes an absent key from an explicit null would
+// behave differently for the two, and a request body built from a Go struct with omitempty
+// cannot express the difference. That is why the prober builds bodies as maps.
+type updateStyle struct{}
+
+func (updateStyle) Name() string { return "write.update-style" }
+func (updateStyle) Kind() Kind   { return KindMutating }
+
+func (updateStyle) Cost(s Subject) int {
+	if s.Update == nil {
+		return 0
+	}
+	return 4
+}
+
+func (updateStyle) Creates(s Subject) int {
+	if s.Update == nil {
+		return 0
+	}
+	return 1
+}
+
+func (updateStyle) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// serverDefault establishes whether an omitted field's value is a constant, is derived, or
+// means the field is not settable at all.
+//
+// Terraform cares about exactly those three outcomes: a constant default can be
+// Optional plus a static Default; a derived default must be computed_optional with no
+// static default; not-settable is plain Computed. This is the probe that settles the
+// pilot's three computed_optional guesses.
+//
+// The protocol is five creates, and the extra ones are the whole point. Two byte-identical
+// creates catch a value that varies between them, which rules out a constant. A third with
+// a different influencing field catches a value derived from the request. A fourth that
+// sets the field explicitly catches the case where it was never writable and the earlier
+// distinctive value merely collided with the default.
+//
+// How it can be wrong: the dominant false positive is treating a *derived* value as a
+// constant -- a colour hashed from a key, a counter, a timestamp -- and writing it into the
+// blueprint as stringdefault.StaticString, which is then a permanent lie. Steps three and
+// four exist for that, and the fact carries "derived from tenant configuration" and
+// "derived from a field this plan did not vary" as standing alternatives.
+type serverDefault struct{}
+
+func (serverDefault) Name() string { return "write.server-default" }
+func (serverDefault) Kind() Kind   { return KindMutating }
+
+// The most expensive probe in the catalogue: five creates and five reads per candidate
+// field. Worth every request, because this is the guess sitting in the committed blueprint.
+func (serverDefault) Cost(s Subject) int    { return 10 * len(s.WritableFields()) }
+func (serverDefault) Creates(s Subject) int { return 5 * len(s.WritableFields()) }
+
+func (serverDefault) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// immutability establishes whether the API refuses to change a field after create.
+//
+// Six requests and a control. A 4xx on an update alone proves nothing, and there are at
+// least five other explanations for it: the value was invalid rather than the field
+// immutable; the whole request was rejected for an unrelated reason, which is very likely
+// under putFull semantics; the field is immutable only after some state transition; the API
+// returned 200 and silently ignored the change, which is **not** immutability; or the
+// request was rate limited.
+//
+// So: create with v1, read to confirm v1 is observable, update with v1 unchanged as a
+// **control** -- if that fails, the update request shape itself is wrong and every later
+// conclusion is an artefact of that -- create a second object with v2 to prove v2 is an
+// acceptable value at all, then update the first object to v2. A 2xx that leaves the value
+// at v1 emits silentlyIgnoredOnUpdate rather than Immutable, because they are different
+// facts that happen to want similar handling.
+//
+// Immutable=true requires Corroborated: two fixtures and two distinct values, both refused.
+//
+// How it can be wrong: in the five ways above, each of which one step of the protocol
+// exists to eliminate. And regardless of outcome, this **never** sets a plan modifier.
+// Whether Terraform should destroy and recreate is a decision about somebody's
+// infrastructure; the toolkit's job is to put the evidence in front of the person making it.
+type immutability struct{}
+
+func (immutability) Name() string { return "write.immutability" }
+func (immutability) Kind() Kind   { return KindMutating }
+
+func (immutability) Cost(s Subject) int {
+	if s.Update == nil {
+		return 0
+	}
+	// Six requests per candidate field, doubled for corroboration.
+	return 12 * len(s.WritableFields())
+}
+
+func (immutability) Creates(s Subject) int {
+	if s.Update == nil {
+		return 0
+	}
+	return 4 * len(s.WritableFields())
+}
+
+func (immutability) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// enumBoundary asks three questions of a field the specification documents as an enum:
+// is the set closed, are the documented values actually accepted, and is it case
+// sensitive.
+//
+// It emits enumClosed, enumAccepted and enumRejectedDocumented. **None of them generates an
+// active validator**, ever. The README and the pilot blueprint's own object_type description
+// already state why: an over-tight validator rejects configurations the API would have
+// accepted and the practitioner cannot work around it. The SDK's enums are deliberately
+// open, so a routine upstream addition must not become a plan failure. Merge writes the
+// accepted set into the attribute's description and reports that a OneOf is now supportable
+// by hand.
+//
+// The valuable result is the third one: a **documented value the API rejects** means the
+// specification is stale, and a spec-derived validator would have been actively harmful.
+//
+// How it can be wrong: a negative value must be shaped like the documented ones -- short,
+// lower-case, hyphenated -- or a length or character-set validator answers instead of enum
+// membership, and the probe concludes the set is closed when it merely rejected a
+// forty-character string. Two negative candidates are required, both rejected. And a value
+// the sandbox refuses may be licence-gated rather than nonexistent, so the fact says
+// "rejected here", never "does not exist".
+//
+// Its cost is zero against a subject whose fields declare no enum values, which today is
+// every subject: the blueprint has no field for a documented value set. That is not an
+// oversight to work around here -- see Field.Enum -- and it means enum candidates have to
+// come from the plan before this probe can do anything. -list reports the zero rather than
+// hiding it, so the gap is visible rather than looking like a probe that found nothing.
+type enumBoundary struct{}
+
+func (enumBoundary) Name() string { return "write.enum" }
+func (enumBoundary) Kind() Kind   { return KindMutating }
+
+func (enumBoundary) Cost(s Subject) int    { return 2 * enumValueCount(s) }
+func (enumBoundary) Creates(s Subject) int { return enumValueCount(s) }
+
+func (enumBoundary) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// writeSideEffect looks for a field the server set that was never sent, then perturbs the
+// suspected trigger and re-reads to confirm the coupling.
+//
+// This is the networkMeasurements to bandwidthMeasurements coupling hardcoded in the
+// existing provider's resourceFixups -- the one quirk in that whole file a human would
+// never have guessed and a prober genuinely can find.
+//
+// It stays Inferred even after confirmation. "The server set it in response to this
+// request" and "the server always sets it, for every object of this type" are different
+// claims, and one perturbation establishes only the first. Emitted as a sideEffect fact
+// feeding documentation and a Phase 5 test; the IR has nowhere else to put it.
+//
+// How it can be wrong: a field that changes could be a server default rather than a side
+// effect of the field that was sent, which is why confirmation requires perturbing the
+// trigger rather than just noticing the correlation once.
+type writeSideEffect struct{}
+
+func (writeSideEffect) Name() string { return "write.side-effect" }
+func (writeSideEffect) Kind() Kind   { return KindMutating }
+
+func (writeSideEffect) Cost(s Subject) int    { return fixtureMultiplier(s) * 4 }
+func (writeSideEffect) Creates(s Subject) int { return fixtureMultiplier(s) * 2 }
+
+func (writeSideEffect) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// normalisation sends awkward values -- mixed case, surrounding whitespace, a reversed
+// collection -- and observes what comes back changed.
+//
+// It is the highest-value class of fact in the catalogue, because server normalisation is
+// the direct cause of a perpetual diff: the practitioner writes one value, the API stores
+// another, and every subsequent plan proposes changing it back. The existing provider's
+// normalizeStringInterfaceSlice exists precisely to suppress the collection-order case at
+// runtime, which is the wrong layer to fix it at.
+//
+// A specific identified transform is Observed; "changed somehow" is Suspected. A 4xx is
+// **no observation** rather than evidence -- a rejected value tells you nothing about what
+// the server would have done with an accepted one.
+//
+// How it can be wrong: it needs a value generator per type to be thorough, and a first cut
+// covering case, whitespace and collection order will miss numeric coercion, date
+// reformatting and unicode normalisation. Those are absences rather than errors: the probe
+// under-reports rather than reporting wrongly.
+type normalisation struct{}
+
+func (normalisation) Name() string { return "write.normalisation" }
+func (normalisation) Kind() Kind   { return KindMutating }
+
+// Three awkward values per writable string field, each needing a create and a read.
+func (normalisation) Cost(s Subject) int    { return 6 * stringFieldCount(s) }
+func (normalisation) Creates(s Subject) int { return 3 * stringFieldCount(s) }
+
+func (normalisation) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+	return Result{}, errNotImplemented
+}
+
+// ---------------------------------------------------------------------------
+// Cost helpers
+// ---------------------------------------------------------------------------
+
+// fixtureMultiplier is how many times a probe repeats for corroboration.
+//
+// Two rather than one, because corroboration across independent fixtures is what
+// distinguishes Observed from Corroborated, and Corroborated is required for the two facts
+// that can break a practitioner's configuration. Costing for one would make every budget
+// wrong by half.
+func fixtureMultiplier(Subject) int { return 2 }
+
+// stringFieldCount counts writable string fields, which are the only ones the
+// normalisation probe has awkward values for.
+func stringFieldCount(s Subject) int {
+	n := 0
+	for _, f := range s.WritableFields() {
+		if f.Kind == blueprint.KindString {
+			n++
+		}
+	}
+	return n
+}
+
+// enumValueCount counts the documented enum values across the subject, plus two negative
+// candidates per enum field.
+func enumValueCount(s Subject) int {
+	n := 0
+	for _, f := range s.WritableFields() {
+		if len(f.Enum) > 0 {
+			n += len(f.Enum) + 2
+		}
+	}
+	return n
+}
