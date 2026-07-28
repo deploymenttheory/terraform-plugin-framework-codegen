@@ -2,11 +2,13 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
 )
 
 // TestUnit_CLI_Probe_ListsTheCatalogue is the Phase 4.1 milestone as a test.
@@ -33,32 +35,182 @@ func TestUnit_CLI_Probe_ListNarrowsToOneProbe(t *testing.T) {
 	}
 }
 
-// TestUnit_CLI_Probe_UnbuiltPathsRefuseExplicitly.
+// TestUnit_CLI_Probe_MutationsOutsideRecordAreRefused.
 //
-// Anything not yet implemented must return an error rather than exit zero having done
-// nothing. A scripted run that treated an unbuilt path as a clean one would report success
-// for a probe run that never happened -- which in a CI job is indistinguishable from a
-// passing gate.
-//
-// Two remain: sweep, and the whole mutating tier. --allow-mutations is *refused* rather than
-// ignored, because silently dropping it would let a caller believe the write path had been
-// probed.
-func TestUnit_CLI_Probe_UnbuiltPathsRefuseExplicitly(t *testing.T) {
+// Refused rather than ignored, and refused *before* the gate, because the gate only runs on the
+// record path. Silently dropping the flag would let a scripted run believe it had probed the
+// write path when what it actually did was replay a committed transcript.
+func TestUnit_CLI_Probe_MutationsOutsideRecordAreRefused(t *testing.T) {
 	t.Parallel()
 
-	tests := map[string][]string{
-		"sweep":           {"-blueprint", blueprintDir(), "-resource", "tag", "-mode", "sweep"},
-		"allow-mutations": {"-blueprint", blueprintDir(), "-resource", "tag", "--allow-mutations"},
-	}
-
-	for name, args := range tests {
-		t.Run(name, func(t *testing.T) {
+	for _, mode := range []string{"replay", "verify", "sweep"} {
+		t.Run(mode, func(t *testing.T) {
 			t.Parallel()
 
-			if err := runProbe(args); !errors.Is(err, errNotImplemented) {
-				t.Errorf("probe %v = %v, want errNotImplemented", args, err)
+			err := runProbe([]string{
+				"-blueprint", blueprintDir(), "-resource", "tag",
+				"-mode", mode, "--allow-mutations",
+			})
+
+			if !errors.Is(err, probe.ErrRefused) {
+				t.Fatalf("error = %v, want ErrRefused", err)
 			}
+			assertExitCode(t, err, exitGatingRefused)
 		})
+	}
+}
+
+// TestUnit_CLI_Probe_SweepNeedsCredentialsFromTheEnvironment: a sweep reaches a real API, and the
+// token comes from the environment for the same reason a record run's does.
+func TestUnit_CLI_Probe_SweepNeedsCredentialsFromTheEnvironment(t *testing.T) {
+	t.Parallel()
+
+	err := runProbe([]string{"-blueprint", blueprintDir(), "-resource", "tag", "-mode", "sweep"})
+	if err == nil {
+		t.Fatal("a sweep with no endpoint must fail")
+	}
+	if !strings.Contains(err.Error(), endpointEnv) {
+		t.Errorf("the error should name the variable to set: %v", err)
+	}
+}
+
+// TestUnit_CLI_Probe_ExitCodePrecedence.
+//
+// The mapping cannot be an errors.As walk: errors.As returns the first match in a preorder walk,
+// and first is not most serious. These conditions genuinely co-occur -- a run can exceed its
+// budget, sweep, and still leave an orphan -- so which number CI sees must not depend on the
+// order the errors happened to be joined in.
+func TestUnit_CLI_Probe_ExitCodePrecedence(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		err  error
+		want int
+	}{
+		{"redaction", cassette.ErrSecretFound, exitRedactionFailed},
+		{"orphans", probe.ErrOrphans, exitOrphansLeft},
+		{"an unusable ledger is an orphan risk", probe.ErrLedger, exitOrphansLeft},
+		{"a stale ledger is too", probe.ErrDirtyLedger, exitOrphansLeft},
+		{"refused", probe.ErrRefused, exitGatingRefused},
+		{"budget", probe.ErrBudget, exitBudgetExceeded},
+		{"delete failures", probe.ErrDeleteFailures, exitBudgetExceeded},
+		{"replay mismatch", probe.ErrReplayMismatch, exitReplayMismatch},
+		{"anything else", errors.New("something went wrong"), exitError},
+
+		// The precedence, asserted in both join orders. Either order producing a different
+		// code is the specific bug this table exists to prevent.
+		{
+			"budget joined before orphans",
+			errors.Join(probe.ErrBudget, probe.ErrOrphans),
+			exitOrphansLeft,
+		},
+		{
+			"orphans joined before budget",
+			errors.Join(probe.ErrOrphans, probe.ErrBudget),
+			exitOrphansLeft,
+		},
+		{
+			"a redaction failure outranks orphans in either order",
+			errors.Join(probe.ErrOrphans, cassette.ErrSecretFound),
+			exitRedactionFailed,
+		},
+		{
+			"a refusal outranks a budget cap",
+			errors.Join(probe.ErrBudget, probe.ErrRefused),
+			exitGatingRefused,
+		},
+		{
+			"a budget cap outranks a replay mismatch",
+			errors.Join(probe.ErrReplayMismatch, probe.ErrBudget),
+			exitBudgetExceeded,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assertExitCode(t, probeError(tc.err), tc.want)
+		})
+	}
+
+	// Nothing wrong stays nothing wrong, and help is not a failure.
+	if err := probeError(nil); err != nil {
+		t.Errorf("probeError(nil) = %v", err)
+	}
+	if err := probeError(flag.ErrHelp); !errors.Is(err, flag.ErrHelp) {
+		t.Errorf("help must pass through untouched, got %v", err)
+	}
+
+	// A usage error already carries its own code and must keep it: a mistyped flag is not a
+	// gating refusal, whatever else the error mentions.
+	usage := usagef("-mode %q is not a mode", "nonsense")
+	if got := probeError(usage); got != usage {
+		t.Errorf("a usage error should pass through unchanged, got %v", got)
+	}
+}
+
+// assertExitCode checks the code an error maps to, defaulting to exitError when it carries none.
+func assertExitCode(t *testing.T, err error, want int) {
+	t.Helper()
+
+	got := exitError
+
+	var coded exitCoder
+	if errors.As(err, &coded) {
+		got = coded.ExitCode()
+	}
+
+	if got != want {
+		t.Errorf("exit code = %d, want %d (error: %v)", got, want, err)
+	}
+}
+
+// TestUnit_CLI_Probe_ADirtyLedgerRefusesARecordRun.
+//
+// Not only for tidiness. A record run against a tenant already holding your own orphans makes
+// maxExistingObjects measure your own rubbish, and creating more on top of objects you have
+// already failed to remove is the wrong direction.
+func TestUnit_CLI_Probe_ADirtyLedgerRefusesARecordRun(t *testing.T) {
+	// Not parallel: it writes a ledger at the conventional path, which is process-wide state.
+	dir := t.TempDir()
+
+	path := probe.LedgerPath(dir, "example", "thing")
+
+	l, err := probe.OpenLedger(path)
+	if err != nil {
+		t.Fatalf("OpenLedger: %v", err)
+	}
+	if _, err := l.Intent("write.p", "/things", "tfpfgen-probe-p-1"); err != nil {
+		t.Fatalf("Intent: %v", err)
+	}
+	if err := l.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	// The ledger root is a constant, so the check is exercised directly rather than by moving
+	// the process's working directory out from under a parallel test suite.
+	entries, err := probe.ReadLedger(path)
+	if err != nil {
+		t.Fatalf("ReadLedger: %v", err)
+	}
+
+	dirty := probe.DirtyError(path, "thing", probe.Unresolved(entries))
+
+	if !errors.Is(dirty, probe.ErrDirtyLedger) {
+		t.Fatalf("error = %v, want ErrDirtyLedger", dirty)
+	}
+	// Exit 5, the same code as orphans: a stale ledger is the record of objects that may be
+	// live, and "something is still out there" is what a caller needs to act on.
+	assertExitCode(t, probeError(dirty), exitOrphansLeft)
+
+	// Replay and verify get a note instead: refusing an offline CI gate over a stale local file
+	// buys nothing.
+	for _, mode := range []string{"replay", "verify"} {
+		if err := checkLedger(mode, "absent-provider", "absent-resource"); err != nil {
+			t.Errorf("%s: %v", mode, err)
+		}
 	}
 }
 

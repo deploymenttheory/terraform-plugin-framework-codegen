@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -51,6 +52,19 @@ type RunOptions struct {
 	// Grant is proof the gate passed. Without one, mutating probes do not run whatever
 	// AllowMutations says -- the flag is a request, the grant is the authorisation.
 	Grant *Grant
+
+	// Ledger records every create before it is issued. Required whenever Grant is set;
+	// replay passes MemoryLedger, so there is no mode in which a create goes unrecorded.
+	Ledger *Ledger
+
+	// SweepPageParams widens the sweeper's collection read on an API whose default page is
+	// small. Offered rather than guessed at.
+	SweepPageParams url.Values
+
+	// AssertionsPassed names the gating assertions the tenant demonstrated, for the report.
+	// Carried from the gate rather than re-derived, because a report that stated the claim
+	// instead of the evidence would be the one thing the gate exists to avoid.
+	AssertionsPassed []string
 }
 
 // RunResult is what a run produced.
@@ -67,6 +81,14 @@ type RunResult struct {
 // look like a complete one.
 func Run(ctx context.Context, opts RunOptions) (RunResult, error) {
 	var out RunResult
+
+	// A sweep is not a probe run: it derives no facts, and it must be able to spend after a
+	// run's budget is exhausted. It has its own entry point, and refusing here rather than in
+	// TransportFor is why TransportFor can hand a sweep the live transport it needs.
+	if opts.Mode == ModeSweep {
+		return out, fmt.Errorf(
+			"%w: sweep is not a probe run; call Sweep instead", ErrInvalidPlan)
+	}
 
 	transport, recorder, err := TransportFor(
 		opts.Mode,
@@ -91,13 +113,15 @@ func Run(ctx context.Context, opts RunOptions) (RunResult, error) {
 	}
 
 	out.Report.Profile = ProfileSummary{
-		Host:    hostOf(baseURLFor(opts)),
-		Mode:    string(opts.Mode),
-		Sandbox: opts.Grant != nil,
+		Host:             hostOf(baseURLFor(opts)),
+		Mode:             string(opts.Mode),
+		Sandbox:          opts.Grant != nil,
+		AssertionsPassed: opts.AssertionsPassed,
 	}
 
 	runReadProbes(ctx, session, opts, &out.Report)
-	reportSkippedMutating(opts, &out.Report)
+
+	mutateErr := runMutatingTier(ctx, session, opts, &out.Report)
 
 	out.Report.Budget = session.budget.report()
 
@@ -122,7 +146,70 @@ func Run(ctx context.Context, opts RunOptions) (RunResult, error) {
 
 	out.Report.Sort()
 
-	return out, nil
+	return out, mutateErr
+}
+
+// runMutatingTier runs the mutating probes, then sweeps.
+//
+// The sweep runs whatever the probes did, including when they panicked, and its error is joined
+// rather than replacing theirs: a run can exceed its budget *and* leave an orphan, and a reader
+// needs to be told both. The exit-code precedence table in cmd decides which number that becomes.
+func runMutatingTier(
+	ctx context.Context,
+	session *httpSession,
+	opts RunOptions,
+	report *Report,
+) error {
+	if opts.Grant == nil {
+		reportSkippedMutating(opts, report)
+		return nil
+	}
+
+	// The one hole ReplayGrant opens, closed in the one place that can see both facts. A
+	// replay grant exists so cmd can replay a recorded mutating cassette without a profile or
+	// a tenant; handed to a recording run it would be authorisation from nowhere.
+	if opts.Grant.IsReplay() && opts.Mode == ModeRecord {
+		return fmt.Errorf("%w: a replay grant cannot authorise a recording run", ErrNoGrant)
+	}
+
+	ms, err := newMutatingSession(opts.Grant, session, MutationConfig{
+		Ledger:       opts.Ledger,
+		NameField:    opts.Subject.NameField,
+		IDField:      opts.Subject.IDField,
+		UpdateMethod: updateMethodOf(opts.Subject),
+	})
+	if err != nil {
+		return err
+	}
+
+	probeErr := runMutatingProbes(ctx, ms, MutatingProbes(opts.Only), opts, report)
+
+	// A separate context, because the commonest reason to be here with something to clean up
+	// is that the run's own context is already done.
+	sweepCtx, cancel := SweepContext(ctx, opts.Plan.Budget.MaxSweepSeconds)
+	defer cancel()
+
+	summary, sweepErr := Sweep(sweepCtx, SweepOptions{
+		Session:    ms,
+		NamePrefix: opts.Grant.NamePrefix(),
+		NameField:  opts.Subject.NameField,
+		PageParams: opts.SweepPageParams,
+		MaxSeconds: opts.Plan.Budget.MaxSweepSeconds,
+	})
+
+	report.Sweep = &summary
+	report.Orphans = summary.Orphans
+	report.Notes = append(report.Notes, summary.Notes...)
+
+	return errors.Join(probeErr, sweepErr)
+}
+
+// updateMethodOf reports the method an update uses, PUT unless the blueprint says otherwise.
+func updateMethodOf(subj Subject) string {
+	if subj.Update == nil {
+		return ""
+	}
+	return subj.Update.Method
 }
 
 // replayHost stands in for the real host during replay.

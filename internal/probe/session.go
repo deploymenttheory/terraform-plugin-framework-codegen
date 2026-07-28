@@ -2,8 +2,13 @@ package probe
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
 	"net/url"
+	"strings"
+	"time"
 )
 
 // This file declares the two session types and the Grant that authorises the mutating
@@ -23,13 +28,43 @@ import (
 // cannot be bypassed by a probe, by a future refactor, or by a test that constructs a
 // session directly.
 //
-// The profile and budget it will carry are added in Phase 4.6, alongside the gate that
-// populates them. Declaring them now would be dead weight, and the safety property does
-// not depend on them: it comes from the blank field plus the unexported constructor.
+// It also carries the name prefix, because every created object must be findable by it and a
+// prefix that travelled separately could get out of step with the one the gate validated.
 type Grant struct {
 	// The blank field makes Grant unconstructable from outside this package even as a
 	// zero value in a composite literal, which is what closes the last hole.
 	_ struct{}
+
+	namePrefix string
+
+	// replay is true for a grant issued to replay a recorded mutating run. Nothing is
+	// created in replay -- the transport answers from the cassette -- but a mutating replay
+	// still needs a grant, because the probes are the same code.
+	//
+	// This is the one hole the type does not close by itself, so Run closes it: a replay
+	// grant used in record mode is refused. One check, one place.
+	replay bool
+}
+
+// NamePrefix is the string every created object's name must begin with.
+func (g *Grant) NamePrefix() string {
+	if g == nil {
+		return ""
+	}
+	return g.namePrefix
+}
+
+// IsReplay reports whether this grant was issued for replay rather than by the gate.
+func (g *Grant) IsReplay() bool { return g != nil && g.replay }
+
+// ReplayGrant authorises a mutating replay.
+//
+// Exported so cmd can replay a mutating cassette without a profile, a token or a tenant.
+// Safe because a replay transport cannot reach a network at all: its base is DenyTransport.
+// The hole it would otherwise open -- a replay grant handed to a recording run -- is closed in
+// Run, which refuses that combination explicitly.
+func ReplayGrant(namePrefix string) *Grant {
+	return &Grant{namePrefix: namePrefix, replay: true}
 }
 
 // Profile is where and how a mutating run is allowed to reach an API.
@@ -78,6 +113,17 @@ type Assertions struct {
 	EndpointHostSuffix string `json:"endpointHostSuffix,omitempty"`
 	// AccountGroupID is confirmed by a read before any write.
 	AccountGroupID string `json:"accountGroupId,omitempty"`
+	// AccountGroupParam is the query parameter that scopes a request to a group, e.g. "aid".
+	//
+	// Required for AccountGroupID to mean anything: which parameter carries a group id is not
+	// knowable in advance, and guessing would make the assertion pass by accident on any API
+	// that ignores an unknown query parameter.
+	AccountGroupParam string `json:"accountGroupParam,omitempty"`
+	// AccountGroupJSONPath is the field an object echoes its group id under, e.g. "aid".
+	//
+	// Optional. Without it the assertion rests on the scoped read alone, and the gate records
+	// that weaker outcome verbatim rather than upgrading it.
+	AccountGroupJSONPath string `json:"accountGroupJsonPath,omitempty"`
 	// MaxExistingObjects refuses a collection with more than N objects in it.
 	MaxExistingObjects int `json:"maxExistingObjects,omitempty"`
 }
@@ -92,6 +138,33 @@ type MutatingSession struct {
 	ReadSession
 
 	grant *Grant
+	// live is the concrete session, because ReadSession has only Get and there is no way to
+	// POST through it. Unexported, so the narrow read interface stays the one probes see.
+	live *httpSession
+
+	cfg MutationConfig
+}
+
+// MutationConfig is what writing needs beyond what reading needs.
+type MutationConfig struct {
+	// Ledger records every create before it is issued. Never nil: a memory ledger is used
+	// for replay, so there is no code path where a create goes unrecorded.
+	Ledger *Ledger
+
+	// NameField is the JSON key the stamped name goes in, and IDField the key an
+	// identifier comes back under. Both from the Subject, so a probe cannot disagree with
+	// the sweeper about either.
+	NameField string
+	IDField   string
+
+	// UpdateMethod is PUT unless the blueprint says otherwise. Carried rather than assumed
+	// because an API that only accepts PATCH would have every update probe report a fact
+	// about the method rather than about the field.
+	UpdateMethod string
+
+	// ReadDelay is the measured consistency window, applied before reading back a created
+	// object. Zero until something measures it.
+	ReadDelay time.Duration
 }
 
 // ErrNoGrant is returned when a mutating session is requested without authorisation.
@@ -105,39 +178,287 @@ var ErrNoGrant = errors.New("a mutating session requires a grant")
 //
 // The signature is the safety property this file exists to fix, which is why it is
 // declared in Phase 4.1 rather than alongside the gate it depends on.
-func newMutatingSession(g *Grant, read ReadSession) (*MutatingSession, error) {
+func newMutatingSession(g *Grant, live *httpSession, cfg MutationConfig) (*MutatingSession, error) {
 	if g == nil {
 		return nil, ErrNoGrant
 	}
-	return &MutatingSession{ReadSession: read, grant: g}, nil
+	if live == nil {
+		return nil, fmt.Errorf("%w: a mutating session needs a session to write through",
+			ErrInvalidPlan)
+	}
+	if cfg.Ledger == nil {
+		return nil, fmt.Errorf("%w: a mutating session needs a ledger, and there is no mode "+
+			"without one -- replay uses MemoryLedger", ErrLedger)
+	}
+	if cfg.NameField == "" || cfg.IDField == "" {
+		return nil, fmt.Errorf("%w: a mutating session needs both a name field and an "+
+			"identifier field; Subject.CanMutate exists to refuse this earlier",
+			ErrInvalidPlan)
+	}
+
+	return &MutatingSession{ReadSession: live, grant: g, live: live, cfg: cfg}, nil
 }
+
+// NamePrefix is the prefix every created object's name must carry.
+func (s *MutatingSession) NamePrefix() string { return s.grant.NamePrefix() }
+
+// NameValue composes the name a probe should send.
+//
+// Deterministic -- "<prefix>-<probe>-<seq>" -- because a random suffix or a timestamp would
+// make every mutating cassette unreplayable: ReplayTransport matches request bodies, so a
+// replayed create must send the identical name it recorded.
+//
+// Composed by the probe rather than injected by Create, which is the correction that matters
+// here. Silently rewriting a probe's body to add the prefix would confound the normalisation
+// protocol -- send "  MiXeD  ", receive prefix + "  MiXeD  " -- and make bodies unpredictable
+// at replay. So the session states the rule and enforces it; the probe follows it.
+func (s *MutatingSession) NameValue(probe string, seq int) string {
+	return fmt.Sprintf("%s-%s-%d", s.grant.NamePrefix(), strings.ReplaceAll(probe, ".", "-"), seq)
+}
+
+// NameField is the JSON key a name goes in.
+func (s *MutatingSession) NameField() string { return s.cfg.NameField }
 
 // Create posts a body to the collection.
 //
-// Takes no path: see MutatingSession. Returns the created object's id as the blueprint's
-// ID binding locates it, so a probe never parses an id out of a body itself.
+// Takes no path: see MutatingSession. The ordering here is the safety argument of the whole
+// phase, so it is worth stating plainly.
 //
-// Implemented in Phase 4.7.
+//  1. The body is checked for the name prefix. A body without it is refused *before* anything
+//     is recorded or sent, because an object the sweeper cannot find by name is an object that
+//     survives a crash.
+//  2. The intent is written and fsynced. If that fails the request is not issued: a create
+//     that cannot be recorded is a create that cannot be cleaned up.
+//  3. The request goes out under a context that cannot be cancelled. Cancellation must stop
+//     *new* requests, not abort one already sent -- the response to a create in flight is the
+//     one thing that turns an intent into a resolvable line.
+//  4. The status decides what the intent becomes. This is the classification that matters: a
+//     4xx resolves it, because a 4xx is reliable evidence nothing was created; anything else
+//     leaves it outstanding, because a 500 may well have created the object.
 func (s *MutatingSession) Create(
 	ctx context.Context,
 	probe string,
 	body map[string]any,
 ) (*Response, string, error) {
-	return nil, "", errNotImplemented
+	if err := s.checkNamePrefix(body); err != nil {
+		return nil, "", err
+	}
+
+	name, _ := body[s.cfg.NameField].(string)
+
+	seq, err := s.cfg.Ledger.Intent(probe, s.CollectionPath(), name)
+	if err != nil {
+		return nil, "", err
+	}
+
+	sendCtx, cancel := inFlightContext(ctx)
+	defer cancel()
+
+	resp, err := s.live.write(sendCtx, http.MethodPost, s.CollectionPath(), body)
+	if err != nil {
+		// A transport error is the ambiguous case, and it is left outstanding deliberately: a
+		// timeout is indistinguishable from a create that succeeded on a connection that then
+		// dropped.
+		_ = s.cfg.Ledger.Resolve(seq, KindFailed, "", 0, err.Error())
+		return nil, "", err
+	}
+
+	switch {
+	case resp.Status >= 400 && resp.Status < 500:
+		if rErr := s.cfg.Ledger.Resolve(seq, KindRejected, "", resp.Status, ""); rErr != nil {
+			return resp, "", rErr
+		}
+		// Not an error: a refused create is an observation, and several probes exist to
+		// provoke exactly this.
+		return resp, "", nil
+
+	case resp.Status >= 500:
+		_ = s.cfg.Ledger.Resolve(seq, KindFailed, "", resp.Status, "server error")
+		return resp, "", nil
+	}
+
+	id := s.identifierOf(resp)
+	if id == "" {
+		// The object exists and the intent stays outstanding with only a name, which is
+		// precisely the case the prefix pass of the sweeper is for.
+		_ = s.cfg.Ledger.Resolve(seq, KindFailed, "", resp.Status,
+			"created, but no identifier could be read from the response")
+
+		return resp, "", fmt.Errorf("%w: %s created an object but the response carried no %q; "+
+			"the prefix sweep will remove it", ErrNoIdentifier, probe, s.cfg.IDField)
+	}
+
+	if err := s.cfg.Ledger.Resolve(seq, KindCreated, id, resp.Status, ""); err != nil {
+		return resp, id, err
+	}
+
+	return resp, id, nil
 }
 
-// Update sends a body to one item. Implemented in Phase 4.7.
+// checkNamePrefix enforces the invariant rather than performing it.
+func (s *MutatingSession) checkNamePrefix(body map[string]any) error {
+	raw, present := body[s.cfg.NameField]
+	if !present {
+		return fmt.Errorf("%w: a create body must set %q so the object can be swept by name",
+			ErrInvalidPlan, s.cfg.NameField)
+	}
+
+	name, ok := raw.(string)
+	if !ok {
+		return fmt.Errorf("%w: %q must be a string in a create body, got %T",
+			ErrInvalidPlan, s.cfg.NameField, raw)
+	}
+
+	if prefix := s.grant.NamePrefix(); !strings.HasPrefix(name, prefix) {
+		return fmt.Errorf("%w: %q is %q, which does not start with %q; compose it with "+
+			"NameValue so the sweeper can find the object again",
+			ErrInvalidPlan, s.cfg.NameField, name, prefix)
+	}
+
+	return nil
+}
+
+// identifierOf reads the created object's identifier.
+//
+// Coerced from a number as well as a string, because an API returning a numeric id is common
+// and refusing it would strand the object for no better reason than JSON's type system.
+func (s *MutatingSession) identifierOf(resp *Response) string {
+	v, ok := resp.Field(s.cfg.IDField)
+	if !ok {
+		return ""
+	}
+
+	switch typed := v.(type) {
+	case string:
+		return typed
+	case float64:
+		return trimFloat(typed)
+	case json.Number:
+		return typed.String()
+	default:
+		return ""
+	}
+}
+
+// Update sends a body to one item.
+//
+// No ledger entry: an update creates nothing, so there is nothing new to clean up, and
+// recording it would put lines in the ledger that can never be outstanding.
 func (s *MutatingSession) Update(
 	ctx context.Context,
 	probe, id string,
 	body map[string]any,
 ) (*Response, error) {
-	return nil, errNotImplemented
+	if id == "" {
+		return nil, fmt.Errorf("%w: %s tried to update without an identifier",
+			ErrNoIdentifier, probe)
+	}
+
+	method := http.MethodPut
+	if s.cfg.UpdateMethod != "" {
+		method = s.cfg.UpdateMethod
+	}
+
+	sendCtx, cancel := inFlightContext(ctx)
+	defer cancel()
+
+	return s.live.write(sendCtx, method, s.ItemPath(id), body)
 }
 
-// Delete removes one item. Implemented in Phase 4.7.
+// Delete removes one item.
+//
+// Runs under a context that cannot be cancelled, for the same reason a create does: a delete
+// abandoned halfway is how an orphan is made, and the whole point of getting here is to leave
+// nothing behind.
+//
+// A 404 is *not* treated as success here. On an eventually-consistent API it may simply mean
+// the object is not visible yet, and calling that "gone" is how an orphan gets reported as
+// cleaned up. The sweeper decides, because only it knows the measured window and can confirm
+// absence with a prefix-filtered read.
 func (s *MutatingSession) Delete(ctx context.Context, probe, id string) (*Response, error) {
-	return nil, errNotImplemented
+	if id == "" {
+		return nil, fmt.Errorf("%w: %s tried to delete without an identifier",
+			ErrNoIdentifier, probe)
+	}
+
+	sendCtx, cancel := inFlightContext(ctx)
+	defer cancel()
+
+	resp, err := s.live.write(sendCtx, http.MethodDelete, s.ItemPath(id), nil)
+	if err != nil {
+		return resp, s.failedDelete(id, err.Error())
+	}
+
+	if resp.Status >= 400 && resp.Status != http.StatusNotFound {
+		return resp, s.failedDelete(id, fmt.Sprintf("status %d", resp.Status))
+	}
+
+	if resp.Status < 400 {
+		if err := s.markDeleted(id, resp.Status); err != nil {
+			return resp, err
+		}
+	}
+
+	return resp, nil
+}
+
+// failedDelete counts a delete that did not work, and returns an error only once the cap is
+// exceeded.
+//
+// Below the cap the caller carries on: the sweeper retries, and one failed attempt is not
+// evidence that cleanup is impossible. Above it, the run stops creating -- which is why the
+// counting lives in the session, where every delete passes through, rather than in a caller
+// that might forget.
+func (s *MutatingSession) failedDelete(id, why string) error {
+	if !s.live.budget.recordDeleteFailure() {
+		return nil
+	}
+
+	return fmt.Errorf("%w: deleting %s failed (%s)", ErrDeleteFailures, id, why)
+}
+
+// markDeleted resolves whichever outstanding intent this identifier belongs to.
+//
+// Matched by id rather than tracked by the caller, because the sweeper deletes objects it read
+// out of a collection and never had an intent sequence for.
+func (s *MutatingSession) markDeleted(id string, status int) error {
+	for _, o := range Unresolved(s.cfg.Ledger.Entries()) {
+		if o.ID == id {
+			return s.cfg.Ledger.Resolve(o.Seq, KindDeleted, id, status, "")
+		}
+	}
+
+	return nil
+}
+
+// resolveByName resolves an outstanding intent that never learned an identifier.
+//
+// The prefix pass of the sweeper is the only caller, and it is the only thing that can close
+// these entries: an intent with no identifier is unmatchable by identifier, by definition.
+func (s *MutatingSession) resolveByName(name, id string) {
+	if name == "" {
+		return
+	}
+
+	for _, o := range Unresolved(s.cfg.Ledger.Entries()) {
+		if o.Name == name {
+			_ = s.cfg.Ledger.Resolve(o.Seq, KindDeleted, id, 0, "removed by the prefix sweep")
+			return
+		}
+	}
+}
+
+// inFlightGrace bounds a request that must not be cancelled. Under the client timeout, so a
+// hung connection is still cut by the transport rather than by this.
+const inFlightGrace = 15 * time.Second
+
+// inFlightContext detaches a request from cancellation.
+//
+// context.WithoutCancel and not the parent, because the commonest reason to be cancelled is
+// the commonest reason to have something to clean up. A one-liner whose being wrong is
+// invisible in every green run, which is why it is a named function with its own test.
+func inFlightContext(parent context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(parent), inFlightGrace)
 }
 
 // readOnly is a ReadSession that refuses everything.

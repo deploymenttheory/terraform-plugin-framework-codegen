@@ -66,9 +66,14 @@ tfpluginframeworkgen ingest -only Tags -list
 # 2. infer a blueprint, bound against SDK methods that provably exist
 tfpluginframeworkgen ingest -only Tags -out blueprints/thousandeyes
 
-# 3. probe a sandbox, recording evidence. Both guards are required.
-tfpluginframeworkgen probe -blueprint blueprints/thousandeyes/resources/tag.blueprint.json \
-  -mode record --allow-mutations -profile .tfpluginframeworkgen/sandbox/thousandeyes.yaml
+# 3. probe a sandbox, recording evidence. Every guard is required.
+#    The token comes from TFPFGEN_PROBE_TOKEN and never from a flag or the profile.
+tfpluginframeworkgen probe -blueprint blueprints/thousandeyes -resource tag \
+  -mode record --allow-mutations -plan blueprints/thousandeyes/probe.plan.json \
+  -profile .tfpluginframeworkgen/sandbox/thousandeyes.json
+
+# 3b. re-derive the same facts from the committed transcript, with no network at all
+tfpluginframeworkgen probe -blueprint blueprints/thousandeyes -mode verify
 
 # 4. fold the evidence in; conflicts with the spec are surfaced, never resolved silently
 tfpluginframeworkgen merge -blueprint ... -facts ... -strategy annotate
@@ -172,7 +177,13 @@ provider-defined functions, state upgraders.
 
 - **Probing needs a sandbox tenant and consumes its quota.** Mutating probes
   refuse to run unless the profile asserts, at runtime, that it really is a
-  sandbox. Read-only probing is safe anywhere.
+  sandbox — `sandbox: true` is a claim, and the assertions are the evidence.
+  Read-only probing is safe anywhere.
+- **A mutating run can still leave something behind, and says so.** The ledger
+  records every create before it is issued, so an object whose response was never
+  seen is still findable; the sweeper removes by identifier and then by name
+  prefix. Anything left is reported with a runnable `curl` and exits 5 even if
+  every fact was gathered. See [docs/probing.md](docs/probing.md).
 - **A wrong fact is worse than no fact.** Inferred field interdependencies and
   scraped enum values are emitted as documentation and commented-out validators,
   never as active constraints — an over-tight validator rejects configurations

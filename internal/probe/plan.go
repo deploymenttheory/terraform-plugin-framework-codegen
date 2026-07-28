@@ -74,6 +74,10 @@ type Budget struct {
 	MaxCreates int `json:"maxCreates,omitempty"`
 	// MaxWallClockSeconds bounds the whole run, enforced as a context deadline.
 	MaxWallClockSeconds int `json:"maxWallClockSeconds,omitempty"`
+	// MaxSweepSeconds bounds the sweep, separately from the run. Separate because the
+	// commonest reason to be sweeping is that the run's own deadline expired, and a sweep
+	// sharing that deadline would be dead before its first request.
+	MaxSweepSeconds int `json:"maxSweepSeconds,omitempty"`
 	// MaxDeleteFailures is deliberately defaulted to zero: the moment a delete fails,
 	// the run stops creating anything new and proceeds to sweep. Continuing to create
 	// after demonstrating you cannot clean up is the worst available behaviour.

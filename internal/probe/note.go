@@ -41,6 +41,13 @@ var (
 	// for deletion, so only the sweeper's prefix pass can reach it.
 	ErrNoIdentifier = errors.New("a created object's identifier could not be located")
 
+	// ErrDeleteFailures marks a run that could not remove something it created.
+	//
+	// The cap defaults to zero, so this fires on the first failure. Continuing to create after
+	// demonstrating you cannot clean up is the worst available behaviour, and it is worth a
+	// dedicated sentinel so the runner does not have to infer the reason from a status code.
+	ErrDeleteFailures = errors.New("a delete failed, so the run stopped creating")
+
 	// ErrCancelled marks a run stopped by a signal or a deadline.
 	//
 	// Its own sentinel because it is not a failure of the probes: cancellation is a normal
