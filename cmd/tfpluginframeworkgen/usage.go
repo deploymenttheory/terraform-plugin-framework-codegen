@@ -6,12 +6,12 @@ import (
 	"text/tabwriter"
 )
 
-const usageHeader = `tfprovidergen generates terraform-plugin-framework providers from an API
+const usageHeader = `tfpluginframeworkgen generates terraform-plugin-framework providers from an API
 specification plus recorded API behaviour.
 
 Usage:
 
-    tfprovidergen <command> [flags]
+    tfpluginframeworkgen <command> [flags]
 
 Commands:
 `
@@ -29,7 +29,7 @@ The pipeline, in the order an author walks it:
     specs -> ingest -> [probe -> merge] -> emit -> verify
 
 Every stage writes a committed, reviewable artefact, and CI regenerates each one
-and fails on drift. Run "tfprovidergen <command> -h" for a command's flags.
+and fails on drift. Run "tfpluginframeworkgen <command> -h" for a command's flags.
 `
 
 func printUsage(w io.Writer) {

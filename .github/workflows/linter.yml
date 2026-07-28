@@ -47,7 +47,7 @@ jobs:
           # named files spanning more than one directory:
           #
           #   typechecking error: named files must all be in one directory;
-          #   have /github/workspace/internal/manifest and /github/workspace/cmd/tfprovidergen
+          #   have /github/workspace/internal/manifest and /github/workspace/cmd/tfpluginframeworkgen
           #
           # In a code generator almost every change touches several packages at
           # once, so this fails on ordinary pull requests regardless of whether

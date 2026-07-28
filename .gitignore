@@ -35,9 +35,9 @@ golangci-lint-report.sarif
 go.work
 go.work.sum
 
-# tfprovidergen
-/bin/tfprovidergen
-.tfprovidergen/cache/
+# tfpluginframeworkgen
+/bin/tfpluginframeworkgen
+.tfpluginframeworkgen/cache/
 
 # Emitted when a template renders unparseable Go, kept for inspection only.
 *.broken

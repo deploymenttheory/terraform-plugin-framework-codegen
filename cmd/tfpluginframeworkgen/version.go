@@ -22,7 +22,7 @@ func runVersion(args []string) error {
 		return nil
 	}
 
-	fmt.Fprintf(os.Stdout, "tfprovidergen %s (%s %s/%s)\n",
+	fmt.Fprintf(os.Stdout, "tfpluginframeworkgen %s (%s %s/%s)\n",
 		version.Version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
 	return nil

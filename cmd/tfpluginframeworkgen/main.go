@@ -1,10 +1,10 @@
-// Command tfprovidergen generates terraform-plugin-framework providers from an
+// Command tfpluginframeworkgen generates terraform-plugin-framework providers from an
 // API specification plus recorded API behaviour.
 //
-//	tfprovidergen ingest -only Tags
-//	tfprovidergen probe  -blueprint blueprints/thousandeyes -mode replay
-//	tfprovidergen emit   -blueprint blueprints/thousandeyes -out pilot/thousandeyes
-//	tfprovidergen verify -blueprint blueprints/thousandeyes -out pilot/thousandeyes
+//	tfpluginframeworkgen ingest -only Tags
+//	tfpluginframeworkgen probe  -blueprint blueprints/thousandeyes -mode replay
+//	tfpluginframeworkgen emit   -blueprint blueprints/thousandeyes -out pilot/thousandeyes
+//	tfpluginframeworkgen verify -blueprint blueprints/thousandeyes -out pilot/thousandeyes
 //
 // Subcommands follow the go tool's shape: each owns its own flag.FlagSet, so
 // there is no global flag namespace for two subcommands to collide in, and
@@ -73,7 +73,7 @@ func main() {
 			os.Exit(exitOK)
 		}
 
-		fmt.Fprintf(os.Stderr, "tfprovidergen: %v\n", err)
+		fmt.Fprintf(os.Stderr, "tfpluginframeworkgen: %v\n", err)
 
 		var coded exitCoder
 		if errors.As(err, &coded) {

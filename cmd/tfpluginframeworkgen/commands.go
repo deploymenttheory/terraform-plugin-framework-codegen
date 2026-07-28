@@ -113,7 +113,7 @@ func notImplemented(name string) func([]string) error {
 }
 
 // globals are the flags every subcommand accepts. They are registered per
-// FlagSet rather than parsed before dispatch, so `tfprovidergen emit -v` reads
+// FlagSet rather than parsed before dispatch, so `tfpluginframeworkgen emit -v` reads
 // naturally and there is no "flags must come before the command" rule to learn.
 type globals struct {
 	verbose bool
@@ -122,7 +122,7 @@ type globals struct {
 	config  string
 }
 
-const defaultConfigPath = ".tfprovidergen/config.yaml"
+const defaultConfigPath = ".tfpluginframeworkgen/config.yaml"
 
 func newFlagSet(name, usage string) (*flag.FlagSet, *globals) {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
@@ -144,7 +144,7 @@ func newFlagSet(name, usage string) (*flag.FlagSet, *globals) {
 	}
 	fs.Usage = func() {
 		out := fs.Output()
-		fmt.Fprintf(out, "Usage: tfprovidergen %s\n\nFlags:\n", usage)
+		fmt.Fprintf(out, "Usage: tfpluginframeworkgen %s\n\nFlags:\n", usage)
 		fs.PrintDefaults()
 	}
 

@@ -27,7 +27,7 @@ Stages marked *planned* are designed for but not built.
 | `probe` — live API → behaviour facts | `internal/probe` | planned (Phase 4) |
 | `merge` — fold facts into a blueprint | `internal/blueprint/merge` | planned (Phase 4) |
 | `emit` — blueprint → provider | `internal/emit`, `internal/render`, `internal/templates` | **built** |
-| `verify` — fail on drift | `cmd/tfprovidergen/verify.go`, `internal/manifest` | **built** |
+| `verify` — fail on drift | `cmd/tfpluginframeworkgen/verify.go`, `internal/manifest` | **built** |
 | `bindings` — type-check bindings against the SDK | `internal/sdkbind` | **built** |
 | `interop` — Provider Code Specification v0.1 | `internal/interop` | planned (Phase 3) |
 
@@ -58,7 +58,7 @@ declarations, which the file template merely lists.
 ## Package map
 
 ```
-cmd/tfprovidergen/     CLI. stdlib flag, one FlagSet per subcommand, no cobra.
+cmd/tfpluginframeworkgen/     CLI. stdlib flag, one FlagSet per subcommand, no cobra.
 internal/
   blueprint/           the IR: types, validation, canonical JSON, layered load
   render/              ALL logic. Blueprint -> finished strings.
@@ -84,7 +84,7 @@ worse than no CI at all.
 What that forbids, in emitted files and in the manifest:
 
 - no timestamps
-- no tool version (it lives in `.tfprovidergen/manifest.json`, and nowhere else,
+- no tool version (it lives in `.tfpluginframeworkgen/manifest.json`, and nowhere else,
   so a release is a one-line diff rather than a rewrite of the tree)
 - no absolute paths
 - no reliance on Go map iteration order; every map is rendered through a sorted

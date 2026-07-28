@@ -146,7 +146,7 @@ methods look different should be a blueprint change, not an emitter change.
 
 `return` is recorded rather than inferred because it decides the arity of every
 error return in the generated body. Getting it wrong produces code that does not
-compile — `tfprovidergen bindings` checks it against the method's real signature.
+compile — `tfpluginframeworkgen bindings` checks it against the method's real signature.
 
 ## Policy
 
