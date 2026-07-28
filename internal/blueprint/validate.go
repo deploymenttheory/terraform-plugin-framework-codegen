@@ -395,22 +395,25 @@ func (o Operation) validate(at string, p *problems) {
 	}
 
 	for i, a := range o.Args {
-		aat := fmt.Sprintf("%s.args[%d]", at, i)
-		switch a.Kind {
-		case ArgContext, ArgBody:
-		case ArgStateField, ArgPlanField:
-			if a.Field == "" && a.Expr == "" {
-				p.add(aat, "kind %q needs either field or expr", a.Kind)
-			}
-		case ArgLiteral:
-			if a.Expr == "" {
-				p.add(aat+".expr", "is required for a literal argument")
-			}
-		case "":
-			p.add(aat+".kind", "is required")
-		default:
-			p.add(aat+".kind", "%q is not a known argument kind", a.Kind)
+		a.validate(fmt.Sprintf("%s.args[%d]", at, i), p)
+	}
+}
+
+func (a Argument) validate(at string, p *problems) {
+	switch a.Kind {
+	case ArgContext, ArgBody:
+	case ArgStateField, ArgPlanField:
+		if a.Field == "" && a.Expr == "" {
+			p.add(at, "kind %q needs either field or expr", a.Kind)
 		}
+	case ArgLiteral:
+		if a.Expr == "" {
+			p.add(at+".expr", "is required for a literal argument")
+		}
+	case "":
+		p.add(at+".kind", "is required")
+	default:
+		p.add(at+".kind", "%q is not a known argument kind", a.Kind)
 	}
 }
 

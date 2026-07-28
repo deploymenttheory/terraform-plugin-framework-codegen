@@ -525,38 +525,8 @@ func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet)
 		fmt.Fprintf(&b, "DeprecationMessage: %s,\n", goStringLit(a.DeprecationMessage))
 	}
 
-	if len(a.Validators) > 0 {
-		b.WriteString("Validators: []validator." + validatorKind(a.Type.Kind) + "{\n")
-		for _, v := range a.Validators {
-			fmt.Fprintf(&b, "%s,\n", v.SchemaDefinition)
-			for _, im := range v.Imports {
-				imports.add(im.Path, im.Alias)
-			}
-		}
-		b.WriteString("},\n")
-	}
-
-	pms := a.PlanModifiers
-	// A computed attribute with no plan modifier shows as "(known after apply)"
-	// on every plan, even when nothing about it changed. UseStateForUnknown is
-	// the standard remedy, and applying it by default is what stops a generated
-	// provider from producing noisy plans.
-	if a.Presence == blueprint.Computed && len(pms) == 0 && a.Type.Kind == blueprint.KindString {
-		imports.add(pkgStringPM, "")
-		pms = []blueprint.CustomCode{{SchemaDefinition: "stringplanmodifier.UseStateForUnknown()"}}
-	}
-
-	if len(pms) > 0 {
-		imports.add(pkgPlanModif, "")
-		b.WriteString("PlanModifiers: []planmodifier." + validatorKind(a.Type.Kind) + "{\n")
-		for _, pm := range pms {
-			fmt.Fprintf(&b, "%s,\n", pm.SchemaDefinition)
-			for _, im := range pm.Imports {
-				imports.add(im.Path, im.Alias)
-			}
-		}
-		b.WriteString("},\n")
-	}
+	writeCustomCodeBlock(&b, "Validators", "validator."+validatorKind(a.Type.Kind), a.Validators, imports)
+	writeCustomCodeBlock(&b, "PlanModifiers", "planmodifier."+validatorKind(a.Type.Kind), planModifiersFor(a, imports), imports)
 
 	if a.Default != nil {
 		def, err := defaultExpr(a, imports)
@@ -569,6 +539,44 @@ func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet)
 	b.WriteString("}")
 
 	return b.String(), nil
+}
+
+// planModifiersFor returns the plan modifiers an attribute should carry.
+//
+// A computed attribute with none shows as "(known after apply)" on every plan,
+// even when nothing about it changed. UseStateForUnknown is the standard remedy,
+// and applying it by default is what stops a generated provider producing noisy
+// plans that train people to skim them.
+func planModifiersFor(a blueprint.Attribute, imports *importSet) []blueprint.CustomCode {
+	if len(a.PlanModifiers) > 0 {
+		return a.PlanModifiers
+	}
+	if a.Presence == blueprint.Computed && a.Type.Kind == blueprint.KindString {
+		imports.add(pkgStringPM, "")
+		return []blueprint.CustomCode{{SchemaDefinition: "stringplanmodifier.UseStateForUnknown()"}}
+	}
+	return nil
+}
+
+// writeCustomCodeBlock renders a slice of rendered Go expressions as a named
+// schema field, registering whatever imports they need.
+func writeCustomCodeBlock(b *strings.Builder, field, elemType string, items []blueprint.CustomCode, imports *importSet) {
+	if len(items) == 0 {
+		return
+	}
+
+	if field == "PlanModifiers" {
+		imports.add(pkgPlanModif, "")
+	}
+
+	fmt.Fprintf(b, "%s: []%s{\n", field, elemType)
+	for _, it := range items {
+		fmt.Fprintf(b, "%s,\n", it.SchemaDefinition)
+		for _, im := range it.Imports {
+			imports.add(im.Path, im.Alias)
+		}
+	}
+	b.WriteString("},\n")
 }
 
 // writeAttributeFlags writes the presence and sensitivity flags shared by every

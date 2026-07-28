@@ -12,44 +12,70 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version"
 )
 
-func runEmit(args []string) error {
+type emitOptions struct {
+	blueprintPath string
+	out           string
+	only          string
+	dryRun        bool
+	list          bool
+	force         bool
+	clean         bool
+}
+
+// planOnly reports whether the run inspects output without writing it.
+func (o emitOptions) planOnly() bool { return o.list || o.dryRun }
+
+// wholeProvider reports whether the run covers every resource. A -only run must
+// not touch the manifest or the registration files, because a partial inventory
+// would make verify report every unlisted file as an orphan.
+func (o emitOptions) wholeProvider() bool { return o.only == "" }
+
+func parseEmitFlags(args []string) (emitOptions, error) {
 	fs, _ := newFlagSet("emit", "emit -blueprint DIR -out DIR [-only NAME] [-dry-run]")
 
-	var (
-		blueprintPath = fs.String("blueprint", "", "blueprint file or directory (required)")
-		out           = fs.String("out", "", "provider root to write into (required)")
-		only          = fs.String("only", "", "generate a single resource by key, for inspecting output")
-		dryRun        = fs.Bool("dry-run", false, "print the write plan and touch nothing")
-		list          = fs.Bool("list", false, "list the files that would be written and exit")
-		force         = fs.Bool("force", false, "overwrite files that are not marked as generated")
-		clean         = fs.Bool("clean", false, "delete files the blueprints no longer produce")
-	)
+	var o emitOptions
+	fs.StringVar(&o.blueprintPath, "blueprint", "", "blueprint file or directory (required)")
+	fs.StringVar(&o.out, "out", "", "provider root to write into (required)")
+	fs.StringVar(&o.only, "only", "", "generate a single resource by key, for inspecting output")
+	fs.BoolVar(&o.dryRun, "dry-run", false, "print the write plan and touch nothing")
+	fs.BoolVar(&o.list, "list", false, "list the files that would be written and exit")
+	fs.BoolVar(&o.force, "force", false, "overwrite files that are not marked as generated")
+	fs.BoolVar(&o.clean, "clean", false, "delete files the blueprints no longer produce")
 
 	if err := parse(fs, args); err != nil {
+		return emitOptions{}, err
+	}
+
+	if o.blueprintPath == "" {
+		return emitOptions{}, usagef("-blueprint is required")
+	}
+	if o.out == "" && !o.planOnly() {
+		return emitOptions{}, usagef("-out is required unless -list or -dry-run is given")
+	}
+
+	return o, nil
+}
+
+func runEmit(args []string) error {
+	o, err := parseEmitFlags(args)
+	if err != nil {
 		return err
 	}
 
-	if *blueprintPath == "" {
-		return usagef("-blueprint is required")
-	}
-	if *out == "" && !*list && !*dryRun {
-		return usagef("-out is required unless -list or -dry-run is given")
-	}
-
-	bp, err := blueprint.LoadDir(*blueprintPath)
+	bp, err := blueprint.LoadDir(o.blueprintPath)
 	if err != nil {
 		return err
 	}
 
 	log.Printf("blueprint: %s (%d resource(s), %d data source(s))",
-		*blueprintPath, len(bp.Resources), len(bp.DataSources))
+		o.blueprintPath, len(bp.Resources), len(bp.DataSources))
 
 	gen, err := emit.New()
 	if err != nil {
 		return err
 	}
 
-	plan, err := gen.Build(bp, emit.Options{BlueprintPath: *blueprintPath, Only: *only})
+	plan, err := gen.Build(bp, emit.Options{BlueprintPath: o.blueprintPath, Only: o.only})
 	if err != nil {
 		return err
 	}
@@ -58,35 +84,43 @@ func runEmit(args []string) error {
 		return fmt.Errorf("%w: nothing matched", errNothingToDo)
 	}
 
-	if *list || *dryRun {
-		for _, f := range plan.Files {
-			fmt.Fprintf(os.Stdout, "%-72s %6d bytes  sha256:%s\n", f.Path, len(f.Content), f.SHA256()[:12])
-		}
-		log.Printf("%d file(s) would be written; nothing was changed", len(plan.Files))
+	if o.planOnly() {
+		printPlan(plan)
 		return nil
 	}
 
-	res, err := emit.Write(plan, emit.WriteOptions{Root: *out, Force: *force})
+	return writePlan(plan, o)
+}
+
+// printPlan lists what would be written, for -list and -dry-run.
+//
+// Building a plan touches nothing on disk, so these flags exercise the same code
+// path as a real run rather than approximating it.
+func printPlan(plan emit.Plan) {
+	for _, f := range plan.Files {
+		fmt.Fprintf(os.Stdout, "%-72s %6d bytes  sha256:%s\n", f.Path, len(f.Content), f.SHA256()[:12])
+	}
+	log.Printf("%d file(s) would be written; nothing was changed", len(plan.Files))
+}
+
+func writePlan(plan emit.Plan, o emitOptions) error {
+	res, err := emit.Write(plan, emit.WriteOptions{Root: o.out, Force: o.force})
 	if err != nil {
 		return err
 	}
 
-	// Orphans are found before the manifest is rewritten, because rewriting it is
-	// what destroys the record of them. Emitting after renaming a resource would
-	// otherwise leave the old files on disk with nothing able to notice.
-	if *only == "" {
-		if err := handleOrphans(*out, plan, *clean); err != nil {
+	if o.wholeProvider() {
+		// Orphans are found before the manifest is rewritten, because rewriting it
+		// is what destroys the record of them. Emitting after renaming a resource
+		// would otherwise leave the old files with nothing able to notice.
+		if err := handleOrphans(o.out, plan, o.clean); err != nil {
 			return err
 		}
-	}
 
-	// The manifest is written after the files, so a failed run does not leave an
-	// inventory claiming output that was never produced.
-	//
-	// It is skipped under -only: a partial run would record a partial inventory,
-	// and verify would then report every unlisted file as an orphan.
-	if *only == "" {
-		if err := manifest.Save(*out, manifest.New(version.Version, manifestEntries(plan, *blueprintPath))); err != nil {
+		// The manifest is written after the files, so a failed run does not leave
+		// an inventory claiming output that was never produced.
+		entries := manifestEntries(plan, o.blueprintPath)
+		if err := manifest.Save(o.out, manifest.New(version.Version, entries)); err != nil {
 			return err
 		}
 	} else {
