@@ -88,6 +88,8 @@ var builtCommands = map[string]bool{
 	// reports real costs -- and because an unbuilt *mode* returns errNotImplemented
 	// rather than exiting zero, which is asserted separately.
 	"probe": true,
+	// merge folds facts into a blueprint and reports what it refused.
+	"merge": true,
 }
 
 // TestUnit_CLI_Dispatch_ImplementationClaimsAreTrue guards two failure modes at

@@ -31,8 +31,12 @@ const FormatVersion = "1"
 
 // Blueprint is one provider.
 type Blueprint struct {
-	FormatVersion string   `json:"formatVersion"`
-	Provider      Provider `json:"provider"`
+	FormatVersion string `json:"formatVersion"`
+	// Provider is omitzero because a blueprint is routinely split across files, and a
+	// resource-only fragment has no provider to declare. Without it, every part written by
+	// ingest, merge or interop import carries an empty provider block -- noise in a committed
+	// file, and a fragment quietly claiming a provider it does not describe.
+	Provider Provider `json:"provider,omitzero"`
 
 	Resources   []Resource   `json:"resources,omitempty"`
 	DataSources []DataSource `json:"dataSources,omitempty"`
