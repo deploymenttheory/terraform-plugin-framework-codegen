@@ -79,6 +79,30 @@ func do(t *testing.T, method, url string, body map[string]any) (int, map[string]
 func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 	t.Parallel()
 
+	t.Run("SilentlyDiscardsOnUpdate", func(t *testing.T) {
+		t.Parallel()
+
+		s := New(t, Quirks{SilentlyDiscardsOnUpdate: []string{"colour"}})
+
+		// Create stores it, which is what separates this from SilentlyDiscards.
+		status, created := post(t, s.CollectionURL(), map[string]any{"key": "k", "colour": "blue"})
+		if status != http.StatusCreated || created["colour"] != "blue" {
+			t.Fatalf("create should store the field: %d %v", status, created)
+		}
+
+		id, _ := created["id"].(string)
+
+		// The update answers success and changes nothing, which is the whole point: an API that
+		// refused the change would say so, and this one does not.
+		status, updated := put(t, s.ItemURL(id), map[string]any{"key": "k", "colour": "red"})
+		if status != http.StatusOK {
+			t.Fatalf("status = %d, want 200 -- a refusal would be immutability, not this", status)
+		}
+		if updated["colour"] != "blue" {
+			t.Errorf("colour = %v, want the original blue", updated["colour"])
+		}
+	})
+
 	t.Run("SilentlyDiscards", func(t *testing.T) {
 		t.Parallel()
 

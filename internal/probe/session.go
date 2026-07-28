@@ -143,6 +143,8 @@ type MutatingSession struct {
 	live *httpSession
 
 	cfg MutationConfig
+
+	readBack ReadBackMeasurement
 }
 
 // MutationConfig is what writing needs beyond what reading needs.
@@ -430,6 +432,125 @@ func (s *MutatingSession) markDeleted(id string, status int) error {
 
 	return nil
 }
+
+// ReadBackMeasurement is what the session observed about read-after-write.
+//
+// Accumulated on the session rather than in a probe, because every mutating probe reads back the
+// objects it creates and would otherwise each measure the same thing separately -- and because
+// the *use* of the measurement is not optional. Without it every probe would read once, get a 404
+// or a partial object, and record "the field is absent" at Observed confidence when what it
+// actually saw was an eventually-consistent read.
+type ReadBackMeasurement struct {
+	// Objects is how many created objects were read back.
+	Objects int
+	// Reads is every read issued, including retries.
+	Reads int
+	// Retried is how many objects needed more than one read.
+	Retried int
+	// WorstRetries is the most retries any single object needed, which is what a generated
+	// read-back loop has to be able to survive.
+	WorstRetries int
+	// Interval is the delay between attempts.
+	Interval time.Duration
+	// Statuses are the non-success statuses seen on a first read, so a fact can say what the
+	// API actually did rather than "it failed".
+	Statuses []int
+
+	// Evidence is every read-back interaction, which is what the claim rests on.
+	//
+	// All of them rather than a sample: unlike a per-field fact, this one is a statement about
+	// the whole run's reads, so the whole set *is* the precise citation rather than a vague one.
+	Evidence []string
+}
+
+// readBackAttempts is the first read plus two retries.
+//
+// Three rather than a longer loop: the question is whether a re-read is needed at all, and an
+// object still invisible after three reads is a finding in itself rather than something to wait
+// out. A generated provider's own retry count comes from the fact, not from this.
+const readBackAttempts = 3
+
+// defaultReadDelay spaces the retries of a read-back.
+const defaultReadDelay = 500 * time.Millisecond
+
+// ReadCreated reads an object the run just created, retrying while it is not yet visible.
+//
+// Constant interval rather than exponential, and no jitter: the number of requests a run makes has
+// to be reproducible, because a cassette is an ordered transcript and a replay that issued a
+// different number of reads would mismatch.
+//
+// A 404 here is not "absent". It is the signature of a read replica that has not caught up, and
+// treating it as absence is how a probe concludes a field does not exist when the whole object
+// does not exist yet.
+func (s *MutatingSession) ReadCreated(
+	ctx context.Context,
+	probe, id string,
+	query url.Values,
+) (*Response, error) {
+	if id == "" {
+		return nil, fmt.Errorf("%w: %s tried to read back without an identifier",
+			ErrNoIdentifier, probe)
+	}
+
+	interval := s.cfg.ReadDelay
+	if interval <= 0 {
+		interval = defaultReadDelay
+	}
+
+	s.readBack.Objects++
+	s.readBack.Interval = interval
+
+	var last *Response
+
+	for attempt := range readBackAttempts {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return last, fmt.Errorf("%w: waiting for %s to become readable",
+					ErrCancelled, id)
+			case <-time.After(interval):
+			}
+		}
+
+		resp, err := s.Get(ctx, s.ItemPath(id), query)
+		if err != nil {
+			return nil, err
+		}
+
+		s.readBack.Reads++
+		s.readBack.Evidence = appendUnique(s.readBack.Evidence, resp.Interaction)
+		last = resp
+
+		if resp.Status < 400 {
+			if attempt > 0 {
+				s.readBack.Retried++
+				if attempt > s.readBack.WorstRetries {
+					s.readBack.WorstRetries = attempt
+				}
+			}
+
+			return resp, nil
+		}
+
+		if attempt == 0 {
+			s.readBack.Statuses = appendUnique(s.readBack.Statuses, resp.Status)
+		}
+
+		// A 404 is worth retrying; a 403 or a 401 is not, and retrying one would spend
+		// requests to re-learn that the credential is the problem.
+		if resp.Status != http.StatusNotFound {
+			return resp, nil
+		}
+	}
+
+	s.readBack.Retried++
+	s.readBack.WorstRetries = readBackAttempts - 1
+
+	return last, nil
+}
+
+// ReadBack is what the session measured, for the read-your-writes probe to report.
+func (s *MutatingSession) ReadBack() ReadBackMeasurement { return s.readBack }
 
 // resolveByName resolves an outstanding intent that never learned an identifier.
 //

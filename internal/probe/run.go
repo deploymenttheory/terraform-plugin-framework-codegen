@@ -61,6 +61,13 @@ type RunOptions struct {
 	// small. Offered rather than guessed at.
 	SweepPageParams url.Values
 
+	// ReadDelay overrides the interval between read-back retries.
+	//
+	// Real runs want the default. A test does not: the interval belongs in a recording, and
+	// waiting it out in a unit test does not, which is why it is configurable rather than a
+	// constant.
+	ReadDelay time.Duration
+
 	// AssertionsPassed names the gating assertions the tenant demonstrated, for the report.
 	// Carried from the gate rather than re-derived, because a report that stated the claim
 	// instead of the evidence would be the one thing the gate exists to avoid.
@@ -177,6 +184,7 @@ func runMutatingTier(
 		NameField:    opts.Subject.NameField,
 		IDField:      opts.Subject.IDField,
 		UpdateMethod: updateMethodOf(opts.Subject),
+		ReadDelay:    opts.ReadDelay,
 	})
 	if err != nil {
 		return err
@@ -488,7 +496,11 @@ func pathMatches(recorded, cited string) bool {
 	}
 }
 
-func appendUnique(dst []string, values ...string) []string {
+// appendUnique appends the values not already present.
+//
+// Generic over comparable rather than duplicated for strings and ints: the two call sites want
+// identical behaviour, and a second copy is a second place for the loop to be subtly wrong.
+func appendUnique[T comparable](dst []T, values ...T) []T {
 	for _, v := range values {
 		found := false
 		for _, existing := range dst {

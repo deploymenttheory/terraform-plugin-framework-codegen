@@ -101,34 +101,90 @@ func TestUnit_Probe_KindMatchesRegistration(t *testing.T) {
 	}
 }
 
-// TestUnit_Probe_EveryProbeIsRegisteredAndUnimplemented pins the honest state of Phase
-// 4.1: the catalogue exists, and nothing pretends to work.
+// builtMutatingProbes are the mutating probes whose bodies exist.
 //
-// The reverse of the usual assertion, and it matters. A probe whose body silently returned
-// an empty result would look like a probe that ran and found nothing, and that is
-// indistinguishable in a report from a real observation of absence.
-func TestUnit_Probe_EveryProbeIsRegisteredAndUnimplemented(t *testing.T) {
+// A hand-maintained list, deliberately: implementing a probe without adding it here fails the
+// test below, which is the same forcing function the CLI's implementation-claims test uses. The
+// alternative -- detecting implementation by calling and seeing what comes back -- cannot tell a
+// built probe that legitimately found nothing from an unbuilt one.
+var builtMutatingProbes = map[string]bool{
+	"write.writable-returned": true,
+	"write.update-style":      true,
+	"write.read-your-writes":  true,
+}
+
+// TestUnit_Probe_AnUnbuiltProbeSaysSo.
+//
+// The reverse of the usual assertion, and it matters. A probe whose body silently returned an
+// empty result would look like a probe that ran and found nothing, and in a report those are
+// indistinguishable.
+func TestUnit_Probe_AnUnbuiltProbeSaysSo(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
 	sc := UnplannedScope(testSubject())
 
+	// The read probes are all built. Given a session that refuses every request, each must
+	// surface that refusal rather than concluding anything -- which is the same property from
+	// the other direction.
 	for _, p := range ReadProbes("") {
-		t.Run(p.Name(), func(t *testing.T) {
+		t.Run("read/"+p.Name(), func(t *testing.T) {
 			t.Parallel()
-			_, err := p.Observe(ctx, readOnly{}, sc)
-			if !errors.Is(err, errNotImplemented) {
-				t.Errorf("Observe returned %v; an unbuilt probe must not look like one that found nothing", err)
+
+			if _, err := p.Observe(ctx, readOnly{}, sc); !errors.Is(err, errNotImplemented) {
+				t.Errorf("Observe returned %v; a probe given a refusing session must surface "+
+					"the refusal", err)
 			}
 		})
 	}
 
 	for _, p := range MutatingProbes("") {
+		if builtMutatingProbes[p.Name()] {
+			continue
+		}
+
+		t.Run("unbuilt/"+p.Name(), func(t *testing.T) {
+			t.Parallel()
+
+			if _, err := p.Exercise(ctx, &MutatingSession{}, sc); !errors.Is(err, errNotImplemented) {
+				t.Errorf("Exercise returned %v; an unbuilt probe must not look like one that "+
+					"found nothing", err)
+			}
+		})
+	}
+}
+
+// TestUnit_Probe_ABuiltProbeWithNothingToWorkOnSaysSo.
+//
+// The convention that runs through every probe: absence of a fact is a legitimate outcome, and it
+// is reported as a note. A built probe handed a scope with no fixture must say why it did nothing
+// -- silence would be indistinguishable from a probe that ran and observed nothing.
+func TestUnit_Probe_ABuiltProbeWithNothingToWorkOnSaysSo(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	sc := UnplannedScope(testSubject())
+
+	for _, p := range MutatingProbes("") {
+		if !builtMutatingProbes[p.Name()] {
+			continue
+		}
+
 		t.Run(p.Name(), func(t *testing.T) {
 			t.Parallel()
-			_, err := p.Exercise(ctx, &MutatingSession{}, sc)
-			if !errors.Is(err, errNotImplemented) {
-				t.Errorf("Exercise returned %v; an unbuilt probe must not look like one that found nothing", err)
+
+			// A zero session is never reached: each of these refuses before it would issue a
+			// request, because there is nothing to send.
+			result, err := p.Exercise(ctx, &MutatingSession{}, sc)
+			if err != nil {
+				t.Fatalf("Exercise: %v", err)
+			}
+
+			if len(result.Notes) == 0 {
+				t.Error("a probe that did nothing must say why")
+			}
+			if result.Requests != 0 {
+				t.Errorf("%d request(s) issued with no fixture to send", result.Requests)
 			}
 		})
 	}
