@@ -226,9 +226,9 @@ func TestUnit_SpecStore_CommittedSnapshotVerifies(t *testing.T) {
 		t.Errorf("the committed snapshot does not match its recorded checksum: %v", err)
 	}
 
-	m, err := snap.LoadMetadata()
-	if err != nil {
-		t.Fatalf("LoadMetadata: %v", err)
+	m, mErr := snap.LoadMetadata()
+	if mErr != nil {
+		t.Fatalf("LoadMetadata: %v", mErr)
 	}
 	if m.Version == "" {
 		t.Error("the committed snapshot records no version")

@@ -199,8 +199,12 @@ func TestUnit_CLI_Verify_DetectsEachDriftClass(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ReadFile: %v", err)
 		}
-		if err := os.WriteFile(target, append(body, []byte("\n// edited\n")...), 0o600); err != nil {
-			t.Fatalf("WriteFile: %v", err)
+		edited := make([]byte, 0, len(body)+16)
+		edited = append(edited, body...)
+		edited = append(edited, []byte("\n// edited\n")...)
+
+		if wErr := os.WriteFile(target, edited, 0o600); wErr != nil {
+			t.Fatalf("WriteFile: %v", wErr)
 		}
 
 		err = runVerify([]string{"-blueprint", blueprintDir(), "-out", out, "-github-summary", ""})
@@ -240,7 +244,9 @@ func TestUnit_CLI_Verify_DetectsEachDriftClass(t *testing.T) {
 			t.Fatalf("WriteFile: %v", err)
 		}
 
-		entries := append(m.Files, manifest.Entry{Path: filepath.ToSlash(stray)})
+		entries := make([]manifest.Entry, 0, len(m.Files)+1)
+		entries = append(entries, m.Files...)
+		entries = append(entries, manifest.Entry{Path: filepath.ToSlash(stray)})
 		if err := manifest.Save(out, manifest.New("dev", entries)); err != nil {
 			t.Fatalf("Save: %v", err)
 		}
@@ -490,13 +496,13 @@ func TestUnit_CLI_GlobalChdirIsApplied(t *testing.T) {
 		}
 	})
 
-	if err := runVersion([]string{"-C", repoRoot}); err != nil {
-		t.Fatalf("version -C: %v", err)
+	if rErr := runVersion([]string{"-C", repoRoot}); rErr != nil {
+		t.Fatalf("version -C: %v", rErr)
 	}
 
-	now, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("Getwd: %v", err)
+	now, nErr := os.Getwd()
+	if nErr != nil {
+		t.Fatalf("Getwd: %v", nErr)
 	}
 	if now == wd {
 		t.Error("-C should have changed the working directory")
@@ -521,8 +527,11 @@ func TestUnit_CLI_Emit_CleanRemovesOrphans(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(out, stray), []byte("package gone\n"), 0o600); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-	if err := manifest.Save(out, manifest.New("dev",
-		append(m.Files, manifest.Entry{Path: filepath.ToSlash(stray)}))); err != nil {
+	entries := make([]manifest.Entry, 0, len(m.Files)+1)
+	entries = append(entries, m.Files...)
+	entries = append(entries, manifest.Entry{Path: filepath.ToSlash(stray)})
+
+	if err := manifest.Save(out, manifest.New("dev", entries)); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
 
