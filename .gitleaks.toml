@@ -1,0 +1,27 @@
+# Secret scanning configuration.
+#
+# The default rules are kept in full. This adds one narrowly-scoped allowlist,
+# for the pinned upstream specifications.
+title = "terraform-plugin-framework-codegen"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = """
+Pinned upstream API specifications.
+
+These are third-party documents committed verbatim so that generation is
+reproducible offline. They are not ours to edit, and editing one would defeat the
+point of pinning it.
+
+The ThousandEyes v7 document declares a client-certificate field and illustrates
+it with an "example:" block containing BEGIN PRIVATE KEY. It is filler: a single
+truncated base64 line, the same string reused for both the key and the
+certificate. It was inspected before this allowlist was added.
+
+Scoped to this path only. Every other file in the repository is still scanned,
+including the probe cassettes that a later phase will commit -- those carry real
+recorded HTTP traffic and must keep being checked.
+"""
+paths = ['''^openapi-specs/''']

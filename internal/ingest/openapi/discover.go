@@ -309,9 +309,9 @@ func singular(s string) string {
 	case strings.HasSuffix(s, "sses"), strings.HasSuffix(s, "shes"), strings.HasSuffix(s, "ches"):
 		return strings.TrimSuffix(s, "es")
 
-	// Singular words that merely end in "s". Without these, "status" becomes
-	// "statu" and "analysis" becomes "analysi" -- both plausible-looking enough
-	// to survive review and wrong.
+	// Singular words that merely end in "s". Without these, a trailing letter is
+	// stripped from words like "status" and "analysis", producing keys that look
+	// plausible enough to survive review and are wrong.
 	case strings.HasSuffix(s, "ss"), strings.HasSuffix(s, "us"), strings.HasSuffix(s, "is"):
 		return s
 

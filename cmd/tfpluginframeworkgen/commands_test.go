@@ -46,7 +46,9 @@ func captureStdout(t *testing.T, fn func()) string {
 	done := make(chan string, 1)
 	go func() {
 		var sb strings.Builder
-		_, _ = io.Copy(&sb, r)
+		if _, err := io.Copy(&sb, r); err != nil {
+			sb.WriteString("copy failed: " + err.Error())
+		}
 		done <- sb.String()
 	}()
 
@@ -259,7 +261,10 @@ func TestUnit_CLI_Verify_WritesAStepSummary(t *testing.T) {
 	}
 
 	summary := filepath.Join(t.TempDir(), "summary.md")
-	_ = runVerify([]string{"-blueprint", blueprintDir(), "-out", out, "-github-summary", summary})
+	// The error is the point of the call, but the assertion is on the summary file.
+	if err := runVerify([]string{"-blueprint", blueprintDir(), "-out", out, "-github-summary", summary}); err == nil {
+		t.Fatal("expected drift to be reported")
+	}
 
 	body, err := os.ReadFile(summary)
 	if err != nil {
@@ -479,7 +484,11 @@ func TestUnit_CLI_GlobalChdirIsApplied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Getwd: %v", err)
 	}
-	t.Cleanup(func() { _ = os.Chdir(wd) })
+	t.Cleanup(func() {
+		if err := os.Chdir(wd); err != nil {
+			t.Errorf("restoring the working directory: %v", err)
+		}
+	})
 
 	if err := runVersion([]string{"-C", repoRoot}); err != nil {
 		t.Fatalf("version -C: %v", err)

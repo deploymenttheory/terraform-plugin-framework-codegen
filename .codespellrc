@@ -1,0 +1,6 @@
+[codespell]
+# Pinned upstream specifications are third-party documents committed verbatim.
+# Their typos are Cisco's, we cannot fix them without editing a pinned artefact,
+# and reporting them on every pull request is noise that trains people to ignore
+# the spell check.
+skip = ./openapi-specs,./.git,./go.sum,./pilot/thousandeyes/go.sum

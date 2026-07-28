@@ -39,7 +39,7 @@ go.work.sum
 /bin/tfpluginframeworkgen
 .tfpluginframeworkgen/cache/
 
-# Emitted when a template renders unparseable Go, kept for inspection only.
+# Emitted when a template renders unparsable Go, kept for inspection only.
 *.broken
 
 # Python virtual environments
