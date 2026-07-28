@@ -114,7 +114,7 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 
 	bindOperations(&r, c, sdkPkg+"."+responseType)
 
-	attrs, attrNotes := d.attributes(c, sdkPkg, requestType, responseType)
+	attrs, attrNotes := d.attributes(c, sdkPkg)
 	r.Attributes = attrs
 	notes = append(notes, attrNotes...)
 
@@ -207,7 +207,7 @@ func bindOperations(r *blueprint.Resource, c Candidate, resultType string) {
 // A field in both is configurable; one only in the response is computed. That
 // merge is the whole of presence inference, and it is why both schemas are read
 // rather than just one.
-func (d *Document) attributes(c Candidate, sdkPkg, requestType, responseType string) ([]blueprint.Attribute, []Note) {
+func (d *Document) attributes(c Candidate, sdkPkg string) ([]blueprint.Attribute, []Note) {
 	writable := map[string]Field{}
 	for _, f := range Fields(d.requestSchema(c)) {
 		writable[f.Name] = f
@@ -257,7 +257,7 @@ func (d *Document) attributes(c Candidate, sdkPkg, requestType, responseType str
 			continue
 		}
 
-		attr, note := attributeOf(f, inWrite, inRead, sdkPkg, requestType, responseType)
+		attr, note := attributeOf(f, inWrite, sdkPkg)
 		if note != "" {
 			notes = append(notes, Note{Resource: c.Key, Field: name, Message: note})
 			continue
@@ -327,7 +327,10 @@ func skipField(f Field) (bool, string) {
 }
 
 // attributeOf builds one attribute from a merged field.
-func attributeOf(f Field, inWrite, inRead bool, sdkPkg, requestType, responseType string) (blueprint.Attribute, string) {
+//
+// inWrite is whether the field appears in the request body, which is what
+// decides presence and therefore whether the attribute is ever sent.
+func attributeOf(f Field, inWrite bool, sdkPkg string) (blueprint.Attribute, string) {
 	goField := namingOpts.GoFieldName(f.Name)
 
 	a := blueprint.Attribute{
@@ -369,9 +372,6 @@ func attributeOf(f Field, inWrite, inRead bool, sdkPkg, requestType, responseTyp
 	} else {
 		a.Wire.SkipExpand = true
 	}
-
-	_ = requestType
-	_ = responseType
 
 	return a, ""
 }
