@@ -48,7 +48,7 @@ func TestUnit_CLI_Dispatch_ExitCodes(t *testing.T) {
 		// A malformed flag must not be reported as an internal failure: exit 1
 		// would tell a caller the tool broke rather than that they mistyped.
 		{"undefined flag is a usage error", []string{"version", "-nope"}, exitInvalidInput},
-		{"unbuilt subcommand reports a plain failure", []string{"ingest"}, exitError},
+		{"unbuilt subcommand reports a plain failure", []string{"scaffold"}, exitError},
 		// A built subcommand missing a required flag is the caller's mistake, and
 		// must not be reported the same way as a subcommand that does not exist yet.
 		{"built subcommand missing a required flag is a usage error", []string{"emit"}, exitInvalidInput},
@@ -74,6 +74,11 @@ var builtCommands = map[string]bool{
 	"emit":     true,
 	"verify":   true,
 	"bindings": true,
+	// ingest is partially built: -list discovers candidates from a pinned
+	// snapshot, while blueprint inference is not written yet. It counts as built
+	// because invoking it does real work and fails for real reasons, rather than
+	// reporting that it does not exist.
+	"ingest": true,
 }
 
 // TestUnit_CLI_Dispatch_ImplementationClaimsAreTrue guards two failure modes at

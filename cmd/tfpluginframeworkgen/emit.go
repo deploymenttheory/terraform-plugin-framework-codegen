@@ -113,13 +113,21 @@ func writePlan(plan emit.Plan, o emitOptions) error {
 		// Orphans are found before the manifest is rewritten, because rewriting it
 		// is what destroys the record of them. Emitting after renaming a resource
 		// would otherwise leave the old files with nothing able to notice.
-		if err := handleOrphans(o.out, plan, o.clean); err != nil {
+		remaining, err := handleOrphans(o.out, plan, o.clean)
+		if err != nil {
 			return err
 		}
 
 		// The manifest is written after the files, so a failed run does not leave
 		// an inventory claiming output that was never produced.
 		entries := manifestEntries(plan, o.blueprintPath)
+
+		// Orphans that were reported but not deleted stay in the inventory.
+		// Dropping them would make the advice this command just printed -- re-run
+		// with -clean -- impossible to follow, because the second run would have
+		// no record of what to delete.
+		entries = append(entries, remaining...)
+
 		if err := manifest.Save(o.out, manifest.New(version.Version, entries)); err != nil {
 			return err
 		}
@@ -147,13 +155,15 @@ func writePlan(plan emit.Plan, o emitOptions) error {
 // might equally be a blueprint that failed to load a resource, and silently
 // deleting a working resource's files on the strength of that would be worse than
 // leaving them.
-func handleOrphans(root string, plan emit.Plan, clean bool) error {
+// handleOrphans returns the manifest entries for orphans that were reported but
+// not deleted, so the caller can carry them forward.
+func handleOrphans(root string, plan emit.Plan, clean bool) ([]manifest.Entry, error) {
 	m, ok, err := manifest.Load(root)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
 	produced := make(map[string]bool, len(plan.Files))
@@ -163,29 +173,31 @@ func handleOrphans(root string, plan emit.Plan, clean bool) error {
 
 	orphans, err := m.Orphans(root, produced)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(orphans) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	if !clean {
+		carried := make([]manifest.Entry, 0, len(orphans))
 		for _, p := range orphans {
 			log.Printf("orphaned %s", p)
+			carried = append(carried, manifest.Entry{Path: p, Blueprint: "orphaned"})
 		}
 		log.Printf("%d file(s) are no longer produced by the blueprints. "+
 			"Re-run with -clean to delete them, or remove them by hand.", len(orphans))
-		return nil
+		return carried, nil
 	}
 
 	for _, p := range orphans {
 		if err := os.Remove(filepath.Join(root, p)); err != nil {
-			return fmt.Errorf("removing orphaned %s: %w", p, err)
+			return nil, fmt.Errorf("removing orphaned %s: %w", p, err)
 		}
 		log.Printf("removed   %s", p)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // manifestEntries records what the run produced, so a later run can tell which

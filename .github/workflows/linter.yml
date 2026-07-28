@@ -47,7 +47,7 @@ jobs:
           # named files spanning more than one directory:
           #
           #   typechecking error: named files must all be in one directory;
-          #   have /github/workspace/internal/manifest and /github/workspace/cmd/tfprovidergen
+          #   have /github/workspace/internal/manifest and /github/workspace/cmd/tfpluginframeworkgen
           #
           # In a code generator almost every change touches several packages at
           # once, so this fails on ordinary pull requests regardless of whether
@@ -58,6 +58,12 @@ jobs:
           VALIDATE_GOCYCLO: false
           VALIDATE_GOVET: false
           VALIDATE_GOLANGCI_LINT: false
+
+          # The pinned specifications are third-party documents committed verbatim
+          # for reproducibility. Linting them reports faults we cannot fix without
+          # editing a pinned artefact, which would defeat the point of pinning it.
+          # The ThousandEyes v7 document alone has dozens of $ref-sibling errors.
+          VALIDATE_OPENAPI: false
 
           VALIDATE_CPD: false # Disable CPD (Copy Paste Detection) for all languages
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # To report GitHub Actions status checks

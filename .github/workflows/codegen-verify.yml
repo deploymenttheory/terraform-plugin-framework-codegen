@@ -1,7 +1,7 @@
 # Fails when the committed generated code no longer matches the blueprints it was
 # generated from.
 #
-# Everything under pilot/ is produced by cmd/tfprovidergen. Nothing stops a change
+# Everything under pilot/ is produced by cmd/tfpluginframeworkgen. Nothing stops a change
 # to the generator, a template or a blueprint from landing without the output being
 # regenerated, and stale generated code compiles perfectly well -- so the drift
 # would be invisible. This regenerates and fails if anything moved.
@@ -61,12 +61,12 @@ jobs:
       - name: Regenerate
         run: |
           echo "::group::🔁 Regenerating the pilot provider"
-          go run ./cmd/tfprovidergen emit \
+          go run ./cmd/tfpluginframeworkgen emit \
             -blueprint blueprints/thousandeyes \
             -out pilot/thousandeyes
           echo "::endgroup::"
 
-      # git diff rather than `tfprovidergen verify`, deliberately. verify compares
+      # git diff rather than `tfpluginframeworkgen verify`, deliberately. verify compares
       # the files the blueprints produce against disk, so it cannot see a stale file
       # the blueprints no longer produce. Diffing the worktree after a real
       # regeneration catches that too.
@@ -77,14 +77,14 @@ jobs:
             exit 0
           fi
 
-          echo "::error::Generated code is out of date. Run 'go run ./cmd/tfprovidergen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes' and commit the result."
+          echo "::error::Generated code is out of date. Run 'go run ./cmd/tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes' and commit the result."
           {
             echo "### ❌ Generated code is out of date"
             echo ""
             echo "Run this locally and commit the result:"
             echo ""
             echo '```bash'
-            echo 'go run ./cmd/tfprovidergen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes'
+            echo 'go run ./cmd/tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes'
             echo '```'
             echo ""
             echo "<details><summary>Files that differ</summary>"
@@ -188,7 +188,7 @@ jobs:
       - name: Verify bindings against the pinned SDK
         run: |
           echo "::group::🔗 Bindings"
-          go run ./cmd/tfprovidergen bindings \
+          go run ./cmd/tfpluginframeworkgen bindings \
             -blueprint blueprints/thousandeyes \
             -module pilot/thousandeyes
           echo "::endgroup::"

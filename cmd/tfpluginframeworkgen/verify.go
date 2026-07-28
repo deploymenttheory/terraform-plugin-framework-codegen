@@ -99,7 +99,7 @@ func runVerify(args []string) error {
 	fmt.Fprint(os.Stderr, report)
 	// The GitHub annotation makes the failure visible in the checks UI rather
 	// than only in the log.
-	fmt.Fprintf(os.Stderr, "::error::Generated code is out of date. Run: tfprovidergen emit -blueprint %s -out %s\n",
+	fmt.Fprintf(os.Stderr, "::error::Generated code is out of date. Run: tfpluginframeworkgen emit -blueprint %s -out %s\n",
 		*blueprintPath, *out)
 
 	if *summaryPath != "" {
@@ -157,7 +157,7 @@ func buildDriftReport(blueprintPath, out string, drifted, missing, orphaned []st
 	var b strings.Builder
 
 	b.WriteString("### ❌ Generated code is out of date\n\n")
-	b.WriteString("Run this and commit the result:\n\n```bash\ntfprovidergen emit -blueprint ")
+	b.WriteString("Run this and commit the result:\n\n```bash\ntfpluginframeworkgen emit -blueprint ")
 	b.WriteString(blueprintPath + " -out " + out + "\n```\n\n")
 
 	if len(drifted) > 0 {

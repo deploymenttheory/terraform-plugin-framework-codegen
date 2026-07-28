@@ -23,7 +23,7 @@ import (
 )
 
 // Name is the manifest's path relative to the provider root.
-const Name = ".tfprovidergen/manifest.json"
+const Name = ".tfpluginframeworkgen/manifest.json"
 
 // FormatVersion is the manifest format version.
 const FormatVersion = "1"

@@ -1,11 +1,11 @@
 # CLI reference
 
-`tfprovidergen` is one binary with subcommands, dispatched with the standard
+`tfpluginframeworkgen` is one binary with subcommands, dispatched with the standard
 library's `flag` package. Each subcommand owns its own `FlagSet`, so there is no
-global flag namespace for two subcommands to collide in, and `tfprovidergen emit
+global flag namespace for two subcommands to collide in, and `tfpluginframeworkgen emit
 -v` reads naturally rather than requiring flags before the command.
 
-> This page is maintained by hand and checked against `tfprovidergen <cmd> -h`.
+> This page is maintained by hand and checked against `tfpluginframeworkgen <cmd> -h`.
 > The authoritative text is the binary's own help output; if the two disagree,
 > the binary is right and this page is stale.
 
@@ -39,7 +39,7 @@ Accepted by every subcommand.
 | `-v` | verbose output |
 | `-q` | suppress progress output |
 | `-C <dir>` | change to this directory before running |
-| `-config <path>` | provider generation config (default `.tfprovidergen/config.yaml`) |
+| `-config <path>` | provider generation config (default `.tfpluginframeworkgen/config.yaml`) |
 
 ## Exit codes
 
@@ -67,7 +67,7 @@ same way as the tool failing.
 Renders a provider from blueprints.
 
 ```
-tfprovidergen emit -blueprint DIR -out DIR [-only NAME] [-dry-run]
+tfpluginframeworkgen emit -blueprint DIR -out DIR [-only NAME] [-dry-run]
 ```
 
 | Flag | Default | Purpose |
@@ -99,7 +99,7 @@ rewritten, so regenerating does not churn modification times.
 Fails if the committed provider no longer matches its blueprints.
 
 ```
-tfprovidergen verify -blueprint DIR -out DIR
+tfpluginframeworkgen verify -blueprint DIR -out DIR
 ```
 
 | Flag | Default | Purpose |
@@ -115,7 +115,7 @@ different fixes:
 - **missing** — a file the blueprints produce is not on disk
 - **orphaned** — a file the blueprints no longer produce is still on disk
 
-Orphans need `.tfprovidergen/manifest.json`. A tree without one says so rather
+Orphans need `.tfpluginframeworkgen/manifest.json`. A tree without one says so rather
 than silently reporting none, so "no orphans" is distinguishable from "could not
 check".
 
@@ -130,7 +130,7 @@ Type-checks a blueprint's SDK bindings against the SDK the provider will compile
 against.
 
 ```
-tfprovidergen bindings -blueprint DIR -module DIR
+tfpluginframeworkgen bindings -blueprint DIR -module DIR
 ```
 
 | Flag | Default | Purpose |
@@ -156,7 +156,7 @@ tag: binding.service.accessor: "r.client.Tags" does not resolve:
 ## `version`
 
 ```
-tfprovidergen version [-short]
+tfpluginframeworkgen version [-short]
 ```
 
 ---
@@ -167,17 +167,17 @@ The pilot, end to end:
 
 ```bash
 # what would be written, without writing it
-tfprovidergen emit -blueprint blueprints/thousandeyes -dry-run
+tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -dry-run
 
 # check every SDK symbol the blueprint names actually exists
-tfprovidergen bindings -blueprint blueprints/thousandeyes -module pilot/thousandeyes
+tfpluginframeworkgen bindings -blueprint blueprints/thousandeyes -module pilot/thousandeyes
 
 # generate
-tfprovidergen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes
+tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes
 
 # the actual proof
 cd pilot/thousandeyes && go build ./... && go test ./... && terraform plan
 
 # what CI runs
-tfprovidergen verify -blueprint blueprints/thousandeyes -out pilot/thousandeyes
+tfpluginframeworkgen verify -blueprint blueprints/thousandeyes -out pilot/thousandeyes
 ```
