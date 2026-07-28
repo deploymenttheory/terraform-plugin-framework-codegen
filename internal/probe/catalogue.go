@@ -382,22 +382,22 @@ type immutability struct{}
 func (immutability) Name() string { return "write.immutability" }
 func (immutability) Kind() Kind   { return KindMutating }
 
-// Cost is, per candidate field: two creates, a control update, the real update, two reads and two
-// deletes.
+// Cost is, per candidate field: two creates, three reads, three updates and two deletes.
+//
+// Ten, not the eight an earlier draft assumed. The count that was missing is the *second* update
+// attempt and its read -- and those are not optional: one refusal is consistent with the value
+// simply being invalid, so Immutable=true requires two distinct values both refused. A cost model
+// that budgeted for one would have refused the run partway through the evidence it needs.
 //
 // The domain is Scope.Immutable(), which is the fields with *two or more* candidate values. That
 // is not a convenience -- Immutable=true requires Corroborated, which needs two distinct proven
 // values, so a field with one candidate cannot reach the confidence the fact demands and probing
 // it would produce nothing but a note.
-func (immutability) Cost(sc Scope) int { return needsUpdate(sc, 8*immutabilityFields(sc)) }
+func (immutability) Cost(sc Scope) int { return needsUpdate(sc, 10*immutabilityFields(sc)) }
 
 // Creates is two per candidate field: the object under test, and the control that proves the
 // second value is acceptable at all.
 func (immutability) Creates(sc Scope) int { return needsUpdate(sc, 2*immutabilityFields(sc)) }
-
-func (immutability) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
-	return Result{}, errNotImplemented
-}
 
 // enumBoundary asks three questions of a field the specification documents as an enum:
 // is the set closed, are the documented values actually accepted, and is it case
@@ -421,28 +421,28 @@ func (immutability) Exercise(context.Context, *MutatingSession, Scope) (Result, 
 // the sandbox refuses may be licence-gated rather than nonexistent, so the fact says
 // "rejected here", never "does not exist".
 //
-// Its cost is zero against a subject whose fields declare no enum values, which today is
-// every subject: the blueprint has no field for a documented value set. That is not an
-// oversight to work around here -- see Field.Enum -- and it means enum candidates have to
-// come from the plan before this probe can do anything. -list reports the zero rather than
-// hiding it, so the gap is visible rather than looking like a probe that found nothing.
+// The documented values come from the specification, not from a human. That distinction is what
+// makes enumRejectedDocumented worth anything: if somebody had transcribed the set by hand, a
+// rejection would mean "the API disagrees with what somebody typed". blueprint.AttrType.Enum
+// carries them through ingest for this one consumer, and the pilot is already a case in point --
+// its committed object_type description lists five values where the specification declares six.
+//
+// Its cost is zero against a subject whose fields declare none, and -list reports the zero rather
+// than hiding it: a probe that costs nothing because there is nothing to check should look
+// different from one that found nothing.
 type enumBoundary struct{}
 
 func (enumBoundary) Name() string { return "write.enum" }
 func (enumBoundary) Kind() Kind   { return KindMutating }
 
-// Cost is a create and a delete per value tried: every documented value, plus two generated
-// negatives per enum field.
-func (enumBoundary) Cost(sc Scope) int { return 2 * enumValueCount(sc) }
+// Cost is a create and a delete per value tried: every documented value, two generated negatives,
+// and one case variant per enum field.
+func (enumBoundary) Cost(sc Scope) int { return 2 * (enumValueCount(sc) + len(sc.Enums())) }
 
 // Creates is one per value tried. A rejected value creates nothing, so this is the worst case in
 // which the API accepts everything -- which is exactly the case that produces the interesting
 // fact, that the enum is not closed.
-func (enumBoundary) Creates(sc Scope) int { return enumValueCount(sc) }
-
-func (enumBoundary) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
-	return Result{}, errNotImplemented
-}
+func (enumBoundary) Creates(sc Scope) int { return enumValueCount(sc) + len(sc.Enums()) }
 
 // writeSideEffect looks for a field the server set that was never sent, then perturbs the
 // suspected trigger and re-reads to confirm the coupling.
