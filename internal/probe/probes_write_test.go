@@ -1581,3 +1581,344 @@ func TestUnit_Probe_NoDocumentedValuesMeansNothingToCheck(t *testing.T) {
 		t.Errorf("%d request(s) issued with nothing to check", srv.Requests())
 	}
 }
+
+// normaliseSubject has a string field and a collection field, which are the two types the
+// transforms apply to.
+func normaliseSubject() Subject {
+	subj := quirkSubject()
+
+	subj.Fields = append(subj.Fields, Field{
+		JSONPath: "tags", Attribute: "tags",
+		Kind: blueprint.KindList, Presence: blueprint.Optional, Writable: true,
+	})
+
+	return subj
+}
+
+// TestUnit_Probe_AnIdentifiedTransformIsObservedAndAVagueOneIsSuspected.
+//
+// The highest-value class of fact in the catalogue: server normalisation is the direct cause of a
+// perpetual diff. A specific named transform is Observed; "changed somehow" is only Suspected,
+// because merge writes the first into a description a human acts on.
+func TestUnit_Probe_AnIdentifiedTransformIsObservedAndAVagueOneIsSuspected(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		quirks  quirkserver.Quirks
+		path    string
+		wantSay string
+	}{
+		{
+			name:    "whitespace",
+			quirks:  quirkserver.Quirks{TrimsWhitespace: []string{"value"}},
+			path:    "value",
+			wantSay: "surrounding whitespace is stripped",
+		},
+		{
+			name:    "case",
+			quirks:  quirkserver.Quirks{NormalisesCase: []string{"value"}},
+			path:    "value",
+			wantSay: "lower-cased",
+		},
+		{
+			// The one existing providers carry runtime helpers for, which is the wrong layer.
+			name:    "collection order",
+			quirks:  quirkserver.Quirks{SortsLists: []string{"tags"}},
+			path:    "tags",
+			wantSay: "re-sorted",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := quirkserver.New(t, tc.quirks)
+
+			report := runAgainst(t, srv, normaliseSubject(), writePlan(), "write.normalisation")
+
+			fact, ok := factFor(t, report, tc.path, FactNormalisation)
+			if !ok {
+				t.Fatalf("no normalisation fact for %s: %v (notes %v)",
+					tc.path, report.Facts, report.Notes)
+			}
+
+			if !strings.Contains(fact.Value.Text, tc.wantSay) {
+				t.Errorf("fact says %q, want it to mention %q", fact.Value.Text, tc.wantSay)
+			}
+			if fact.Confidence != Observed {
+				t.Errorf("confidence = %s, want observed for an identified transform",
+					fact.Confidence)
+			}
+
+			// Named in the framework's own terms, because that is what a provider author reaches
+			// for.
+			if _, ok := noteMentioning(report, "semantic-equality"); !ok {
+				t.Errorf("an identified transform should point at where it is suppressed "+
+					"properly: %v", report.Notes)
+			}
+		})
+	}
+}
+
+// TestUnit_Probe_AnApiThatChangesNothingProducesNoNormalisationFact.
+//
+// Absence of a fact is the correct outcome, and it has to be distinguishable from a probe that did
+// not run: the run still costs its creates and still reports them.
+func TestUnit_Probe_AnApiThatChangesNothingProducesNoNormalisationFact(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{})
+
+	report := runAgainst(t, srv, normaliseSubject(), writePlan(), "write.normalisation")
+
+	for _, f := range report.Facts {
+		if f.Field == FactNormalisation {
+			t.Errorf("an API that stores values verbatim produced a normalisation fact: %v", f)
+		}
+	}
+
+	var outcome ProbeOutcome
+	for _, o := range report.Probes {
+		if o.Name == "write.normalisation" {
+			outcome = o
+		}
+	}
+
+	if outcome.Requests == 0 {
+		t.Error("the probe must have actually sent the awkward values")
+	}
+}
+
+// TestUnit_Probe_ARefusedAwkwardValueIsNoObservation.
+//
+// A rejected value tells you nothing about what the server would have done with an accepted one, so
+// it is a note rather than evidence either way.
+func TestUnit_Probe_ARefusedAwkwardValueIsNoObservation(t *testing.T) {
+	t.Parallel()
+
+	// A closed enum on the field the transforms target, so every awkward value is refused.
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		ClosedEnum: map[string][]string{"value": {"a", "b"}},
+	})
+
+	report := runAgainst(t, srv, normaliseSubject(), writePlan(), "write.normalisation")
+
+	for _, f := range report.Facts {
+		if f.Field == FactNormalisation {
+			t.Errorf("a refused value produced a fact: %v", f)
+		}
+	}
+
+	if _, ok := noteMentioning(report, "so nothing was observed about that transform"); !ok {
+		t.Errorf("the refusal must be reported: %v", report.Notes)
+	}
+}
+
+// TestUnit_Probe_TheNameFieldCannotCarryEveryAwkwardShape.
+//
+// Leading whitespace and mixed case both destroy the sweeper's prefix, and a body whose name has
+// lost it is refused before it is sent -- correctly, since the object could not then be found. The
+// gap is reported rather than left looking probed.
+func TestUnit_Probe_TheNameFieldCannotCarryEveryAwkwardShape(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{TrimsWhitespace: []string{"key"}})
+
+	report := runAgainst(t, srv, normaliseSubject(), writePlan(), "write.normalisation")
+
+	note, ok := noteMentioning(report, "the awkward shape would destroy it")
+	if !ok {
+		t.Fatalf("the gap must be reported: %v", report.Notes)
+	}
+	if note.JSONPath != "key" {
+		t.Errorf("the note should name the field, got %q", note.JSONPath)
+	}
+}
+
+// sideEffectSubject adds a boolean trigger and a field the server can couple to it.
+func sideEffectSubject() Subject {
+	subj := quirkSubject()
+
+	subj.Fields = append(subj.Fields,
+		Field{
+			JSONPath: "enabled", Attribute: "enabled",
+			Kind: blueprint.KindBool, Presence: blueprint.Optional, Writable: true,
+		},
+		Field{
+			JSONPath: "alsoEnabled", Attribute: "also_enabled",
+			Kind: blueprint.KindBool, Presence: blueprint.Computed,
+		},
+	)
+
+	return subj
+}
+
+func sideEffectPlan() Plan {
+	return Plan{
+		Fixtures: []Fixture{
+			{Name: "first", Body: map[string]any{"key": "stamped", "value": "a"}},
+		},
+		DefaultInfluencers: []string{"enabled"},
+		Budget:             Budget{MaxRequests: 80, MaxCreates: 30},
+	}
+}
+
+// TestUnit_Probe_ASideEffectIsConfirmedByPerturbingTheTrigger.
+//
+// The class of quirk a human would never guess from a specification and a prober genuinely can
+// find: enabling one measurement silently enables another. Confirmation requires perturbing the
+// trigger, because a field that merely changes could be a server default.
+func TestUnit_Probe_ASideEffectIsConfirmedByPerturbingTheTrigger(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		WriteSideEffects: map[string]string{"enabled": "alsoEnabled"},
+	})
+
+	report := runAgainst(t, srv, sideEffectSubject(), sideEffectPlan(), "write.side-effect")
+
+	fact, ok := factFor(t, report, "enabled", FactSideEffect)
+	if !ok {
+		t.Fatalf("no sideEffect fact: %v (notes %v)", report.Facts, report.Notes)
+	}
+
+	if !strings.Contains(fact.Value.Text, "alsoEnabled") {
+		t.Errorf("the fact should name the coupled field, got %q", fact.Value.Text)
+	}
+
+	// Inferred even after confirmation: "the server set it in response to this request" and "the
+	// server always sets it" are different claims, and one perturbation establishes only the first.
+	if fact.Confidence != Inferred {
+		t.Errorf("confidence = %s, want inferred", fact.Confidence)
+	}
+	if len(fact.Alternatives) < 2 {
+		t.Errorf("the fact must state what one perturbation did not establish: %v",
+			fact.Alternatives)
+	}
+}
+
+// TestUnit_Probe_NoCouplingIsReportedAsNone: an API with no coupling must produce a note, not
+// silence -- silence is indistinguishable from a probe that did not run.
+func TestUnit_Probe_NoCouplingIsReportedAsNone(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{})
+
+	report := runAgainst(t, srv, sideEffectSubject(), sideEffectPlan(), "write.side-effect")
+
+	if _, ok := factFor(t, report, "enabled", FactSideEffect); ok {
+		t.Error("an API with no coupling must not produce a side-effect fact")
+	}
+	if _, ok := noteMentioning(report, "no coupling was observed"); !ok {
+		t.Errorf("the absence must be reported: %v", report.Notes)
+	}
+}
+
+// TestUnit_Probe_NoDeclaredTriggerMeansNothingToPerturb.
+//
+// The plan is where knowledge a probe cannot discover comes from, and which fields might be coupled
+// is exactly that. Without one there is no experiment to run, and the run says so.
+func TestUnit_Probe_NoDeclaredTriggerMeansNothingToPerturb(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		WriteSideEffects: map[string]string{"enabled": "alsoEnabled"},
+	})
+
+	plan := sideEffectPlan()
+	plan.DefaultInfluencers = nil
+
+	report := runAgainst(t, srv, sideEffectSubject(), plan, "write.side-effect")
+
+	if len(report.Facts) != 0 {
+		t.Errorf("facts = %v", report.Facts)
+	}
+	if _, ok := noteMentioning(report, "declare one under defaultInfluencers"); !ok {
+		t.Errorf("the run must say what would let it work: %v", report.Notes)
+	}
+}
+
+// TestUnit_Probe_EveryProbeInTheCatalogueIsImplemented is the Phase 4.7e milestone.
+//
+// Nine mutating protocols and six read-only ones, all with bodies. From here the catalogue is
+// complete and what remains is pointing it at a real tenant.
+func TestUnit_Probe_EveryProbeInTheCatalogueIsImplemented(t *testing.T) {
+	t.Parallel()
+
+	for _, p := range MutatingProbes("") {
+		if !builtMutatingProbes[p.Name()] {
+			t.Errorf("%s is still unimplemented", p.Name())
+		}
+	}
+
+	if len(builtMutatingProbes) != len(MutatingProbes("")) {
+		t.Errorf("%d probes are recorded as built and %d are registered",
+			len(builtMutatingProbes), len(MutatingProbes("")))
+	}
+}
+
+// TestUnit_Probe_TheWholeCatalogueRunsAndSweepsClean.
+//
+// Every protocol against one fixture, then the tenant checked empty. This is the assertion that
+// matters most before a live run: nine probes creating objects through the ledger, per-probe
+// release, and the sweep, with nothing left behind.
+func TestUnit_Probe_TheWholeCatalogueRunsAndSweepsClean(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		// A fixture that misbehaves in several ways at once, because that is what a real API
+		// does.
+		SilentlyDiscards:          []string{"modifiedDate"},
+		NormalisesCase:            []string{"value"},
+		ConstantDefaults:          map[string]any{"colour": "blue"},
+		EventuallyConsistentReads: 1,
+		PutClearsOmitted:          true,
+	})
+
+	subj := normaliseSubject()
+	subj.Fields = append(subj.Fields, Field{
+		JSONPath: "colour", Attribute: "colour",
+		Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true,
+	})
+
+	plan := Plan{
+		Fixtures: []Fixture{
+			{Name: "first", Body: map[string]any{"key": "stamped", "value": "a"}},
+			{Name: "second", Body: map[string]any{"key": "stamped", "value": "b"}},
+		},
+		Candidates:         map[string][]any{"value": {"one", "two"}},
+		DefaultInfluencers: []string{"value"},
+		Budget:             Budget{MaxRequests: 300, MaxCreates: 100},
+	}
+
+	report := runAgainst(t, srv, subj, plan, "")
+
+	// Every mutating probe ran and reported an outcome. A probe missing from the report is the one
+	// failure a reader cannot detect.
+	seen := map[string]bool{}
+	for _, o := range report.Probes {
+		seen[o.Name] = true
+
+		if o.Status == "failed" {
+			t.Errorf("%s failed: %s", o.Name, o.Reason)
+		}
+	}
+
+	for _, p := range MutatingProbes("") {
+		if !seen[p.Name()] {
+			t.Errorf("%s is missing from the report", p.Name())
+		}
+	}
+
+	if report.Sweep == nil {
+		t.Fatal("a mutating run must report what cleaning up did")
+	}
+	if len(report.Orphans) != 0 {
+		t.Errorf("orphans = %+v", report.Orphans)
+	}
+	if len(report.Facts) == 0 {
+		t.Error("the whole catalogue against a misbehaving fixture established nothing")
+	}
+}

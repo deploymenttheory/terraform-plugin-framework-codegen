@@ -1,9 +1,5 @@
 package probe
 
-import (
-	"context"
-)
-
 // This file is the catalogue.
 //
 // Every probe is registered here with its name, kind, worst-case cost, and a doc
@@ -464,13 +460,20 @@ type writeSideEffect struct{}
 func (writeSideEffect) Name() string { return "write.side-effect" }
 func (writeSideEffect) Kind() Kind   { return KindMutating }
 
-// Cost is a pair of creates -- one with the trigger field, one without -- plus their reads and
-// deletes. A pair rather than per field, because the comparison is between two whole objects.
-func (writeSideEffect) Cost(sc Scope) int    { return withFixture(sc, 8) }
-func (writeSideEffect) Creates(sc Scope) int { return withFixture(sc, 2) }
+// Cost is three creates with their reads and deletes: two carrying the trigger, one without.
+//
+// Three rather than a pair, and not scaled by fixture count. The identical pair is what establishes
+// which unsent fields are stable at all -- without it the identifier and every other per-object
+// value the server assigns differ between two objects and read as coupling. And the question is
+// about one trigger, so a second fixture would ask it again with nothing new.
+func (writeSideEffect) Cost(sc Scope) int { return 3 * (writeSideEffect{}).Creates(sc) }
 
-func (writeSideEffect) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
-	return Result{}, errNotImplemented
+func (writeSideEffect) Creates(sc Scope) int {
+	if len(sc.Fixtures()) == 0 || len(sc.Influencers()) == 0 {
+		return 0
+	}
+
+	return 3
 }
 
 // normalisation sends awkward values -- mixed case, surrounding whitespace, a reversed
@@ -502,17 +505,22 @@ func (normalisation) Kind() Kind   { return KindMutating }
 // the server far more often than of one field, and one create carrying "  padded  " in every
 // string field observes all of them together. Per field per value was 3 x fields creates for an
 // answer that is nearly always uniform.
-func (normalisation) Cost(sc Scope) int    { return withFixture(sc, 3*len(normalisationValues)) }
-func (normalisation) Creates(sc Scope) int { return withFixture(sc, len(normalisationValues)) }
+// Cost is a create and a read per transform, plus the delete. Not scaled by fixture count: the
+// question is what the server does to a shape, and a second fixture sends the same shapes.
+func (normalisation) Cost(sc Scope) int {
+	if len(sc.Fixtures()) == 0 {
+		return 0
+	}
 
-// normalisationValues are the awkward values sent, one create each.
-//
-// Each one isolates a different transform, and each is a shape a practitioner will really write:
-// surrounding whitespace, mixed case, and a list whose order is not sorted.
-var normalisationValues = []string{"  padded  ", "MiXeDcAsE", "b,a,c"}
+	return 3 * len(normalisationTransforms)
+}
 
-func (normalisation) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
-	return Result{}, errNotImplemented
+func (normalisation) Creates(sc Scope) int {
+	if len(sc.Fixtures()) == 0 {
+		return 0
+	}
+
+	return len(normalisationTransforms)
 }
 
 // ---------------------------------------------------------------------------
