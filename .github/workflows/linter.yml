@@ -32,16 +32,53 @@ jobs:
         env:
           DEFAULT_BRANCH: origin/main
           VALIDATE_ALL_CODEBASE: false # tells the linter to only check files that have been modified in the current pull request
-          VALIDATE_GO: true
-          VALIDATE_GOFMT: true
-          VALIDATE_GOCYCLO: true
-          VALIDATE_GOVET: true
-          VALIDATE_GOLANGCI_LINT: true
+
+          # Go is linted by go-lint.yml, not here.
+          #
+          # Two reasons, and the second is decisive. First, these duplicate
+          # go-lint.yml, which runs golangci-lint over the whole module with this
+          # repository's own .golangci.yml -- and that config already enables
+          # govet, gocyclo and the gofumpt/goimports/gci/golines formatters, so
+          # super-linter's versions add nothing but a second opinion configured
+          # differently.
+          #
+          # Second, with VALIDATE_ALL_CODEBASE false, super-linter invokes
+          # golangci-lint with the list of *changed files*. golangci-lint rejects
+          # named files spanning more than one directory:
+          #
+          #   typechecking error: named files must all be in one directory;
+          #   have /github/workspace/internal/manifest and /github/workspace/cmd/tfprovidergen
+          #
+          # In a code generator almost every change touches several packages at
+          # once, so this fails on ordinary pull requests regardless of whether
+          # the code is correct. A check that cannot pass is worse than no check:
+          # people learn to ignore it, and then ignore it when it means something.
+          VALIDATE_GO: false
+          VALIDATE_GOFMT: false
+          VALIDATE_GOCYCLO: false
+          VALIDATE_GOVET: false
+          VALIDATE_GOLANGCI_LINT: false
+
           VALIDATE_CPD: false # Disable CPD (Copy Paste Detection) for all languages
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # To report GitHub Actions status checks
           MARKDOWN_CONFIG_FILE: .markdown-lint.yml
-          FILTER_REGEX_EXCLUDE: |
-            .*\.md$|                # Exclude all markdown files
-            .*test/.*|              # Exclude all files in any test directory
-            .*_test\.go$|           # Exclude Go test files (e.g., *_test.go)
-            .*\.json$               # Exclude all JSON files
+          # One regex on one line, deliberately.
+          #
+          # This was previously a YAML block scalar with trailing "# ..." comments.
+          # A block scalar has no comments: the "#" text became part of the regex,
+          # so the alternatives after the first never matched and .*\.json$ was
+          # silently doing nothing. That is why JSON was still being linted despite
+          # being listed here.
+          #
+          # Excluded, and why:
+          #   .*\.md$        prose, linted by the markdown validator instead
+          #   .*_test\.go$   test files
+          #   .*/test/.*     test fixtures
+          #   .*\.json$      blueprints and manifests, whose formatting this
+          #                  repository defines and asserts in its own tests
+          #   ^pilot/.*      generated output. Third-party style opinions about
+          #                  generated code are noise: the shape is decided by the
+          #                  templates, and duplicate-code detection in particular
+          #                  will always fire on it, because near-identical CRUD
+          #                  bodies are the point of generating them.
+          FILTER_REGEX_EXCLUDE: '(.*\.md$|.*_test\.go$|.*/test/.*|.*\.json$|^pilot/.*)'

@@ -183,11 +183,11 @@ func TestUnit_Emit_RefusesToOverwriteHandWrittenFiles(t *testing.T) {
 
 	// Put a hand-written file exactly where the emitter wants to write.
 	target := filepath.Join(root, plan.Files[0].Path)
-	if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
-		t.Fatalf("MkdirAll: %v", err)
+	if mkErr := os.MkdirAll(filepath.Dir(target), 0o750); mkErr != nil {
+		t.Fatalf("MkdirAll: %v", mkErr)
 	}
-	if err := os.WriteFile(target, []byte("package tag // written by a person\n"), 0o600); err != nil {
-		t.Fatalf("WriteFile: %v", err)
+	if wErr := os.WriteFile(target, []byte("package tag // written by a person\n"), 0o600); wErr != nil {
+		t.Fatalf("WriteFile: %v", wErr)
 	}
 
 	_, err = Write(plan, WriteOptions{Root: root})

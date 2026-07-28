@@ -44,9 +44,7 @@
     }
   },
   "source": {
-    "specFile": "api.yaml",
     "specVersion": "7.0.97",
-    "snapshotDir": "7.0.97-t1785152261691",
     "sdkVersion": "v0.1.0"
   }
 }

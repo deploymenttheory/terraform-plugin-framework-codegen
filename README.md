@@ -4,9 +4,10 @@ A toolkit that programmatically generates [terraform-plugin-framework][framework
 providers from an API specification **plus recorded API behaviour**, so that
 state mapping is compile-checked generated code instead of runtime reflection.
 
-> **Status: early. Phase 0 of 7.** The CLI skeleton, module and CI gates exist.
-> Every pipeline stage is registered and documented but not yet built — running
-> one tells you so and exits non-zero. See [Roadmap](#roadmap).
+> **Status: Phase 1b of 7.** Generation works end to end: a blueprint produces a
+> provider that compiles, tests and plans. The stages that *infer* a blueprint —
+> OpenAPI ingestion and live API probing — are registered and documented but not
+> yet built, so blueprints are hand-authored today. See [Roadmap](#roadmap).
 
 ## Why
 
@@ -45,10 +46,15 @@ Each arrow writes a **committed, reviewable artefact**. CI regenerates every one
 of them and fails on drift, then builds and tests the result — because a
 generator change can produce a clean diff and broken code.
 
+A blueprint names SDK symbols as strings, so `tfprovidergen bindings` type-checks
+them against the SDK the provider actually pins. That turns a wrong symbol from a
+pile of identical compile errors in generated code into one message naming the
+blueprint field to edit.
+
 ## Quick start
 
-Nothing below works yet except `version`. It is the intended shape, kept in the
-README so the target is legible while it is being built.
+Steps 0 to 2 are not built yet, so a blueprint is hand-authored today. Everything
+from step 5 onward works — that is the pilot's actual build.
 
 ```bash
 # 0. pin an upstream spec snapshot
@@ -66,6 +72,9 @@ tfprovidergen probe -blueprint blueprints/thousandeyes/resources/tag.blueprint.j
 
 # 4. fold the evidence in; conflicts with the spec are surfaced, never resolved silently
 tfprovidergen merge -blueprint ... -facts ... -strategy annotate
+
+# 4b. check every SDK symbol the blueprint names actually exists
+tfprovidergen bindings -blueprint blueprints/thousandeyes -module pilot/thousandeyes
 
 # 5. emit. Dry run first, always.
 tfprovidergen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes -dry-run
@@ -102,8 +111,11 @@ Generated files carry exactly this header, and nothing else may:
 ```
 
 There is deliberately **no** preserved-region mechanism inside a generated file:
-ownership is all-or-nothing per file. When a file genuinely cannot be generated,
-a blueprint declares it hand-written and `emit` skips it forever.
+ownership is all-or-nothing per file. A file that genuinely cannot be generated is
+scaffolded once and then yours, and `emit` never touches it again.
+
+[`docs/generated-boundary.md`](docs/generated-boundary.md) covers how the boundary
+is enforced, orphan detection, and the escape hatch.
 
 ## Repository layout
 
@@ -115,6 +127,8 @@ a blueprint declares it hand-written and `emit` skips it forever.
 | `internal/probe/` | the API behaviour prober |
 | `internal/cassette/` | HTTP record/replay, redaction, deterministic canonicalisation |
 | `internal/emit/`, `internal/render/` | blueprint → Go; all logic lives in `render` |
+| `internal/sdkbind/` | type-checks blueprint bindings against the pinned SDK |
+| `internal/manifest/` | what the last run produced, so orphaned files can be found |
 | `internal/templates/` | embedded `.tmpl` files — the emitted shape, as reviewable text |
 | `blueprints/` | committed blueprints, one directory per provider |
 | `probe-evidence/` | committed probe cassettes and derived facts |
@@ -141,9 +155,9 @@ observed behaviour, test scaffolding — lives in this project's own richer IR.
 | Phase | Delivers | State |
 |---|---|---|
 | 0 | module, CLI skeleton, CI gates | **done** |
-| 1 | walking skeleton: one resource, hand-authored blueprint → `terraform plan` | next |
-| 1b | nested attributes and enums | |
-| 2 | `ingest`: OpenAPI → the same blueprint, byte-identical | |
+| 1 | walking skeleton: one resource, hand-authored blueprint → `terraform plan` | **done** |
+| 1b | nested attributes | **done** |
+| 2 | `ingest`: OpenAPI → the same blueprint, byte-identical | next |
 | 3 | `terraform-plugin-codegen-spec` v0.1 interop | |
 | 4 | the prober: record, replay, gating, cleanup | |
 | 5 | tests, mocks and fixtures derived from probe evidence | |
@@ -168,6 +182,12 @@ provider-defined functions, state upgraders.
   drawn honestly.
 - **`ingest` refuses partial resources by default.** A resource whose CRUD set is
   incomplete is a curation decision, not something to guess at.
+- **Nesting is supported one level deep** and refused beyond it, naming the
+  offending attribute. Deeper shapes need flattening or a deliberate extension.
+- **Two attribute decisions in the pilot are unprobed guesses**, recorded as such
+  in the blueprint's own descriptions: whether `color`, `access_type` and
+  `match_type` really carry server defaults, and whether `legacy_id` is
+  integral despite the specification typing it as a number. Phase 4 settles both.
 
 ## Contributing
 
