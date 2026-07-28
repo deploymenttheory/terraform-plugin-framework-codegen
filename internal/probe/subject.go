@@ -287,7 +287,20 @@ func idFieldOf(res blueprint.Resource, fields []Field) string {
 		want = "id"
 	}
 
+	// Top-level only, and this is not a refinement -- it is the whole correctness of the lookup.
+	// A nested object's child attribute carries its own Terraform name, and "id" is the commonest
+	// name there is: the pilot's tag has assignments[].id alongside the resource's own id. Fields
+	// are sorted by JSON path, so "assignments.id" sorts first and an unqualified match picked it.
+	//
+	// The consequence was not a visible failure. Every create read its identifier out of
+	// "assignments.id", found nothing, and reported the object as created-without-an-identifier;
+	// the sweeper's prefix pass then looked for the same path on every list item, matched none of
+	// them, and deleted nothing. A live run against a real tenant is what surfaced it, because no
+	// test fixture had a nested object with an id in it.
 	for _, f := range fields {
+		if strings.Contains(f.JSONPath, ".") {
+			continue
+		}
 		if f.Attribute == want {
 			return f.JSONPath
 		}

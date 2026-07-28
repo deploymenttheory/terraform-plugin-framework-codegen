@@ -1,0 +1,46 @@
+{
+  "id": "110-get-v7-tags-f04a33e9-d60a-4356-a6d5-2fd503a93e46",
+  "seq": 110,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tags/f04a33e9-d60a-4356-a6d5-2fd503a93e46",
+    "query": {
+      "expand": [
+        "assignments"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tags/f04a33e9-d60a-4356-a6d5-2fd503a93e46"
+        }
+      },
+      "accessType": "all",
+      "aid": 281474976742769,
+      "assignments": [],
+      "builtIn": false,
+      "color": "#A7EB10",
+      "createDate": "2026-07-28T19:36:00Z",
+      "description": "MiXeD-probe-description-2",
+      "icon": "LABEL",
+      "id": "f04a33e9-d60a-4356-a6d5-2fd503a93e46",
+      "key": "tfpfgen-probe-write-normalisation-2",
+      "legacyId": null,
+      "modifiedDate": null,
+      "objectType": "test",
+      "type": "static",
+      "value": "MiXeD-probe-value-2"
+    },
+    "droppedHeaders": 14
+  }
+}

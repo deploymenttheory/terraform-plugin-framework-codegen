@@ -1,6 +1,7 @@
 package apierr
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -253,4 +254,57 @@ func TestUnit_Apierr_String(t *testing.T) {
 	if got := (Error{}).String(); got != "error" {
 		t.Errorf("String() on an empty error = %q, want \"error\"", got)
 	}
+}
+
+// TestUnit_Apierr_NamesMatchesWholeWordsOnly.
+//
+// Two failures a live run found, in opposite directions.
+//
+// Under-claiming: "Invalid Access Type: qqqqqq" names accessType, and a substring test misses it
+// because the API spells the field with a space and a capital. Every refusal of that shape went
+// uncounted, so a value set the API demonstrably enforces was reported as unprobed.
+//
+// Over-claiming: "id" is a substring of "invalid", so any 400 whose message contained the word
+// invalid read as naming the resource's identifier -- on the commonest field name there is.
+func TestUnit_Apierr_NamesMatchesWholeWordsOnly(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		detail string
+		field  string
+		want   bool
+	}{
+		{"prose with a space and a capital", "Invalid Access Type: qqqqqq", "accessType", true},
+		{"the API's own spelling", "Invalid Object Type: zzz", "objectType", true},
+		{"snake case in the message", "access_type is invalid", "accessType", true},
+		{"exact", "objectType must be set", "objectType", true},
+		{"an unsplittable field name", "objectType must be set", "OBJECTTYPE", true},
+
+		{"id is not inside invalid", "the request is invalid", "id", false},
+		{"a different field", "accessType is invalid", "objectType", false},
+		{"a word that merely starts the same", "keyboard is wrong", "key", false},
+		{"nothing at all", "", "objectType", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			e := Classify(400, []byte(`{"title":"bad request","detail":`+quote(tc.detail)+`}`))
+
+			if got := e.Names(tc.field); got != tc.want {
+				t.Errorf("Names(%q) against %q = %v, want %v", tc.field, tc.detail, got, tc.want)
+			}
+		})
+	}
+}
+
+// quote renders a string as a JSON string literal.
+func quote(s string) string {
+	out, err := json.Marshal(s)
+	if err != nil {
+		panic(err)
+	}
+	return string(out)
 }

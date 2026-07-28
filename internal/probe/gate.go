@@ -71,11 +71,20 @@ type GateOptions struct {
 	Subject Subject
 	Plan    Plan
 
-	// SnapshotExists is true when evidence for this plan and probe version is already
-	// committed. Refused without Force, because a recording run that silently replaces
-	// committed evidence removes the only thing a reviewer could have compared against.
-	SnapshotExists bool
-	Force          bool
+	// EquivalentSnapshotExists is true when committed evidence was already recorded with an
+	// identical plan.
+	//
+	// Equivalent, not merely present, and the distinction is the whole condition. A recording
+	// does not overwrite anything -- cassette.Write creates a new timestamped snapshot and the
+	// old one stays for comparison -- so refusing whenever *any* snapshot exists would mean the
+	// toolkit could never record a second time. What is worth refusing is a run that would add a
+	// snapshot indistinguishable from one already committed: churn in the evidence store, a new
+	// directory for CI to verify against, and nothing learned.
+	//
+	// A run whose plan differs is new evidence and is allowed. The first write-tier recording
+	// against a resource that only has read-tier evidence is exactly that case.
+	EquivalentSnapshotExists bool
+	Force                    bool
 }
 
 // gateInput is everything a condition may look at.
@@ -290,13 +299,13 @@ var staticConditions = []condition{
 		name:  "noSnapshotOverwrite",
 		modes: []Mode{ModeRecord},
 		check: func(in gateInput) string {
-			if !in.opts.SnapshotExists || in.opts.Force {
+			if !in.opts.EquivalentSnapshotExists || in.opts.Force {
 				return ""
 			}
 
-			return "evidence for this plan is already committed; recording over it would " +
-				"remove the only thing a reviewer could compare a change against. Pass -force " +
-				"if replacing it is what you mean"
+			return "evidence recorded with this exact plan is already committed, so another " +
+				"recording would add a snapshot nothing distinguishes from it. Change the plan, " +
+				"or pass -force if re-recording the same run is what you mean"
 		},
 	},
 }

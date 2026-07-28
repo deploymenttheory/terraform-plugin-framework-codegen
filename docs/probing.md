@@ -5,9 +5,42 @@ what an API *does* rather than what its specification claims. Everything it conc
 own evidence and a confidence level, and everything it does to somebody's tenant is bounded,
 recorded and swept.
 
-> Status: the read-only tier and the whole safety apparatus are built. The nine mutating probes
-> are registered, budgeted and gated but not yet implemented, so `--allow-mutations` currently
-> authorises a run that creates nothing. Phase 4.7 fills them in.
+> Status: complete. All fifteen probes are implemented, and the pilot's committed evidence is a
+> live mutating run against a real sandbox — 112 requests, 45 objects created, 45 removed, 39 facts,
+> all of them re-derivable offline from the transcript.
+
+## What the first live run found
+
+Worth reading before the reference material, because it is the argument for the whole approach.
+Every probe passed against a fixture designed to misbehave in twenty-six specific ways. Pointed at
+a real API for the first time, the catalogue produced **four facts at `Observed` confidence that
+were wrong**, and lost the observations of six probes entirely. None of it was visible offline.
+
+| What went wrong | Why no test caught it |
+|---|---|
+| Every create reported "no identifier", and the sweeper deleted nothing | The identifier lookup matched the *first* attribute named `id`, and the pilot has `assignments[].id` sorting before the resource's own. No fixture had a nested object with an `id` in it. |
+| The enum probe reported a closed set and four rejected documented values, all wrong | It attributed any 4xx to the enum. Every create in its sweep was refused over a *different* required field. `write.required` had always had the "the error must name the field" guard; this probe did not. |
+| Six probes observed nothing at all | Synthesised sentinel values violated constraints the API enforces — a documented enum, an undocumented icon set, a hex-colour regex — so the whole body was refused and every field in it went unobserved. |
+| A field required by the API was reported as unprobed | The plan's fixtures omitted `accessType` so a default could be observed. There is no default: the API requires it. |
+| Half the immutability and requiredness attempts collided | Stamped names restarted from 1 per field, and the API's uniqueness key includes the name. A 409 duplicate is not a fact about the field being probed. |
+
+Each of those is now a guard with a regression test. The one that matters most is the identifier
+lookup: it failed *silently*, in the direction that leaves objects in somebody's tenant.
+
+**The evidence the run produced**, all of it re-derivable offline:
+
+- `accessType` and `objectType` are **required by the API**, which its own request schema does not
+  declare. Two of the pilot's five open guesses, settled — and one of them was `computed_optional`.
+- `objectType` is **immutable**, corroborated by two distinct values both refused after a control
+  update proved the request shape was sound. Merge recommends `RequiresReplace` and does not add it.
+- `color` defaults to `#A7EB10` and `icon` to `LABEL`, both corroborated across three creates.
+- The specification is **stale in two places**: it documents `accessType: system` and
+  `objectType: endpoint-agent`, and the API rejects both. This is the fact a spec-derived validator
+  would have turned into a broken provider.
+- An update carrying only the name field is refused outright, so a generated update must send the
+  whole object.
+- No coupling between fields, no server-side normalisation of free text, and no read-after-write
+  delay — three negatives, each recorded as a note rather than as a fact.
 
 ## The two tiers
 
@@ -212,6 +245,11 @@ must not thereby become unlimited.
 | `maxSweepSeconds` | 120 | separate from the run's, because the commonest reason to be sweeping is that the run's deadline expired |
 | `maxDeleteFailures` | 0 | not defaulted — zero is the intended value, and treating zero as "unset" would make the safest setting the one you cannot express |
 
+The pilot's plan sets `maxCreates: 60` rather than the default 25. That is a deliberate choice for
+a resource with sixteen writable fields and three documented enums, not a workaround: the whole
+catalogue costs 45 creates, every one of them swept, and per-probe release keeps the number alive at
+any moment far lower. The default was chosen with no data.
+
 The sweeper spends from its **own** reserve of `4 × maxCreates + 8` requests, not from the run's
 budget. Without that, exceeding the budget would refuse the sweeper's own deletes, and the cap
 meant to bound the blast radius would manufacture exactly the orphans it exists to prevent.
@@ -241,6 +279,26 @@ an orphan — and which code CI sees must not depend on the order the errors wer
 Exit `2` means either a usage error or a bug: a panic in a probe is captured, reported with its
 stack, swept after, and then re-raised — and the Go runtime exits `2` for a panic. A stack in the
 output means the second; no stack means the first.
+
+## The plan is where the API's own constraints live
+
+A probe synthesises values for the fields it sends, and a synthesised value is refused by any API
+that constrains the field — which loses the observation for **every** field in that request, not
+just the constrained one. Three shapes of constraint turned up in one resource:
+
+| Constraint | Where the probe gets a usable value |
+|---|---|
+| a documented enum | the specification, via `AttrType.Enum` — carried through `ingest` for exactly this |
+| an undocumented value set (`icon`) | `candidates` in the plan; nothing else can know |
+| a documented regex (`color`) | `candidates` in the plan; the IR does not carry patterns |
+
+So `candidates` does more than feed the immutability protocol: it is the general answer to "what
+value will this API accept here". Declaring two gives the writability protocol its two distinct
+values as well.
+
+A field whose only acceptable value cannot be discovered belongs on `deny`, with the consequence
+understood: every probe that would have sent it emits a note, and whatever the blueprint claims
+about it stays unprobed.
 
 ## What a probe may not do
 

@@ -37,7 +37,28 @@ import (
 // Derived from the field's own path so two fields never carry the same value: if they did, a
 // response that echoed one back under the other's key would read as correct. Deterministic,
 // because a cassette records exact bodies.
-func sentinelFor(f Field, round int) any {
+func sentinelFor(sc Scope, f Field, round int) any {
+	// The plan's candidates first, because they are the only source of a value the *API* will
+	// accept for a field whose constraint its specification does not describe. The pilot's tag has
+	// one: icon rejects anything but a value from an undocumented set, and a synthesised sentinel
+	// got every fixture round refused -- losing the observation for every other field in the body,
+	// not just for icon.
+	if declared := sc.Candidates(f.JSONPath); len(declared) > 0 {
+		return declared[(round-1)%len(declared)]
+	}
+
+	// A field the specification documents a value set for cannot take an arbitrary value, and
+	// sending one gets the whole body refused -- which is not a fact about that field, it is the
+	// loss of every observation the request would have made about every other field.
+	//
+	// A live run made this concrete: write.writable-returned sent "probe-accessType-1" into an enum
+	// field, both fixture rounds came back 400, and the probe observed nothing whatsoever about
+	// writability for any field. Rounds take different documented values where the set has more
+	// than one, which preserves the two-distinct-values property the writability conclusion needs.
+	if len(f.Enum) > 0 {
+		return f.Enum[(round-1)%len(f.Enum)]
+	}
+
 	switch f.Kind {
 	case blueprint.KindBool:
 		// Alternating rather than always true, so the second round differs from the first --
@@ -171,7 +192,7 @@ func (p writableAndReturned) bodyFor(
 				continue
 			}
 		default:
-			body[f.JSONPath] = sentinelFor(f, round+1)
+			body[f.JSONPath] = sentinelFor(sc, f, round+1)
 		}
 
 		sent[f.JSONPath] = body[f.JSONPath]
@@ -520,7 +541,7 @@ func (p updateStyle) Exercise(
 
 	body := fixture.Body
 	body[sc.Subject.NameField] = s.NameValue(p.Name(), 1)
-	body[victim.JSONPath] = sentinelFor(victim, 1)
+	body[victim.JSONPath] = sentinelFor(sc, victim, 1)
 
 	resp, id, err := s.Create(ctx, p.Name(), body)
 	out.Requests++
@@ -568,12 +589,28 @@ func (p updateStyle) Exercise(
 	}
 
 	if update.Status >= 400 {
-		out.Notes = append(out.Notes, Note{
-			Resource: sc.Subject.Resource, Probe: p.Name(),
-			Message: fmt.Sprintf("the partial update was refused with %d (%s); an API that "+
-				"requires the whole object on update cannot be probed this way, and the "+
-				"immutability protocol's control request is the place that distinguishes it",
-				update.Status, update.Error().Detail),
+		// Refused outright. That is not the merge-or-clear question this protocol set out to
+		// answer, but it settles the question a generated provider actually has: an update must
+		// carry the whole object. Inferred rather than Observed, because the refusal may be about
+		// the particular fields omitted rather than about partiality itself -- and because
+		// write.immutability's control update, which sends the whole body, is the thing that
+		// demonstrates the difference.
+		out.Facts = append(out.Facts, Fact{
+			Resource:   sc.Subject.Resource,
+			Field:      FactUpdateStyle,
+			Value:      TextValue(string(blueprint.UpdatePutFull)),
+			Confidence: Inferred,
+			Probe:      p.Name(),
+			Evidence:   []string{update.Interaction},
+			Rationale: fmt.Sprintf("an update carrying only %s was refused with %d (%s), so a "+
+				"generated update must send the whole object",
+				sc.Subject.NameField, update.Status, update.Error().Detail),
+			Alternatives: []string{
+				"the refusal may be about the particular fields omitted rather than about " +
+					"partiality, which only omitting a different subset would separate",
+				"the API may still merge when given a body it accepts, which this refusal " +
+					"leaves untested",
+			},
 		})
 
 		return out, nil
@@ -923,12 +960,20 @@ func (p requiredByAPI) Exercise(
 	// would be reporting half a truth.
 	attempts := map[string][]omission{}
 
+	// One counter across the whole probe. Every create in a round shared a stamped name, so on an
+	// API whose uniqueness key includes it, the baseline and each omission that left the rest of
+	// the tuple intact collided -- and a 409 that does not name the omitted field is discarded,
+	// costing the observation rather than corrupting it. Still worth not spending.
+	seq := 0
+
 	for round := range sc.Fixtures() {
 		fixture, _ := sc.Fixture(round)
 
 		// The baseline. Without it a rejection cannot be attributed to the omission: the fixture
 		// itself might simply not be acceptable.
-		baseline, err := p.create(ctx, s, sc, round, "")
+		seq++
+
+		baseline, err := p.create(ctx, s, sc, round, seq, "")
 		out.Requests++
 
 		if err != nil {
@@ -947,7 +992,9 @@ func (p requiredByAPI) Exercise(
 		}
 
 		for _, key := range sc.Omittable(fixture) {
-			attempt, err := p.create(ctx, s, sc, round, key)
+			seq++
+
+			attempt, err := p.create(ctx, s, sc, round, seq, key)
 			out.Requests++
 
 			if err != nil {
@@ -990,7 +1037,7 @@ func (p requiredByAPI) create(
 	ctx context.Context,
 	s *MutatingSession,
 	sc Scope,
-	round int,
+	round, seq int,
 	omit string,
 ) (omission, error) {
 	fixture, ok := sc.Fixture(round)
@@ -999,7 +1046,7 @@ func (p requiredByAPI) create(
 	}
 
 	body := fixture.Body
-	body[sc.Subject.NameField] = s.NameValue(p.Name(), round+1)
+	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
 
 	if omit != "" {
 		delete(body, omit)
@@ -1273,6 +1320,15 @@ func (p serverDefault) concludeDefaults(
 					"assigns no value a generated default could carry",
 			})
 
+		case allNil(values):
+			// Present and null. Not a default: a generated stringdefault.StaticString of nothing
+			// is not a thing, and Optional+Computed with no default is what null means here.
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+				Message: "the field came back null when omitted, so the API assigns no value a " +
+					"generated default could carry",
+			})
+
 		default:
 			p.classify(sc, findings, f, values, outcomes, evidence, out)
 		}
@@ -1417,6 +1473,17 @@ func literalOf(v any) Value {
 	}
 }
 
+// allNil reports whether every observed value was null.
+func allNil(values []any) bool {
+	for _, v := range values {
+		if v != nil {
+			return false
+		}
+	}
+
+	return len(values) > 0
+}
+
 func anyOutcome(outcomes []FieldOutcome, want FieldOutcome) bool {
 	for _, o := range outcomes {
 		if o == want {
@@ -1460,8 +1527,15 @@ func (p immutability) Exercise(
 		return out, nil
 	}
 
+	// One counter across every field, not one per field. A stamped name repeated for a second
+	// field collides with the first field's object on any API whose uniqueness key includes the
+	// name -- the pilot's is (key, value, objectType) -- and the 409 that follows is reported as
+	// "the object under test could not be created", so the field goes unprobed for a reason that
+	// has nothing to do with it. Two of three fields were lost that way on a live run.
+	seq := 0
+
 	for _, f := range fields {
-		if err := p.probeField(ctx, s, sc, f, &out); err != nil {
+		if err := p.probeField(ctx, s, sc, f, &seq, &out); err != nil {
 			// Returned with whatever earlier fields established.
 			return out, err
 		}
@@ -1480,9 +1554,10 @@ func (p immutability) probeField(
 	s *MutatingSession,
 	sc Scope,
 	f Field,
+	seq *int,
 	out *Result,
 ) error {
-	candidates, why := p.candidatesFor(s, sc, f)
+	candidates, why := p.candidatesFor(s, sc, f, seq)
 	if len(candidates) < 2 {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
@@ -1501,10 +1576,11 @@ func (p immutability) probeField(
 		})
 	}
 
-	original := p.originalValue(s, sc, f)
+	*seq++
+	original := p.originalValue(s, sc, f, *seq)
 
 	// Step 1: the object under test.
-	subject, err := p.createWith(ctx, s, sc, f, original, 1)
+	subject, err := p.createWith(ctx, s, sc, f, original, *seq)
 	out.Requests++
 
 	if err != nil {
@@ -1544,7 +1620,7 @@ func (p immutability) probeField(
 	// Step 3: the control. Send the value back unchanged. This is the step that separates "this
 	// field cannot be changed" from "this update request is malformed", and it is the reason the
 	// quirk server has a RequiresExtraFieldOnUpdate switch at all.
-	control, err := s.Update(ctx, p.Name(), subject.id, p.updateBody(s, sc, f, stored))
+	control, err := s.Update(ctx, p.Name(), subject.id, p.updateBody(s, sc, f, stored, *seq-1))
 	out.Requests++
 
 	if err != nil {
@@ -1566,7 +1642,9 @@ func (p immutability) probeField(
 	// Step 4: prove the new value is acceptable to the API at all, by creating a second object
 	// with it. Without this, "the field is immutable" and "that value is invalid" are the same
 	// observation.
-	proof, err := p.createWith(ctx, s, sc, f, candidates[0], 2)
+	*seq++
+
+	proof, err := p.createWith(ctx, s, sc, f, candidates[0], *seq)
 	out.Requests++
 
 	if err != nil {
@@ -1584,7 +1662,7 @@ func (p immutability) probeField(
 		return nil
 	}
 
-	p.attempt(ctx, s, sc, f, subject.id, stored, candidates, out)
+	p.attempt(ctx, s, sc, f, subject.id, stored, candidates, *seq-1, out)
 
 	return nil
 }
@@ -1598,9 +1676,10 @@ func (p immutability) attempt(
 	id string,
 	stored any,
 	candidates []any,
+	seq int,
 	out *Result,
 ) {
-	first, firstRead, err := p.tryUpdate(ctx, s, sc, f, id, candidates[0], out)
+	first, firstRead, err := p.tryUpdate(ctx, s, sc, f, id, candidates[0], seq, out)
 	if err != nil {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
@@ -1656,7 +1735,7 @@ func (p immutability) attempt(
 	// Refused. One refusal is not enough: the value may simply have been invalid in a way its
 	// acceptance on *create* did not reveal -- a uniqueness constraint, a state-dependent rule.
 	// A second, distinct value rules that out, which is why Immutable=true requires two.
-	second, secondRead, err := p.tryUpdate(ctx, s, sc, f, id, candidates[1], out)
+	second, secondRead, err := p.tryUpdate(ctx, s, sc, f, id, candidates[1], seq, out)
 	if err != nil {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
@@ -1726,9 +1805,10 @@ func (p immutability) tryUpdate(
 	f Field,
 	id string,
 	value any,
+	seq int,
 	out *Result,
 ) (int, *Response, error) {
-	resp, err := s.Update(ctx, p.Name(), id, p.updateBody(s, sc, f, value))
+	resp, err := s.Update(ctx, p.Name(), id, p.updateBody(s, sc, f, value, seq))
 	out.Requests++
 
 	if err != nil {
@@ -1760,11 +1840,12 @@ func (p immutability) updateBody(
 	sc Scope,
 	f Field,
 	value any,
+	seq int,
 ) map[string]any {
 	fixture, _ := sc.Fixture(0)
 
 	body := fixture.Body
-	body[sc.Subject.NameField] = s.NameValue(p.Name(), 1)
+	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
 	body[f.JSONPath] = value
 
 	return body
@@ -1808,9 +1889,9 @@ type created struct {
 // stamp is applied at send time -- so taking it literally here would build a create body whose
 // name lacks the prefix, and the session would refuse it before it was sent. The same reason
 // candidatesFor substitutes stamped names.
-func (p immutability) originalValue(s *MutatingSession, sc Scope, f Field) any {
+func (p immutability) originalValue(s *MutatingSession, sc Scope, f Field, seq int) any {
 	if f.JSONPath == sc.Subject.NameField {
-		return s.NameValue(p.Name(), 1)
+		return s.NameValue(p.Name(), seq)
 	}
 
 	fixture, _ := sc.Fixture(0)
@@ -1819,7 +1900,7 @@ func (p immutability) originalValue(s *MutatingSession, sc Scope, f Field) any {
 		return v
 	}
 
-	return sentinelFor(f, 1)
+	return sentinelFor(sc, f, 1)
 }
 
 // candidatesFor returns the two distinct values this protocol will try, and an explanation when
@@ -1829,11 +1910,16 @@ func (p immutability) originalValue(s *MutatingSession, sc Scope, f Field) any {
 // a plan-declared candidate would leave an object the prefix sweep cannot find, so a crash between
 // that update and the delete would strand it permanently. Stamped names are distinct values, which
 // is all the protocol needs, and they keep the object sweepable throughout.
-func (p immutability) candidatesFor(s *MutatingSession, sc Scope, f Field) ([]any, string) {
+func (p immutability) candidatesFor(
+	s *MutatingSession,
+	sc Scope,
+	f Field,
+	seqPtr *int,
+) ([]any, string) {
 	if f.JSONPath == sc.Subject.NameField {
 		return []any{
-				s.NameValue(p.Name()+"-alt", 1),
-				s.NameValue(p.Name()+"-alt", 2),
+				s.NameValue(p.Name()+"-alt", *seqPtr),
+				s.NameValue(p.Name()+"-alt", *seqPtr+100),
 			}, "this field carries the sweeper's name prefix, so the plan's candidate values were " +
 				"replaced with two stamped names: an update to an unprefixed value would leave an " +
 				"object the prefix sweep could not find"
@@ -1867,6 +1953,12 @@ func (p enumBoundary) Exercise(
 		return out, nil
 	}
 
+	// One counter across every field, not one per field. Restarting it per field made the second
+	// field's first candidate reuse the first field's first stamped name, and an API that enforces
+	// uniqueness over (key, value, objectType) answered 409 -- which the probe then had to discard
+	// as unattributable. The names have to be unique across the whole probe, not within a field.
+	seq := 0
+
 	for _, f := range fields {
 		// The name field carries the sweeper's prefix, so its value is not free to be an enum
 		// member. A create sending one would be refused before it was sent.
@@ -1880,7 +1972,7 @@ func (p enumBoundary) Exercise(
 			continue
 		}
 
-		if err := p.probeEnum(ctx, s, sc, f, &out); err != nil {
+		if err := p.probeEnum(ctx, s, sc, f, &seq, &out); err != nil {
 			return out, err
 		}
 	}
@@ -1894,6 +1986,7 @@ func (p enumBoundary) probeEnum(
 	s *MutatingSession,
 	sc Scope,
 	f Field,
+	seq *int,
 	out *Result,
 ) error {
 	var (
@@ -1909,8 +2002,10 @@ func (p enumBoundary) probeEnum(
 		documented[v] = true
 	}
 
-	for i, candidate := range EnumCandidates(f) {
-		resp, err := p.send(ctx, s, sc, f, candidate, i+1)
+	for _, candidate := range EnumCandidates(f) {
+		*seq++
+
+		resp, err := p.send(ctx, s, sc, f, candidate, *seq)
 		out.Requests++
 
 		if err != nil {
@@ -1919,17 +2014,54 @@ func (p enumBoundary) probeEnum(
 
 		evidence = appendUnique(evidence, resp.Interaction)
 
-		switch {
-		case documented[candidate] && resp.Status < 400:
-			accepted = append(accepted, candidate)
-		case documented[candidate]:
-			rejected = append(rejected, candidate)
-		default:
-			negatives = append(negatives, candidate)
-			if resp.Status >= 400 {
-				refusedNegatives++
+		if resp.Status < 400 {
+			if documented[candidate] {
+				accepted = append(accepted, candidate)
+			} else {
+				negatives = append(negatives, candidate)
 			}
+
+			continue
 		}
+
+		// A refusal counts as being about *this field* only when the error says so. Without that
+		// test the probe attributes any 4xx to the enum, and a body refused for an unrelated
+		// reason -- a different required field missing, a value invalid elsewhere -- yields a
+		// closed-set claim plus a list of "rejected documented values" that were never rejected.
+		//
+		// A live run produced exactly that: four facts at Observed confidence, three of them wrong,
+		// because every create in the sweep was refused over a field this probe was not looking at.
+		// The same guard write.required has always had, for the same reason.
+		if !resp.Error().Names(f.JSONPath) {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+				Message: fmt.Sprintf("the create carrying %s was refused with %d (%s), and the "+
+					"error does not name this field, so the refusal says nothing about its value "+
+					"set and this candidate was not counted",
+					describeCandidate(f.Enum, candidate), resp.Status, resp.Error().Detail),
+			})
+
+			continue
+		}
+
+		if documented[candidate] {
+			rejected = append(rejected, candidate)
+		} else {
+			negatives = append(negatives, candidate)
+			refusedNegatives++
+		}
+	}
+
+	if len(accepted) == 0 && len(rejected) == 0 {
+		// Nothing was attributable to this field at all, so there is no set to describe. Said out
+		// loud rather than deriving an enumClosed fact from the negatives alone.
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: "no documented value was either accepted or refused with an error naming " +
+				"this field, so its value set is unprobed",
+		})
+
+		return nil
 	}
 
 	p.concludeEnum(sc, f, enumOutcome{
@@ -1941,7 +2073,9 @@ func (p enumBoundary) probeEnum(
 	}, out)
 
 	if len(accepted) > 0 {
-		return p.probeCase(ctx, s, sc, f, accepted[0], out)
+		*seq++
+
+		return p.probeCase(ctx, s, sc, f, accepted[0], *seq, out)
 	}
 
 	return nil
@@ -2081,6 +2215,7 @@ func (p enumBoundary) probeCase(
 	sc Scope,
 	f Field,
 	accepted string,
+	seq int,
 	out *Result,
 ) error {
 	variant := strings.ToUpper(accepted)
@@ -2089,7 +2224,7 @@ func (p enumBoundary) probeCase(
 		return nil
 	}
 
-	resp, err := p.send(ctx, s, sc, f, variant, len(f.Enum)+negativeEnumCandidates+1)
+	resp, err := p.send(ctx, s, sc, f, variant, seq)
 	out.Requests++
 
 	if err != nil {
@@ -2126,8 +2261,8 @@ type transform struct {
 	// this value: ".
 	name string
 	// awkward produces the value to send, and reports whether this transform applies to the
-	// field's type at all.
-	awkward func(f Field) (any, bool)
+	// field at all.
+	awkward func(sc Scope, f Field) (any, bool)
 	// recognise names the transform when it can see it in the difference between sent and
 	// received, and reports false when the change is real but unrecognised.
 	recognise func(sent, got any) (string, bool)
@@ -2141,12 +2276,12 @@ type transform struct {
 var normalisationTransforms = []transform{
 	{
 		name: "surrounding whitespace is stripped",
-		awkward: func(f Field) (any, bool) {
-			if f.Kind != blueprint.KindString {
+		awkward: func(sc Scope, f Field) (any, bool) {
+			if !freeText(sc, f) {
 				return nil, false
 			}
 
-			return "  " + fmt.Sprint(sentinelFor(f, 1)) + "  ", true
+			return "  " + fmt.Sprint(sentinelFor(sc, f, 1)) + "  ", true
 		},
 		recognise: func(sent, got any) (string, bool) {
 			from, okFrom := sent.(string)
@@ -2161,12 +2296,12 @@ var normalisationTransforms = []transform{
 	},
 	{
 		name: "letter case is changed",
-		awkward: func(f Field) (any, bool) {
-			if f.Kind != blueprint.KindString {
+		awkward: func(sc Scope, f Field) (any, bool) {
+			if !freeText(sc, f) {
 				return nil, false
 			}
 
-			return "MiXeD-" + fmt.Sprint(sentinelFor(f, 2)), true
+			return "MiXeD-" + fmt.Sprint(sentinelFor(sc, f, 2)), true
 		},
 		recognise: func(sent, got any) (string, bool) {
 			from, okFrom := sent.(string)
@@ -2188,7 +2323,7 @@ var normalisationTransforms = []transform{
 	},
 	{
 		name: "collection order is changed",
-		awkward: func(f Field) (any, bool) {
+		awkward: func(_ Scope, f Field) (any, bool) {
 			if !f.Kind.IsCollection() {
 				return nil, false
 			}
@@ -2217,6 +2352,18 @@ var normalisationTransforms = []transform{
 			return "", false
 		},
 	},
+}
+
+// freeText reports whether a field's value is unconstrained enough to carry an awkward shape.
+//
+// A field with a documented value set, or one the plan supplies values for, has exactly one thing it
+// will accept -- so padding or re-casing it is not a normalisation experiment, it is a guaranteed
+// 400 that loses the observation for every other field in the same body. A live run showed the
+// cost: "Invalid Access Type: '  all  '" refused a create carrying awkward values for four fields.
+func freeText(sc Scope, f Field) bool {
+	return f.Kind == blueprint.KindString &&
+		len(f.Enum) == 0 &&
+		len(sc.Candidates(f.JSONPath)) == 0
 }
 
 // normalisation implements the contract on the type in catalogue.go.
@@ -2267,7 +2414,7 @@ func (p normalisation) sendTransform(
 			continue
 		}
 
-		value, applies := t.awkward(f)
+		value, applies := t.awkward(sc, f)
 		if !applies {
 			continue
 		}
@@ -2473,9 +2620,13 @@ func (p writeSideEffect) createAndRead(
 	body := fixture.Body
 	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
 
-	if include {
-		body[trigger.JSONPath] = triggerValue(trigger)
-	} else {
+	// Perturbed by *value* rather than by omission wherever a second value is available. A
+	// required field cannot be omitted at all -- the create is refused and nothing is observed --
+	// and the plan's influencers are very often required, which is how the pilot's objectType
+	// blocked this protocol entirely on a live run.
+	body[trigger.JSONPath] = p.perturbed(sc, trigger, include)
+
+	if !include && body[trigger.JSONPath] == nil {
 		delete(body, trigger.JSONPath)
 	}
 
@@ -2514,22 +2665,50 @@ func (p writeSideEffect) createAndRead(
 
 func withOrWithout(include bool) string {
 	if include {
-		return "carrying"
+		return "carrying the first value for"
 	}
 
-	return "omitting"
+	return "carrying a different value for"
+}
+
+// perturbed is the value the trigger carries in each half of the comparison.
+//
+// A second candidate or a second documented enum value where one exists, and otherwise nil -- which
+// the caller turns into an omission, the only perturbation left for a field with exactly one
+// acceptable value.
+func (p writeSideEffect) perturbed(sc Scope, trigger Field, first bool) any {
+	alternatives := sc.Candidates(trigger.JSONPath)
+	if len(alternatives) == 0 {
+		for _, v := range trigger.Enum {
+			alternatives = append(alternatives, v)
+		}
+	}
+
+	if first {
+		if len(alternatives) > 0 {
+			return alternatives[0]
+		}
+
+		return triggerValue(sc, trigger)
+	}
+
+	if len(alternatives) > 1 {
+		return alternatives[1]
+	}
+
+	return nil
 }
 
 // triggerValue is what a suspected trigger is set to.
 //
 // True for a boolean, because the coupling this probe is looking for -- enabling one measurement
 // silently enabling another -- is nearly always expressed as a flag.
-func triggerValue(f Field) any {
+func triggerValue(sc Scope, f Field) any {
 	if f.Kind == blueprint.KindBool {
 		return true
 	}
 
-	return sentinelFor(f, 1)
+	return sentinelFor(sc, f, 1)
 }
 
 // compareCoupling finds a field that differs between the two objects and was sent in neither.

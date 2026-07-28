@@ -25,10 +25,10 @@
             "jsonPath": "id",
             "sdkField": "ID",
             "sdkGoType": "*string",
-            "skipExpand": true,
             "flatten": {
               "func": "convert.PtrStringToFramework"
-            }
+            },
+            "skipExpand": true
           }
         },
         {
@@ -39,6 +39,10 @@
           },
           "presence": "required",
           "markdownDescription": "The tag's key. Together with `value` this forms the label applied to assigned objects.",
+          "behaviour": {
+            "immutable": false,
+            "returnedOnRead": true
+          },
           "wire": {
             "jsonPath": "key",
             "sdkField": "Key",
@@ -58,7 +62,11 @@
             "kind": "string"
           },
           "presence": "optional",
-          "markdownDescription": "The tag's value.",
+          "markdownDescription": "The tag's value.\n\n<!-- probed:7.0.97-t1785267361544 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+          "behaviour": {
+            "requiredByApi": true,
+            "returnedOnRead": true
+          },
           "wire": {
             "jsonPath": "value",
             "sdkField": "Value",
@@ -78,7 +86,15 @@
             "kind": "string"
           },
           "presence": "computed_optional",
-          "markdownDescription": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.",
+          "markdownDescription": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785267361544 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->",
+          "behaviour": {
+            "immutable": false,
+            "serverDefault": {
+              "kind": "",
+              "raw": "\"#A7EB10\""
+            },
+            "returnedOnRead": true
+          },
           "wire": {
             "jsonPath": "color",
             "sdkField": "Color",
@@ -99,6 +115,9 @@
           },
           "presence": "optional",
           "markdownDescription": "A human-readable description of the tag.",
+          "behaviour": {
+            "returnedOnRead": true
+          },
           "wire": {
             "jsonPath": "description",
             "sdkField": "Description",
@@ -118,7 +137,14 @@
             "kind": "string"
           },
           "presence": "optional",
-          "markdownDescription": "The tag's icon.",
+          "markdownDescription": "The tag's icon.\n\n<!-- probed:7.0.97-t1785267361544 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->",
+          "behaviour": {
+            "serverDefault": {
+              "kind": "",
+              "raw": "\"LABEL\""
+            },
+            "returnedOnRead": true
+          },
           "wire": {
             "jsonPath": "icon",
             "sdkField": "Icon",
@@ -146,7 +172,12 @@
             ]
           },
           "presence": "required",
-          "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.",
+          "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.\n\n<!-- probed:7.0.97-t1785267361544 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+          "behaviour": {
+            "immutable": true,
+            "requiredByApi": true,
+            "returnedOnRead": true
+          },
           "wire": {
             "jsonPath": "objectType",
             "sdkField": "ObjectType",
@@ -174,7 +205,11 @@
             ]
           },
           "presence": "computed_optional",
-          "markdownDescription": "The tag's access level. Documented values are `all`, `partner` and `system`.",
+          "markdownDescription": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785267361544 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+          "behaviour": {
+            "requiredByApi": true,
+            "returnedOnRead": true
+          },
           "wire": {
             "jsonPath": "accessType",
             "sdkField": "AccessType",
@@ -201,7 +236,10 @@
             ]
           },
           "presence": "computed_optional",
-          "markdownDescription": "How the tag's filters combine when it is assigned dynamically.",
+          "markdownDescription": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785267361544 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->",
+          "behaviour": {
+            "returnedOnRead": false
+          },
           "wire": {
             "jsonPath": "matchType",
             "sdkField": "MatchType",
@@ -233,10 +271,10 @@
             "jsonPath": "type",
             "sdkField": "Type",
             "sdkGoType": "tags.Type",
-            "skipExpand": true,
             "flatten": {
               "func": "convert.EnumToFramework"
-            }
+            },
+            "skipExpand": true
           }
         },
         {
@@ -251,10 +289,10 @@
             "jsonPath": "builtIn",
             "sdkField": "BuiltIn",
             "sdkGoType": "*bool",
-            "skipExpand": true,
             "flatten": {
               "func": "convert.PtrBoolToFramework"
-            }
+            },
+            "skipExpand": true
           }
         },
         {
@@ -269,10 +307,10 @@
             "jsonPath": "aid",
             "sdkField": "AID",
             "sdkGoType": "*int64",
-            "skipExpand": true,
             "flatten": {
               "func": "convert.PtrInt64ToFramework"
-            }
+            },
+            "skipExpand": true
           }
         },
         {
@@ -287,10 +325,10 @@
             "jsonPath": "createDate",
             "sdkField": "CreateDate",
             "sdkGoType": "*string",
-            "skipExpand": true,
             "flatten": {
               "func": "convert.PtrStringToFramework"
-            }
+            },
+            "skipExpand": true
           }
         },
         {
@@ -305,10 +343,10 @@
             "jsonPath": "modifiedDate",
             "sdkField": "ModifiedDate",
             "sdkGoType": "*string",
-            "skipExpand": true,
             "flatten": {
               "func": "convert.PtrStringToFramework"
-            }
+            },
+            "skipExpand": true
           }
         },
         {
@@ -323,10 +361,10 @@
             "jsonPath": "legacyId",
             "sdkField": "LegacyID",
             "sdkGoType": "*float64",
-            "skipExpand": true,
             "flatten": {
               "func": "convert.PtrFloat64ToFramework"
-            }
+            },
+            "skipExpand": true
           }
         },
         {

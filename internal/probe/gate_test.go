@@ -151,7 +151,7 @@ func TestUnit_Probe_GateRefusesEachConditionOnItsOwn(t *testing.T) {
 		},
 		{
 			condition: "noSnapshotOverwrite",
-			opts:      func(o *GateOptions) { o.SnapshotExists = true },
+			opts:      func(o *GateOptions) { o.EquivalentSnapshotExists = true },
 		},
 	}
 

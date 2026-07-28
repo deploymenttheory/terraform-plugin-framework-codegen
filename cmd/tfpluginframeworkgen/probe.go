@@ -261,6 +261,20 @@ const ledgerRoot = ".tfpluginframeworkgen/probe"
 // The zero plan is usable for a read-only run and is refused by the gate for a mutating one,
 // which is the right split: -list reports the unnarrowed worst case, and a mutating run needs a
 // fixture.
+// loadPlanIfPresent is loadPlan for a path that may legitimately not exist.
+//
+// A read-only recording carries no plan, and a snapshot from before plans were frozen carries none
+// either. Neither is an error: the run simply has no fixtures, and the mutating tier is reported
+// skipped. An explicit -plan pointing at a missing file *is* an error, which is why the strict
+// version stays.
+func loadPlanIfPresent(path string) (probe.Plan, error) {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return probe.Plan{}, nil
+	}
+
+	return loadPlan(path)
+}
+
 func loadPlan(path string) (probe.Plan, error) {
 	var p probe.Plan
 
@@ -457,6 +471,15 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 		return err
 	}
 
+	// Frozen beside the transcript. A write-tier recording's request bodies *are* the plan's
+	// fixtures, so a replay that read the plan from the working tree would fail on any later edit
+	// with a body mismatch indistinguishable from a probe regression.
+	if len(opts.plan.Fixtures) > 0 {
+		if err := writeJSONFile(snap.PlanPath(), opts.plan); err != nil {
+			return err
+		}
+	}
+
 	log.Printf("wrote %s", snap.Dir)
 
 	// Returned last, so the exit code reflects what went wrong while the evidence of it is
@@ -513,16 +536,47 @@ func authoriseMutations(
 		return nil, nil, err
 	}
 
-	_, snapErr := cassette.Latest(root)
-
 	return probe.Authorise(ctx, read, profile, probe.GateOptions{
-		Mode:           probe.ModeRecord,
-		AllowMutations: opts.allowMutate,
-		Subject:        subj,
-		Plan:           opts.plan,
-		SnapshotExists: snapErr == nil,
-		Force:          opts.force,
+		Mode:                     probe.ModeRecord,
+		AllowMutations:           opts.allowMutate,
+		Subject:                  subj,
+		Plan:                     opts.plan,
+		EquivalentSnapshotExists: equivalentSnapshotExists(root, opts.plan),
+		Force:                    opts.force,
 	}, probe.OSEnviron{})
+}
+
+// equivalentSnapshotExists reports whether the newest committed snapshot was recorded with an
+// identical plan.
+//
+// Compared by canonical JSON rather than by a stored hash: the plan is already frozen into the
+// snapshot, so the comparison needs no second representation that could disagree with it.
+//
+// Any failure to read or compare answers false. Being unable to tell must not block a recording --
+// the consequence of a wrong false is one extra snapshot, and of a wrong true is a run an operator
+// cannot make at all.
+func equivalentSnapshotExists(root string, plan probe.Plan) bool {
+	existing, err := cassette.Latest(root)
+	if err != nil {
+		return false
+	}
+
+	frozen, err := loadPlanIfPresent(existing.PlanPath())
+	if err != nil {
+		return false
+	}
+
+	was, err := json.Marshal(frozen)
+	if err != nil {
+		return false
+	}
+
+	now, err := json.Marshal(plan)
+	if err != nil {
+		return false
+	}
+
+	return bytes.Equal(was, now)
 }
 
 // sweepEverything removes what previous runs left behind.
@@ -702,9 +756,20 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 		return err
 	}
 
+	// The plan the *recording* was made with, never the working tree's. See Snapshot.PlanPath.
+	plan, err := loadPlanIfPresent(snap.PlanPath())
+	if err != nil {
+		return err
+	}
+
+	grant := grantForReplay(plan, meta)
+
 	result, err := probe.Run(context.Background(), probe.RunOptions{
 		Mode:    probe.ModeReplay,
 		Subject: subj,
+		Plan:    plan,
+		Grant:   grant,
+		Ledger:  probe.MemoryLedger(),
 		Only:    only,
 		// The recorded prefix, reproduced. A cassette stores full request paths, so replaying
 		// a recording made against an endpoint with a prefix needs that prefix back.
@@ -736,6 +801,20 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 	log.Printf("✅ %s: %d fact(s) reproduced from the committed cassette", subj.Resource, len(committed))
 
 	return nil
+}
+
+// grantForReplay authorises the mutating tier during a replay, and only when the recording had one.
+//
+// A read-only recording carries no plan and no name prefix, so no grant is issued and the mutating
+// probes are reported skipped -- which is what they were. A mutating recording gets a replay grant
+// carrying the prefix the run stamped, because ReplayTransport matches request bodies and the name
+// is in the body.
+func grantForReplay(plan probe.Plan, meta cassette.Metadata) *probe.Grant {
+	if len(plan.Fixtures) == 0 || meta.NamePrefix == "" {
+		return nil
+	}
+
+	return probe.ReplayGrant(meta.NamePrefix)
 }
 
 // printProbeReport writes the run summary to stderr.
