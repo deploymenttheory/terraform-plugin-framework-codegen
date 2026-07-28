@@ -17,6 +17,7 @@ on:
       - 'cmd/**'
       - 'internal/**'
       - 'interop-specs/**'
+      - 'probe-evidence/**'
       - 'pilot/**'
       - 'go.mod'
       - 'go.sum'
@@ -288,3 +289,68 @@ jobs:
           fi
 
           echo "✅ HashiCorp's own generator accepted the export and produced formatted Go."
+
+  probe-replay:
+    name: '🔬 Re-derive probe facts offline'
+    runs-on: ubuntu-24.04-arm
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          # Blocked rather than audited, unlike every other job here. This one asserts that
+          # deriving facts needs no network at all, and an assertion the runner could quietly
+          # violate is not an assertion. The allowed hosts are what Go itself needs to fetch
+          # modules; nothing in the probe path may reach anything.
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+            proxy.golang.org:443
+            sum.golang.org:443
+            storage.googleapis.com:443
+
+      - name: Check Out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: 'go.sum'
+          cache: true
+
+      - name: Download Dependencies
+        run: go mod download
+
+      # The purity test. A committed cassette must yield exactly the facts committed with it,
+      # derived from the transcript alone -- no clock, no environment, no network. If derivation
+      # is not a pure function of the transcript then every fact in the store is unreproducible,
+      # and the whole premise of committing HTTP evidence collapses.
+      #
+      # Deliberately no credentials in this job's environment. Not "unused" -- absent, so a
+      # regression that reached for a live API fails here rather than passing quietly against a
+      # tenant somebody happened to have access to.
+      - name: Verify facts reproduce with no network
+        run: |
+          echo "::group::🔬 Replaying committed cassettes"
+          go run ./cmd/tfpluginframeworkgen probe \
+            -blueprint blueprints/thousandeyes \
+            -mode verify
+          echo "::endgroup::"
+
+      # Committed evidence that nobody has folded in is evidence nobody is acting on.
+      - name: The blueprint reflects the recorded facts
+        run: |
+          echo "::group::🔀 merge -check"
+          for facts in probe-evidence/*/*/*/facts.json; do
+            echo "checking $facts"
+            go run ./cmd/tfpluginframeworkgen merge \
+              -blueprint blueprints/thousandeyes \
+              -facts "$facts" \
+              -check \
+              -accept-conflicts
+          done
+          echo "::endgroup::"

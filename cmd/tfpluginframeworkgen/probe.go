@@ -141,11 +141,15 @@ func runProbe(args []string) error {
 		return fmt.Errorf("probe -mode sweep: %w", errNotImplemented)
 	}
 
-	return runProbeMode(*mode, subjects, *only, *evidenceRoot, *providerName)
+	return runProbeMode(*mode, subjects, *only, *evidenceRoot, *providerName, bp.Source.SpecVersion)
 }
 
 // runProbeMode records, replays or verifies the read-only tier.
-func runProbeMode(mode string, subjects []probe.Subject, only, evidenceRoot, providerName string) error {
+func runProbeMode(
+	mode string,
+	subjects []probe.Subject,
+	only, evidenceRoot, providerName, apiVersion string,
+) error {
 	failures := 0
 
 	for _, subj := range subjects {
@@ -153,7 +157,7 @@ func runProbeMode(mode string, subjects []probe.Subject, only, evidenceRoot, pro
 
 		switch mode {
 		case modeRecord:
-			if err := recordProbe(subj, only, root, providerName); err != nil {
+			if err := recordProbe(subj, only, root, providerName, apiVersion); err != nil {
 				return err
 			}
 
@@ -180,7 +184,7 @@ func runProbeMode(mode string, subjects []probe.Subject, only, evidenceRoot, pro
 }
 
 // recordProbe runs live and writes a snapshot.
-func recordProbe(subj probe.Subject, only, root, providerName string) error {
+func recordProbe(subj probe.Subject, only, root, providerName, apiVersion string) error {
 	endpoint := os.Getenv(endpointEnv)
 	if endpoint == "" {
 		return usagef("%s must be set for -mode record: it names the API to probe", endpointEnv)
@@ -219,6 +223,10 @@ func recordProbe(subj probe.Subject, only, root, providerName string) error {
 
 	meta := probe.RecordingMetadata(providerName, subj, result.Report.Profile.Host, version.Version)
 	meta.BasePath = basePathOf(endpoint)
+	// The API version the blueprint was inferred from, so the snapshot directory names the
+	// specification the facts were recorded against rather than reading "unknown". A cassette
+	// whose directory does not say which API version produced it is far less useful a year later.
+	meta.APIVersion = apiVersion
 
 	snap, err := cassette.Write(root, meta, result.Interactions, map[string]string{"bearer": token}, time.Now())
 	if err != nil {
