@@ -81,7 +81,7 @@ var commands = []command{
 		name:    "interop",
 		summary: "export or import terraform-plugin-codegen-spec v0.1 JSON",
 		usage:   "interop <export|import> [flags]",
-		run:     notImplemented("interop"),
+		run:     runInterop,
 	},
 	{
 		name:    "version",

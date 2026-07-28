@@ -29,7 +29,7 @@ Stages marked *planned* are designed for but not built.
 | `emit` — blueprint → provider | `internal/emit`, `internal/render`, `internal/templates` | **built** |
 | `verify` — fail on drift | `cmd/tfpluginframeworkgen/verify.go`, `internal/manifest` | **built** |
 | `bindings` — type-check bindings against the SDK | `internal/sdkbind` | **built** |
-| `interop` — Provider Code Specification v0.1 | `internal/interop` | planned (Phase 3) |
+| `interop` — Provider Code Specification v0.1 | `internal/interop` | **built** (export; import writes drafts) |
 
 ## Where logic is allowed to live
 

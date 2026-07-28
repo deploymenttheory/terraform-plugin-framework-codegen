@@ -16,6 +16,7 @@ on:
       - 'blueprints/**'
       - 'cmd/**'
       - 'internal/**'
+      - 'interop-specs/**'
       - 'pilot/**'
       - 'go.mod'
       - 'go.sum'
@@ -192,3 +193,98 @@ jobs:
             -blueprint blueprints/thousandeyes \
             -module pilot/thousandeyes
           echo "::endgroup::"
+
+  interop:
+    name: '🔀 Round-trip through tfplugingen-framework'
+    runs-on: ubuntu-24.04-arm
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Check Out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: 'go.mod'
+          cache-dependency-path: 'go.sum'
+          cache: true
+
+      # The exported specification is committed, so it drifts for the same reasons
+      # the generated provider does.
+      - name: Re-export and diff
+        run: |
+          echo "::group::🔀 Exporting"
+          go run ./cmd/tfpluginframeworkgen interop export \
+            -blueprint blueprints/thousandeyes \
+            -out interop-specs/thousandeyes/provider-code-spec.json
+          echo "::endgroup::"
+
+          if git diff --quiet -- interop-specs/; then
+            echo "✅ The exported specification matches the blueprints."
+            exit 0
+          fi
+
+          echo "::error::interop-specs/ is out of date. Re-export it and commit the result."
+          {
+            echo "### ❌ The exported specification is out of date"
+            echo ""
+            echo '```bash'
+            echo 'go run ./cmd/tfpluginframeworkgen interop export \'
+            echo '  -blueprint blueprints/thousandeyes \'
+            echo '  -out interop-specs/thousandeyes/provider-code-spec.json'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          git diff --stat -- interop-specs/
+          exit 1
+
+      # This job is the reason internal/interop exists.
+      #
+      # Our own tests assert the export satisfies HashiCorp's embedded JSON schema,
+      # which is a structural claim. It is not the same claim as "a tool can render
+      # it": the gap between the two is exactly where v0.4.1's known gaps live, and
+      # only a third party can close it.
+      #
+      # It is a *blocking* job on purpose. A non-blocking check goes red within a
+      # month and is ignored within two, at which point it is a standing lie about
+      # the state of the export. Blocking is safe here because the input is fixed --
+      # the committed document, not a freshly inferred one -- and the tool is pinned,
+      # so the only thing that can break it is a change to our own mapping, which is
+      # precisely what wants guarding.
+      - name: Generate with the real tfplugingen-framework
+        run: |
+          echo "::group::📦 Installing tfplugingen-framework v0.4.1"
+          go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework@v0.4.1
+          echo "::endgroup::"
+
+          echo "::group::🏗️ Generating"
+          tfplugingen-framework generate resources \
+            --input interop-specs/thousandeyes/provider-code-spec.json \
+            --output "$RUNNER_TEMP/gen"
+          echo "::endgroup::"
+
+          # Their generator exiting 0 having written nothing would pass under set -e,
+          # so the output is asserted rather than assumed.
+          if [ -z "$(find "$RUNNER_TEMP/gen" -name '*.go' -print -quit)" ]; then
+            echo "::error::tfplugingen-framework produced no Go files from our export."
+            exit 1
+          fi
+
+          echo "::group::✨ gofmt"
+          cd "$RUNNER_TEMP/gen"
+          unformatted=$(gofmt -l .)
+          echo "::endgroup::"
+
+          if [ -n "$unformatted" ]; then
+            echo "::error::tfplugingen-framework produced Go that is not gofmt-clean, which means our export made it emit something malformed."
+            echo "$unformatted"
+            exit 1
+          fi
+
+          echo "✅ HashiCorp's own generator accepted the export and produced formatted Go."

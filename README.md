@@ -123,7 +123,8 @@ is enforced, orphan detection, and the escape hatch.
 |---|---|
 | `cmd/tfpluginframeworkgen/` | the one installable binary; stdlib `flag` subcommand dispatch |
 | `internal/blueprint/` | the IR, its validation, and the layered-merge engine |
-| `internal/ingest/` | OpenAPI → blueprint, and `terraform-plugin-codegen-spec` interop |
+| `internal/ingest/` | OpenAPI → blueprint |
+| `internal/interop/` | reads and writes `terraform-plugin-codegen-spec` v0.1 |
 | `internal/probe/` | the API behaviour prober |
 | `internal/cassette/` | HTTP record/replay, redaction, deterministic canonicalisation |
 | `internal/emit/`, `internal/render/` | blueprint → Go; all logic lives in `render` |
@@ -157,9 +158,9 @@ observed behaviour, test scaffolding — lives in this project's own richer IR.
 | 0 | module, CLI skeleton, CI gates | **done** |
 | 1 | walking skeleton: one resource, hand-authored blueprint → `terraform plan` | **done** |
 | 1b | nested attributes | **done** |
-| 2 | `ingest`: OpenAPI → the same blueprint, byte-identical | next |
-| 3 | `terraform-plugin-codegen-spec` v0.1 interop | |
-| 4 | the prober: record, replay, gating, cleanup | |
+| 2 | `ingest`: OpenAPI → the same blueprint, byte-identical | **done** |
+| 3 | `terraform-plugin-codegen-spec` v0.1 interop | **done** |
+| 4 | the prober: record, replay, gating, cleanup | next |
 | 5 | tests, mocks and fixtures derived from probe evidence | |
 | 6 | breadth — ~20 resources, docs, weekly spec refresh | |
 | 7 | a second API, proving nothing is pilot-shaped | |

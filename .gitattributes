@@ -16,6 +16,7 @@
 blueprints/** linguist-generated=true
 probe-evidence/** linguist-generated=true
 openapi-specs/** linguist-generated=true
+interop-specs/** linguist-generated=true
 pilot/*/internal/services/** linguist-generated=true
 
 # Pinned specifications are upstream documents, not ours to review line by line.
