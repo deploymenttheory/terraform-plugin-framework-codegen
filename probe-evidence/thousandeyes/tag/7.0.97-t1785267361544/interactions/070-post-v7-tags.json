@@ -1,0 +1,47 @@
+{
+  "id": "070-post-v7-tags",
+  "seq": 70,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tags",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "all",
+      "key": "tfpfgen-probe-write-enum-1",
+      "objectType": "test",
+      "value": "probe"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tags/f2cff374-d04d-45da-a73c-b1d23ab2e9d2"
+        }
+      },
+      "accessType": "all",
+      "aid": 281474976742769,
+      "builtIn": false,
+      "color": "#A7EB10",
+      "createDate": "2026-07-28T19:35:46Z",
+      "description": null,
+      "icon": "LABEL",
+      "id": "f2cff374-d04d-45da-a73c-b1d23ab2e9d2",
+      "key": "tfpfgen-probe-write-enum-1",
+      "legacyId": null,
+      "modifiedDate": null,
+      "objectType": "test",
+      "type": "static",
+      "value": "probe"
+    },
+    "droppedHeaders": 14
+  }
+}

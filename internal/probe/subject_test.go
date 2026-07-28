@@ -364,3 +364,54 @@ func TestUnit_Probe_CollectionPrefersCreatePath(t *testing.T) {
 		t.Errorf("CollectionTemplate = %q, want /v7/tags", subj.CollectionTemplate)
 	}
 }
+
+// TestUnit_Probe_TheIdentifierIsNeverANestedField.
+//
+// A nested object's child attribute carries its own Terraform name, and "id" is the commonest name
+// there is -- the pilot's tag has assignments[].id beside the resource's own id. Fields are sorted
+// by JSON path, so "assignments.id" sorts first, and an unqualified match picked it.
+//
+// The consequence was invisible rather than loud: every create read its identifier out of
+// "assignments.id", found nothing and reported the object as created-without-an-identifier, and the
+// sweeper's prefix pass looked for the same path on every list item and matched none of them. A live
+// run against a real tenant surfaced it, because no fixture here had a nested object with an id.
+func TestUnit_Probe_TheIdentifierIsNeverANestedField(t *testing.T) {
+	t.Parallel()
+
+	res := pilotResource()
+	res.Binding.ID = blueprint.IDBinding{Attribute: "id", GoField: "ID"}
+
+	// A nested object whose child is also called "id", and named so it sorts before the real one.
+	res.Attributes = append(res.Attributes, blueprint.Attribute{
+		Name:     "assignments",
+		Presence: blueprint.ComputedOptional,
+		Wire:     blueprint.WireBinding{JSONPath: "assignments"},
+		Type: blueprint.AttrType{
+			Kind: blueprint.KindSetNested,
+			Nested: &blueprint.Nested{
+				GoTypeName: "AssignmentModel",
+				Attributes: []blueprint.Attribute{{
+					Name:     "id",
+					Presence: blueprint.Required,
+					Wire:     blueprint.WireBinding{JSONPath: "id"},
+					Type:     blueprint.AttrType{Kind: blueprint.KindString},
+				}},
+			},
+		},
+	})
+
+	subj, err := SubjectOf(blueprint.Blueprint{}, res)
+	if err != nil {
+		t.Fatalf("SubjectOf: %v", err)
+	}
+
+	if subj.IDField != "id" {
+		t.Errorf("IDField = %q, want the resource's own top-level id", subj.IDField)
+	}
+
+	// And the nested field is still present for probes to reason about -- it is only excluded from
+	// being the identifier.
+	if _, ok := subj.Field("assignments.id"); !ok {
+		t.Error("the nested field should still be in the subject")
+	}
+}

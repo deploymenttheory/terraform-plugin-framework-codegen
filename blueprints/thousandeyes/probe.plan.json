@@ -1,28 +1,21 @@
 {
   "fixtures": [
     {
-      "name": "static-tag",
+      "name": "test-tag",
       "body": {
         "key": "placeholder-replaced-with-the-stamped-name",
         "value": "probe",
-        "objectType": "test"
+        "objectType": "test",
+        "accessType": "all"
       }
     },
     {
-      "name": "dynamic-tag",
+      "name": "dashboard-tag",
       "body": {
         "key": "placeholder-replaced-with-the-stamped-name",
-        "value": "probe",
-        "objectType": "endpoint-agent",
-        "matchType": "and",
-        "filters": [
-          {
-            "key": "network",
-            "values": [
-              "probe-network"
-            ]
-          }
-        ]
+        "value": "probe-two",
+        "objectType": "dashboard",
+        "accessType": "all"
       }
     }
   ],
@@ -34,6 +27,13 @@
     "objectType": [
       "dashboard",
       "endpoint-test"
+    ],
+    "icon": [
+      "LABEL"
+    ],
+    "color": [
+      "#A1B2C3",
+      "#D4E5F6"
     ]
   },
   "defaultInfluencers": [

@@ -1,0 +1,46 @@
+{
+  "id": "036-get-v7-tags-8a0bae6c-60b9-4907-9709-5dcf36e5378b",
+  "seq": 36,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tags/8a0bae6c-60b9-4907-9709-5dcf36e5378b",
+    "query": {
+      "expand": [
+        "assignments"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tags/8a0bae6c-60b9-4907-9709-5dcf36e5378b"
+        }
+      },
+      "accessType": "all",
+      "aid": 281474976742769,
+      "assignments": [],
+      "builtIn": false,
+      "color": "#A7EB10",
+      "createDate": "2026-07-28T19:35:34Z",
+      "description": null,
+      "icon": "LABEL",
+      "id": "8a0bae6c-60b9-4907-9709-5dcf36e5378b",
+      "key": "tfpfgen-probe-write-server-default-2",
+      "legacyId": null,
+      "modifiedDate": null,
+      "objectType": "test",
+      "type": "static",
+      "value": "probe"
+    },
+    "droppedHeaders": 14
+  }
+}

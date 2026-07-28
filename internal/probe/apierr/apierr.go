@@ -29,6 +29,7 @@ package apierr
 import (
 	"encoding/json"
 	"strings"
+	"unicode"
 )
 
 // Envelope names the shape an error body took.
@@ -161,19 +162,108 @@ func defaultMessage(status int) string {
 // was wrong, which is a much weaker claim and must not be recorded as though it were the
 // stronger one.
 //
-// Matching is deliberately conservative -- substring, case-insensitive, across the detail,
-// message and code. An API that names the field in a form this does not recognise
-// downgrades a fact to Inferred, which errs toward under-claiming.
+// Matched as a sequence of whole words rather than as a substring, across the detail, message and
+// code. Two things follow, and a live run needed both.
+//
+// A field named in prose is recognised: "Invalid Access Type: qqqqqq" names accessType, and a
+// substring test misses it because the API spells the field with a space and a capital. Every
+// refusal of that shape was going uncounted, so a value set the API demonstrably enforces was
+// being reported as unprobed.
+//
+// And "id" no longer matches "invalid". A substring test found it inside val-id, so any 400 whose
+// message contained the word "invalid" was read as naming the resource's identifier -- a false
+// positive on the commonest field name there is, in the direction that over-claims.
 func (e Error) Names(field string) bool {
 	if field == "" {
 		return false
 	}
 
-	needle := strings.ToLower(field)
+	want := words(field)
+	if len(want) == 0 {
+		return false
+	}
 
 	for _, haystack := range []string{e.Detail, e.Message, e.Code} {
-		if haystack != "" && strings.Contains(strings.ToLower(haystack), needle) {
+		if containsWords(words(haystack), want) {
 			return true
+		}
+	}
+
+	return false
+}
+
+// words splits a string into lower-case alphanumeric words, breaking on camelCase humps as well as
+// on punctuation. So "accessType", "access_type" and "Access Type" all yield the same two words.
+func words(s string) []string {
+	var (
+		out     []string
+		current strings.Builder
+	)
+
+	flush := func() {
+		if current.Len() > 0 {
+			out = append(out, strings.ToLower(current.String()))
+			current.Reset()
+		}
+	}
+
+	runes := []rune(s)
+
+	for i, r := range runes {
+		switch {
+		case unicode.IsUpper(r):
+			// A hump starts a new word, unless it is part of a run of capitals like "ID" or
+			// "URL" -- splitting those into single letters would match almost anything.
+			prevLower := i > 0 && unicode.IsLower(runes[i-1])
+			nextLower := i+1 < len(runes) && unicode.IsLower(runes[i+1])
+
+			if prevLower || (nextLower && current.Len() > 1) {
+				flush()
+			}
+
+			current.WriteRune(r)
+
+		case unicode.IsLetter(r) || unicode.IsDigit(r):
+			current.WriteRune(r)
+
+		default:
+			flush()
+		}
+	}
+
+	flush()
+
+	return out
+}
+
+// containsWords reports whether want appears in haystack as a run of consecutive whole words.
+//
+// Compared as *joined* runs rather than word by word, which is what makes the test independent of
+// how either side spells the boundaries. "accessType" and "Access Type" both reduce to the two
+// words access+type, and "ACCESSTYPE" reduces to the single word accesstype -- joining the run puts
+// all three on the same footing.
+//
+// And because the runs are whole words, "id" still does not match "invalid": the only candidate
+// runs are complete words, so nothing inside one can match.
+func containsWords(haystack, want []string) bool {
+	if len(want) == 0 || len(haystack) == 0 {
+		return false
+	}
+
+	needle := strings.Join(want, "")
+
+	for i := range haystack {
+		var run strings.Builder
+
+		for _, w := range haystack[i:] {
+			run.WriteString(w)
+
+			if run.Len() > len(needle) {
+				break
+			}
+			if run.String() == needle {
+				return true
+			}
 		}
 	}
 

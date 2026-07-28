@@ -25,14 +25,14 @@
             "name": "value",
             "string": {
               "computed_optional_required": "optional",
-              "description": "The tag's value."
+              "description": "The tag's value.\n\n<!-- probed:7.0.97-t1785267361544 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "color",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing."
+              "description": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785267361544 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -46,28 +46,28 @@
             "name": "icon",
             "string": {
               "computed_optional_required": "optional",
-              "description": "The tag's icon."
+              "description": "The tag's icon.\n\n<!-- probed:7.0.97-t1785267361544 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "object_type",
             "string": {
               "computed_optional_required": "required",
-              "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider."
+              "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.\n\n<!-- probed:7.0.97-t1785267361544 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "access_type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "The tag's access level. Documented values are `all`, `partner` and `system`."
+              "description": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785267361544 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "match_type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "How the tag's filters combine when it is assigned dynamically."
+              "description": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785267361544 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->"
             }
           },
           {

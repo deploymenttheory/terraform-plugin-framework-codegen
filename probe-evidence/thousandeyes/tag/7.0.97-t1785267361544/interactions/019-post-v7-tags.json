@@ -1,0 +1,33 @@
+{
+  "id": "019-post-v7-tags",
+  "seq": 19,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tags",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "key": "tfpfgen-probe-write-required-6",
+      "objectType": "dashboard",
+      "value": "probe-two"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "accessType: You need to provide the accessType for the tag. It cannot be null or empty",
+      "error": "Bad Request",
+      "path": "/v7/tags",
+      "status": 400,
+      "timestamp": 1785267329431,
+      "title": "Request validation failed. There are invalid or missing fields"
+    },
+    "droppedHeaders": 14
+  }
+}
