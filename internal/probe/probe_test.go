@@ -111,6 +111,8 @@ var builtMutatingProbes = map[string]bool{
 	"write.writable-returned": true,
 	"write.update-style":      true,
 	"write.read-your-writes":  true,
+	"write.required":          true,
+	"write.server-default":    true,
 }
 
 // TestUnit_Probe_AnUnbuiltProbeSaysSo.

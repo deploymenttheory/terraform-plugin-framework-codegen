@@ -120,6 +120,12 @@ func runMutatingProbes(
 ) error {
 	sc := opts.scope()
 
+	// Seeded with what the read tier established, so a mutating probe's precondition can be
+	// satisfied by a read-tier fact as readily as by an earlier mutating one -- and, later, by a
+	// committed facts document. The precondition is a fact, not a probe.
+	findings := NewFindings(report.Facts)
+	s.cfg.Findings = findings
+
 	var halt error
 
 	for _, p := range probes {
@@ -143,6 +149,10 @@ func runMutatingProbes(
 		// budget or a delete failure has usually established something honestly first.
 		report.Facts = append(report.Facts, result.Facts...)
 		report.Notes = append(report.Notes, result.Notes...)
+
+		// The runner is the only writer, which is what stops two probes disagreeing about what
+		// the run has established and the last one to finish winning silently.
+		findings.Add(result.Facts...)
 
 		if err != nil && stopsTheRun(err) {
 			halt = err

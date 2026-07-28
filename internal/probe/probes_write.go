@@ -2,6 +2,7 @@ package probe
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
@@ -898,3 +899,533 @@ func alternativesUnless(ruledOut bool, alternative string) []string {
 
 	return []string{alternative}
 }
+
+// requiredByAPI implements the contract on the type in catalogue.go.
+func (p requiredByAPI) Exercise(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+) (Result, error) {
+	var out Result
+
+	if len(sc.Fixtures()) == 0 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: "no fixture was supplied, so there is nothing to omit a field from",
+		})
+
+		return out, nil
+	}
+
+	// Keyed by JSON path: one omission attempt per fixture that sets the field. Accumulated
+	// across fixtures because the interesting outcome is disagreement -- a field required in one
+	// variant and not in another is conditionally required, and reporting either half as a fact
+	// would be reporting half a truth.
+	attempts := map[string][]omission{}
+
+	for round := range sc.Fixtures() {
+		fixture, _ := sc.Fixture(round)
+
+		// The baseline. Without it a rejection cannot be attributed to the omission: the fixture
+		// itself might simply not be acceptable.
+		baseline, err := p.create(ctx, s, sc, round, "")
+		out.Requests++
+
+		if err != nil {
+			return out, err
+		}
+
+		if baseline.status >= 400 {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, Probe: p.Name(),
+				Message: fmt.Sprintf("fixture %s was refused with %d (%s), so no omission from "+
+					"it can be attributed to the omitted field",
+					fixture.Name, baseline.status, baseline.detail),
+			})
+
+			continue
+		}
+
+		for _, key := range sc.Omittable(fixture) {
+			attempt, err := p.create(ctx, s, sc, round, key)
+			out.Requests++
+
+			if err != nil {
+				// Returned with what earlier attempts established rather than discarded.
+				return out, err
+			}
+
+			attempts[key] = append(attempts[key], attempt)
+		}
+	}
+
+	p.concludeRequired(sc, attempts, &out)
+	p.noteNameField(sc, &out)
+
+	return out, nil
+}
+
+// omission is one create with one key left out.
+type omission struct {
+	fixture string
+	// omitted is the key left out, empty for the baseline.
+	omitted string
+	status  int
+	// named is true when the error body named the omitted field, which is what separates an
+	// Observed conclusion from an Inferred one.
+	named    bool
+	detail   string
+	evidence string
+}
+
+// create issues one create, optionally with a key removed.
+//
+// Fetches its own copy of the fixture rather than taking one, and that is not fastidiousness: the
+// first version deleted from a body shared across the whole omission loop, so each attempt sent a
+// body already missing every key the attempts before it had removed. Against a conditionally
+// required field that silently produced the wrong answer -- omitting the *trigger* field first
+// removed the condition, so omitting the dependent field afterwards was accepted, and the probe
+// concluded "not required" for a field that is required half the time.
+func (p requiredByAPI) create(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	round int,
+	omit string,
+) (omission, error) {
+	fixture, ok := sc.Fixture(round)
+	if !ok {
+		return omission{}, fmt.Errorf("%w: fixture %d does not exist", ErrInvalidPlan, round)
+	}
+
+	body := fixture.Body
+	body[sc.Subject.NameField] = s.NameValue(p.Name(), round+1)
+
+	if omit != "" {
+		delete(body, omit)
+	}
+
+	resp, _, err := s.Create(ctx, p.Name(), body)
+	if err != nil {
+		// A missing identifier is not fatal here: the object exists, the prefix sweep will
+		// remove it, and the status is what this probe is reading.
+		if resp == nil || !errors.Is(err, ErrNoIdentifier) {
+			return omission{}, err
+		}
+	}
+
+	e := resp.Error()
+
+	return omission{
+		fixture:  fixture.Name,
+		omitted:  omit,
+		status:   resp.Status,
+		named:    omit != "" && e.Names(omit),
+		detail:   e.Detail,
+		evidence: resp.Interaction,
+	}, nil
+}
+
+// concludeRequired turns the omission attempts into facts.
+func (p requiredByAPI) concludeRequired(sc Scope, attempts map[string][]omission, out *Result) {
+	paths := make([]string, 0, len(attempts))
+	for path := range attempts {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+
+	for _, path := range paths {
+		rounds := attempts[path]
+
+		accepted, refused := 0, 0
+		for _, a := range rounds {
+			if a.status < 400 {
+				accepted++
+			} else {
+				refused++
+			}
+		}
+
+		// Disagreement between fixtures is the conditional-requirement signature, and it is the
+		// case hand-maintained fixup tables in existing providers are full of: a port field that
+		// matters only when a protocol field says tcp. One-field-at-a-time omission from a single
+		// fixture reports half a truth either way, so this is a note and never a fact.
+		if accepted > 0 && refused > 0 {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
+				Message: fmt.Sprintf("omitting this field was accepted by %d fixture(s) and "+
+					"refused by %d, so its requiredness is conditional on something else in the "+
+					"body and no fact was recorded", accepted, refused),
+			})
+
+			continue
+		}
+
+		out.Facts = append(out.Facts, p.requiredFact(sc, path, rounds, accepted > 0))
+	}
+}
+
+// requiredFact records whether the API enforced a field's presence.
+//
+// The confidence is asymmetric for a reason that is easy to miss. A 2xx on omission is
+// unambiguous: the API accepted a body without the field, so it is not required. A 4xx is not --
+// the request may have failed for an unrelated reason -- so it is Observed only when the error
+// body *names* the field, and Inferred otherwise.
+func (p requiredByAPI) requiredFact(
+	sc Scope,
+	path string,
+	rounds []omission,
+	accepted bool,
+) Fact {
+	evidence := make([]string, 0, len(rounds))
+	for _, a := range rounds {
+		if a.evidence != "" {
+			evidence = appendUnique(evidence, a.evidence)
+		}
+	}
+
+	if accepted {
+		confidence := Observed
+		if len(rounds) > 1 {
+			confidence = Corroborated
+		}
+
+		return Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   path,
+			Field:      FactRequiredByAPI,
+			Value:      BoolValue(false),
+			Confidence: confidence,
+			Probe:      p.Name(),
+			Evidence:   evidence,
+			Rationale: fmt.Sprintf(
+				"a create omitting this field succeeded in %d fixture(s)", len(rounds)),
+		}
+	}
+
+	named := false
+	for _, a := range rounds {
+		if a.named {
+			named = true
+			break
+		}
+	}
+
+	confidence := Inferred
+	rationale := fmt.Sprintf("a create omitting this field was refused with %d, but the error "+
+		"body did not name the field, so the refusal may have had another cause",
+		rounds[0].status)
+
+	if named {
+		confidence = Observed
+		if len(rounds) > 1 {
+			confidence = Corroborated
+		}
+		rationale = fmt.Sprintf("a create omitting this field was refused with %d and the error "+
+			"named the field", rounds[0].status)
+	}
+
+	return Fact{
+		Resource:   sc.Subject.Resource,
+		JSONPath:   path,
+		Field:      FactRequiredByAPI,
+		Value:      BoolValue(true),
+		Confidence: confidence,
+		Probe:      p.Name(),
+		Evidence:   evidence,
+		Rationale:  rationale,
+		Alternatives: alternativesUnless(named,
+			"the create may have been refused for a reason unrelated to this field, which only "+
+				"an error body naming it would rule out"),
+	}
+}
+
+// noteNameField records the one field this protocol structurally cannot test.
+//
+// Omitting the name field is not an experiment available to this tool: an object created without
+// the stamped prefix could not be found by the sweeper, so the session refuses the body before it
+// is sent. Silence would leave the field looking probed and unremarkable.
+func (p requiredByAPI) noteNameField(sc Scope, out *Result) {
+	if sc.Subject.NameField == "" {
+		return
+	}
+
+	out.Notes = append(out.Notes, Note{
+		Resource: sc.Subject.Resource, JSONPath: sc.Subject.NameField, Probe: p.Name(),
+		Message: "this field carries the sweeper's name prefix, so a create omitting it would " +
+			"produce an object that could not be found again and is refused before it is sent; " +
+			"its requiredness is therefore unprobed",
+	})
+}
+
+// serverDefault implements the contract on the type in catalogue.go.
+func (p serverDefault) Exercise(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+) (Result, error) {
+	var out Result
+
+	if len(sc.Fixtures()) == 0 || len(sc.Omitted()) == 0 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: "no fixture leaves a sendable field unset, so there is no omitted field " +
+				"whose default could be observed",
+		})
+
+		return out, nil
+	}
+
+	// Two byte-identical creates, then a third from a second fixture. The first pair rules out a
+	// value that varies on its own -- a counter, a timestamp, a random assignment -- and the
+	// third rules out one derived from the request.
+	steps := []struct {
+		label   string
+		fixture int
+	}{
+		{"first", 0},
+		{"second, byte-identical to the first", 0},
+	}
+
+	if len(sc.Fixtures()) > 1 {
+		steps = append(steps, struct {
+			label   string
+			fixture int
+		}{"third, from a different fixture", 1})
+	}
+
+	reads := make([]*Response, 0, len(steps))
+
+	for i, step := range steps {
+		fixture, _ := sc.Fixture(step.fixture)
+
+		body := fixture.Body
+		// The same stamped name for every step would collide on an API that enforces
+		// uniqueness, and a 409 would then look like a fact about defaults.
+		body[sc.Subject.NameField] = s.NameValue(p.Name(), i+1)
+
+		resp, id, err := s.Create(ctx, p.Name(), body)
+		out.Requests++
+
+		if err != nil {
+			return out, err
+		}
+
+		if resp.Status >= 400 {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, Probe: p.Name(),
+				Message: fmt.Sprintf("the %s create was refused with %d (%s), so no default was "+
+					"observed", step.label, resp.Status, resp.Error().Detail),
+			})
+
+			return out, nil
+		}
+
+		read, err := s.ReadCreated(ctx, p.Name(), id, expansionQuery(sc))
+		out.Requests++
+
+		if err != nil {
+			return out, err
+		}
+
+		reads = append(reads, read)
+	}
+
+	p.concludeDefaults(sc, s.Findings(), reads, &out)
+
+	return out, nil
+}
+
+// concludeDefaults reads the three responses and decides, per omitted field, which of Terraform's
+// three outcomes applies.
+func (p serverDefault) concludeDefaults(
+	sc Scope,
+	findings *Findings,
+	reads []*Response,
+	out *Result,
+) {
+	for _, f := range sc.Omitted() {
+		values := make([]any, 0, len(reads))
+		outcomes := make([]FieldOutcome, 0, len(reads))
+		evidence := make([]string, 0, len(reads))
+
+		for _, r := range reads {
+			v, outcome := r.LookupField(f.JSONPath)
+			values = append(values, v)
+			outcomes = append(outcomes, outcome)
+			evidence = appendUnique(evidence, r.Interaction)
+		}
+
+		switch {
+		case anyOutcome(outcomes, Ambiguous):
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+				Message: "the read crossed a collection holding more than one element, so no " +
+					"default could be attributed to this path",
+			})
+
+		case !anyOutcome(outcomes, Present):
+			// Omitted and still absent: there is nothing to default to. Not a fact -- the API
+			// may simply not return the field, which write.writable-returned reports.
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+				Message: "the field was omitted and did not appear in the read, so the API " +
+					"assigns no value a generated default could carry",
+			})
+
+		default:
+			p.classify(sc, findings, f, values, outcomes, evidence, out)
+		}
+	}
+}
+
+// classify decides between a constant default, a derived one, and a value that is not a default at
+// all because the field was never settable.
+func (p serverDefault) classify(
+	sc Scope,
+	findings *Findings,
+	f Field,
+	values []any,
+	outcomes []FieldOutcome,
+	evidence []string,
+	out *Result,
+) {
+	// The dependency, satisfied by asking about a *fact* rather than about a probe: a field the
+	// API does not store is plain Computed, and the value it reports when omitted is not a
+	// default a practitioner could override. Writing it as a static Default would produce a
+	// provider that plans a change it cannot apply.
+	//
+	// Two facts satisfy it, and the second matters more than it looks. Writable=false is the
+	// direct statement. ReturnedOnRead=false is the composite one: an earlier probe *sent* a
+	// value for this field and never saw it come back, and this probe *omitted* it and did see a
+	// value -- so the API assigns the field and ignores what it is told, which is the same
+	// conclusion by a different route. Consulting only Writable would miss it entirely, because a
+	// field that never echoes anything back leaves writability unobservable and produces no
+	// Writable fact at all.
+	if why, settled := notADefault(findings, f.JSONPath); settled {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: "the field carries a value when omitted, but " + why + " -- so this is a " +
+				"computed value rather than a default, and a static default would make the " +
+				"provider plan a change it cannot apply",
+		})
+
+		return
+	}
+
+	stable := len(values) >= 2 && sameValue(values[0], values[1]) &&
+		outcomes[0] == Present && outcomes[1] == Present
+
+	if !stable {
+		out.Facts = append(out.Facts, Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   f.JSONPath,
+			Field:      FactDefaultIsDerived,
+			Value:      BoolValue(true),
+			Confidence: Observed,
+			Probe:      p.Name(),
+			Evidence:   evidence,
+			Rationale: "two byte-identical creates produced different values for this omitted " +
+				"field, so whatever assigns it is not a constant",
+			Alternatives: []string{
+				"a counter, a timestamp and a random assignment are all consistent with this " +
+					"observation, and none of them is distinguishable from the others here",
+			},
+		})
+
+		return
+	}
+
+	// Stable across identical creates. If a third create from a different fixture disagrees, the
+	// value is derived from the request -- which is the false positive this protocol exists to
+	// catch, because writing it as a static default would be a permanent lie.
+	if len(values) > 2 && !sameValue(values[0], values[2]) {
+		out.Facts = append(out.Facts, Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   f.JSONPath,
+			Field:      FactDefaultIsDerived,
+			Value:      BoolValue(true),
+			Confidence: Corroborated,
+			Probe:      p.Name(),
+			Evidence:   evidence,
+			Rationale: "the value was identical across two byte-identical creates and different " +
+				"for a create built from another fixture, so it is derived from the request",
+		})
+
+		return
+	}
+
+	confidence := Observed
+	if len(values) > 2 {
+		confidence = Corroborated
+	}
+
+	out.Facts = append(out.Facts, Fact{
+		Resource:   sc.Subject.Resource,
+		JSONPath:   f.JSONPath,
+		Field:      FactServerDefault,
+		Value:      literalOf(values[0]),
+		Confidence: confidence,
+		Probe:      p.Name(),
+		Evidence:   evidence,
+		Rationale: fmt.Sprintf(
+			"the field was omitted from %d create(s) and came back as %v every time",
+			len(values), values[0]),
+		Alternatives: []string{
+			"the value may be derived from tenant configuration rather than being a constant, " +
+				"which no number of creates in one tenant can rule out",
+			"the value may be derived from a field this plan's fixtures did not vary",
+		},
+	})
+}
+
+// notADefault reports whether an earlier fact rules this value out as a practitioner-settable
+// default, and says which fact did it.
+func notADefault(findings *Findings, jsonPath string) (string, bool) {
+	if fact, settled := findings.Settled(jsonPath, FactWritable, Observed); settled {
+		if fact.Value.Bool != nil && !*fact.Value.Bool {
+			return fact.Probe + " established that the API does not store what is sent for it", true
+		}
+	}
+
+	if fact, settled := findings.Settled(jsonPath, FactReturnedOnRead, Observed); settled {
+		if fact.Value.Bool != nil && !*fact.Value.Bool {
+			return fact.Probe + " sent a value for it and never saw one come back, so the API " +
+				"assigns this field rather than accepting it", true
+		}
+	}
+
+	return "", false
+}
+
+// literalOf renders an observed value as a blueprint literal.
+//
+// A literal rather than text, because merge writes this into a generated Default and the
+// difference between the string "3" and the number 3 decides whether the emitted code compiles.
+func literalOf(v any) Value {
+	switch typed := v.(type) {
+	case bool:
+		return LiteralValue(blueprint.Literal{Raw: fmt.Sprintf("%t", typed)})
+	case float64:
+		return LiteralValue(blueprint.Literal{Raw: trimFloat(typed)})
+	case string:
+		return LiteralValue(blueprint.Literal{Raw: fmt.Sprintf("%q", typed)})
+	default:
+		// A collection or an object. Recorded as text so the observation survives for a human,
+		// and merge refuses to build a default out of it.
+		return TextValue(fmt.Sprint(v))
+	}
+}
+
+func anyOutcome(outcomes []FieldOutcome, want FieldOutcome) bool {
+	for _, o := range outcomes {
+		if o == want {
+			return true
+		}
+	}
+
+	return false
+}
+
+// sameValue compares two observed values structurally.
+func sameValue(a, b any) bool { return reflect.DeepEqual(a, b) }

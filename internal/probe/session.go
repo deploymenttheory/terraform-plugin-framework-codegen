@@ -167,6 +167,16 @@ type MutationConfig struct {
 	// ReadDelay is the measured consistency window, applied before reading back a created
 	// object. Zero until something measures it.
 	ReadDelay time.Duration
+
+	// Findings is what earlier probes established, for the one real dependency in the
+	// catalogue: write.server-default cannot tell "the server assigned this" from "the field is
+	// not settable at all" without knowing whether the field is writable.
+	//
+	// On the session rather than in the probe signature, because the session is already a
+	// probe's window onto the run -- it carries the ledger and the read-back measurement for the
+	// same reason. Read-only from a probe's side: the runner adds to it after each probe
+	// returns, so there is exactly one writer.
+	Findings *Findings
 }
 
 // ErrNoGrant is returned when a mutating session is requested without authorisation.
@@ -551,6 +561,18 @@ func (s *MutatingSession) ReadCreated(
 
 // ReadBack is what the session measured, for the read-your-writes probe to report.
 func (s *MutatingSession) ReadBack() ReadBackMeasurement { return s.readBack }
+
+// Findings is what the run has established so far.
+//
+// Never nil, so a probe need not guard: a run with nothing established yet answers "not settled"
+// to every question, which is the correct answer.
+func (s *MutatingSession) Findings() *Findings {
+	if s.cfg.Findings == nil {
+		return NewFindings(nil)
+	}
+
+	return s.cfg.Findings
+}
 
 // resolveByName resolves an outstanding intent that never learned an identifier.
 //
