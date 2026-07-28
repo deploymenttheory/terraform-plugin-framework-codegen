@@ -782,15 +782,22 @@ func TestUnit_Probe_RunWithAGrantSweepsAndReportsIt(t *testing.T) {
 		t.Error("the sweep deleted an object it did not create")
 	}
 
-	// The mutating probes are reported rather than omitted, and as skipped rather than ok:
-	// a run where two thirds of the catalogue did nothing must not read as a complete one.
+	// The mutating tier is reported rather than omitted, and no probe claims to have concluded
+	// anything: this run supplied no plan, so the built probes abandon and the unbuilt ones are
+	// skipped. A run where the write tier did nothing must not read as a complete one.
 	var mutating int
 	for _, p := range out.Report.Probes {
-		if p.Kind == KindMutating {
-			mutating++
-			if p.Status != "skipped" {
-				t.Errorf("%s: status %q, want skipped", p.Name, p.Status)
-			}
+		if p.Kind != KindMutating {
+			continue
+		}
+
+		mutating++
+
+		if p.Status == "ok" {
+			t.Errorf("%s reports ok with no plan and no fixture to send", p.Name)
+		}
+		if p.Reason == "" {
+			t.Errorf("%s: status %q with no reason given", p.Name, p.Status)
 		}
 	}
 	if mutating == 0 {

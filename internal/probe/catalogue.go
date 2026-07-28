@@ -45,7 +45,6 @@ func init() {
 
 	// Mutating tier, in run order.
 	registerMutating(requiredByAPI{})
-	registerMutating(readYourWrites{})
 	registerMutating(writableAndReturned{})
 	registerMutating(updateStyle{})
 	registerMutating(serverDefault{})
@@ -53,6 +52,10 @@ func init() {
 	registerMutating(enumBoundary{})
 	registerMutating(writeSideEffect{})
 	registerMutating(normalisation{})
+	// Last, and it has to be. It creates nothing and reports the consistency window the session
+	// measured while the probes above read back the objects *they* created -- so registered
+	// second, as it was when it created its own object, it saw nothing and concluded nothing.
+	registerMutating(readYourWrites{})
 }
 
 // ---------------------------------------------------------------------------
@@ -240,10 +243,6 @@ func (readYourWrites) Kind() Kind   { return KindMutating }
 func (readYourWrites) Cost(Scope) int    { return 0 }
 func (readYourWrites) Creates(Scope) int { return 0 }
 
-func (readYourWrites) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
-	return Result{}, errNotImplemented
-}
-
 // writableAndReturned creates with every writable field set to a distinctive value, then
 // reads back and compares.
 //
@@ -273,10 +272,6 @@ func (writableAndReturned) Kind() Kind   { return KindMutating }
 func (writableAndReturned) Cost(sc Scope) int    { return fixtureCount(sc) * 4 }
 func (writableAndReturned) Creates(sc Scope) int { return fixtureCount(sc) }
 
-func (writableAndReturned) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
-	return Result{}, errNotImplemented
-}
-
 // updateStyle creates with two fields set, reads to confirm both, updates sending only
 // the first, then reads again.
 //
@@ -304,10 +299,6 @@ func (updateStyle) Cost(sc Scope) int { return needsUpdate(sc, withFixture(sc, 9
 // Creates is one: the three update shapes are all exercised against the same object, because the
 // question is what an update does rather than what a create does.
 func (updateStyle) Creates(sc Scope) int { return needsUpdate(sc, withFixture(sc, 1)) }
-
-func (updateStyle) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
-	return Result{}, errNotImplemented
-}
 
 // serverDefault establishes whether an omitted field's value is a constant, is derived, or
 // means the field is not settable at all.

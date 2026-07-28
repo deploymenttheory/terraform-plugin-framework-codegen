@@ -129,6 +129,14 @@ type Quirks struct {
 	// include or fields parameter can do this. Maps field name to the value that reveals it.
 	ExpansionGated map[string]string
 
+	// SilentlyDiscardsOnUpdate accepts these fields on update, answers 2xx, and leaves the
+	// stored value alone. Create stores them normally.
+	//
+	// The behaviour that has to be distinguishable from immutability, and conflating the two is
+	// the classic error: an API that refuses a change says so, and one that drops it does not.
+	// Only the second produces a perpetual diff in a generated provider.
+	SilentlyDiscardsOnUpdate []string
+
 	// PutClearsOmitted makes update replace rather than merge.
 	PutClearsOmitted bool
 
@@ -488,6 +496,12 @@ func (s *Server) update(w http.ResponseWriter, r *http.Request, path string) {
 	}
 	for k, v := range body {
 		if contains(s.quirks.SilentlyDiscards, k) {
+			continue
+		}
+		// Accepted, answered 2xx, and not applied. Distinct from SilentlyDiscards, which never
+		// stores the field at all: here a create stored it and the update is the thing that
+		// quietly does nothing.
+		if contains(s.quirks.SilentlyDiscardsOnUpdate, k) {
 			continue
 		}
 		updated[k] = s.normalise(k, v)
