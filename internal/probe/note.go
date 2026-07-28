@@ -27,6 +27,25 @@ var (
 	// ErrRedaction marks a recording that would have committed a secret. Carries exit
 	// code 7, and nothing is written at all.
 	ErrRedaction = errors.New("redaction failed")
+
+	// ErrLedger marks a ledger that could not be read or written.
+	//
+	// Carries exit code 5 with the orphans, because the consequence is the same: a create
+	// that cannot be recorded is a create that cannot be cleaned up, so the safe response is
+	// to refuse to issue it and report the objects that may exist.
+	ErrLedger = errors.New("the probe ledger is unusable")
+
+	// ErrNoIdentifier marks a created object whose identifier could not be located.
+	//
+	// Distinct from ErrLedger: the object exists and was recorded, but nothing can address it
+	// for deletion, so only the sweeper's prefix pass can reach it.
+	ErrNoIdentifier = errors.New("a created object's identifier could not be located")
+
+	// ErrCancelled marks a run stopped by a signal or a deadline.
+	//
+	// Its own sentinel because it is not a failure of the probes: cancellation is a normal
+	// outcome, and the cleanup that follows it is the interesting part.
+	ErrCancelled = errors.New("the probe run was cancelled")
 )
 
 // Note is something a probe could not do, or could not decide.

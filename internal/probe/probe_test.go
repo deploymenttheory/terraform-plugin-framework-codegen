@@ -20,6 +20,7 @@ func testSubject() Subject {
 		Update:             &Op{Method: "PUT", PathTemplate: "/tags/{id}", SuccessCodes: []int{200}},
 		Delete:             &Op{Method: "DELETE", PathTemplate: "/tags/{id}", SuccessCodes: []int{204}},
 		NameField:          "key",
+		IDField:            "id",
 		Fields: []Field{
 			{JSONPath: "id", Attribute: "id", Kind: blueprint.KindString, Presence: blueprint.Computed},
 			{JSONPath: "key", Attribute: "key", Kind: blueprint.KindString, Presence: blueprint.Required, Writable: true},

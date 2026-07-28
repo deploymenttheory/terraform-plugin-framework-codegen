@@ -86,6 +86,45 @@ func TestUnit_Probe_SubjectOf(t *testing.T) {
 	if subj.NameField != "key" {
 		t.Errorf("NameField = %q, want key", subj.NameField)
 	}
+	// Resolved through the attribute's wire path, not from the binding's Go accessor.
+	if subj.IDField != "id" {
+		t.Errorf("IDField = %q, want id", subj.IDField)
+	}
+}
+
+// TestUnit_Probe_IDFieldResolvesThroughTheWirePath.
+//
+// The blueprint names a Terraform *attribute*; a probe needs the wire name. An API whose
+// identifier is "tagId" on the wire but "id" in the schema is the case that would send every
+// DELETE to the wrong URL if the attribute name were used directly.
+func TestUnit_Probe_IDFieldResolvesThroughTheWirePath(t *testing.T) {
+	t.Parallel()
+
+	res := pilotResource()
+	res.Binding.ID = blueprint.IDBinding{Attribute: "id", GoField: "ID", FromCreate: "created.ID"}
+	res.Attributes[0].Wire.JSONPath = "tagId"
+
+	subj, err := SubjectOf(blueprint.Blueprint{}, res)
+	if err != nil {
+		t.Fatalf("SubjectOf: %v", err)
+	}
+
+	if subj.IDField != "tagId" {
+		t.Errorf("IDField = %q, want tagId -- the wire name, not the attribute name", subj.IDField)
+	}
+
+	// A binding naming an attribute that does not exist falls back to a field literally called
+	// "id", which is the shape of an inferred blueprint nobody has curated yet.
+	fallback := pilotResource()
+	fallback.Binding.ID = blueprint.IDBinding{Attribute: "nonexistent"}
+
+	subj, err = SubjectOf(blueprint.Blueprint{}, fallback)
+	if err != nil {
+		t.Fatalf("SubjectOf: %v", err)
+	}
+	if subj.IDField != "id" {
+		t.Errorf("IDField = %q, want the id fallback", subj.IDField)
+	}
 }
 
 func paths(fields []Field) []string {
@@ -229,6 +268,7 @@ func TestUnit_Probe_CanMutate(t *testing.T) {
 		{"no create", func(s *Subject) { s.Create = nil }, "no create operation"},
 		{"no delete", func(s *Subject) { s.Delete = nil }, "cleaned up"},
 		{"no name field", func(s *Subject) { s.NameField = "" }, "name prefix"},
+		{"no identifier field", func(s *Subject) { s.IDField = "" }, "identifier"},
 	}
 
 	for _, tc := range tests {

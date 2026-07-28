@@ -39,6 +39,10 @@ go.work.sum
 /bin/tfpluginframeworkgen
 .tfpluginframeworkgen/cache/
 
+# A probe ledger records live objects in somebody's tenant. It is per-run rather than
+# per-snapshot, so committing one would be both meaningless and a disclosure.
+.tfpluginframeworkgen/probe/
+
 # Emitted when a template renders unparsable Go, kept for inspection only.
 *.broken
 
