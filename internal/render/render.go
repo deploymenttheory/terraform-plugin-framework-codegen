@@ -306,9 +306,9 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	}
 
 	for _, sh := range shapes {
-		nm, err := nestedModelView(sh)
-		if err != nil {
-			return ResourceView{}, err
+		nm, nmErr := nestedModelView(sh)
+		if nmErr != nil {
+			return ResourceView{}, nmErr
 		}
 		v.NestedModels = append(v.NestedModels, nm)
 	}
