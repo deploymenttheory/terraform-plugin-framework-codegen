@@ -2112,3 +2112,516 @@ func (p enumBoundary) probeCase(
 
 	return nil
 }
+
+// A transform is one awkward shape a value can be sent in, plus the ability to recognise that
+// shape having been undone.
+//
+// Grouped by transform rather than by field, which is the departure from the original per-field
+// contract. Whether a server trims whitespace is a property of the server far more often than of
+// one field, so one create carrying "  padded  " in every string field observes all of them at
+// once. Per field per value was three creates times the field count for an answer that is nearly
+// always uniform.
+type transform struct {
+	// name is what a fact says was done to the value, phrased to read after "The API normalises
+	// this value: ".
+	name string
+	// awkward produces the value to send, and reports whether this transform applies to the
+	// field's type at all.
+	awkward func(f Field) (any, bool)
+	// recognise names the transform when it can see it in the difference between sent and
+	// received, and reports false when the change is real but unrecognised.
+	recognise func(sent, got any) (string, bool)
+}
+
+// normalisationTransforms are the shapes sent, one create each.
+//
+// Three, and the contract is explicit that this under-reports: numeric coercion, date
+// reformatting and unicode normalisation are all missing. Those are absences rather than errors --
+// the probe says nothing about them instead of saying something wrong.
+var normalisationTransforms = []transform{
+	{
+		name: "surrounding whitespace is stripped",
+		awkward: func(f Field) (any, bool) {
+			if f.Kind != blueprint.KindString {
+				return nil, false
+			}
+
+			return "  " + fmt.Sprint(sentinelFor(f, 1)) + "  ", true
+		},
+		recognise: func(sent, got any) (string, bool) {
+			from, okFrom := sent.(string)
+			to, okTo := got.(string)
+
+			if okFrom && okTo && to == strings.TrimSpace(from) {
+				return "surrounding whitespace is stripped", true
+			}
+
+			return "", false
+		},
+	},
+	{
+		name: "letter case is changed",
+		awkward: func(f Field) (any, bool) {
+			if f.Kind != blueprint.KindString {
+				return nil, false
+			}
+
+			return "MiXeD-" + fmt.Sprint(sentinelFor(f, 2)), true
+		},
+		recognise: func(sent, got any) (string, bool) {
+			from, okFrom := sent.(string)
+			to, okTo := got.(string)
+
+			if !okFrom || !okTo {
+				return "", false
+			}
+
+			switch to {
+			case strings.ToLower(from):
+				return "the value is lower-cased", true
+			case strings.ToUpper(from):
+				return "the value is upper-cased", true
+			}
+
+			return "", false
+		},
+	},
+	{
+		name: "collection order is changed",
+		awkward: func(f Field) (any, bool) {
+			if !f.Kind.IsCollection() {
+				return nil, false
+			}
+
+			// Deliberately not in sorted order, so a server that sorts is visible.
+			return []any{"c", "b", "a"}, true
+		},
+		recognise: func(sent, got any) (string, bool) {
+			from, okFrom := sent.([]any)
+			to, okTo := got.([]any)
+
+			if !okFrom || !okTo || len(from) != len(to) {
+				return "", false
+			}
+
+			sorted := make([]any, len(from))
+			copy(sorted, from)
+			sort.Slice(sorted, func(i, j int) bool {
+				return fmt.Sprint(sorted[i]) < fmt.Sprint(sorted[j])
+			})
+
+			if reflect.DeepEqual(to, sorted) && !reflect.DeepEqual(from, sorted) {
+				return "the collection is re-sorted", true
+			}
+
+			return "", false
+		},
+	},
+}
+
+// normalisation implements the contract on the type in catalogue.go.
+func (p normalisation) Exercise(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+) (Result, error) {
+	var out Result
+
+	if len(sc.Fixtures()) == 0 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: "no fixture was supplied, so there is no valid body to send awkward values in",
+		})
+
+		return out, nil
+	}
+
+	for i, t := range normalisationTransforms {
+		if err := p.sendTransform(ctx, s, sc, t, i+1, &out); err != nil {
+			return out, err
+		}
+	}
+
+	return out, nil
+}
+
+// sendTransform issues one create with every applicable field carrying the awkward shape.
+func (p normalisation) sendTransform(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	t transform,
+	seq int,
+	out *Result,
+) error {
+	fixture, _ := sc.Fixture(0)
+
+	body := fixture.Body
+	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
+
+	sent := map[string]any{}
+	skipped := 0
+
+	for _, f := range sc.Sendable() {
+		if strings.Contains(f.JSONPath, ".") {
+			continue
+		}
+
+		value, applies := t.awkward(f)
+		if !applies {
+			continue
+		}
+
+		// The name field can only carry a shape that keeps the prefix intact. Leading whitespace
+		// and mixed case both destroy it, and a body whose name has lost the prefix is refused
+		// before it is sent -- correctly, since the sweeper could not find the object.
+		if f.JSONPath == sc.Subject.NameField {
+			text, ok := value.(string)
+			if !ok || !strings.HasPrefix(text, s.NamePrefix()) {
+				skipped++
+				continue
+			}
+		}
+
+		body[f.JSONPath] = value
+		sent[f.JSONPath] = value
+	}
+
+	if skipped > 0 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: sc.Subject.NameField, Probe: p.Name(),
+			Message: fmt.Sprintf("%q could not be sent for this field because it carries the "+
+				"sweeper's name prefix and the awkward shape would destroy it, so this transform "+
+				"is unprobed for it", t.name),
+		})
+	}
+
+	if len(sent) == 0 {
+		return nil
+	}
+
+	resp, id, err := s.Create(ctx, p.Name(), body)
+	out.Requests++
+
+	if err != nil {
+		return err
+	}
+
+	// A 4xx is no observation rather than evidence: a rejected value tells you nothing about what
+	// the server would have done with an accepted one.
+	if resp.Status >= 400 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: fmt.Sprintf("the create carrying %q was refused with %d (%s), so nothing "+
+				"was observed about that transform", t.name, resp.Status, resp.Error().Detail),
+		})
+
+		return nil
+	}
+
+	read, err := s.ReadCreated(ctx, p.Name(), id, expansionQuery(sc))
+	out.Requests++
+
+	if err != nil {
+		return err
+	}
+
+	p.compare(sc, t, sent, read, out)
+
+	return nil
+}
+
+// compare records what came back changed.
+func (p normalisation) compare(
+	sc Scope,
+	t transform,
+	sent map[string]any,
+	read *Response,
+	out *Result,
+) {
+	paths := make([]string, 0, len(sent))
+	for path := range sent {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+
+	for _, path := range paths {
+		got, outcome := read.LookupField(path)
+		if outcome != Present {
+			// Absent is write.writable-returned's finding, not this probe's.
+			continue
+		}
+
+		if sameValue(got, sent[path]) {
+			continue
+		}
+
+		named, identified := t.recognise(sent[path], got)
+
+		confidence := Suspected
+		description := fmt.Sprintf("the value came back changed by %q, in a way this probe could "+
+			"not identify", t.name)
+
+		if identified {
+			confidence = Observed
+			description = named
+		}
+
+		out.Facts = append(out.Facts, Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   path,
+			Field:      FactNormalisation,
+			Value:      TextValue(description),
+			Confidence: confidence,
+			Probe:      p.Name(),
+			Evidence:   []string{read.Interaction},
+			Rationale:  fmt.Sprintf("%v was sent and %v came back", sent[path], got),
+			Alternatives: alternativesUnless(identified,
+				"the difference may be a server default overwriting the sent value rather than a "+
+					"transformation of it, which write.writable-returned would distinguish"),
+		})
+
+		if identified {
+			// Named in the framework's own terms, because that is what a provider author reaches
+			// for: an attribute whose stored form differs from the configured one needs a
+			// semantic-equality implementation, not a runtime helper that re-sorts on every read.
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
+				Message: "this is the direct cause of a perpetual diff: the practitioner writes " +
+					"one value and the API stores another. terraform-plugin-framework's " +
+					"semantic-equality interface on a custom type is where that is suppressed " +
+					"properly; a helper that re-sorts on every read is the wrong layer",
+			})
+		}
+	}
+}
+
+// writeSideEffect implements the contract on the type in catalogue.go.
+func (p writeSideEffect) Exercise(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+) (Result, error) {
+	var out Result
+
+	triggers := sc.Influencers()
+
+	if len(sc.Fixtures()) == 0 || len(triggers) == 0 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: "the plan declares no field whose value might affect another, so there is " +
+				"no suspected trigger to perturb; declare one under defaultInfluencers",
+		})
+
+		return out, nil
+	}
+
+	// One trigger, and the first the plan declares. The protocol is a pair of creates -- with the
+	// trigger and without it -- and running the pair per trigger would multiply the most
+	// expensive budget there is for a fact that is Inferred either way.
+	trigger := triggers[0]
+
+	if len(triggers) > 1 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: fmt.Sprintf("the plan declares %d influencing field(s) and this protocol "+
+				"perturbs one, %s; the others are unprobed for coupling",
+				len(triggers), trigger.JSONPath),
+		})
+	}
+
+	// Three creates, not two. The first two are byte-identical apart from the stamped name and
+	// establish which unsent fields are stable at all -- without them every per-object field the
+	// server assigns, the identifier first among them, differs between two objects and reads as
+	// coupling. That was a false positive against an API with no coupling whatsoever.
+	//
+	// The same reasoning as write.server-default's identical pair, and self-contained rather than
+	// borrowed from it: a probe run on its own with -only must not be less sound than one run in
+	// sequence.
+	first, sentWith, err := p.createAndRead(ctx, s, sc, trigger, true, 1, &out)
+	if err != nil || first == nil {
+		return out, err
+	}
+
+	second, _, err := p.createAndRead(ctx, s, sc, trigger, true, 2, &out)
+	if err != nil || second == nil {
+		return out, err
+	}
+
+	without, _, err := p.createAndRead(ctx, s, sc, trigger, false, 3, &out)
+	if err != nil || without == nil {
+		return out, err
+	}
+
+	p.compareCoupling(sc, trigger, sentWith, first, second, without, &out)
+
+	return out, nil
+}
+
+// createAndRead creates one object with the trigger present or absent, and reads it back.
+func (p writeSideEffect) createAndRead(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	trigger Field,
+	include bool,
+	seq int,
+	out *Result,
+) (*Response, map[string]any, error) {
+	fixture, _ := sc.Fixture(0)
+
+	body := fixture.Body
+	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
+
+	if include {
+		body[trigger.JSONPath] = triggerValue(trigger)
+	} else {
+		delete(body, trigger.JSONPath)
+	}
+
+	sent := make(map[string]any, len(body))
+	for k, v := range body {
+		sent[k] = v
+	}
+
+	resp, id, err := s.Create(ctx, p.Name(), body)
+	out.Requests++
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if resp.Status >= 400 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: fmt.Sprintf("the create %s %s was refused with %d (%s), so no coupling was "+
+				"observed", withOrWithout(include), trigger.JSONPath, resp.Status,
+				resp.Error().Detail),
+		})
+
+		return nil, nil, nil
+	}
+
+	read, err := s.ReadCreated(ctx, p.Name(), id, expansionQuery(sc))
+	out.Requests++
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return read, sent, nil
+}
+
+func withOrWithout(include bool) string {
+	if include {
+		return "carrying"
+	}
+
+	return "omitting"
+}
+
+// triggerValue is what a suspected trigger is set to.
+//
+// True for a boolean, because the coupling this probe is looking for -- enabling one measurement
+// silently enabling another -- is nearly always expressed as a flag.
+func triggerValue(f Field) any {
+	if f.Kind == blueprint.KindBool {
+		return true
+	}
+
+	return sentinelFor(f, 1)
+}
+
+// compareCoupling finds a field that differs between the two objects and was sent in neither.
+func (p writeSideEffect) compareCoupling(
+	sc Scope,
+	trigger Field,
+	sentWith map[string]any,
+	first, second, without *Response,
+	out *Result,
+) {
+	var (
+		affected []string
+		unstable []string
+	)
+
+	for _, f := range sc.Subject.Fields {
+		if f.JSONPath == trigger.JSONPath || strings.Contains(f.JSONPath, ".") {
+			continue
+		}
+		// Sent, so whatever it holds is ours rather than the server's.
+		if _, wasSent := sentWith[f.JSONPath]; wasSent {
+			continue
+		}
+		// The identifier differs between any two objects by definition.
+		if f.JSONPath == sc.Subject.IDField {
+			continue
+		}
+
+		a, aOutcome := first.LookupField(f.JSONPath)
+		b, bOutcome := second.LookupField(f.JSONPath)
+		c, cOutcome := without.LookupField(f.JSONPath)
+
+		if aOutcome == Ambiguous || bOutcome == Ambiguous || cOutcome == Ambiguous {
+			continue
+		}
+		if aOutcome == Absent && bOutcome == Absent && cOutcome == Absent {
+			continue
+		}
+
+		// Not stable across the identical pair, so it varies on its own -- a counter, a
+		// timestamp, an identifier -- and nothing can be attributed to the trigger.
+		if aOutcome != bOutcome || !sameValue(a, b) {
+			unstable = append(unstable, f.JSONPath)
+			continue
+		}
+
+		if aOutcome != cOutcome || !sameValue(a, c) {
+			affected = append(affected, f.JSONPath)
+		}
+	}
+
+	if len(unstable) > 0 {
+		sort.Strings(unstable)
+
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: trigger.JSONPath, Probe: p.Name(),
+			Message: fmt.Sprintf("%s varied between two byte-identical creates, so no coupling "+
+				"could be attributed to this field for them", strings.Join(unstable, ", ")),
+		})
+	}
+
+	if len(affected) == 0 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: trigger.JSONPath, Probe: p.Name(),
+			Message: "no field the request did not carry differed between an object created with " +
+				"this field and one created without it, so no coupling was observed",
+		})
+
+		return
+	}
+
+	sort.Strings(affected)
+
+	// Inferred even after confirmation, and deliberately. "The server set it in response to this
+	// request" and "the server always sets it for every object of this type" are different claims,
+	// and one perturbation establishes only the first.
+	out.Facts = append(out.Facts, Fact{
+		Resource:   sc.Subject.Resource,
+		JSONPath:   trigger.JSONPath,
+		Field:      FactSideEffect,
+		Value:      TextValue(strings.Join(affected, ", ")),
+		Confidence: Inferred,
+		Probe:      p.Name(),
+		Evidence:   []string{first.Interaction, second.Interaction, without.Interaction},
+		Rationale: fmt.Sprintf("%s was identical across two byte-identical creates carrying %s "+
+			"and differed on one created without it, and no request sent %s",
+			strings.Join(affected, ", "), trigger.JSONPath, strings.Join(affected, ", ")),
+		Alternatives: []string{
+			"the coupling may hold only for the value this probe sent rather than for the field " +
+				"being present at all",
+			"a field that changed may be a server default responding to the shorter body rather " +
+				"than a side effect of the trigger",
+		},
+	})
+}
