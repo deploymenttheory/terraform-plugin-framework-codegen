@@ -113,6 +113,17 @@ type Assertions struct {
 	EndpointHostSuffix string `json:"endpointHostSuffix,omitempty"`
 	// AccountGroupID is confirmed by a read before any write.
 	AccountGroupID string `json:"accountGroupId,omitempty"`
+	// AccountGroupParam is the query parameter that scopes a request to a group, e.g. "aid".
+	//
+	// Required for AccountGroupID to mean anything: which parameter carries a group id is not
+	// knowable in advance, and guessing would make the assertion pass by accident on any API
+	// that ignores an unknown query parameter.
+	AccountGroupParam string `json:"accountGroupParam,omitempty"`
+	// AccountGroupJSONPath is the field an object echoes its group id under, e.g. "aid".
+	//
+	// Optional. Without it the assertion rests on the scoped read alone, and the gate records
+	// that weaker outcome verbatim rather than upgrading it.
+	AccountGroupJSONPath string `json:"accountGroupJsonPath,omitempty"`
 	// MaxExistingObjects refuses a collection with more than N objects in it.
 	MaxExistingObjects int `json:"maxExistingObjects,omitempty"`
 }
