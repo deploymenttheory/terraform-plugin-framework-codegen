@@ -205,14 +205,14 @@ func (requiredByAPI) Kind() Kind   { return KindMutating }
 // The domain is the fixture's *own* keys, not every writable field. Omitting a field the fixture
 // never set is not an experiment -- the baseline already omitted it -- and counting those was most
 // of why the unnarrowed catalogue asked for 226 creates against a cap of 25.
-func (requiredByAPI) Cost(sc Scope) int { return omissionCreates(sc) }
+// Cost is a create and a delete per attempt. The delete is the correction: an omission the API
+// *accepts* leaves an object behind, and costing this probe at one request per attempt
+// under-budgeted every successful omission -- which is the common case on any API whose declared
+// required list is shorter than its real one.
+func (requiredByAPI) Cost(sc Scope) int { return 2 * omissionCreates(sc) }
 
-// Creates matches Cost: every request in this probe is a create.
+// Creates is one per attempt: the baseline, plus one omission per key the fixture sets.
 func (requiredByAPI) Creates(sc Scope) int { return omissionCreates(sc) }
-
-func (requiredByAPI) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
-	return Result{}, errNotImplemented
-}
 
 // readYourWrites reads each created object immediately, retrying with backoff when the
 // read 404s or comes back missing fields.
@@ -308,16 +308,23 @@ func (updateStyle) Creates(sc Scope) int { return needsUpdate(sc, withFixture(sc
 // static default; not-settable is plain Computed. This is the probe that settles the
 // pilot's three computed_optional guesses.
 //
-// The protocol is five creates, and the extra ones are the whole point. Two byte-identical
-// creates catch a value that varies between them, which rules out a constant. A third with
-// a different influencing field catches a value derived from the request. A fourth that
-// sets the field explicitly catches the case where it was never writable and the earlier
-// distinctive value merely collided with the default.
+// The protocol is three creates, and each one rules something out. Two byte-identical creates
+// catch a value that varies between them, which rules out a constant -- a counter, a timestamp, a
+// random assignment. A third built from a different fixture catches a value derived from the
+// request. Every one of the three observes *every* omitted field simultaneously, because a default
+// appears in the response body whether or not this probe was looking for that field.
+//
+// An earlier draft of this contract called for five, the fourth and fifth setting each field
+// explicitly to catch the case where it was never writable and the observed value merely collided
+// with the default. That step is real and is not skipped -- it is performed by
+// write.writable-returned, which runs first and sets every sendable field, and whose conclusion
+// this probe reads out of the run's findings rather than re-establishing. Five creates per field
+// was 32% of the whole catalogue's cost and most of it was re-observing the same three responses.
 //
 // How it can be wrong: the dominant false positive is treating a *derived* value as a
 // constant -- a colour hashed from a key, a counter, a timestamp -- and writing it into the
-// blueprint as stringdefault.StaticString, which is then a permanent lie. Steps three and
-// four exist for that, and the fact carries "derived from tenant configuration" and
+// blueprint as stringdefault.StaticString, which is then a permanent lie. The second and third
+// creates exist for that, and the fact carries "derived from tenant configuration" and
 // "derived from a field this plan did not vary" as standing alternatives.
 type serverDefault struct{}
 
@@ -326,22 +333,26 @@ func (serverDefault) Kind() Kind   { return KindMutating }
 
 // The most expensive probe in the catalogue: five creates and five reads per candidate
 // field. Worth every request, because this is the guess sitting in the committed blueprint.
-// Cost is three creates with their reads and deletes.
+// Cost is a create, a read and a delete per step.
 //
-// Three, not five per field. Two byte-identical creates separate a constant default from a
-// counter, and a third with an influencer varied separates a constant from a derived one -- and
-// every one of those creates observes *every* omitted field simultaneously, because a default
-// shows up in the response body whether or not this probe was looking for it. The fourth step the
-// catalogue describes, sending a value to check the field is writable at all, is already performed
-// by write.writable, which runs first.
-//
-// The original 5 x fields was 32% of the whole catalogue's cost and most of it was re-observing
-// the same three responses.
-func (serverDefault) Cost(sc Scope) int    { return withFixture(sc, 9) }
-func (serverDefault) Creates(sc Scope) int { return withFixture(sc, 3) }
+// Not scaled by fixture count, unlike most of the catalogue: the protocol is one baseline, and its
+// third step *is* the second fixture. Running the whole thing again per fixture would buy nothing
+// -- the omitted set is the fields no fixture sets, so it is the same set either way.
+func (serverDefault) Cost(sc Scope) int { return 3 * (serverDefault{}).Creates(sc) }
 
-func (serverDefault) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
-	return Result{}, errNotImplemented
+// Creates is two byte-identical creates, plus a third from a second fixture where one exists.
+//
+// With one fixture the derived-from-request check cannot be run, so the third create would tell us
+// nothing and is not budgeted for.
+func (serverDefault) Creates(sc Scope) int {
+	switch len(sc.Fixtures()) {
+	case 0:
+		return 0
+	case 1:
+		return 2
+	default:
+		return 3
+	}
 }
 
 // immutability establishes whether the API refuses to change a field after create.

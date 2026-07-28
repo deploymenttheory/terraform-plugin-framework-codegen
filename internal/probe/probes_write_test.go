@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe/quirkserver"
 )
@@ -684,5 +685,480 @@ func TestUnit_Probe_TheDeclaredCostIsNeverExceeded(t *testing.T) {
 				t.Errorf("%s left %d object(s) behind", name, n)
 			}
 		})
+	}
+}
+
+// defaultsPlan omits two fields from every fixture, so both are in the omitted set the
+// server-default protocol observes, and varies one field between fixtures so a derived value can
+// be told from a constant.
+func defaultsPlan() Plan {
+	return Plan{
+		Fixtures: []Fixture{
+			{Name: "first", Body: map[string]any{"key": "stamped", "value": "a"}},
+			{Name: "second", Body: map[string]any{"key": "stamped", "value": "b"}},
+		},
+		DefaultInfluencers: []string{"value"},
+		Budget:             Budget{MaxRequests: 80, MaxCreates: 30},
+	}
+}
+
+// defaultSubject adds the fields the default protocol needs: two writable ones no fixture sets.
+func defaultSubject() Subject {
+	subj := quirkSubject()
+
+	subj.Fields = append(subj.Fields,
+		Field{
+			JSONPath: "colour", Attribute: "colour",
+			Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true,
+		},
+		Field{
+			JSONPath: "rank", Attribute: "rank",
+			Kind: blueprint.KindInt64, Presence: blueprint.Optional, Writable: true,
+		},
+	)
+
+	return subj
+}
+
+// runAgainst runs the mutating tier against a quirk server with a chosen subject.
+func runAgainst(
+	t *testing.T,
+	srv *quirkserver.Server,
+	subj Subject,
+	plan Plan,
+	only string,
+) Report {
+	t.Helper()
+
+	out, err := Run(context.Background(), RunOptions{
+		Mode:      ModeRecord,
+		Subject:   subj,
+		Plan:      plan,
+		Only:      only,
+		BaseURL:   srv.BaseURL(),
+		Redactor:  testRedactor(t),
+		Grant:     &Grant{namePrefix: testPrefix},
+		Ledger:    MemoryLedger(),
+		ReadDelay: time.Nanosecond,
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if n := len(srv.Objects()); n != 0 {
+		t.Errorf("%d object(s) left in the tenant", n)
+	}
+
+	return out.Report
+}
+
+// TestUnit_Probe_RequirednessIsAsymmetric.
+//
+// A 2xx on omission is unambiguous: the API accepted a body without the field. A 4xx is not -- the
+// request may have failed for an unrelated reason -- so it is only Observed when the error names
+// the field, and Inferred otherwise. Getting that backwards would let one unrelated 400 mark a
+// field Required and break every configuration that omits it.
+func TestUnit_Probe_RequirednessIsAsymmetric(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		quirks   quirkserver.Quirks
+		want     bool
+		wantConf Confidence
+	}{
+		{
+			// The pilot's live case: two attributes marked required although the request schema
+			// declares no required list.
+			name:   "a field the API does not enforce",
+			quirks: quirkserver.Quirks{},
+			want:   false, wantConf: Corroborated,
+		},
+		{
+			// The quirk server names the offending field, which is what earns Observed.
+			name:   "a field the API enforces and names",
+			quirks: quirkserver.Quirks{RequiredButUndeclared: []string{"value"}},
+			want:   true, wantConf: Corroborated,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := quirkserver.New(t, tc.quirks)
+
+			report := runAgainst(t, srv, quirkSubject(), writePlan(), "write.required")
+
+			fact, ok := factFor(t, report, "value", FactRequiredByAPI)
+			if !ok {
+				t.Fatalf("no requiredByApi fact: %v (notes %v)", report.Facts, report.Notes)
+			}
+
+			if got := fact.Value.Bool != nil && *fact.Value.Bool; got != tc.want {
+				t.Errorf("requiredByApi = %v, want %v (%s)", got, tc.want, fact.Rationale)
+			}
+			if fact.Confidence != tc.wantConf {
+				t.Errorf("confidence = %s, want %s (%s)",
+					fact.Confidence, tc.wantConf, fact.Rationale)
+			}
+		})
+	}
+}
+
+// TestUnit_Probe_ARefusalThatNamesNothingIsOnlyInferred.
+//
+// The failure mode this asymmetry exists for: an API that rejects the whole body for its own
+// reasons would otherwise have every omitted field recorded as Required at Observed confidence.
+func TestUnit_Probe_ARefusalThatNamesNothingIsOnlyInferred(t *testing.T) {
+	t.Parallel()
+
+	// A closed enum on a field the fixture sets: omitting *any other* field still sends the
+	// invalid value, so every omission is refused and none of the refusals names the omitted
+	// field.
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		ClosedEnum: map[string][]string{"value": {"only-this"}},
+	})
+
+	report := runAgainst(t, srv, quirkSubject(), writePlan(), "write.required")
+
+	// The baseline itself is refused, so the honest outcome is a note rather than a pile of
+	// Required facts derived from a body the API never accepted.
+	if len(report.Facts) != 0 {
+		t.Errorf("a refused baseline settles nothing, but produced %v", report.Facts)
+	}
+	if _, ok := noteMentioning(report, "no omission from it can be attributed"); !ok {
+		t.Errorf("the run must say why it concluded nothing: %v", report.Notes)
+	}
+}
+
+// TestUnit_Probe_ConditionalRequirementIsANoteNotAFact.
+//
+// Hand-maintained fixup tables in existing providers are full of these -- a port field that
+// matters only when a protocol field says tcp. One-field-at-a-time omission from a single fixture
+// reports half a truth either way, so disagreement between fixtures produces a note.
+func TestUnit_Probe_ConditionalRequirementIsANoteNotAFact(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		ConditionallyRequired: &quirkserver.Conditional{
+			WhenField: "objectType", WhenValue: "conditional", Then: "value",
+		},
+	})
+
+	subj := quirkSubject()
+	subj.Fields = append(subj.Fields, Field{
+		JSONPath: "objectType", Attribute: "object_type",
+		Kind: blueprint.KindString, Presence: blueprint.Required, Writable: true,
+	})
+
+	plan := Plan{
+		Fixtures: []Fixture{
+			{Name: "plain", Body: map[string]any{
+				"key": "stamped", "value": "a", "objectType": "ordinary",
+			}},
+			{Name: "conditional", Body: map[string]any{
+				"key": "stamped", "value": "b", "objectType": "conditional",
+			}},
+		},
+		Budget: Budget{MaxRequests: 80, MaxCreates: 30},
+	}
+
+	report := runAgainst(t, srv, subj, plan, "write.required")
+
+	if _, ok := factFor(t, report, "value", FactRequiredByAPI); ok {
+		t.Error("a conditionally required field must not be recorded as a fact either way")
+	}
+
+	if _, ok := noteMentioning(report, "requiredness is conditional"); !ok {
+		t.Errorf("the disagreement must be reported: %v", report.Notes)
+	}
+}
+
+// TestUnit_Probe_TheNameFieldsRequirednessIsUnprobed.
+//
+// An object created without the stamped prefix could not be found by the sweeper, so the session
+// refuses that body before it is sent. Silence would leave the field looking probed and
+// unremarkable, which for a field the blueprint currently marks Required on an assumption is
+// exactly the wrong impression.
+func TestUnit_Probe_TheNameFieldsRequirednessIsUnprobed(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{})
+
+	report := runAgainst(t, srv, quirkSubject(), writePlan(), "write.required")
+
+	if _, ok := factFor(t, report, "key", FactRequiredByAPI); ok {
+		t.Error("the name field cannot be omitted, so nothing about it can be established")
+	}
+
+	note, ok := noteMentioning(report, "its requiredness is therefore unprobed")
+	if !ok {
+		t.Fatalf("the gap must be reported: %v", report.Notes)
+	}
+	if note.JSONPath != "key" {
+		t.Errorf("the note should name the field, got %q", note.JSONPath)
+	}
+}
+
+// TestUnit_Probe_AConstantDefaultIsDistinguishedFromADerivedOne.
+//
+// The dominant false positive in this whole package: treating a derived value as a constant and
+// writing it into the blueprint as stringdefault.StaticString, which is then a permanent lie. Each
+// row is a different mechanism producing a value for an omitted field, and only the first may
+// become a static default.
+func TestUnit_Probe_AConstantDefaultIsDistinguishedFromADerivedOne(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		quirks quirkserver.Quirks
+		// wantDefault is the literal expected, empty when the value must not become a default.
+		wantDefault string
+		wantDerived bool
+	}{
+		{
+			name:        "a constant",
+			quirks:      quirkserver.Quirks{ConstantDefaults: map[string]any{"colour": "blue"}},
+			wantDefault: `"blue"`,
+		},
+		{
+			// A counter: two byte-identical creates disagree, so nothing constant can be
+			// claimed. This is the case a single create would get confidently wrong.
+			name:        "a counter",
+			quirks:      quirkserver.Quirks{CounterDefault: "colour"},
+			wantDerived: true,
+		},
+		{
+			// Derived from another field. Identical across the byte-identical pair and different
+			// for the third create, which is exactly what the third create is for.
+			name:        "derived from the request",
+			quirks:      quirkserver.Quirks{DerivedDefaults: map[string]string{"colour": "value"}},
+			wantDerived: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := quirkserver.New(t, tc.quirks)
+
+			report := runAgainst(t, srv, defaultSubject(), defaultsPlan(), "write.server-default")
+
+			derived, hasDerived := factFor(t, report, "colour", FactDefaultIsDerived)
+			def, hasDefault := factFor(t, report, "colour", FactServerDefault)
+
+			if tc.wantDerived {
+				if !hasDerived {
+					t.Fatalf("no defaultIsDerived fact: %v (notes %v)", report.Facts, report.Notes)
+				}
+				if derived.Value.Bool == nil || !*derived.Value.Bool {
+					t.Errorf("defaultIsDerived = %v", derived.Value)
+				}
+				if hasDefault {
+					t.Errorf("a derived value must not also be recorded as a static default: %v",
+						def)
+				}
+
+				return
+			}
+
+			if !hasDefault {
+				t.Fatalf("no serverDefault fact: %v (notes %v)", report.Facts, report.Notes)
+			}
+			if def.Value.Literal == nil || def.Value.Literal.Raw != tc.wantDefault {
+				t.Errorf("serverDefault = %v, want %s", def.Value, tc.wantDefault)
+			}
+			if hasDerived {
+				t.Error("a constant must not also be recorded as derived")
+			}
+
+			// The alternatives no number of creates in one tenant can rule out.
+			if len(def.Alternatives) < 2 {
+				t.Errorf("a default fact must state what it could not rule out: %v",
+					def.Alternatives)
+			}
+		})
+	}
+}
+
+// TestUnit_Probe_ADefaultIsALiteralNotAString.
+//
+// Merge writes this into a generated Default, and the difference between the string "3" and the
+// number 3 decides whether the emitted code compiles.
+func TestUnit_Probe_ADefaultIsALiteralNotAString(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		ConstantDefaults: map[string]any{"rank": 7, "colour": "blue"},
+	})
+
+	report := runAgainst(t, srv, defaultSubject(), defaultsPlan(), "write.server-default")
+
+	number, ok := factFor(t, report, "rank", FactServerDefault)
+	if !ok {
+		t.Fatalf("no fact for rank: %v (notes %v)", report.Facts, report.Notes)
+	}
+	if number.Value.Literal == nil || number.Value.Literal.Raw != "7" {
+		t.Errorf("rank default = %v, want the bare literal 7", number.Value)
+	}
+
+	text, _ := factFor(t, report, "colour", FactServerDefault)
+	if text.Value.Literal == nil || text.Value.Literal.Raw != `"blue"` {
+		t.Errorf("colour default = %v, want a quoted string literal", text.Value)
+	}
+}
+
+// TestUnit_Probe_AValueOnAFieldTheAPIDiscardsIsNotADefault.
+//
+// The catalogue's third outcome, and the one real dependency in the whole catalogue: a field the
+// API does not store is plain Computed, and the value it reports is not a default a practitioner
+// could override. Writing it as a static default would make the provider plan a change it cannot
+// apply.
+//
+// The precondition is a *fact*, so it is satisfied by whatever established it -- here
+// write.writable-returned, running earlier in the same tier.
+func TestUnit_Probe_AValueOnAFieldTheAPIDiscardsIsNotADefault(t *testing.T) {
+	t.Parallel()
+
+	// colour is discarded on write and defaulted when absent, so a read always shows "blue"
+	// however the field was sent. Every observation a default probe can make says "constant".
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		SilentlyDiscards: []string{"colour"},
+		ConstantDefaults: map[string]any{"colour": "blue"},
+	})
+
+	// Both probes, in registry order, so the dependency is exercised rather than simulated.
+	report := runAgainst(t, srv, defaultSubject(), defaultsPlan(), "")
+
+	if fact, ok := factFor(t, report, "colour", FactServerDefault); ok {
+		t.Errorf("a value on a field the API discards was recorded as a default: %v", fact)
+	}
+
+	if _, ok := noteMentioning(report, "a computed value rather than a default"); !ok {
+		t.Errorf("the run must say why no default was recorded: %v", report.Notes)
+	}
+}
+
+// TestUnit_Probe_OneFixtureCannotRuleOutDerivation.
+//
+// With one fixture the third create cannot be built, so a value stable across two identical
+// creates is Observed rather than Corroborated -- and merge treats the two differently.
+func TestUnit_Probe_OneFixtureCannotRuleOutDerivation(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		ConstantDefaults: map[string]any{"colour": "blue"},
+	})
+
+	plan := defaultsPlan()
+	plan.Fixtures = plan.Fixtures[:1]
+
+	report := runAgainst(t, srv, defaultSubject(), plan, "write.server-default")
+
+	fact, ok := factFor(t, report, "colour", FactServerDefault)
+	if !ok {
+		t.Fatalf("no fact: %v (notes %v)", report.Facts, report.Notes)
+	}
+
+	if fact.Confidence != Observed {
+		t.Errorf("confidence = %s, want observed: one fixture cannot rule out derivation from "+
+			"the request", fact.Confidence)
+	}
+}
+
+// TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled is the Phase 4.7c milestone.
+//
+// The pilot blueprint carries five decisions nothing has tested: colour, accessType and matchType
+// are computed_optional on an assumption, and key and objectType are required although the request
+// schema declares no required list.
+//
+// Against a fixture that models each of them, every one either produces a fact or produces a note
+// saying precisely why it cannot. Both outcomes are progress; a guess that stays silent is not.
+func TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled(t *testing.T) {
+	t.Parallel()
+
+	subj := quirkSubject()
+	subj.Fields = append(subj.Fields,
+		Field{JSONPath: "colour", Attribute: "colour", Kind: blueprint.KindString,
+			Presence: blueprint.ComputedOptional, Writable: true},
+		Field{JSONPath: "accessType", Attribute: "access_type", Kind: blueprint.KindString,
+			Presence: blueprint.ComputedOptional, Writable: true},
+		Field{JSONPath: "matchType", Attribute: "match_type", Kind: blueprint.KindString,
+			Presence: blueprint.ComputedOptional, Writable: true},
+		Field{JSONPath: "objectType", Attribute: "object_type", Kind: blueprint.KindString,
+			Presence: blueprint.Required, Writable: true},
+	)
+
+	// The fixtures set key and objectType and omit the three computed_optional fields, which is
+	// what makes the two groups observable at all -- exactly how the committed pilot plan is
+	// built.
+	plan := Plan{
+		Fixtures: []Fixture{
+			{Name: "first", Body: map[string]any{
+				"key": "stamped", "value": "a", "objectType": "test",
+			}},
+			{Name: "second", Body: map[string]any{
+				"key": "stamped", "value": "b", "objectType": "dashboard",
+			}},
+		},
+		DefaultInfluencers: []string{"objectType"},
+		Budget:             Budget{MaxRequests: 120, MaxCreates: 40},
+	}
+
+	// An API that defaults two of the three unset fields, derives the third from the request, and
+	// enforces neither of the two the blueprint marks required.
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		ConstantDefaults: map[string]any{"accessType": "all"},
+		DerivedDefaults:  map[string]string{"colour": "objectType"},
+	})
+
+	report := runAgainst(t, srv, subj, plan, "")
+
+	// Each guess, and what settling it looks like.
+	settled := []struct {
+		path  string
+		field FactField
+		// note is a substring accepted in place of a fact, for a guess this protocol cannot
+		// reach.
+		note string
+	}{
+		{path: "accessType", field: FactServerDefault},
+		{path: "colour", field: FactDefaultIsDerived},
+		{path: "matchType", note: "assigns no value"},
+		{path: "objectType", field: FactRequiredByAPI},
+		{path: "key", note: "its requiredness is therefore unprobed"},
+	}
+
+	for _, want := range settled {
+		if want.field != "" {
+			if _, ok := factFor(t, report, want.path, want.field); !ok {
+				t.Errorf("%s: no %s fact\nfacts: %v\nnotes: %v",
+					want.path, want.field, report.Facts, report.Notes)
+			}
+
+			continue
+		}
+
+		found := false
+		for _, n := range report.Notes {
+			if n.JSONPath == want.path && strings.Contains(n.Message, want.note) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("%s: nothing said about it; a guess that stays silent is not progress\n"+
+				"notes: %v", want.path, report.Notes)
+		}
+	}
+
+	// objectType is required in the blueprint and not enforced by this API, which is the finding
+	// that matters: the guess was wrong in the direction that breaks configurations.
+	if fact, ok := factFor(t, report, "objectType", FactRequiredByAPI); ok {
+		if fact.Value.Bool != nil && *fact.Value.Bool {
+			t.Error("this fixture does not enforce objectType, so the fact should say so")
+		}
 	}
 }
