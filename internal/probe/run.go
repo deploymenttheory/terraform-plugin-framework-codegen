@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
@@ -124,17 +125,26 @@ func Run(ctx context.Context, opts RunOptions) (RunResult, error) {
 	return out, nil
 }
 
+// replayHost stands in for the real host during replay.
+//
+// Deliberately an unresolvable name: if the deny transport ever failed to intercept, a request to
+// .invalid fails DNS rather than reaching somebody's API.
+const replayHost = "https://replay.invalid"
+
 // baseURLFor is the API root.
 //
-// In replay the host is irrelevant -- the cassette matches on path -- but a client still
-// needs a syntactically valid URL, so a placeholder stands in. It is deliberately not a real
-// host: if the deny transport ever failed to intercept, a request to "replay.invalid" fails
-// DNS rather than reaching somebody's API.
+// In replay the *host* is irrelevant -- the cassette matches on path -- but the base **path** is
+// not. A cassette stores full request paths, so replaying a recording made against an endpoint
+// with a prefix has to reproduce that prefix or every request mismatches. The caller supplies it
+// from the cassette's metadata.
 func baseURLFor(opts RunOptions) string {
 	if opts.Mode == ModeRecord {
 		return opts.BaseURL
 	}
-	return "https://replay.invalid"
+	if opts.BaseURL != "" {
+		return opts.BaseURL
+	}
+	return replayHost
 }
 
 func hostOf(baseURL string) string {
@@ -246,20 +256,22 @@ func reportSkippedMutating(opts RunOptions, report *Report) {
 // sequence -- because a probe cannot know where its requests will land in a run that
 // interleaves several. This maps those onto the ids the cassette actually assigned.
 //
-// Matching is by method and path slug, in order, which is enough because a probe's requests
-// appear in the transcript in the order it made them. A citation with no match is dropped and
-// the fact is downgraded rather than left pointing at a file that does not exist: an
-// unverifiable fact is worse than a weaker one, because it looks checkable and is not.
+// Matching is by method plus a *suffix* match on the path slug, not equality. That is not
+// laxness -- it is the only thing that works. A probe cites the path it asked for, which is
+// relative to the session's base URL; the cassette records the full request path. When the base
+// URL carries a prefix -- "https://api.example.com/v7" with a path of "/tags" -- the two differ
+// by exactly that prefix, and equality matching downgrades every fact in the run to Suspected.
+//
+// This was found against a live API rather than in a test: an httptest server has no base path,
+// so the prefix is empty and equality happens to work. Worth stating, because the failure was
+// silent and total -- correct facts, all quietly marked unverifiable.
+//
+// A citation with no match is dropped and the fact downgraded rather than left pointing at a
+// file that does not exist: an unverifiable fact is worse than a weaker one, because it looks
+// checkable and is not.
 func attachEvidence(report *Report, transcript []cassette.Interaction) {
 	if len(transcript) == 0 {
 		return
-	}
-
-	// Every real id, indexed by the suffix a probe would have guessed.
-	bySuffix := map[string][]string{}
-	for _, i := range transcript {
-		suffix := idSuffix(i.ID)
-		bySuffix[suffix] = append(bySuffix[suffix], i.ID)
 	}
 
 	for idx := range report.Facts {
@@ -267,14 +279,9 @@ func attachEvidence(report *Report, transcript []cassette.Interaction) {
 
 		var resolved []string
 		for _, cited := range fact.Evidence {
-			candidates := bySuffix[idSuffix(cited)]
-			if len(candidates) == 0 {
-				continue
-			}
-			// The first matching interaction. Duplicates arise when a probe reads the same
-			// path repeatedly, and citing them all would be more honest but makes every
-			// volatility fact cite every read in the run.
-			resolved = appendUnique(resolved, candidates...)
+			// Duplicates arise when a probe reads the same path repeatedly. Citing them all
+			// would be more honest but makes every volatility fact cite every read in the run.
+			resolved = appendUnique(resolved, matchingInteractions(transcript, cited)...)
 		}
 
 		if len(resolved) == 0 {
@@ -296,15 +303,64 @@ func attachEvidence(report *Report, transcript []cassette.Interaction) {
 	}
 }
 
-// idSuffix strips the sequence prefix from an interaction id, leaving method and path.
-func idSuffix(id string) string {
-	// "004-post-v7-tags" -> "post-v7-tags"
-	for i, r := range id {
-		if r == '-' {
-			return id[i+1:]
+// matchingInteractions returns the recorded ids a citation could refer to.
+//
+// Method must match exactly. The path slug matches when the recorded one *ends with* the cited
+// one, which absorbs a base-URL prefix without letting "/tags" match "/other-tags": the boundary
+// is checked so a suffix has to begin at a segment separator.
+func matchingInteractions(transcript []cassette.Interaction, cited string) []string {
+	citedMethod, citedPath := splitID(cited)
+	if citedMethod == "" {
+		return nil
+	}
+
+	var out []string
+
+	for _, i := range transcript {
+		method, path := splitID(i.ID)
+		if method != citedMethod {
+			continue
+		}
+		if pathMatches(path, citedPath) {
+			out = append(out, i.ID)
 		}
 	}
-	return id
+
+	return out
+}
+
+// splitID pulls the method and path slug out of "004-post-v7-tags".
+func splitID(id string) (method, path string) {
+	rest := id
+	// Drop the numeric sequence prefix.
+	if i := strings.IndexByte(rest, '-'); i >= 0 {
+		rest = rest[i+1:]
+	}
+
+	i := strings.IndexByte(rest, '-')
+	if i < 0 {
+		return rest, ""
+	}
+
+	return rest[:i], rest[i+1:]
+}
+
+// pathMatches reports whether recorded ends with cited at a segment boundary.
+//
+// The boundary check is what stops a cited "tags" matching a recorded "other-tags", which would
+// attach a fact to evidence about a different endpoint -- a worse failure than no citation at
+// all, because it would look checked.
+func pathMatches(recorded, cited string) bool {
+	switch {
+	case cited == "":
+		return recorded == ""
+	case recorded == cited:
+		return true
+	case len(recorded) <= len(cited):
+		return false
+	default:
+		return strings.HasSuffix(recorded, "-"+cited)
+	}
 }
 
 func appendUnique(dst []string, values ...string) []string {

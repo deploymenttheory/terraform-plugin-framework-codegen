@@ -172,6 +172,14 @@ type Quirks struct {
 	// an error without mutating anything.
 	TypedQueryParams []string
 
+	// BasePath serves the collection under a prefix, e.g. "/v7".
+	//
+	// Real endpoints carry one, and it is the difference between a probe's relative path and the
+	// full path a cassette records. Two bugs hid behind its absence -- evidence citations and
+	// replay matching both silently assumed the two were the same string -- so the fixture is
+	// able to model it deliberately.
+	BasePath string
+
 	// NotFoundStatus overrides the status for an absent object. An API that returns 403
 	// for another tenant's identifier is indistinguishable from one that returns it for
 	// an absent one, and that is itself worth recording.
@@ -232,9 +240,12 @@ func New(t interface {
 	return s
 }
 
+// BaseURL is the root a session should be pointed at, including any configured prefix.
+func (s *Server) BaseURL() string { return s.URL + s.quirks.BasePath }
+
 // CollectionURL and ItemURL are the addresses a probe is pointed at.
-func (s *Server) CollectionURL() string    { return s.URL + collectionPath }
-func (s *Server) ItemURL(id string) string { return s.URL + itemPrefix + id }
+func (s *Server) CollectionURL() string    { return s.BaseURL() + collectionPath }
+func (s *Server) ItemURL(id string) string { return s.BaseURL() + itemPrefix + id }
 
 // Requests returns how many requests were served, so a test can assert a probe's real cost
 // against the worst case its Cost method declared.
@@ -289,18 +300,22 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// The prefix is stripped once, here, so every handler below matches on the same paths
+	// whether or not one is configured.
+	path := strings.TrimPrefix(r.URL.Path, s.quirks.BasePath)
+
 	switch {
-	case r.URL.Path == collectionPath && r.Method == http.MethodGet:
+	case path == collectionPath && r.Method == http.MethodGet:
 		s.list(w, r)
-	case r.URL.Path == collectionPath && r.Method == http.MethodPost:
+	case path == collectionPath && r.Method == http.MethodPost:
 		s.create(w, r)
-	case strings.HasPrefix(r.URL.Path, itemPrefix) && r.Method == http.MethodGet:
-		s.read(w, r)
-	case strings.HasPrefix(r.URL.Path, itemPrefix) &&
+	case strings.HasPrefix(path, itemPrefix) && r.Method == http.MethodGet:
+		s.read(w, r, path)
+	case strings.HasPrefix(path, itemPrefix) &&
 		(r.Method == http.MethodPut || r.Method == http.MethodPatch):
-		s.update(w, r)
-	case strings.HasPrefix(r.URL.Path, itemPrefix) && r.Method == http.MethodDelete:
-		s.delete(w, r)
+		s.update(w, r, path)
+	case strings.HasPrefix(path, itemPrefix) && r.Method == http.MethodDelete:
+		s.delete(w, r, path)
 	default:
 		s.fail(w, http.StatusMethodNotAllowed, "unsupported", "")
 	}
@@ -401,8 +416,8 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, s.project(id, r))
 }
 
-func (s *Server) read(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, itemPrefix)
+func (s *Server) read(w http.ResponseWriter, r *http.Request, path string) {
+	id := strings.TrimPrefix(path, itemPrefix)
 
 	s.mu.Lock()
 	_, exists := s.objects[id]
@@ -424,8 +439,8 @@ func (s *Server) read(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.project(id, r))
 }
 
-func (s *Server) update(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, itemPrefix)
+func (s *Server) update(w http.ResponseWriter, r *http.Request, path string) {
+	id := strings.TrimPrefix(path, itemPrefix)
 
 	body, err := readJSON(r)
 	if err != nil {
@@ -486,8 +501,8 @@ func (s *Server) update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.project(id, r))
 }
 
-func (s *Server) delete(w http.ResponseWriter, r *http.Request) {
-	id := strings.TrimPrefix(r.URL.Path, itemPrefix)
+func (s *Server) delete(w http.ResponseWriter, r *http.Request, path string) {
+	id := strings.TrimPrefix(path, itemPrefix)
 
 	s.mu.Lock()
 	s.deletes++

@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -29,6 +31,21 @@ const (
 
 // defaultEvidenceRoot is where committed cassettes live, matching the repository layout.
 const defaultEvidenceRoot = "probe-evidence"
+
+// replayBaseURL is the unresolvable host replay requests are addressed to. The recorded base path
+// is appended, so a cassette made against an endpoint with a prefix replays against the same
+// paths it holds.
+const replayBaseURL = "https://replay.invalid"
+
+// basePathOf extracts the path prefix from an endpoint, e.g. "/v7" from
+// "https://api.example.com/v7".
+func basePathOf(endpoint string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSuffix(u.Path, "/")
+}
 
 const usageProbe = "probe [-mode record|replay|verify|sweep] -blueprint DIR " +
 	"[-resource KEY] [-only PROBE] [-list] [--allow-mutations]"
@@ -201,6 +218,7 @@ func recordProbe(subj probe.Subject, only, root, providerName string) error {
 	printProbeReport(subj.Resource, result.Report)
 
 	meta := probe.RecordingMetadata(providerName, subj, result.Report.Profile.Host, version.Version)
+	meta.BasePath = basePathOf(endpoint)
 
 	snap, err := cassette.Write(root, meta, result.Interactions, map[string]string{"bearer": token}, time.Now())
 	if err != nil {
@@ -237,10 +255,18 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 		return err
 	}
 
+	meta, err := snap.LoadMetadata()
+	if err != nil {
+		return err
+	}
+
 	result, err := probe.Run(context.Background(), probe.RunOptions{
-		Mode:         probe.ModeReplay,
-		Subject:      subj,
-		Only:         only,
+		Mode:    probe.ModeReplay,
+		Subject: subj,
+		Only:    only,
+		// The recorded prefix, reproduced. A cassette stores full request paths, so replaying
+		// a recording made against an endpoint with a prefix needs that prefix back.
+		BaseURL:      replayBaseURL + meta.BasePath,
 		Interactions: interactions,
 	})
 	if err != nil {

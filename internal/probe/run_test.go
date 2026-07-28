@@ -619,3 +619,135 @@ func findFact(t *testing.T, facts []Fact, jsonPath string, field FactField) Fact
 
 	return Fact{}
 }
+
+// recordAgainstPrefixed records against a server serving under a base path.
+//
+// The distinction from recordAgainst matters: the session's base URL carries the prefix, so the
+// paths a probe asks for and the paths a cassette records differ by exactly that prefix. Two bugs
+// lived in that gap.
+func recordAgainstPrefixed(t *testing.T, s *quirkserver.Server, prefix string) RunResult {
+	t.Helper()
+
+	rec, err := cassette.NewRecordingTransport(&http.Transport{}, testRedactor(t), nil)
+	if err != nil {
+		t.Fatalf("NewRecordingTransport: %v", err)
+	}
+
+	session, err := newHTTPSession(SessionConfig{
+		Transport:          rec,
+		BaseURL:            s.URL + prefix,
+		CollectionTemplate: "/things",
+		ItemTemplate:       "/things/{id}",
+	})
+	if err != nil {
+		t.Fatalf("newHTTPSession: %v", err)
+	}
+
+	var report Report
+	runReadProbes(context.Background(), session, RunOptions{Subject: quirkSubject()}, &report)
+
+	interactions, err := rec.Interactions()
+	if err != nil {
+		t.Fatalf("Interactions: %v", err)
+	}
+
+	attachEvidence(&report, interactions)
+	report.Sort()
+
+	return RunResult{Report: report, Interactions: interactions}
+}
+
+// TestUnit_Probe_EvidenceResolvesAcrossABasePath is a regression test for a bug found only against
+// a live API.
+//
+// A probe cites the path it asked for, which is relative to the base URL; a cassette records the
+// full request path. When the endpoint carries a prefix the two differ by exactly that prefix, and
+// equality matching resolved nothing -- so **every fact in the run was silently downgraded to
+// Suspected**. Correct facts, all quietly marked unverifiable, and no test caught it because an
+// httptest base URL has no path.
+func TestUnit_Probe_EvidenceResolvesAcrossABasePath(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		BasePath:                  "/v7",
+		IgnoresUnknownQueryParams: true,
+		TypedQueryParams:          []string{"limit"},
+	})
+	srv.Seed(map[string]any{"key": "existing"})
+
+	got := recordAgainstPrefixed(t, srv, "/v7")
+
+	if len(got.Report.Facts) == 0 {
+		t.Fatal("no facts were produced, so this test proves nothing")
+	}
+
+	real := map[string]bool{}
+	for _, i := range got.Interactions {
+		real[i.ID] = true
+	}
+
+	var observed int
+	for _, f := range got.Report.Facts {
+		for _, cited := range f.Evidence {
+			if !real[cited] {
+				t.Errorf("%s cites %q, which is not in the transcript", factKey(f), cited)
+			}
+		}
+		if f.Confidence.AtLeast(Observed) {
+			observed++
+			if len(f.Evidence) == 0 {
+				t.Errorf("%s claims %s with no evidence", factKey(f), f.Confidence)
+			}
+		}
+	}
+
+	// The bug's signature was zero observed facts: everything downgraded.
+	if observed == 0 {
+		t.Error("every fact was downgraded; evidence citations are not resolving across the base path")
+	}
+}
+
+// TestUnit_Probe_ReplayReproducesFactsAcrossABasePath is the regression test for the second bug.
+//
+// A cassette stores full request paths. Replaying a recording made against a prefixed endpoint has
+// to reproduce that prefix, or every request mismatches and no fact survives -- which is what
+// happened live, with a report reading "0 ok, 6 failed" against a transcript that was perfectly
+// good.
+func TestUnit_Probe_ReplayReproducesFactsAcrossABasePath(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		BasePath:                  "/v7",
+		IgnoresUnknownQueryParams: true,
+		TypedQueryParams:          []string{"limit"},
+	})
+	srv.Seed(map[string]any{"key": "existing"})
+
+	live := recordAgainstPrefixed(t, srv, "/v7")
+
+	// The prefix supplied the way the CLI supplies it: from the cassette's recorded metadata.
+	replayed, err := Run(context.Background(), RunOptions{
+		Mode:         ModeReplay,
+		Subject:      quirkSubject(),
+		BaseURL:      replayHost + "/v7",
+		Interactions: live.Interactions,
+	})
+	if err != nil {
+		t.Fatalf("replay: %v", err)
+	}
+
+	if err := VerifyFacts(replayed.Report.Facts, live.Report.Facts); err != nil {
+		t.Errorf("replay across a base path did not reproduce the facts: %v", err)
+	}
+
+	// And without the prefix it must fail loudly rather than quietly producing nothing -- the
+	// failure mode that made the live run look like a broken probe rather than a broken base URL.
+	bare, err := Run(context.Background(), RunOptions{
+		Mode:         ModeReplay,
+		Subject:      quirkSubject(),
+		Interactions: live.Interactions,
+	})
+	if err == nil && len(bare.Report.Facts) == len(live.Report.Facts) {
+		t.Error("replaying without the recorded prefix should not silently succeed")
+	}
+}
