@@ -50,8 +50,8 @@ var commands = []command{
 	{
 		name:    "merge",
 		summary: "fold probe facts into a blueprint",
-		usage:   "merge -blueprint FILE -facts FILE [-strategy annotate]",
-		run:     notImplemented("merge"),
+		usage:   usageMerge,
+		run:     runMerge,
 	},
 	{
 		name:    "emit",

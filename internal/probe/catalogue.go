@@ -70,9 +70,9 @@ func init() {
 // assumption the writability and server-default protocols rest on. Running it first
 // means those protocols know whether their own premise holds.
 //
-// The ThousandEyes SDK already records this observation in pagination.go -- ?bogusParam=abc
-// returns 200 while ?cursor=abc returns 400 -- so this formalises something a human
-// discovered by hand.
+// This is the kind of thing that gets discovered by hand and written into a comment: an
+// unrecognised parameter is ignored while a misspelled *known* one is rejected. Formalising it
+// means later probes can state their premise rather than assume it.
 //
 // How it can be wrong: a gateway rather than the application may reject the parameter,
 // in which case tolerance of body fields does not follow. The fact is emitted at
@@ -84,18 +84,13 @@ func (unknownParamTolerance) Name() string     { return "read.unknown-param" }
 func (unknownParamTolerance) Kind() Kind       { return KindRead }
 func (unknownParamTolerance) Cost(Subject) int { return 1 }
 
-func (unknownParamTolerance) Observe(context.Context, ReadSession, Subject) (Result, error) {
-	return Result{}, errNotImplemented
-}
-
 // notFoundShape sends one GET for a well-formed but absent identifier, and observes the
 // status and body shape.
 //
 // It infers whether policy.delete.notFoundIsSuccess is implementable, and it feeds the
-// generated error mapper. This matters more than it looks: internal/ingest currently
-// hardcodes NotFoundIsSuccess to true with no evidence at all, and if the API in fact
-// returns 403 or an empty 200 for an absent object, the generated delete swallows a real
-// failure.
+// generated error mapper. This matters more than it looks: internal/ingest currently hardcodes
+// NotFoundIsSuccess to true with no evidence at all, and if an API in fact answers 403 or an
+// empty 200 for an absent object, the generated delete swallows a real failure.
 //
 // How it can be wrong: an API that returns 403 for another tenant's identifier is
 // indistinguishable from one that returns 403 for an absent one. That is itself worth
@@ -106,10 +101,6 @@ type notFoundShape struct{}
 func (notFoundShape) Name() string     { return "read.not-found-shape" }
 func (notFoundShape) Kind() Kind       { return KindRead }
 func (notFoundShape) Cost(Subject) int { return 1 }
-
-func (notFoundShape) Observe(context.Context, ReadSession, Subject) (Result, error) {
-	return Result{}, errNotImplemented
-}
 
 // listShape sends one GET to the collection and observes the envelope key, whether a
 // next-page link is present, and the shape of an item.
@@ -126,10 +117,6 @@ type listShape struct{}
 func (listShape) Name() string     { return "read.list-shape" }
 func (listShape) Kind() Kind       { return KindRead }
 func (listShape) Cost(Subject) int { return 1 }
-
-func (listShape) Observe(context.Context, ReadSession, Subject) (Result, error) {
-	return Result{}, errNotImplemented
-}
 
 // volatileOnRead reads the same item three times, spaced by an interval, and observes
 // which fields differ.
@@ -151,19 +138,13 @@ func (volatileOnRead) Name() string     { return "read.volatile" }
 func (volatileOnRead) Kind() Kind       { return KindRead }
 func (volatileOnRead) Cost(Subject) int { return 3 }
 
-func (volatileOnRead) Observe(context.Context, ReadSession, Subject) (Result, error) {
-	return Result{}, errNotImplemented
-}
-
 // errorEnvelope sends one deliberately malformed read -- a typed query parameter given a
 // bad value -- and observes which error shape comes back for which status.
 //
-// The ThousandEyes API returns three distinct envelopes depending on the endpoint: RFC
-// 7807 problem+json, an OAuth {error, error_description} pair, and a legacy
-// {errorMessage} form, plus empty-bodied 404s. Its client/errors.go handles all four.
-// Knowing which appears where feeds the generated mocks in Phase 5, and it validates the
-// prober's own classifier -- which every other probe depends on, because telling "rejected
-// because immutable" from "rejected because the token expired" is what makes the
+// APIs commonly use more than one envelope, sometimes several across one endpoint family --
+// see internal/probe/apierr. Knowing which appears where feeds the generated mocks in Phase 5,
+// and it validates the prober's own classifier, which every other probe depends on: telling
+// "rejected because immutable" from "rejected because the token expired" is what makes the
 // immutability protocol possible at all.
 //
 // How it can be wrong: one malformed request exercises one code path. An API may use a
@@ -174,10 +155,6 @@ type errorEnvelope struct{}
 func (errorEnvelope) Name() string     { return "read.error-envelope" }
 func (errorEnvelope) Kind() Kind       { return KindRead }
 func (errorEnvelope) Cost(Subject) int { return 1 }
-
-func (errorEnvelope) Observe(context.Context, ReadSession, Subject) (Result, error) {
-	return Result{}, errNotImplemented
-}
 
 // returnedOnReadWeak reads one item and notes which of the schema's JSON paths are absent.
 //
@@ -197,10 +174,6 @@ func (returnedOnReadWeak) Name() string     { return "read.returned-weak" }
 func (returnedOnReadWeak) Kind() Kind       { return KindRead }
 func (returnedOnReadWeak) Cost(Subject) int { return 1 }
 
-func (returnedOnReadWeak) Observe(context.Context, ReadSession, Subject) (Result, error) {
-	return Result{}, errNotImplemented
-}
-
 // ---------------------------------------------------------------------------
 // Mutating tier
 // ---------------------------------------------------------------------------
@@ -208,18 +181,17 @@ func (returnedOnReadWeak) Observe(context.Context, ReadSession, Subject) (Result
 // requiredByAPI creates once with a full fixture, then once per candidate field with
 // exactly that field omitted, and observes which omissions are refused.
 //
-// It infers RequiredByAPI, which is frequently not what the specification declares -- in
-// both directions. The pilot has two live examples: key and object_type are marked
-// required although TagInfo declares no required list at all.
+// It infers RequiredByAPI, which is frequently not what the specification declares -- in both
+// directions. The pilot blueprint has two live examples: two attributes are marked required
+// although the request schema declares no required list at all.
 //
 // A 2xx on omission gives RequiredByAPI=false at Observed, because a success is
 // unambiguous. A 4xx gives true at Observed only when the error body *names the field*;
 // otherwise Inferred, because the request may have failed for an unrelated reason.
 //
-// How it can be wrong: **conditional requirement.** resourceFixups in the existing
-// ThousandEyes provider encodes exactly this -- port matters only when protocol is tcp or
-// udp -- and one-field-at-a-time omission from a single fixture reports half a truth
-// either way. Mitigated by running every fixture variant the plan declares: a field whose
+// How it can be wrong: **conditional requirement.** Hand-maintained fixup tables in existing
+// providers are full of these -- a port field that matters only when a protocol field says tcp
+// -- and one-field-at-a-time omission from a single fixture reports half a truth either way. Mitigated by running every fixture variant the plan declares: a field whose
 // requiredness differs between variants produces a Note and an Alternatives entry, never
 // a Fact.
 type requiredByAPI struct{}
@@ -274,16 +246,16 @@ func (readYourWrites) Exercise(context.Context, *MutatingSession, Subject) (Resu
 // reads back and compares.
 //
 // It infers Writable and ReturnedOnRead -- the pair that decides between Computed and
-// Optional+Computed, and the pair that settles the pilot's colour, access_type and
-// match_type guesses in the writable direction.
+// Optional+Computed, and the pair that settles the pilot blueprint's three unprobed
+// computed_optional guesses in the writable direction.
 //
 // Equal means Writable=true and ReturnedOnRead=true. Absent means ReturnedOnRead=false,
 // and here it *is* Observed rather than Suspected, because the field was demonstrably
 // sent. Present but different is **not** Writable=false: that is a normalisation fact, and
 // conflating the two would mark a perfectly writable field as computed.
 //
-// How it can be wrong: **expansion-gated fields.** The tags endpoint returns assignments
-// only when asked with an expansion parameter. A probe that reads back once concludes
+// How it can be wrong: **expansion-gated fields.** Any API with an expand, include or fields
+// parameter may withhold a field until asked. A probe that reads back once concludes
 // ReturnedOnRead=false, and the generated state mapper then blanks a real value on every
 // refresh. So this reads back twice: bare, and with every expansion the plan lists.
 type writableAndReturned struct{}
@@ -421,12 +393,12 @@ func (immutability) Exercise(context.Context, *MutatingSession, Subject) (Result
 // sensitive.
 //
 // It emits enumClosed, enumAccepted and enumRejectedDocumented. **None of them generates an
-// active validator**, ever. The README and the pilot blueprint's own object_type description
-// already state why: an over-tight validator rejects configurations the API would have
-// accepted and the practitioner cannot work around it. The SDK's enums are deliberately
-// open, so a routine upstream addition must not become a plan failure. Merge writes the
-// accepted set into the attribute's description and reports that a OneOf is now supportable
-// by hand.
+// active validator**, ever. The README and one of the pilot blueprint's own attribute
+// descriptions already state why: an over-tight validator rejects configurations the API would
+// have accepted, and the practitioner cannot work around it. Generated SDKs frequently model
+// enums as open strings for the same reason, so a routine upstream addition must not become a
+// plan failure. Merge writes the accepted set into the attribute's description and reports
+// that a OneOf is now supportable by hand.
 //
 // The valuable result is the third one: a **documented value the API rejects** means the
 // specification is stale, and a spec-derived validator would have been actively harmful.
@@ -458,9 +430,9 @@ func (enumBoundary) Exercise(context.Context, *MutatingSession, Subject) (Result
 // writeSideEffect looks for a field the server set that was never sent, then perturbs the
 // suspected trigger and re-reads to confirm the coupling.
 //
-// This is the networkMeasurements to bandwidthMeasurements coupling hardcoded in the
-// existing provider's resourceFixups -- the one quirk in that whole file a human would
-// never have guessed and a prober genuinely can find.
+// Coupled fields of this kind -- enabling one measurement silently enables another -- turn up
+// in hand-maintained fixup tables, and they are the class of quirk a human would never guess
+// from a specification and a prober genuinely can find.
 //
 // It stays Inferred even after confirmation. "The server set it in response to this
 // request" and "the server always sets it, for every object of this type" are different
@@ -485,11 +457,10 @@ func (writeSideEffect) Exercise(context.Context, *MutatingSession, Subject) (Res
 // normalisation sends awkward values -- mixed case, surrounding whitespace, a reversed
 // collection -- and observes what comes back changed.
 //
-// It is the highest-value class of fact in the catalogue, because server normalisation is
-// the direct cause of a perpetual diff: the practitioner writes one value, the API stores
-// another, and every subsequent plan proposes changing it back. The existing provider's
-// normalizeStringInterfaceSlice exists precisely to suppress the collection-order case at
-// runtime, which is the wrong layer to fix it at.
+// It is the highest-value class of fact in the catalogue, because server normalisation is the
+// direct cause of a perpetual diff: the practitioner writes one value, the API stores another,
+// and every subsequent plan proposes changing it back. Existing providers carry runtime helpers
+// that re-sort collections purely to suppress this, which is the wrong layer to fix it at.
 //
 // A specific identified transform is Observed; "changed somehow" is Suspected. A 4xx is
 // **no observation** rather than evidence -- a rejected value tells you nothing about what

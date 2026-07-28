@@ -1,0 +1,25 @@
+[
+  {
+    "resource": "tag",
+    "jsonPath": "accessType",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "string",
+        "raw": "\"all\""
+      }
+    },
+    "confidence": "corroborated",
+    "probe": "write.server-default",
+    "evidence": [
+      "004-post-v7-tags",
+      "007-post-v7-tags",
+      "011-post-v7-tags"
+    ],
+    "rationale": "three creates omitting `access_type` all read back \"all\"",
+    "alternatives": [
+      "derived from tenant configuration",
+      "derived from a field this plan's variants did not vary"
+    ]
+  }
+]

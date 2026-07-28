@@ -81,6 +81,14 @@ type Metadata struct {
 	// Host is the API host. Not a secret, and the one thing a reader needs in order to
 	// know what these interactions describe.
 	Host string `json:"host"`
+	// BasePath is the path prefix the endpoint carried, e.g. "/v7".
+	//
+	// Recorded because an interaction stores the *full* request path while a probe asks for one
+	// relative to the base URL. Without this, replay builds "/tags" where the cassette holds
+	// "/v7/tags" and every request mismatches -- which is exactly what happened the first time
+	// this ran against a real API, and which no httptest-backed test can reproduce because an
+	// httptest base URL has no path.
+	BasePath string `json:"basePath,omitempty"`
 	// Interactions counts the files, so a truncated directory is detectable without
 	// reading them all.
 	Interactions int `json:"interactions"`

@@ -41,8 +41,9 @@ type Plan struct {
 	// "expand=assignments".
 	//
 	// Without these, a probe that reads back once will conclude an expansion-gated
-	// field is never returned, and the generated state mapper will blank a real value
-	// on every refresh. The ThousandEyes tags endpoint has exactly this shape.
+	// field is never returned, and the generated state mapper will then blank a real
+	// value on every refresh. Any API with an `expand`, `include` or `fields`
+	// parameter has this shape.
 	Expansions []string `json:"expansions,omitempty"`
 
 	// Deny lists JSON paths no probe may send a value for, whatever else it is told.

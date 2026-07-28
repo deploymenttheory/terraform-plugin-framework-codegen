@@ -1,0 +1,10 @@
+{
+  "provider": "thousandeyes",
+  "resource": "tag",
+  "apiVersion": "7.0.97",
+  "host": "api.thousandeyes.com",
+  "basePath": "/v7",
+  "interactions": 13,
+  "sha256": "ea2ec15a9c5941d0d1451b2c22c12a239ef9ca30af10920083a9d82cfb34edcc",
+  "probeVersion": "dev"
+}

@@ -1,14 +1,51 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version"
 )
+
+// The environment is the only place a credential or an endpoint comes from.
+//
+// Not a flag: a flag puts the token in shell history and in the process table. Not a profile
+// file: that gets committed. See probe.Profile's doc comment.
+const (
+	tokenEnv    = "TFPFGEN_PROBE_TOKEN"
+	endpointEnv = "TFPFGEN_PROBE_ENDPOINT"
+)
+
+// defaultEvidenceRoot is where committed cassettes live, matching the repository layout.
+const defaultEvidenceRoot = "probe-evidence"
+
+// replayBaseURL is the unresolvable host replay requests are addressed to. The recorded base path
+// is appended, so a cassette made against an endpoint with a prefix replays against the same
+// paths it holds.
+const replayBaseURL = "https://replay.invalid"
+
+// basePathOf extracts the path prefix from an endpoint, e.g. "/v7" from
+// "https://api.example.com/v7".
+func basePathOf(endpoint string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSuffix(u.Path, "/")
+}
 
 const usageProbe = "probe [-mode record|replay|verify|sweep] -blueprint DIR " +
 	"[-resource KEY] [-only PROBE] [-list] [--allow-mutations]"
@@ -31,6 +68,8 @@ func runProbe(args []string) error {
 		resource      = fs.String("resource", "", "probe one resource, by blueprint key")
 		only          = fs.String("only", "", "run one probe, by name")
 		list          = fs.Bool("list", false, "print the probe catalogue and exit")
+		evidenceRoot  = fs.String("evidence", defaultEvidenceRoot, "root of the committed probe evidence")
+		providerName  = fs.String("provider", "", "provider name for the evidence path; defaults to the blueprint's")
 
 		allowMutations = fs.Bool("allow-mutations", false,
 			"permit probes that create, update and delete; requires -mode record and a sandbox profile")
@@ -61,6 +100,10 @@ func runProbe(args []string) error {
 		}
 	}
 
+	if *providerName == "" {
+		*providerName = bp.Provider.Name
+	}
+
 	subjects, notes, err := subjectsOf(bp)
 	if err != nil {
 		return err
@@ -86,12 +129,256 @@ func runProbe(args []string) error {
 		return listProbes(subjects, *only)
 	}
 
-	// Everything past here needs a transport, a session and -- for the mutating tier --
-	// the gating conjunction. Refusing explicitly rather than doing nothing, so that a
-	// scripted run cannot mistake an unbuilt mode for a clean one.
-	_ = allowMutations
+	// The mutating tier needs the gating conjunction, which lands in Phase 4.6. Until
+	// then --allow-mutations is accepted and refused rather than ignored: silently
+	// dropping it would let a scripted run believe it had probed the write path.
+	if *allowMutations {
+		return fmt.Errorf("--allow-mutations: %w (the gate is not built yet, so no mutating "+
+			"probe can be authorised)", errNotImplemented)
+	}
 
-	return fmt.Errorf("probe -mode %s: %w", *mode, errNotImplemented)
+	if *mode == modeSweep {
+		return fmt.Errorf("probe -mode sweep: %w", errNotImplemented)
+	}
+
+	return runProbeMode(*mode, subjects, *only, *evidenceRoot, *providerName, bp.Source.SpecVersion)
+}
+
+// runProbeMode records, replays or verifies the read-only tier.
+func runProbeMode(
+	mode string,
+	subjects []probe.Subject,
+	only, evidenceRoot, providerName, apiVersion string,
+) error {
+	failures := 0
+
+	for _, subj := range subjects {
+		root := filepath.Join(evidenceRoot, providerName, subj.Resource)
+
+		switch mode {
+		case modeRecord:
+			if err := recordProbe(subj, only, root, providerName, apiVersion); err != nil {
+				return err
+			}
+
+		case modeReplay, modeVerify:
+			if err := replayProbe(mode, subj, only, root); err != nil {
+				if errors.Is(err, probe.ErrReplayMismatch) {
+					// Reported and counted rather than returned, so a multi-resource run
+					// reports every mismatch instead of one per invocation.
+					fmt.Fprintf(os.Stderr, "::error::%s: %v\n", subj.Resource, err)
+					failures++
+					continue
+				}
+				return err
+			}
+		}
+	}
+
+	if failures > 0 {
+		return fmt.Errorf("%w: %d resource(s) did not reproduce their committed facts",
+			probe.ErrReplayMismatch, failures)
+	}
+
+	return nil
+}
+
+// recordProbe runs live and writes a snapshot.
+func recordProbe(subj probe.Subject, only, root, providerName, apiVersion string) error {
+	endpoint := os.Getenv(endpointEnv)
+	if endpoint == "" {
+		return usagef("%s must be set for -mode record: it names the API to probe", endpointEnv)
+	}
+
+	// The token comes from the environment and nowhere else -- not a flag, not a profile,
+	// not anything written to disk. A flag would put it in shell history and in the
+	// process table.
+	token := os.Getenv(tokenEnv)
+	if token == "" {
+		return usagef("%s must be set for -mode record", tokenEnv)
+	}
+
+	redactor, err := cassette.NewRedactor(map[string]string{"bearer": token}, nil)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := probe.DeadlineFor(context.Background(), probe.Budget{})
+	defer cancel()
+
+	result, err := probe.Run(ctx, probe.RunOptions{
+		Mode:     probe.ModeRecord,
+		Subject:  subj,
+		Only:     only,
+		BaseURL:  endpoint,
+		Token:    token,
+		Redactor: redactor,
+		Secrets:  map[string]string{"bearer": token},
+	})
+	if err != nil {
+		return err
+	}
+
+	printProbeReport(subj.Resource, result.Report)
+
+	meta := probe.RecordingMetadata(providerName, subj, result.Report.Profile.Host, version.Version)
+	meta.BasePath = basePathOf(endpoint)
+	// The API version the blueprint was inferred from, so the snapshot directory names the
+	// specification the facts were recorded against rather than reading "unknown". A cassette
+	// whose directory does not say which API version produced it is far less useful a year later.
+	meta.APIVersion = apiVersion
+
+	snap, err := cassette.Write(root, meta, result.Interactions, map[string]string{"bearer": token}, time.Now())
+	if err != nil {
+		return err
+	}
+
+	if err := writeFacts(snap.FactsPath(), result.Report.Facts); err != nil {
+		return err
+	}
+	if err := writeJSONFile(snap.ReportPath(), result.Report); err != nil {
+		return err
+	}
+
+	log.Printf("wrote %s", snap.Dir)
+
+	return nil
+}
+
+// replayProbe re-derives facts from a committed snapshot with no network.
+func replayProbe(mode string, subj probe.Subject, only, root string) error {
+	snap, err := cassette.Latest(root)
+	if err != nil {
+		return err
+	}
+
+	// The checksum first: replaying a tampered cassette would produce facts that look
+	// derived from evidence which no longer matches what was committed.
+	if err := snap.Verify(); err != nil {
+		return err
+	}
+
+	interactions, err := snap.LoadInteractions()
+	if err != nil {
+		return err
+	}
+
+	meta, err := snap.LoadMetadata()
+	if err != nil {
+		return err
+	}
+
+	result, err := probe.Run(context.Background(), probe.RunOptions{
+		Mode:    probe.ModeReplay,
+		Subject: subj,
+		Only:    only,
+		// The recorded prefix, reproduced. A cassette stores full request paths, so replaying
+		// a recording made against an endpoint with a prefix needs that prefix back.
+		BaseURL:      replayBaseURL + meta.BasePath,
+		Interactions: interactions,
+	})
+	if err != nil {
+		return err
+	}
+
+	printProbeReport(subj.Resource, result.Report)
+
+	if mode != modeVerify {
+		return nil
+	}
+
+	// Verify is the purity test: the committed facts must be exactly what replaying the
+	// committed transcript produces. A difference means derivation depends on something
+	// outside the transcript, and every fact in the store is then unreproducible.
+	committed, err := readFacts(snap.FactsPath())
+	if err != nil {
+		return err
+	}
+
+	if err := probe.VerifyFacts(result.Report.Facts, committed); err != nil {
+		return err
+	}
+
+	log.Printf("✅ %s: %d fact(s) reproduced from the committed cassette", subj.Resource, len(committed))
+
+	return nil
+}
+
+// printProbeReport writes the run summary to stderr.
+//
+// Stderr with fmt rather than the log package, following runIngest's printNotes: -q silences
+// progress, and what a probe could not establish is not progress chatter.
+func printProbeReport(resource string, report probe.Report) {
+	fmt.Fprintf(os.Stderr, "\n%s: %s\n", resource, report.Summary())
+
+	for _, p := range report.Probes {
+		if p.Status == "ok" {
+			continue
+		}
+		fmt.Fprintf(os.Stderr, "  %-24s %-10s %s\n", p.Name, p.Status, p.Reason)
+	}
+
+	for _, f := range report.Facts {
+		fmt.Fprintf(os.Stderr, "  fact  %s\n", f)
+	}
+	for _, n := range report.Notes {
+		fmt.Fprintf(os.Stderr, "  note  %s\n", n)
+	}
+
+	fmt.Fprintln(os.Stderr)
+}
+
+func writeFacts(path string, facts []probe.Fact) error {
+	return writeJSONFile(path, facts)
+}
+
+func readFacts(path string) ([]probe.Fact, error) {
+	data, err := os.ReadFile(path) //nolint:gosec // operator-supplied path by design
+	if err != nil {
+		return nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+
+	var out []probe.Fact
+	if err := json.Unmarshal(data, &out); err != nil {
+		return nil, fmt.Errorf("parsing %s: %w", path, err)
+	}
+
+	// Validated on load, because a committed facts document is hand-editable and a fact with
+	// no evidence would otherwise flow into merge and change a schema on the strength of
+	// nothing.
+	for _, f := range out {
+		if f.Confidence == probe.Suspected {
+			continue
+		}
+		if err := f.Validate(); err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+	}
+
+	return out, nil
+}
+
+// writeJSONFile writes canonical JSON: two-space indent, no HTML escaping, trailing newline.
+// Matching blueprint.Marshal, because these files are committed and diffed.
+func writeJSONFile(path string, v any) error {
+	var buf bytes.Buffer
+
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+
+	if err := enc.Encode(v); err != nil {
+		return fmt.Errorf("encoding %s: %w", path, err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		return fmt.Errorf("creating %s: %w", filepath.Dir(path), err)
+	}
+	if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
+		return fmt.Errorf("writing %s: %w", path, err)
+	}
+
+	return nil
 }
 
 // keepOnlyResource narrows the blueprint to one resource.
