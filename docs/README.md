@@ -15,7 +15,7 @@ because it reads as settled.
 | [`generated-boundary.md`](generated-boundary.md) | how generated and hand-written code stay apart, and the escape hatch | **written** |
 | `onboarding-a-new-api.md` | numbered runbook for taking on a new API end to end | Phase 2 |
 | [`interop.md`](interop.md) | reading and writing Provider Code Specification v0.1, and what it cannot carry | **written** |
-| `probing.md` | the probe catalogue, confidence levels, safety model and cleanup guarantees | Phase 4 |
+| `probing.md` | the probe catalogue, confidence levels, safety model and cleanup guarantees | **written** |
 | `pilot-thousandeyes.md` | the pilot: what was generated, and the before/after against the existing provider | Phase 6 |
 | `adr/` | decision records, so settled questions are not re-litigated in six months | ongoing |
 

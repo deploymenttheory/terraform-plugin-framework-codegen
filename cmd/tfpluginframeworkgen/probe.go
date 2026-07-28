@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"net/url"
@@ -48,7 +49,8 @@ func basePathOf(endpoint string) string {
 }
 
 const usageProbe = "probe [-mode record|replay|verify|sweep] -blueprint DIR " +
-	"[-resource KEY] [-only PROBE] [-list] [--allow-mutations]"
+	"[-resource KEY] [-only PROBE] [-list] [-plan FILE] [--allow-mutations] " +
+	"[-profile FILE] [-force]"
 
 // Probe modes. The default is replay, deliberately: the safe mode is what you get by
 // typing less, and the mode that can change somebody's tenant has to be spelled out.
@@ -59,7 +61,74 @@ const (
 	modeSweep  = "sweep"
 )
 
+// runProbe is a two-line funnel over probeMain, so no return path escapes the exit-code mapping.
+//
+// The mapping cannot live in main.go's errors.As walk: errors.As returns the *first* match in a
+// preorder walk, and first is not most serious. These conditions genuinely co-occur -- a run can
+// exceed its budget, sweep, and still leave an orphan -- and which number CI sees must not depend
+// on the order the errors were joined in.
 func runProbe(args []string) error {
+	return probeError(probeMain(args))
+}
+
+// probeExitPrecedence is the order in which co-occurring failures are reported.
+//
+// 7 > 5 > 3 > 4 > 6 > 1, and each step is an argument about what a human needs to see first:
+//
+//   - 7, a redaction failure, outranks everything: nothing was written, and a secret nearly was.
+//   - 5, orphans, outranks the rest because objects are still live in somebody's tenant.
+//   - 3, a refused gate, before 4 because a refusal means nothing ran at all.
+//   - 4, a budget cap, before 6 because it explains why a replay might not match.
+//   - 6, a replay mismatch, last of the specific codes.
+var probeExitPrecedence = []struct {
+	err  error
+	code int
+}{
+	{cassette.ErrSecretFound, exitRedactionFailed},
+	{probe.ErrRedaction, exitRedactionFailed},
+	{probe.ErrOrphans, exitOrphansLeft},
+	{probe.ErrLedger, exitOrphansLeft},
+	// A stale ledger is not itself an orphan, but it is the record of objects that may be
+	// live -- so it gets the code that means "something is still out there".
+	{probe.ErrDirtyLedger, exitOrphansLeft},
+	{probe.ErrRefused, exitGatingRefused},
+	{probe.ErrBudget, exitBudgetExceeded},
+	{probe.ErrDeleteFailures, exitBudgetExceeded},
+	{probe.ErrReplayMismatch, exitReplayMismatch},
+}
+
+// probeError maps a probe failure onto a documented exit code.
+func probeError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// Help is not a failure, and a usage error already carries its own code.
+	var coded exitCoder
+	if errors.Is(err, flag.ErrHelp) || errors.As(err, &coded) {
+		return err
+	}
+
+	for _, entry := range probeExitPrecedence {
+		if errors.Is(err, entry.err) {
+			return &codedError{err: err, code: entry.code}
+		}
+	}
+
+	return err
+}
+
+// codedError attaches an exit code without losing the original error.
+type codedError struct {
+	err  error
+	code int
+}
+
+func (e *codedError) Error() string { return e.err.Error() }
+func (e *codedError) Unwrap() error { return e.err }
+func (e *codedError) ExitCode() int { return e.code }
+
+func probeMain(args []string) error {
 	fs, _ := newFlagSet("probe", usageProbe)
 
 	var (
@@ -73,6 +142,10 @@ func runProbe(args []string) error {
 
 		allowMutations = fs.Bool("allow-mutations", false,
 			"permit probes that create, update and delete; requires -mode record and a sandbox profile")
+		profilePath = fs.String("profile", "",
+			"sandbox profile for a mutating run; defaults to "+defaultProfileDir+"/PROVIDER.json")
+		planPath = fs.String("plan", "", "probe plan: fixtures and candidates a probe cannot discover")
+		force    = fs.Bool("force", false, "record over evidence that is already committed")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -129,40 +202,140 @@ func runProbe(args []string) error {
 		return listProbes(subjects, *only)
 	}
 
-	// The mutating tier needs the gating conjunction, which lands in Phase 4.6. Until
-	// then --allow-mutations is accepted and refused rather than ignored: silently
-	// dropping it would let a scripted run believe it had probed the write path.
-	if *allowMutations {
-		return fmt.Errorf("--allow-mutations: %w (the gate is not built yet, so no mutating "+
-			"probe can be authorised)", errNotImplemented)
+	// Refused here rather than inside the gate, because the gate only runs on the record path
+	// and this combination would otherwise be silently ignored -- letting a scripted run
+	// believe it had probed the write path when it replayed a cassette instead.
+	if *allowMutations && *mode != modeRecord {
+		return fmt.Errorf("%w: --allow-mutations needs -mode record, and this is %s; replay and "+
+			"verify derive facts from a committed transcript and must never write",
+			probe.ErrRefused, *mode)
+	}
+
+	plan, err := loadPlan(*planPath)
+	if err != nil {
+		return err
+	}
+
+	opts := probeRun{
+		mode:         *mode,
+		subjects:     subjects,
+		only:         *only,
+		evidenceRoot: *evidenceRoot,
+		provider:     *providerName,
+		apiVersion:   bp.Source.SpecVersion,
+		plan:         plan,
+		profilePath:  profilePathFor(*profilePath, *providerName),
+		allowMutate:  *allowMutations,
+		force:        *force,
 	}
 
 	if *mode == modeSweep {
-		return fmt.Errorf("probe -mode sweep: %w", errNotImplemented)
+		return sweepEverything(opts)
 	}
 
-	return runProbeMode(*mode, subjects, *only, *evidenceRoot, *providerName, bp.Source.SpecVersion)
+	return runProbeMode(opts)
 }
 
-// runProbeMode records, replays or verifies the read-only tier.
-func runProbeMode(
-	mode string,
-	subjects []probe.Subject,
-	only, evidenceRoot, providerName, apiVersion string,
-) error {
+// probeRun is one invocation's settings, gathered so the mode functions take one argument
+// instead of nine positional strings nobody can read at a call site.
+type probeRun struct {
+	mode         string
+	subjects     []probe.Subject
+	only         string
+	evidenceRoot string
+	provider     string
+	apiVersion   string
+
+	plan        probe.Plan
+	profilePath string
+	allowMutate bool
+	force       bool
+}
+
+// ledgerRoot is where per-run ledgers live. Gitignored: a ledger records live objects in
+// somebody's tenant and is per-run rather than per-snapshot.
+const ledgerRoot = ".tfpluginframeworkgen/probe"
+
+// loadPlan reads a probe plan, or returns the zero plan when none is named.
+//
+// The zero plan is usable for a read-only run and is refused by the gate for a mutating one,
+// which is the right split: -list reports the unnarrowed worst case, and a mutating run needs a
+// fixture.
+func loadPlan(path string) (probe.Plan, error) {
+	var p probe.Plan
+
+	if path == "" {
+		return p, nil
+	}
+
+	data, err := os.ReadFile(path) //nolint:gosec // operator-supplied path by design
+	if err != nil {
+		return p, fmt.Errorf("reading %s: %w", path, err)
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(data))
+	// Strict: a mistyped key in a plan silently omits the fixture or candidate it meant to
+	// supply, and a missing fixture value looks exactly like a server default.
+	dec.DisallowUnknownFields()
+
+	if err := dec.Decode(&p); err != nil {
+		return probe.Plan{}, usagef("%s is not a usable probe plan: %v", path, err)
+	}
+
+	return p, nil
+}
+
+// checkLedger reports what a stale ledger means for this mode.
+//
+// Refused in record: a run against a tenant already holding your own orphans makes
+// maxExistingObjects measure your own rubbish, and creating more on top of objects you have
+// already failed to clean up is the wrong direction. A note in replay and verify, because
+// refusing an offline CI gate over a stale local file buys nothing. Proceeds in sweep, which is
+// the whole point of it.
+func checkLedger(mode, provider, resource string) error {
+	path := probe.LedgerPath(ledgerRoot, provider, resource)
+
+	entries, err := probe.ReadLedger(path)
+	if err != nil {
+		return err
+	}
+
+	outstanding := probe.Unresolved(entries)
+	if len(outstanding) == 0 {
+		return nil
+	}
+
+	if mode != modeRecord {
+		fmt.Fprintf(os.Stderr,
+			"  note  %d object(s) from a previous run are unaccounted for in %s; "+
+				"run `probe -mode sweep -resource %s` when you next have credentials\n",
+			len(outstanding), path, resource)
+
+		return nil
+	}
+
+	return probe.DirtyError(path, resource, outstanding)
+}
+
+// runProbeMode records, replays or verifies.
+func runProbeMode(opts probeRun) error {
 	failures := 0
 
-	for _, subj := range subjects {
-		root := filepath.Join(evidenceRoot, providerName, subj.Resource)
+	for _, subj := range opts.subjects {
+		root := filepath.Join(opts.evidenceRoot, opts.provider, subj.Resource)
 
-		switch mode {
+		if err := checkLedger(opts.mode, opts.provider, subj.Resource); err != nil {
+			return err
+		}
+
+		switch opts.mode {
 		case modeRecord:
-			if err := recordProbe(subj, only, root, providerName, apiVersion); err != nil {
+			if err := recordProbe(opts, subj, root); err != nil {
 				return err
 			}
 
 		case modeReplay, modeVerify:
-			if err := replayProbe(mode, subj, only, root); err != nil {
+			if err := replayProbe(opts.mode, subj, opts.only, root); err != nil {
 				if errors.Is(err, probe.ErrReplayMismatch) {
 					// Reported and counted rather than returned, so a multi-resource run
 					// reports every mismatch instead of one per invocation.
@@ -184,7 +357,7 @@ func runProbeMode(
 }
 
 // recordProbe runs live and writes a snapshot.
-func recordProbe(subj probe.Subject, only, root, providerName, apiVersion string) error {
+func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	endpoint := os.Getenv(endpointEnv)
 	if endpoint == "" {
 		return usagef("%s must be set for -mode record: it names the API to probe", endpointEnv)
@@ -198,35 +371,79 @@ func recordProbe(subj probe.Subject, only, root, providerName, apiVersion string
 		return usagef("%s must be set for -mode record", tokenEnv)
 	}
 
+	ctx, cancel := probe.DeadlineFor(context.Background(), opts.plan.Budget)
+	defer cancel()
+
+	// The gate, and the ledger it makes safe to open. Both only when mutations were asked for:
+	// a read-only run needs no profile, no assertions and no ledger, and demanding one would
+	// make the safe mode the inconvenient one.
+	//
+	// Before the redactor, so an operator with an unusable profile reads about the profile
+	// rather than about a detail of how recordings are scrubbed.
+	var (
+		grant      *probe.Grant
+		assertions []string
+		ledger     *probe.Ledger
+	)
+
+	if opts.allowMutate {
+		var err error
+
+		grant, assertions, err = authoriseMutations(ctx, opts, subj, endpoint, token, root)
+		if err != nil {
+			return err
+		}
+
+		ledger, err = probe.OpenLedger(probe.LedgerPath(ledgerRoot, opts.provider, subj.Resource))
+		if err != nil {
+			return err
+		}
+		defer func() { _ = ledger.Close() }()
+	}
+
 	redactor, err := cassette.NewRedactor(map[string]string{"bearer": token}, nil)
 	if err != nil {
 		return err
 	}
 
-	ctx, cancel := probe.DeadlineFor(context.Background(), probe.Budget{})
-	defer cancel()
-
-	result, err := probe.Run(ctx, probe.RunOptions{
+	runOpts := probe.RunOptions{
 		Mode:     probe.ModeRecord,
 		Subject:  subj,
-		Only:     only,
+		Plan:     opts.plan,
+		Only:     opts.only,
 		BaseURL:  endpoint,
 		Token:    token,
 		Redactor: redactor,
 		Secrets:  map[string]string{"bearer": token},
-	})
-	if err != nil {
-		return err
+
+		AllowMutations: opts.allowMutate,
+
+		Grant:            grant,
+		Ledger:           ledger,
+		AssertionsPassed: assertions,
 	}
 
-	printProbeReport(subj.Resource, result.Report)
+	result, runErr := probe.Run(ctx, runOpts)
 
-	meta := probe.RecordingMetadata(providerName, subj, result.Report.Profile.Host, version.Version)
+	// Everything below happens whatever Run returned. A run that left an orphan or panicked
+	// owes the operator its report, its transcript and its orphan table more than a clean run
+	// does, and returning early here is what would deny them.
+	printProbeReport(subj.Resource, result.Report)
+	reportOrphans(subj.Resource, result.Report)
+
+	if runErr != nil && !worthWriting(runErr) {
+		return runErr
+	}
+
+	meta := probe.RecordingMetadata(opts.provider, subj, result.Report.Profile.Host, version.Version)
 	meta.BasePath = basePathOf(endpoint)
 	// The API version the blueprint was inferred from, so the snapshot directory names the
 	// specification the facts were recorded against rather than reading "unknown". A cassette
 	// whose directory does not say which API version produced it is far less useful a year later.
-	meta.APIVersion = apiVersion
+	meta.APIVersion = opts.apiVersion
+	// The prefix every created object carried. Without it a mutating replay cannot reproduce a
+	// single create: ReplayTransport matches request bodies, and the name is in the body.
+	meta.NamePrefix = runOpts.Grant.NamePrefix()
 
 	snap, err := cassette.Write(root, meta, result.Interactions, map[string]string{"bearer": token}, time.Now())
 	if err != nil {
@@ -242,7 +459,224 @@ func recordProbe(subj probe.Subject, only, root, providerName, apiVersion string
 
 	log.Printf("wrote %s", snap.Dir)
 
-	return nil
+	// Returned last, so the exit code reflects what went wrong while the evidence of it is
+	// already on disk.
+	return runErr
+}
+
+// worthWriting reports whether a snapshot should still be written after a failed run.
+//
+// A redaction failure is the one case where nothing may be written: the whole point is that the
+// caller cannot proceed to commit something containing a secret. Everything else -- orphans, a
+// budget cap, a panicking probe -- produced real observations, and a transcript of the run that
+// went wrong is more useful than none.
+func worthWriting(err error) bool {
+	return !errors.Is(err, cassette.ErrSecretFound) && !errors.Is(err, probe.ErrRedaction)
+}
+
+// authoriseMutations runs the gate.
+//
+// The gate's tenant reads go through their own unrecorded transport, and that is not an
+// oversight. Replay has no gate, so a cassette holding requests the replayed run will never
+// issue is a cassette that cannot reproduce itself -- the same silent, total failure class as a
+// base path that does not round-trip.
+func authoriseMutations(
+	ctx context.Context,
+	opts probeRun,
+	subj probe.Subject,
+	endpoint, token, root string,
+) (*probe.Grant, []string, error) {
+	profile, err := loadProfile(opts.profilePath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// The profile says where; the environment says with what. A profile pointing somewhere
+	// other than TFPFGEN_PROBE_ENDPOINT is a mistake worth refusing rather than resolving,
+	// because whichever one loses would be a surprise.
+	if profile.Endpoint != "" && profile.Endpoint != endpoint {
+		return nil, nil, fmt.Errorf("%w: the profile's endpoint %q is not %s (%q); one of the "+
+			"two is pointed somewhere it was not meant to be",
+			probe.ErrRefused, profile.Endpoint, endpointEnv, endpoint)
+	}
+
+	read, err := probe.NewReadSession(probe.SessionConfig{
+		Transport:          probe.UnrecordedTransport(),
+		BaseURL:            endpoint,
+		Token:              token,
+		CollectionTemplate: subj.CollectionTemplate,
+		ItemTemplate:       subj.ItemTemplate,
+		// Only the gate's own reads come through here, and there are at most two.
+		Budget: probe.Budget{MaxRequests: 4, MaxCreates: 0},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	_, snapErr := cassette.Latest(root)
+
+	return probe.Authorise(ctx, read, profile, probe.GateOptions{
+		Mode:           probe.ModeRecord,
+		AllowMutations: opts.allowMutate,
+		Subject:        subj,
+		Plan:           opts.plan,
+		SnapshotExists: snapErr == nil,
+		Force:          opts.force,
+	}, probe.OSEnviron{})
+}
+
+// sweepEverything removes what previous runs left behind.
+func sweepEverything(opts probeRun) error {
+	endpoint := os.Getenv(endpointEnv)
+	if endpoint == "" {
+		return usagef("%s must be set for -mode sweep: it names the API to clean up in", endpointEnv)
+	}
+
+	token := os.Getenv(tokenEnv)
+	if token == "" {
+		return usagef("%s must be set for -mode sweep", tokenEnv)
+	}
+
+	profile, err := loadProfile(opts.profilePath)
+	if err != nil {
+		return err
+	}
+
+	grant, err := probe.AuthoriseSweep(profile, probe.GateOptions{Mode: probe.ModeSweep},
+		probe.OSEnviron{})
+	if err != nil {
+		return err
+	}
+
+	var failed error
+
+	for _, subj := range opts.subjects {
+		if can, why := subj.CanMutate(); !can {
+			// Nothing could have been created here, so there is nothing to sweep. Said out
+			// loud rather than skipped silently, because an operator sweeping after a failure
+			// needs to know which resources were even considered.
+			fmt.Fprintf(os.Stderr, "  %s: nothing to sweep (%s)\n", subj.Resource, why)
+			continue
+		}
+
+		ledger, err := probe.OpenLedger(probe.LedgerPath(ledgerRoot, opts.provider, subj.Resource))
+		if err != nil {
+			return err
+		}
+
+		ctx, cancel := probe.SweepContext(context.Background(), opts.plan.Budget.MaxSweepSeconds)
+
+		summary, sweepErr := probe.RunSweep(ctx, probe.SweepRunOptions{
+			Grant:      grant,
+			Subject:    subj,
+			BaseURL:    endpoint,
+			Token:      token,
+			Ledger:     ledger,
+			MaxSeconds: opts.plan.Budget.MaxSweepSeconds,
+		})
+
+		cancel()
+		_ = ledger.Close()
+
+		printSweepSummary(subj.Resource, summary)
+
+		if sweepErr != nil {
+			// Every resource is attempted: stopping at the first would leave the rest of the
+			// tenant holding objects for no reason but ordering.
+			failed = errors.Join(failed, fmt.Errorf("%s: %w", subj.Resource, sweepErr))
+		}
+	}
+
+	return failed
+}
+
+// printSweepSummary says what the sweep did, including when it did nothing.
+func printSweepSummary(resource string, summary probe.SweepSummary) {
+	fmt.Fprintf(os.Stderr, "\n%s: %d removed by ledger, %d by name prefix",
+		resource, summary.LedgerDeletes, summary.PrefixDeletes)
+
+	if !summary.Complete {
+		fmt.Fprint(os.Stderr, " (INCOMPLETE)")
+	}
+	fmt.Fprintln(os.Stderr)
+
+	for _, n := range summary.Notes {
+		fmt.Fprintf(os.Stderr, "  note  %s\n", n)
+	}
+
+	printOrphanTable(summary.Orphans)
+}
+
+// reportOrphans prints the orphan table after a run.
+func reportOrphans(resource string, report probe.Report) {
+	if len(report.Orphans) == 0 {
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "\n%s: %d OBJECT(S) LEFT BEHIND\n", resource, len(report.Orphans))
+	printOrphanTable(report.Orphans)
+}
+
+// printOrphanTable prints one row per object a human has to remove.
+//
+// To stderr and to $GITHUB_STEP_SUMMARY where there is one, because the person who has to clean
+// up should not have to find this in a fold-out log. The curl lines carry
+// "$TFPFGEN_PROBE_TOKEN" and never a value.
+func printOrphanTable(orphans []probe.Orphan) {
+	if len(orphans) == 0 {
+		return
+	}
+
+	w := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "  ID\tPROBE\tPATH")
+
+	for _, o := range orphans {
+		fmt.Fprintf(w, "  %s\t%s\t%s\n", or(o.ID, "(unknown)"), o.Probe, o.Path)
+	}
+	_ = w.Flush()
+
+	fmt.Fprintln(os.Stderr, "\n  remove them with:")
+	for _, o := range orphans {
+		if o.Curl != "" {
+			fmt.Fprintf(os.Stderr, "    %s\n", o.Curl)
+		}
+	}
+
+	appendStepSummary(orphans)
+}
+
+// appendStepSummary puts the orphan table where a CI reviewer will see it.
+func appendStepSummary(orphans []probe.Orphan) {
+	path := os.Getenv("GITHUB_STEP_SUMMARY")
+	if path == "" {
+		return
+	}
+
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "\n### ⚠️ %d probe object(s) left behind\n\n", len(orphans))
+	b.WriteString("| id | probe | remove with |\n|---|---|---|\n")
+
+	for _, o := range orphans {
+		fmt.Fprintf(&b, "| `%s` | %s | `%s` |\n", or(o.ID, "unknown"), o.Probe, o.Curl)
+	}
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600) //nolint:gosec // CI-supplied path
+	if err != nil {
+		// Best effort by design: failing a run because a CI convenience file was unwritable
+		// would replace a useful failure with a confusing one.
+		return
+	}
+	defer func() { _ = f.Close() }()
+
+	_, _ = f.WriteString(b.String())
+}
+
+func or(v, fallback string) string {
+	if v == "" {
+		return fallback
+	}
+	return v
 }
 
 // replayProbe re-derives facts from a committed snapshot with no network.

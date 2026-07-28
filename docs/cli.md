@@ -16,7 +16,7 @@ global flag namespace for two subcommands to collide in, and `tfpluginframeworkg
 | `specs` | fetch and snapshot an upstream OpenAPI document | planned |
 | `ingest` | infer a provider blueprint from an OpenAPI snapshot | planned |
 | `blueprint` | validate, diff or list blueprints | planned |
-| `probe` | exercise a resource's lifecycle; record or replay cassettes | planned |
+| `probe` | exercise a resource's lifecycle; record, replay, verify or sweep | **built** *(read-only tier; mutating probes land in 4.7)* |
 | `merge` | fold probe facts into a blueprint | planned |
 | `emit` | render a provider from blueprints | **built** |
 | `verify` | fail if the committed provider has drifted | **built** |
@@ -51,14 +51,26 @@ detail.
 | `0` | success |
 | `1` | failure — including drift, and a mismatched binding |
 | `2` | invalid input: a usage error, or an unusable plan or config |
-| `3` | gating refused *(reserved for `probe`)* |
-| `4` | budget exceeded *(reserved for `probe`)* |
-| `5` | cleanup left orphaned objects *(reserved for `probe`)* |
-| `6` | replay mismatch *(reserved for `probe`)* |
-| `7` | redaction check failed *(reserved for `probe`)* |
+| `3` | gating refused (`probe`) |
+| `4` | budget exceeded (`probe`) |
+| `5` | cleanup left orphaned objects (`probe`) |
+| `6` | replay mismatch (`probe`) |
+| `7` | redaction check failed (`probe`) |
 
 A malformed flag exits `2`, not `1`: a caller mistake must not be reported the
 same way as the tool failing.
+
+Exit `2` has a second meaning, and it is worth stating rather than hiding: a panic
+is captured, reported with its stack, swept after, and then re-raised — and the Go
+runtime exits `2` for a panic. So exit `2` means a usage error (no stack in the
+output) or a bug (a stack). Re-raising is still right: a panic is a bug and the
+stack is worth more than a tidier code.
+
+Where several of `3`–`7` apply at once — a run can exceed its budget, sweep, and
+still leave an orphan — the precedence is **7 > 5 > 3 > 4 > 6 > 1**. It is a table
+rather than a walk over the error tree, because the first match in a tree walk is
+not the most serious condition, and which code CI sees must not depend on the order
+the errors happened to be joined in.
 
 ---
 
@@ -226,6 +238,64 @@ first, collapsed:
   resources[tag].binding.{create,read,update,delete}
   resources[tag].attributes[*].wire.{sdkField,sdkGoType,expand,flatten}   (23)
 ```
+
+## `probe`
+
+Exercises a live API and writes down what it observed.
+
+```
+tfpluginframeworkgen probe [-mode record|replay|verify|sweep] -blueprint DIR
+    [-resource KEY] [-only PROBE] [-list] [-plan FILE]
+    [--allow-mutations] [-profile FILE] [-force]
+    [-evidence DIR] [-provider NAME]
+```
+
+| Flag | Purpose |
+|---|---|
+| `-mode` | `replay` (default), `record`, `verify` or `sweep` |
+| `-blueprint` | blueprint file or directory (required) |
+| `-resource` | probe one resource, by blueprint key |
+| `-only` | run one probe, by name |
+| `-list` | print the catalogue with its worst-case cost, and exit |
+| `-plan` | probe plan: the fixtures and candidate values a probe cannot discover |
+| `--allow-mutations` | permit probes that create, update and delete |
+| `-profile` | sandbox profile; defaults to `.tfpluginframeworkgen/sandbox/<provider>.json` |
+| `-force` | record over evidence that is already committed |
+| `-evidence` | root of the committed evidence (default `probe-evidence`) |
+| `-provider` | provider name for the evidence path; defaults to the blueprint's |
+
+`-resource` and `-only` are separate axes and deliberately not one flag: probing one
+resource with the whole catalogue and probing every resource with one protocol are
+both things an operator wants.
+
+`replay` is the default because the safe mode should be what you get by typing less.
+
+Credentials come from the environment and nowhere else — `TFPFGEN_PROBE_ENDPOINT` and
+`TFPFGEN_PROBE_TOKEN`. A flag would put the token in shell history and in the process
+table; the profile is a file that gets written down, and the gate refuses one that
+contains the token's value.
+
+`-list` needs no credentials, no cassettes and no network:
+
+```
+$ tfpluginframeworkgen probe -blueprint blueprints/thousandeyes -resource tag -list
+```
+
+A mutating run needs `-mode record`, `--allow-mutations`, and a sandbox profile that
+passes every gate condition. A refusal lists all of them at once and exits `3`:
+
+```
+$ tfpluginframeworkgen probe -blueprint blueprints/example -resource tag \
+    -mode record --allow-mutations
+tfpluginframeworkgen: mutating probes refused: 5 condition(s) were not met:
+  - sandbox: the profile does not declare sandbox: true
+  - sandboxEvidence: sandboxEvidence is 2 characters, and at least 24 are required; …
+  - namePrefix: namePrefix "tf" is shorter than 8 characters; …
+  - plan: the plan declares no fixtures; …
+  - noSnapshotOverwrite: evidence for this plan is already committed; …
+```
+
+See [probing.md](probing.md) for the gate, the ledger, the sweeper and the budgets.
 
 ## `version`
 

@@ -60,6 +60,11 @@ type RunOptions struct {
 	// SweepPageParams widens the sweeper's collection read on an API whose default page is
 	// small. Offered rather than guessed at.
 	SweepPageParams url.Values
+
+	// AssertionsPassed names the gating assertions the tenant demonstrated, for the report.
+	// Carried from the gate rather than re-derived, because a report that stated the claim
+	// instead of the evidence would be the one thing the gate exists to avoid.
+	AssertionsPassed []string
 }
 
 // RunResult is what a run produced.
@@ -108,9 +113,10 @@ func Run(ctx context.Context, opts RunOptions) (RunResult, error) {
 	}
 
 	out.Report.Profile = ProfileSummary{
-		Host:    hostOf(baseURLFor(opts)),
-		Mode:    string(opts.Mode),
-		Sandbox: opts.Grant != nil,
+		Host:             hostOf(baseURLFor(opts)),
+		Mode:             string(opts.Mode),
+		Sandbox:          opts.Grant != nil,
+		AssertionsPassed: opts.AssertionsPassed,
 	}
 
 	runReadProbes(ctx, session, opts, &out.Report)

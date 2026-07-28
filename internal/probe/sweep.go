@@ -107,6 +107,82 @@ func SweepContext(parent context.Context, maxSeconds int) (context.Context, cont
 	)
 }
 
+// SweepRunOptions is what `probe -mode sweep` needs.
+//
+// A separate entry point rather than an exported constructor, because newMutatingSession is
+// unexported on purpose: a caller that could build one could write to an API without a grant.
+// This is the seam that lets cmd sweep without opening that hole.
+type SweepRunOptions struct {
+	// Grant comes from AuthoriseSweep, which is the reduced gate. Required.
+	Grant *Grant
+
+	Subject Subject
+
+	BaseURL string
+	Token   string
+
+	// Ledger is the previous run's ledger, opened for append so this sweep's deletes are
+	// recorded too. A sweep is the continuation of a run that did not finish.
+	Ledger *Ledger
+
+	PageParams url.Values
+	MaxSeconds int
+	RetryDelay time.Duration
+}
+
+// RunSweep removes what a previous run left behind.
+//
+// Its own entry point rather than a mode of Run for two reasons: a sweep derives no facts, so
+// everything Run does with reports and evidence is irrelevant to it; and it must be able to spend
+// after the run's budget is exhausted, which is exactly the state it is usually called in.
+func RunSweep(ctx context.Context, opts SweepRunOptions) (SweepSummary, error) {
+	var summary SweepSummary
+
+	if opts.Grant == nil {
+		return summary, ErrNoGrant
+	}
+	if opts.Ledger == nil {
+		return summary, fmt.Errorf("%w: a sweep needs a ledger", ErrLedger)
+	}
+
+	transport, _, err := TransportFor(ModeSweep, nil, nil, nil)
+	if err != nil {
+		return summary, err
+	}
+
+	live, err := newHTTPSession(SessionConfig{
+		Transport:          transport,
+		BaseURL:            opts.BaseURL,
+		Token:              opts.Token,
+		CollectionTemplate: opts.Subject.CollectionTemplate,
+		ItemTemplate:       opts.Subject.ItemTemplate,
+		// The reserve is what a sweep spends from, and it is derived from MaxCreates -- so a
+		// sweep resuming a previous run needs the same cap that run had.
+		Budget: Budget{MaxCreates: defaultMaxCreates, MaxRequests: 1},
+	})
+	if err != nil {
+		return summary, err
+	}
+
+	ms, err := newMutatingSession(opts.Grant, live, MutationConfig{
+		Ledger:    opts.Ledger,
+		NameField: opts.Subject.NameField,
+		IDField:   opts.Subject.IDField,
+	})
+	if err != nil {
+		return summary, err
+	}
+
+	return Sweep(ctx, SweepOptions{
+		Session:    ms,
+		NamePrefix: opts.Grant.NamePrefix(),
+		NameField:  opts.Subject.NameField,
+		PageParams: opts.PageParams,
+		RetryDelay: opts.RetryDelay,
+		MaxSeconds: opts.MaxSeconds,
+	})
+}
+
 // Sweep removes everything the run created.
 //
 // Returns ErrOrphans when anything is left, even if every fact was gathered: a run that leaves

@@ -1,0 +1,14 @@
+{
+  "endpoint": "https://api.example.com/v7",
+  "tokenEnv": "TFPFGEN_PROBE_TOKEN",
+  "sandbox": true,
+  "sandboxEvidence": "A disposable tenant created for provider development; it holds nothing anybody depends on.",
+  "namePrefix": "tfpfgen-probe",
+  "assertions": {
+    "endpointHostSuffix": "example.com",
+    "maxExistingObjects": 25,
+    "accountGroupId": "",
+    "accountGroupParam": "aid",
+    "accountGroupJsonPath": "aid"
+  }
+}
