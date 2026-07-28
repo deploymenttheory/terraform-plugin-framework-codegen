@@ -47,6 +47,16 @@ type Subject struct {
 	// disagreement rather than just an observation.
 	Policy blueprint.ResourcePolicy
 
+	// IDField is the JSON key a created object's identifier arrives under.
+	//
+	// Derived from the blueprint's ID binding *attribute*, mapped through that attribute's
+	// WireBinding.JSONPath. Binding.ID.FromCreate is unusable here: it is an accessor on an SDK
+	// type ("created.ID"), and the prober speaks raw JSON.
+	//
+	// Without it neither pass of the sweeper can build a DELETE URL, which is why CanMutate
+	// refuses when it is empty.
+	IDField string
+
 	// NameField is the writable string field a created object's name prefix goes in.
 	//
 	// Empty means the resource cannot carry a sweepable marker, which is why
@@ -155,6 +165,7 @@ func SubjectOf(bp blueprint.Blueprint, res blueprint.Resource) (Subject, error) 
 
 	subj.Fields = fieldsOf(res.Attributes, "")
 	subj.NameField = nameFieldOf(subj.Fields)
+	subj.IDField = idFieldOf(res, subj.Fields)
 
 	return subj, nil
 }
@@ -263,6 +274,36 @@ func nameFieldOf(fields []Field) string {
 	return ""
 }
 
+// idFieldOf resolves the JSON key a created object's identifier arrives under.
+//
+// The blueprint names a Terraform *attribute*; what a probe needs is the wire name, so the
+// attribute is looked up and its JSONPath taken. Falling back to a field literally called "id"
+// covers an inferred blueprint that never populated the binding, which is the common case
+// before anybody has curated one.
+func idFieldOf(res blueprint.Resource, fields []Field) string {
+	want := res.Binding.ID.Attribute
+	if want == "" {
+		want = "id"
+	}
+
+	for _, f := range fields {
+		if f.Attribute == want {
+			return f.JSONPath
+		}
+	}
+
+	// The attribute the binding names does not exist, or has no JSON path. A field whose wire
+	// name is literally "id" is the overwhelmingly common shape, so it is worth one more look
+	// before giving up -- and giving up is safe, because CanMutate refuses on an empty IDField.
+	for _, f := range fields {
+		if f.JSONPath == "id" {
+			return f.JSONPath
+		}
+	}
+
+	return ""
+}
+
 // WritableFields returns the fields a probe may send values for.
 func (s Subject) WritableFields() []Field {
 	var out []Field
@@ -295,10 +336,11 @@ func (s Subject) Field(jsonPath string) (Field, bool) {
 // CanMutate reports whether mutating probes may run against this subject, and why not
 // when they may not.
 //
-// Two hard requirements, both about cleanup rather than about capability. Without a
-// create there is nothing to exercise; without a field that can carry the name prefix
-// there is no way to find a stranded object again, and the prefix sweep is the only
-// backstop that works after a crash between sending a create and seeing its response.
+// Every refusal is about cleanup rather than capability. Without a create there is nothing to
+// exercise; without a delete nothing created could be removed; without a field that can carry
+// the name prefix there is no way to find a stranded object again, and the prefix sweep is the
+// only backstop that works after a crash between sending a create and seeing its response;
+// without an identifier field nothing can be addressed for deletion at all.
 func (s Subject) CanMutate() (bool, string) {
 	switch {
 	case s.Create == nil:
@@ -308,6 +350,9 @@ func (s Subject) CanMutate() (bool, string) {
 	case s.NameField == "":
 		return false, "no writable top-level string field can carry the name prefix, " +
 			"so a created object could not be found again by the sweeper"
+	case s.IDField == "":
+		return false, "no attribute carries the created object's identifier, so neither pass " +
+			"of the sweeper could build a request to delete it"
 	default:
 		return true, ""
 	}

@@ -37,6 +37,7 @@ func quirkSubject() Subject {
 		Update:             &Op{Method: "PUT", PathTemplate: "/things/{id}", SuccessCodes: []int{200}},
 		Delete:             &Op{Method: "DELETE", PathTemplate: "/things/{id}", SuccessCodes: []int{204}},
 		NameField:          "key",
+		IDField:            "id",
 		Fields: []Field{
 			{JSONPath: "id", Kind: blueprint.KindString, Presence: blueprint.Computed},
 			{JSONPath: "key", Kind: blueprint.KindString, Presence: blueprint.Required, Writable: true},
