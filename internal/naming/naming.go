@@ -216,6 +216,13 @@ func matchInitialism(word string, initialisms []string) (string, bool) {
 		if strings.EqualFold(word, in) {
 			return in, true
 		}
+		// A pluralised initialism keeps its lower-case s: Go convention is
+		// LabelIDs and URLs, not LabelIDS or URLS. Without this, "labelIds"
+		// becomes LabelIds, which reads as a typo in generated code.
+		if len(word) == len(in)+1 && strings.EqualFold(word[:len(in)], in) &&
+			(word[len(word)-1] == 's' || word[len(word)-1] == 'S') {
+			return in + "s", true
+		}
 	}
 	return "", false
 }

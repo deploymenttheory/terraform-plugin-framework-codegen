@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/ingest/openapi"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specstore"
@@ -21,6 +24,13 @@ func runIngest(args []string) error {
 		only     = fs.String("only", "", "restrict to candidates whose tag or key contains this")
 		list     = fs.Bool("list", false, "list what the document offers and exit")
 		all      = fs.Bool("all", false, "include candidates that cannot become resources or data sources")
+		out      = fs.String("out", "", "write inferred blueprints under this directory")
+		provider = fs.String("provider", "thousandeyes", "provider name, which prefixes every resource type")
+		sdkRoot  = fs.String("sdk-service-root",
+			"github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api",
+			"import prefix the SDK's service packages live under")
+		accessor      = fs.String("sdk-accessor", "r.client.API", "expression reaching a service from the resource receiver")
+		apiVersionDir = fs.String("api-version-dir", "v7", "version directory generated packages live under")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -49,9 +59,79 @@ func runIngest(args []string) error {
 		return nil
 	}
 
-	// Inference is the next increment. Saying so beats a subcommand that appears
-	// to work and writes nothing.
-	return fmt.Errorf("ingest: blueprint inference is %w; -list works today", errNotImplemented)
+	if *out == "" {
+		return usagef("-out is required unless -list is given")
+	}
+
+	opts := openapi.InferOptions{
+		Provider:          *provider,
+		SDKServiceRoot:    *sdkRoot,
+		SDKAccessorPrefix: *accessor,
+		APIVersionDir:     *apiVersionDir,
+	}
+
+	return inferAll(doc, candidates, opts, *out)
+}
+
+func inferAll(doc *openapi.Document, candidates []openapi.Candidate, opts openapi.InferOptions, out string) error {
+	var (
+		notes   []openapi.Note
+		written int
+		skipped int
+	)
+
+	for _, c := range candidates {
+		if kind, _ := c.Classify(); kind != openapi.KindResource {
+			skipped++
+			continue
+		}
+
+		res, resNotes, err := doc.Infer(c, opts)
+		notes = append(notes, resNotes...)
+		if err != nil {
+			// One resource that cannot be inferred must not stop the rest: the
+			// output is a starting point for curation, not an all-or-nothing build.
+			log.Printf("skipped   %s: %v", c.Key, err)
+			skipped++
+			continue
+		}
+
+		bp := blueprint.Blueprint{FormatVersion: blueprint.FormatVersion, Resources: []blueprint.Resource{res}}
+
+		path := filepath.Join(out, "resources", res.Key+blueprint.Ext)
+		if err := blueprint.Save(path, bp); err != nil {
+			return err
+		}
+
+		log.Printf("wrote     %s (%d attributes)", path, len(res.Attributes))
+		written++
+	}
+
+	printNotes(notes)
+
+	if written == 0 {
+		return fmt.Errorf("%w: nothing could be inferred", errNothingToDo)
+	}
+
+	log.Printf("%d blueprint(s) written, %d candidate(s) skipped, %d note(s)", written, skipped, len(notes))
+
+	return nil
+}
+
+// printNotes reports what inference could not do.
+//
+// This is as much the output as the blueprints are. A generator that silently
+// drops what it cannot express produces a provider that looks complete and is
+// not, so every skipped field is named.
+func printNotes(notes []openapi.Note) {
+	if len(notes) == 0 {
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "\n%d field(s) were not inferred:\n", len(notes))
+	for _, n := range notes {
+		fmt.Fprintf(os.Stderr, "  %s\n", n)
+	}
 }
 
 // resolveSpecPath picks the document to read.
