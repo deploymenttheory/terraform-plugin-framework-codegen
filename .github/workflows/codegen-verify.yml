@@ -299,18 +299,28 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
-          # Blocked rather than audited, unlike every other job here. This one asserts that
-          # deriving facts needs no network at all, and an assertion the runner could quietly
-          # violate is not an assertion. The allowed hosts are what Go itself needs to fetch
-          # modules; nothing in the probe path may reach anything.
+          # Blocked rather than audited, unlike every other job here.
+          #
+          # What this proves, precisely: no host an API could live on is reachable, so a
+          # regression that tried to derive facts from a live tenant fails here. What it does
+          # *not* prove is that the job makes no network calls at all -- setting up Go and
+          # fetching modules obviously do, and the hosts below are exactly those.
+          #
+          # The stronger guarantee lives in the tool: replay mode is given a cassette-backed
+          # transport over cassette.DenyTransport, so a code path that bypassed the transcript
+          # errors rather than dialling. This job is the belt to that braces, and the reason it
+          # is worth having is that it would catch a change to the transport wiring itself.
           egress-policy: block
           allowed-endpoints: >
             github.com:443
             api.github.com:443
             objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
             proxy.golang.org:443
             sum.golang.org:443
             storage.googleapis.com:443
+            go.dev:443
+            dl.google.com:443
 
       - name: Check Out
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
