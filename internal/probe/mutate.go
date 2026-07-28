@@ -65,7 +65,7 @@ func exercise(
 	ctx context.Context,
 	s *MutatingSession,
 	p MutatingProbe,
-	subj Subject,
+	sc Scope,
 ) (result Result, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -78,7 +78,7 @@ func exercise(
 	// "a probe returned this" -- which the ProbeOutcome already records.
 	//
 	//nolint:wrapcheck // a deliberate pass-through; see above
-	return p.Exercise(ctx, s, subj)
+	return p.Exercise(ctx, s, sc)
 }
 
 // ReleaseProbe removes everything one probe created.
@@ -118,6 +118,8 @@ func runMutatingProbes(
 	opts RunOptions,
 	report *Report,
 ) error {
+	sc := opts.scope()
+
 	var halt error
 
 	for _, p := range probes {
@@ -134,7 +136,7 @@ func runMutatingProbes(
 			continue
 		}
 
-		outcome, result, err := runOneMutating(ctx, s, p, opts)
+		outcome, result, err := runOneMutating(ctx, s, p, sc, opts)
 
 		report.Probes = append(report.Probes, outcome)
 		// Accumulated before the error is inspected, deliberately: a probe stopped by a
@@ -160,11 +162,12 @@ func runOneMutating(
 	ctx context.Context,
 	s *MutatingSession,
 	p MutatingProbe,
+	sc Scope,
 	opts RunOptions,
 ) (ProbeOutcome, Result, error) {
 	outcome := ProbeOutcome{Name: p.Name(), Kind: KindMutating}
 
-	result, err := exercise(ctx, s, p, opts.Subject)
+	result, err := exercise(ctx, s, p, sc)
 
 	// Before the outcome is classified, and unconditionally. This is the line that makes peak
 	// live objects a property of one probe rather than of the whole run.

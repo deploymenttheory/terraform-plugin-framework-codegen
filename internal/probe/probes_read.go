@@ -27,8 +27,10 @@ const probeQueryParam = "tfpfgen_probe"
 func (p unknownParamTolerance) Observe(
 	ctx context.Context,
 	s ReadSession,
-	subj Subject,
+	sc Scope,
 ) (Result, error) {
+	subj := sc.Subject
+
 	var out Result
 
 	resp, err := get(ctx, s, p.Name(), s.CollectionPath(), url.Values{probeQueryParam: {"1"}})
@@ -69,7 +71,9 @@ func (p unknownParamTolerance) Observe(
 // A long numeric string is the shape nearly every API accepts and nearly no tenant holds.
 const absentID = "999999999"
 
-func (p notFoundShape) Observe(ctx context.Context, s ReadSession, subj Subject) (Result, error) {
+func (p notFoundShape) Observe(ctx context.Context, s ReadSession, sc Scope) (Result, error) {
+	subj := sc.Subject
+
 	var out Result
 
 	resp, err := get(ctx, s, p.Name(), s.ItemPath(absentID), nil)
@@ -139,7 +143,9 @@ func alternativesForNotFound(status int) []string {
 	}
 }
 
-func (p listShape) Observe(ctx context.Context, s ReadSession, subj Subject) (Result, error) {
+func (p listShape) Observe(ctx context.Context, s ReadSession, sc Scope) (Result, error) {
+	subj := sc.Subject
+
 	var out Result
 
 	resp, err := get(ctx, s, p.Name(), s.CollectionPath(), nil)
@@ -199,7 +205,9 @@ func (p listShape) Observe(ctx context.Context, s ReadSession, subj Subject) (Re
 // makes "changes on every read" distinguishable from "changed once".
 const volatileReads = 3
 
-func (p volatileOnRead) Observe(ctx context.Context, s ReadSession, subj Subject) (Result, error) {
+func (p volatileOnRead) Observe(ctx context.Context, s ReadSession, sc Scope) (Result, error) {
+	subj := sc.Subject
+
 	var out Result
 
 	// A fixture is needed, and the only source available to a read-only probe is the
@@ -353,7 +361,9 @@ const badTypedValue = "not-a-number"
 // so trying several costs only requests.
 var typedParamCandidates = []string{"limit", "max", "offset", "page"}
 
-func (p errorEnvelope) Observe(ctx context.Context, s ReadSession, subj Subject) (Result, error) {
+func (p errorEnvelope) Observe(ctx context.Context, s ReadSession, sc Scope) (Result, error) {
+	subj := sc.Subject
+
 	var out Result
 
 	for i, param := range typedParamCandidates {
@@ -422,8 +432,10 @@ func (p errorEnvelope) Observe(ctx context.Context, s ReadSession, subj Subject)
 func (p returnedOnReadWeak) Observe(
 	ctx context.Context,
 	s ReadSession,
-	subj Subject,
+	sc Scope,
 ) (Result, error) {
+	subj := sc.Subject
+
 	var out Result
 
 	listResp, err := get(ctx, s, p.Name(), s.CollectionPath(), nil)

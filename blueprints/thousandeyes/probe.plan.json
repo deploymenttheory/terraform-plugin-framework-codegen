@@ -1,0 +1,56 @@
+{
+  "fixtures": [
+    {
+      "name": "static-tag",
+      "body": {
+        "key": "placeholder-replaced-with-the-stamped-name",
+        "value": "probe",
+        "objectType": "test"
+      }
+    },
+    {
+      "name": "dynamic-tag",
+      "body": {
+        "key": "placeholder-replaced-with-the-stamped-name",
+        "value": "probe",
+        "objectType": "endpoint-agent",
+        "matchType": "and",
+        "filters": [
+          {
+            "key": "network",
+            "values": [
+              "probe-network"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "candidates": {
+    "key": [
+      "candidate-key-one",
+      "candidate-key-two"
+    ],
+    "objectType": [
+      "dashboard",
+      "endpoint-test"
+    ]
+  },
+  "defaultInfluencers": [
+    "objectType"
+  ],
+  "expansions": [
+    "expand=assignments"
+  ],
+  "deny": [
+    "assignments",
+    "assignments.id",
+    "assignments.type"
+  ],
+  "budget": {
+    "maxRequests": 200,
+    "maxCreates": 60,
+    "maxWallClockSeconds": 600,
+    "maxSweepSeconds": 120
+  }
+}

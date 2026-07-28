@@ -43,6 +43,9 @@ type RecordingTransport struct {
 	mu           sync.Mutex
 	seq          int
 	interactions []Interaction
+	// last is the id of the interaction most recently recorded, so a caller can cite the
+	// exact request a fact came from instead of guessing by path.
+	last string
 	// findings accumulates redaction failures. A recording with any finding writes
 	// nothing at all, so these are collected rather than returned per request: failing
 	// the first request would leave the operator debugging one symptom at a time.
@@ -116,8 +119,11 @@ func (t *RecordingTransport) record(
 	reqParsed, reqB64, reqCT := decodeBody(reqBody, req.Header.Get("Content-Type"))
 	respParsed, respB64, respCT := decodeBody(respBody, resp.Header.Get("Content-Type"))
 
+	id := interactionID(t.seq, req.Method, req.URL.Path)
+	t.last = id
+
 	i := Interaction{
-		ID:  interactionID(t.seq, req.Method, req.URL.Path),
+		ID:  id,
 		Seq: t.seq,
 		Request: Request{
 			Method:      req.Method,
@@ -159,6 +165,20 @@ func (t *RecordingTransport) record(
 // The error takes precedence over the data, deliberately: a caller that ignored it and
 // wrote the interactions anyway would defeat the whole fail-closed design, so there is no
 // way to get the interactions without also getting the error.
+// LastInteraction reports the id of the interaction most recently recorded.
+//
+// This is what makes a fact's evidence exact rather than approximate. Without it a citation can
+// only be matched by method and path suffix, which is fine for a read tier issuing a handful of
+// distinguishable requests and useless for a write tier issuing forty POSTs to the same
+// collection: every fact would cite all forty, and a fact whose evidence is "all of it" is
+// unfalsifiable.
+func (t *RecordingTransport) LastInteraction() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	return t.last
+}
+
 func (t *RecordingTransport) Interactions() ([]Interaction, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -184,6 +204,9 @@ type ReplayTransport struct {
 	mu           sync.Mutex
 	interactions []Interaction
 	next         int
+	// last is the id of the interaction most recently served. On replay this is what makes a
+	// re-derived fact cite the same interaction the recorded one did.
+	last string
 }
 
 // NewReplayTransport builds a replayer over an ordered set of interactions.
@@ -214,8 +237,19 @@ func (t *ReplayTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	t.next++
+	t.last = i.ID
 
 	return i.httpResponse(req)
+}
+
+// LastInteraction reports the id of the interaction most recently served.
+//
+// See RecordingTransport.LastInteraction for why this exists.
+func (t *ReplayTransport) LastInteraction() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	return t.last
 }
 
 // Remaining reports how many interactions were not replayed.

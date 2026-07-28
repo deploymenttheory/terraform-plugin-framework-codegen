@@ -212,6 +212,19 @@ func updateMethodOf(subj Subject) string {
 	return subj.Update.Method
 }
 
+// scope narrows this run's subject by its plan.
+//
+// A plan that does not validate degrades to an unplanned scope rather than failing the run: the
+// read-only tier needs no plan at all, and the gate has already refused a mutating run whose plan
+// is unusable. Failing here would make one bad fixture stop six probes that never looked at it.
+func (opts RunOptions) scope() Scope {
+	if sc, err := NewScope(opts.Subject, opts.Plan); err == nil {
+		return sc
+	}
+
+	return UnplannedScope(opts.Subject)
+}
+
 // replayHost stands in for the real host during replay.
 //
 // Deliberately an unresolvable name: if the deny transport ever failed to intercept, a request to
@@ -251,10 +264,12 @@ func hostOf(baseURL string) string {
 }
 
 func runReadProbes(ctx context.Context, s ReadSession, opts RunOptions, report *Report) {
+	sc := opts.scope()
+
 	for _, p := range ReadProbes(opts.Only) {
 		outcome := ProbeOutcome{Name: p.Name(), Kind: KindRead}
 
-		result, err := p.Observe(ctx, s, opts.Subject)
+		result, err := p.Observe(ctx, s, sc)
 
 		outcome.Requests = result.Requests
 		outcome.Facts = len(result.Facts)
@@ -366,6 +381,14 @@ func attachEvidence(report *Report, transcript []cassette.Interaction) {
 
 		var resolved []string
 		for _, cited := range fact.Evidence {
+			// An exact id is kept as it is. A probe that cited Response.Interaction already
+			// named the one request its conclusion rests on, and re-matching that by path
+			// suffix would widen a precise citation back into an approximate one.
+			if exactInteraction(transcript, cited) {
+				resolved = appendUnique(resolved, cited)
+				continue
+			}
+
 			// Duplicates arise when a probe reads the same path repeatedly. Citing them all
 			// would be more honest but makes every volatility fact cite every read in the run.
 			resolved = appendUnique(resolved, matchingInteractions(transcript, cited)...)
@@ -414,6 +437,21 @@ func matchingInteractions(transcript []cassette.Interaction, cited string) []str
 	}
 
 	return out
+}
+
+// exactInteraction reports whether a citation is already an interaction id.
+//
+// No marker or prefix is needed: an id that appears verbatim in the transcript *is* exact, and
+// one that does not cannot be. Which keeps the read probes working unchanged -- they cite the
+// path they asked for, which is never an id.
+func exactInteraction(transcript []cassette.Interaction, cited string) bool {
+	for _, i := range transcript {
+		if i.ID == cited {
+			return true
+		}
+	}
+
+	return false
 }
 
 // splitID pulls the method and path slug out of "004-post-v7-tags".

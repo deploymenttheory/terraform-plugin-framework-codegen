@@ -752,3 +752,245 @@ func TestUnit_Probe_ReplayReproducesFactsAcrossABasePath(t *testing.T) {
 		t.Error("replaying without the recorded prefix should not silently succeed")
 	}
 }
+
+// TestUnit_Probe_ANestedFieldInsideAnArrayIsReadable.
+//
+// fieldIn walked maps only, so Response.Field("filters.mode") returned absent for any real object
+// -- filters is a JSON array. Every fact about such a path came out ReturnedOnRead=false at
+// *Observed* confidence, because the field was demonstrably sent; merge would write it, and the
+// generated state mapper would then blank a real value on every refresh.
+//
+// This is a silent, total failure for a whole class of field, which is why the array case is
+// handled and why more than one element is Ambiguous rather than "the first".
+func TestUnit_Probe_ANestedFieldInsideAnArrayIsReadable(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		body string
+		path string
+		want FieldOutcome
+		val  any
+	}{
+		{
+			name: "an object inside a single-element array",
+			body: `{"filters":[{"mode":"and","key":"network"}]}`,
+			path: "filters.mode", want: Present, val: "and",
+		},
+		{
+			// The array is how a great many APIs model a nested object, so this is the common
+			// case rather than an exotic one.
+			name: "a plain nested object still works",
+			body: `{"filters":{"mode":"or"}}`,
+			path: "filters.mode", want: Present, val: "or",
+		},
+		{
+			// Which element did the caller mean? Taking the first would produce a fact about
+			// element zero and label it a fact about the field.
+			name: "two elements is ambiguous, not absent",
+			body: `{"filters":[{"mode":"and"},{"mode":"or"}]}`,
+			path: "filters.mode", want: Ambiguous,
+		},
+		{
+			name: "an empty array is ambiguous too",
+			body: `{"filters":[]}`,
+			path: "filters.mode", want: Ambiguous,
+		},
+		{
+			name: "a genuinely absent field is absent",
+			body: `{"filters":[{"key":"network"}]}`,
+			path: "filters.mode", want: Absent,
+		},
+		{
+			// Present-and-null is a different observation from not-returned, and the whole
+			// writability protocol turns on the difference.
+			name: "present and null is present",
+			body: `{"filters":[{"mode":null}]}`,
+			path: "filters.mode", want: Present, val: nil,
+		},
+		{
+			name: "two levels of single-element array",
+			body: `{"a":[{"b":[{"c":"deep"}]}]}`,
+			path: "a.b.c", want: Present, val: "deep",
+		},
+		{
+			name: "a scalar where an object was expected",
+			body: `{"filters":"not-an-object"}`,
+			path: "filters.mode", want: Absent,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			resp := &Response{Body: parseJSON([]byte(tc.body))}
+
+			got, outcome := resp.LookupField(tc.path)
+			if outcome != tc.want {
+				t.Fatalf("outcome = %s, want %s", outcome, tc.want)
+			}
+			if outcome == Present && got != tc.val {
+				t.Errorf("value = %v, want %v", got, tc.val)
+			}
+
+			// Field folds Ambiguous into false, which is the safe direction for a caller that
+			// has not thought about arrays.
+			_, ok := resp.Field(tc.path)
+			if ok != (tc.want == Present) {
+				t.Errorf("Field ok = %v, want %v", ok, tc.want == Present)
+			}
+		})
+	}
+
+	// A nil response answers safely: every probe reads a response it may not have got.
+	var none *Response
+	if _, outcome := none.LookupField("a.b"); outcome != Absent {
+		t.Errorf("a nil response gave %s", outcome)
+	}
+}
+
+// TestUnit_Probe_AFactCitesTheExactInteractionItRestsOn.
+//
+// matchingInteractions returns every interaction matching method plus path suffix. For the read
+// tier that is adequate -- a handful of distinguishable requests -- and for the write tier it is
+// useless: with forty POSTs to one collection, every fact would cite all forty, and VerifyFacts
+// could not tell a fact derived from create #3 from one derived from create #30.
+//
+// A fact whose evidence is "all of it" cannot be refuted, which defeats the point of committing
+// the traffic.
+func TestUnit_Probe_AFactCitesTheExactInteractionItRestsOn(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{})
+
+	rec, err := cassette.NewRecordingTransport(&http.Transport{}, testRedactor(t), nil)
+	if err != nil {
+		t.Fatalf("NewRecordingTransport: %v", err)
+	}
+
+	session, err := newHTTPSession(SessionConfig{
+		Transport:          rec,
+		BaseURL:            srv.BaseURL(),
+		CollectionTemplate: "/things",
+		ItemTemplate:       "/things/{id}",
+	})
+	if err != nil {
+		t.Fatalf("newHTTPSession: %v", err)
+	}
+
+	ctx := context.Background()
+
+	// Three reads of the same path, which is exactly the case suffix matching cannot separate.
+	var ids []string
+
+	for range 3 {
+		resp, err := session.Get(ctx, "/things", nil)
+		if err != nil {
+			t.Fatalf("Get: %v", err)
+		}
+		if resp.Interaction == "" {
+			t.Fatal("the response carries no interaction id, so no fact could cite one")
+		}
+		ids = append(ids, resp.Interaction)
+	}
+
+	if ids[0] == ids[1] || ids[1] == ids[2] {
+		t.Fatalf("three requests to the same path must be distinguishable: %v", ids)
+	}
+
+	interactions, err := rec.Interactions()
+	if err != nil {
+		t.Fatalf("Interactions: %v", err)
+	}
+
+	// A fact citing the exact id keeps it. Resolving it by suffix would widen a precise citation
+	// back into all three.
+	report := Report{Facts: []Fact{{
+		Resource: "thing", JSONPath: "key", Field: FactReturnedOnRead,
+		Value: BoolValue(true), Confidence: Observed, Probe: "read.returned-weak",
+		Evidence: []string{ids[1]}, Rationale: "for the test",
+	}}}
+
+	attachEvidence(&report, interactions)
+
+	got := report.Facts[0].Evidence
+	if len(got) != 1 || got[0] != ids[1] {
+		t.Errorf("evidence = %v, want exactly %q", got, ids[1])
+	}
+
+	// A citation that is *not* an id still resolves by suffix, so the read probes need no
+	// change: they cite the path they asked for.
+	byPath := Report{Facts: []Fact{{
+		Resource: "thing", JSONPath: "key", Field: FactReturnedOnRead,
+		Value: BoolValue(true), Confidence: Observed, Probe: "read.returned-weak",
+		// A probe's own citation: a sequence number local to *that probe*, plus the method and
+		// path it asked for. Seq 7 rather than 1 deliberately -- a probe's first request in a
+		// run that begins with it produces a citation that happens to equal the real id
+		// "001-get-things", and keeping that is correct, because it genuinely is the right
+		// interaction. Seq 7 is the case where the probe's numbering and the run's do not
+		// coincide, which is the case suffix matching exists for.
+		Evidence: []string{evidenceID(7, "GET", "/things")}, Rationale: "for the test",
+	}}}
+
+	attachEvidence(&byPath, interactions)
+
+	if len(byPath.Facts[0].Evidence) != 3 {
+		t.Errorf("a path citation should still match all three reads, got %v",
+			byPath.Facts[0].Evidence)
+	}
+}
+
+// TestUnit_Probe_ReplayCitesTheSameInteractionAsTheRecording.
+//
+// The citation has to survive the round trip, or a fact that was exact when recorded becomes
+// unresolvable on replay -- and VerifyFacts would then fail for a reason that has nothing to do
+// with the probe.
+func TestUnit_Probe_ReplayCitesTheSameInteractionAsTheRecording(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{})
+
+	rec, err := cassette.NewRecordingTransport(&http.Transport{}, testRedactor(t), nil)
+	if err != nil {
+		t.Fatalf("NewRecordingTransport: %v", err)
+	}
+
+	live, err := newHTTPSession(SessionConfig{
+		Transport: rec, BaseURL: srv.BaseURL(),
+		CollectionTemplate: "/things", ItemTemplate: "/things/{id}",
+	})
+	if err != nil {
+		t.Fatalf("newHTTPSession: %v", err)
+	}
+
+	recorded, err := live.Get(context.Background(), "/things", nil)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+
+	interactions, err := rec.Interactions()
+	if err != nil {
+		t.Fatalf("Interactions: %v", err)
+	}
+
+	replayed, err := newHTTPSession(SessionConfig{
+		Transport: cassette.NewReplayTransport(interactions),
+		BaseURL:   "https://replay.invalid",
+		// The templates have to match, or the replay would mismatch before it could cite
+		// anything.
+		CollectionTemplate: "/things", ItemTemplate: "/things/{id}",
+	})
+	if err != nil {
+		t.Fatalf("newHTTPSession: %v", err)
+	}
+
+	again, err := replayed.Get(context.Background(), "/things", nil)
+	if err != nil {
+		t.Fatalf("replayed Get: %v", err)
+	}
+
+	if again.Interaction != recorded.Interaction {
+		t.Errorf("replay cited %q, recording cited %q", again.Interaction, recorded.Interaction)
+	}
+}

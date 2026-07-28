@@ -218,6 +218,7 @@ func fieldsOf(attrs []blueprint.Attribute, prefix string) []Field {
 			Kind:      a.Type.Kind,
 			Presence:  a.Presence,
 			Writable:  writable(a),
+			Enum:      a.Type.Enum,
 			Behaviour: a.Behaviour,
 		})
 

@@ -285,3 +285,103 @@ func TestUnit_Emit_FormatErrorIncludesNumberedSource(t *testing.T) {
 		t.Errorf("error should include numbered source:\n%v", err)
 	}
 }
+
+// withoutProvenance drops the generated header line carrying the blueprint digest.
+func withoutProvenance(content []byte) string {
+	var kept []string
+
+	for _, line := range strings.Split(string(content), "\n") {
+		if strings.Contains(line, "sha256:") {
+			continue
+		}
+
+		kept = append(kept, line)
+	}
+
+	return strings.Join(kept, "\n")
+}
+
+// TestUnit_Emit_EnumValuesDoNotReachGeneratedCode.
+//
+// AttrType.Enum records what the specification documents, and it exists for one consumer: the enum
+// probe, whose claim is "the specification is stale". It must not become a validator.
+//
+// A generated OneOf built from a scraped enum rejects configurations the API would have accepted,
+// and a practitioner has no way around it. That is the specific harm the README forbids, and it is
+// the easiest possible mistake to make later -- the values are right there in the IR, and turning
+// them into a validator looks like an improvement.
+//
+// Two assertions, because either alone is weak. The first is that adding the field changed nothing
+// about the rendered output. The second is that no validator constructor appears, so a future
+// change that also updated the fixture would still be caught.
+func TestUnit_Emit_EnumValuesDoNotReachGeneratedCode(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	withEnums, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	var carried int
+
+	// Strip every enum and render again. Byte-identical output is the property: the field is
+	// documentation for a different consumer, and nothing downstream may read it.
+	stripped := bp
+	stripped.Resources = append([]blueprint.Resource(nil), bp.Resources...)
+
+	for i := range stripped.Resources {
+		attrs := append([]blueprint.Attribute(nil), stripped.Resources[i].Attributes...)
+		for j := range attrs {
+			if len(attrs[j].Type.Enum) > 0 {
+				carried++
+				attrs[j].Type.Enum = nil
+			}
+		}
+		stripped.Resources[i].Attributes = attrs
+	}
+
+	if carried == 0 {
+		t.Fatal("the pilot blueprint carries no enum values, so this test proves nothing; " +
+			"re-run ingest")
+	}
+
+	without, err := gen.Build(stripped, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	if len(without.Files) != len(withEnums.Files) {
+		t.Fatalf("stripping enums changed the file count: %d vs %d",
+			len(without.Files), len(withEnums.Files))
+	}
+
+	for i := range withEnums.Files {
+		// Compared without the provenance line. That line carries the blueprint's own digest,
+		// which legitimately changes when the blueprint changes -- it is how drift is detected.
+		// What must not change is the code.
+		if withoutProvenance(without.Files[i].Content) != withoutProvenance(withEnums.Files[i].Content) {
+			t.Errorf("%s differs when enum values are stripped, so something downstream is "+
+				"reading them", withEnums.Files[i].Path)
+		}
+	}
+
+	// No validator, whatever the fixture says. These are the constructors a well-meaning change
+	// would reach for.
+	forbidden := []string{"stringvalidator.OneOf", "int64validator.OneOf", "OneOfCaseInsensitive"}
+
+	for _, f := range withEnums.Files {
+		for _, bad := range forbidden {
+			if strings.Contains(string(f.Content), bad) {
+				t.Errorf("%s contains %s; a validator built from a scraped enum rejects "+
+					"configurations the API would accept", f.Path, bad)
+			}
+		}
+	}
+}

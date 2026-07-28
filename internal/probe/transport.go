@@ -212,7 +212,25 @@ func (s *httpSession) do(
 
 	s.pace.observe(resp.Header)
 
-	return newResponse(resp, raw), nil
+	out := newResponse(resp, raw)
+
+	// Asked of the transport rather than tracked here, because only the transport knows what it
+	// wrote: the recorder assigns the sequence number, and the replayer decides which recorded
+	// interaction answered.
+	if namer, ok := s.client.Transport.(interactionNamer); ok {
+		out.Interaction = namer.LastInteraction()
+	}
+
+	return out, nil
+}
+
+// interactionNamer is implemented by both cassette transports.
+//
+// One method, satisfied structurally, so internal/probe needs no knowledge of which transport it
+// was given -- and a live unrecorded transport simply does not implement it, leaving the citation
+// empty rather than wrong.
+type interactionNamer interface {
+	LastInteraction() string
 }
 
 // newResponse reduces an http.Response to what a probe is allowed to see.
@@ -258,37 +276,104 @@ func (r *Response) Error() apierr.Error {
 	return apierr.Classify(r.Status, r.Raw)
 }
 
+// FieldOutcome is the outcome of reading a dotted path.
+type FieldOutcome int
+
+const (
+	// Absent means no such path. Distinct from present-and-null, which is the whole basis of
+	// the writability and default protocols: a field that came back null is a very different
+	// observation from one that did not come back at all.
+	Absent FieldOutcome = iota
+	// Present means the path resolved, possibly to null.
+	Present
+	// Ambiguous means the path crossed an array holding more than one element, so which
+	// element the probe meant cannot be known.
+	//
+	// Its own outcome rather than folded into Absent, because the two demand opposite
+	// responses. Absent is an observation a probe may build a fact on; Ambiguous is a note,
+	// and treating it as absence would emit ReturnedOnRead=false at Observed for a field that
+	// was demonstrably returned.
+	Ambiguous
+)
+
+func (o FieldOutcome) String() string {
+	switch o {
+	case Present:
+		return "present"
+	case Ambiguous:
+		return "ambiguous"
+	default:
+		return "absent"
+	}
+}
+
 // Field reads a dotted JSON path out of a response body.
 //
 // Dotted because a probe addresses fields the way the API does, and a field inside a nested
-// object needs a path. The bool distinguishes "absent" from "present and null", which is
-// the whole basis of the writability and default protocols: a field that came back null is
-// a very different observation from one that did not come back at all.
+// object needs a path.
+//
+// The bool is Present and nothing else: Ambiguous reads as false here, which is the safe
+// direction for a caller that has not thought about arrays. A probe that has -- and every probe
+// that reports a fact about a nested path must -- uses LookupField instead.
 func (r *Response) Field(jsonPath string) (any, bool) {
+	v, outcome := r.LookupField(jsonPath)
+
+	return v, outcome == Present
+}
+
+// LookupField reads a dotted path and distinguishes all three outcomes.
+func (r *Response) LookupField(jsonPath string) (any, FieldOutcome) {
 	if r == nil || r.Body == nil {
-		return nil, false
+		return nil, Absent
 	}
-	return fieldIn(r.Body, jsonPath)
+
+	return lookupIn(r.Body, jsonPath)
 }
 
 func fieldIn(body any, jsonPath string) (any, bool) {
+	v, outcome := lookupIn(body, jsonPath)
+
+	return v, outcome == Present
+}
+
+// lookupIn walks a dotted path, descending into a single-element array.
+//
+// The array case is not a convenience. A great many real APIs model a nested object as an array
+// of one -- a tag's filters, a rule's conditions -- and without this every fact about such a path
+// came out "the field was not returned" at Observed confidence, because the field was
+// demonstrably *sent*. Merge would write it, and the generated state mapper would then blank a
+// real value on every refresh.
+//
+// Exactly one element, and more than one is Ambiguous rather than "the first". Taking the first
+// would produce a fact about element zero and label it as a fact about the field, which is the
+// kind of quietly wrong conclusion this package is arranged to avoid.
+func lookupIn(body any, jsonPath string) (any, FieldOutcome) {
 	current := body
 
 	for _, segment := range strings.Split(jsonPath, ".") {
+		if arr, ok := current.([]any); ok {
+			switch len(arr) {
+			case 1:
+				current = arr[0]
+			default:
+				return nil, Ambiguous
+			}
+		}
+
 		obj, ok := current.(map[string]any)
 		if !ok {
-			return nil, false
+			return nil, Absent
 		}
 
 		v, present := obj[segment]
 		if !present {
-			return nil, false
+			return nil, Absent
 		}
 
 		current = v
 	}
 
-	return current, true
+	return current, Present
 }
 
 // Items pulls a collection out of a list response.

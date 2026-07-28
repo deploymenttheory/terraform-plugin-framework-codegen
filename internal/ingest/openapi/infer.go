@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -11,6 +12,19 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
+)
+
+// Two reasons a candidate cannot become a resource, as sentinels so a caller can tell them apart
+// without matching on message text.
+//
+// The distinction matters to `ingest`: a candidate that is not a resource is a classification
+// outcome and belongs in the skipped count, while one whose schemas yielded no attributes is a
+// gap in the specification and belongs in the notes a human reads.
+var (
+	// ErrNotAResource marks a candidate whose operation set cannot support a Terraform resource.
+	ErrNotAResource = errors.New("not a resource")
+	// ErrNoAttributes marks a candidate whose schemas produced no usable attributes.
+	ErrNoAttributes = errors.New("no attributes could be inferred")
 )
 
 // InferOptions configures inference.
@@ -62,7 +76,7 @@ var namingOpts = naming.Options{StripPrefix: naming.DefaultStripPrefix}
 func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []Note, error) {
 	kind, why := c.Classify()
 	if kind != KindResource {
-		return blueprint.Resource{}, nil, fmt.Errorf("%s is not a resource: %s", c.Key, why)
+		return blueprint.Resource{}, nil, fmt.Errorf("%w: %s: %s", ErrNotAResource, c.Key, why)
 	}
 
 	var notes []Note
@@ -80,7 +94,10 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 		ModelTypeName:  goType + "Model",
 		ServiceGroup:   naming.SnakeDirName(c.Tag),
 		APIVersionDir:  opts.APIVersionDir,
-		Import:         blueprint.ImportPolicy{Style: blueprint.ImportPassthroughID, Attribute: "id"},
+		Import: blueprint.ImportPolicy{
+			Style:     blueprint.ImportPassthroughID,
+			Attribute: "id",
+		},
 		Policy: blueprint.ResourcePolicy{
 			UpdateStyle: updateStyleOf(c.Update),
 			Delete:      blueprint.Delete{NotFoundIsSuccess: true},
@@ -119,7 +136,10 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 	notes = append(notes, attrNotes...)
 
 	if len(r.Attributes) == 0 {
-		return blueprint.Resource{}, notes, fmt.Errorf("%s: no attributes could be inferred from its schemas", c.Key)
+		return blueprint.Resource{}, notes, fmt.Errorf(
+			"%w: %s: nothing usable in its schemas", ErrNoAttributes,
+			c.Key,
+		)
 	}
 
 	// Without an identifier there is nothing to read, import or delete by.
@@ -349,6 +369,14 @@ func attributeOf(f Field, inWrite bool, sdkPkg string) (blueprint.Attribute, str
 		a.Type.Elem = &blueprint.AttrType{Kind: f.ElemKind}
 	}
 
+	// Carried into the IR rather than dropped. Extracted here already and used only for a
+	// description until now, which meant the one consumer that has a real use for them -- the
+	// enum probe, whose whole claim is "the specification is stale" -- had nothing provably
+	// spec-derived to work from.
+	if len(f.EnumValues) > 0 {
+		a.Type.Enum = append([]string(nil), f.EnumValues...)
+	}
+
 	if f.Kind.IsNested() {
 		// A nested shape needs a model, an attr.Type map and a helper pair, none
 		// of which can be named without the object's schema name.
@@ -395,7 +423,10 @@ func presenceOf(f Field, inWrite bool) blueprint.Presence {
 }
 
 // conversionsFor picks the SDK type and the convert helpers for a field.
-func conversionsFor(f Field, sdkPkg string) (sdkType string, flatten, expand *blueprint.ConvertCall) {
+func conversionsFor(
+	f Field,
+	sdkPkg string,
+) (sdkType string, flatten, expand *blueprint.ConvertCall) {
 	if f.IsEnum() {
 		// Generated SDKs hold enumerations by value as a named string type.
 		named := sdkPkg + "." + namingOpts.GoTypeName(f.EnumTypeName)
@@ -427,8 +458,16 @@ func conversionsFor(f Field, sdkPkg string) (sdkType string, flatten, expand *bl
 
 	case blueprint.KindSet:
 		return "[]string",
-			&blueprint.ConvertCall{Func: "convert.StringSliceToFrameworkSet", NeedsCtx: true, ReturnsError: true},
-			&blueprint.ConvertCall{Func: "convert.FrameworkSetToStringSlice", NeedsCtx: true, ReturnsError: true}
+			&blueprint.ConvertCall{
+				Func:         "convert.StringSliceToFrameworkSet",
+				NeedsCtx:     true,
+				ReturnsError: true,
+			},
+			&blueprint.ConvertCall{
+				Func:         "convert.FrameworkSetToStringSlice",
+				NeedsCtx:     true,
+				ReturnsError: true,
+			}
 
 	default:
 		return "any", nil, nil
@@ -469,7 +508,8 @@ func (d *Document) responseProxy(c Candidate) *base.SchemaProxy {
 			continue
 		}
 		for pair := op.Responses.Codes.First(); pair != nil; pair = pair.Next() {
-			if !strings.HasPrefix(pair.Key(), "2") || pair.Value() == nil || pair.Value().Content == nil {
+			if !strings.HasPrefix(pair.Key(), "2") || pair.Value() == nil ||
+				pair.Value().Content == nil {
 				continue
 			}
 			if p := proxyFromContent(pair.Value().Content); p != nil {
