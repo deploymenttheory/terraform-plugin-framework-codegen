@@ -79,6 +79,10 @@ var builtCommands = map[string]bool{
 	// because invoking it does real work and fails for real reasons, rather than
 	// reporting that it does not exist.
 	"ingest": true,
+	// interop has its export verb; import is not written yet. Same reasoning as
+	// ingest: `interop` with no verb reports that it needs one, which is a real
+	// answer rather than a claim that the subcommand does not exist.
+	"interop": true,
 }
 
 // TestUnit_CLI_Dispatch_ImplementationClaimsAreTrue guards two failure modes at
