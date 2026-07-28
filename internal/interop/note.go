@@ -270,6 +270,13 @@ var taxonomy = map[string]Note{
 		SeverityInfo, "markdownDescription",
 		"the format has no attribute-level markdown description, so descriptions were written to `description` unchanged",
 	},
+	// The import-side counterpart of markdownDescription. Every document this
+	// toolkit exports sets only the plain description, so importing one of our own
+	// exports promotes every attribute's text back to markdown.
+	"importedDescription": {
+		SeverityInfo, "description",
+		"the document set description but not markdown_description, so the text is now treated as markdown",
+	},
 
 	// Type coarsening. Keyed by the kind that had to be widened.
 	"type.kind/int32": {

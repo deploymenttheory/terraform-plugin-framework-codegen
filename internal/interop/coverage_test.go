@@ -418,6 +418,7 @@ func TestUnit_Interop_Severities(t *testing.T) {
 		"wire":                SeverityDropped,
 		"behaviour":           SeverityDropped,
 		"markdownDescription": SeverityInfo,
+		"importedDescription": SeverityInfo,
 
 		"type.kind/int32":   SeverityLossy,
 		"type.kind/float32": SeverityLossy,

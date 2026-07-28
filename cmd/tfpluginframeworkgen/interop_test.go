@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/interop"
 )
 
@@ -201,6 +202,118 @@ func TestUnit_CLI_Interop_Only(t *testing.T) {
 	}
 }
 
+// TestUnit_CLI_Interop_ImportWritesInvisibleDrafts is the empirical half of the draft
+// design.
+//
+// TestUnit_Interop_Drafts asserts the extension does not match; this asserts the
+// consequence, which is the thing actually promised: a directory of drafts is not
+// something emit refuses to process, it is something emit cannot see at all. The
+// distinction matters because the failure mode being designed against is a
+// half-authored blueprint reaching the emitter.
+func TestUnit_CLI_Interop_ImportWritesInvisibleDrafts(t *testing.T) {
+	t.Parallel()
+
+	out := filepath.Join(t.TempDir(), "drafts")
+
+	err := runInterop([]string{
+		"import", "-spec", committedSpec(), "-provider", "thousandeyes",
+		"-api-version-dir", "v7", "-service-group", "tags", "-out", out, "-q",
+	})
+	if err != nil {
+		t.Fatalf("interop import: %v", err)
+	}
+
+	var found []string
+	err = filepath.WalkDir(out, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		found = append(found, filepath.Base(path))
+		if !strings.HasSuffix(path, interop.DraftExt) {
+			t.Errorf("%s is not a draft; an imported blueprint must not be loadable by emit", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walking the output: %v", err)
+	}
+
+	if len(found) != 2 {
+		t.Errorf("wrote %v, want a provider draft and one resource draft", found)
+	}
+
+	// The load path itself must not see them. This is the assertion that would fail
+	// if findBlueprints' suffix test were ever loosened.
+	if _, err := blueprint.LoadDir(out); !errors.Is(err, blueprint.ErrNoBlueprint) {
+		t.Errorf("LoadDir on a draft directory = %v, want ErrNoBlueprint", err)
+	}
+}
+
+// TestUnit_CLI_Interop_PromotedDraftsLoadAndFailOnBindings shows the other half: once
+// renamed, a draft is a blueprint, and it fails validation for the reason the import
+// report said it would.
+func TestUnit_CLI_Interop_PromotedDraftsLoadAndFailOnBindings(t *testing.T) {
+	t.Parallel()
+
+	out := filepath.Join(t.TempDir(), "drafts")
+
+	err := runInterop([]string{
+		"import", "-spec", committedSpec(), "-provider", "thousandeyes", "-out", out, "-q",
+	})
+	if err != nil {
+		t.Fatalf("interop import: %v", err)
+	}
+
+	err = filepath.WalkDir(out, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		promoted := strings.TrimSuffix(path, interop.DraftExt) + blueprint.Ext
+		return os.Rename(path, promoted)
+	})
+	if err != nil {
+		t.Fatalf("promoting the drafts: %v", err)
+	}
+
+	_, err = blueprint.LoadDir(out)
+	if !errors.Is(err, blueprint.ErrInvalid) {
+		t.Fatalf("a promoted draft has no bindings, so it must not validate; got %v", err)
+	}
+	if !strings.Contains(err.Error(), "wire") && !strings.Contains(err.Error(), "sdk") {
+		t.Errorf("the refusal should be about bindings:\n%v", err)
+	}
+}
+
+func TestUnit_CLI_Interop_ImportList(t *testing.T) {
+	t.Parallel()
+
+	// -list reports what the document offers and writes nothing, so it needs neither
+	// -out nor -provider.
+	if err := runInterop([]string{"import", "-spec", committedSpec(), "-list"}); err != nil {
+		t.Errorf("interop import -list: %v", err)
+	}
+}
+
+func TestUnit_CLI_Interop_ImportRejectsBadInput(t *testing.T) {
+	t.Parallel()
+
+	bad := filepath.Join(t.TempDir(), "bad.json")
+	if err := os.WriteFile(bad, []byte(`{"version":"0.1.0"}`), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	// The documented-but-rejected version, arriving as input rather than output.
+	if err := runInterop([]string{"import", "-spec", bad, "-provider", "x", "-out", t.TempDir(), "-q"}); err == nil {
+		t.Error(`a document declaring "0.1.0" must be refused`)
+	}
+
+	if err := runInterop([]string{
+		"import", "-spec", filepath.Join(t.TempDir(), "absent.json"), "-provider", "x", "-out", t.TempDir(), "-q",
+	}); err == nil {
+		t.Error("a missing spec file must fail")
+	}
+}
+
 func TestUnit_CLI_Interop_RejectsBadUsage(t *testing.T) {
 	t.Parallel()
 
@@ -212,6 +325,9 @@ func TestUnit_CLI_Interop_RejectsBadUsage(t *testing.T) {
 		{"unknown verb", []string{"telepathy"}},
 		{"export with no blueprint", []string{"export"}},
 		{"export with a bad flag", []string{"export", "-nonsense"}},
+		{"import with no spec", []string{"import"}},
+		{"import with no provider", []string{"import", "-spec", committedSpec(), "-out", "/tmp/x"}},
+		{"import with no out", []string{"import", "-spec", committedSpec(), "-provider", "x"}},
 	}
 
 	for _, tc := range tests {

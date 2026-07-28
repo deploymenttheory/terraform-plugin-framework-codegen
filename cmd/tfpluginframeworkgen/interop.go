@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/terraform-plugin-codegen-spec/spec"
+
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/interop"
 )
@@ -16,7 +18,10 @@ import (
 // because a run function that reads interopVerbs while interopVerbs is being
 // initialised with that same function is an initialisation cycle the compiler
 // rejects.
-const usageInteropExport = "interop export -blueprint DIR [-out FILE] [-only KEY] [-strict] [-report FILE]"
+const (
+	usageInteropExport = "interop export -blueprint DIR [-out FILE] [-only KEY] [-strict] [-report FILE]"
+	usageInteropImport = "interop import -spec FILE -out DIR -provider NAME [flags]"
+)
 
 // interopVerbs is the local verb table.
 //
@@ -29,6 +34,12 @@ var interopVerbs = []command{
 		summary: "write codegen-spec v0.1 JSON from blueprints",
 		usage:   usageInteropExport,
 		run:     runInteropExport,
+	},
+	{
+		name:    "import",
+		summary: "read codegen-spec v0.1 JSON into draft blueprints",
+		usage:   usageInteropImport,
+		run:     runInteropImport,
 	},
 }
 
@@ -136,6 +147,156 @@ func runInteropExport(args []string) error {
 	}
 
 	return report.Err(*strict)
+}
+
+func runInteropImport(args []string) error {
+	fs, _ := newFlagSet("interop import", usageInteropImport)
+
+	var (
+		specPath = fs.String("spec", "", "codegen-spec v0.1 JSON to read (required)")
+		out      = fs.String("out", "", "directory to write draft blueprints under (required)")
+		provider = fs.String("provider", "", "registry provider name, which prefixes every Terraform type (required)")
+
+		typePrefix    = fs.String("type-prefix", "", "type prefix; defaults to -provider")
+		goModule      = fs.String("go-module", "", "the generated provider's Go module path")
+		apiVersionDir = fs.String("api-version-dir", "", "version directory generated packages live under, e.g. v7")
+		serviceGroup  = fs.String("service-group", "", "service grouping for the on-disk layout")
+
+		list = fs.Bool("list", false, "report what the document offers and exit")
+	)
+
+	if err := parse(fs, args); err != nil {
+		return err
+	}
+
+	if *specPath == "" {
+		return usagef("-spec is required")
+	}
+
+	data, err := os.ReadFile(*specPath) //nolint:gosec // operator-supplied path by design
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", *specPath, err)
+	}
+
+	s, err := interop.Parse(context.Background(), data)
+	if err != nil {
+		return err
+	}
+
+	if *list {
+		return listSpec(s)
+	}
+
+	if *provider == "" {
+		return usagef("-provider is required: it names the registry provider and prefixes every Terraform type")
+	}
+	if *out == "" {
+		return usagef("-out is required")
+	}
+
+	bp, report, err := interop.ToBlueprint(s, interop.Options{
+		Provider:      *provider,
+		TypePrefix:    *typePrefix,
+		GoModule:      *goModule,
+		APIVersionDir: *apiVersionDir,
+		ServiceGroup:  *serviceGroup,
+	})
+	if err != nil {
+		return err
+	}
+
+	printReport(report)
+
+	written, err := writeDrafts(*out, bp)
+	if err != nil {
+		return err
+	}
+
+	printUnauthored(bp, written)
+
+	return nil
+}
+
+// writeDrafts writes one draft per resource, plus the provider block.
+//
+// blueprint.Save marshals without validating, which is what makes this possible: a
+// draft is by definition not yet valid, and a Save that validated would leave the
+// operator with nothing to edit.
+func writeDrafts(root string, bp blueprint.Blueprint) ([]string, error) {
+	var written []string
+
+	// The provider part carries no resources, so it is a draft too -- its SDK block
+	// is empty and has to be authored.
+	providerPart := blueprint.Blueprint{FormatVersion: bp.FormatVersion, Provider: bp.Provider}
+	providerPath := filepath.Join(root, "provider"+interop.DraftExt)
+
+	if err := blueprint.Save(providerPath, providerPart); err != nil {
+		return nil, err
+	}
+	written = append(written, providerPath)
+
+	for _, res := range bp.Resources {
+		part := blueprint.Blueprint{FormatVersion: bp.FormatVersion, Resources: []blueprint.Resource{res}}
+		path := filepath.Join(root, "resources", res.Key+interop.DraftExt)
+
+		if err := blueprint.Save(path, part); err != nil {
+			return nil, err
+		}
+		written = append(written, path)
+	}
+
+	return written, nil
+}
+
+// printUnauthored tells the operator what to write and what to do next.
+func printUnauthored(bp blueprint.Blueprint, written []string) {
+	fields := interop.Unauthored(bp)
+
+	fmt.Fprintf(os.Stderr, "\n%d draft(s) written. %d field group(s) must be authored before emission:\n\n",
+		len(written), len(fields))
+
+	for _, f := range fields {
+		fmt.Fprintf(os.Stderr, "  %s\n", f)
+	}
+
+	fmt.Fprintf(os.Stderr, `
+A draft is deliberately invisible to emit and verify: %q does not end in %q, so
+LoadDir cannot open it. Author the fields above, rename the drafts, then check the
+bindings against the SDK:
+
+  go run ./cmd/tfpluginframeworkgen bindings -blueprint <dir> -module <provider dir>
+
+`, interop.DraftExt, blueprint.Ext)
+}
+
+// listSpec reports what a document offers without writing anything.
+func listSpec(s spec.Specification) error {
+	name := "(none)"
+	if s.Provider != nil {
+		name = s.Provider.Name
+	}
+
+	log.Printf("provider %s, version %s", name, s.Version)
+	log.Printf("%d resource(s), %d data source(s)", len(s.Resources), len(s.DataSources))
+
+	for _, r := range s.Resources {
+		attrs, blocks := 0, 0
+		if r.Schema != nil {
+			attrs = len(r.Schema.Attributes)
+			blocks = len(r.Schema.Blocks)
+		}
+		log.Printf("  resource %-30s %2d attribute(s), %d block(s)", r.Name, attrs, blocks)
+	}
+
+	for _, d := range s.DataSources {
+		attrs := 0
+		if d.Schema != nil {
+			attrs = len(d.Schema.Attributes)
+		}
+		log.Printf("  data source %-27s %2d attribute(s)   (import not implemented)", d.Name, attrs)
+	}
+
+	return nil
 }
 
 // keepOnly narrows the blueprint to one resource.
