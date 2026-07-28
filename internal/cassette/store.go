@@ -89,6 +89,12 @@ type Metadata struct {
 	// this ran against a real API, and which no httptest-backed test can reproduce because an
 	// httptest base URL has no path.
 	BasePath string `json:"basePath,omitempty"`
+	// NamePrefix is the prefix every object a mutating run created carried in its name field.
+	//
+	// Recorded for the same reason as BasePath, and with the same failure mode if it is not:
+	// ReplayTransport matches request bodies, the stamped name is *in* the body, and a replay
+	// that regenerated the prefix from anything but this would mismatch on every single create.
+	NamePrefix string `json:"namePrefix,omitempty"`
 	// Interactions counts the files, so a truncated directory is detectable without
 	// reading them all.
 	Interactions int `json:"interactions"`

@@ -567,6 +567,17 @@ func parseJSON(raw []byte) any {
 	return v
 }
 
+// UnrecordedTransport is a live transport whose traffic is not recorded.
+//
+// Two callers, and both need the traffic left out of the cassette rather than merely not caring.
+// A sweep derives no facts, so a transcript would support no claim. And the gate's tenant reads
+// must stay out of a recording precisely because replay has no gate: a cassette holding requests
+// the replayed run will never issue is a cassette that cannot reproduce itself.
+//
+// Here rather than in the caller because this file is the only place permitted to name net/http's
+// transport, which a structural test enforces.
+func UnrecordedTransport() http.RoundTripper { return &http.Transport{} }
+
 // ErrAuth is returned when a response indicates a credential problem.
 //
 // Surfaced as its own error rather than a note, because it invalidates the whole run: every
@@ -616,7 +627,7 @@ func TransportFor(
 		// A sweep reaches a real API and records nothing. Nothing to record: it derives no
 		// facts, so there is no offline claim a transcript would have to support, and a
 		// cassette of deletions would only invite somebody to replay it.
-		return &http.Transport{}, nil, nil
+		return UnrecordedTransport(), nil, nil
 
 	default:
 		return nil, nil, fmt.Errorf("%w: unknown mode %q", ErrInvalidPlan, mode)

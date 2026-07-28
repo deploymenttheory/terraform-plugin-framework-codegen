@@ -43,6 +43,11 @@ go.work.sum
 # per-snapshot, so committing one would be both meaningless and a disclosure.
 .tfpluginframeworkgen/probe/
 
+# A sandbox profile carries assertions.accountGroupId, and a tenant identifier in a committed
+# file turns a vulnerability into a targeted one. See docs/examples/probe-profile.example.json
+# for a version with nothing real in it.
+.tfpluginframeworkgen/sandbox/
+
 # Emitted when a template renders unparsable Go, kept for inspection only.
 *.broken
 
