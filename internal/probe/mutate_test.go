@@ -312,12 +312,12 @@ func TestUnit_Probe_InFlightContextIgnoresCancellation(t *testing.T) {
 // panicProbe faults on purpose.
 type panicProbe struct{}
 
-func (panicProbe) Name() string        { return "write.panics" }
-func (panicProbe) Kind() Kind          { return KindMutating }
-func (panicProbe) Cost(Subject) int    { return 1 }
-func (panicProbe) Creates(Subject) int { return 1 }
+func (panicProbe) Name() string      { return "write.panics" }
+func (panicProbe) Kind() Kind        { return KindMutating }
+func (panicProbe) Cost(Scope) int    { return 1 }
+func (panicProbe) Creates(Scope) int { return 1 }
 
-func (panicProbe) Exercise(_ context.Context, _ *MutatingSession, _ Subject) (Result, error) {
+func (panicProbe) Exercise(_ context.Context, _ *MutatingSession, _ Scope) (Result, error) {
 	panic("a deliberate fault")
 }
 
@@ -325,15 +325,15 @@ func (panicProbe) Exercise(_ context.Context, _ *MutatingSession, _ Subject) (Re
 // runner must clean up after a probe that never got to its own cleanup.
 type createThenPanicProbe struct{}
 
-func (createThenPanicProbe) Name() string        { return "write.creates-then-panics" }
-func (createThenPanicProbe) Kind() Kind          { return KindMutating }
-func (createThenPanicProbe) Cost(Subject) int    { return 2 }
-func (createThenPanicProbe) Creates(Subject) int { return 1 }
+func (createThenPanicProbe) Name() string      { return "write.creates-then-panics" }
+func (createThenPanicProbe) Kind() Kind        { return KindMutating }
+func (createThenPanicProbe) Cost(Scope) int    { return 2 }
+func (createThenPanicProbe) Creates(Scope) int { return 1 }
 
 func (createThenPanicProbe) Exercise(
 	ctx context.Context,
 	s *MutatingSession,
-	_ Subject,
+	_ Scope,
 ) (Result, error) {
 	if _, _, err := s.Create(ctx, "write.creates-then-panics", map[string]any{
 		"key": s.NameValue("write.creates-then-panics", 1),
@@ -356,7 +356,7 @@ func TestUnit_Probe_APanicIsCapturedWithItsOwnStack(t *testing.T) {
 	srv := quirkserver.New(t, quirkserver.Quirks{})
 	ms := mutatingAgainst(t, srv.BaseURL(), MemoryLedger())
 
-	_, err := exercise(context.Background(), ms, panicProbe{}, quirkSubject())
+	_, err := exercise(context.Background(), ms, panicProbe{}, UnplannedScope(quirkSubject()))
 
 	var pe *PanicError
 	if !errors.As(err, &pe) {

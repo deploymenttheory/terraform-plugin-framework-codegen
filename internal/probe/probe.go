@@ -84,6 +84,16 @@ type Response struct {
 	// Raw is the response body as received, for the handful of observations that need
 	// the bytes -- notably whether a 404 has an empty body at all.
 	Raw []byte
+
+	// Interaction is the cassette id of the request that produced this response, empty when
+	// nothing was recording.
+	//
+	// A probe that cites this cites the exact request its conclusion rests on. The
+	// alternative -- matching by method and path suffix -- is adequate for a read tier
+	// issuing a handful of distinguishable requests and useless for a write tier issuing
+	// forty POSTs to one collection, where every fact would cite all forty. A fact whose
+	// evidence is "all of it" cannot be checked, and cannot be refuted.
+	Interaction string
 }
 
 // ReadSession is the read-only half of a probe's access to an API.
@@ -113,14 +123,19 @@ type ReadProbe interface {
 	Kind() Kind
 
 	// Cost is the worst-case number of requests this probe will issue against the
-	// subject. It is what lets a plan be budgeted before anything is sent, and it is
+	// scope. It is what lets a plan be budgeted before anything is sent, and it is
 	// why `probe -list` is useful with no credentials.
-	Cost(Subject) int
+	//
+	// Takes a Scope rather than a Subject so this number and what Observe actually does are
+	// derived from the same narrowing. A cost computed over every writable field while the
+	// probe iterated a plan's narrowed set would be wrong by an order of magnitude, and
+	// nothing would catch it.
+	Cost(Scope) int
 
 	// Observe runs the probe. A nil error with no facts is a legitimate outcome: an
 	// empty tenant, a field that cannot be read, an observation that came out
 	// ambiguous. Absence of a fact is not failure.
-	Observe(ctx context.Context, s ReadSession, subj Subject) (Result, error)
+	Observe(ctx context.Context, s ReadSession, sc Scope) (Result, error)
 }
 
 // MutatingProbe creates, updates or deletes objects.
@@ -132,11 +147,18 @@ type ReadProbe interface {
 type MutatingProbe interface {
 	Name() string
 	Kind() Kind
-	Cost(Subject) int
+	Cost(Scope) int
+
+	// Creates is the worst-case number of objects this probe brings into existence.
+	//
+	// Required rather than optional, which it was until the cost model became scope-aware. An
+	// optional interface meant a probe that forgot to implement it declared zero creates and
+	// was budgeted as free -- the one mistake the blast-radius cap exists to catch.
+	Creates(Scope) int
 
 	// Exercise runs the probe. Every object it creates is recorded in the ledger
 	// before the request is issued, and swept afterwards.
-	Exercise(ctx context.Context, s *MutatingSession, subj Subject) (Result, error)
+	Exercise(ctx context.Context, s *MutatingSession, sc Scope) (Result, error)
 }
 
 // Result is what one probe learned.
@@ -202,18 +224,18 @@ type Entry struct {
 //
 // Read-first because that is the order they run in and the order a reader wants: the
 // safe tier, then the tier that needs a sandbox and a flag.
-func Catalogue(subj Subject) []Entry {
+func Catalogue(sc Scope) []Entry {
 	out := make([]Entry, 0, len(readProbes)+len(mutatingProbes))
 
 	for _, p := range readProbes {
-		out = append(out, Entry{Name: p.Name(), Kind: KindRead, Cost: p.Cost(subj)})
+		out = append(out, Entry{Name: p.Name(), Kind: KindRead, Cost: p.Cost(sc)})
 	}
 	for _, p := range mutatingProbes {
 		out = append(out, Entry{
 			Name:    p.Name(),
 			Kind:    KindMutating,
-			Cost:    p.Cost(subj),
-			Creates: createsOf(p, subj),
+			Cost:    p.Cost(sc),
+			Creates: p.Creates(sc),
 		})
 	}
 
@@ -225,22 +247,6 @@ func Catalogue(subj Subject) []Entry {
 	})
 
 	return out
-}
-
-// creature is implemented by a mutating probe that can say how many objects it creates.
-//
-// Separate from Cost because the two budgets are enforced separately: requests are
-// cheap and objects are not, and a probe that issues fifty requests while creating two
-// objects is far safer than the reverse.
-type creature interface {
-	Creates(Subject) int
-}
-
-func createsOf(p MutatingProbe, subj Subject) int {
-	if c, ok := p.(creature); ok {
-		return c.Creates(subj)
-	}
-	return 0
 }
 
 // Lookup finds a probe by name, in either list.
@@ -294,8 +300,8 @@ func MutatingProbes(only string) []MutatingProbe {
 //
 // This is what a plan is budgeted against, and what -list prints. A run that would
 // exceed its budget is refused before the first request rather than partway through.
-func TotalCost(subj Subject, only string) (requests, creates int) {
-	for _, e := range Catalogue(subj) {
+func TotalCost(sc Scope, only string) (requests, creates int) {
+	for _, e := range Catalogue(sc) {
 		if only != "" && e.Name != only {
 			continue
 		}

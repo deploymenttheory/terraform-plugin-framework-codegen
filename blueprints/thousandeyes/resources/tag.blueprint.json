@@ -135,7 +135,15 @@
           "name": "object_type",
           "goField": "ObjectType",
           "type": {
-            "kind": "string"
+            "kind": "string",
+            "enum": [
+              "test",
+              "dashboard",
+              "endpoint-test",
+              "v-agent",
+              "connected-devices-test",
+              "endpoint-agent"
+            ]
           },
           "presence": "required",
           "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.",
@@ -158,7 +166,12 @@
           "name": "access_type",
           "goField": "AccessType",
           "type": {
-            "kind": "string"
+            "kind": "string",
+            "enum": [
+              "all",
+              "partner",
+              "system"
+            ]
           },
           "presence": "computed_optional",
           "markdownDescription": "The tag's access level. Documented values are `all`, `partner` and `system`.",
@@ -181,7 +194,11 @@
           "name": "match_type",
           "goField": "MatchType",
           "type": {
-            "kind": "string"
+            "kind": "string",
+            "enum": [
+              "and",
+              "or"
+            ]
           },
           "presence": "computed_optional",
           "markdownDescription": "How the tag's filters combine when it is assigned dynamically.",
@@ -204,7 +221,11 @@
           "name": "type",
           "goField": "Type",
           "type": {
-            "kind": "string"
+            "kind": "string",
+            "enum": [
+              "static",
+              "dynamic"
+            ]
           },
           "presence": "computed",
           "markdownDescription": "The tag's type, assigned by the API.",

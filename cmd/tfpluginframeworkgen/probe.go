@@ -198,10 +198,6 @@ func probeMain(args []string) error {
 		}
 	}
 
-	if *list {
-		return listProbes(subjects, *only)
-	}
-
 	// Refused here rather than inside the gate, because the gate only runs on the record path
 	// and this combination would otherwise be silently ignored -- letting a scripted run
 	// believe it had probed the write path when it replayed a cassette instead.
@@ -214,6 +210,10 @@ func probeMain(args []string) error {
 	plan, err := loadPlan(*planPath)
 	if err != nil {
 		return err
+	}
+
+	if *list {
+		return listProbes(subjects, plan, *only)
 	}
 
 	opts := probeRun{
@@ -873,9 +873,19 @@ func subjectsOf(bp blueprint.Blueprint) ([]probe.Subject, []string, error) {
 // This works with no credentials, no cassettes and no network, which is what makes it
 // the first useful thing the prober does: the costs and the mutating/read split are
 // reviewable against a real blueprint before anybody points it at a tenant.
-func listProbes(subjects []probe.Subject, only string) error {
+func listProbes(subjects []probe.Subject, plan probe.Plan, only string) error {
 	for _, subj := range subjects {
-		canMutate, why := subj.CanMutate()
+		sc, err := probe.NewScope(subj, plan)
+		if err != nil {
+			return err
+		}
+
+		// Two different reasons a mutating probe might not run, and they must not be conflated.
+		// A resource with no delete can never be probed, so its nominal cost is noise. A
+		// resource with no *plan* could be probed the moment one exists, so its unnarrowed
+		// worst case is exactly the figure an operator needs in order to write that plan.
+		probeable, why := subj.CanMutate()
+		_, planWhy := sc.CanMutate()
 
 		fmt.Printf("\n%s  (%s)\n", subj.Resource, subj.CollectionTemplate)
 		fmt.Printf("  %d field(s), %d writable", len(subj.Fields), len(subj.WritableFields()))
@@ -883,11 +893,15 @@ func listProbes(subjects []probe.Subject, only string) error {
 			fmt.Printf(", name prefix goes in %q", subj.NameField)
 		}
 		fmt.Println()
+		fmt.Printf("  %s\n", sc)
 
-		if !canMutate {
+		switch {
+		case !probeable:
 			// Stated per subject rather than per probe, because it is a property of
 			// the resource and would otherwise be repeated nine times.
 			fmt.Printf("  mutating probes refused: %s\n", why)
+		case planWhy != "":
+			fmt.Printf("  mutating probes need a plan: %s\n", planWhy)
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -895,16 +909,16 @@ func listProbes(subjects []probe.Subject, only string) error {
 
 		var totalRequests, totalCreates int
 
-		for _, e := range probe.Catalogue(subj) {
+		for _, e := range probe.Catalogue(sc) {
 			if only != "" && e.Name != only {
 				continue
 			}
 
-			// A mutating probe against a subject that cannot be mutated costs nothing,
-			// because it will not run. Showing its nominal cost would overstate the
+			// A mutating probe against a resource that cannot be mutated costs nothing,
+			// because it will never run. Showing its nominal cost would overstate the
 			// budget by an order of magnitude.
 			requests, creates := e.Cost, e.Creates
-			if e.Kind == probe.KindMutating && !canMutate {
+			if e.Kind == probe.KindMutating && !probeable {
 				requests, creates = 0, 0
 			}
 
@@ -920,7 +934,7 @@ func listProbes(subjects []probe.Subject, only string) error {
 			return fmt.Errorf("writing the catalogue: %w", err)
 		}
 
-		printBudgetVerdict(totalRequests, totalCreates)
+		printBudgetVerdict(sc, totalRequests, totalCreates)
 	}
 
 	fmt.Println()
@@ -940,21 +954,34 @@ func listProbes(subjects []probe.Subject, only string) error {
 // writable fields, and the answer is to narrow them with a plan: candidates, fixtures
 // and a deny list are how an operator says which fields are worth the requests. Saying
 // so here is more useful than quietly showing a total nobody compares to anything.
-func printBudgetVerdict(requests, creates int) {
-	budget := probe.Budget{}.WithDefaults()
+func printBudgetVerdict(sc probe.Scope, requests, creates int) {
+	budget := sc.Plan.Budget.WithDefaults()
 
 	overRequests := requests > budget.MaxRequests
 	overCreates := creates > budget.MaxCreates
 
+	which := "default"
+	if sc.Planned {
+		which = "plan's"
+	}
+
 	if !overRequests && !overCreates {
-		fmt.Printf("\n  Fits the default budget (%d/%d requests, %d/%d creates).\n",
-			requests, budget.MaxRequests, creates, budget.MaxCreates)
+		fmt.Printf("\n  Fits the %s budget (%d/%d requests, %d/%d creates).\n",
+			which, requests, budget.MaxRequests, creates, budget.MaxCreates)
 		return
 	}
 
-	fmt.Printf("\n  Does NOT fit the default budget: %d/%d requests, %d/%d creates.\n",
-		requests, budget.MaxRequests, creates, budget.MaxCreates)
-	fmt.Println("  The per-field probes scale with the number of writable fields, so a full run")
-	fmt.Println("  needs a plan that narrows them -- candidates for the fields worth probing, and")
-	fmt.Println("  a deny list for the rest. Without one, a record run would stop at exit 4.")
+	fmt.Printf("\n  Does NOT fit the %s budget: %d/%d requests, %d/%d creates.\n",
+		which, requests, budget.MaxRequests, creates, budget.MaxCreates)
+
+	if !sc.Planned {
+		fmt.Println("  This is the unnarrowed worst case: with no plan, the per-field probes are")
+		fmt.Println("  costed over every writable field. Supply -plan with fixtures, candidates and")
+		fmt.Println("  a deny list to narrow them -- that is what the plan is for.")
+
+		return
+	}
+
+	fmt.Println("  Narrow the plan further: fewer candidate fields for the immutability protocol,")
+	fmt.Println("  or a longer deny list. Without that, a record run would stop at exit 4.")
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
 )
@@ -334,5 +335,135 @@ func TestUnit_CLI_Probe_DefaultModeIsReplay(t *testing.T) {
 	}
 	if f.DefValue == modeRecord {
 		t.Error("the default must not be the mode that can change somebody's tenant")
+	}
+}
+
+// TestUnit_CLI_ThePilotPlanMatchesTheCommittedBlueprint.
+//
+// The plan and the blueprint are two committed files that have to agree, and nothing else checks
+// that they do. A blueprint change that renames a JSON path would otherwise fail six months later
+// during a record run -- against a real tenant, with the objects already created.
+//
+// Every key in the plan resolves against the subject, which is what Plan.Validate does; this test
+// exists to run that validation against the *committed pair* rather than a fixture.
+func TestUnit_CLI_ThePilotPlanMatchesTheCommittedBlueprint(t *testing.T) {
+	t.Parallel()
+
+	bp, err := blueprint.LoadDir(blueprintDir())
+	if err != nil {
+		t.Fatalf("LoadDir: %v", err)
+	}
+
+	plan, err := loadPlan(filepath.Join(blueprintDir(), "probe.plan.json"))
+	if err != nil {
+		t.Fatalf("loadPlan: %v", err)
+	}
+
+	if len(plan.Fixtures) < 2 {
+		t.Errorf("the pilot plan declares %d fixture(s); conditional requirement is only "+
+			"detectable with two or more", len(plan.Fixtures))
+	}
+
+	var checked int
+
+	for _, res := range bp.Resources {
+		if res.Drop {
+			continue
+		}
+
+		subj, err := probe.SubjectOf(bp, res)
+		if err != nil {
+			continue
+		}
+
+		sc, err := probe.NewScope(subj, plan)
+		if err != nil {
+			t.Fatalf("%s: the committed plan does not match the committed blueprint: %v",
+				res.Key, err)
+		}
+
+		checked++
+
+		// The fixture must set the name field, because the probe replaces its value with the
+		// stamped name -- and Create refuses a body whose name field is missing.
+		for i := range plan.Fixtures {
+			fixture, _ := sc.Fixture(i)
+			if _, ok := fixture.Body[subj.NameField]; !ok {
+				t.Errorf("fixture %q does not set %q, so the stamped name would have nowhere "+
+					"to go", fixture.Name, subj.NameField)
+			}
+		}
+
+		// The narrowing has to actually narrow, or the plan is decorative.
+		if len(sc.Immutable()) == 0 {
+			t.Error("the plan declares no field with two candidates, so the immutability " +
+				"protocol has nothing to probe")
+		}
+		if len(sc.Omitted()) == 0 {
+			t.Error("every sendable field is set by some fixture, so the server-default " +
+				"protocol has nothing to observe")
+		}
+		if len(sc.Enums()) == 0 {
+			t.Error("no sendable field carries documented enum values, so the enum protocol " +
+				"has nothing to check the specification against")
+		}
+
+		// And the whole catalogue has to fit, which is the milestone this phase is measured by.
+		requests, creates := probe.TotalCost(sc, "")
+		budget := plan.Budget.WithDefaults()
+
+		if requests > budget.MaxRequests {
+			t.Errorf("%s: %d requests exceeds the plan's cap of %d", res.Key, requests,
+				budget.MaxRequests)
+		}
+		if creates > budget.MaxCreates {
+			t.Errorf("%s: %d creates exceeds the plan's cap of %d", res.Key, creates,
+				budget.MaxCreates)
+		}
+	}
+
+	if checked == 0 {
+		t.Fatal("no resource was checked against the plan")
+	}
+}
+
+// TestUnit_CLI_ThePilotBlueprintCarriesSpecEnumValues.
+//
+// The enum protocol's valuable claim is "the specification is stale". That claim is only worth
+// anything when the values provably came from the specification rather than from somebody's
+// transcription -- if a human typed them, the fact would mean "the API disagrees with what
+// somebody typed", which is worthless.
+//
+// The pilot is already a case in point: its committed object_type *description* lists five values
+// and the specification declares six.
+func TestUnit_CLI_ThePilotBlueprintCarriesSpecEnumValues(t *testing.T) {
+	t.Parallel()
+
+	bp, err := blueprint.LoadDir(blueprintDir())
+	if err != nil {
+		t.Fatalf("LoadDir: %v", err)
+	}
+
+	want := map[string]int{
+		"object_type": 6,
+		"access_type": 3,
+		"match_type":  2,
+	}
+
+	found := map[string]int{}
+
+	for _, res := range bp.Resources {
+		for _, a := range res.Attributes {
+			if len(a.Type.Enum) > 0 {
+				found[a.Name] = len(a.Type.Enum)
+			}
+		}
+	}
+
+	for name, count := range want {
+		if found[name] != count {
+			t.Errorf("%s carries %d enum value(s), want %d from the specification",
+				name, found[name], count)
+		}
 	}
 }

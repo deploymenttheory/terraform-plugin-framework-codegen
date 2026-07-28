@@ -267,6 +267,20 @@ type AttrType struct {
 	Elem *AttrType `json:"elem,omitempty"`
 	// Nested is the object shape of a nested kind.
 	Nested *Nested `json:"nested,omitempty"`
+
+	// Enum is the value set the *specification* documents, and it is documentation only.
+	//
+	// Explicitly not a validator input. A generated OneOf built from a scraped enum rejects
+	// configurations the API would have accepted, and the practitioner has no way around it --
+	// which is the specific harm the README forbids, and which TestUnit_Emit_EnumValuesDoNot-
+	// ReachGeneratedCode pins.
+	//
+	// Its purpose is the opposite: it is the *claim* the enum probe refutes. A documented value
+	// the API rejects means the specification is stale, and that fact is only worth anything
+	// when the values provably came from the specification rather than from somebody's
+	// transcription. The pilot is already a case in point -- its committed description lists
+	// five object types and the specification declares six.
+	Enum []string `json:"enum,omitempty"`
 }
 
 // Nested is the object shape a nested attribute holds.

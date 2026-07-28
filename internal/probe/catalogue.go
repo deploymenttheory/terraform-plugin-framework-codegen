@@ -2,8 +2,6 @@ package probe
 
 import (
 	"context"
-
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 )
 
 // This file is the catalogue.
@@ -80,9 +78,9 @@ func init() {
 // bodies on its own.
 type unknownParamTolerance struct{}
 
-func (unknownParamTolerance) Name() string     { return "read.unknown-param" }
-func (unknownParamTolerance) Kind() Kind       { return KindRead }
-func (unknownParamTolerance) Cost(Subject) int { return 1 }
+func (unknownParamTolerance) Name() string   { return "read.unknown-param" }
+func (unknownParamTolerance) Kind() Kind     { return KindRead }
+func (unknownParamTolerance) Cost(Scope) int { return 1 }
 
 // notFoundShape sends one GET for a well-formed but absent identifier, and observes the
 // status and body shape.
@@ -98,9 +96,9 @@ func (unknownParamTolerance) Cost(Subject) int { return 1 }
 // absence.
 type notFoundShape struct{}
 
-func (notFoundShape) Name() string     { return "read.not-found-shape" }
-func (notFoundShape) Kind() Kind       { return KindRead }
-func (notFoundShape) Cost(Subject) int { return 1 }
+func (notFoundShape) Name() string   { return "read.not-found-shape" }
+func (notFoundShape) Kind() Kind     { return KindRead }
+func (notFoundShape) Cost(Scope) int { return 1 }
 
 // listShape sends one GET to the collection and observes the envelope key, whether a
 // next-page link is present, and the shape of an item.
@@ -114,9 +112,9 @@ func (notFoundShape) Cost(Subject) int { return 1 }
 // would make a clean sandbox look like a broken one.
 type listShape struct{}
 
-func (listShape) Name() string     { return "read.list-shape" }
-func (listShape) Kind() Kind       { return KindRead }
-func (listShape) Cost(Subject) int { return 1 }
+func (listShape) Name() string   { return "read.list-shape" }
+func (listShape) Kind() Kind     { return KindRead }
+func (listShape) Cost(Scope) int { return 1 }
 
 // volatileOnRead reads the same item three times, spaced by an interval, and observes
 // which fields differ.
@@ -134,9 +132,9 @@ func (listShape) Cost(Subject) int { return 1 }
 // the prober created itself, where nothing else has a reason to touch it.
 type volatileOnRead struct{}
 
-func (volatileOnRead) Name() string     { return "read.volatile" }
-func (volatileOnRead) Kind() Kind       { return KindRead }
-func (volatileOnRead) Cost(Subject) int { return 3 }
+func (volatileOnRead) Name() string   { return "read.volatile" }
+func (volatileOnRead) Kind() Kind     { return KindRead }
+func (volatileOnRead) Cost(Scope) int { return 3 }
 
 // errorEnvelope sends one deliberately malformed read -- a typed query parameter given a
 // bad value -- and observes which error shape comes back for which status.
@@ -152,9 +150,9 @@ func (volatileOnRead) Cost(Subject) int { return 3 }
 // is scoped to the status actually observed rather than generalised.
 type errorEnvelope struct{}
 
-func (errorEnvelope) Name() string     { return "read.error-envelope" }
-func (errorEnvelope) Kind() Kind       { return KindRead }
-func (errorEnvelope) Cost(Subject) int { return 1 }
+func (errorEnvelope) Name() string   { return "read.error-envelope" }
+func (errorEnvelope) Kind() Kind     { return KindRead }
+func (errorEnvelope) Cost(Scope) int { return 1 }
 
 // returnedOnReadWeak reads one item and notes which of the schema's JSON paths are absent.
 //
@@ -170,9 +168,9 @@ func (errorEnvelope) Cost(Subject) int { return 1 }
 // merged. Its output is a prompt to look, not a conclusion.
 type returnedOnReadWeak struct{}
 
-func (returnedOnReadWeak) Name() string     { return "read.returned-weak" }
-func (returnedOnReadWeak) Kind() Kind       { return KindRead }
-func (returnedOnReadWeak) Cost(Subject) int { return 1 }
+func (returnedOnReadWeak) Name() string   { return "read.returned-weak" }
+func (returnedOnReadWeak) Kind() Kind     { return KindRead }
+func (returnedOnReadWeak) Cost(Scope) int { return 1 }
 
 // ---------------------------------------------------------------------------
 // Mutating tier
@@ -199,19 +197,17 @@ type requiredByAPI struct{}
 func (requiredByAPI) Name() string { return "write.required" }
 func (requiredByAPI) Kind() Kind   { return KindMutating }
 
-// Cost is one create for the baseline plus one per omittable field, per fixture.
-func (requiredByAPI) Cost(
-	s Subject,
-) int {
-	return fixtureMultiplier(s) * (1 + len(s.WritableFields()))
-}
+// Cost is one create for the baseline plus one per key the fixture sets, per fixture.
+//
+// The domain is the fixture's *own* keys, not every writable field. Omitting a field the fixture
+// never set is not an experiment -- the baseline already omitted it -- and counting those was most
+// of why the unnarrowed catalogue asked for 226 creates against a cap of 25.
+func (requiredByAPI) Cost(sc Scope) int { return omissionCreates(sc) }
 
 // Creates matches Cost: every request in this probe is a create.
-func (requiredByAPI) Creates(s Subject) int {
-	return fixtureMultiplier(s) * (1 + len(s.WritableFields()))
-}
+func (requiredByAPI) Creates(sc Scope) int { return omissionCreates(sc) }
 
-func (requiredByAPI) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+func (requiredByAPI) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
 	return Result{}, errNotImplemented
 }
 
@@ -235,10 +231,16 @@ func (readYourWrites) Name() string { return "write.read-your-writes" }
 func (readYourWrites) Kind() Kind   { return KindMutating }
 
 // Nearly free: the first read after a create is one this probe would be doing anyway.
-func (readYourWrites) Cost(s Subject) int    { return fixtureMultiplier(s) * 4 }
-func (readYourWrites) Creates(s Subject) int { return fixtureMultiplier(s) }
+// Cost is nothing at all: this probe reports the consistency window the session already
+// measured when reading back the objects other probes created.
+//
+// Zero rather than a create of its own, because a probe that created an object purely to time how
+// long it took to appear would be spending the scarcest budget there is to learn something every
+// other mutating probe learns for free.
+func (readYourWrites) Cost(Scope) int    { return 0 }
+func (readYourWrites) Creates(Scope) int { return 0 }
 
-func (readYourWrites) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+func (readYourWrites) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
 	return Result{}, errNotImplemented
 }
 
@@ -264,10 +266,14 @@ func (writableAndReturned) Name() string { return "write.writable-returned" }
 func (writableAndReturned) Kind() Kind   { return KindMutating }
 
 // One create plus a bare read plus one read per expansion.
-func (writableAndReturned) Cost(s Subject) int    { return fixtureMultiplier(s) * 4 }
-func (writableAndReturned) Creates(s Subject) int { return fixtureMultiplier(s) }
+// Cost is one create, read, expansion read and delete per fixture.
+//
+// Per fixture rather than per field: one create carrying every sendable field observes all of
+// them at once, which is the whole reason this probe gates the others.
+func (writableAndReturned) Cost(sc Scope) int    { return fixtureCount(sc) * 4 }
+func (writableAndReturned) Creates(sc Scope) int { return fixtureCount(sc) }
 
-func (writableAndReturned) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+func (writableAndReturned) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
 	return Result{}, errNotImplemented
 }
 
@@ -291,21 +297,15 @@ type updateStyle struct{}
 func (updateStyle) Name() string { return "write.update-style" }
 func (updateStyle) Kind() Kind   { return KindMutating }
 
-func (updateStyle) Cost(s Subject) int {
-	if s.Update == nil {
-		return 0
-	}
-	return 4
-}
+// Cost is one create, then a full update, a partial update and a null update, each followed by a
+// read, then a delete.
+func (updateStyle) Cost(sc Scope) int { return needsUpdate(sc, withFixture(sc, 9)) }
 
-func (updateStyle) Creates(s Subject) int {
-	if s.Update == nil {
-		return 0
-	}
-	return 1
-}
+// Creates is one: the three update shapes are all exercised against the same object, because the
+// question is what an update does rather than what a create does.
+func (updateStyle) Creates(sc Scope) int { return needsUpdate(sc, withFixture(sc, 1)) }
 
-func (updateStyle) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+func (updateStyle) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
 	return Result{}, errNotImplemented
 }
 
@@ -335,10 +335,21 @@ func (serverDefault) Kind() Kind   { return KindMutating }
 
 // The most expensive probe in the catalogue: five creates and five reads per candidate
 // field. Worth every request, because this is the guess sitting in the committed blueprint.
-func (serverDefault) Cost(s Subject) int    { return 10 * len(s.WritableFields()) }
-func (serverDefault) Creates(s Subject) int { return 5 * len(s.WritableFields()) }
+// Cost is three creates with their reads and deletes.
+//
+// Three, not five per field. Two byte-identical creates separate a constant default from a
+// counter, and a third with an influencer varied separates a constant from a derived one -- and
+// every one of those creates observes *every* omitted field simultaneously, because a default
+// shows up in the response body whether or not this probe was looking for it. The fourth step the
+// catalogue describes, sending a value to check the field is writable at all, is already performed
+// by write.writable, which runs first.
+//
+// The original 5 x fields was 32% of the whole catalogue's cost and most of it was re-observing
+// the same three responses.
+func (serverDefault) Cost(sc Scope) int    { return withFixture(sc, 9) }
+func (serverDefault) Creates(sc Scope) int { return withFixture(sc, 3) }
 
-func (serverDefault) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+func (serverDefault) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
 	return Result{}, errNotImplemented
 }
 
@@ -369,22 +380,20 @@ type immutability struct{}
 func (immutability) Name() string { return "write.immutability" }
 func (immutability) Kind() Kind   { return KindMutating }
 
-func (immutability) Cost(s Subject) int {
-	if s.Update == nil {
-		return 0
-	}
-	// Six requests per candidate field, doubled for corroboration.
-	return 12 * len(s.WritableFields())
-}
+// Cost is, per candidate field: two creates, a control update, the real update, two reads and two
+// deletes.
+//
+// The domain is Scope.Immutable(), which is the fields with *two or more* candidate values. That
+// is not a convenience -- Immutable=true requires Corroborated, which needs two distinct proven
+// values, so a field with one candidate cannot reach the confidence the fact demands and probing
+// it would produce nothing but a note.
+func (immutability) Cost(sc Scope) int { return needsUpdate(sc, 8*immutabilityFields(sc)) }
 
-func (immutability) Creates(s Subject) int {
-	if s.Update == nil {
-		return 0
-	}
-	return 4 * len(s.WritableFields())
-}
+// Creates is two per candidate field: the object under test, and the control that proves the
+// second value is acceptable at all.
+func (immutability) Creates(sc Scope) int { return needsUpdate(sc, 2*immutabilityFields(sc)) }
 
-func (immutability) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+func (immutability) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
 	return Result{}, errNotImplemented
 }
 
@@ -420,10 +429,16 @@ type enumBoundary struct{}
 func (enumBoundary) Name() string { return "write.enum" }
 func (enumBoundary) Kind() Kind   { return KindMutating }
 
-func (enumBoundary) Cost(s Subject) int    { return 2 * enumValueCount(s) }
-func (enumBoundary) Creates(s Subject) int { return enumValueCount(s) }
+// Cost is a create and a delete per value tried: every documented value, plus two generated
+// negatives per enum field.
+func (enumBoundary) Cost(sc Scope) int { return 2 * enumValueCount(sc) }
 
-func (enumBoundary) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+// Creates is one per value tried. A rejected value creates nothing, so this is the worst case in
+// which the API accepts everything -- which is exactly the case that produces the interesting
+// fact, that the enum is not closed.
+func (enumBoundary) Creates(sc Scope) int { return enumValueCount(sc) }
+
+func (enumBoundary) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
 	return Result{}, errNotImplemented
 }
 
@@ -447,10 +462,12 @@ type writeSideEffect struct{}
 func (writeSideEffect) Name() string { return "write.side-effect" }
 func (writeSideEffect) Kind() Kind   { return KindMutating }
 
-func (writeSideEffect) Cost(s Subject) int    { return fixtureMultiplier(s) * 4 }
-func (writeSideEffect) Creates(s Subject) int { return fixtureMultiplier(s) * 2 }
+// Cost is a pair of creates -- one with the trigger field, one without -- plus their reads and
+// deletes. A pair rather than per field, because the comparison is between two whole objects.
+func (writeSideEffect) Cost(sc Scope) int    { return withFixture(sc, 8) }
+func (writeSideEffect) Creates(sc Scope) int { return withFixture(sc, 2) }
 
-func (writeSideEffect) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+func (writeSideEffect) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
 	return Result{}, errNotImplemented
 }
 
@@ -476,10 +493,23 @@ func (normalisation) Name() string { return "write.normalisation" }
 func (normalisation) Kind() Kind   { return KindMutating }
 
 // Three awkward values per writable string field, each needing a create and a read.
-func (normalisation) Cost(s Subject) int    { return 6 * stringFieldCount(s) }
-func (normalisation) Creates(s Subject) int { return 3 * stringFieldCount(s) }
+// Cost is one create, read and delete per awkward value, with every string field carrying that
+// value at once.
+//
+// Grouped by transform rather than by field: whether the server trims whitespace is a property of
+// the server far more often than of one field, and one create carrying "  padded  " in every
+// string field observes all of them together. Per field per value was 3 x fields creates for an
+// answer that is nearly always uniform.
+func (normalisation) Cost(sc Scope) int    { return withFixture(sc, 3*len(normalisationValues)) }
+func (normalisation) Creates(sc Scope) int { return withFixture(sc, len(normalisationValues)) }
 
-func (normalisation) Exercise(context.Context, *MutatingSession, Subject) (Result, error) {
+// normalisationValues are the awkward values sent, one create each.
+//
+// Each one isolates a different transform, and each is a shape a practitioner will really write:
+// surrounding whitespace, mixed case, and a list whose order is not sorted.
+var normalisationValues = []string{"  padded  ", "MiXeDcAsE", "b,a,c"}
+
+func (normalisation) Exercise(context.Context, *MutatingSession, Scope) (Result, error) {
 	return Result{}, errNotImplemented
 }
 
@@ -487,34 +517,80 @@ func (normalisation) Exercise(context.Context, *MutatingSession, Subject) (Resul
 // Cost helpers
 // ---------------------------------------------------------------------------
 
-// fixtureMultiplier is how many times a probe repeats for corroboration.
+// immutabilityFields is how many fields the immutability protocol will exercise.
 //
-// Two rather than one, because corroboration across independent fixtures is what
-// distinguishes Observed from Corroborated, and Corroborated is required for the two facts
-// that can break a practitioner's configuration. Costing for one would make every budget
-// wrong by half.
-func fixtureMultiplier(Subject) int { return 2 }
+// With a plan it is the fields carrying two or more candidates, which is precise. Without one it
+// is every sendable field, because an operator has not yet said which are worth probing and the
+// honest worst case is "any of them". Reporting zero unplanned would tell an operator the most
+// expensive probe in the catalogue is free.
+func immutabilityFields(sc Scope) int {
+	if !sc.Planned {
+		return len(sc.Sendable())
+	}
+
+	return len(sc.Immutable())
+}
+
+// needsUpdate zeroes a cost for a resource with no update operation.
+//
+// Not an optimisation: a probe that cannot run costs nothing, and reporting its nominal cost would
+// overstate the budget for every resource the API only lets you create and delete.
+func needsUpdate(sc Scope, cost int) int {
+	if sc.Subject.Update == nil {
+		return 0
+	}
+
+	return cost
+}
+
+// fixtureCount is how many fixture variants a probe will run.
+//
+// One when no plan was supplied, so an unplanned -list reports the cost of the smallest real run
+// rather than zero -- a catalogue that costs nothing because nobody supplied a plan is a figure
+// an operator cannot budget against.
+func fixtureCount(sc Scope) int {
+	if n := len(sc.Fixtures()); n > 0 {
+		return n
+	}
+
+	return 1
+}
+
+// withFixture scales a per-fixture cost.
+func withFixture(sc Scope, perFixture int) int { return fixtureCount(sc) * perFixture }
+
+// omissionCreates counts the requiredness protocol's creates: a baseline plus one omission per key
+// the fixture actually sets.
+func omissionCreates(sc Scope) int {
+	if !sc.Planned {
+		// No fixture, so no keys are known. The unnarrowed worst case is every sendable field,
+		// which is what -list should report rather than a small number that means nothing.
+		return 1 + len(sc.Sendable())
+	}
+
+	total := 0
+	for _, f := range sc.Fixtures() {
+		total += 1 + len(sc.Omittable(f))
+	}
+
+	return total
+}
 
 // stringFieldCount counts writable string fields, which are the only ones the
 // normalisation probe has awkward values for.
-func stringFieldCount(s Subject) int {
+// enumValueCount counts the values the enum protocol will send: every documented value, plus two
+// generated negatives per enum field.
+//
+// Two negatives rather than one, because a single rejection is not evidence of a closed set: an
+// API can reject one value for a reason that has nothing to do with the enum.
+func enumValueCount(sc Scope) int {
 	n := 0
-	for _, f := range s.WritableFields() {
-		if f.Kind == blueprint.KindString {
-			n++
-		}
+	for _, f := range sc.Enums() {
+		n += len(f.Enum) + negativeEnumCandidates
 	}
+
 	return n
 }
 
-// enumValueCount counts the documented enum values across the subject, plus two negative
-// candidates per enum field.
-func enumValueCount(s Subject) int {
-	n := 0
-	for _, f := range s.WritableFields() {
-		if len(f.Enum) > 0 {
-			n += len(f.Enum) + 2
-		}
-	}
-	return n
-}
+// negativeEnumCandidates is how many values outside the documented set are tried per field.
+const negativeEnumCandidates = 2

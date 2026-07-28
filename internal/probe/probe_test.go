@@ -39,8 +39,8 @@ func testSubject() Subject {
 func TestUnit_Probe_CatalogueIsWellFormed(t *testing.T) {
 	t.Parallel()
 
-	subj := testSubject()
-	entries := Catalogue(subj)
+	sc := UnplannedScope(testSubject())
+	entries := Catalogue(sc)
 
 	if len(entries) == 0 {
 		t.Fatal("the catalogue is empty")
@@ -111,12 +111,12 @@ func TestUnit_Probe_EveryProbeIsRegisteredAndUnimplemented(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	subj := testSubject()
+	sc := UnplannedScope(testSubject())
 
 	for _, p := range ReadProbes("") {
 		t.Run(p.Name(), func(t *testing.T) {
 			t.Parallel()
-			_, err := p.Observe(ctx, readOnly{}, subj)
+			_, err := p.Observe(ctx, readOnly{}, sc)
 			if !errors.Is(err, errNotImplemented) {
 				t.Errorf("Observe returned %v; an unbuilt probe must not look like one that found nothing", err)
 			}
@@ -126,7 +126,7 @@ func TestUnit_Probe_EveryProbeIsRegisteredAndUnimplemented(t *testing.T) {
 	for _, p := range MutatingProbes("") {
 		t.Run(p.Name(), func(t *testing.T) {
 			t.Parallel()
-			_, err := p.Exercise(ctx, &MutatingSession{}, subj)
+			_, err := p.Exercise(ctx, &MutatingSession{}, sc)
 			if !errors.Is(err, errNotImplemented) {
 				t.Errorf("Exercise returned %v; an unbuilt probe must not look like one that found nothing", err)
 			}
@@ -134,9 +134,12 @@ func TestUnit_Probe_EveryProbeIsRegisteredAndUnimplemented(t *testing.T) {
 	}
 }
 
-// TestUnit_Probe_CostsScaleWithTheSubject: a cost that ignores its subject is a cost
-// nobody can budget against.
-func TestUnit_Probe_CostsScaleWithTheSubject(t *testing.T) {
+// TestUnit_Probe_UnplannedCostsScaleWithTheSubject.
+//
+// With no plan there is nothing to narrow by, so the unnarrowed worst case must still scale with
+// the field count -- that figure is what tells an operator a plan is needed at all. A cost that
+// ignored its subject would report the same total for a two-field resource and a forty-field one.
+func TestUnit_Probe_UnplannedCostsScaleWithTheSubject(t *testing.T) {
 	t.Parallel()
 
 	small := testSubject()
@@ -149,8 +152,8 @@ func TestUnit_Probe_CostsScaleWithTheSubject(t *testing.T) {
 		})
 	}
 
-	smallReq, smallCreates := TotalCost(small, "")
-	largeReq, largeCreates := TotalCost(large, "")
+	smallReq, smallCreates := TotalCost(UnplannedScope(small), "")
+	largeReq, largeCreates := TotalCost(UnplannedScope(large), "")
 
 	if largeReq <= smallReq {
 		t.Errorf("more writable fields should cost more requests: %d vs %d", largeReq, smallReq)
@@ -170,8 +173,8 @@ func TestUnit_Probe_CostsDropWhenAnOperationIsAbsent(t *testing.T) {
 	without.Update = nil
 
 	for _, name := range []string{"write.immutability", "write.update-style"} {
-		withCost, _ := TotalCost(with, name)
-		withoutCost, _ := TotalCost(without, name)
+		withCost, _ := TotalCost(UnplannedScope(with), name)
+		withoutCost, _ := TotalCost(UnplannedScope(without), name)
 
 		if withCost == 0 {
 			t.Errorf("%s should cost something when update exists", name)
@@ -222,7 +225,7 @@ func TestUnit_Probe_EveryProbeDocumentsHowItCanBeWrong(t *testing.T) {
 
 	src := catalogueSource(t)
 
-	for _, e := range Catalogue(testSubject()) {
+	for _, e := range Catalogue(UnplannedScope(testSubject())) {
 		// The type name is the identifier registered in init(); find its doc comment by
 		// locating the "type <name> struct" declaration and reading backwards.
 		typeName, ok := typeNameFor(src, e.Name)
