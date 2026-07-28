@@ -43,7 +43,7 @@ func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, 
 	return diags
 {{- end }}
 }
-{{ range .State.Nested }}
+{{ range .State.NestedObject }}
 // {{ .FuncName }} converts SDK structs into the framework value state holds.
 {{- if .IsCollection }}
 func {{ .FuncName }}(ctx context.Context, in []{{ .SDKType }}) ({{ .FrameworkType }}, diag.Diagnostics) {

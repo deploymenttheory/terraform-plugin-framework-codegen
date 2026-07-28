@@ -10,12 +10,12 @@ import (
 
 func nestedAttr(kind blueprint.TypeKind, children ...blueprint.Attribute) blueprint.Attribute {
 	return blueprint.Attribute{
-		Name:     "assignments",
-		GoField:  "Assignments",
-		Presence: blueprint.ComputedOptional,
+		Name:                     "assignments",
+		GoField:                  "Assignments",
+		ComputedOptionalRequired: blueprint.ComputedOptional,
 		Type: blueprint.AttrType{
 			Kind: kind,
-			Nested: &blueprint.Nested{
+			NestedObject: &blueprint.NestedAttributeObject{
 				GoTypeName:    "TagAssignmentModel",
 				SDKType:       "tags.Assignment",
 				AttrTypesVar:  "tagAssignmentAttrTypes",
@@ -35,10 +35,10 @@ func nestedAttr(kind blueprint.TypeKind, children ...blueprint.Attribute) bluepr
 
 func scalarChild(name, goField string) blueprint.Attribute {
 	return blueprint.Attribute{
-		Name:     name,
-		GoField:  goField,
-		Presence: blueprint.Required,
-		Type:     blueprint.AttrType{Kind: blueprint.KindString},
+		Name:                     name,
+		GoField:                  goField,
+		ComputedOptionalRequired: blueprint.Required,
+		Type:                     blueprint.AttrType{Kind: blueprint.KindString},
 		Wire: blueprint.WireBinding{
 			SDKField: goField,
 			Expand:   &blueprint.ConvertCall{Func: "convert.FrameworkToPtrString"},
@@ -160,7 +160,7 @@ func TestUnit_Render_FallibleChildMakesTheHelperFallible(t *testing.T) {
 	t.Parallel()
 
 	fallible := scalarChild("values", "Values")
-	fallible.Type = blueprint.AttrType{Kind: blueprint.KindSet, Elem: &blueprint.AttrType{Kind: blueprint.KindString}}
+	fallible.Type = blueprint.AttrType{Kind: blueprint.KindSet, ElementType: &blueprint.AttrType{Kind: blueprint.KindString}}
 	fallible.Wire.Expand = &blueprint.ConvertCall{
 		Func: "convert.FrameworkSetToStringSlice", NeedsCtx: true, ReturnsError: true,
 	}
@@ -194,12 +194,12 @@ func TestUnit_Render_AttrTypeExpr(t *testing.T) {
 		{"bool", blueprint.AttrType{Kind: blueprint.KindBool}, "types.BoolType"},
 		{
 			"set of strings",
-			blueprint.AttrType{Kind: blueprint.KindSet, Elem: &blueprint.AttrType{Kind: blueprint.KindString}},
+			blueprint.AttrType{Kind: blueprint.KindSet, ElementType: &blueprint.AttrType{Kind: blueprint.KindString}},
 			"types.SetType{ElemType: types.StringType}",
 		},
 		{
 			"list of int64",
-			blueprint.AttrType{Kind: blueprint.KindList, Elem: &blueprint.AttrType{Kind: blueprint.KindInt64}},
+			blueprint.AttrType{Kind: blueprint.KindList, ElementType: &blueprint.AttrType{Kind: blueprint.KindInt64}},
 			"types.ListType{ElemType: types.Int64Type}",
 		},
 	}

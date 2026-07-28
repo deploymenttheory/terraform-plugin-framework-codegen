@@ -317,7 +317,7 @@ func TestUnit_Naming_SafeIdentifier_AvoidsShadowingImports(t *testing.T) {
 
 	// Ordinary names must pass through untouched, or every generated variable
 	// would carry a pointless suffix.
-	for _, in := range []string{"tagID", "displayName", "filters", "colour"} {
+	for _, in := range []string{"tagID", "displayName", "filters", "color"} {
 		t.Run("unchanged/"+in, func(t *testing.T) {
 			t.Parallel()
 			if got := SafeIdentifier(in); got != in {

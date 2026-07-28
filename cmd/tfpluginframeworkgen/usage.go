@@ -7,7 +7,7 @@ import (
 )
 
 const usageHeader = `tfpluginframeworkgen generates terraform-plugin-framework providers from an API
-specification plus recorded API behaviour.
+specification plus recorded API behavior.
 
 Usage:
 

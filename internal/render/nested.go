@@ -25,7 +25,7 @@ func nestedShapes(r blueprint.Resource) ([]nestedShape, error) {
 		if a.Drop || !a.Type.Kind.IsNested() {
 			continue
 		}
-		if a.Type.Nested == nil {
+		if a.Type.NestedObject == nil {
 			return nil, &ErrUnsupported{
 				What: fmt.Sprintf("attribute %q of resource %q", a.Name, r.Key),
 				Why:  "a nested kind needs a nested object shape",
@@ -34,11 +34,11 @@ func nestedShapes(r blueprint.Resource) ([]nestedShape, error) {
 
 		// Depth is checked here rather than while rendering, so the error names the
 		// attribute instead of surfacing as a confusing type mismatch later.
-		if err := checkDepth(r.Key, a.Name, *a.Type.Nested, 1); err != nil {
+		if err := checkDepth(r.Key, a.Name, *a.Type.NestedObject, 1); err != nil {
 			return nil, err
 		}
 
-		out = append(out, nestedShape{attr: a, nested: *a.Type.Nested})
+		out = append(out, nestedShape{attr: a, nested: *a.Type.NestedObject})
 	}
 
 	return out, nil
@@ -46,10 +46,10 @@ func nestedShapes(r blueprint.Resource) ([]nestedShape, error) {
 
 type nestedShape struct {
 	attr   blueprint.Attribute
-	nested blueprint.Nested
+	nested blueprint.NestedAttributeObject
 }
 
-func checkDepth(resourceKey, path string, n blueprint.Nested, depth int) error {
+func checkDepth(resourceKey, path string, n blueprint.NestedAttributeObject, depth int) error {
 	for _, child := range n.Attributes {
 		if child.Drop || !child.Type.Kind.IsNested() {
 			continue
@@ -61,8 +61,13 @@ func checkDepth(resourceKey, path string, n blueprint.Nested, depth int) error {
 					"flatten the shape or extend the emitter deliberately", depth+1, maxNestDepth),
 			}
 		}
-		if child.Type.Nested != nil {
-			if err := checkDepth(resourceKey, path+"."+child.Name, *child.Type.Nested, depth+1); err != nil {
+		if child.Type.NestedObject != nil {
+			if err := checkDepth(
+				resourceKey,
+				path+"."+child.Name,
+				*child.Type.NestedObject,
+				depth+1,
+			); err != nil {
 				return err
 			}
 		}
@@ -72,7 +77,7 @@ func checkDepth(resourceKey, path string, n blueprint.Nested, depth int) error {
 
 // nestedAttributeDecl renders a nested attribute's schema declaration.
 func nestedAttributeDecl(a blueprint.Attribute, imports *importSet) (string, error) {
-	n := a.Type.Nested
+	n := a.Type.NestedObject
 
 	var children []string
 	for _, child := range n.Attributes {
@@ -106,7 +111,9 @@ func nestedAttributeDecl(a blueprint.Attribute, imports *importSet) (string, err
 		}
 		b.WriteString("},\n")
 	} else {
-		b.WriteString("NestedObject: schema.NestedAttributeObject{\nAttributes: map[string]schema.Attribute{\n")
+		b.WriteString(
+			"NestedObject: schema.NestedAttributeObject{\nAttributes: map[string]schema.Attribute{\n",
+		)
 		for _, c := range children {
 			fmt.Fprintf(&b, "%s,\n", c)
 		}
@@ -145,7 +152,10 @@ func nestedModelView(s nestedShape) (NestedModelView, error) {
 				Why:  fmt.Sprintf("type kind %q has no model mapping", child.Type.Kind),
 			}
 		}
-		v.Fields = append(v.Fields, fmt.Sprintf("%s %s `tfsdk:%q`", child.GoField, modelType, child.Name))
+		v.Fields = append(
+			v.Fields,
+			fmt.Sprintf("%s %s `tfsdk:%q`", child.GoField, modelType, child.Name),
+		)
 
 		attrType, err := attrTypeExpr(child.Type)
 		if err != nil {
@@ -166,10 +176,10 @@ func attrTypeExpr(t blueprint.AttrType) (string, error) {
 
 	switch t.Kind {
 	case blueprint.KindList, blueprint.KindSet:
-		if t.Elem == nil {
+		if t.ElementType == nil {
 			return "", &ErrUnsupported{What: "collection", Why: "no element type"}
 		}
-		elem, err := attrTypeExpr(*t.Elem)
+		elem, err := attrTypeExpr(*t.ElementType)
 		if err != nil {
 			return "", err
 		}
@@ -180,10 +190,10 @@ func attrTypeExpr(t blueprint.AttrType) (string, error) {
 		return fmt.Sprintf("types.%s{ElemType: %s}", container, elem), nil
 
 	case blueprint.KindMap:
-		if t.Elem == nil {
+		if t.ElementType == nil {
 			return "", &ErrUnsupported{What: "map", Why: "no element type"}
 		}
-		elem, err := attrTypeExpr(*t.Elem)
+		elem, err := attrTypeExpr(*t.ElementType)
 		if err != nil {
 			return "", err
 		}

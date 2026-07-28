@@ -1,0 +1,34 @@
+{
+  "id": "060-put-v7-tags-c34570f8-644a-431f-a90b-d38537b4e1e2",
+  "seq": 60,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tags/c34570f8-644a-431f-a90b-d38537b4e1e2",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "all",
+      "key": "tfpfgen-probe-write-immutability-5",
+      "objectType": "dashboard",
+      "value": "probe"
+    }
+  },
+  "response": {
+    "status": 409,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Cannot update ObjectType. Original 'test' and new 'dashboard' objectType",
+      "error": "Conflict",
+      "path": "/v7/tags/c34570f8-644a-431f-a90b-d38537b4e1e2",
+      "status": 409,
+      "timestamp": 1785269494530,
+      "title": "Resource already exists"
+    },
+    "droppedHeaders": 14
+  }
+}

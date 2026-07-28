@@ -95,7 +95,7 @@ func hintFor(err *client.APIError, op Operation) string {
 			"An object can be invisible rather than absent if account_group_id is wrong."
 
 	case http.StatusTooManyRequests:
-		return "The organisation's rate limit was exhausted. The SDK retries these " +
+		return "The organization's rate limit was exhausted. The SDK retries these " +
 			"automatically, so reaching this error means the limit stayed exhausted for " +
 			"the whole retry budget; reduce parallelism with -parallelism."
 

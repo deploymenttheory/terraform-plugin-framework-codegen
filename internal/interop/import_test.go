@@ -75,18 +75,18 @@ type schemaSlice struct {
 }
 
 type attrSlice struct {
-	Name                string
-	Kind                blueprint.TypeKind
-	Presence            blueprint.Presence
-	Sensitive           bool
-	MarkdownDescription string
-	DeprecationMessage  string
-	Validators          []blueprint.CustomCode
-	PlanModifiers       []blueprint.CustomCode
-	Default             *blueprint.Default
-	ElemKind            blueprint.TypeKind
-	SDKType             string
-	Nested              []attrSlice
+	Name                     string
+	Kind                     blueprint.TypeKind
+	ComputedOptionalRequired blueprint.ComputedOptionalRequired
+	Sensitive                bool
+	MarkdownDescription      string
+	DeprecationMessage       string
+	Validators               []blueprint.CustomCode
+	PlanModifiers            []blueprint.CustomCode
+	Default                  *blueprint.Default
+	ElemKind                 blueprint.TypeKind
+	SDKType                  string
+	NestedObject             []attrSlice
 }
 
 func schemaSliceOf(r blueprint.Resource) schemaSlice {
@@ -108,24 +108,24 @@ func attrSlicesOf(in []blueprint.Attribute) []attrSlice {
 		s := attrSlice{
 			Name: a.Name,
 			// int32 and float32 widen on export and cannot come back, so the
-			// expectation is normalised the same way rather than pretending
+			// expectation is normalized the same way rather than pretending
 			// otherwise.
-			Kind:                widen(a.Type.Kind),
-			Presence:            a.Presence,
-			Sensitive:           a.Sensitive,
-			MarkdownDescription: a.MarkdownDescription,
-			DeprecationMessage:  a.DeprecationMessage,
-			Validators:          a.Validators,
-			PlanModifiers:       a.PlanModifiers,
-			Default:             normaliseDefault(a.Default, widen(a.Type.Kind)),
+			Kind:                     widen(a.Type.Kind),
+			ComputedOptionalRequired: a.ComputedOptionalRequired,
+			Sensitive:                a.Sensitive,
+			MarkdownDescription:      a.MarkdownDescription,
+			DeprecationMessage:       a.DeprecationMessage,
+			Validators:               a.Validators,
+			PlanModifiers:            a.PlanModifiers,
+			Default:                  normalizeDefault(a.Default, widen(a.Type.Kind)),
 		}
 
-		if a.Type.Elem != nil {
-			s.ElemKind = widen(a.Type.Elem.Kind)
+		if a.Type.ElementType != nil {
+			s.ElemKind = widen(a.Type.ElementType.Kind)
 		}
-		if a.Type.Nested != nil {
-			s.SDKType = a.Type.Nested.SDKType
-			s.Nested = attrSlicesOf(a.Type.Nested.Attributes)
+		if a.Type.NestedObject != nil {
+			s.SDKType = a.Type.NestedObject.SDKType
+			s.NestedObject = attrSlicesOf(a.Type.NestedObject.Attributes)
 		}
 
 		out = append(out, s)
@@ -145,13 +145,13 @@ func widen(k blueprint.TypeKind) blueprint.TypeKind {
 	}
 }
 
-// normaliseDefault rewrites a static literal into the form an import produces.
+// normalizeDefault rewrites a static literal into the form an import produces.
 //
 // A raw string literal exports and re-imports as an interpreted one -- `devices`
 // becomes "devices" -- because the official format carries the value, not the
-// syntax. That is a real and acceptable difference, so the expectation is normalised
+// syntax. That is a real and acceptable difference, so the expectation is normalized
 // rather than the code being made to preserve backticks it cannot see.
-func normaliseDefault(d *blueprint.Default, kind blueprint.TypeKind) *blueprint.Default {
+func normalizeDefault(d *blueprint.Default, kind blueprint.TypeKind) *blueprint.Default {
 	if d == nil || d.Static == nil {
 		return d
 	}
@@ -517,8 +517,8 @@ func TestUnit_Interop_ImportConvertsBlocks(t *testing.T) {
 			}
 			// A block has no presence upstream; optional is the only choice that
 			// neither forces the practitioner to write it nor forbids them.
-			if a.Presence != blueprint.Optional {
-				t.Errorf("%s: presence = %q, want optional", a.Name, a.Presence)
+			if a.ComputedOptionalRequired != blueprint.Optional {
+				t.Errorf("%s: presence = %q, want optional", a.Name, a.ComputedOptionalRequired)
 			}
 		}
 	}
@@ -740,7 +740,7 @@ func TestUnit_Interop_PresenceFromToleratesAnUnknownValue(t *testing.T) {
 
 	// Carried through rather than rejected: blueprint.Validate refuses it with a
 	// message naming the attribute, which is a better report than one from here.
-	if got := presenceFrom("telepathy"); got != blueprint.Presence("telepathy") {
+	if got := presenceFrom("telepathy"); got != blueprint.ComputedOptionalRequired("telepathy") {
 		t.Errorf("presenceFrom = %q, want it carried through", got)
 	}
 }
@@ -858,9 +858,9 @@ func TestUnit_Interop_ImportCollectionsOfCollections(t *testing.T) {
 
 	got := back.Resources[0].Attributes[0].Type
 	if got.Kind != blueprint.KindList ||
-		got.Elem == nil || got.Elem.Kind != blueprint.KindSet ||
-		got.Elem.Elem == nil || got.Elem.Elem.Kind != blueprint.KindMap ||
-		got.Elem.Elem.Elem == nil || got.Elem.Elem.Elem.Kind != blueprint.KindBool {
+		got.ElementType == nil || got.ElementType.Kind != blueprint.KindSet ||
+		got.ElementType.ElementType == nil || got.ElementType.ElementType.Kind != blueprint.KindMap ||
+		got.ElementType.ElementType.ElementType == nil || got.ElementType.ElementType.ElementType.Kind != blueprint.KindBool {
 		t.Errorf("the nested element types did not survive: %+v", got)
 	}
 }
@@ -893,7 +893,7 @@ func TestUnit_Interop_ImportEveryScalarElementType(t *testing.T) {
 				t.Fatalf("ToBlueprint: %v", err)
 			}
 
-			if got := back.Resources[0].Attributes[0].Type.Elem.Kind; got != want {
+			if got := back.Resources[0].Attributes[0].Type.ElementType.Kind; got != want {
 				t.Errorf("element kind = %q, want %q", got, want)
 			}
 		})

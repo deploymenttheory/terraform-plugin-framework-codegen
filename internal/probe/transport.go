@@ -24,7 +24,7 @@ import (
 // TestUnit_Probe_OnlyTheSessionBuildsAnHTTPClient asserts it stays that way. Every request
 // goes through here because this is where the budget is enforced, where the ledger will be
 // written, and where the read-only guarantee is real rather than aspirational. A probe with
-// its own client would bypass all three while passing every behavioural test in the package.
+// its own client would bypass all three while passing every behavioral test in the package.
 
 // httpSession is the concrete ReadSession.
 type httpSession struct {
@@ -43,7 +43,7 @@ type httpSession struct {
 	// from what the API says rather than from a guess.
 	pace *pacer
 
-	// inFlight enforces maxConcurrentLive. Not a mutex: a mutex would serialise a
+	// inFlight enforces maxConcurrentLive. Not a mutex: a mutex would serialize a
 	// concurrent probe silently, and silently is the problem. Two requests in flight at
 	// once land in a cassette in whichever order the server answered, so the recording
 	// would replay only by luck -- and the failure would surface months later as a
@@ -562,7 +562,7 @@ func (b *budgetCounter) spendFromReserve(method string) error {
 //
 // MaxDeleteFailures defaults to zero, so the first failure stops the run creating anything
 // new. Continuing to create after demonstrating you cannot clean up is the worst available
-// behaviour, which is why this is counted in the choke point and not left to a caller.
+// behavior, which is why this is counted in the choke point and not left to a caller.
 func (b *budgetCounter) recordDeleteFailure() bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()

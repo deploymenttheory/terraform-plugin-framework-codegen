@@ -80,7 +80,7 @@ type Budget struct {
 	MaxSweepSeconds int `json:"maxSweepSeconds,omitempty"`
 	// MaxDeleteFailures is deliberately defaulted to zero: the moment a delete fails,
 	// the run stops creating anything new and proceeds to sweep. Continuing to create
-	// after demonstrating you cannot clean up is the worst available behaviour.
+	// after demonstrating you cannot clean up is the worst available behavior.
 	MaxDeleteFailures int `json:"maxDeleteFailures,omitempty"`
 }
 

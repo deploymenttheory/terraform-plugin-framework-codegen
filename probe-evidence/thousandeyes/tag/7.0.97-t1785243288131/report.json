@@ -350,7 +350,7 @@
       "reason": "no grant: mutating probes need -mode record, --allow-mutations and a sandbox profile"
     },
     {
-      "name": "write.normalisation",
+      "name": "write.normalization",
       "kind": "mutating",
       "status": "skipped",
       "requests": 0,

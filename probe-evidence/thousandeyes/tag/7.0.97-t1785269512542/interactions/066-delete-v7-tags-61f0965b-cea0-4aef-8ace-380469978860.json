@@ -1,0 +1,18 @@
+{
+  "id": "066-delete-v7-tags-61f0965b-cea0-4aef-8ace-380469978860",
+  "seq": 66,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/tags/61f0965b-cea0-4aef-8ace-380469978860",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

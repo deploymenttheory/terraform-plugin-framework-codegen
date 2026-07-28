@@ -3,7 +3,7 @@
 // Real APIs routinely use more than one error shape, and a single endpoint family can use
 // several: an RFC 7807 body for validation, an OAuth pair for a bad token, a bespoke form for
 // absent credentials, and no body at all for a 404. The four handled here were each observed
-// on a live API during development, and the set is deliberately open -- an unrecognised shape
+// on a live API during development, and the set is deliberately open -- an unrecognized shape
 // classifies as EnvelopeUnknown rather than being forced into one of the others.
 //
 // It is load-bearing rather than convenience. Every mutating protocol depends on telling
@@ -46,7 +46,7 @@ const (
 	EnvelopeLegacy Envelope = "legacy"
 	// EnvelopeEmpty is no body at all, which is what a 404 answers with.
 	EnvelopeEmpty Envelope = "empty"
-	// EnvelopeUnknown is a body in none of the recognised shapes -- usually an HTML error
+	// EnvelopeUnknown is a body in none of the recognized shapes -- usually an HTML error
 	// page from a proxy rather than the API itself, which is worth knowing.
 	EnvelopeUnknown Envelope = "unknown"
 )
@@ -143,7 +143,7 @@ func Classify(status int, body []byte) Error {
 func defaultMessage(status int) string {
 	switch status {
 	case 401:
-		return "unauthorised"
+		return "unauthorized"
 	case 403:
 		return "forbidden"
 	case 404:
@@ -165,7 +165,7 @@ func defaultMessage(status int) string {
 // Matched as a sequence of whole words rather than as a substring, across the detail, message and
 // code. Two things follow, and a live run needed both.
 //
-// A field named in prose is recognised: "Invalid Access Type: qqqqqq" names accessType, and a
+// A field named in prose is recognized: "Invalid Access Type: qqqqqq" names accessType, and a
 // substring test misses it because the API spells the field with a space and a capital. Every
 // refusal of that shape was going uncounted, so a value set the API demonstrably enforces was
 // being reported as unprobed.
@@ -278,7 +278,7 @@ func containsWords(haystack, want []string) bool {
 //
 // **401 and the OAuth envelope only, deliberately not 403.** A 401 means the credential was
 // not accepted, which is unambiguous. A 403 means this request was not permitted, which is a
-// different claim: many APIs use it for per-object authorisation, and some answer 403 for an
+// different claim: many APIs use it for per-object authorization, and some answer 403 for an
 // object that belongs to a tenant the credential cannot see. Treating every
 // 403 as a dead credential would abort a run that was working perfectly and had just asked
 // about something it could not see -- and it would discard the observation that the API hides

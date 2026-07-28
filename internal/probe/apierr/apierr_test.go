@@ -151,13 +151,13 @@ func TestUnit_Apierr_Names(t *testing.T) {
 	named := Classify(400, []byte(`{"title":"cannot modify","detail":"objectType"}`))
 
 	if !named.Names("objectType") {
-		t.Error("a detail naming the field should be recognised")
+		t.Error("a detail naming the field should be recognized")
 	}
 	// Case-insensitive, because APIs are inconsistent about it.
 	if !named.Names("OBJECTTYPE") {
 		t.Error("matching should be case-insensitive")
 	}
-	if named.Names("colour") {
+	if named.Names("color") {
 		t.Error("a different field must not match")
 	}
 	// An empty field name must not match everything, which would silently upgrade every
@@ -175,7 +175,7 @@ func TestUnit_Apierr_Names(t *testing.T) {
 	// The message and code are searched too, because not every API uses detail.
 	inMessage := Classify(400, []byte(`{"title":"field key is immutable"}`))
 	if !inMessage.Names("key") {
-		t.Error("a field named in the message should be recognised")
+		t.Error("a field named in the message should be recognized")
 	}
 }
 
@@ -198,7 +198,7 @@ func TestUnit_Apierr_AuthIsNarrow(t *testing.T) {
 	forbidden := Classify(403, nil)
 	if forbidden.IsAuth() {
 		t.Error("403 must not be treated as a credential failure: many APIs use it for " +
-			"per-object authorisation, and aborting on it would discard a real observation")
+			"per-object authorization, and aborting on it would discard a real observation")
 	}
 	if !forbidden.IsForbidden() {
 		t.Error("403 should be reported as forbidden")
@@ -220,7 +220,7 @@ func TestUnit_Apierr_DefaultMessages(t *testing.T) {
 
 	// A status with no body still has to describe itself, or a report says only "error".
 	tests := map[int]string{
-		401: "unauthorised",
+		401: "unauthorized",
 		403: "forbidden",
 		404: "not found",
 		429: "rate limited",

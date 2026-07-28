@@ -24,7 +24,7 @@ import (
 // It is the same division the house draws between internal/render and
 // internal/templates: every decision happens here, and reading export_resource.go
 // should tell you the shape of the output without containing any logic to reason
-// about. It carries no JSON tags because it is never serialised, which is also why
+// about. It carries no JSON tags because it is never serialized, which is also why
 // tagliatelle has nothing to say about it.
 type prepared struct {
 	name string
@@ -82,7 +82,7 @@ type staticValue struct {
 // each one individually produces a page of identical lines: the pilot alone yields
 // twenty-two "goField has no counterpart" notes and twenty-four for wire. That
 // buries the losses a reader actually has to think about -- a coarsened int32, a
-// populated Behaviour, an unrepresentable default -- which are selective and stay
+// populated Behavior, an unrepresentable default -- which are selective and stay
 // addressed per attribute. So the uniform ones are counted here and reported once
 // per resource with the count.
 type attrLosses struct {
@@ -95,7 +95,13 @@ type attrLosses struct {
 // forResource controls whether plan modifiers and defaults are carried: the
 // datasource package has neither field, because a data source is read-only and
 // neither concept applies to it.
-func prepare(a blueprint.Attribute, path string, forResource bool, r *Report, acc *attrLosses) (prepared, error) {
+func prepare(
+	a blueprint.Attribute,
+	path string,
+	forResource bool,
+	r *Report,
+	acc *attrLosses,
+) (prepared, error) {
 	p := prepared{
 		name:        a.Name,
 		description: strPtr(a.MarkdownDescription),
@@ -103,7 +109,7 @@ func prepare(a blueprint.Attribute, path string, forResource bool, r *Report, ac
 		sensitive:   boolPtr(a.Sensitive),
 	}
 
-	presence, err := presenceOf(a.Presence)
+	presence, err := presenceOf(a.ComputedOptionalRequired)
 	if err != nil {
 		return prepared{}, fmt.Errorf("%s.presence: %w", path, err)
 	}
@@ -112,7 +118,7 @@ func prepare(a blueprint.Attribute, path string, forResource bool, r *Report, ac
 	p.kind = coarsen(a.Type.Kind, path, r)
 
 	// The uniform losses are counted for one aggregate note per resource; the
-	// selective ones are addressed here. Behaviour in particular must be reported
+	// selective ones are addressed here. Behavior in particular must be reported
 	// only when populated: an unprobed blueprint would otherwise produce a note per
 	// attribute saying nothing was observed.
 	if a.GoField != "" {
@@ -121,8 +127,8 @@ func prepare(a blueprint.Attribute, path string, forResource bool, r *Report, ac
 	if a.Wire != (blueprint.WireBinding{}) {
 		acc.wire++
 	}
-	if a.Behaviour != (blueprint.Behaviour{}) {
-		r.note("behaviour", path+".behaviour")
+	if a.Behavior != (blueprint.Behavior{}) {
+		r.note("behavior", path+".behavior")
 	}
 
 	for _, v := range a.Validators {
@@ -140,8 +146,12 @@ func prepare(a blueprint.Attribute, path string, forResource bool, r *Report, ac
 			})
 		}
 	} else if len(a.PlanModifiers) > 0 {
-		r.add(SeverityLossy, path+".planModifiers",
-			"a data source attribute has no plan modifiers in this format; %d dropped", len(a.PlanModifiers))
+		r.add(
+			SeverityLossy,
+			path+".planModifiers",
+			"a data source attribute has no plan modifiers in this format; %d dropped",
+			len(a.PlanModifiers),
+		)
 	}
 
 	if a.Default != nil {
@@ -152,14 +162,14 @@ func prepare(a blueprint.Attribute, path string, forResource bool, r *Report, ac
 
 	switch {
 	case p.kind.IsCollection():
-		elem, err := elementTypeOf(a.Type.Elem, path+".elem", r)
+		elem, err := elementTypeOf(a.Type.ElementType, path+".elem", r)
 		if err != nil {
 			return prepared{}, err
 		}
 		p.elem = elem
 
 	case p.kind.IsNested():
-		obj, err := prepareObject(a.Type.Nested, path, forResource, r, acc)
+		obj, err := prepareObject(a.Type.NestedObject, path, forResource, r, acc)
 		if err != nil {
 			return prepared{}, err
 		}
@@ -171,7 +181,12 @@ func prepare(a blueprint.Attribute, path string, forResource bool, r *Report, ac
 
 // applyDefault converts a default, refusing the combinations the format cannot
 // express rather than approximating them.
-func (p *prepared) applyDefault(a blueprint.Attribute, path string, forResource bool, r *Report) error {
+func (p *prepared) applyDefault(
+	a blueprint.Attribute,
+	path string,
+	forResource bool,
+	r *Report,
+) error {
 	if !forResource {
 		r.add(SeverityLossy, path+".default",
 			"a data source attribute has no default in this format; the default was dropped")
@@ -221,12 +236,12 @@ func coarsen(k blueprint.TypeKind, path string, r *Report) blueprint.TypeKind {
 // presenceOf maps blueprint presence onto the upstream enum.
 //
 // The four values are spelled identically in both formats, which invites a cast.
-// A cast would be wrong: it would launder an unrecognised blueprint value straight
+// A cast would be wrong: it would launder an unrecognized blueprint value straight
 // into the JSON, where the only thing standing between it and a committed document
 // is upstream's schema validation, reported as an opaque enum violation a long way
 // from the attribute that caused it. A switch with an explicit default names the
 // offender instead.
-func presenceOf(p blueprint.Presence) (schema.ComputedOptionalRequired, error) {
+func presenceOf(p blueprint.ComputedOptionalRequired) (schema.ComputedOptionalRequired, error) {
 	switch p {
 	case blueprint.Required:
 		return schema.Required, nil
@@ -267,7 +282,11 @@ func parseStatic(lit blueprint.Literal, kind blueprint.TypeKind) (*staticValue, 
 		// anything that is not a literal at all, which is exactly the line we want.
 		v, err := strconv.Unquote(lit.Raw)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %q is not a quoted string literal", ErrUnrepresentable, lit.Raw)
+			return nil, fmt.Errorf(
+				"%w: %q is not a quoted string literal",
+				ErrUnrepresentable,
+				lit.Raw,
+			)
 		}
 		return &staticValue{strVal: &v}, nil
 
@@ -286,14 +305,22 @@ func parseStatic(lit blueprint.Literal, kind blueprint.TypeKind) (*staticValue, 
 		return &staticValue{floatVal: &v}, nil
 
 	default:
-		return nil, fmt.Errorf("%w: a %s attribute has no static default in this format", ErrUnrepresentable, kind)
+		return nil, fmt.Errorf(
+			"%w: a %s attribute has no static default in this format",
+			ErrUnrepresentable,
+			kind,
+		)
 	}
 }
 
 // elementTypeOf builds the element type of a list, set or map.
 func elementTypeOf(t *blueprint.AttrType, path string, r *Report) (*schema.ElementType, error) {
 	if t == nil {
-		return nil, fmt.Errorf("%s: %w: a collection with no element type", path, ErrUnrepresentable)
+		return nil, fmt.Errorf(
+			"%s: %w: a collection with no element type",
+			path,
+			ErrUnrepresentable,
+		)
 	}
 
 	kind := coarsen(t.Kind, path, r)
@@ -311,7 +338,7 @@ func elementTypeOf(t *blueprint.AttrType, path string, r *Report) (*schema.Eleme
 		return &schema.ElementType{Number: &schema.NumberType{}}, nil
 
 	case blueprint.KindList, blueprint.KindSet, blueprint.KindMap:
-		inner, err := elementTypeOf(t.Elem, path+".elem", r)
+		inner, err := elementTypeOf(t.ElementType, path+".elem", r)
 		if err != nil {
 			return nil, err
 		}
@@ -330,12 +357,15 @@ func elementTypeOf(t *blueprint.AttrType, path string, r *Report) (*schema.Eleme
 		// description or validators. The blueprint does not produce this today --
 		// nested kinds live on the attribute, not in Elem -- so this branch exists
 		// to report rather than to panic if that changes.
-		obj, err := objectTypeOf(t.Nested, path, r)
+		obj, err := objectTypeOf(t.NestedObject, path, r)
 		if err != nil {
 			return nil, err
 		}
-		r.add(SeverityLossy, path,
-			"a nested object inside an element type becomes a plain object type, losing per-field presence and documentation")
+		r.add(
+			SeverityLossy,
+			path,
+			"a nested object inside an element type becomes a plain object type, losing per-field presence and documentation",
+		)
 		return &schema.ElementType{Object: obj}, nil
 
 	default:
@@ -344,9 +374,17 @@ func elementTypeOf(t *blueprint.AttrType, path string, r *Report) (*schema.Eleme
 }
 
 // objectTypeOf flattens a nested shape into an object type.
-func objectTypeOf(n *blueprint.Nested, path string, r *Report) (*schema.ObjectType, error) {
+func objectTypeOf(
+	n *blueprint.NestedAttributeObject,
+	path string,
+	r *Report,
+) (*schema.ObjectType, error) {
 	if n == nil {
-		return nil, fmt.Errorf("%s: %w: a nested kind with no object shape", path, ErrUnrepresentable)
+		return nil, fmt.Errorf(
+			"%s: %w: a nested kind with no object shape",
+			path,
+			ErrUnrepresentable,
+		)
 	}
 
 	out := &schema.ObjectType{}
@@ -383,9 +421,19 @@ func objectTypeOf(n *blueprint.Nested, path string, r *Report) (*schema.ObjectTy
 }
 
 // prepareObject converts a nested object shape and its children.
-func prepareObject(n *blueprint.Nested, path string, forResource bool, r *Report, acc *attrLosses) (*preparedObject, error) {
+func prepareObject(
+	n *blueprint.NestedAttributeObject,
+	path string,
+	forResource bool,
+	r *Report,
+	acc *attrLosses,
+) (*preparedObject, error) {
 	if n == nil {
-		return nil, fmt.Errorf("%s: %w: a nested kind with no object shape", path, ErrUnrepresentable)
+		return nil, fmt.Errorf(
+			"%s: %w: a nested kind with no object shape",
+			path,
+			ErrUnrepresentable,
+		)
 	}
 
 	out := &preparedObject{}
@@ -406,7 +454,13 @@ func prepareObject(n *blueprint.Nested, path string, forResource bool, r *Report
 			continue
 		}
 
-		p, err := prepare(child, fmt.Sprintf("%s.nested[%s]", path, child.Name), forResource, r, acc)
+		p, err := prepare(
+			child,
+			fmt.Sprintf("%s.nested[%s]", path, child.Name),
+			forResource,
+			r,
+			acc,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -414,7 +468,11 @@ func prepareObject(n *blueprint.Nested, path string, forResource bool, r *Report
 	}
 
 	if len(out.attrs) == 0 {
-		return nil, fmt.Errorf("%s: %w: a nested object with no attributes", path, ErrUnrepresentable)
+		return nil, fmt.Errorf(
+			"%s: %w: a nested object with no attributes",
+			path,
+			ErrUnrepresentable,
+		)
 	}
 
 	return out, nil

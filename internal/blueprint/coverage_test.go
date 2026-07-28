@@ -141,12 +141,12 @@ func TestUnit_Blueprint_LoadDirRejectsAMissingRoot(t *testing.T) {
 func TestUnit_Blueprint_ValidateNestedAttributes(t *testing.T) {
 	t.Parallel()
 
-	nested := func(mutate func(*Nested)) Attribute {
-		n := Nested{
+	nested := func(mutate func(*NestedAttributeObject)) Attribute {
+		n := NestedAttributeObject{
 			GoTypeName: "M", SDKType: "p.T", AttrTypesVar: "a", ObjectTypeVar: "o",
 			ExpandFunc: "e", FlattenFunc: "f",
 			Attributes: []Attribute{{
-				Name: "x", GoField: "X", Presence: Required,
+				Name: "x", GoField: "X", ComputedOptionalRequired: Required,
 				Type: AttrType{Kind: KindString},
 				Wire: WireBinding{Expand: &ConvertCall{Func: "e"}, Flatten: &ConvertCall{Func: "f"}},
 			}},
@@ -155,8 +155,8 @@ func TestUnit_Blueprint_ValidateNestedAttributes(t *testing.T) {
 			mutate(&n)
 		}
 		return Attribute{
-			Name: "items", GoField: "Items", Presence: Optional,
-			Type: AttrType{Kind: KindSetNested, Nested: &n},
+			Name: "items", GoField: "Items", ComputedOptionalRequired: Optional,
+			Type: AttrType{Kind: KindSetNested, NestedObject: &n},
 			Wire: WireBinding{Expand: &ConvertCall{Func: "e"}, Flatten: &ConvertCall{Func: "f"}},
 		}
 	}
@@ -169,8 +169,8 @@ func TestUnit_Blueprint_ValidateNestedAttributes(t *testing.T) {
 		{
 			name: "nested set on a scalar kind",
 			attr: Attribute{
-				Name: "x", GoField: "X", Presence: Optional,
-				Type: AttrType{Kind: KindString, Nested: &Nested{}},
+				Name: "x", GoField: "X", ComputedOptionalRequired: Optional,
+				Type: AttrType{Kind: KindString, NestedObject: &NestedAttributeObject{}},
 				Wire: WireBinding{Expand: &ConvertCall{Func: "e"}, Flatten: &ConvertCall{Func: "f"}},
 			},
 			wantPath: "nested",
@@ -178,7 +178,7 @@ func TestUnit_Blueprint_ValidateNestedAttributes(t *testing.T) {
 		{
 			name: "nested kind with no nested object",
 			attr: Attribute{
-				Name: "x", GoField: "X", Presence: Optional,
+				Name: "x", GoField: "X", ComputedOptionalRequired: Optional,
 				Type: AttrType{Kind: KindSetNested},
 				Wire: WireBinding{Expand: &ConvertCall{Func: "e"}, Flatten: &ConvertCall{Func: "f"}},
 			},
@@ -186,26 +186,26 @@ func TestUnit_Blueprint_ValidateNestedAttributes(t *testing.T) {
 		},
 		{
 			name:     "nested object with no attributes",
-			attr:     nested(func(n *Nested) { n.Attributes = nil }),
+			attr:     nested(func(n *NestedAttributeObject) { n.Attributes = nil }),
 			wantPath: "attributes",
 		},
 		{
 			name:     "nested object missing its generated names",
-			attr:     nested(func(n *Nested) { n.ExpandFunc = "" }),
+			attr:     nested(func(n *NestedAttributeObject) { n.ExpandFunc = "" }),
 			wantPath: "expandFunc",
 		},
 		{
 			name: "nested kind carrying an element type",
 			attr: func() Attribute {
 				a := nested(nil)
-				a.Type.Elem = &AttrType{Kind: KindString}
+				a.Type.ElementType = &AttrType{Kind: KindString}
 				return a
 			}(),
 			wantPath: "elem",
 		},
 		{
 			name: "duplicate names inside a nested object",
-			attr: nested(func(n *Nested) {
+			attr: nested(func(n *NestedAttributeObject) {
 				n.Attributes = append(n.Attributes, n.Attributes[0])
 			}),
 			wantPath: "used more than once",

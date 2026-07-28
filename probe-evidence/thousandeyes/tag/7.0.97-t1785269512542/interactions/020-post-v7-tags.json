@@ -1,0 +1,33 @@
+{
+  "id": "020-post-v7-tags",
+  "seq": 20,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tags",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "all",
+      "key": "tfpfgen-probe-write-required-7",
+      "value": "probe-two"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "objectType: You need to provide the objectType for the tag. It cannot be null or empty",
+      "error": "Bad Request",
+      "path": "/v7/tags",
+      "status": 400,
+      "timestamp": 1785269480457,
+      "title": "Request validation failed. There are invalid or missing fields"
+    },
+    "droppedHeaders": 14
+  }
+}

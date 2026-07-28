@@ -25,7 +25,7 @@ import (
 //
 // Because then the rules exist twice: once where the budget is checked and once where the
 // requests are issued. The day they disagree is the day a run either spends past its cap or
-// refuses work it was authorised to do.
+// refuses work it was authorized to do.
 type Scope struct {
 	// Subject is the resource, flattened to paths and JSON keys.
 	Subject Subject
@@ -47,7 +47,7 @@ type Scope struct {
 	omitted      []Field
 	immutable    []Field
 	enums        []Field
-	normalisable []Field
+	normalizable []Field
 	influencers  []Field
 	denied       map[string]bool
 }
@@ -121,7 +121,7 @@ func (sc *Scope) compute() {
 		}
 
 		if f.Kind == blueprint.KindString && !strings.Contains(f.JSONPath, ".") {
-			sc.normalisable = append(sc.normalisable, f)
+			sc.normalizable = append(sc.normalizable, f)
 		}
 	}
 
@@ -132,7 +132,7 @@ func (sc *Scope) compute() {
 	}
 
 	for _, set := range [][]Field{
-		sc.sendable, sc.omitted, sc.immutable, sc.enums, sc.normalisable, sc.influencers,
+		sc.sendable, sc.omitted, sc.immutable, sc.enums, sc.normalizable, sc.influencers,
 	} {
 		sortFields(set)
 	}
@@ -180,8 +180,8 @@ func (sc Scope) Immutable() []Field { return sc.immutable }
 // Enums is every sendable field whose specification documents a value set.
 func (sc Scope) Enums() []Field { return sc.enums }
 
-// Normalisable is every sendable top-level string field.
-func (sc Scope) Normalisable() []Field { return sc.normalisable }
+// Normalizable is every sendable top-level string field.
+func (sc Scope) Normalizable() []Field { return sc.normalizable }
 
 // Influencers is the fields whose value might determine another field's default.
 func (sc Scope) Influencers() []Field { return sc.influencers }

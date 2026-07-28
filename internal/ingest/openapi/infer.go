@@ -354,11 +354,11 @@ func attributeOf(f Field, inWrite bool, sdkPkg string) (blueprint.Attribute, str
 	goField := namingOpts.GoFieldName(f.Name)
 
 	a := blueprint.Attribute{
-		Name:                naming.TerraformName(f.Name),
-		GoField:             goField,
-		Type:                blueprint.AttrType{Kind: f.Kind},
-		Presence:            presenceOf(f, inWrite),
-		MarkdownDescription: f.Description,
+		Name:                     naming.TerraformName(f.Name),
+		GoField:                  goField,
+		Type:                     blueprint.AttrType{Kind: f.Kind},
+		ComputedOptionalRequired: presenceOf(f, inWrite),
+		MarkdownDescription:      f.Description,
 	}
 
 	if f.Deprecated {
@@ -366,7 +366,7 @@ func attributeOf(f Field, inWrite bool, sdkPkg string) (blueprint.Attribute, str
 	}
 
 	if f.Kind.IsCollection() {
-		a.Type.Elem = &blueprint.AttrType{Kind: f.ElemKind}
+		a.Type.ElementType = &blueprint.AttrType{Kind: f.ElemKind}
 	}
 
 	// Carried into the IR rather than dropped. Extracted here already and used only for a
@@ -395,7 +395,7 @@ func attributeOf(f Field, inWrite bool, sdkPkg string) (blueprint.Attribute, str
 	// A computed field is read and never sent. Marking it here is what stops the
 	// generated construct function referring to a request field that may not
 	// exist.
-	if a.Presence.IsRequired() || a.Presence.IsOptional() {
+	if a.ComputedOptionalRequired.IsRequired() || a.ComputedOptionalRequired.IsOptional() {
 		a.Wire.Expand = convertExpand
 	} else {
 		a.Wire.SkipExpand = true
@@ -411,7 +411,7 @@ func attributeOf(f Field, inWrite bool, sdkPkg string) (blueprint.Attribute, str
 // required -- deliberately not computed_optional, because claiming the API
 // supplies a default when it does not makes an attribute permanently
 // "(known after apply)". Probing promotes those later, on evidence.
-func presenceOf(f Field, inWrite bool) blueprint.Presence {
+func presenceOf(f Field, inWrite bool) blueprint.ComputedOptionalRequired {
 	switch {
 	case f.ReadOnly, !inWrite:
 		return blueprint.Computed

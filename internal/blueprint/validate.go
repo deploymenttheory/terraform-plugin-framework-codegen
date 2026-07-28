@@ -110,7 +110,11 @@ func (pr Provider) validate(p *problems) {
 	switch pr.SDK.Dialect {
 	case DialectRestyService:
 	case DialectKiotaFluent:
-		p.add("provider.sdk.dialect", "%q is reserved but not yet implemented by the emitter", pr.SDK.Dialect)
+		p.add(
+			"provider.sdk.dialect",
+			"%q is reserved but not yet implemented by the emitter",
+			pr.SDK.Dialect,
+		)
 	default:
 		p.add("provider.sdk.dialect", "%q is not a known dialect", pr.SDK.Dialect)
 	}
@@ -148,7 +152,7 @@ func (r Resource) validate(at string, p *problems) {
 		// the model silently loses an attribute.
 		dup(p, seenFields, a.GoField, aat+".goField", "model field")
 
-		if !a.Presence.IsComputed() || a.Presence.IsOptional() {
+		if !a.ComputedOptionalRequired.IsComputed() || a.ComputedOptionalRequired.IsOptional() {
 			hasWritable = true
 		}
 	}
@@ -168,13 +172,21 @@ func (r Resource) validateIDBinding(at string, names, fields map[string]bool, p 
 	if id.Attribute == "" {
 		p.add(at+".binding.id.attribute", "is required")
 	} else if !names[id.Attribute] {
-		p.add(at+".binding.id.attribute", "names attribute %q, which the resource does not declare", id.Attribute)
+		p.add(
+			at+".binding.id.attribute",
+			"names attribute %q, which the resource does not declare",
+			id.Attribute,
+		)
 	}
 
 	if id.GoField == "" {
 		p.add(at+".binding.id.goField", "is required")
 	} else if !fields[id.GoField] {
-		p.add(at+".binding.id.goField", "names model field %q, which the resource does not declare", id.GoField)
+		p.add(
+			at+".binding.id.goField",
+			"names model field %q, which the resource does not declare",
+			id.GoField,
+		)
 	}
 
 	// Only meaningful when there is a create to take an ID from.
@@ -187,19 +199,30 @@ func (r Resource) validatePolicy(at string, hasWritable bool, p *problems) {
 	switch r.Policy.UpdateStyle {
 	case UpdateMergePatch, UpdatePutFull:
 		if r.Binding.Update == nil {
-			p.add(at+".policy.updateStyle", "is %q but the resource has no update operation", r.Policy.UpdateStyle)
+			p.add(
+				at+".policy.updateStyle",
+				"is %q but the resource has no update operation",
+				r.Policy.UpdateStyle,
+			)
 		}
 	case UpdateReplaceOnly:
 		if r.Binding.Update != nil {
-			p.add(at+".policy.updateStyle", "is %q but the resource declares an update operation", r.Policy.UpdateStyle)
+			p.add(
+				at+".policy.updateStyle",
+				"is %q but the resource declares an update operation",
+				r.Policy.UpdateStyle,
+			)
 		}
 	case "":
 		// An update binding with no declared style is the dangerous gap: PUT and
 		// PATCH differ in whether an omitted field is cleared, and guessing
 		// wrong silently erases attributes the practitioner did not mention.
 		if r.Binding.Update != nil {
-			p.add(at+".policy.updateStyle", "is required when the resource has an update operation, "+
-				"because whether an omitted field is preserved or cleared cannot be guessed")
+			p.add(
+				at+".policy.updateStyle",
+				"is required when the resource has an update operation, "+
+					"because whether an omitted field is preserved or cleared cannot be guessed",
+			)
 		}
 	default:
 		p.add(at+".policy.updateStyle", "%q is not a known update style", r.Policy.UpdateStyle)
@@ -208,8 +231,11 @@ func (r Resource) validatePolicy(at string, hasWritable bool, p *problems) {
 	// A resource with no update path and no writable attribute can never be
 	// changed, which is almost always a modelling mistake rather than intent.
 	if r.Binding.Update == nil && r.Policy.UpdateStyle != UpdateReplaceOnly && hasWritable {
-		p.add(at+".policy.updateStyle", "should be %q: the resource has writable attributes but no update operation",
-			UpdateReplaceOnly)
+		p.add(
+			at+".policy.updateStyle",
+			"should be %q: the resource has writable attributes but no update operation",
+			UpdateReplaceOnly,
+		)
 	}
 }
 
@@ -221,7 +247,11 @@ func (r Resource) validateImport(at string, names map[string]bool, p *problems) 
 		case r.Import.Attribute == "":
 			p.add(at+".import.attribute", "is required for a passthrough import")
 		case !names[r.Import.Attribute]:
-			p.add(at+".import.attribute", "names attribute %q, which the resource does not declare", r.Import.Attribute)
+			p.add(
+				at+".import.attribute",
+				"names attribute %q, which the resource does not declare",
+				r.Import.Attribute,
+			)
 		}
 	default:
 		p.add(at+".import.style", "%q is not a known import style", r.Import.Style)
@@ -232,12 +262,12 @@ func (a Attribute) validate(at string, p *problems) {
 	required(p, at+".name", a.Name)
 	required(p, at+".goField", a.GoField)
 
-	switch a.Presence {
+	switch a.ComputedOptionalRequired {
 	case Required, Optional, Computed, ComputedOptional:
 	case "":
 		p.add(at+".presence", "is required")
 	default:
-		p.add(at+".presence", "%q is not a known presence", a.Presence)
+		p.add(at+".presence", "%q is not a known presence", a.ComputedOptionalRequired)
 	}
 
 	a.Type.validate(at+".type", p)
@@ -245,8 +275,12 @@ func (a Attribute) validate(at string, p *problems) {
 	// A default only takes effect on an attribute Terraform may fill in, so one
 	// on a purely required or optional attribute is silently dead configuration.
 	if a.Default != nil {
-		if !a.Presence.IsComputed() {
-			p.add(at+".default", "is set but presence is %q; a default only applies to a computed attribute", a.Presence)
+		if !a.ComputedOptionalRequired.IsComputed() {
+			p.add(
+				at+".default",
+				"is set but presence is %q; a default only applies to a computed attribute",
+				a.ComputedOptionalRequired,
+			)
 		}
 		if a.Default.Static == nil && a.Default.Custom == nil {
 			p.add(at+".default", "must set either static or custom")
@@ -259,9 +293,12 @@ func (a Attribute) validate(at string, p *problems) {
 	// An attribute the practitioner can set must have a way to reach the API,
 	// and one that is read must have a way back. Catching this here is the
 	// difference between a clear message and a silently inert attribute.
-	if a.Presence.IsRequired() || a.Presence.IsOptional() {
+	if a.ComputedOptionalRequired.IsRequired() || a.ComputedOptionalRequired.IsOptional() {
 		if a.Wire.SkipExpand {
-			p.add(at+".wire.skipExpand", "is set on a writable attribute, so its value would never reach the API")
+			p.add(
+				at+".wire.skipExpand",
+				"is set on a writable attribute, so its value would never reach the API",
+			)
 		} else if a.Wire.Expand == nil {
 			p.add(at+".wire.expand", "is required on a writable attribute")
 		}
@@ -272,30 +309,30 @@ func (a Attribute) validate(at string, p *problems) {
 }
 
 func (t AttrType) validate(at string, p *problems) {
-	if t.Nested != nil && !t.Kind.IsNested() {
+	if t.NestedObject != nil && !t.Kind.IsNested() {
 		p.add(at+".nested", "is set on non-nested kind %q", t.Kind)
 	}
 
 	switch t.Kind {
 	case KindBool, KindString, KindInt32, KindInt64, KindFloat32, KindFloat64, KindNumber:
-		if t.Elem != nil {
+		if t.ElementType != nil {
 			p.add(at+".elem", "is set on scalar kind %q", t.Kind)
 		}
 	case KindList, KindSet, KindMap:
-		if t.Elem == nil {
+		if t.ElementType == nil {
 			p.add(at+".elem", "is required for collection kind %q", t.Kind)
 			return
 		}
-		t.Elem.validate(at+".elem", p)
+		t.ElementType.validate(at+".elem", p)
 	case KindListNested, KindSetNested, KindSingleNested:
-		if t.Elem != nil {
+		if t.ElementType != nil {
 			p.add(at+".elem", "is set on nested kind %q, which uses nested instead", t.Kind)
 		}
-		if t.Nested == nil {
+		if t.NestedObject == nil {
 			p.add(at+".nested", "is required for nested kind %q", t.Kind)
 			return
 		}
-		t.Nested.validate(at+".nested", p)
+		t.NestedObject.validate(at+".nested", p)
 	case "":
 		p.add(at+".kind", "is required")
 	default:
@@ -303,7 +340,7 @@ func (t AttrType) validate(at string, p *problems) {
 	}
 }
 
-func (n Nested) validate(at string, p *problems) {
+func (n NestedAttributeObject) validate(at string, p *problems) {
 	required(p, at+".goTypeName", n.GoTypeName)
 	required(p, at+".sdkType", n.SDKType)
 	required(p, at+".attrTypesVar", n.AttrTypesVar)
@@ -347,7 +384,11 @@ func (b ResourceBinding) validate(at string, p *problems) {
 	switch b.Body.AccessStyle {
 	case AccessStructField:
 	case AccessMethod:
-		p.add(at+".body.accessStyle", "%q is reserved but not yet implemented by the emitter", b.Body.AccessStyle)
+		p.add(
+			at+".body.accessStyle",
+			"%q is reserved but not yet implemented by the emitter",
+			b.Body.AccessStyle,
+		)
 	default:
 		p.add(at+".body.accessStyle", "%q is not a known access style", b.Body.AccessStyle)
 	}

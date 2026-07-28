@@ -319,7 +319,7 @@ func TestUnit_Cassette_ScanFindsDeclaredSecrets(t *testing.T) {
 
 	findings := Scan("001", []byte(`{"aid":"1234567890"}`), secrets)
 	if len(findings) == 0 {
-		t.Error("a declared secret must be found even with no recognisable shape")
+		t.Error("a declared secret must be found even with no recognizable shape")
 	}
 
 	// Too short to substitute safely, so it is not scanned for either -- consistent with

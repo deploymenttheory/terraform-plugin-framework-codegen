@@ -47,7 +47,7 @@ func init() {
 	registerMutating(immutability{})
 	registerMutating(enumBoundary{})
 	registerMutating(writeSideEffect{})
-	registerMutating(normalisation{})
+	registerMutating(normalization{})
 	// Last, and it has to be. It creates nothing and reports the consistency window the session
 	// measured while the probes above read back the objects *they* created -- so registered
 	// second, as it was when it created its own object, it saw nothing and concluded nothing.
@@ -68,7 +68,7 @@ func init() {
 // means those protocols know whether their own premise holds.
 //
 // This is the kind of thing that gets discovered by hand and written into a comment: an
-// unrecognised parameter is ignored while a misspelled *known* one is rejected. Formalising it
+// unrecognized parameter is ignored while a misspelled *known* one is rejected. Formalising it
 // means later probes can state their premise rather than assume it.
 //
 // How it can be wrong: a gateway rather than the application may reject the parameter,
@@ -145,7 +145,7 @@ func (volatileOnRead) Cost(Scope) int { return 3 }
 // immutability protocol possible at all.
 //
 // How it can be wrong: one malformed request exercises one code path. An API may use a
-// different envelope for authorisation failures than for validation failures, so the fact
+// different envelope for authorization failures than for validation failures, so the fact
 // is scoped to the status actually observed rather than generalised.
 type errorEnvelope struct{}
 
@@ -248,7 +248,7 @@ func (readYourWrites) Creates(Scope) int { return 0 }
 //
 // Equal means Writable=true and ReturnedOnRead=true. Absent means ReturnedOnRead=false,
 // and here it *is* Observed rather than Suspected, because the field was demonstrably
-// sent. Present but different is **not** Writable=false: that is a normalisation fact, and
+// sent. Present but different is **not** Writable=false: that is a normalization fact, and
 // conflating the two would mark a perfectly writable field as computed.
 //
 // How it can be wrong: **expansion-gated fields.** Any API with an expand, include or fields
@@ -318,7 +318,7 @@ func (updateStyle) Creates(sc Scope) int { return needsUpdate(sc, withFixture(sc
 // was 32% of the whole catalogue's cost and most of it was re-observing the same three responses.
 //
 // How it can be wrong: the dominant false positive is treating a *derived* value as a
-// constant -- a colour hashed from a key, a counter, a timestamp -- and writing it into the
+// constant -- a color hashed from a key, a counter, a timestamp -- and writing it into the
 // blueprint as stringdefault.StaticString, which is then a permanent lie. The second and third
 // creates exist for that, and the fact carries "derived from tenant configuration" and
 // "derived from a field this plan did not vary" as standing alternatives.
@@ -476,10 +476,10 @@ func (writeSideEffect) Creates(sc Scope) int {
 	return 3
 }
 
-// normalisation sends awkward values -- mixed case, surrounding whitespace, a reversed
+// normalization sends awkward values -- mixed case, surrounding whitespace, a reversed
 // collection -- and observes what comes back changed.
 //
-// It is the highest-value class of fact in the catalogue, because server normalisation is the
+// It is the highest-value class of fact in the catalogue, because server normalization is the
 // direct cause of a perpetual diff: the practitioner writes one value, the API stores another,
 // and every subsequent plan proposes changing it back. Existing providers carry runtime helpers
 // that re-sort collections purely to suppress this, which is the wrong layer to fix it at.
@@ -490,12 +490,12 @@ func (writeSideEffect) Creates(sc Scope) int {
 //
 // How it can be wrong: it needs a value generator per type to be thorough, and a first cut
 // covering case, whitespace and collection order will miss numeric coercion, date
-// reformatting and unicode normalisation. Those are absences rather than errors: the probe
+// reformatting and unicode normalization. Those are absences rather than errors: the probe
 // under-reports rather than reporting wrongly.
-type normalisation struct{}
+type normalization struct{}
 
-func (normalisation) Name() string { return "write.normalisation" }
-func (normalisation) Kind() Kind   { return KindMutating }
+func (normalization) Name() string { return "write.normalization" }
+func (normalization) Kind() Kind   { return KindMutating }
 
 // Three awkward values per writable string field, each needing a create and a read.
 // Cost is one create, read and delete per awkward value, with every string field carrying that
@@ -507,20 +507,20 @@ func (normalisation) Kind() Kind   { return KindMutating }
 // answer that is nearly always uniform.
 // Cost is a create and a read per transform, plus the delete. Not scaled by fixture count: the
 // question is what the server does to a shape, and a second fixture sends the same shapes.
-func (normalisation) Cost(sc Scope) int {
+func (normalization) Cost(sc Scope) int {
 	if len(sc.Fixtures()) == 0 {
 		return 0
 	}
 
-	return 3 * len(normalisationTransforms)
+	return 3 * len(normalizationTransforms)
 }
 
-func (normalisation) Creates(sc Scope) int {
+func (normalization) Creates(sc Scope) int {
 	if len(sc.Fixtures()) == 0 {
 		return 0
 	}
 
-	return len(normalisationTransforms)
+	return len(normalizationTransforms)
 }
 
 // ---------------------------------------------------------------------------
@@ -587,7 +587,7 @@ func omissionCreates(sc Scope) int {
 }
 
 // stringFieldCount counts writable string fields, which are the only ones the
-// normalisation probe has awkward values for.
+// normalization probe has awkward values for.
 // enumValueCount counts the values the enum protocol will send: every documented value, plus two
 // generated negatives per enum field.
 //

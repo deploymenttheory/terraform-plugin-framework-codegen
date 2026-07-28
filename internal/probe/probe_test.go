@@ -22,9 +22,9 @@ func testSubject() Subject {
 		NameField:          "key",
 		IDField:            "id",
 		Fields: []Field{
-			{JSONPath: "id", Attribute: "id", Kind: blueprint.KindString, Presence: blueprint.Computed},
-			{JSONPath: "key", Attribute: "key", Kind: blueprint.KindString, Presence: blueprint.Required, Writable: true},
-			{JSONPath: "value", Attribute: "value", Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true},
+			{JSONPath: "id", Attribute: "id", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Computed},
+			{JSONPath: "key", Attribute: "key", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true},
+			{JSONPath: "value", Attribute: "value", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true},
 		},
 	}
 }
@@ -115,7 +115,7 @@ var builtMutatingProbes = map[string]bool{
 	"write.server-default":    true,
 	"write.immutability":      true,
 	"write.enum":              true,
-	"write.normalisation":     true,
+	"write.normalization":     true,
 	"write.side-effect":       true,
 }
 
@@ -210,7 +210,7 @@ func TestUnit_Probe_UnplannedCostsScaleWithTheSubject(t *testing.T) {
 	for _, name := range []string{"a", "b", "c", "d", "e", "f"} {
 		large.Fields = append(large.Fields, Field{
 			JSONPath: name, Attribute: name,
-			Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true,
+			Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 		})
 	}
 

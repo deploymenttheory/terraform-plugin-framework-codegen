@@ -176,7 +176,7 @@ func TestUnit_Probe_GateRefusesEachConditionOnItsOwn(t *testing.T) {
 
 			// No session: a refusal on static grounds must not need one, which is itself the
 			// two-tier property.
-			_, _, err := Authorise(context.Background(), nil, profile, opts, env)
+			_, _, err := Authorize(context.Background(), nil, profile, opts, env)
 			if !errors.Is(err, ErrRefused) {
 				t.Fatalf("error = %v, want ErrRefused", err)
 			}
@@ -202,7 +202,7 @@ func TestUnit_Probe_GateReportsEveryUnmetConditionAtOnce(t *testing.T) {
 	t.Parallel()
 
 	// Nothing set at all, which is what running the command with no profile looks like.
-	_, _, err := Authorise(context.Background(), nil, Profile{}, GateOptions{
+	_, _, err := Authorize(context.Background(), nil, Profile{}, GateOptions{
 		Mode:    ModeReplay,
 		Subject: Subject{},
 	}, MapEnviron{})
@@ -297,7 +297,7 @@ func TestUnit_Probe_TheGateIssuesNoRequestUntilTheStaticTierIsClean(t *testing.T
 	profile := goodProfile()
 	profile.Sandbox = false
 
-	if _, _, err := Authorise(context.Background(), read, profile, goodOptions(), goodEnv()); !errors.Is(err, ErrRefused) {
+	if _, _, err := Authorize(context.Background(), read, profile, goodOptions(), goodEnv()); !errors.Is(err, ErrRefused) {
 		t.Fatalf("error = %v, want ErrRefused", err)
 	}
 
@@ -348,7 +348,7 @@ func TestUnit_Probe_MaxExistingObjectsIsTheEmpiricalAssertion(t *testing.T) {
 			profile := goodProfile()
 			profile.Assertions.MaxExistingObjects = tc.max
 
-			grant, passed, err := Authorise(context.Background(), read, profile, goodOptions(), goodEnv())
+			grant, passed, err := Authorize(context.Background(), read, profile, goodOptions(), goodEnv())
 
 			if tc.refused {
 				if !errors.Is(err, ErrRefused) {
@@ -362,7 +362,7 @@ func TestUnit_Probe_MaxExistingObjectsIsTheEmpiricalAssertion(t *testing.T) {
 			}
 
 			if err != nil {
-				t.Fatalf("Authorise: %v", err)
+				t.Fatalf("Authorize: %v", err)
 			}
 			if grant == nil {
 				t.Fatal("a passing gate must issue a grant")
@@ -394,7 +394,7 @@ func TestUnit_Probe_MaxExistingObjectsIsTheEmpiricalAssertion(t *testing.T) {
 func TestUnit_Probe_AnUncheckedAssertionDoesNotReadAsAPassedOne(t *testing.T) {
 	t.Parallel()
 
-	_, _, err := Authorise(context.Background(), nil, goodProfile(), goodOptions(), goodEnv())
+	_, _, err := Authorize(context.Background(), nil, goodProfile(), goodOptions(), goodEnv())
 	if !errors.Is(err, ErrRefused) {
 		t.Fatalf("error = %v, want ErrRefused", err)
 	}
@@ -475,7 +475,7 @@ func TestUnit_Probe_AccountGroupRecordsTheWeakerOutcomeVerbatim(t *testing.T) {
 			profile.Assertions.AccountGroupParam = tc.param
 			profile.Assertions.AccountGroupJSONPath = tc.jsonPath
 
-			_, passed, err := Authorise(context.Background(), read, profile, goodOptions(), goodEnv())
+			_, passed, err := Authorize(context.Background(), read, profile, goodOptions(), goodEnv())
 
 			if tc.refused != "" {
 				if !errors.Is(err, ErrRefused) {
@@ -489,7 +489,7 @@ func TestUnit_Probe_AccountGroupRecordsTheWeakerOutcomeVerbatim(t *testing.T) {
 			}
 
 			if err != nil {
-				t.Fatalf("Authorise: %v", err)
+				t.Fatalf("Authorize: %v", err)
 			}
 
 			var outcome string
@@ -505,13 +505,13 @@ func TestUnit_Probe_AccountGroupRecordsTheWeakerOutcomeVerbatim(t *testing.T) {
 	}
 }
 
-// TestUnit_Probe_AuthoriseSweepIsDeliberatelyWeaker.
+// TestUnit_Probe_AuthorizeSweepIsDeliberatelyWeaker.
 //
 // Demanding --allow-mutations in order to clean up after yourself is perverse, and an operator
 // staring at an orphan table should not have to re-read the documentation. maxExistingObjects is
 // dropped for a subtler reason: a tenant that now fails it may be failing it precisely because it
 // is holding your orphans.
-func TestUnit_Probe_AuthoriseSweepIsDeliberatelyWeaker(t *testing.T) {
+func TestUnit_Probe_AuthorizeSweepIsDeliberatelyWeaker(t *testing.T) {
 	t.Parallel()
 
 	profile := goodProfile()
@@ -519,9 +519,9 @@ func TestUnit_Probe_AuthoriseSweepIsDeliberatelyWeaker(t *testing.T) {
 
 	opts := GateOptions{Mode: ModeSweep, AllowMutations: false}
 
-	grant, err := AuthoriseSweep(profile, opts, goodEnv())
+	grant, err := AuthorizeSweep(profile, opts, goodEnv())
 	if err != nil {
-		t.Fatalf("AuthoriseSweep: %v", err)
+		t.Fatalf("AuthorizeSweep: %v", err)
 	}
 	if grant.NamePrefix() != profile.NamePrefix {
 		t.Errorf("the sweep grant must carry the prefix, got %q", grant.NamePrefix())
@@ -547,7 +547,7 @@ func TestUnit_Probe_AuthoriseSweepIsDeliberatelyWeaker(t *testing.T) {
 				tc.mutate(&p)
 			}
 
-			_, err := AuthoriseSweep(p, opts, tc.env)
+			_, err := AuthorizeSweep(p, opts, tc.env)
 			if !errors.Is(err, ErrRefused) {
 				t.Fatalf("error = %v, want ErrRefused", err)
 			}
@@ -656,7 +656,7 @@ func TestUnit_Probe_OSEnvironReadsTheProcess(t *testing.T) {
 	profile := goodProfile()
 	profile.TokenEnv = "TFPFGEN_TEST_GATE_VAR"
 
-	if _, _, err := Authorise(context.Background(), nil, profile, goodOptions(), nil); err == nil {
+	if _, _, err := Authorize(context.Background(), nil, profile, goodOptions(), nil); err == nil {
 		t.Fatal("this should still be refused on the runtime tier")
 	} else if strings.Contains(err.Error(), "tokenEnv:") {
 		t.Errorf("a nil Environ did not fall back to the process:\n%v", err)

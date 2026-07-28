@@ -113,7 +113,7 @@ func SweepContext(parent context.Context, maxSeconds int) (context.Context, cont
 // unexported on purpose: a caller that could build one could write to an API without a grant.
 // This is the seam that lets cmd sweep without opening that hole.
 type SweepRunOptions struct {
-	// Grant comes from AuthoriseSweep, which is the reduced gate. Required.
+	// Grant comes from AuthorizeSweep, which is the reduced gate. Required.
 	Grant *Grant
 
 	Subject Subject
@@ -411,7 +411,7 @@ func (opts SweepOptions) orphansOf() []Orphan {
 	}
 
 	if len(out) == 0 {
-		// nil rather than an empty slice, so a clean sweep serialises with no orphans key at
+		// nil rather than an empty slice, so a clean sweep serializes with no orphans key at
 		// all instead of an empty array a reader has to interpret.
 		return nil
 	}

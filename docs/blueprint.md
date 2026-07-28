@@ -187,3 +187,42 @@ Checks worth knowing about:
 - a writable attribute with `skipExpand`, whose value could never reach the API
 - a default on a non-computed attribute, which is dead configuration
 - a resource with no read operation, which cannot refresh state
+
+## Terminology: whose word for what
+
+The blueprint is a superset of HashiCorp's Provider Code Specification, so it uses **their** word
+for anything they have one for. A reviewer who knows `terraform-plugin-codegen-spec` should not have
+to learn a second vocabulary to read this repo.
+
+| Concept | Their term | Ours |
+|---|---|---|
+| whether an attribute is computed, optional, required | `ComputedOptionalRequired` | same |
+| the element type of a collection | `ElementType` | same |
+| the object shape a nested attribute holds | field `NestedObject`, type `NestedAttributeObject` | same |
+| the attribute itself | `Attribute`, `Name`, `Sensitive`, `MarkdownDescription`, `DeprecationMessage`, `Validators`, `PlanModifiers`, `Default` | same |
+| the type kind | per-type attributes (`StringAttribute`, `SetNestedAttribute`) | one `AttrType` with a `Kind`, whose values spell theirs (`single_nested`, `set_nested`) |
+
+Spelling follows the ecosystem: American English throughout, in identifiers, JSON keys and any
+string a practitioner reads. There are no British spellings in the Terraform SDKs, the framework, or
+the registry, and there should be none here.
+
+### What is deliberately ours
+
+Four names have no counterpart in their spec, because the concepts do not exist in it. Each is kept,
+and the reason belongs next to the name rather than in a reviewer's head.
+
+- **Blueprint**, not `Specification`. Their `Specification` is a schema description; a blueprint is
+  that plus everything CRUD generation needs — SDK bindings, wire mappings, observed behaviour. The
+  two are not the same document, and calling ours theirs would promise interoperability we do not
+  have. `interop export` produces a real `Specification` from a blueprint, and that command is where
+  the equivalence is claimed.
+- **Behavior**, on an attribute. What a probe observed about the API: writability, immutability,
+  requiredness, server defaults. Their spec has nowhere to put an empirical finding.
+- **Wire**, on an attribute. How a field is spelled on the wire and in the SDK. Their spec stops at
+  the Terraform schema.
+- **Fact**, **cassette**, **probe**. The evidence pipeline is entirely ours.
+
+`AttrType` differs structurally as well as in name: their spec models the type by which pointer is
+non-nil, and ours by a `Kind` discriminant. That is a deliberate difference — a discriminant is what
+lets one code path walk every attribute — and it is the reason `interop` exists as a mapping layer
+rather than a cast.

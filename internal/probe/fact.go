@@ -25,7 +25,7 @@ const (
 	Corroborated Confidence = "corroborated"
 
 	// Inferred means the fact follows from the responses plus an assumption, which is
-	// stated in Alternatives. Merge may write it into Behaviour but must never let it
+	// stated in Alternatives. Merge may write it into Behavior but must never let it
 	// change an attribute's presence.
 	Inferred Confidence = "inferred"
 
@@ -56,7 +56,7 @@ func (c Confidence) AtLeast(want Confidence) bool { return c.rank() <= want.rank
 // FactField names what a fact is about.
 //
 // A closed set, because merge switches on it exhaustively: a fact whose field merge
-// does not recognise would be silently ignored, which is the one failure mode a fact
+// does not recognize would be silently ignored, which is the one failure mode a fact
 // store must not have.
 type FactField string
 
@@ -87,14 +87,14 @@ const (
 
 	// FactDefaultIsDerived: the omitted-field value is computed from something --
 	// another field, the tenant, a counter -- rather than being a constant. This is
-	// the fact that stops a round-robin colour assignment becoming a static default.
+	// the fact that stops a round-robin color assignment becoming a static default.
 	FactDefaultIsDerived FactField = "defaultIsDerived"
 	// FactSilentlyIgnoredOnUpdate: an update accepted a new value with 2xx and did
 	// not apply it. Distinct from immutability, and conflating the two is the classic
 	// error.
 	FactSilentlyIgnoredOnUpdate FactField = "silentlyIgnoredOnUpdate"
-	// FactNormalisation: the server transformed a value it accepted.
-	FactNormalisation FactField = "normalisation"
+	// FactNormalization: the server transformed a value it accepted.
+	FactNormalization FactField = "normalization"
 	// FactSideEffect: writing one field changed another that was not sent.
 	FactSideEffect FactField = "sideEffect"
 
@@ -195,7 +195,7 @@ type Fact struct {
 // Validate checks a fact is well-formed enough to be trusted.
 //
 // Called on load rather than only on write, because the committed facts document is
-// hand-editable and a fact with no evidence or an unrecognised field would otherwise
+// hand-editable and a fact with no evidence or an unrecognized field would otherwise
 // flow into merge and change a schema on the strength of nothing.
 func (f Fact) Validate() error {
 	switch {
@@ -239,7 +239,7 @@ var knownFactFields = map[FactField]bool{
 	FactServerDefault: true, FactReturnedOnRead: true, FactVolatile: true,
 	FactUpdateStyle: true, FactReadBack: true, FactNotFoundIsSuccess: true,
 	FactDefaultIsDerived: true, FactSilentlyIgnoredOnUpdate: true,
-	FactNormalisation: true, FactSideEffect: true,
+	FactNormalization: true, FactSideEffect: true,
 	FactEnumClosed: true, FactEnumAccepted: true, FactEnumRejectedDocumented: true,
 	FactErrorEnvelope: true, FactUnknownParamTolerated: true,
 }

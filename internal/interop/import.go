@@ -72,7 +72,10 @@ func ToBlueprint(s spec.Specification, opts Options) (blueprint.Blueprint, Repor
 	var r Report
 
 	if opts.Provider == "" {
-		return blueprint.Blueprint{}, r, fmt.Errorf("%w: no provider name was given", ErrInvalidSpec)
+		return blueprint.Blueprint{}, r, fmt.Errorf(
+			"%w: no provider name was given",
+			ErrInvalidSpec,
+		)
 	}
 
 	out := blueprint.Blueprint{
@@ -85,8 +88,11 @@ func ToBlueprint(s spec.Specification, opts Options) (blueprint.Blueprint, Repor
 	}
 
 	if s.Provider != nil && s.Provider.Schema != nil {
-		r.add(SeverityDropped, "provider.schema",
-			"the blueprint has no provider configuration attributes, so the imported provider schema was skipped")
+		r.add(
+			SeverityDropped,
+			"provider.schema",
+			"the blueprint has no provider configuration attributes, so the imported provider schema was skipped",
+		)
 	}
 
 	if len(s.DataSources) > 0 {
@@ -105,10 +111,16 @@ func ToBlueprint(s spec.Specification, opts Options) (blueprint.Blueprint, Repor
 	}
 
 	if len(out.Resources) == 0 {
-		return blueprint.Blueprint{}, r, fmt.Errorf("%w: the document declares no resources", ErrInvalidSpec)
+		return blueprint.Blueprint{}, r, fmt.Errorf(
+			"%w: the document declares no resources",
+			ErrInvalidSpec,
+		)
 	}
 
-	sort.Slice(out.Resources, func(i, j int) bool { return out.Resources[i].Key < out.Resources[j].Key })
+	sort.Slice(
+		out.Resources,
+		func(i, j int) bool { return out.Resources[i].Key < out.Resources[j].Key },
+	)
 
 	return out, r, nil
 }
@@ -122,7 +134,11 @@ func importResource(res resource.Resource, opts Options, r *Report) (blueprint.R
 		return blueprint.Resource{}, fmt.Errorf("%w: a resource with no name", ErrInvalidSpec)
 	}
 	if res.Schema == nil {
-		return blueprint.Resource{}, fmt.Errorf("%w: resource %q has no schema", ErrInvalidSpec, res.Name)
+		return blueprint.Resource{}, fmt.Errorf(
+			"%w: resource %q has no schema",
+			ErrInvalidSpec,
+			res.Name,
+		)
 	}
 
 	path := fmt.Sprintf("resources[%s]", res.Name)
@@ -132,9 +148,12 @@ func importResource(res resource.Resource, opts Options, r *Report) (blueprint.R
 		// syntax. For a new provider the choice is free, and refusing would make a
 		// hand-authored specification un-ingestible -- but the choice is permanent
 		// once published, so it is reported.
-		r.add(SeverityLossy, path+".blocks",
+		r.add(
+			SeverityLossy,
+			path+".blocks",
 			"%d block(s) were converted to nested attributes; the two are the same data with different configuration syntax",
-			len(res.Schema.Blocks))
+			len(res.Schema.Blocks),
+		)
 	}
 
 	// The resource's own description is one field, so it is reported directly rather
@@ -150,22 +169,32 @@ func importResource(res resource.Resource, opts Options, r *Report) (blueprint.R
 		ServiceGroup:  opts.ServiceGroup,
 		APIVersionDir: opts.APIVersionDir,
 
-		MarkdownDescription: describe(res.Schema.MarkdownDescription, res.Schema.Description, &resourceDesc),
-		DeprecationMessage:  derefStr(res.Schema.DeprecationMessage),
+		MarkdownDescription: describe(
+			res.Schema.MarkdownDescription,
+			res.Schema.Description,
+			&resourceDesc,
+		),
+		DeprecationMessage: derefStr(res.Schema.DeprecationMessage),
 	}
 
 	out.GoPackageAlias = namingOpts.PackageAlias(opts.APIVersionDir, res.Name)
 
 	if resourceDesc.promoted > 0 {
-		r.add(SeverityInfo, path+".description",
-			"the document set description but not markdown_description, so the text is now treated as markdown")
+		r.add(
+			SeverityInfo,
+			path+".description",
+			"the document set description but not markdown_description, so the text is now treated as markdown",
+		)
 	}
 
 	// Every generated identifier above was derived rather than read, which a reader
 	// of the draft needs to know: the derivation is mechanical and occasionally
 	// clumsy, and it is theirs to correct.
-	r.add(SeverityInfo, path+".naming",
-		"Go package, type and model names were derived from the resource name and may want shortening")
+	r.add(
+		SeverityInfo,
+		path+".naming",
+		"Go package, type and model names were derived from the resource name and may want shortening",
+	)
 
 	var acc importLosses
 
@@ -215,11 +244,11 @@ func Unauthored(bp blueprint.Blueprint) []string {
 			if a.Wire == (blueprint.WireBinding{}) {
 				wire++
 			}
-			if a.Type.Nested != nil {
-				if a.Type.Nested.SDKType == "" {
+			if a.Type.NestedObject != nil {
+				if a.Type.NestedObject.SDKType == "" {
 					sdkTypes++
 				}
-				for _, child := range a.Type.Nested.Attributes {
+				for _, child := range a.Type.NestedObject.Attributes {
 					if child.Wire == (blueprint.WireBinding{}) {
 						wire++
 					}
@@ -228,10 +257,20 @@ func Unauthored(bp blueprint.Blueprint) []string {
 		}
 
 		if wire > 0 {
-			out = append(out, fmt.Sprintf("%s.attributes[*].wire.{sdkField,sdkGoType,expand,flatten}   (%d)", path, wire))
+			out = append(
+				out,
+				fmt.Sprintf(
+					"%s.attributes[*].wire.{sdkField,sdkGoType,expand,flatten}   (%d)",
+					path,
+					wire,
+				),
+			)
 		}
 		if sdkTypes > 0 {
-			out = append(out, fmt.Sprintf("%s.attributes[*].type.nested.sdkType   (%d)", path, sdkTypes))
+			out = append(
+				out,
+				fmt.Sprintf("%s.attributes[*].type.nested.sdkType   (%d)", path, sdkTypes),
+			)
 		}
 	}
 

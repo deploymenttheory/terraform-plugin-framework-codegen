@@ -24,7 +24,7 @@ func validFact() Fact {
 // TestUnit_Probe_FactValidate is the gate on the fact store's trustworthiness.
 //
 // Validated on load rather than only on write, because the committed facts document is
-// hand-editable. A fact with no evidence, or with a field merge does not recognise, would
+// hand-editable. A fact with no evidence, or with a field merge does not recognize, would
 // otherwise flow into merge and change a schema on the strength of nothing.
 func TestUnit_Probe_FactValidate(t *testing.T) {
 	t.Parallel()
@@ -91,7 +91,7 @@ func TestUnit_Probe_ConfidenceOrdering(t *testing.T) {
 		t.Error("suspected must be the weakest level")
 	}
 	if Confidence("invented").AtLeast(Suspected) {
-		t.Error("an unrecognised confidence must not satisfy any floor")
+		t.Error("an unrecognized confidence must not satisfy any floor")
 	}
 }
 

@@ -19,24 +19,24 @@ func testBlueprint() blueprint.Blueprint {
 			Key: "thing",
 			Attributes: []blueprint.Attribute{
 				{
-					Name: "colour", Presence: blueprint.ComputedOptional,
+					Name: "color", ComputedOptionalRequired: blueprint.ComputedOptional,
 					Type:                blueprint.AttrType{Kind: blueprint.KindString},
-					Wire:                blueprint.WireBinding{JSONPath: "colour"},
-					MarkdownDescription: "The thing's colour.",
+					Wire:                blueprint.WireBinding{JSONPath: "color"},
+					MarkdownDescription: "The thing's color.",
 				},
 				{
-					Name: "key", Presence: blueprint.Required,
+					Name: "key", ComputedOptionalRequired: blueprint.Required,
 					Type: blueprint.AttrType{Kind: blueprint.KindString},
 					Wire: blueprint.WireBinding{JSONPath: "key"},
 				},
 				{
-					Name: "items", Presence: blueprint.Optional,
+					Name: "items", ComputedOptionalRequired: blueprint.Optional,
 					Type: blueprint.AttrType{
 						Kind: blueprint.KindSetNested,
-						Nested: &blueprint.Nested{
+						NestedObject: &blueprint.NestedAttributeObject{
 							GoTypeName: "ItemModel",
 							Attributes: []blueprint.Attribute{{
-								Name: "mode", Presence: blueprint.Optional,
+								Name: "mode", ComputedOptionalRequired: blueprint.Optional,
 								Type: blueprint.AttrType{Kind: blueprint.KindString},
 								Wire: blueprint.WireBinding{JSONPath: "mode"},
 							}},
@@ -72,11 +72,11 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()
-	before := bp.Resources[0].Attributes[0].Presence
+	before := bp.Resources[0].Attributes[0].ComputedOptionalRequired
 
 	facts := []probe.Fact{
 		// A server-default fact with no literal: the probe looked and found nothing.
-		fact("colour", probe.FactServerDefault, probe.Value{Text: "none observed"}, probe.Observed),
+		fact("color", probe.FactServerDefault, probe.Value{Text: "none observed"}, probe.Observed),
 	}
 
 	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
@@ -103,9 +103,9 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 	}
 
 	// Nothing changed, even under apply.
-	if bp.Resources[0].Attributes[0].Presence != before {
+	if bp.Resources[0].Attributes[0].ComputedOptionalRequired != before {
 		t.Errorf("presence changed to %q; narrowing must never be automatic",
-			bp.Resources[0].Attributes[0].Presence)
+			bp.Resources[0].Attributes[0].ComputedOptionalRequired)
 	}
 
 	if !errors.Is(result.Err(), ErrConflicts) {
@@ -115,7 +115,7 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 
 // TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed is the other half of the milestone.
 //
-// A constant default confirms the guess, so it applies cleanly: behaviour is written, the
+// A constant default confirms the guess, so it applies cleanly: behavior is written, the
 // description gains a probed block, and the exit is zero. Adding a *static* default is only
 // recommended, because it changes plan output for every existing configuration.
 func TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed(t *testing.T) {
@@ -124,7 +124,7 @@ func TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactServerDefault,
+		fact("color", probe.FactServerDefault,
 			probe.LiteralValue(blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`}),
 			probe.Corroborated),
 	}
@@ -143,11 +143,11 @@ func TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed(t *testing.T) {
 
 	attr := bp.Resources[0].Attributes[0]
 
-	if attr.Behaviour.ServerDefault == nil || attr.Behaviour.ServerDefault.Raw != `"blue"` {
-		t.Errorf("the server default was not recorded: %+v", attr.Behaviour.ServerDefault)
+	if attr.Behavior.ServerDefault == nil || attr.Behavior.ServerDefault.Raw != `"blue"` {
+		t.Errorf("the server default was not recorded: %+v", attr.Behavior.ServerDefault)
 	}
 	// The curated prose survives, because a human wrote it.
-	if !strings.Contains(attr.MarkdownDescription, "The thing's colour.") {
+	if !strings.Contains(attr.MarkdownDescription, "The thing's color.") {
 		t.Errorf("the curated description was lost: %q", attr.MarkdownDescription)
 	}
 	if !strings.Contains(attr.MarkdownDescription, "blue") {
@@ -181,7 +181,7 @@ func TestUnit_Merge_DerivedDefaultConfirmsTheGuess(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactDefaultIsDerived, probe.BoolValue(true), probe.Observed),
+		fact("color", probe.FactDefaultIsDerived, probe.BoolValue(true), probe.Observed),
 	}
 
 	result, err := Apply(&bp, facts, Options{SnapshotID: "1.0-t1"})
@@ -192,7 +192,7 @@ func TestUnit_Merge_DerivedDefaultConfirmsTheGuess(t *testing.T) {
 	if len(result.Conflicts) != 0 {
 		t.Errorf("a derived default should not conflict with computed_optional: %+v", result.Conflicts)
 	}
-	if bp.Resources[0].Attributes[0].Presence != blueprint.ComputedOptional {
+	if bp.Resources[0].Attributes[0].ComputedOptionalRequired != blueprint.ComputedOptional {
 		t.Error("presence should be left alone")
 	}
 
@@ -250,11 +250,11 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 		}
 
 		attr := bp.Resources[0].Attributes[1]
-		if attr.Presence != blueprint.Required {
-			t.Errorf("presence = %q, want it left required", attr.Presence)
+		if attr.ComputedOptionalRequired != blueprint.Required {
+			t.Errorf("presence = %q, want it left required", attr.ComputedOptionalRequired)
 		}
-		if attr.Behaviour.RequiredByAPI == nil || !*attr.Behaviour.RequiredByAPI {
-			t.Error("the behaviour should record that the API enforces it")
+		if attr.Behavior.RequiredByAPI == nil || !*attr.Behavior.RequiredByAPI {
+			t.Error("the behavior should record that the API enforces it")
 		}
 		// The description tells whoever regenerates from a newer specification not to "fix" it.
 		if !strings.Contains(attr.MarkdownDescription, "does not declare") {
@@ -281,7 +281,7 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 		if len(result.Conflicts) != 1 {
 			t.Fatalf("annotate should report rather than change presence: %+v", result.Conflicts)
 		}
-		if annotated.Resources[0].Attributes[1].Presence != blueprint.Required {
+		if annotated.Resources[0].Attributes[1].ComputedOptionalRequired != blueprint.Required {
 			t.Error("annotate must not change presence")
 		}
 
@@ -290,8 +290,8 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 			t.Fatalf("Apply: %v", err)
 		}
 
-		if bp.Resources[0].Attributes[1].Presence != blueprint.Optional {
-			t.Errorf("presence = %q, want optional", bp.Resources[0].Attributes[1].Presence)
+		if bp.Resources[0].Attributes[1].ComputedOptionalRequired != blueprint.Optional {
+			t.Errorf("presence = %q, want optional", bp.Resources[0].Attributes[1].ComputedOptionalRequired)
 		}
 
 		// Widening is safe but surprising, so it has to be said out loud.
@@ -329,7 +329,7 @@ func TestUnit_Merge_DangerousClaimsNeedCorroboration(t *testing.T) {
 			bp := testBlueprint()
 
 			// Observed is not enough.
-			result, err := Apply(&bp, []probe.Fact{fact("colour", tc.field, tc.value, probe.Observed)},
+			result, err := Apply(&bp, []probe.Fact{fact("color", tc.field, tc.value, probe.Observed)},
 				Options{Strategy: StrategyApply})
 			if err != nil {
 				t.Fatalf("Apply: %v", err)
@@ -346,7 +346,7 @@ func TestUnit_Merge_DangerousClaimsNeedCorroboration(t *testing.T) {
 
 			// Corroborated is.
 			bp = testBlueprint()
-			result, err = Apply(&bp, []probe.Fact{fact("colour", tc.field, tc.value, probe.Corroborated)},
+			result, err = Apply(&bp, []probe.Fact{fact("color", tc.field, tc.value, probe.Corroborated)},
 				Options{Strategy: StrategyApply})
 			if err != nil {
 				t.Fatalf("Apply: %v", err)
@@ -355,7 +355,7 @@ func TestUnit_Merge_DangerousClaimsNeedCorroboration(t *testing.T) {
 				t.Errorf("%s at Corroborated should be accepted: %+v", name, result.Conflicts)
 			}
 			if len(result.Changes) == 0 {
-				t.Error("the behaviour should have been written")
+				t.Error("the behavior should have been written")
 			}
 		})
 	}
@@ -371,7 +371,7 @@ func TestUnit_Merge_ImmutableNeverSetsAPlanModifier(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactImmutable, probe.BoolValue(true), probe.Corroborated),
+		fact("color", probe.FactImmutable, probe.BoolValue(true), probe.Corroborated),
 	}
 
 	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
@@ -384,8 +384,8 @@ func TestUnit_Merge_ImmutableNeverSetsAPlanModifier(t *testing.T) {
 	if len(attr.PlanModifiers) != 0 {
 		t.Errorf("merge must never add a plan modifier: %+v", attr.PlanModifiers)
 	}
-	if attr.Behaviour.Immutable == nil || !*attr.Behaviour.Immutable {
-		t.Error("the behaviour should be recorded")
+	if attr.Behavior.Immutable == nil || !*attr.Behavior.Immutable {
+		t.Error("the behavior should be recorded")
 	}
 
 	var recommended bool
@@ -412,8 +412,8 @@ func TestUnit_Merge_SuspectedFactsAreNeverApplied(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactWritable, probe.BoolValue(false), probe.Suspected),
-		fact("colour", probe.FactVolatile, probe.BoolValue(true), probe.Suspected),
+		fact("color", probe.FactWritable, probe.BoolValue(false), probe.Suspected),
+		fact("color", probe.FactVolatile, probe.BoolValue(true), probe.Suspected),
 	}
 
 	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
@@ -427,8 +427,8 @@ func TestUnit_Merge_SuspectedFactsAreNeverApplied(t *testing.T) {
 	if result.Ignored != 2 {
 		t.Errorf("Ignored = %d, want 2 -- a run that ignored facts must say so", result.Ignored)
 	}
-	if bp.Resources[0].Attributes[0].Behaviour.Writable != nil {
-		t.Error("behaviour was written from a suspected fact")
+	if bp.Resources[0].Attributes[0].Behavior.Writable != nil {
+		t.Error("behavior was written from a suspected fact")
 	}
 }
 
@@ -557,9 +557,9 @@ func TestUnit_Merge_NestedFieldsAreReached(t *testing.T) {
 		t.Fatalf("a nested field should be found: %+v", result.Conflicts)
 	}
 
-	nested := bp.Resources[0].Attributes[2].Type.Nested.Attributes[0]
-	if nested.Behaviour.Volatile == nil || !*nested.Behaviour.Volatile {
-		t.Errorf("the nested attribute's behaviour was not written: %+v", nested.Behaviour)
+	nested := bp.Resources[0].Attributes[2].Type.NestedObject.Attributes[0]
+	if nested.Behavior.Volatile == nil || !*nested.Behavior.Volatile {
+		t.Errorf("the nested attribute's behavior was not written: %+v", nested.Behavior)
 	}
 }
 
@@ -604,16 +604,16 @@ func TestUnit_Merge_UnmatchedFactsAreReported(t *testing.T) {
 	}
 }
 
-// TestUnit_Merge_UnrecognisedFactFieldIsReported.
+// TestUnit_Merge_UnrecognizedFactFieldIsReported.
 //
 // Silently ignoring a fact is the one failure mode a fact store must not have: it would look
 // merged and would not be.
-func TestUnit_Merge_UnrecognisedFactFieldIsReported(t *testing.T) {
+func TestUnit_Merge_UnrecognizedFactFieldIsReported(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()
 
-	facts := []probe.Fact{fact("colour", "telepathy", probe.BoolValue(true), probe.Observed)}
+	facts := []probe.Fact{fact("color", "telepathy", probe.BoolValue(true), probe.Observed)}
 
 	result, err := Apply(&bp, facts, Options{})
 	if err != nil {
@@ -621,7 +621,7 @@ func TestUnit_Merge_UnrecognisedFactFieldIsReported(t *testing.T) {
 	}
 
 	if len(result.Conflicts) != 1 {
-		t.Fatalf("an unrecognised field must be reported: %+v", result.Conflicts)
+		t.Fatalf("an unrecognized field must be reported: %+v", result.Conflicts)
 	}
 	if !strings.Contains(result.Conflicts[0].Observed, "telepathy") {
 		t.Errorf("the conflict should name the field: %+v", result.Conflicts[0])
@@ -637,10 +637,10 @@ func TestUnit_Merge_IsIdempotent(t *testing.T) {
 	t.Parallel()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactServerDefault,
+		fact("color", probe.FactServerDefault,
 			probe.LiteralValue(blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`}),
 			probe.Corroborated),
-		fact("colour", probe.FactVolatile, probe.BoolValue(false), probe.Observed),
+		fact("color", probe.FactVolatile, probe.BoolValue(false), probe.Observed),
 		fact("key", probe.FactRequiredByAPI, probe.BoolValue(true), probe.Observed),
 	}
 
@@ -765,9 +765,9 @@ func TestUnit_Merge_EnumFactsDescribeButDoNotValidate(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactEnumAccepted,
+		fact("color", probe.FactEnumAccepted,
 			probe.ListValue([]string{"blue", "red"}), probe.Observed),
-		fact("colour", probe.FactEnumRejectedDocumented,
+		fact("color", probe.FactEnumRejectedDocumented,
 			probe.ListValue([]string{"deprecated"}), probe.Observed),
 	}
 
@@ -804,12 +804,12 @@ func TestUnit_Merge_ResultRendering(t *testing.T) {
 	t.Parallel()
 
 	c := Conflict{
-		Resource: "thing", JSONPath: "colour",
+		Resource: "thing", JSONPath: "color",
 		Curated: "computed_optional", Observed: "no default", Suggested: "optional",
 		Why: "narrowing breaks state", Evidence: []string{"004-post"}, Fix: "edit it",
 	}
 	for _, want := range []string{
-		"thing.colour", "computed_optional", "no default", "optional",
+		"thing.color", "computed_optional", "no default", "optional",
 		"narrowing breaks state", "004-post", "edit it",
 	} {
 		if !strings.Contains(c.String(), want) {

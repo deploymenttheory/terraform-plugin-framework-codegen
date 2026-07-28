@@ -12,13 +12,13 @@ import (
 )
 
 // This file holds the machinery for the structural tests: assertions about the shape of
-// the source rather than about behaviour.
+// the source rather than about behavior.
 //
 // They exist because two of this package's guarantees are properties of how the code is
 // written, not of what it computes. "Every probe documents how it can be wrong" cannot be
 // checked at runtime. Neither can "only session.go builds an HTTP client", which is what
 // keeps the mutation choke point a choke point as the package grows -- and which no
-// behavioural test would notice being broken.
+// behavioral test would notice being broken.
 
 // probeTypeNames maps a probe's registered name to its Go type name, by reflection over
 // the registered values.
@@ -114,7 +114,7 @@ func typeNameIn(decl string) string {
 //
 // Every request has to go through a Session, because that is where the budget, the ledger
 // and the read-only guarantee are enforced. A probe that built its own http.Client would
-// bypass all three, and would do so while passing every behavioural test in the package --
+// bypass all three, and would do so while passing every behavioral test in the package --
 // the facts would still be right, the budget would simply stop meaning anything and a
 // created object would go unrecorded.
 //

@@ -305,7 +305,7 @@ func TestUnit_Probe_MemoryLedgerWritesNothing(t *testing.T) {
 // TestUnit_Probe_LedgerRefusesWhenItCannotWrite.
 //
 // The caller must not issue the request when Intent fails. This asserts the error rather than
-// the caller's behaviour, which is asserted where Create lives — but the error has to carry
+// the caller's behavior, which is asserted where Create lives — but the error has to carry
 // ErrLedger for that to be possible.
 func TestUnit_Probe_LedgerRefusesWhenItCannotWrite(t *testing.T) {
 	t.Parallel()

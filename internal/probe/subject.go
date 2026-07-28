@@ -102,8 +102,8 @@ type Field struct {
 	// somebody looking at the schema. No probe logic keys on it.
 	Attribute string
 
-	Kind     blueprint.TypeKind
-	Presence blueprint.Presence
+	Kind                     blueprint.TypeKind
+	ComputedOptionalRequired blueprint.ComputedOptionalRequired
 
 	// Writable is false for an attribute the blueprint already knows is read-only,
 	// either because it is Computed or because SkipExpand is set. Those are excluded
@@ -115,9 +115,9 @@ type Field struct {
 	// them; it never turns them into a validator.
 	Enum []string
 
-	// Behaviour is what is already recorded. A probe may skip a field whose fact it
+	// Behavior is what is already recorded. A probe may skip a field whose fact it
 	// would only be re-deriving, and merge needs to know what it is overwriting.
-	Behaviour blueprint.Behaviour
+	Behavior blueprint.Behavior
 }
 
 // pathParam matches a path parameter, e.g. "{id}".
@@ -188,7 +188,7 @@ func collectionOf(item string) string {
 
 // fieldsOf flattens attributes, descending one level into nested objects.
 //
-// Nested children are addressed with a dotted JSON path, which is how a probe reports
+// NestedAttributeObject children are addressed with a dotted JSON path, which is how a probe reports
 // a fact about a field inside an object without needing to know Terraform's nesting
 // rules. Dropped attributes are skipped: they are not in the schema, so a fact about
 // one would have nowhere to go.
@@ -213,17 +213,17 @@ func fieldsOf(attrs []blueprint.Attribute, prefix string) []Field {
 		}
 
 		out = append(out, Field{
-			JSONPath:  path,
-			Attribute: a.Name,
-			Kind:      a.Type.Kind,
-			Presence:  a.Presence,
-			Writable:  writable(a),
-			Enum:      a.Type.Enum,
-			Behaviour: a.Behaviour,
+			JSONPath:                 path,
+			Attribute:                a.Name,
+			Kind:                     a.Type.Kind,
+			ComputedOptionalRequired: a.ComputedOptionalRequired,
+			Writable:                 writable(a),
+			Enum:                     a.Type.Enum,
+			Behavior:                 a.Behavior,
 		})
 
-		if a.Type.Nested != nil {
-			out = append(out, fieldsOf(a.Type.Nested.Attributes, path)...)
+		if a.Type.NestedObject != nil {
+			out = append(out, fieldsOf(a.Type.NestedObject.Attributes, path)...)
 		}
 	}
 
@@ -242,7 +242,7 @@ func writable(a blueprint.Attribute) bool {
 	if a.Wire.SkipExpand {
 		return false
 	}
-	return a.Presence != blueprint.Computed
+	return a.ComputedOptionalRequired != blueprint.Computed
 }
 
 // nameFieldOf picks the field a created object's name prefix goes in.

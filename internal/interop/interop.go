@@ -2,7 +2,7 @@
 //
 // The blueprint is a superset of that format, so export is a projection: the
 // schema slice crosses, and everything the format cannot express -- CRUD wiring,
-// SDK bindings, observed behaviour, timeouts -- is reported rather than dropped in
+// SDK bindings, observed behavior, timeouts -- is reported rather than dropped in
 // silence. Import is the reverse, and produces a draft (see DraftExt) because a
 // document with a schema and no bindings is not something the emitter can use.
 //
@@ -50,7 +50,9 @@ var (
 	// carry and that cannot honestly be coarsened into one it does. It is an error
 	// rather than a note because the alternative is writing a document that says
 	// something the blueprint did not.
-	ErrUnrepresentable = errors.New("cannot be represented in Provider Code Specification " + SpecVersion)
+	ErrUnrepresentable = errors.New(
+		"cannot be represented in Provider Code Specification " + SpecVersion,
+	)
 
 	// ErrInvalidSpec is returned for input that is not a valid specification.
 	ErrInvalidSpec = errors.New("invalid provider code specification")

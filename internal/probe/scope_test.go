@@ -13,14 +13,14 @@ func scopeSubject() Subject {
 	subj := quirkSubject()
 
 	subj.Fields = []Field{
-		{JSONPath: "id", Attribute: "id", Kind: blueprint.KindString, Presence: blueprint.Computed},
-		{JSONPath: "key", Attribute: "key", Kind: blueprint.KindString, Presence: blueprint.Required, Writable: true},
-		{JSONPath: "value", Attribute: "value", Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true},
-		{JSONPath: "mode", Attribute: "mode", Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true, Enum: []string{"and", "or"}},
-		{JSONPath: "count", Attribute: "count", Kind: blueprint.KindInt64, Presence: blueprint.Optional, Writable: true},
-		{JSONPath: "webhook", Attribute: "webhook", Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true},
-		{JSONPath: "nested.inner", Attribute: "inner", Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true},
-		{JSONPath: "createdAt", Attribute: "created_at", Kind: blueprint.KindString, Presence: blueprint.Computed},
+		{JSONPath: "id", Attribute: "id", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Computed},
+		{JSONPath: "key", Attribute: "key", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true},
+		{JSONPath: "value", Attribute: "value", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true},
+		{JSONPath: "mode", Attribute: "mode", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true, Enum: []string{"and", "or"}},
+		{JSONPath: "count", Attribute: "count", Kind: blueprint.KindInt64, ComputedOptionalRequired: blueprint.Optional, Writable: true},
+		{JSONPath: "webhook", Attribute: "webhook", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true},
+		{JSONPath: "nested.inner", Attribute: "inner", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true},
+		{JSONPath: "createdAt", Attribute: "created_at", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Computed},
 	}
 
 	return subj
@@ -46,7 +46,7 @@ func scopePlan() Plan {
 // TestUnit_Probe_ScopeNarrowsByThePlan.
 //
 // Each set is derived once and read by both Cost and Exercise. Asserting them here is asserting
-// that the budget and the behaviour cannot diverge.
+// that the budget and the behavior cannot diverge.
 func TestUnit_Probe_ScopeNarrowsByThePlan(t *testing.T) {
 	t.Parallel()
 
@@ -91,9 +91,9 @@ func TestUnit_Probe_ScopeNarrowsByThePlan(t *testing.T) {
 		},
 		{
 			// Top-level strings only: a nested field is not reliably present on every object,
-			// and normalisation is read back from a list response.
-			name: "normalisable",
-			got:  sc.Normalisable(),
+			// and normalization is read back from a list response.
+			name: "normalizable",
+			got:  sc.Normalizable(),
 			want: []string{"key", "mode", "value"},
 		},
 		{

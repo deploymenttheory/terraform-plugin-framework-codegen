@@ -171,7 +171,7 @@ func FrameworkToPtrFloat64(v types.Float64) *float64 {
 // FrameworkToEnum converts types.String to a named string enumeration.
 //
 // The value is not checked against the enumeration's known members. These
-// enumerations are open, and rejecting an unrecognised value here would turn a
+// enumerations are open, and rejecting an unrecognized value here would turn a
 // routine upstream addition into a provider that cannot express it.
 func FrameworkToEnum[T ~string](v types.String) T {
 	if v.IsNull() || v.IsUnknown() {

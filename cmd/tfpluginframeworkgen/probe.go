@@ -403,7 +403,7 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	if opts.allowMutate {
 		var err error
 
-		grant, assertions, err = authoriseMutations(ctx, opts, subj, endpoint, token, root)
+		grant, assertions, err = authorizeMutations(ctx, opts, subj, endpoint, token, root)
 		if err != nil {
 			return err
 		}
@@ -497,13 +497,13 @@ func worthWriting(err error) bool {
 	return !errors.Is(err, cassette.ErrSecretFound) && !errors.Is(err, probe.ErrRedaction)
 }
 
-// authoriseMutations runs the gate.
+// authorizeMutations runs the gate.
 //
 // The gate's tenant reads go through their own unrecorded transport, and that is not an
 // oversight. Replay has no gate, so a cassette holding requests the replayed run will never
 // issue is a cassette that cannot reproduce itself -- the same silent, total failure class as a
 // base path that does not round-trip.
-func authoriseMutations(
+func authorizeMutations(
 	ctx context.Context,
 	opts probeRun,
 	subj probe.Subject,
@@ -536,7 +536,7 @@ func authoriseMutations(
 		return nil, nil, err
 	}
 
-	return probe.Authorise(ctx, read, profile, probe.GateOptions{
+	return probe.Authorize(ctx, read, profile, probe.GateOptions{
 		Mode:                     probe.ModeRecord,
 		AllowMutations:           opts.allowMutate,
 		Subject:                  subj,
@@ -596,7 +596,7 @@ func sweepEverything(opts probeRun) error {
 		return err
 	}
 
-	grant, err := probe.AuthoriseSweep(profile, probe.GateOptions{Mode: probe.ModeSweep},
+	grant, err := probe.AuthorizeSweep(profile, probe.GateOptions{Mode: probe.ModeSweep},
 		probe.OSEnviron{})
 	if err != nil {
 		return err
@@ -764,7 +764,7 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 
 	grant := grantForReplay(plan, meta)
 
-	result, err := probe.Run(context.Background(), probe.RunOptions{
+	result, runErr := probe.Run(context.Background(), probe.RunOptions{
 		Mode:    probe.ModeReplay,
 		Subject: subj,
 		Plan:    plan,
@@ -776,11 +776,16 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 		BaseURL:      replayBaseURL + meta.BasePath,
 		Interactions: interactions,
 	})
-	if err != nil {
-		return err
-	}
 
+	// Printed before the error is returned, for the same reason recordProbe does it: a replay that
+	// leaves something unresolved is precisely the run whose report a reader needs, and returning
+	// first means they are told a count and nothing else.
 	printProbeReport(subj.Resource, result.Report)
+	reportOrphans(subj.Resource, result.Report)
+
+	if runErr != nil {
+		return runErr
+	}
 
 	if mode != modeVerify {
 		return nil
@@ -803,7 +808,7 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 	return nil
 }
 
-// grantForReplay authorises the mutating tier during a replay, and only when the recording had one.
+// grantForReplay authorizes the mutating tier during a replay, and only when the recording had one.
 //
 // A read-only recording carries no plan and no name prefix, so no grant is issued and the mutating
 // probes are reported skipped -- which is what they were. A mutating recording gets a replay grant

@@ -1,5 +1,5 @@
 // Command tfpluginframeworkgen generates terraform-plugin-framework providers from an
-// API specification plus recorded API behaviour.
+// API specification plus recorded API behavior.
 //
 //	tfpluginframeworkgen ingest -only Tags
 //	tfpluginframeworkgen probe  -blueprint blueprints/thousandeyes -mode replay

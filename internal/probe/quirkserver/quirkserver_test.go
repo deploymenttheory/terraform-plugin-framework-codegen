@@ -82,11 +82,11 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 	t.Run("SilentlyDiscardsOnUpdate", func(t *testing.T) {
 		t.Parallel()
 
-		s := New(t, Quirks{SilentlyDiscardsOnUpdate: []string{"colour"}})
+		s := New(t, Quirks{SilentlyDiscardsOnUpdate: []string{"color"}})
 
 		// Create stores it, which is what separates this from SilentlyDiscards.
-		status, created := post(t, s.CollectionURL(), map[string]any{"key": "k", "colour": "blue"})
-		if status != http.StatusCreated || created["colour"] != "blue" {
+		status, created := post(t, s.CollectionURL(), map[string]any{"key": "k", "color": "blue"})
+		if status != http.StatusCreated || created["color"] != "blue" {
 			t.Fatalf("create should store the field: %d %v", status, created)
 		}
 
@@ -94,27 +94,27 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 
 		// The update answers success and changes nothing, which is the whole point: an API that
 		// refused the change would say so, and this one does not.
-		status, updated := put(t, s.ItemURL(id), map[string]any{"key": "k", "colour": "red"})
+		status, updated := put(t, s.ItemURL(id), map[string]any{"key": "k", "color": "red"})
 		if status != http.StatusOK {
 			t.Fatalf("status = %d, want 200 -- a refusal would be immutability, not this", status)
 		}
-		if updated["colour"] != "blue" {
-			t.Errorf("colour = %v, want the original blue", updated["colour"])
+		if updated["color"] != "blue" {
+			t.Errorf("color = %v, want the original blue", updated["color"])
 		}
 	})
 
 	t.Run("SilentlyDiscards", func(t *testing.T) {
 		t.Parallel()
 
-		s := New(t, Quirks{SilentlyDiscards: []string{"colour"}})
+		s := New(t, Quirks{SilentlyDiscards: []string{"color"}})
 
 		// 201, and the field is simply not there. This is the trap that makes a naive
 		// ReturnedOnRead probe wrong: it was demonstrably sent and is demonstrably absent.
-		status, created := post(t, s.CollectionURL(), map[string]any{"key": "k", "colour": "blue"})
+		status, created := post(t, s.CollectionURL(), map[string]any{"key": "k", "color": "blue"})
 		if status != http.StatusCreated {
 			t.Fatalf("status = %d, want 201", status)
 		}
-		if _, present := created["colour"]; present {
+		if _, present := created["color"]; present {
 			t.Errorf("a silently discarded field came back: %v", created)
 		}
 		if created["key"] != "k" {
@@ -168,19 +168,19 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 	t.Run("ConstantDefaults", func(t *testing.T) {
 		t.Parallel()
 
-		s := New(t, Quirks{ConstantDefaults: map[string]any{"colour": "blue"}})
+		s := New(t, Quirks{ConstantDefaults: map[string]any{"color": "blue"}})
 
 		_, first := post(t, s.CollectionURL(), map[string]any{"key": "a"})
 		_, second := post(t, s.CollectionURL(), map[string]any{"key": "b"})
 
 		// Identical across creates, which is what makes it a constant rather than derived.
-		if first["colour"] != "blue" || second["colour"] != "blue" {
+		if first["color"] != "blue" || second["color"] != "blue" {
 			t.Errorf("a constant default should be the same every time: %v, %v", first, second)
 		}
 
 		// And an explicit value wins, or it would not be a default.
-		_, explicit := post(t, s.CollectionURL(), map[string]any{"key": "c", "colour": "red"})
-		if explicit["colour"] != "red" {
+		_, explicit := post(t, s.CollectionURL(), map[string]any{"key": "c", "color": "red"})
+		if explicit["color"] != "red" {
 			t.Errorf("an explicit value must win: %v", explicit)
 		}
 	})
@@ -190,16 +190,16 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 
 		// A prober without the derivation check writes this into the blueprint as a static
 		// default, which is then a permanent lie.
-		s := New(t, Quirks{DerivedDefaults: map[string]string{"colour": "key"}})
+		s := New(t, Quirks{DerivedDefaults: map[string]string{"color": "key"}})
 
 		_, a := post(t, s.CollectionURL(), map[string]any{"key": "alpha"})
 		_, b := post(t, s.CollectionURL(), map[string]any{"key": "beta"})
 
-		if a["colour"] == b["colour"] {
-			t.Errorf("a derived default must vary with its source: %v vs %v", a["colour"], b["colour"])
+		if a["color"] == b["color"] {
+			t.Errorf("a derived default must vary with its source: %v vs %v", a["color"], b["color"])
 		}
-		if !strings.Contains(fmt.Sprint(a["colour"]), "alpha") {
-			t.Errorf("the derived value should reflect its source: %v", a["colour"])
+		if !strings.Contains(fmt.Sprint(a["color"]), "alpha") {
+			t.Errorf("the derived value should reflect its source: %v", a["color"])
 		}
 	})
 
@@ -275,14 +275,14 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 		}
 	})
 
-	t.Run("NormalisesCase", func(t *testing.T) {
+	t.Run("NormalizesCase", func(t *testing.T) {
 		t.Parallel()
 
-		s := New(t, Quirks{NormalisesCase: []string{"key"}})
+		s := New(t, Quirks{NormalizesCase: []string{"key"}})
 
 		_, created := post(t, s.CollectionURL(), map[string]any{"key": "MiXeD"})
 		if created["key"] != "mixed" {
-			t.Errorf("case was not normalised: %v", created["key"])
+			t.Errorf("case was not normalized: %v", created["key"])
 		}
 	})
 
@@ -568,7 +568,7 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 
 // TestUnit_Quirkserver_ZeroValueIsWellBehaved: a test enables exactly the quirk it is about,
 // so the default has to be an ordinary API. Otherwise every probe test would be exercising
-// misbehaviour it did not ask for.
+// misbehavior it did not ask for.
 func TestUnit_Quirkserver_ZeroValueIsWellBehaved(t *testing.T) {
 	t.Parallel()
 

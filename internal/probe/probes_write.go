@@ -198,7 +198,7 @@ func (p writableAndReturned) bodyFor(
 		sent[f.JSONPath] = body[f.JSONPath]
 	}
 
-	// Nested paths the fixture set are still observed, they are simply not synthesised.
+	// NestedAttributeObject paths the fixture set are still observed, they are simply not synthesised.
 	for _, f := range sc.Sendable() {
 		if !strings.Contains(f.JSONPath, ".") {
 			continue
@@ -454,7 +454,7 @@ func (p writableAndReturned) writableFact(
 
 	if !echoed {
 		// The read-back tracked the input without equalling it: the value was stored and
-		// transformed. Writable, and the transform is write.normalisation's to describe --
+		// transformed. Writable, and the transform is write.normalization's to describe --
 		// conflating the two would mark a perfectly writable field as computed.
 		rationale = "two creates sent distinct values and each read back a distinct value that " +
 			"was not identical to it, so the field is stored and transformed"
@@ -692,7 +692,7 @@ func (p updateStyle) styleFact(sc Scope, victim Field, before, after *Response) 
 		Alternatives: []string{
 			"an API that distinguishes an absent key from an explicit null may treat the two " +
 				"differently, and only the absent case was sent",
-			fmt.Sprintf("the behaviour was observed for %s and is assumed to hold for every "+
+			fmt.Sprintf("the behavior was observed for %s and is assumed to hold for every "+
 				"other field", victim.JSONPath),
 		},
 	}
@@ -725,7 +725,7 @@ func (p updateStyle) ignoredFact(sc Scope, sent string, after *Response) (Fact, 
 			"an update answered success and the field read back as %v rather than the %q that "+
 				"was sent", got, sent),
 		Alternatives: []string{
-			"the value may have been normalised rather than ignored, which write.normalisation " +
+			"the value may have been normalized rather than ignored, which write.normalization " +
 				"would distinguish",
 			"the read may have been served by a replica that had not yet caught up",
 		},
@@ -1724,8 +1724,8 @@ func (p immutability) attempt(
 				"as %v, so the change was accepted and not applied",
 				candidates[0], first, got),
 			Alternatives: []string{
-				"the value may have been normalised rather than ignored, which " +
-					"write.normalisation would distinguish",
+				"the value may have been normalized rather than ignored, which " +
+					"write.normalization would distinguish",
 			},
 		})
 
@@ -2206,7 +2206,7 @@ func (p enumBoundary) concludeEnum(sc Scope, f Field, o enumOutcome, out *Result
 // probeCase asks whether the API treats the documented values case-sensitively.
 //
 // The third question the contract asks, and it has no fact field of its own: recording it as one
-// would need merge to act on it, and the only sound action -- describing the behaviour -- is what a
+// would need merge to act on it, and the only sound action -- describing the behavior -- is what a
 // note already does. Worth asking anyway, because an API that accepts TEST for a field documented
 // as test is a second, independent reason a generated validator would be wrong.
 func (p enumBoundary) probeCase(
@@ -2248,7 +2248,7 @@ func (p enumBoundary) probeCase(
 	return nil
 }
 
-// A transform is one awkward shape a value can be sent in, plus the ability to recognise that
+// A transform is one awkward shape a value can be sent in, plus the ability to recognize that
 // shape having been undone.
 //
 // Grouped by transform rather than by field, which is the departure from the original per-field
@@ -2257,23 +2257,23 @@ func (p enumBoundary) probeCase(
 // once. Per field per value was three creates times the field count for an answer that is nearly
 // always uniform.
 type transform struct {
-	// name is what a fact says was done to the value, phrased to read after "The API normalises
+	// name is what a fact says was done to the value, phrased to read after "The API normalizes
 	// this value: ".
 	name string
 	// awkward produces the value to send, and reports whether this transform applies to the
 	// field at all.
 	awkward func(sc Scope, f Field) (any, bool)
-	// recognise names the transform when it can see it in the difference between sent and
-	// received, and reports false when the change is real but unrecognised.
-	recognise func(sent, got any) (string, bool)
+	// recognize names the transform when it can see it in the difference between sent and
+	// received, and reports false when the change is real but unrecognized.
+	recognize func(sent, got any) (string, bool)
 }
 
-// normalisationTransforms are the shapes sent, one create each.
+// normalizationTransforms are the shapes sent, one create each.
 //
 // Three, and the contract is explicit that this under-reports: numeric coercion, date
-// reformatting and unicode normalisation are all missing. Those are absences rather than errors --
+// reformatting and unicode normalization are all missing. Those are absences rather than errors --
 // the probe says nothing about them instead of saying something wrong.
-var normalisationTransforms = []transform{
+var normalizationTransforms = []transform{
 	{
 		name: "surrounding whitespace is stripped",
 		awkward: func(sc Scope, f Field) (any, bool) {
@@ -2283,7 +2283,7 @@ var normalisationTransforms = []transform{
 
 			return "  " + fmt.Sprint(sentinelFor(sc, f, 1)) + "  ", true
 		},
-		recognise: func(sent, got any) (string, bool) {
+		recognize: func(sent, got any) (string, bool) {
 			from, okFrom := sent.(string)
 			to, okTo := got.(string)
 
@@ -2303,7 +2303,7 @@ var normalisationTransforms = []transform{
 
 			return "MiXeD-" + fmt.Sprint(sentinelFor(sc, f, 2)), true
 		},
-		recognise: func(sent, got any) (string, bool) {
+		recognize: func(sent, got any) (string, bool) {
 			from, okFrom := sent.(string)
 			to, okTo := got.(string)
 
@@ -2331,7 +2331,7 @@ var normalisationTransforms = []transform{
 			// Deliberately not in sorted order, so a server that sorts is visible.
 			return []any{"c", "b", "a"}, true
 		},
-		recognise: func(sent, got any) (string, bool) {
+		recognize: func(sent, got any) (string, bool) {
 			from, okFrom := sent.([]any)
 			to, okTo := got.([]any)
 
@@ -2357,7 +2357,7 @@ var normalisationTransforms = []transform{
 // freeText reports whether a field's value is unconstrained enough to carry an awkward shape.
 //
 // A field with a documented value set, or one the plan supplies values for, has exactly one thing it
-// will accept -- so padding or re-casing it is not a normalisation experiment, it is a guaranteed
+// will accept -- so padding or re-casing it is not a normalization experiment, it is a guaranteed
 // 400 that loses the observation for every other field in the same body. A live run showed the
 // cost: "Invalid Access Type: '  all  '" refused a create carrying awkward values for four fields.
 func freeText(sc Scope, f Field) bool {
@@ -2366,8 +2366,8 @@ func freeText(sc Scope, f Field) bool {
 		len(sc.Candidates(f.JSONPath)) == 0
 }
 
-// normalisation implements the contract on the type in catalogue.go.
-func (p normalisation) Exercise(
+// normalization implements the contract on the type in catalogue.go.
+func (p normalization) Exercise(
 	ctx context.Context,
 	s *MutatingSession,
 	sc Scope,
@@ -2383,7 +2383,7 @@ func (p normalisation) Exercise(
 		return out, nil
 	}
 
-	for i, t := range normalisationTransforms {
+	for i, t := range normalizationTransforms {
 		if err := p.sendTransform(ctx, s, sc, t, i+1, &out); err != nil {
 			return out, err
 		}
@@ -2393,7 +2393,7 @@ func (p normalisation) Exercise(
 }
 
 // sendTransform issues one create with every applicable field carrying the awkward shape.
-func (p normalisation) sendTransform(
+func (p normalization) sendTransform(
 	ctx context.Context,
 	s *MutatingSession,
 	sc Scope,
@@ -2479,7 +2479,7 @@ func (p normalisation) sendTransform(
 }
 
 // compare records what came back changed.
-func (p normalisation) compare(
+func (p normalization) compare(
 	sc Scope,
 	t transform,
 	sent map[string]any,
@@ -2503,7 +2503,7 @@ func (p normalisation) compare(
 			continue
 		}
 
-		named, identified := t.recognise(sent[path], got)
+		named, identified := t.recognize(sent[path], got)
 
 		confidence := Suspected
 		description := fmt.Sprintf("the value came back changed by %q, in a way this probe could "+
@@ -2517,7 +2517,7 @@ func (p normalisation) compare(
 		out.Facts = append(out.Facts, Fact{
 			Resource:   sc.Subject.Resource,
 			JSONPath:   path,
-			Field:      FactNormalisation,
+			Field:      FactNormalization,
 			Value:      TextValue(description),
 			Confidence: confidence,
 			Probe:      p.Name(),

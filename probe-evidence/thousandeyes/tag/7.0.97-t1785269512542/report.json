@@ -1,0 +1,1111 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (14 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "tag",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tags-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "tag",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "listEnvelopeKey=tags"
+      },
+      "confidence": "observed",
+      "probe": "read.list-shape",
+      "evidence": [
+        "001-get-v7-tags",
+        "003-get-v7-tags",
+        "004-get-v7-tags",
+        "008-get-v7-tags",
+        "009-get-v7-tags",
+        "010-get-v7-tags",
+        "011-get-v7-tags",
+        "012-get-v7-tags",
+        "113-get-v7-tags"
+      ],
+      "rationale": "the list response wraps its items under \"tags\""
+    },
+    {
+      "resource": "tag",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tags-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "tag",
+      "field": "policy.readBack",
+      "value": {
+        "readBack": {
+          "reason": "every one of 19 read(s) immediately after a create succeeded on the first attempt"
+        }
+      },
+      "confidence": "inferred",
+      "probe": "write.read-your-writes",
+      "evidence": [
+        "025-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d",
+        "026-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d",
+        "030-get-v7-tags-bcb08925-5e53-44b0-8d67-56308b729f81",
+        "034-get-v7-tags-be4c3dc0-23f9-49ec-943f-7638a8d3aca3",
+        "036-get-v7-tags-b7d55eb8-f1db-4663-af29-4a5d6d09562c",
+        "038-get-v7-tags-bd97c8ba-eb47-48fd-93a4-dec1c4ca4998",
+        "043-get-v7-tags-c6192d3a-2ee8-4b63-ad97-5e2a16306cda",
+        "047-get-v7-tags-c6192d3a-2ee8-4b63-ad97-5e2a16306cda",
+        "049-get-v7-tags-61f0965b-cea0-4aef-8ace-380469978860",
+        "053-get-v7-tags-61f0965b-cea0-4aef-8ace-380469978860",
+        "055-get-v7-tags-61f0965b-cea0-4aef-8ace-380469978860",
+        "057-get-v7-tags-c34570f8-644a-431f-a90b-d38537b4e1e2",
+        "061-get-v7-tags-c34570f8-644a-431f-a90b-d38537b4e1e2",
+        "063-get-v7-tags-c34570f8-644a-431f-a90b-d38537b4e1e2",
+        "099-get-v7-tags-8d769b9c-164c-4b79-aa1a-a90f5f3581a0",
+        "101-get-v7-tags-2c1b7b1b-0498-43bd-842f-2bfe40548daf",
+        "103-get-v7-tags-e3b39d18-7757-40bb-8480-e045f4586b14",
+        "108-get-v7-tags-b76e28a8-12a5-46fc-a4c9-82ae38babe8a",
+        "110-get-v7-tags-13398e77-a33d-43ee-beb8-fcefc6d9b706"
+      ],
+      "rationale": "19 object(s) were read immediately after creation and every first read succeeded",
+      "alternatives": [
+        "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+      ]
+    },
+    {
+      "resource": "tag",
+      "field": "policy.updateStyle",
+      "value": {
+        "text": "putFull"
+      },
+      "confidence": "inferred",
+      "probe": "write.update-style",
+      "evidence": [
+        "031-put-v7-tags-bcb08925-5e53-44b0-8d67-56308b729f81"
+      ],
+      "rationale": "an update carrying only key was refused with 400 (Validation failure), so a generated update must send the whole object",
+      "alternatives": [
+        "the refusal may be about the particular fields omitted rather than about partiality, which only omitting a different subset would separate",
+        "the API may still merge when given a body it accepts, which this refusal leaves untested"
+      ]
+    },
+    {
+      "resource": "tag",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-tags",
+        "003-get-v7-tags",
+        "004-get-v7-tags",
+        "008-get-v7-tags",
+        "009-get-v7-tags",
+        "010-get-v7-tags",
+        "011-get-v7-tags",
+        "012-get-v7-tags",
+        "113-get-v7-tags"
+      ],
+      "rationale": "a collection read carrying an unrecognized query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "accessType",
+      "field": "enumAccepted",
+      "value": {
+        "list": [
+          "all"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "070-post-v7-tags",
+        "071-post-v7-tags",
+        "072-post-v7-tags",
+        "073-post-v7-tags",
+        "074-post-v7-tags"
+      ],
+      "rationale": "1 of the 3 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "accessType",
+      "field": "enumClosed",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "070-post-v7-tags",
+        "071-post-v7-tags",
+        "072-post-v7-tags",
+        "073-post-v7-tags",
+        "074-post-v7-tags"
+      ],
+      "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+      "alternatives": [
+        "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "accessType",
+      "field": "enumRejectedDocumented",
+      "value": {
+        "list": [
+          "system"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "070-post-v7-tags",
+        "071-post-v7-tags",
+        "072-post-v7-tags",
+        "073-post-v7-tags",
+        "074-post-v7-tags"
+      ],
+      "rationale": "the specification documents all, partner, system but this API refused system",
+      "alternatives": [
+        "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "accessType",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "corroborated",
+      "probe": "write.required",
+      "evidence": [
+        "015-post-v7-tags",
+        "019-post-v7-tags"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "accessType",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "025-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "assignments",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "suspected",
+      "probe": "read.returned-weak",
+      "evidence": [
+        "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+      ],
+      "rationale": "the field was absent from a read of one existing object",
+      "alternatives": [
+        "the field may be null for this particular object rather than never returned",
+        "the field may be returned only when an expansion parameter is supplied",
+        "the object may predate the field"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "assignments.id",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "suspected",
+      "probe": "read.returned-weak",
+      "evidence": [
+        "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+      ],
+      "rationale": "the field was absent from a read of one existing object",
+      "alternatives": [
+        "the field may be null for this particular object rather than never returned",
+        "the field may be returned only when an expansion parameter is supplied",
+        "the object may predate the field"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "assignments.type",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "suspected",
+      "probe": "read.returned-weak",
+      "evidence": [
+        "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+      ],
+      "rationale": "the field was absent from a read of one existing object",
+      "alternatives": [
+        "the field may be null for this particular object rather than never returned",
+        "the field may be returned only when an expansion parameter is supplied",
+        "the object may predate the field"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "color",
+      "field": "immutable",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.immutability",
+      "evidence": [
+        "047-get-v7-tags-c6192d3a-2ee8-4b63-ad97-5e2a16306cda"
+      ],
+      "rationale": "an update changed this field from #A1B2C3 to #A1B2C3 and the read confirmed it"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "color",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "025-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "color",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"#A7EB10\""
+        }
+      },
+      "confidence": "corroborated",
+      "probe": "write.server-default",
+      "evidence": [
+        "034-get-v7-tags-be4c3dc0-23f9-49ec-943f-7638a8d3aca3",
+        "036-get-v7-tags-b7d55eb8-f1db-4663-af29-4a5d6d09562c",
+        "038-get-v7-tags-bd97c8ba-eb47-48fd-93a4-dec1c4ca4998"
+      ],
+      "rationale": "the field was omitted from 3 create(s) and came back as #A7EB10 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "description",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "025-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "suspected",
+      "probe": "read.returned-weak",
+      "evidence": [
+        "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+      ],
+      "rationale": "the field was absent from a read of one existing object",
+      "alternatives": [
+        "the field may be null for this particular object rather than never returned",
+        "the field may be returned only when an expansion parameter is supplied",
+        "the object may predate the field"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters.key",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "suspected",
+      "probe": "read.returned-weak",
+      "evidence": [
+        "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+      ],
+      "rationale": "the field was absent from a read of one existing object",
+      "alternatives": [
+        "the field may be null for this particular object rather than never returned",
+        "the field may be returned only when an expansion parameter is supplied",
+        "the object may predate the field"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters.mode",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "suspected",
+      "probe": "read.returned-weak",
+      "evidence": [
+        "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+      ],
+      "rationale": "the field was absent from a read of one existing object",
+      "alternatives": [
+        "the field may be null for this particular object rather than never returned",
+        "the field may be returned only when an expansion parameter is supplied",
+        "the object may predate the field"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters.scope",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "suspected",
+      "probe": "read.returned-weak",
+      "evidence": [
+        "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+      ],
+      "rationale": "the field was absent from a read of one existing object",
+      "alternatives": [
+        "the field may be null for this particular object rather than never returned",
+        "the field may be returned only when an expansion parameter is supplied",
+        "the object may predate the field"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters.values",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "suspected",
+      "probe": "read.returned-weak",
+      "evidence": [
+        "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+      ],
+      "rationale": "the field was absent from a read of one existing object",
+      "alternatives": [
+        "the field may be null for this particular object rather than never returned",
+        "the field may be returned only when an expansion parameter is supplied",
+        "the object may predate the field"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "icon",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "025-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "icon",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"LABEL\""
+        }
+      },
+      "confidence": "corroborated",
+      "probe": "write.server-default",
+      "evidence": [
+        "034-get-v7-tags-be4c3dc0-23f9-49ec-943f-7638a8d3aca3",
+        "036-get-v7-tags-b7d55eb8-f1db-4663-af29-4a5d6d09562c",
+        "038-get-v7-tags-bd97c8ba-eb47-48fd-93a4-dec1c4ca4998"
+      ],
+      "rationale": "the field was omitted from 3 create(s) and came back as LABEL every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "key",
+      "field": "immutable",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.immutability",
+      "evidence": [
+        "055-get-v7-tags-61f0965b-cea0-4aef-8ace-380469978860"
+      ],
+      "rationale": "an update to tfpfgen-probe-write-immutability-alt-2 was refused but an update to tfpfgen-probe-write-immutability-alt-102 succeeded, so the field can be changed and the first value was the problem"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "key",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "025-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "matchType",
+      "field": "enumAccepted",
+      "value": {
+        "list": [
+          "and",
+          "or"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "076-post-v7-tags",
+        "077-post-v7-tags",
+        "078-post-v7-tags",
+        "079-post-v7-tags"
+      ],
+      "rationale": "2 of the 2 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "matchType",
+      "field": "enumClosed",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "076-post-v7-tags",
+        "077-post-v7-tags",
+        "078-post-v7-tags",
+        "079-post-v7-tags"
+      ],
+      "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+      "alternatives": [
+        "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "matchType",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "suspected",
+      "probe": "read.returned-weak",
+      "evidence": [
+        "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+        "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+      ],
+      "rationale": "the field was absent from a read of one existing object",
+      "alternatives": [
+        "the field may be null for this particular object rather than never returned",
+        "the field may be returned only when an expansion parameter is supplied",
+        "the object may predate the field"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "matchType",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "025-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d"
+      ],
+      "rationale": "the field was sent on 1 create(s) and appeared in no read response, including every expansion the plan declares",
+      "alternatives": [
+        "the API may return it only on the collection endpoint rather than the item one",
+        "an expansion parameter this plan does not know about may reveal it"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "field": "enumAccepted",
+      "value": {
+        "list": [
+          "test",
+          "dashboard",
+          "endpoint-test",
+          "v-agent",
+          "connected-devices-test"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "081-post-v7-tags",
+        "082-post-v7-tags",
+        "083-post-v7-tags",
+        "084-post-v7-tags",
+        "085-post-v7-tags",
+        "086-post-v7-tags",
+        "087-post-v7-tags",
+        "088-post-v7-tags"
+      ],
+      "rationale": "5 of the 6 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "field": "enumClosed",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "081-post-v7-tags",
+        "082-post-v7-tags",
+        "083-post-v7-tags",
+        "084-post-v7-tags",
+        "085-post-v7-tags",
+        "086-post-v7-tags",
+        "087-post-v7-tags",
+        "088-post-v7-tags"
+      ],
+      "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+      "alternatives": [
+        "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "field": "enumRejectedDocumented",
+      "value": {
+        "list": [
+          "endpoint-agent"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "081-post-v7-tags",
+        "082-post-v7-tags",
+        "083-post-v7-tags",
+        "084-post-v7-tags",
+        "085-post-v7-tags",
+        "086-post-v7-tags",
+        "087-post-v7-tags",
+        "088-post-v7-tags"
+      ],
+      "rationale": "the specification documents test, dashboard, endpoint-test, v-agent, connected-devices-test, endpoint-agent but this API refused endpoint-agent",
+      "alternatives": [
+        "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "field": "immutable",
+      "value": {
+        "bool": true
+      },
+      "confidence": "corroborated",
+      "probe": "write.immutability",
+      "evidence": [
+        "061-get-v7-tags-c34570f8-644a-431f-a90b-d38537b4e1e2",
+        "063-get-v7-tags-c34570f8-644a-431f-a90b-d38537b4e1e2"
+      ],
+      "rationale": "two distinct values were refused on update (409 and 409) after a control update of the unchanged value succeeded, and the first value was proven acceptable on create",
+      "alternatives": [
+        "the field may be immutable only after some state transition this object never made",
+        "both refusals may share a cause other than immutability that the control did not reach"
+      ]
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "corroborated",
+      "probe": "write.required",
+      "evidence": [
+        "016-post-v7-tags",
+        "020-post-v7-tags"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "025-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "value",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "corroborated",
+      "probe": "write.required",
+      "evidence": [
+        "017-post-v7-tags",
+        "021-post-v7-tags"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "value",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "025-get-v7-tags-fcfb072f-1cab-4fc7-a569-470df0934a1d"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    }
+  ],
+  "notes": [
+    {
+      "resource": "tag",
+      "probe": "write.writable-returned",
+      "message": "fixture dashboard-tag was refused with 400 (You need to provide a valid partnerId to create a tag. Either you did not provide one or the provided one is invalid), so nothing was observed about writability from it"
+    },
+    {
+      "resource": "tag",
+      "probe": "read.error-envelope",
+      "message": "no candidate query parameter (limit, max, offset, page) was validated, so no error shape was observed without mutating anything"
+    },
+    {
+      "resource": "tag",
+      "probe": "read.volatile",
+      "message": "no field differed across 3 reads; that is not evidence of stability, so no volatility fact was recorded"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "accessType",
+      "probe": "write.enum",
+      "message": "the accepted set is recorded for the attribute's description only; no validator is generated from it, because a routine upstream addition to the set would then become a plan failure the practitioner cannot work around"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "accessType",
+      "probe": "write.enum",
+      "message": "the create carrying \"partner\" (documented) was refused with 400 (You need to provide a valid partnerId to create a tag. Either you did not provide one or the provided one is invalid), and the error does not name this field, so the refusal says nothing about its value set and this candidate was not counted"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "accessType",
+      "probe": "write.enum",
+      "message": "the documented value \"all\" was accepted and \"ALL\" was refused with 400, so the API treats this set case-sensitively"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "accessType",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "assignments",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "assignments.id",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "assignments.type",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "color",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "description",
+      "probe": "write.server-default",
+      "message": "the field came back null when omitted, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "description",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters.key",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters.mode",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters.scope",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "filters.values",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "icon",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "key",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "key",
+      "probe": "write.immutability",
+      "message": "the value tfpfgen-probe-write-immutability-alt-2 was accepted on create and refused on update, which is worth a look: it may be constrained by something other than immutability"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "key",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "key",
+      "probe": "write.immutability",
+      "message": "this field carries the sweeper's name prefix, so the plan's candidate values were replaced with two stamped names: an update to an unprefixed value would leave an object the prefix sweep could not find"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "matchType",
+      "probe": "write.enum",
+      "message": "the accepted set is recorded for the attribute's description only; no validator is generated from it, because a routine upstream addition to the set would then become a plan failure the practitioner cannot work around"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "matchType",
+      "probe": "write.enum",
+      "message": "the documented value \"and\" was accepted and \"AND\" was refused with 400, so the API treats this set case-sensitively"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "matchType",
+      "probe": "write.writable-returned",
+      "message": "the field never came back, so whether the API stored it cannot be observed from a read: discarded and stored-but-not-returned look identical from here"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "matchType",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "probe": "write.side-effect",
+      "message": "createDate varied between two byte-identical creates, so no coupling could be attributed to this field for them"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "probe": "write.side-effect",
+      "message": "no field the request did not carry differed between an object created with this field and one created without it, so no coupling was observed"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "probe": "write.enum",
+      "message": "the accepted set is recorded for the attribute's description only; no validator is generated from it, because a routine upstream addition to the set would then become a plan failure the practitioner cannot work around"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "probe": "write.enum",
+      "message": "the documented value \"test\" was accepted and \"TEST\" was refused with 400, so the API treats this set case-sensitively"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "objectType",
+      "probe": "write.immutability",
+      "message": "this field appears immutable. Whether Terraform should destroy and recreate the resource for it is a decision about somebody's infrastructure, so no plan modifier is recommended here and merge will not add one"
+    },
+    {
+      "resource": "tag",
+      "jsonPath": "value",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "ok",
+      "requests": 2,
+      "facts": 9
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 20,
+      "facts": 8
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 22,
+      "facts": 3
+    },
+    {
+      "name": "write.normalization",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 8,
+      "facts": 3
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 6,
+      "facts": 2
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 6,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 3,
+      "facts": 1
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 8
+    }
+  ],
+  "budget": {
+    "requests": 112,
+    "maxRequests": 200,
+    "creates": 45,
+    "maxCreates": 60,
+    "deletes": 26,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  }
+}

@@ -53,7 +53,7 @@ func (p unknownParamTolerance) Observe(
 		Probe:      p.Name(),
 		Evidence:   []string{evidenceID(1, "GET", s.CollectionPath())},
 		Rationale: fmt.Sprintf(
-			"a collection read carrying an unrecognised query parameter answered %d", resp.Status),
+			"a collection read carrying an unrecognized query parameter answered %d", resp.Status),
 		Alternatives: []string{
 			"a gateway rather than the API itself may have rejected the parameter, in which " +
 				"case tolerance of unknown request-body fields does not follow",
@@ -398,7 +398,7 @@ func (p errorEnvelope) Observe(ctx context.Context, s ReadSession, sc Scope) (Re
 				e.Envelope,
 			),
 			Alternatives: []string{
-				"an API may use a different error shape for authorisation failures than for " +
+				"an API may use a different error shape for authorization failures than for " +
 					"validation failures, which one malformed read cannot establish",
 			},
 		})

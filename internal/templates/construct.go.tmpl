@@ -31,7 +31,7 @@ func constructResource(ctx context.Context, data *{{ .ModelTypeName }}) *{{ .Con
 	return body
 {{- end }}
 }
-{{ range .Construct.Nested }}
+{{ range .Construct.NestedObject }}
 // {{ .FuncName }} converts the configured {{ .ModelType }} values into SDK structs.
 {{- if .IsCollection }}
 func {{ .FuncName }}(ctx context.Context, v {{ .FrameworkType }}) ([]{{ .SDKType }}, diag.Diagnostics) {

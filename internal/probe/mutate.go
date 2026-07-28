@@ -220,7 +220,7 @@ func runOneMutating(
 //
 // The list is short and every entry is about not making things worse. A budget cap was set
 // deliberately; a delete failure means we have demonstrated we cannot clean up, and creating
-// more after that is the worst available behaviour; a cancelled run has no time left; a
+// more after that is the worst available behavior; a cancelled run has no time left; a
 // credential failure would make every later observation a fact about the token; and a panic is
 // a bug whose blast radius is unknown by definition.
 func stopsTheRun(err error) bool {

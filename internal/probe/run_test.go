@@ -39,10 +39,10 @@ func quirkSubject() Subject {
 		NameField:          "key",
 		IDField:            "id",
 		Fields: []Field{
-			{JSONPath: "id", Kind: blueprint.KindString, Presence: blueprint.Computed},
-			{JSONPath: "key", Kind: blueprint.KindString, Presence: blueprint.Required, Writable: true},
-			{JSONPath: "value", Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true},
-			{JSONPath: "modifiedDate", Kind: blueprint.KindString, Presence: blueprint.Computed},
+			{JSONPath: "id", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Computed},
+			{JSONPath: "key", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true},
+			{JSONPath: "value", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true},
+			{JSONPath: "modifiedDate", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Computed},
 		},
 	}
 }
@@ -554,7 +554,7 @@ func TestUnit_Probe_VerifyFactsDetectsDrift(t *testing.T) {
 	t.Parallel()
 
 	base := []Fact{{
-		Resource: "tag", JSONPath: "colour", Field: FactWritable,
+		Resource: "tag", JSONPath: "color", Field: FactWritable,
 		Value: BoolValue(true), Confidence: Observed,
 	}}
 
@@ -565,15 +565,15 @@ func TestUnit_Probe_VerifyFactsDetectsDrift(t *testing.T) {
 	tests := map[string][]Fact{
 		"a missing fact": {},
 		"a changed value": {{
-			Resource: "tag", JSONPath: "colour", Field: FactWritable,
+			Resource: "tag", JSONPath: "color", Field: FactWritable,
 			Value: BoolValue(false), Confidence: Observed,
 		}},
 		"a changed confidence": {{
-			Resource: "tag", JSONPath: "colour", Field: FactWritable,
+			Resource: "tag", JSONPath: "color", Field: FactWritable,
 			Value: BoolValue(true), Confidence: Suspected,
 		}},
 		"a different field": {{
-			Resource: "tag", JSONPath: "colour", Field: FactImmutable,
+			Resource: "tag", JSONPath: "color", Field: FactImmutable,
 			Value: BoolValue(true), Confidence: Observed,
 		}},
 	}

@@ -3,7 +3,7 @@
 //
 // It is a superset of HashiCorp's Provider Code Specification. That format can
 // describe a schema and nothing else — it has no representation for CRUD wiring,
-// for the SDK symbols a resource calls, for observed API behaviour, or for test
+// for the SDK symbols a resource calls, for observed API behavior, or for test
 // scaffolding. Those are most of what a working provider is, so the blueprint
 // carries them and the official format is something internal/interop reads and
 // writes rather than this package's model.
@@ -100,7 +100,7 @@ type SDKModule struct {
 }
 
 // Conventions are the emitter's per-target editorial choices. They are data
-// because two providers in the same organisation legitimately differ.
+// because two providers in the same organization legitimately differ.
 type Conventions struct {
 	ResourceRoot   string `json:"resourceRoot,omitempty"`
 	DataSourceRoot string `json:"dataSourceRoot,omitempty"`
@@ -192,30 +192,30 @@ type DataSource struct {
 	Drop           bool        `json:"drop,omitempty"`
 }
 
-// Presence is how Terraform treats an attribute. The four values are spelled
+// ComputedOptionalRequired is how Terraform treats an attribute. The four values are spelled
 // exactly as the Provider Code Specification spells them, so interop needs no
 // mapping table.
-type Presence string
+type ComputedOptionalRequired string
 
 const (
-	Required         Presence = "required"
-	Optional         Presence = "optional"
-	Computed         Presence = "computed"
-	ComputedOptional Presence = "computed_optional"
+	Required         ComputedOptionalRequired = "required"
+	Optional         ComputedOptionalRequired = "optional"
+	Computed         ComputedOptionalRequired = "computed"
+	ComputedOptional ComputedOptionalRequired = "computed_optional"
 )
 
 // IsComputed reports whether the framework schema sets Computed.
-func (p Presence) IsComputed() bool {
+func (p ComputedOptionalRequired) IsComputed() bool {
 	return p == Computed || p == ComputedOptional
 }
 
 // IsOptional reports whether the framework schema sets Optional.
-func (p Presence) IsOptional() bool {
+func (p ComputedOptionalRequired) IsOptional() bool {
 	return p == Optional || p == ComputedOptional
 }
 
 // IsRequired reports whether the framework schema sets Required.
-func (p Presence) IsRequired() bool { return p == Required }
+func (p ComputedOptionalRequired) IsRequired() bool { return p == Required }
 
 // TypeKind is the framework type an attribute maps to.
 type TypeKind string
@@ -263,10 +263,10 @@ func (k TypeKind) IsNestedCollection() bool {
 // AttrType is an attribute's type.
 type AttrType struct {
 	Kind TypeKind `json:"kind"`
-	// Elem is the element type of a list, set or map of scalars.
-	Elem *AttrType `json:"elem,omitempty"`
-	// Nested is the object shape of a nested kind.
-	Nested *Nested `json:"nested,omitempty"`
+	// ElementType is the element type of a list, set or map of scalars.
+	ElementType *AttrType `json:"elementType,omitempty"`
+	// NestedObject is the object shape of a nested kind.
+	NestedObject *NestedAttributeObject `json:"nestedObject,omitempty"`
 
 	// Enum is the value set the *specification* documents, and it is documentation only.
 	//
@@ -283,8 +283,8 @@ type AttrType struct {
 	Enum []string `json:"enum,omitempty"`
 }
 
-// Nested is the object shape a nested attribute holds.
-type Nested struct {
+// NestedAttributeObject is the object shape a nested attribute holds.
+type NestedAttributeObject struct {
 	// GoTypeName is the generated tfsdk model for this level, e.g.
 	// "TagAssignmentModel". It is a sibling of the parent model, not an inner type,
 	// because the framework needs a named type to decode elements into.
@@ -314,8 +314,8 @@ type Attribute struct {
 	// GoField is the model struct field.
 	GoField string `json:"goField"`
 
-	Type     AttrType `json:"type"`
-	Presence Presence `json:"presence"`
+	Type                     AttrType                 `json:"type"`
+	ComputedOptionalRequired ComputedOptionalRequired `json:"computedOptionalRequired"`
 
 	Sensitive bool `json:"sensitive,omitempty"`
 
@@ -326,8 +326,8 @@ type Attribute struct {
 	PlanModifiers []CustomCode `json:"planModifiers,omitempty"`
 	Default       *Default     `json:"default,omitempty"`
 
-	Behaviour Behaviour   `json:"behaviour,omitzero"`
-	Wire      WireBinding `json:"wire,omitzero"`
+	Behavior Behavior    `json:"behavior,omitzero"`
+	Wire     WireBinding `json:"wire,omitzero"`
 
 	Drop bool `json:"drop,omitempty"`
 }
@@ -354,13 +354,13 @@ type Literal struct {
 	Raw string `json:"raw"`
 }
 
-// Behaviour is what the API actually does, as opposed to what its specification
+// Behavior is what the API actually does, as opposed to what its specification
 // claims. It is populated chiefly by the prober.
 //
 // Every field is a pointer because "not observed" must be distinguishable from
 // "observed to be false". That distinction is what makes the layered merge
 // decidable, and it is why this struct looks more verbose than it needs to.
-type Behaviour struct {
+type Behavior struct {
 	// Writable is false for a field the API accepts and discards, which is the
 	// difference between Computed and Optional+Computed.
 	Writable *bool `json:"writable,omitempty"`
@@ -396,7 +396,7 @@ const (
 	UpdateReplaceOnly UpdateStyle = "replaceOnly"
 )
 
-// ResourcePolicy is the per-resource behaviour the generated CRUD depends on.
+// ResourcePolicy is the per-resource behavior the generated CRUD depends on.
 type ResourcePolicy struct {
 	UpdateStyle UpdateStyle `json:"updateStyle,omitempty"`
 	ReadBack    ReadBack    `json:"readBack,omitzero"`
