@@ -1429,3 +1429,686 @@ func anyOutcome(outcomes []FieldOutcome, want FieldOutcome) bool {
 
 // sameValue compares two observed values structurally.
 func sameValue(a, b any) bool { return reflect.DeepEqual(a, b) }
+
+// immutability implements the contract on the type in catalogue.go.
+func (p immutability) Exercise(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+) (Result, error) {
+	var out Result
+
+	if sc.Subject.Update == nil {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: "the resource has no update operation, so immutability is not a question " +
+				"about it: write.update-style records replaceOnly instead",
+		})
+
+		return out, nil
+	}
+
+	fields := sc.Immutable()
+	if len(fields) == 0 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: "no field carries two or more candidate values, so no field can be probed " +
+				"for immutability: the fact requires two distinct values both refused, and one " +
+				"candidate cannot supply that",
+		})
+
+		return out, nil
+	}
+
+	for _, f := range fields {
+		if err := p.probeField(ctx, s, sc, f, &out); err != nil {
+			// Returned with whatever earlier fields established.
+			return out, err
+		}
+	}
+
+	return out, nil
+}
+
+// probeField runs the whole protocol for one field.
+//
+// Every step exists to eliminate one alternative explanation for a 4xx on update, and the order
+// matters: the control comes before the real attempt, because a control that fails means the
+// update request shape itself is wrong and every later conclusion would be an artefact of that.
+func (p immutability) probeField(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	f Field,
+	out *Result,
+) error {
+	candidates, why := p.candidatesFor(s, sc, f)
+	if len(candidates) < 2 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: why,
+		})
+
+		return nil
+	}
+
+	if why != "" {
+		// The candidates were substituted rather than taken from the plan, which a reader needs
+		// to know: the transcript will not match what the plan declares.
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: why,
+		})
+	}
+
+	original := p.originalValue(s, sc, f)
+
+	// Step 1: the object under test.
+	subject, err := p.createWith(ctx, s, sc, f, original, 1)
+	out.Requests++
+
+	if err != nil {
+		return err
+	}
+	if subject.status >= 400 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: fmt.Sprintf("the object under test could not be created (%d: %s), so "+
+				"nothing was observed about this field", subject.status, subject.detail),
+		})
+
+		return nil
+	}
+
+	// Step 2: the value has to be observable, or "refused" and "never stored" are the same
+	// observation.
+	before, err := s.ReadCreated(ctx, p.Name(), subject.id, expansionQuery(sc))
+	out.Requests++
+
+	if err != nil {
+		return err
+	}
+
+	stored, outcome := before.LookupField(f.JSONPath)
+	if outcome != Present {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: "the field did not come back on the read after create, so a refused update " +
+				"could not be told from a field the API never stored, and immutability was not " +
+				"probed",
+		})
+
+		return nil
+	}
+
+	// Step 3: the control. Send the value back unchanged. This is the step that separates "this
+	// field cannot be changed" from "this update request is malformed", and it is the reason the
+	// quirk server has a RequiresExtraFieldOnUpdate switch at all.
+	control, err := s.Update(ctx, p.Name(), subject.id, p.updateBody(s, sc, f, stored))
+	out.Requests++
+
+	if err != nil {
+		return err
+	}
+
+	if control.Status >= 400 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: fmt.Sprintf("the control update -- the same value sent back unchanged -- was "+
+				"refused with %d (%s), so this update request shape is wrong and any refusal of a "+
+				"changed value would say nothing about immutability",
+				control.Status, control.Error().Detail),
+		})
+
+		return nil
+	}
+
+	// Step 4: prove the new value is acceptable to the API at all, by creating a second object
+	// with it. Without this, "the field is immutable" and "that value is invalid" are the same
+	// observation.
+	proof, err := p.createWith(ctx, s, sc, f, candidates[0], 2)
+	out.Requests++
+
+	if err != nil {
+		return err
+	}
+
+	if proof.status >= 400 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: fmt.Sprintf("the candidate value %v was refused on create (%d: %s), so it "+
+				"is not an acceptable value and a refused update would prove nothing about "+
+				"immutability", candidates[0], proof.status, proof.detail),
+		})
+
+		return nil
+	}
+
+	p.attempt(ctx, s, sc, f, subject.id, stored, candidates, out)
+
+	return nil
+}
+
+// attempt runs the two update attempts and records the conclusion.
+func (p immutability) attempt(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	f Field,
+	id string,
+	stored any,
+	candidates []any,
+	out *Result,
+) {
+	first, firstRead, err := p.tryUpdate(ctx, s, sc, f, id, candidates[0], out)
+	if err != nil {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: fmt.Sprintf("the update attempt failed: %v", err),
+		})
+
+		return
+	}
+
+	// Accepted and applied: the field is mutable, and one demonstration is enough. Immutable=false
+	// is the safe direction -- it recommends nothing.
+	if first < 400 {
+		got, outcome := firstRead.LookupField(f.JSONPath)
+
+		if outcome == Present && sameValue(got, candidates[0]) {
+			out.Facts = append(out.Facts, Fact{
+				Resource:   sc.Subject.Resource,
+				JSONPath:   f.JSONPath,
+				Field:      FactImmutable,
+				Value:      BoolValue(false),
+				Confidence: Observed,
+				Probe:      p.Name(),
+				Evidence:   []string{firstRead.Interaction},
+				Rationale: fmt.Sprintf("an update changed this field from %v to %v and the read "+
+					"confirmed it", stored, candidates[0]),
+			})
+
+			return
+		}
+
+		// Accepted, and the value did not change. Not immutability -- a different fact that
+		// happens to want similar handling, and conflating the two is the classic error.
+		out.Facts = append(out.Facts, Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   f.JSONPath,
+			Field:      FactSilentlyIgnoredOnUpdate,
+			Value:      BoolValue(true),
+			Confidence: Observed,
+			Probe:      p.Name(),
+			Evidence:   []string{firstRead.Interaction},
+			Rationale: fmt.Sprintf("an update to %v answered %d and the field still read back "+
+				"as %v, so the change was accepted and not applied",
+				candidates[0], first, got),
+			Alternatives: []string{
+				"the value may have been normalised rather than ignored, which " +
+					"write.normalisation would distinguish",
+			},
+		})
+
+		return
+	}
+
+	// Refused. One refusal is not enough: the value may simply have been invalid in a way its
+	// acceptance on *create* did not reveal -- a uniqueness constraint, a state-dependent rule.
+	// A second, distinct value rules that out, which is why Immutable=true requires two.
+	second, secondRead, err := p.tryUpdate(ctx, s, sc, f, id, candidates[1], out)
+	if err != nil {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: fmt.Sprintf("the second update attempt failed: %v", err),
+		})
+
+		return
+	}
+
+	if second < 400 {
+		// The first value was the problem, not the field. Reported as mutable, and the note says
+		// which value the API would not take -- worth knowing on its own.
+		out.Facts = append(out.Facts, Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   f.JSONPath,
+			Field:      FactImmutable,
+			Value:      BoolValue(false),
+			Confidence: Observed,
+			Probe:      p.Name(),
+			Evidence:   []string{secondRead.Interaction},
+			Rationale: fmt.Sprintf("an update to %v was refused but an update to %v succeeded, "+
+				"so the field can be changed and the first value was the problem",
+				candidates[0], candidates[1]),
+		})
+
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: fmt.Sprintf("the value %v was accepted on create and refused on update, "+
+				"which is worth a look: it may be constrained by something other than "+
+				"immutability", candidates[0]),
+		})
+
+		return
+	}
+
+	out.Facts = append(out.Facts, Fact{
+		Resource:   sc.Subject.Resource,
+		JSONPath:   f.JSONPath,
+		Field:      FactImmutable,
+		Value:      BoolValue(true),
+		Confidence: Corroborated,
+		Probe:      p.Name(),
+		Evidence:   []string{firstRead.Interaction, secondRead.Interaction},
+		Rationale: fmt.Sprintf("two distinct values were refused on update (%d and %d) after a "+
+			"control update of the unchanged value succeeded, and the first value was proven "+
+			"acceptable on create", first, second),
+		Alternatives: []string{
+			"the field may be immutable only after some state transition this object never made",
+			"both refusals may share a cause other than immutability that the control did not " +
+				"reach",
+		},
+	})
+
+	out.Notes = append(out.Notes, Note{
+		Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+		Message: "this field appears immutable. Whether Terraform should destroy and recreate " +
+			"the resource for it is a decision about somebody's infrastructure, so no plan " +
+			"modifier is recommended here and merge will not add one",
+	})
+}
+
+// tryUpdate sends one changed value and reads the result back.
+func (p immutability) tryUpdate(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	f Field,
+	id string,
+	value any,
+	out *Result,
+) (int, *Response, error) {
+	resp, err := s.Update(ctx, p.Name(), id, p.updateBody(s, sc, f, value))
+	out.Requests++
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	read, err := s.ReadCreated(ctx, p.Name(), id, expansionQuery(sc))
+	out.Requests++
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return resp.Status, read, nil
+}
+
+// updateBody is the whole fixture with one field changed.
+//
+// The whole object rather than just the changed field, because an API with putFull semantics
+// clears whatever the request omits -- and the field it must never clear is the name. An update
+// that dropped or unprefixed the stamped name would leave an object the prefix sweep cannot find,
+// so a crash between that update and the delete would strand it permanently.
+//
+// The name is therefore stamped first and the field under test applied last, so a probe of the
+// name field itself still ends up with a prefixed value: candidatesFor guarantees its candidates
+// are stamped.
+func (p immutability) updateBody(
+	s *MutatingSession,
+	sc Scope,
+	f Field,
+	value any,
+) map[string]any {
+	fixture, _ := sc.Fixture(0)
+
+	body := fixture.Body
+	body[sc.Subject.NameField] = s.NameValue(p.Name(), 1)
+	body[f.JSONPath] = value
+
+	return body
+}
+
+// createWith creates an object carrying one particular value for one field.
+func (p immutability) createWith(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	f Field,
+	value any,
+	seq int,
+) (created, error) {
+	fixture, _ := sc.Fixture(0)
+
+	// Name first, field under test last, for the reason given on updateBody: whichever field is
+	// being probed, the object leaves here findable by prefix.
+	body := fixture.Body
+	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
+	body[f.JSONPath] = value
+
+	resp, id, err := s.Create(ctx, p.Name(), body)
+	if err != nil && !errors.Is(err, ErrNoIdentifier) {
+		return created{}, err
+	}
+
+	return created{id: id, status: resp.Status, detail: resp.Error().Detail}, nil
+}
+
+// created is one create's outcome.
+type created struct {
+	id     string
+	status int
+	detail string
+}
+
+// originalValue is the value the object under test starts with.
+//
+// Stamped for the name field, whatever the fixture says. A fixture's name is a placeholder -- the
+// stamp is applied at send time -- so taking it literally here would build a create body whose
+// name lacks the prefix, and the session would refuse it before it was sent. The same reason
+// candidatesFor substitutes stamped names.
+func (p immutability) originalValue(s *MutatingSession, sc Scope, f Field) any {
+	if f.JSONPath == sc.Subject.NameField {
+		return s.NameValue(p.Name(), 1)
+	}
+
+	fixture, _ := sc.Fixture(0)
+
+	if v, ok := fixture.Body[f.JSONPath]; ok {
+		return v
+	}
+
+	return sentinelFor(f, 1)
+}
+
+// candidatesFor returns the two distinct values this protocol will try, and an explanation when
+// they are not the plan's own.
+//
+// The name field is the exception, and it has to be: an update that replaced the stamped name with
+// a plan-declared candidate would leave an object the prefix sweep cannot find, so a crash between
+// that update and the delete would strand it permanently. Stamped names are distinct values, which
+// is all the protocol needs, and they keep the object sweepable throughout.
+func (p immutability) candidatesFor(s *MutatingSession, sc Scope, f Field) ([]any, string) {
+	if f.JSONPath == sc.Subject.NameField {
+		return []any{
+				s.NameValue(p.Name()+"-alt", 1),
+				s.NameValue(p.Name()+"-alt", 2),
+			}, "this field carries the sweeper's name prefix, so the plan's candidate values were " +
+				"replaced with two stamped names: an update to an unprefixed value would leave an " +
+				"object the prefix sweep could not find"
+	}
+
+	declared := sc.Candidates(f.JSONPath)
+	if len(declared) < 2 {
+		return nil, "fewer than two candidate values are declared for this field, and the " +
+			"immutability fact requires two distinct values both refused"
+	}
+
+	return declared, ""
+}
+
+// enumBoundary implements the contract on the type in catalogue.go.
+func (p enumBoundary) Exercise(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+) (Result, error) {
+	var out Result
+
+	fields := sc.Enums()
+	if len(fields) == 0 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: "no sendable field carries documented enum values, so there is no " +
+				"specification claim to check against the API",
+		})
+
+		return out, nil
+	}
+
+	for _, f := range fields {
+		// The name field carries the sweeper's prefix, so its value is not free to be an enum
+		// member. A create sending one would be refused before it was sent.
+		if f.JSONPath == sc.Subject.NameField {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+				Message: "this field carries the sweeper's name prefix, so its value cannot be " +
+					"set to an enum member and its documented set is unprobed",
+			})
+
+			continue
+		}
+
+		if err := p.probeEnum(ctx, s, sc, f, &out); err != nil {
+			return out, err
+		}
+	}
+
+	return out, nil
+}
+
+// probeEnum sends every documented value and two generated negatives for one field.
+func (p enumBoundary) probeEnum(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	f Field,
+	out *Result,
+) error {
+	var (
+		accepted         []string
+		rejected         []string
+		negatives        []string
+		refusedNegatives int
+		evidence         []string
+	)
+
+	documented := map[string]bool{}
+	for _, v := range f.Enum {
+		documented[v] = true
+	}
+
+	for i, candidate := range EnumCandidates(f) {
+		resp, err := p.send(ctx, s, sc, f, candidate, i+1)
+		out.Requests++
+
+		if err != nil {
+			return err
+		}
+
+		evidence = appendUnique(evidence, resp.Interaction)
+
+		switch {
+		case documented[candidate] && resp.Status < 400:
+			accepted = append(accepted, candidate)
+		case documented[candidate]:
+			rejected = append(rejected, candidate)
+		default:
+			negatives = append(negatives, candidate)
+			if resp.Status >= 400 {
+				refusedNegatives++
+			}
+		}
+	}
+
+	p.concludeEnum(sc, f, enumOutcome{
+		accepted:         accepted,
+		rejected:         rejected,
+		negatives:        negatives,
+		refusedNegatives: refusedNegatives,
+		evidence:         evidence,
+	}, out)
+
+	if len(accepted) > 0 {
+		return p.probeCase(ctx, s, sc, f, accepted[0], out)
+	}
+
+	return nil
+}
+
+// enumOutcome is what the whole candidate sweep saw for one field.
+type enumOutcome struct {
+	accepted  []string
+	rejected  []string
+	negatives []string
+	// refusedNegatives is how many of the generated values outside the documented set were
+	// refused. The set is closed only when every one of them was.
+	refusedNegatives int
+	evidence         []string
+}
+
+// send issues one create carrying one enum candidate.
+func (p enumBoundary) send(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	f Field,
+	candidate string,
+	seq int,
+) (*Response, error) {
+	fixture, _ := sc.Fixture(0)
+
+	body := fixture.Body
+	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
+	body[f.JSONPath] = candidate
+
+	resp, _, err := s.Create(ctx, p.Name(), body)
+	if err != nil && !errors.Is(err, ErrNoIdentifier) {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+// concludeEnum records what the sweep established.
+func (p enumBoundary) concludeEnum(sc Scope, f Field, o enumOutcome, out *Result) {
+	if len(o.accepted) > 0 {
+		out.Facts = append(out.Facts, Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   f.JSONPath,
+			Field:      FactEnumAccepted,
+			Value:      ListValue(o.accepted),
+			Confidence: Observed,
+			Probe:      p.Name(),
+			Evidence:   o.evidence,
+			Rationale: fmt.Sprintf("%d of the %d documented value(s) were accepted on create",
+				len(o.accepted), len(f.Enum)),
+		})
+	}
+
+	// The valuable result: the specification is stale, and a spec-derived validator would have
+	// been actively harmful.
+	if len(o.rejected) > 0 {
+		out.Facts = append(out.Facts, Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   f.JSONPath,
+			Field:      FactEnumRejectedDocumented,
+			Value:      ListValue(o.rejected),
+			Confidence: Observed,
+			Probe:      p.Name(),
+			Evidence:   o.evidence,
+			Rationale: fmt.Sprintf("the specification documents %s but this API refused %s",
+				strings.Join(f.Enum, ", "), strings.Join(o.rejected, ", ")),
+			Alternatives: []string{
+				"a value this tenant refuses may be licence-gated or plan-gated rather than " +
+					"nonexistent, so this says rejected here and not does not exist",
+			},
+		})
+	}
+
+	// Closed only when every generated negative was refused. One refusal is consistent with the
+	// value having failed some other check, which is the whole reason two are sent.
+	closed := len(o.negatives) >= negativeEnumCandidates &&
+		o.refusedNegatives == len(o.negatives)
+
+	rationale := fmt.Sprintf("%d value(s) outside the documented set were sent and all %d were "+
+		"refused", len(o.negatives), o.refusedNegatives)
+
+	if !closed {
+		rationale = fmt.Sprintf("%d of %d value(s) outside the documented set were accepted, so "+
+			"the API takes values the specification does not list",
+			len(o.negatives)-o.refusedNegatives, len(o.negatives))
+	}
+
+	if len(o.negatives) < negativeEnumCandidates {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+			Message: fmt.Sprintf("only %d value(s) outside the documented set could be generated, "+
+				"and %d are required before the set can be called closed",
+				len(o.negatives), negativeEnumCandidates),
+		})
+
+		return
+	}
+
+	out.Facts = append(out.Facts, Fact{
+		Resource: sc.Subject.Resource,
+		JSONPath: f.JSONPath,
+		Field:    FactEnumClosed,
+		Value:    BoolValue(closed),
+		// Observed either way: both answers rest on what the API did with values this probe
+		// chose, and neither needs a second fixture to be believable.
+		Confidence: Observed,
+		Probe:      p.Name(),
+		Evidence:   o.evidence,
+		Rationale:  rationale,
+		Alternatives: alternativesUnless(!closed,
+			"a generated value may have been refused by a length or character-set check rather "+
+				"than by enum membership, which is why the candidates are shaped like the "+
+				"documented values"),
+	})
+
+	// Whatever the answer, no validator. An over-tight one rejects configurations the API would
+	// have accepted and the practitioner cannot work around it.
+	out.Notes = append(out.Notes, Note{
+		Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+		Message: "the accepted set is recorded for the attribute's description only; no " +
+			"validator is generated from it, because a routine upstream addition to the set " +
+			"would then become a plan failure the practitioner cannot work around",
+	})
+}
+
+// probeCase asks whether the API treats the documented values case-sensitively.
+//
+// The third question the contract asks, and it has no fact field of its own: recording it as one
+// would need merge to act on it, and the only sound action -- describing the behaviour -- is what a
+// note already does. Worth asking anyway, because an API that accepts TEST for a field documented
+// as test is a second, independent reason a generated validator would be wrong.
+func (p enumBoundary) probeCase(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	f Field,
+	accepted string,
+	out *Result,
+) error {
+	variant := strings.ToUpper(accepted)
+	if variant == accepted {
+		// Nothing to vary: the value has no letters, or is already upper case.
+		return nil
+	}
+
+	resp, err := p.send(ctx, s, sc, f, variant, len(f.Enum)+negativeEnumCandidates+1)
+	out.Requests++
+
+	if err != nil {
+		return err
+	}
+
+	message := fmt.Sprintf("the documented value %q was accepted and %q was refused with %d, so "+
+		"the API treats this set case-sensitively", accepted, variant, resp.Status)
+
+	if resp.Status < 400 {
+		message = fmt.Sprintf("the API accepted %q for a value the specification documents as "+
+			"%q, so the documented set is not the whole of what it takes and a validator built "+
+			"from it would reject configurations the API allows", variant, accepted)
+	}
+
+	out.Notes = append(out.Notes, Note{
+		Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+		Message: message,
+	})
+
+	return nil
+}

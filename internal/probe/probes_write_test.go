@@ -3,6 +3,7 @@ package probe
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -1160,5 +1161,423 @@ func TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled(t *testing.T) {
 		if fact.Value.Bool != nil && *fact.Value.Bool {
 			t.Error("this fixture does not enforce objectType, so the fact should say so")
 		}
+	}
+}
+
+// immutablePlan declares two candidate values for one field, which is the minimum the
+// immutability fact requires: two distinct values, both refused.
+func immutablePlan() Plan {
+	return Plan{
+		Fixtures: []Fixture{
+			{Name: "first", Body: map[string]any{"key": "stamped", "value": "original"}},
+		},
+		Candidates: map[string][]any{
+			"value": {"changed-one", "changed-two"},
+		},
+		Budget: Budget{MaxRequests: 80, MaxCreates: 30},
+	}
+}
+
+// TestUnit_Probe_ImmutabilityRequiresTwoRefusals.
+//
+// One refusal is consistent with the value simply being invalid in a way its acceptance on create
+// did not reveal. Two distinct values, both refused, is what earns Corroborated -- and merge
+// refuses Immutable=true on anything weaker.
+func TestUnit_Probe_ImmutabilityRequiresTwoRefusals(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		quirks quirkserver.Quirks
+		// wantImmutable is the value expected; found says whether the fact should exist at all.
+		found         bool
+		wantImmutable bool
+		wantConf      Confidence
+	}{
+		{
+			name:   "a field that cannot be changed",
+			quirks: quirkserver.Quirks{ImmutableAfterCreate: []string{"value"}},
+			found:  true, wantImmutable: true, wantConf: Corroborated,
+		},
+		{
+			// One demonstration is enough for false: it recommends nothing.
+			name:   "a field that can be changed",
+			quirks: quirkserver.Quirks{},
+			found:  true, wantImmutable: false, wantConf: Observed,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := quirkserver.New(t, tc.quirks)
+
+			report := runAgainst(t, srv, quirkSubject(), immutablePlan(), "write.immutability")
+
+			fact, ok := factFor(t, report, "value", FactImmutable)
+			if ok != tc.found {
+				t.Fatalf("immutable fact found = %v, want %v (facts %v, notes %v)",
+					ok, tc.found, report.Facts, report.Notes)
+			}
+			if !ok {
+				return
+			}
+
+			if got := fact.Value.Bool != nil && *fact.Value.Bool; got != tc.wantImmutable {
+				t.Errorf("immutable = %v, want %v (%s)", got, tc.wantImmutable, fact.Rationale)
+			}
+			if fact.Confidence != tc.wantConf {
+				t.Errorf("confidence = %s, want %s (%s)",
+					fact.Confidence, tc.wantConf, fact.Rationale)
+			}
+
+			if tc.wantImmutable {
+				// Whatever the finding, this probe never recommends a plan modifier: whether
+				// Terraform should destroy and recreate is a decision about somebody's
+				// infrastructure.
+				if _, ok := noteMentioning(report, "no plan modifier is recommended"); !ok {
+					t.Errorf("the run must say it recommends nothing: %v", report.Notes)
+				}
+			}
+		})
+	}
+}
+
+// TestUnit_Probe_TheControlRequestIsLoadBearing.
+//
+// The step that separates "this field cannot be changed" from "this update request is malformed".
+// RequiresExtraFieldOnUpdate is the quirk that exists for exactly this: an update omitting a field
+// create never needed is refused, and without the control a probe reads that 4xx as immutability
+// and marks a perfectly mutable field as requiring replacement.
+func TestUnit_Probe_TheControlRequestIsLoadBearing(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		RequiresExtraFieldOnUpdate: "revision",
+	})
+
+	report := runAgainst(t, srv, quirkSubject(), immutablePlan(), "write.immutability")
+
+	// No fact either way. The control failed, so nothing after it means anything.
+	if fact, ok := factFor(t, report, "value", FactImmutable); ok {
+		t.Errorf("a failing control must produce no immutability fact, got %v", fact)
+	}
+
+	note, ok := noteMentioning(report, "the control update")
+	if !ok {
+		t.Fatalf("the run must say the control failed: %v", report.Notes)
+	}
+	if !strings.Contains(note.Message, "would say nothing about immutability") {
+		t.Errorf("the note should say what the failure invalidates: %q", note.Message)
+	}
+}
+
+// TestUnit_Probe_AnUnacceptableCandidateProvesNothing.
+//
+// Before concluding a field cannot be *changed* to a value, the value has to be acceptable to the
+// API at all. Without that step, "the field is immutable" and "that value is invalid" are the same
+// observation.
+func TestUnit_Probe_AnUnacceptableCandidateProvesNothing(t *testing.T) {
+	t.Parallel()
+
+	// The candidate values are outside the closed set, so the create that would prove them
+	// acceptable is refused.
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		ClosedEnum: map[string][]string{"value": {"original"}},
+	})
+
+	report := runAgainst(t, srv, quirkSubject(), immutablePlan(), "write.immutability")
+
+	if fact, ok := factFor(t, report, "value", FactImmutable); ok {
+		t.Errorf("an unproven candidate must produce no immutability fact, got %v", fact)
+	}
+	if _, ok := noteMentioning(report, "is not an acceptable value"); !ok {
+		t.Errorf("the run must say the candidate itself was refused: %v", report.Notes)
+	}
+}
+
+// TestUnit_Probe_ASilentlyIgnoredUpdateIsNotImmutability.
+//
+// A 200 that leaves the value alone is a different fact that happens to want similar handling, and
+// conflating the two is the classic error. Only this one produces a perpetual diff.
+func TestUnit_Probe_ASilentlyIgnoredUpdateIsNotImmutability(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		SilentlyDiscardsOnUpdate: []string{"value"},
+	})
+
+	report := runAgainst(t, srv, quirkSubject(), immutablePlan(), "write.immutability")
+
+	if _, ok := factFor(t, report, "value", FactImmutable); ok {
+		t.Error("an accepted-and-ignored update must not be recorded as immutability")
+	}
+
+	fact, ok := factFor(t, report, "value", FactSilentlyIgnoredOnUpdate)
+	if !ok {
+		t.Fatalf("no silentlyIgnoredOnUpdate fact: %v (notes %v)", report.Facts, report.Notes)
+	}
+	if fact.Value.Bool == nil || !*fact.Value.Bool {
+		t.Errorf("fact = %v", fact)
+	}
+}
+
+// TestUnit_Probe_ImmutabilityKeepsTheObjectSweepable.
+//
+// The name field is a candidate field in the committed pilot plan, and its declared candidates are
+// unprefixed. An update that replaced the stamped name with one of them would leave an object the
+// prefix sweep could not find -- so a crash between that update and the delete would strand it
+// permanently.
+func TestUnit_Probe_ImmutabilityKeepsTheObjectSweepable(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{})
+
+	plan := immutablePlan()
+	plan.Candidates = map[string][]any{
+		// Unprefixed, exactly as the committed pilot plan declares them.
+		"key": {"candidate-key-one", "candidate-key-two"},
+	}
+
+	report := runAgainst(t, srv, quirkSubject(), plan, "write.immutability")
+
+	// The substitution is reported, because the transcript will not match what the plan declares.
+	note, ok := noteMentioning(report, "replaced with two stamped names")
+	if !ok {
+		t.Fatalf("the substitution must be reported: %v", report.Notes)
+	}
+	if note.JSONPath != "key" {
+		t.Errorf("the note should name the field, got %q", note.JSONPath)
+	}
+
+	// And the field is still probed rather than skipped: a stamped name is a distinct value,
+	// which is all the protocol needs.
+	if _, ok := factFor(t, report, "key", FactImmutable); !ok {
+		t.Errorf("the name field should still be probeable: %v", report.Facts)
+	}
+}
+
+// enumSubject gives the enum probe a field with documented values.
+func enumSubject() Subject {
+	subj := quirkSubject()
+
+	subj.Fields = append(subj.Fields, Field{
+		JSONPath: "mode", Attribute: "mode",
+		Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true,
+		Enum: []string{"and", "or"},
+	})
+
+	return subj
+}
+
+func enumPlan() Plan {
+	return Plan{
+		Fixtures: []Fixture{
+			{Name: "first", Body: map[string]any{"key": "stamped", "value": "a", "mode": "and"}},
+		},
+		Budget: Budget{MaxRequests: 80, MaxCreates: 30},
+	}
+}
+
+// TestUnit_Probe_AClosedEnumNeedsBothNegativesRefused.
+//
+// One rejection is not evidence of a closed set: an API can reject a value for a reason that has
+// nothing to do with enum membership. Two generated negatives, both refused, is the rule.
+func TestUnit_Probe_AClosedEnumNeedsBothNegativesRefused(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		quirks     quirkserver.Quirks
+		wantClosed bool
+	}{
+		{
+			name:       "an API that enforces the set",
+			quirks:     quirkserver.Quirks{ClosedEnum: map[string][]string{"mode": {"and", "or"}}},
+			wantClosed: true,
+		},
+		{
+			// Generated SDKs frequently model enums as open strings, and a routine upstream
+			// addition must not become a plan failure.
+			name:       "an API that takes anything",
+			quirks:     quirkserver.Quirks{},
+			wantClosed: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := quirkserver.New(t, tc.quirks)
+
+			report := runAgainst(t, srv, enumSubject(), enumPlan(), "write.enum")
+
+			fact, ok := factFor(t, report, "mode", FactEnumClosed)
+			if !ok {
+				t.Fatalf("no enumClosed fact: %v (notes %v)", report.Facts, report.Notes)
+			}
+
+			if got := fact.Value.Bool != nil && *fact.Value.Bool; got != tc.wantClosed {
+				t.Errorf("enumClosed = %v, want %v (%s)", got, tc.wantClosed, fact.Rationale)
+			}
+
+			// Whatever the answer, no validator is generated from it.
+			if _, ok := noteMentioning(report, "no validator is generated"); !ok {
+				t.Errorf("the run must say the set does not become a validator: %v", report.Notes)
+			}
+		})
+	}
+}
+
+// TestUnit_Probe_ADocumentedValueTheAPIRejectsIsTheValuableResult.
+//
+// It means the specification is stale, and a spec-derived validator would have been actively
+// harmful. The pilot is already a case in point.
+func TestUnit_Probe_ADocumentedValueTheAPIRejectsIsTheValuableResult(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		RejectsDocumentedValue: map[string]string{"mode": "or"},
+	})
+
+	report := runAgainst(t, srv, enumSubject(), enumPlan(), "write.enum")
+
+	rejected, ok := factFor(t, report, "mode", FactEnumRejectedDocumented)
+	if !ok {
+		t.Fatalf("no enumRejectedDocumented fact: %v (notes %v)", report.Facts, report.Notes)
+	}
+
+	if len(rejected.Value.List) != 1 || rejected.Value.List[0] != "or" {
+		t.Errorf("rejected = %v, want just [or]", rejected.Value.List)
+	}
+
+	// And the one it took is recorded separately, because merge writes it into the description.
+	accepted, ok := factFor(t, report, "mode", FactEnumAccepted)
+	if !ok {
+		t.Fatalf("no enumAccepted fact: %v", report.Facts)
+	}
+	if len(accepted.Value.List) != 1 || accepted.Value.List[0] != "and" {
+		t.Errorf("accepted = %v, want just [and]", accepted.Value.List)
+	}
+
+	// A value this tenant refuses may be licence-gated rather than nonexistent.
+	if len(rejected.Alternatives) == 0 {
+		t.Error("the fact must not claim the value does not exist")
+	}
+}
+
+// TestUnit_Probe_TheNegativesAreShapedLikeTheDocumentedValues.
+//
+// The whole reason the negatives are generated rather than fixed. A forty-character string would be
+// refused by a length check, and the probe would conclude "closed" having learned nothing about the
+// set. This asserts the values that actually went over the wire.
+func TestUnit_Probe_TheNegativesAreShapedLikeTheDocumentedValues(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{})
+
+	out, err := Run(context.Background(), RunOptions{
+		Mode:      ModeRecord,
+		Subject:   enumSubject(),
+		Plan:      enumPlan(),
+		Only:      "write.enum",
+		BaseURL:   srv.BaseURL(),
+		Redactor:  testRedactor(t),
+		Grant:     &Grant{namePrefix: testPrefix},
+		Ledger:    MemoryLedger(),
+		ReadDelay: time.Nanosecond,
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	documented := map[string]bool{"and": true, "or": true}
+
+	var sent []string
+
+	for _, i := range out.Interactions {
+		if i.Request.Method != http.MethodPost {
+			continue
+		}
+
+		body, ok := i.Request.Body.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		if mode, ok := body["mode"].(string); ok {
+			sent = append(sent, mode)
+		}
+	}
+
+	if len(sent) < len(documented)+negativeEnumCandidates {
+		t.Fatalf("only %d value(s) were sent: %v", len(sent), sent)
+	}
+
+	for _, v := range sent {
+		if documented[v] || strings.EqualFold(v, "and") || strings.EqualFold(v, "or") {
+			continue
+		}
+
+		// Every negative has to be close enough in shape that a refusal is attributable to
+		// membership rather than to length or character class.
+		if len(v) > maxCandidateLength {
+			t.Errorf("the negative %q is %d characters; a length check would answer instead of "+
+				"enum membership", v, len(v))
+		}
+		if len(v) < 2 {
+			t.Errorf("the negative %q is too short to be refused for a reason about the set", v)
+		}
+	}
+}
+
+// TestUnit_Probe_CaseHandlingIsReportedNotAsserted.
+//
+// The contract's third question, and it has no fact field: recording one would need merge to act on
+// it, and the only sound action -- describing the behaviour -- is what a note already does.
+func TestUnit_Probe_CaseHandlingIsReportedNotAsserted(t *testing.T) {
+	t.Parallel()
+
+	// Case-insensitive: the API lower-cases whatever it is given, so AND is accepted.
+	loose := quirkserver.New(t, quirkserver.Quirks{NormalisesCase: []string{"mode"}})
+
+	report := runAgainst(t, loose, enumSubject(), enumPlan(), "write.enum")
+
+	if _, ok := noteMentioning(report, "is not the whole of what it takes"); !ok {
+		t.Errorf("an API that accepts a case variant must be reported: %v", report.Notes)
+	}
+
+	// Case-sensitive: only the documented spellings are taken.
+	strict := quirkserver.New(t, quirkserver.Quirks{
+		ClosedEnum: map[string][]string{"mode": {"and", "or"}},
+	})
+
+	report = runAgainst(t, strict, enumSubject(), enumPlan(), "write.enum")
+
+	if _, ok := noteMentioning(report, "case-sensitively"); !ok {
+		t.Errorf("an API that refuses a case variant must be reported: %v", report.Notes)
+	}
+}
+
+// TestUnit_Probe_NoDocumentedValuesMeansNothingToCheck: a field the specification says nothing
+// about is not a field this protocol has anything to say about, and it says so rather than
+// producing an empty result that reads like a clean bill of health.
+func TestUnit_Probe_NoDocumentedValuesMeansNothingToCheck(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{})
+
+	report := runAgainst(t, srv, quirkSubject(), writePlan(), "write.enum")
+
+	if len(report.Facts) != 0 {
+		t.Errorf("facts = %v", report.Facts)
+	}
+	if _, ok := noteMentioning(report, "no specification claim to check"); !ok {
+		t.Errorf("the gap must be reported: %v", report.Notes)
+	}
+	if srv.Requests() > 1 {
+		t.Errorf("%d request(s) issued with nothing to check", srv.Requests())
 	}
 }
