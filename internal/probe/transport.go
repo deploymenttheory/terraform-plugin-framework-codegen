@@ -1,6 +1,7 @@
 package probe
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
@@ -39,7 +42,21 @@ type httpSession struct {
 	// pace holds the rate-limit budget the server most recently stated, so pacing comes
 	// from what the API says rather than from a guess.
 	pace *pacer
+
+	// inFlight enforces maxConcurrentLive. Not a mutex: a mutex would serialise a
+	// concurrent probe silently, and silently is the problem. Two requests in flight at
+	// once land in a cassette in whichever order the server answered, so the recording
+	// would replay only by luck -- and the failure would surface months later as a
+	// mismatch in CI with nothing to point at.
+	inFlight atomic.Int32
 }
+
+// maxConcurrentLive is one, and it is a correctness requirement rather than politeness.
+//
+// A cassette is a strictly ordered transcript. Concurrency makes the order a property of the
+// server's latency, which makes a recording unreplayable, which removes the offline gate the
+// whole evidence pipeline rests on.
+const maxConcurrentLive = 1
 
 // SessionConfig is what building a session needs.
 type SessionConfig struct {
@@ -106,6 +123,33 @@ func (s *httpSession) Get(ctx context.Context, path string, query url.Values) (*
 	return s.do(ctx, http.MethodGet, path, query, nil)
 }
 
+// write issues a request with a JSON body through the same choke point Get uses.
+//
+// Unexported and taking a method, so the budget, the pacer, the concurrency guard and the
+// recorder all apply to a write exactly as they do to a read. A mutating session that built its
+// own request would bypass every one of them.
+func (s *httpSession) write(
+	ctx context.Context,
+	method, path string,
+	body map[string]any,
+) (*Response, error) {
+	var reader io.Reader
+
+	if body != nil {
+		// Encoded here rather than by the caller because Go's map iteration order is
+		// randomised, and json.Marshal sorts keys. A body assembled by string concatenation
+		// would produce a different byte sequence on every run, and a cassette matches on
+		// bytes.
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("encoding the body for %s %s: %w", method, path, err)
+		}
+		reader = bytes.NewReader(encoded)
+	}
+
+	return s.do(ctx, method, path, nil, reader)
+}
+
 // do is the choke point.
 func (s *httpSession) do(
 	ctx context.Context,
@@ -118,6 +162,16 @@ func (s *httpSession) do(
 	if err := s.budget.spend(method); err != nil {
 		return nil, err
 	}
+
+	if s.inFlight.Add(1) > maxConcurrentLive {
+		s.inFlight.Add(-1)
+
+		return nil, fmt.Errorf(
+			"%w: a second request (%s %s) was issued while one was still in flight, and a "+
+				"cassette is a strictly ordered transcript -- probes must not be concurrent",
+			ErrInvalidPlan, method, path)
+	}
+	defer s.inFlight.Add(-1)
 
 	// Paced from what the server last said its budget was, rather than from a guess. A
 	// probe that ignored this would spend a tenant's whole rate-limit allowance and then
@@ -304,6 +358,8 @@ func (r *Response) EnvelopeKey() string {
 // In the session rather than the runner, so there is one place to enforce them and no way
 // for a probe to spend without passing through it.
 type budgetCounter struct {
+	mu sync.Mutex
+
 	limits Budget
 
 	requests int
@@ -311,25 +367,79 @@ type budgetCounter struct {
 	deletes  int
 
 	deleteFailures int
+
+	// sweeping switches spending onto the reserve. A sweep must be able to spend after the
+	// run's own cap is exhausted -- see enterSweep.
+	sweeping      bool
+	sweepRequests int
+
+	// halted latches the first refusal. Without it a runner that ignored one ErrBudget would
+	// get a *different* error message on every subsequent request, and the report would name
+	// whichever probe happened to ask last rather than the one that hit the cap.
+	halted error
+}
+
+// sweepReserveRequests is how many requests the sweeper may spend beyond the run's cap.
+//
+// Four per created object -- a delete, a retry, a second retry, and a confirming read -- plus
+// eight for the collection reads the prefix pass needs. Derived from MaxCreates rather than
+// fixed, because the work the sweeper has to do is a function of how much the run was allowed
+// to create.
+func sweepReserveRequests(limits Budget) int {
+	return 4*limits.MaxCreates + 8
+}
+
+// enterSweep moves the counter onto its reserve.
+//
+// This exists because of a contradiction in the design as first written. `budgetCounter.spend`
+// refuses everything once MaxRequests is reached, so "exceed the budget, then sweep, then exit
+// 4" was unimplementable: the sweeper's own DELETEs would have been refused, and the cap meant
+// to bound the blast radius would have manufactured exactly the orphans it exists to prevent.
+//
+// A reserve rather than a raised cap, so a sweep still cannot run away, and so the report can
+// show what the run spent separately from what cleaning up after it cost.
+func (b *budgetCounter) enterSweep() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.sweeping = true
+	// The latch is cleared for the sweep and only for the sweep. The run is over; what
+	// remains is the obligation to leave nothing behind.
+	b.halted = nil
 }
 
 func (b *budgetCounter) spend(method string) error {
-	b.requests++
-	if b.requests > b.limits.MaxRequests {
-		return fmt.Errorf("%w: %d requests, cap is %d", ErrBudget, b.requests, b.limits.MaxRequests)
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b.halted != nil {
+		return b.halted
 	}
+
+	if b.sweeping {
+		return b.spendFromReserve(method)
+	}
+
+	// Counted only once the request is allowed. Incrementing first and then refusing would
+	// report one more request than the run actually issued, and the report is the document a
+	// reader uses to reason about what a run did to somebody's tenant.
+	if b.requests+1 > b.limits.MaxRequests {
+		b.halted = fmt.Errorf("%w: the cap of %d requests is reached",
+			ErrBudget, b.limits.MaxRequests)
+		return b.halted
+	}
+
+	if method == http.MethodPost && b.creates+1 > b.limits.MaxCreates {
+		b.halted = fmt.Errorf("%w: the cap of %d creates is reached",
+			ErrBudget, b.limits.MaxCreates)
+		return b.halted
+	}
+
+	b.requests++
 
 	switch method {
 	case http.MethodPost:
 		b.creates++
-		if b.creates > b.limits.MaxCreates {
-			return fmt.Errorf(
-				"%w: %d creates, cap is %d",
-				ErrBudget,
-				b.creates,
-				b.limits.MaxCreates,
-			)
-		}
 	case http.MethodDelete:
 		b.deletes++
 	}
@@ -337,7 +447,50 @@ func (b *budgetCounter) spend(method string) error {
 	return nil
 }
 
+// spendFromReserve accounts a sweep request. Caller holds the lock.
+//
+// A create during a sweep is a bug in the sweeper rather than a budget matter, and it is
+// refused as such: the sweeper's whole contract is that it only ever removes.
+func (b *budgetCounter) spendFromReserve(method string) error {
+	if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
+		return fmt.Errorf("%w: a sweep issued a %s, which it must never do", ErrLedger, method)
+	}
+
+	if reserve := sweepReserveRequests(b.limits); b.sweepRequests+1 > reserve {
+		b.halted = fmt.Errorf(
+			"%w: the sweep spent its reserve of %d requests; anything still outstanding is "+
+				"reported as an orphan rather than retried indefinitely",
+			ErrBudget, reserve)
+		return b.halted
+	}
+
+	b.sweepRequests++
+
+	if method == http.MethodDelete {
+		b.deletes++
+	}
+
+	return nil
+}
+
+// recordDeleteFailure counts a delete that did not succeed.
+//
+// MaxDeleteFailures defaults to zero, so the first failure stops the run creating anything
+// new. Continuing to create after demonstrating you cannot clean up is the worst available
+// behaviour, which is why this is counted in the choke point and not left to a caller.
+func (b *budgetCounter) recordDeleteFailure() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.deleteFailures++
+
+	return b.deleteFailures > b.limits.MaxDeleteFailures
+}
+
 func (b *budgetCounter) report() BudgetReport {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	return BudgetReport{
 		Requests:       b.requests,
 		MaxRequests:    b.limits.MaxRequests,
@@ -345,6 +498,7 @@ func (b *budgetCounter) report() BudgetReport {
 		MaxCreates:     b.limits.MaxCreates,
 		Deletes:        b.deletes,
 		DeleteFailures: b.deleteFailures,
+		SweepRequests:  b.sweepRequests,
 	}
 }
 
@@ -459,7 +613,10 @@ func TransportFor(
 		return cassette.NewReplayTransport(interactions), nil, nil
 
 	case ModeSweep:
-		return nil, nil, fmt.Errorf("%w: sweep is not a probe run", ErrInvalidPlan)
+		// A sweep reaches a real API and records nothing. Nothing to record: it derives no
+		// facts, so there is no offline claim a transcript would have to support, and a
+		// cassette of deletions would only invite somebody to replay it.
+		return &http.Transport{}, nil, nil
 
 	default:
 		return nil, nil, fmt.Errorf("%w: unknown mode %q", ErrInvalidPlan, mode)

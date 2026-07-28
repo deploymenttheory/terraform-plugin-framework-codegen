@@ -24,6 +24,10 @@ type Report struct {
 	Probes []ProbeOutcome `json:"probes"`
 	Budget BudgetReport   `json:"budget"`
 
+	// Sweep is what cleaning up did, nil for a read-only run. A pointer so a read-only
+	// report does not carry a zero summary claiming a complete sweep of nothing.
+	Sweep *SweepSummary `json:"sweep,omitempty"`
+
 	// Orphans are objects the sweeper could not remove. Non-empty means the run
 	// failed, whatever else it achieved.
 	Orphans []Orphan `json:"orphans,omitempty"`
@@ -77,6 +81,10 @@ type BudgetReport struct {
 	Deletes     int `json:"deletes"`
 	// DeleteFailures being non-zero is why a run may stop early.
 	DeleteFailures int `json:"deleteFailures,omitempty"`
+	// SweepRequests is what cleaning up cost, counted against the sweep's own reserve
+	// rather than the run's cap. Separate because a reader needs to be able to tell a run
+	// that spent its budget probing from one that spent it cleaning up.
+	SweepRequests int `json:"sweepRequests,omitempty"`
 }
 
 // Orphan is an object the prober created and could not remove.

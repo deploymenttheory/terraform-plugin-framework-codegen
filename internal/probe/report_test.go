@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
 )
 
 // TestUnit_Probe_ReportSummary: a run that found nothing and a run that was never
@@ -117,46 +119,97 @@ func TestUnit_Probe_FactsAtLeast(t *testing.T) {
 
 // TestUnit_Probe_MutatingSessionNeedsAGrant is the type-level safety property, asserted.
 //
-// The constructor is unexported and takes a *Grant that only Authorise can produce. This
-// checks the remaining hole: passing nil.
+// The constructor is unexported and takes a *Grant that only the gate can produce. This checks
+// the remaining hole: passing nil.
 func TestUnit_Probe_MutatingSessionNeedsAGrant(t *testing.T) {
 	t.Parallel()
 
-	if _, err := newMutatingSession(nil, readOnly{}); !errors.Is(err, ErrNoGrant) {
+	live, err := newHTTPSession(SessionConfig{
+		Transport:          cassette.DenyTransport{},
+		BaseURL:            "https://example.invalid",
+		CollectionTemplate: "/things",
+		ItemTemplate:       "/things/{id}",
+	})
+	if err != nil {
+		t.Fatalf("newHTTPSession: %v", err)
+	}
+
+	cfg := MutationConfig{Ledger: MemoryLedger(), NameField: "name", IDField: "id"}
+
+	if _, err := newMutatingSession(nil, live, cfg); !errors.Is(err, ErrNoGrant) {
 		t.Errorf("error = %v, want ErrNoGrant", err)
 	}
 
-	// With a grant it succeeds. Constructing a Grant here is only possible from inside
-	// the package, which is the point: no external caller can reach this path at all.
-	s, err := newMutatingSession(&Grant{}, readOnly{collection: "/tags", item: "/tags/{id}"})
+	// A grant is constructible only from inside this package, which is the point: no external
+	// caller can reach this path at all.
+	s, err := newMutatingSession(&Grant{namePrefix: "tfpfgen-probe"}, live, cfg)
 	if err != nil {
 		t.Fatalf("newMutatingSession: %v", err)
 	}
-	if s.CollectionPath() != "/tags" {
+	if s.CollectionPath() != "/things" {
 		t.Errorf("the session did not inherit its read half: %q", s.CollectionPath())
+	}
+
+	// Every remaining refusal is about being able to clean up afterwards.
+	for _, tc := range []struct {
+		name string
+		cfg  MutationConfig
+		want error
+	}{
+		{"no ledger", MutationConfig{NameField: "name", IDField: "id"}, ErrLedger},
+		{"no name field", MutationConfig{Ledger: MemoryLedger(), IDField: "id"}, ErrInvalidPlan},
+		{"no id field", MutationConfig{Ledger: MemoryLedger(), NameField: "name"}, ErrInvalidPlan},
+	} {
+		if _, err := newMutatingSession(&Grant{}, live, tc.cfg); !errors.Is(err, tc.want) {
+			t.Errorf("%s: error = %v, want %v", tc.name, err, tc.want)
+		}
+	}
+
+	if _, err := newMutatingSession(&Grant{}, nil, cfg); !errors.Is(err, ErrInvalidPlan) {
+		t.Errorf("a session with nothing to write through should be refused, got %v", err)
 	}
 }
 
-// TestUnit_Probe_MutatingSessionMethodsAreUnbuilt: the shape is fixed in 4.1 and the
-// bodies land in 4.7. An unbuilt method must not look like a successful no-op.
-func TestUnit_Probe_MutatingSessionMethodsAreUnbuilt(t *testing.T) {
+// TestUnit_Probe_NameValueIsDeterministic.
+//
+// ReplayTransport matches request bodies, so a create whose name carried a timestamp or a
+// random suffix would make every mutating cassette unreplayable -- the same total, silent
+// failure class as a base path that does not reproduce.
+func TestUnit_Probe_NameValueIsDeterministic(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.Background()
+	s := &MutatingSession{grant: &Grant{namePrefix: "tfpfgen-probe"}}
 
-	s, err := newMutatingSession(&Grant{}, readOnly{})
-	if err != nil {
-		t.Fatalf("newMutatingSession: %v", err)
+	got := s.NameValue("write.required", 3)
+	if got != "tfpfgen-probe-write-required-3" {
+		t.Errorf("NameValue = %q", got)
+	}
+	if again := s.NameValue("write.required", 3); again != got {
+		t.Errorf("NameValue is not deterministic: %q then %q", got, again)
+	}
+	if s.NamePrefix() != "tfpfgen-probe" {
+		t.Errorf("NamePrefix = %q", s.NamePrefix())
+	}
+}
+
+// TestUnit_Probe_ReplayGrantIsMarked: the exported constructor exists so cmd can replay a
+// mutating cassette, and the flag is what lets Run refuse it in record mode.
+func TestUnit_Probe_ReplayGrantIsMarked(t *testing.T) {
+	t.Parallel()
+
+	g := ReplayGrant("tfpfgen-probe")
+
+	if !g.IsReplay() {
+		t.Error("a replay grant must be marked as one")
+	}
+	if g.NamePrefix() != "tfpfgen-probe" {
+		t.Errorf("NamePrefix = %q", g.NamePrefix())
 	}
 
-	if _, _, err := s.Create(ctx, "p", nil); !errors.Is(err, errNotImplemented) {
-		t.Errorf("Create = %v, want errNotImplemented", err)
-	}
-	if _, err := s.Update(ctx, "p", "1", nil); !errors.Is(err, errNotImplemented) {
-		t.Errorf("Update = %v, want errNotImplemented", err)
-	}
-	if _, err := s.Delete(ctx, "p", "1"); !errors.Is(err, errNotImplemented) {
-		t.Errorf("Delete = %v, want errNotImplemented", err)
+	// The nil receiver is reachable: Run holds a *Grant that is nil for a read-only run.
+	var none *Grant
+	if none.IsReplay() || none.NamePrefix() != "" {
+		t.Error("a nil grant must answer safely")
 	}
 }
 
