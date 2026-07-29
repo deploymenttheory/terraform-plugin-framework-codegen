@@ -217,9 +217,20 @@ type CRUDView struct {
 	// into the model, e.g. "plan.ID = convert.PtrStringToFramework(created.ID)".
 	IDAssign string
 
-	// ReadBack requests a re-read after create and update.
-	ReadBack       bool
-	ReadBackReason string
+	// ReadBack fields configure the re-read that Create and Update delegate to.
+	//
+	// The delegation itself is unconditional: it is what gives state mapping a single
+	// call site, which is the point. These only decide the retry budget and what the
+	// generated comment says about it.
+	//
+	// ReadBackMeasured distinguishes a budget the prober established from the built-in
+	// fallback, because a retry loop with no stated reason is indistinguishable from
+	// cargo cult -- so when it is false the comment says the consistency was never
+	// measured rather than inventing a justification.
+	ReadBackMeasured   bool
+	ReadBackReason     string
+	ReadBackMaxRetries int
+	ReadBackIntervalMS int
 
 	// DeleteToleratesNotFound makes a 404 on delete a success.
 	DeleteToleratesNotFound bool
@@ -321,6 +332,9 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	impCRUD.add(sup.CRUD.Path, sup.CRUD.Alias)
 	impCRUD.add(sup.Errors.Path, sup.Errors.Alias)
 	impCRUD.add(sup.Convert.Path, sup.Convert.Alias)
+	// readState and readAfterWrite return diagnostics rather than appending to a response,
+	// because three callers with different response types share them.
+	impCRUD.add(pkgDiag, "")
 
 	v.Interfaces = interfaces(r)
 
@@ -427,6 +441,27 @@ func usesElementTypes(s blueprint.Schema) bool {
 		}
 	}
 	return false
+}
+
+// The retry budget used when the prober has not measured the API's consistency.
+//
+// Deliberately modest. An API that is read-your-writes consistent -- which the pilot's is
+// -- succeeds on the first attempt and pays nothing, so the cost of having the loop is a
+// single extra branch. The cost of *not* having it is a create that reports success and
+// leaves state that the next read contradicts.
+const (
+	defaultReadBackRetries    = 10
+	defaultReadBackIntervalMS = 2000
+)
+
+// pickPositive returns the first positive value, or zero.
+func pickPositive(vals ...int) int {
+	for _, v := range vals {
+		if v > 0 {
+			return v
+		}
+	}
+	return 0
 }
 
 // defaultTimeoutSeconds is the deadline used when neither the block nor the provider
@@ -911,8 +946,12 @@ func convertExpr(c blueprint.ConvertCall, arg string) string {
 
 func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 	v := CRUDView{
-		ReadBack:                r.Policy.ReadBack.Enabled,
-		ReadBackReason:          r.Policy.ReadBack.Reason,
+		ReadBackMeasured: r.Policy.ReadBack.Enabled,
+		ReadBackReason:   r.Policy.ReadBack.Reason,
+		ReadBackMaxRetries: pickPositive(
+			r.Policy.ReadBack.MaxRetries, defaultReadBackRetries),
+		ReadBackIntervalMS: pickPositive(
+			r.Policy.ReadBack.IntervalMS, defaultReadBackIntervalMS),
 		DeleteToleratesNotFound: r.Policy.Delete.NotFoundIsSuccess,
 	}
 
@@ -922,11 +961,27 @@ func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 		phase   string
 		errOp   string
 		timeout string
+		bind    bindResult
 	}{
-		{r.Binding.Create, &v.Create, "crud.PhaseCreate", "errors.OpCreate", "CreateTimeout"},
-		{r.Binding.Read, &v.Read, "crud.PhaseRead", "errors.OpRead", "ReadTimeout"},
-		{r.Binding.Update, &v.Update, "crud.PhaseUpdate", "errors.OpUpdate", "UpdateTimeout"},
-		{r.Binding.Delete, &v.Delete, "crud.PhaseDelete", "errors.OpDelete", "DeleteTimeout"},
+		// Create binds its result because the identifier comes from it. Read binds because
+		// readState maps it onto state. Update does not: state comes from the read that
+		// follows, so its response is unused by design.
+		{
+			r.Binding.Create, &v.Create, "crud.PhaseCreate", "errors.OpCreate",
+			"CreateTimeout", bindsResult,
+		},
+		{
+			r.Binding.Read, &v.Read, "crud.PhaseRead", "errors.OpRead",
+			"ReadTimeout", bindsResult,
+		},
+		{
+			r.Binding.Update, &v.Update, "crud.PhaseUpdate", "errors.OpUpdate",
+			"UpdateTimeout", discardResult,
+		},
+		{
+			r.Binding.Delete, &v.Delete, "crud.PhaseDelete", "errors.OpDelete",
+			"DeleteTimeout", discardResult,
+		},
 	}
 
 	for _, o := range ops {
@@ -935,7 +990,7 @@ func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 		}
 		view, err := opView(
 			fmt.Sprintf("resource %q", r.Key), r.Binding.Service.Accessor,
-			*o.op, o.phase, o.errOp, o.timeout,
+			*o.op, o.phase, o.errOp, o.timeout, o.bind,
 		)
 		if err != nil {
 			return CRUDView{}, err
@@ -971,10 +1026,23 @@ func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 
 // opView renders one SDK call. what names the owning block for error messages and
 // accessor reaches its service, so this serves a resource and a data source alike.
+// bindResult says whether the generated call assigns its result to a variable.
+//
+// Update's response is deliberately unused: state comes from the read that follows, not
+// from the write's own response, so binding it would leave a declared-and-not-used
+// variable and the generated file would not compile.
+type bindResult bool
+
+const (
+	bindsResult   bindResult = true
+	discardResult bindResult = false
+)
+
 func opView(
 	what, accessor string,
 	op blueprint.Operation,
 	phase, errOp, timeout string,
+	bind bindResult,
 ) (*OpView, error) {
 	if op.Style != blueprint.CallStyleMethod {
 		return nil, &ErrUnsupported{
@@ -1006,13 +1074,23 @@ func opView(
 
 	// The assignment must match the call's arity exactly, which is why the
 	// blueprint records it rather than the emitter guessing from a method name.
+	//
+	// A result the caller does not use is discarded here rather than bound, because Go
+	// refuses a declared-and-unused variable.
+	result := func() string {
+		if bind {
+			return resultVarFor(phase)
+		}
+		return "_"
+	}()
+
 	switch op.Return {
 	case blueprint.ReturnResultTransportError:
-		v.HasResult, v.ResultVar = true, resultVarFor(phase)
-		v.Assign = fmt.Sprintf("%s, _, err :=", v.ResultVar)
+		v.HasResult, v.ResultVar = bool(bind), result
+		v.Assign = fmt.Sprintf("%s, _, err :=", result)
 	case blueprint.ReturnResultError:
-		v.HasResult, v.ResultVar = true, resultVarFor(phase)
-		v.Assign = fmt.Sprintf("%s, err :=", v.ResultVar)
+		v.HasResult, v.ResultVar = bool(bind), result
+		v.Assign = fmt.Sprintf("%s, err :=", result)
 	case blueprint.ReturnTransportError:
 		v.Assign = "_, err :="
 	case blueprint.ReturnError:

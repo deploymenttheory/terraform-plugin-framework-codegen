@@ -162,7 +162,7 @@ func DataSource(
 
 	read, err := opView(
 		sc.what, d.Binding.Service.Accessor,
-		*d.Binding.Read, "crud.PhaseRead", "errors.OpRead", "ReadTimeout",
+		*d.Binding.Read, "crud.PhaseRead", "errors.OpRead", "ReadTimeout", bindsResult,
 	)
 	if err != nil {
 		return DataSourceView{}, err
