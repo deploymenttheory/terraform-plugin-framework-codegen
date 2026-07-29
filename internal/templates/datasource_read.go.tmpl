@@ -1,0 +1,51 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.Read }}
+)
+
+{{ with .Read }}
+// Read fetches {{ $.DataSourceName }} from the API.
+//
+// A data source reads its arguments from configuration rather than from prior state:
+// there is no prior state to read, because nothing here was created by Terraform.
+func (d *{{ $.GoTypeName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data {{ $.ModelTypeName }}
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "reading data source", map[string]any{"dataSource": DataSourceName})
+
+	ctx, cancel := crud.HandleTimeout(ctx, data.Timeouts.Read, ReadTimeout*time.Second, &resp.Diagnostics)
+	if cancel == nil {
+		return
+	}
+	defer cancel()
+
+	{{ .Assign }} {{ .Call }}
+	if err != nil {
+		// Unlike a resource read, a missing object is an error rather than a signal to
+		// drop state: the practitioner named something that is not there, and silently
+		// returning nothing would leave whatever referenced it failing further on with
+		// no indication of why.
+		errors.Handle(&resp.Diagnostics, DataSourceName, {{ .ErrorOp }}, err)
+		return
+	}
+
+{{- if $.State.NeedsDiagnostics }}
+	resp.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &data, {{ .ResultVar }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- else }}
+	mapRemoteStateToTerraform(ctx, &data, {{ .ResultVar }})
+{{- end }}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+{{ end }}

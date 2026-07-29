@@ -115,6 +115,18 @@ func (g *Generator) Build(bp blueprint.Blueprint, opts Options) (Plan, error) {
 		plan.Files = append(plan.Files, files...)
 	}
 
+	for _, d := range bp.DataSources {
+		if d.Drop || (opts.Only != "" && d.Key != opts.Only) {
+			continue
+		}
+
+		files, err := g.dataSourceFiles(bp, d, ropts)
+		if err != nil {
+			return Plan{}, fmt.Errorf("data source %q: %w", d.Key, err)
+		}
+		plan.Files = append(plan.Files, files...)
+	}
+
 	// Registration files are rendered from the whole blueprint even under -only,
 	// because a registration listing a subset would not compile against a tree
 	// containing the rest.
@@ -132,10 +144,14 @@ func (g *Generator) Build(bp blueprint.Blueprint, opts Options) (Plan, error) {
 }
 
 // resourceFiles renders the five files that make up one resource.
-func (g *Generator) resourceFiles(bp blueprint.Blueprint, r blueprint.Resource, ropts render.Options) ([]File, error) {
+func (g *Generator) resourceFiles(
+	bp blueprint.Blueprint,
+	r blueprint.Resource,
+	ropts render.Options,
+) ([]File, error) {
 	view, err := render.Resource(bp, r, ropts)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("building the render view: %w", err)
 	}
 
 	dir := render.ResourceDir(bp, r)
@@ -168,7 +184,52 @@ func (g *Generator) resourceFiles(bp blueprint.Blueprint, r blueprint.Resource, 
 	return out, nil
 }
 
-func (g *Generator) registrationFiles(bp blueprint.Blueprint, ropts render.Options) ([]File, error) {
+// dataSourceFiles renders the four files that make up one data source.
+//
+// Four rather than the resource's five: a data source sends no request body, so there is
+// no construct.go. The names match the reference provider's, in which read lives in
+// read.go rather than in a crud.go that would be three-quarters empty.
+func (g *Generator) dataSourceFiles(
+	bp blueprint.Blueprint,
+	d blueprint.DataSource,
+	ropts render.Options,
+) ([]File, error) {
+	view, err := render.DataSource(bp, d, ropts)
+	if err != nil {
+		return nil, fmt.Errorf("building the render view: %w", err)
+	}
+
+	dir := render.DataSourceDir(bp, d)
+
+	wanted := []struct {
+		name, tmpl string
+		skip       bool
+	}{
+		{"datasource.go", "datasource.go.tmpl", false},
+		{"model.go", "datasource_model.go.tmpl", false},
+		{"read.go", "datasource_read.go.tmpl", false},
+		{"state.go", "datasource_state.go.tmpl", len(view.State.Assignments) == 0},
+	}
+
+	out := make([]File, 0, len(wanted))
+	for _, w := range wanted {
+		if w.skip {
+			continue
+		}
+		content, err := g.renderFile(w.tmpl, view)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", w.name, err)
+		}
+		out = append(out, File{Path: filepath.Join(dir, w.name), Content: content})
+	}
+
+	return out, nil
+}
+
+func (g *Generator) registrationFiles(
+	bp blueprint.Blueprint,
+	ropts render.Options,
+) ([]File, error) {
 	dir := render.ProviderDir(bp)
 
 	specs := []struct {
@@ -219,7 +280,12 @@ func formatGo(src []byte) ([]byte, error) {
 	if err != nil {
 		// The unformattable source is the only way to debug a broken template, so
 		// it is returned with the error rather than discarded.
-		return nil, fmt.Errorf("%w: %v\n--- unformatted output ---\n%s", ErrFormat, err, numberLines(src))
+		return nil, fmt.Errorf(
+			"%w: %w\n--- unformatted output ---\n%s",
+			ErrFormat,
+			err,
+			numberLines(src),
+		)
 	}
 	return out, nil
 }
@@ -277,7 +343,9 @@ func Write(plan Plan, opts WriteOptions) (WriteResult, error) {
 	for _, f := range plan.Files {
 		target := filepath.Join(opts.Root, f.Path)
 
-		existing, err := os.ReadFile(target) //nolint:gosec // the path is operator-supplied by design
+		existing, err := os.ReadFile(
+			target,
+		) //nolint:gosec // the path is operator-supplied by design
 		switch {
 		case err == nil:
 			if bytes.Equal(existing, f.Content) {

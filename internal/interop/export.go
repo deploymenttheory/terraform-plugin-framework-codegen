@@ -216,15 +216,39 @@ func reportResourceLosses(res blueprint.Resource, path string, r *Report) {
 	}
 }
 
+// reportDataSourceLosses is the data source counterpart of reportResourceLosses.
+//
+// A data source's binding is smaller than a resource's -- one operation, a service
+// reference and a response model -- but the format has no counterpart for any of it, so
+// dropping it silently would leave a reader believing the exported document could be
+// emitted from. It cannot.
+func reportDataSourceLosses(ds blueprint.DataSource, path string, r *Report) {
+	r.note("naming", path+".naming")
+	r.note("binding", path+".binding")
+
+	if ds.Timeouts != (blueprint.Timeouts{}) {
+		r.note("timeouts", path+".timeouts")
+	}
+	if ds.DocRefURL != "" {
+		r.note("docRefUrl", path+".docRefUrl")
+	}
+}
+
 func exportDataSource(ds blueprint.DataSource, r *Report) (datasource.DataSource, error) {
 	path := fmt.Sprintf("dataSources[%s]", ds.Key)
 
 	out := datasource.DataSource{
-		Name:   ds.Name,
-		Schema: &datasource.Schema{},
+		Name: ds.Name,
+		Schema: &datasource.Schema{
+			// Only MarkdownDescription is set, for the same reason as a resource: the
+			// schema carries both it and a plain Description, and every consumer that
+			// renders one falls back to the other.
+			MarkdownDescription: strPtr(ds.Schema.MarkdownDescription),
+			DeprecationMessage:  strPtr(ds.Schema.DeprecationMessage),
+		},
 	}
 
-	r.note("naming", path+".naming")
+	reportDataSourceLosses(ds, path, r)
 
 	var acc attrLosses
 

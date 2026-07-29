@@ -1,4 +1,319 @@
 {
+  "datasources": [
+    {
+      "name": "tag",
+      "schema": {
+        "attributes": [
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "The identifier of the tag to look up."
+            }
+          },
+          {
+            "name": "key",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "The tag's key. Together with `value` this forms the label applied to assigned objects."
+            }
+          },
+          {
+            "name": "value",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "The tag's value.\n\n<!-- probed:7.0.97-t1785295713598 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "color",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "A human-readable description of the tag."
+            }
+          },
+          {
+            "name": "icon",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "The tag's icon.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "object_type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "access_type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "match_type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "The tag's type, assigned by the API."
+            }
+          },
+          {
+            "name": "built_in",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Whether the tag is built in rather than user-created."
+            }
+          },
+          {
+            "name": "account_group_id",
+            "int64": {
+              "computed_optional_required": "computed",
+              "description": "The account group the tag belongs to. Computed rather than configurable: the provider scopes every request through its own `account_group_id` setting, so accepting a second value here would let the two disagree."
+            }
+          },
+          {
+            "name": "create_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "When the tag was created."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "When the tag was last modified."
+            }
+          },
+          {
+            "name": "legacy_id",
+            "float64": {
+              "computed_optional_required": "computed",
+              "description": "The tag's identifier in the v6 API. Typed as a number because the specification declares it as one, although observed values are integral; probing will settle whether this should be an integer."
+            }
+          },
+          {
+            "name": "assignments",
+            "set_nested": {
+              "computed_optional_required": "computed",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "tags.Assignment"
+                },
+                "attributes": [
+                  {
+                    "name": "id",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The identifier of the object the tag is assigned to."
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The kind of object assigned. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`."
+                    }
+                  }
+                ]
+              },
+              "description": "Objects this tag is assigned to. The API returns assignments only when the request asks for them to be expanded, which this data source does not, so this is null rather than empty."
+            }
+          },
+          {
+            "name": "filters",
+            "set_nested": {
+              "computed_optional_required": "computed",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "tags.TagFilter"
+                },
+                "attributes": [
+                  {
+                    "name": "key",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The filter key used for matching."
+                    }
+                  },
+                  {
+                    "name": "mode",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "How the filter values are matched."
+                    }
+                  },
+                  {
+                    "name": "scope",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The scope the filter applies within."
+                    }
+                  },
+                  {
+                    "name": "values",
+                    "set": {
+                      "computed_optional_required": "computed",
+                      "element_type": {
+                        "string": {}
+                      },
+                      "description": "The values the filter matches against."
+                    }
+                  }
+                ]
+              },
+              "description": "Filters that dynamically assign this tag to endpoint agents."
+            }
+          }
+        ],
+        "markdown_description": "Looks up a single ThousandEyes tag by its identifier."
+      }
+    },
+    {
+      "name": "tags",
+      "schema": {
+        "attributes": [
+          {
+            "name": "tags",
+            "list_nested": {
+              "computed_optional_required": "computed",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "tags.Tag"
+                },
+                "attributes": [
+                  {
+                    "name": "id",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The tag's unique identifier, assigned by the API."
+                    }
+                  },
+                  {
+                    "name": "key",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The tag's key. Together with `value` this forms the label applied to assigned objects."
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The tag's value.\n\n<!-- probed:7.0.97-t1785295713598 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+                    }
+                  },
+                  {
+                    "name": "color",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->"
+                    }
+                  },
+                  {
+                    "name": "description",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "A human-readable description of the tag."
+                    }
+                  },
+                  {
+                    "name": "icon",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The tag's icon.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->"
+                    }
+                  },
+                  {
+                    "name": "object_type",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+                    }
+                  },
+                  {
+                    "name": "access_type",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+                    }
+                  },
+                  {
+                    "name": "match_type",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->"
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "The tag's type, assigned by the API."
+                    }
+                  },
+                  {
+                    "name": "built_in",
+                    "bool": {
+                      "computed_optional_required": "computed",
+                      "description": "Whether the tag is built in rather than user-created."
+                    }
+                  },
+                  {
+                    "name": "account_group_id",
+                    "int64": {
+                      "computed_optional_required": "computed",
+                      "description": "The account group the tag belongs to. Computed rather than configurable: the provider scopes every request through its own `account_group_id` setting, so accepting a second value here would let the two disagree."
+                    }
+                  },
+                  {
+                    "name": "create_date",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "When the tag was created."
+                    }
+                  },
+                  {
+                    "name": "modified_date",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "When the tag was last modified."
+                    }
+                  },
+                  {
+                    "name": "legacy_id",
+                    "float64": {
+                      "computed_optional_required": "computed",
+                      "description": "The tag's identifier in the v6 API. Typed as a number because the specification declares it as one, although observed values are integral; probing will settle whether this should be an integer."
+                    }
+                  }
+                ]
+              },
+              "description": "Every tag visible to the account group, in the order the API returned them. A list rather than a set because the API's ordering is the only ordering there is, and a set would discard it."
+            }
+          }
+        ],
+        "markdown_description": "Lists every ThousandEyes tag visible to the configured account group."
+      }
+    }
+  ],
   "provider": {
     "name": "thousandeyes"
   },
