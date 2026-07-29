@@ -16,7 +16,7 @@ func scopeSubject() Subject {
 		{JSONPath: "id", Attribute: "id", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Computed},
 		{JSONPath: "key", Attribute: "key", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true},
 		{JSONPath: "value", Attribute: "value", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true},
-		{JSONPath: "mode", Attribute: "mode", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true, Enum: []string{"and", "or"}},
+		{JSONPath: "mode", Attribute: "mode", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true, AllowedValues: []string{"and", "or"}},
 		{JSONPath: "count", Attribute: "count", Kind: blueprint.KindInt64, ComputedOptionalRequired: blueprint.Optional, Writable: true},
 		{JSONPath: "webhook", Attribute: "webhook", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true},
 		{JSONPath: "nested.inner", Attribute: "inner", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true},

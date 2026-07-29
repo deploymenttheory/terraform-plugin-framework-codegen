@@ -454,8 +454,8 @@ func TestUnit_CLI_ThePilotBlueprintCarriesSpecEnumValues(t *testing.T) {
 
 	for _, res := range bp.Resources {
 		for _, a := range res.Schema.Attributes {
-			if len(a.Type.Enum) > 0 {
-				found[a.Name] = len(a.Type.Enum)
+			if len(a.Type.AllowedValues) > 0 {
+				found[a.Name] = len(a.Type.AllowedValues)
 			}
 		}
 	}

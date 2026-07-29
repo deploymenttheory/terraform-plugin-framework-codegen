@@ -89,7 +89,7 @@ func TestUnit_Probe_NegativeEnumCandidatesAreShapedLikeTheDocumentedOnes(t *test
 func TestUnit_Probe_EnumCandidatesAreDeterministic(t *testing.T) {
 	t.Parallel()
 
-	f := Field{JSONPath: "objectType", Enum: []string{"test", "dashboard", "endpoint-agent"}}
+	f := Field{JSONPath: "objectType", AllowedValues: []string{"test", "dashboard", "endpoint-agent"}}
 
 	first := EnumCandidates(f)
 	for range 20 {
@@ -101,14 +101,14 @@ func TestUnit_Probe_EnumCandidatesAreDeterministic(t *testing.T) {
 
 	// The documented values come first, in the order the specification declares them. Order is
 	// part of the contract: a cassette is an ordered transcript.
-	for i, want := range f.Enum {
+	for i, want := range f.AllowedValues {
 		if first[i] != want {
 			t.Errorf("candidate %d = %q, want the documented %q", i, first[i], want)
 		}
 	}
-	if len(first) != len(f.Enum)+negativeEnumCandidates {
+	if len(first) != len(f.AllowedValues)+negativeEnumCandidates {
 		t.Errorf("got %d candidates, want %d documented plus %d generated",
-			len(first), len(f.Enum), negativeEnumCandidates)
+			len(first), len(f.AllowedValues), negativeEnumCandidates)
 	}
 }
 
@@ -130,7 +130,7 @@ func TestUnit_Probe_NoEnumMeansNoCandidates(t *testing.T) {
 
 // TestUnit_Probe_ACandidateSaysWhereItCameFrom.
 //
-// FactEnumRejectedDocumented means "the specification is stale", and that claim is only worth
+// FactRejectedValues means "the specification is stale", and that claim is only worth
 // anything if a reader can tell a documented value from a generated one. A report that blurred the
 // two would let a rejected *generated* value read as a stale specification.
 func TestUnit_Probe_ACandidateSaysWhereItCameFrom(t *testing.T) {

@@ -127,7 +127,7 @@ func prepare(
 	if a.Wire != (blueprint.WireBinding{}) {
 		acc.wire++
 	}
-	if a.Behaviour != (blueprint.Behaviour{}) {
+	if !a.Behaviour.IsZero() {
 		r.note("behaviour", path+".behaviour")
 	}
 

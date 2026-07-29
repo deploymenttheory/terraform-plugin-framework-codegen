@@ -388,7 +388,7 @@ func (ctx *inferCtx) attributeOf(
 	// enum probe, whose whole claim is "the specification is stale" -- had nothing provably
 	// spec-derived to work from.
 	if len(f.EnumValues) > 0 {
-		a.Type.Enum = append([]string(nil), f.EnumValues...)
+		a.Type.AllowedValues = append([]string(nil), f.EnumValues...)
 	}
 
 	writable := a.ComputedOptionalRequired.IsRequired() || a.ComputedOptionalRequired.IsOptional()

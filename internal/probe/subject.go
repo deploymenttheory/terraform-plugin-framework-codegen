@@ -111,9 +111,11 @@ type Field struct {
 	// single biggest saving in request count.
 	Writable bool
 
-	// Enum holds the values the specification documents, if any. The prober checks
-	// them; it never turns them into a validator.
-	Enum []string
+	// AllowedValues holds the values the specification documents, if any.
+	//
+	// The prober's job is to check them, not to trust them: it sends each one and records
+	// which the API took. What is done with the answer afterwards belongs to render.
+	AllowedValues []string
 
 	// Behaviour is what is already recorded. A probe may skip a field whose fact it
 	// would only be re-deriving, and merge needs to know what it is overwriting.
@@ -218,7 +220,7 @@ func fieldsOf(attrs []blueprint.Attribute, prefix string) []Field {
 			Kind:                     a.Type.Kind,
 			ComputedOptionalRequired: a.ComputedOptionalRequired,
 			Writable:                 writable(a),
-			Enum:                     a.Type.Enum,
+			AllowedValues:            a.Type.AllowedValues,
 			Behaviour:                a.Behaviour,
 		})
 

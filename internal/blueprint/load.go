@@ -87,14 +87,30 @@ func checkFormatVersion(data []byte) error {
 	}
 
 	return fmt.Errorf(
-		"%w: found %q, this build understands %q. Blueprints written before format %s "+
-			"put attributes directly on a resource; they now live under \"schema\". Re-run `ingest` "+
-			"against the snapshot, or move the key by hand",
+		"%w: found %q, this build understands %q.%s Re-run `ingest` against the snapshot, or "+
+			"move the keys by hand",
 		ErrUnsupportedFormat,
 		peek.FormatVersion,
 		FormatVersion,
-		FormatVersion,
+		migrationNote(peek.FormatVersion),
 	)
+}
+
+// migrationNote is what changed since the version a document was written against.
+//
+// A table rather than one sentence in the error: the message has to stay true as versions
+// accrue, and a single hardcoded story silently becomes wrong at the next bump. A version
+// with no entry simply gets no note, which is honest -- better than describing the wrong
+// migration.
+func migrationNote(found string) string {
+	notes := map[string]string{
+		"1": " Format 2 moved a block's attributes under \"schema\"," +
+			" and renamed \"terraformType\" to \"name\" holding the short name." +
+			" Format 3 renamed an attribute type's \"enum\" to \"allowedValues\".",
+		"2": " Format 3 renamed an attribute type's \"enum\" to \"allowedValues\".",
+	}
+
+	return notes[found]
 }
 
 // Load reads and validates a blueprint from a file.

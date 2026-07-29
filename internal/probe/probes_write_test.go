@@ -1373,7 +1373,7 @@ func enumSubject() Subject {
 	subj.Fields = append(subj.Fields, Field{
 		JSONPath: "mode", Attribute: "mode",
 		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true,
-		Enum: []string{"and", "or"},
+		AllowedValues: []string{"and", "or"},
 	})
 
 	return subj
@@ -1422,18 +1422,20 @@ func TestUnit_Probe_AClosedEnumNeedsBothNegativesRefused(t *testing.T) {
 
 			report := runAgainst(t, srv, enumSubject(), enumPlan(), "write.enum")
 
-			fact, ok := factFor(t, report, "mode", FactEnumClosed)
+			fact, ok := factFor(t, report, "mode", FactValuesClosed)
 			if !ok {
-				t.Fatalf("no enumClosed fact: %v (notes %v)", report.Facts, report.Notes)
+				t.Fatalf("no valuesClosed fact: %v (notes %v)", report.Facts, report.Notes)
 			}
 
 			if got := fact.Value.Bool != nil && *fact.Value.Bool; got != tc.wantClosed {
-				t.Errorf("enumClosed = %v, want %v (%s)", got, tc.wantClosed, fact.Rationale)
+				t.Errorf("valuesClosed = %v, want %v (%s)", got, tc.wantClosed, fact.Rationale)
 			}
 
-			// Whatever the answer, no validator is generated from it.
-			if _, ok := noteMentioning(report, "no validator is generated"); !ok {
-				t.Errorf("the run must say the set does not become a validator: %v", report.Notes)
+			// The note says which set a validator would come from, and that this probe's
+			// answer is what decides whether there is one. Asserted because the old text
+			// claimed no validator was ever generated, which stopped being true.
+			if _, ok := noteMentioning(report, "comes from the documented set"); !ok {
+				t.Errorf("the run must say which set the validator comes from: %v", report.Notes)
 			}
 		})
 	}
@@ -1452,7 +1454,7 @@ func TestUnit_Probe_ADocumentedValueTheAPIRejectsIsTheValuableResult(t *testing.
 
 	report := runAgainst(t, srv, enumSubject(), enumPlan(), "write.enum")
 
-	rejected, ok := factFor(t, report, "mode", FactEnumRejectedDocumented)
+	rejected, ok := factFor(t, report, "mode", FactRejectedValues)
 	if !ok {
 		t.Fatalf("no enumRejectedDocumented fact: %v (notes %v)", report.Facts, report.Notes)
 	}
@@ -1462,7 +1464,7 @@ func TestUnit_Probe_ADocumentedValueTheAPIRejectsIsTheValuableResult(t *testing.
 	}
 
 	// And the one it took is recorded separately, because merge writes it into the description.
-	accepted, ok := factFor(t, report, "mode", FactEnumAccepted)
+	accepted, ok := factFor(t, report, "mode", FactAcceptedValues)
 	if !ok {
 		t.Fatalf("no enumAccepted fact: %v", report.Facts)
 	}

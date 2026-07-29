@@ -129,7 +129,7 @@
   {
     "resource": "tag",
     "jsonPath": "accessType",
-    "field": "enumAccepted",
+    "field": "acceptedValues",
     "value": {
       "list": [
         "all"
@@ -149,7 +149,7 @@
   {
     "resource": "tag",
     "jsonPath": "accessType",
-    "field": "enumClosed",
+    "field": "valuesClosed",
     "value": {
       "bool": true
     },
@@ -170,7 +170,7 @@
   {
     "resource": "tag",
     "jsonPath": "accessType",
-    "field": "enumRejectedDocumented",
+    "field": "rejectedValues",
     "value": {
       "list": [
         "system"
@@ -528,7 +528,7 @@
   {
     "resource": "tag",
     "jsonPath": "matchType",
-    "field": "enumAccepted",
+    "field": "acceptedValues",
     "value": {
       "list": [
         "and",
@@ -548,7 +548,7 @@
   {
     "resource": "tag",
     "jsonPath": "matchType",
-    "field": "enumClosed",
+    "field": "valuesClosed",
     "value": {
       "bool": true
     },
@@ -608,7 +608,7 @@
   {
     "resource": "tag",
     "jsonPath": "objectType",
-    "field": "enumAccepted",
+    "field": "acceptedValues",
     "value": {
       "list": [
         "test",
@@ -635,7 +635,7 @@
   {
     "resource": "tag",
     "jsonPath": "objectType",
-    "field": "enumClosed",
+    "field": "valuesClosed",
     "value": {
       "bool": true
     },
@@ -659,7 +659,7 @@
   {
     "resource": "tag",
     "jsonPath": "objectType",
-    "field": "enumRejectedDocumented",
+    "field": "rejectedValues",
     "value": {
       "list": [
         "endpoint-agent"

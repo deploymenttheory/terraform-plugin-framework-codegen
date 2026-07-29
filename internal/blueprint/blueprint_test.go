@@ -472,6 +472,47 @@ func TestUnit_Blueprint_Unmarshal_RejectsUnsupportedFormatVersion(t *testing.T) 
 	if !errors.Is(err, ErrUnsupportedFormat) {
 		t.Errorf("error = %v, want it to wrap ErrUnsupportedFormat", err)
 	}
+
+	// An unknown version gets no migration note rather than a wrong one.
+	if strings.Contains(err.Error(), "renamed") {
+		t.Errorf("a version with no known migration should describe none: %v", err)
+	}
+}
+
+// TestUnit_Blueprint_MigrationNoteMatchesTheVersionFound guards a message that silently
+// goes stale.
+//
+// The note used to be one hardcoded sentence about the format 2 move, which stopped being
+// the whole story the moment format 3 landed. A reader of the error acts on it, so a
+// description of the wrong migration is worse than none.
+func TestUnit_Blueprint_MigrationNoteMatchesTheVersionFound(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		found string
+		want  []string
+	}{
+		// From 1 there are two migrations to describe, not one.
+		{"1", []string{"schema", "terraformType", "allowedValues"}},
+		{"2", []string{"allowedValues"}},
+	} {
+		_, err := Unmarshal([]byte(`{"formatVersion": "` + tc.found + `"}`))
+		if err == nil {
+			t.Fatalf("format %s should be refused", tc.found)
+		}
+		for _, want := range tc.want {
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("the note for format %s should mention %q: %v", tc.found, want, err)
+			}
+		}
+	}
+
+	// And the note for 2 must not describe the format 2 migration, which has already
+	// happened by then.
+	_, err := Unmarshal([]byte(`{"formatVersion": "2"}`))
+	if strings.Contains(err.Error(), "terraformType") {
+		t.Errorf("a format 2 document has already had that migration applied: %v", err)
+	}
 }
 
 func TestUnit_Blueprint_SaveAndLoad(t *testing.T) {
