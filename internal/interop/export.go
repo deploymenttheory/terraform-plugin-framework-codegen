@@ -17,7 +17,7 @@ import (
 //
 // The blueprint is a superset, so this is lossy by construction and the report is
 // the interesting half of the return value. An error comes back only for a value
-// that cannot honestly be coarsened -- an unparseable static default, an unknown
+// that cannot honestly be coarsened -- an unparsable static default, an unknown
 // presence, a nested object with no attributes. Everything else becomes a note, and
 // a heavily downgraded export is a success: the format has no way to express a CRUD
 // binding, and a tool that failed for that reason would never export anything.
