@@ -8,7 +8,8 @@ to do when a file genuinely cannot be generated.
 
 | Path | Owner | Change it by |
 |---|---|---|
-| `internal/services/**/{resource,model,construct,state,crud}.go` | toolkit | editing the blueprint, then `emit` |
+| `internal/services/resources/**/{resource,model,construct,state,crud}.go` | toolkit | editing the blueprint, then `emit` |
+| `internal/services/datasources/**/{datasource,model,read,state}.go` | toolkit | editing the blueprint, then `emit` |
 | `internal/services/**/{modify_plan,validate}.go` | **you** | editing them; `emit` never touches them again |
 | `internal/provider/{resources,datasources}.go` | toolkit | adding a blueprint, then `emit` |
 | `internal/provider/provider.go` | **you** | editing it — authentication is always bespoke |

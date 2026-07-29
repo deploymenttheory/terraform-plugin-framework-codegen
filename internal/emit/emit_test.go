@@ -385,3 +385,99 @@ func TestUnit_Emit_EnumValuesDoNotReachGeneratedCode(t *testing.T) {
 		}
 	}
 }
+
+// TestUnit_Emit_DataSourceProducesFourFiles pins the per-data-source file split.
+//
+// Four rather than the resource's five: a data source sends no request body, so there is
+// nothing for a construct.go to expand into one. The names match the reference provider's,
+// where read lives in read.go rather than a crud.go that would be three-quarters empty.
+func TestUnit_Emit_DataSourceProducesFourFiles(t *testing.T) {
+	t.Parallel()
+
+	g, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	bp := pilotBlueprint(t)
+	if len(bp.DataSources) == 0 {
+		t.Skip("the committed pilot blueprint declares no data sources")
+	}
+
+	plan, err := g.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	for _, d := range bp.DataSources {
+		if d.Drop {
+			continue
+		}
+
+		var got []string
+		for _, f := range plan.Files {
+			if strings.Contains(f.Path, "/datasources/") && strings.HasSuffix(
+				filepath.Dir(f.Path), string(filepath.Separator)+d.GoPackage,
+			) {
+				got = append(got, filepath.Base(f.Path))
+			}
+		}
+
+		want := []string{"datasource.go", "model.go", "read.go", "state.go"}
+		if len(got) != len(want) {
+			t.Errorf("data source %q emitted %v, want %v", d.Key, got, want)
+			continue
+		}
+		for i, w := range want {
+			if got[i] != w {
+				t.Errorf("data source %q file %d = %q, want %q", d.Key, i, got[i], w)
+			}
+		}
+
+		// construct.go is a resource file. Emitting one here would mean the generator
+		// believes a data source has a request body.
+		for _, f := range plan.Files {
+			if strings.Contains(f.Path, "/datasources/") &&
+				filepath.Base(f.Path) == "construct.go" {
+				t.Errorf("a data source must not emit construct.go: %s", f.Path)
+			}
+		}
+	}
+}
+
+// TestUnit_Emit_DataSourcesRegisterInTheProvider checks the generated registry, which is
+// what makes the provider serve them at all.
+func TestUnit_Emit_DataSourcesRegisterInTheProvider(t *testing.T) {
+	t.Parallel()
+
+	g, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	bp := pilotBlueprint(t)
+	plan, err := g.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	var registry string
+	for _, f := range plan.Files {
+		if filepath.Base(f.Path) == "datasources.go" {
+			registry = string(f.Content)
+		}
+	}
+	if registry == "" {
+		t.Fatal("no datasources.go was emitted")
+	}
+
+	for _, d := range bp.DataSources {
+		if d.Drop {
+			continue
+		}
+		want := d.GoPackageAlias + ".New" + d.GoTypeName
+		if !strings.Contains(registry, want) {
+			t.Errorf("datasources.go does not register %q:\n%s", want, registry)
+		}
+	}
+}

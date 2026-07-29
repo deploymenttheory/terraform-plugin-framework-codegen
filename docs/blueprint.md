@@ -94,6 +94,39 @@ error in generated output, which names neither.
 An action or list attribute having no `computed` is why a list resource's config schema
 is filter-only: there is nowhere to put a result.
 
+## Data source
+
+The same skeleton as a resource, minus everything a data source has no operation for.
+
+```jsonc
+{
+  "key": "tag",
+  "name": "tag",                  // registers as thousandeyes_tag
+  "schema":  { "attributes": [ ... ] },
+  "binding": { "service": {...}, "read": {...}, "response": {...} },
+  "timeouts": { "readSeconds": 180 }
+}
+```
+
+`binding` is a **`DataSourceBinding`, not a `ResourceBinding`**: it holds a service
+reference, one read operation and a response model, and there is no create, update, delete
+or request body on the type at all. Modelling it as a resource binding with most fields
+refused would put the refusal in a rule somebody has to remember to keep.
+
+Two consequences follow from a data source sending nothing to the API:
+
+- **Its attributes carry only the flatten direction.** An `expand` on a data source
+  attribute is refused, because there is no request body for the value to reach. A
+  *required* attribute here is a lookup argument or a filter, and it reaches the API as a
+  call argument — which is what the `configField` argument kind is for.
+- **No `planModifiers` and no `default`.** Neither field exists on
+  `datasource/schema`'s attribute types. `Validate` refuses a declared one, and the
+  generator does not synthesise the `UseStateForUnknown` it adds for a resource's computed
+  strings.
+
+Emitted as four files — `datasource.go`, `model.go`, `read.go`, `state.go` — against a
+resource's five. There is no `construct.go` because there is nothing to construct.
+
 ## Resource
 
 `key` is the stable merge key. Probe facts and hand-authored overrides join on it,

@@ -27,7 +27,7 @@ const (
 	pkgTime      = "time"
 	pkgPath      = "github.com/hashicorp/terraform-plugin-framework/path"
 	pkgResource  = "github.com/hashicorp/terraform-plugin-framework/resource"
-	pkgSchema    = "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	pkgDataSrc   = "github.com/hashicorp/terraform-plugin-framework/datasource"
 	pkgTypes     = "github.com/hashicorp/terraform-plugin-framework/types"
 	pkgTimeouts  = "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
 	pkgTflog     = "github.com/hashicorp/terraform-plugin-log/tflog"
@@ -36,7 +36,43 @@ const (
 	pkgAttr      = "github.com/hashicorp/terraform-plugin-framework/attr"
 	pkgDiag      = "github.com/hashicorp/terraform-plugin-framework/diag"
 	pkgBaseTypes = "github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+
+	// frameworkRoot is the prefix each kind's schema package hangs off. The suffix
+	// comes from BlockKind.SchemaPackage, so the two never disagree.
+	frameworkRoot = "github.com/hashicorp/terraform-plugin-framework/"
 )
+
+// schemaScope is what attribute rendering needs to know about the block it is
+// rendering for.
+//
+// The attribute types in each kind's schema package are structurally identical, so one
+// renderer serves every kind rather than one per kind. Two things differ, and this
+// carries both: which import path the generated `schema` selector resolves to, and which
+// fields the kind's attribute struct actually has.
+//
+// The selector itself stays `schema` for every kind. That is not a shortcut -- each block
+// is emitted into its own package directory, so a resource's `schema` and a data source's
+// `schema` never appear in the same file and there is nothing to disambiguate.
+type schemaScope struct {
+	kind blueprint.BlockKind
+	// what names the block in an error message, e.g. `resource "tag"`.
+	what string
+}
+
+// schemaImport is the framework import path this scope's `schema` selector resolves to.
+func (sc schemaScope) schemaImport() string {
+	return frameworkRoot + sc.kind.SchemaPackage()
+}
+
+// resourceScope and dataSourceScope name a block for the error messages attribute
+// rendering produces.
+func resourceScope(r blueprint.Resource) schemaScope {
+	return schemaScope{kind: blueprint.BlockResource, what: fmt.Sprintf("resource %q", r.Key)}
+}
+
+func dataSourceScope(d blueprint.DataSource) schemaScope {
+	return schemaScope{kind: blueprint.BlockDataSource, what: fmt.Sprintf("data source %q", d.Key)}
+}
 
 // ResourceView is everything the per-resource templates need.
 type ResourceView struct {
@@ -158,6 +194,12 @@ type NestedFuncView struct {
 	// IsCollection distinguishes a helper over many objects from one over a
 	// single object.
 	IsCollection bool
+	// Container is the framework container type a collection helper builds: "Set" or
+	// "List". The flatten side needs it because types.SetNull and types.ListNull are
+	// different functions returning different types, and the model field's type comes
+	// from the attribute kind -- so hardcoding one of them emits a list_nested
+	// attribute whose helper does not compile against its own model.
+	Container string
 	// Assignments are finished per-field statements inside the helper.
 	Assignments []string
 	// NeedsDiagnostics is true when a field conversion inside the helper can fail.
@@ -250,13 +292,14 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 		v.DocRefComment = "// REF: " + r.DocRefURL
 	}
 
+	sc := resourceScope(r)
 	sdk := bp.Provider.SDK
 	sup := bp.Provider.Support
 
 	// resource.go: schema, metadata, configure, import.
 	impResource.add(pkgContext, "")
 	impResource.add(pkgResource, "")
-	impResource.add(pkgSchema, "")
+	impResource.add(sc.schemaImport(), "")
 	impResource.add(sdk.ClientImport.Path, sdk.ClientImport.Alias)
 	impResource.add(sup.Client.Path, sup.Client.Alias)
 	impResource.add(sup.CommonSchema.Path, sup.CommonSchema.Alias)
@@ -289,20 +332,24 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 		)
 	}
 
-	attrs, fields, err := attributes(r, impResource)
+	attrs, fields, err := attributes(sc, r.Schema, impResource)
 	if err != nil {
 		return ResourceView{}, err
 	}
 	v.SchemaAttributes = attrs
+
+	// The timeouts value is last in the model, matching the archetype, and is what the
+	// generated CRUD reads its per-operation deadlines from.
+	fields = append(fields, "Timeouts timeouts.Value `tfsdk:\"timeouts\"`")
 	v.ModelFields = fields
 
 	// A collection attribute's ElementType expression needs the types package,
 	// and a scalar-only resource must not import it.
-	if usesElementTypes(r) {
+	if usesElementTypes(r.Schema) {
 		impResource.add(pkgTypes, "")
 	}
 
-	shapes, err := nestedShapes(r)
+	shapes, err := nestedShapes(sc, r.Schema)
 	if err != nil {
 		return ResourceView{}, err
 	}
@@ -320,7 +367,6 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	// diagnostics to carry. It adds nothing to crud.go, which only ever appends to
 	// resp.Diagnostics.
 	if len(shapes) > 0 {
-		impResource.add(pkgTypes, "")
 		for _, s := range []*importSet{impConstruct, impState} {
 			s.add(pkgTypes, "")
 			s.add(pkgDiag, "")
@@ -335,7 +381,7 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	}
 
 	v.Construct = constructView(r, shapes)
-	v.State = stateView(r, shapes)
+	v.State = stateView(r.Schema, r.Binding.Body.ResponseType, shapes)
 
 	// A fallible conversion anywhere means construct or state returns diagnostics,
 	// which changes the shape of the generated CRUD call sites. crud.go needs no
@@ -358,30 +404,53 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	return v, nil
 }
 
-func usesElementTypes(r blueprint.Resource) bool {
-	for _, a := range r.Schema.Attributes {
-		if !a.Drop && a.Type.Kind.IsCollection() {
+// usesElementTypes reports whether any attribute renders an ElementType expression, at
+// any depth.
+//
+// The depth matters: those expressions are the only reason a schema file imports the
+// framework's types package, and a collection nested inside an object is just as much a
+// use as one at the top level. Checking only the top level made the resource compile by
+// luck -- its collection happens to be nested, and a separate "has nested shapes" rule
+// pulled the import in -- while a data source whose nested objects are all scalars got
+// an unused import and did not compile.
+func usesElementTypes(s blueprint.Schema) bool {
+	for _, a := range s.Attributes {
+		if a.Drop {
+			continue
+		}
+		if a.Type.Kind.IsCollection() {
+			return true
+		}
+		if n := a.Type.NestedObject; n != nil &&
+			usesElementTypes(blueprint.Schema{Attributes: n.Attributes}) {
 			return true
 		}
 	}
 	return false
 }
 
-func timeoutsView(r blueprint.Resource, def blueprint.Timeouts) TimeoutsView {
-	pick := func(a, b int) int {
-		if a > 0 {
-			return a
+// defaultTimeoutSeconds is the deadline used when neither the block nor the provider
+// conventions state one. A generated operation always has a bounded context: an
+// unbounded one hangs a terraform apply with no diagnostic a practitioner can act on.
+const defaultTimeoutSeconds = 180
+
+// pickTimeout returns the first positive value, which is how a block-level timeout falls
+// back to the provider default and then to the built-in.
+func pickTimeout(vals ...int) int {
+	for _, v := range vals {
+		if v > 0 {
+			return v
 		}
-		if b > 0 {
-			return b
-		}
-		return 180
 	}
+	return defaultTimeoutSeconds
+}
+
+func timeoutsView(r blueprint.Resource, def blueprint.Timeouts) TimeoutsView {
 	return TimeoutsView{
-		Create: pick(r.Timeouts.CreateSeconds, def.CreateSeconds),
-		Read:   pick(r.Timeouts.ReadSeconds, def.ReadSeconds),
-		Update: pick(r.Timeouts.UpdateSeconds, def.UpdateSeconds),
-		Delete: pick(r.Timeouts.DeleteSeconds, def.DeleteSeconds),
+		Create: pickTimeout(r.Timeouts.CreateSeconds, def.CreateSeconds),
+		Read:   pickTimeout(r.Timeouts.ReadSeconds, def.ReadSeconds),
+		Update: pickTimeout(r.Timeouts.UpdateSeconds, def.UpdateSeconds),
+		Delete: pickTimeout(r.Timeouts.DeleteSeconds, def.DeleteSeconds),
 	}
 }
 
@@ -464,8 +533,18 @@ func (e *ErrUnsupported) Error() string {
 	return fmt.Sprintf("cannot render %s: %s", e.What, e.Why)
 }
 
-func attributes(r blueprint.Resource, imports *importSet) (attrs, fields []string, err error) {
-	for _, a := range r.Schema.Attributes {
+// attributes renders one schema's attributes and the matching model fields.
+//
+// It deliberately does not append the timeouts model field. That field's type differs by
+// kind -- timeouts.Value for a resource, the datasource/timeouts package's Value for a
+// data source -- and appending it here would make a function named "attributes" quietly
+// responsible for something that is not an attribute.
+func attributes(
+	sc schemaScope,
+	s blueprint.Schema,
+	imports *importSet,
+) (attrs, fields []string, err error) {
+	for _, a := range s.Attributes {
 		if a.Drop {
 			continue
 		}
@@ -473,12 +552,12 @@ func attributes(r blueprint.Resource, imports *importSet) (attrs, fields []strin
 		schemaType, ok := frameworkSchemaType[a.Type.Kind]
 		if !ok {
 			return nil, nil, &ErrUnsupported{
-				What: fmt.Sprintf("attribute %q of resource %q", a.Name, r.Key),
+				What: fmt.Sprintf("attribute %q of %s", a.Name, sc.what),
 				Why:  fmt.Sprintf("type kind %q has no framework mapping", a.Type.Kind),
 			}
 		}
 
-		decl, err := attributeDecl(a, schemaType, imports)
+		decl, err := attributeDecl(sc, a, schemaType, imports)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -488,16 +567,17 @@ func attributes(r blueprint.Resource, imports *importSet) (attrs, fields []strin
 		fields = append(fields, fmt.Sprintf("%s %s `tfsdk:%q`", a.GoField, modelType, a.Name))
 	}
 
-	// The timeouts block is last in the model, matching the archetype, and is
-	// what the generated CRUD reads its per-operation deadlines from.
-	fields = append(fields, "Timeouts timeouts.Value `tfsdk:\"timeouts\"`")
-
 	return attrs, fields, nil
 }
 
-func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet) (string, error) {
+func attributeDecl(
+	sc schemaScope,
+	a blueprint.Attribute,
+	schemaType string,
+	imports *importSet,
+) (string, error) {
 	if a.Type.Kind.IsNested() {
-		return nestedAttributeDecl(a, imports)
+		return nestedAttributeDecl(sc, a, imports)
 	}
 
 	var b strings.Builder
@@ -544,7 +624,7 @@ func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet)
 		&b,
 		"PlanModifiers",
 		"planmodifier."+validatorKind(a.Type.Kind),
-		planModifiersFor(a, imports),
+		planModifiersFor(sc, a, imports),
 		imports,
 	)
 
@@ -567,7 +647,19 @@ func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet)
 // even when nothing about it changed. UseStateForUnknown is the standard remedy,
 // and applying it by default is what stops a generated provider producing noisy
 // plans that train people to skim them.
-func planModifiersFor(a blueprint.Attribute, imports *importSet) []blueprint.CustomCode {
+func planModifiersFor(
+	sc schemaScope,
+	a blueprint.Attribute,
+	imports *importSet,
+) []blueprint.CustomCode {
+	// Only a managed resource has a plan to modify, and this is the one place the
+	// generator can put a plan modifier somewhere blueprint.Validate cannot see it:
+	// the UseStateForUnknown below is synthesised here rather than declared in the
+	// blueprint, so nothing upstream would refuse it on a data source.
+	if !sc.kind.SupportsPlanModifiers() {
+		return nil
+	}
+
 	if len(a.PlanModifiers) > 0 {
 		return a.PlanModifiers
 	}
@@ -743,8 +835,8 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 	return v
 }
 
-func stateView(r blueprint.Resource, shapes []nestedShape) StateView {
-	v := StateView{ResponseType: r.Binding.Body.ResponseType}
+func stateView(s blueprint.Schema, responseType string, shapes []nestedShape) StateView {
+	v := StateView{ResponseType: responseType}
 
 	for _, sh := range shapes {
 		if sh.attr.Wire.SkipFlatten {
@@ -753,7 +845,7 @@ func stateView(r blueprint.Resource, shapes []nestedShape) StateView {
 		v.NestedObject = append(v.NestedObject, nestedFlattenView(sh))
 	}
 
-	for _, a := range r.Schema.Attributes {
+	for _, a := range s.Attributes {
 		if a.Drop || a.Wire.SkipFlatten || a.Wire.Flatten == nil {
 			continue
 		}
@@ -815,7 +907,10 @@ func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 		if o.op == nil {
 			continue
 		}
-		view, err := opView(r, *o.op, o.phase, o.errOp, o.timeout)
+		view, err := opView(
+			fmt.Sprintf("resource %q", r.Key), r.Binding.Service.Accessor,
+			*o.op, o.phase, o.errOp, o.timeout,
+		)
 		if err != nil {
 			return CRUDView{}, err
 		}
@@ -848,21 +943,23 @@ func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 	return v, nil
 }
 
+// opView renders one SDK call. what names the owning block for error messages and
+// accessor reaches its service, so this serves a resource and a data source alike.
 func opView(
-	r blueprint.Resource,
+	what, accessor string,
 	op blueprint.Operation,
 	phase, errOp, timeout string,
 ) (*OpView, error) {
 	if op.Style != blueprint.CallStyleMethod {
 		return nil, &ErrUnsupported{
-			What: fmt.Sprintf("operation %q of resource %q", op.Method, r.Key),
+			What: fmt.Sprintf("operation %q of %s", op.Method, what),
 			Why:  fmt.Sprintf("call style %q is not implemented", op.Style),
 		}
 	}
 
 	args := make([]string, 0, len(op.Args))
 	for _, a := range op.Args {
-		expr, err := argExpr(r, a)
+		expr, err := argExpr(what, a)
 		if err != nil {
 			return nil, err
 		}
@@ -872,7 +969,7 @@ func opView(
 	v := &OpView{
 		Call: fmt.Sprintf(
 			"%s.%s(%s)",
-			r.Binding.Service.Accessor,
+			accessor,
 			op.Method,
 			strings.Join(args, ", "),
 		),
@@ -896,7 +993,7 @@ func opView(
 		v.Assign = "err :="
 	default:
 		return nil, &ErrUnsupported{
-			What: fmt.Sprintf("operation %q of resource %q", op.Method, r.Key),
+			What: fmt.Sprintf("operation %q of %s", op.Method, what),
 			Why:  fmt.Sprintf("return arity %q is not implemented", op.Return),
 		}
 	}
@@ -917,7 +1014,7 @@ func resultVarFor(phase string) string {
 	}
 }
 
-func argExpr(r blueprint.Resource, a blueprint.Argument) (string, error) {
+func argExpr(what string, a blueprint.Argument) (string, error) {
 	if a.Expr != "" {
 		return a.Expr, nil
 	}
@@ -931,14 +1028,19 @@ func argExpr(r blueprint.Resource, a blueprint.Argument) (string, error) {
 		return fmt.Sprintf("state.%s.ValueString()", a.Field), nil
 	case blueprint.ArgPlanField:
 		return fmt.Sprintf("plan.%s.ValueString()", a.Field), nil
+	case blueprint.ArgConfigField:
+		// A data source reads its arguments from configuration: it has no prior state
+		// and no plan. The variable is named for what it holds rather than reusing
+		// "state", which would read as a lie in a generated data source body.
+		return fmt.Sprintf("data.%s.ValueString()", a.Field), nil
 	case blueprint.ArgLiteral:
 		return "", &ErrUnsupported{
-			What: fmt.Sprintf("argument of resource %q", r.Key),
+			What: fmt.Sprintf("argument of %s", what),
 			Why:  "a literal argument needs an expression",
 		}
 	default:
 		return "", &ErrUnsupported{
-			What: fmt.Sprintf("argument of resource %q", r.Key),
+			What: fmt.Sprintf("argument of %s", what),
 			Why:  fmt.Sprintf("argument kind %q is not implemented", a.Kind),
 		}
 	}

@@ -23,6 +23,36 @@ type ResourceBinding struct {
 	Body BodyModels `json:"body"`
 }
 
+// DataSourceBinding is the SDK calls one data source makes: a read, and nothing else.
+//
+// This is a separate type from ResourceBinding rather than a reuse of it. A data source
+// has no create, no update, no delete and no request body, and modelling it as a
+// ResourceBinding with most of the fields refused would put the refusal in a validation
+// rule somebody has to remember to keep. Here those fields simply do not exist, which is
+// the same move BlockKind makes for per-kind attribute fields.
+type DataSourceBinding struct {
+	Service ServiceRef `json:"service"`
+
+	// Read is the only operation. It is a pointer for symmetry with ResourceBinding's
+	// operations and so that "not yet authored" is distinguishable from an empty call,
+	// which is what an imported draft needs; Validate requires it.
+	Read *Operation `json:"read,omitempty"`
+
+	Response ResponseModel `json:"response"`
+}
+
+// ResponseModel is the SDK type a data source reads back, and how its fields are reached.
+//
+// The resource equivalent is BodyModels, which also carries a request type and a
+// constructor for it. A data source sends no body, so it carries neither.
+type ResponseModel struct {
+	// Type is the Go type read back, e.g. "tags.Tag", written as it appears at the use
+	// site including any package qualifier.
+	Type string `json:"type"`
+
+	AccessStyle AccessStyle `json:"accessStyle"`
+}
+
 // ServiceRef locates the SDK symbols for a resource.
 type ServiceRef struct {
 	// ImportPath is the SDK package, e.g.
@@ -120,6 +150,10 @@ const (
 	ArgStateField ArgKind = "stateField"
 	// ArgPlanField reads a model field from the plan.
 	ArgPlanField ArgKind = "planField"
+	// ArgConfigField reads a model field from a data source's configuration, which is
+	// the only place a data source has to read an argument from: it has no prior state
+	// and no plan.
+	ArgConfigField ArgKind = "configField"
 	// ArgBody passes the constructed request body.
 	ArgBody ArgKind = "body"
 	// ArgLiteral passes a verbatim Go expression.

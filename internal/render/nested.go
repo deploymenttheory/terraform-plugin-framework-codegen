@@ -18,23 +18,23 @@ const maxNestDepth = 1
 
 // nestedShapes collects every nested object shape a resource declares, in
 // declaration order so output does not depend on map iteration.
-func nestedShapes(r blueprint.Resource) ([]nestedShape, error) {
+func nestedShapes(sc schemaScope, s blueprint.Schema) ([]nestedShape, error) {
 	var out []nestedShape
 
-	for _, a := range r.Schema.Attributes {
+	for _, a := range s.Attributes {
 		if a.Drop || !a.Type.Kind.IsNested() {
 			continue
 		}
 		if a.Type.NestedObject == nil {
 			return nil, &ErrUnsupported{
-				What: fmt.Sprintf("attribute %q of resource %q", a.Name, r.Key),
+				What: fmt.Sprintf("attribute %q of %s", a.Name, sc.what),
 				Why:  "a nested kind needs a nested object shape",
 			}
 		}
 
 		// Depth is checked here rather than while rendering, so the error names the
 		// attribute instead of surfacing as a confusing type mismatch later.
-		if err := checkDepth(r.Key, a.Name, *a.Type.NestedObject, 1); err != nil {
+		if err := checkDepth(sc, a.Name, *a.Type.NestedObject, 1); err != nil {
 			return nil, err
 		}
 
@@ -49,21 +49,21 @@ type nestedShape struct {
 	nested blueprint.NestedAttributeObject
 }
 
-func checkDepth(resourceKey, path string, n blueprint.NestedAttributeObject, depth int) error {
+func checkDepth(sc schemaScope, path string, n blueprint.NestedAttributeObject, depth int) error {
 	for _, child := range n.Attributes {
 		if child.Drop || !child.Type.Kind.IsNested() {
 			continue
 		}
 		if depth+1 > maxNestDepth {
 			return &ErrUnsupported{
-				What: fmt.Sprintf("attribute %q of resource %q", path+"."+child.Name, resourceKey),
+				What: fmt.Sprintf("attribute %q of %s", path+"."+child.Name, sc.what),
 				Why: fmt.Sprintf("nesting is %d level(s) deep and the emitter supports %d; "+
 					"flatten the shape or extend the emitter deliberately", depth+1, maxNestDepth),
 			}
 		}
 		if child.Type.NestedObject != nil {
 			if err := checkDepth(
-				resourceKey,
+				sc,
 				path+"."+child.Name,
 				*child.Type.NestedObject,
 				depth+1,
@@ -76,7 +76,11 @@ func checkDepth(resourceKey, path string, n blueprint.NestedAttributeObject, dep
 }
 
 // nestedAttributeDecl renders a nested attribute's schema declaration.
-func nestedAttributeDecl(a blueprint.Attribute, imports *importSet) (string, error) {
+func nestedAttributeDecl(
+	sc schemaScope,
+	a blueprint.Attribute,
+	imports *importSet,
+) (string, error) {
 	n := a.Type.NestedObject
 
 	var children []string
@@ -91,7 +95,7 @@ func nestedAttributeDecl(a blueprint.Attribute, imports *importSet) (string, err
 				Why:  fmt.Sprintf("type kind %q has no framework mapping", child.Type.Kind),
 			}
 		}
-		decl, err := attributeDecl(child, schemaType, imports)
+		decl, err := attributeDecl(sc, child, schemaType, imports)
 		if err != nil {
 			return "", err
 		}
@@ -250,6 +254,7 @@ func nestedFlattenView(s nestedShape) NestedFuncView {
 		ObjectTypeVar: s.nested.ObjectTypeVar,
 		ModelType:     s.nested.GoTypeName,
 		IsCollection:  s.attr.Type.Kind.IsNestedCollection(),
+		Container:     nestedContainer(s.attr.Type.Kind),
 	}
 
 	for _, child := range s.nested.Attributes {
@@ -270,4 +275,18 @@ func nestedFlattenView(s nestedShape) NestedFuncView {
 	}
 
 	return v
+}
+
+// nestedContainer names the framework container a nested collection flattens into.
+//
+// Empty for a single nested object, which uses types.Object* rather than a container.
+func nestedContainer(k blueprint.TypeKind) string {
+	switch k {
+	case blueprint.KindListNested:
+		return "List"
+	case blueprint.KindSetNested:
+		return "Set"
+	default:
+		return ""
+	}
 }

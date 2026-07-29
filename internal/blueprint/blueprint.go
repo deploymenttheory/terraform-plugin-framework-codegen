@@ -209,6 +209,13 @@ type DataSource struct {
 
 	Schema Schema `json:"schema"`
 
+	Binding DataSourceBinding `json:"binding"`
+
+	// Timeouts carries only a read deadline that is ever used, since read is the only
+	// operation a data source has. The other three are accepted and ignored rather than
+	// modelled separately, so that Conventions.DefaultTimeouts stays one type.
+	Timeouts Timeouts `json:"timeouts,omitzero"`
+
 	Drop bool `json:"drop,omitempty"`
 }
 
