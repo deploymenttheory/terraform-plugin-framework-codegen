@@ -1,6 +1,5 @@
 name: Auto-Merge Dependabot
 
-
 on:
   pull_request:
     branches: [main]
@@ -11,13 +10,12 @@ permissions:
 
 jobs:
   dependabot-merge:
-    name: '🤖 Auto-Merge Dependabot'
+    name: "🤖 Auto-Merge Dependabot"
     runs-on: ubuntu-latest
 
     if: ${{ github.actor == 'dependabot[bot]' }}
 
     steps:
-      
       - name: Harden Runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:

@@ -5,19 +5,19 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
-      - '.github/workflows/unit-tests.yml'
-      - '**/*.go'
-      - 'go.mod'
-      - 'go.sum'
+      - ".github/workflows/unit-tests.yml"
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
 
 permissions:
   contents: read
-  pull-requests: write  # Needed for commenting on PR
-  issues: write  # Needed for commenting on PR
+  pull-requests: write # Needed for commenting on PR
+  issues: write # Needed for commenting on PR
 
 jobs:
   unit-tests:
-    name: '🧪 Run Unit Tests'
+    name: "🧪 Run Unit Tests"
     runs-on: ubuntu-24.04-arm
     if: github.event.pull_request.draft == false
 
@@ -30,13 +30,13 @@ jobs:
       - name: Check Out
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          fetch-depth: 0  # Get full history for coverage analysis
+          fetch-depth: 0 # Get full history for coverage analysis
 
       - name: Set up Go
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
-          go-version-file: 'go.mod'
-          cache-dependency-path: 'go.sum'
+          go-version-file: "go.mod"
+          cache-dependency-path: "go.sum"
           cache: true
 
       - name: Download Dependencies
