@@ -111,11 +111,19 @@ jobs:
       # Save artifacts on failure
       - name: Save artifacts
         if: failure()
+        # Through the environment, not through ${{ }}. An expression is spliced into the
+        # script text before the shell runs, and a fork's repository name is chosen by
+        # whoever owns the fork, so it can carry shell metacharacters. printf rather than
+        # echo because echo's handling of a leading dash or a backslash varies by shell.
+        env:
+          GH_OWNER: ${{ github.repository_owner }}
+          GH_REPO: ${{ github.event.repository.name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           mkdir -p wr_actions
-          echo ${{ github.repository_owner }} > wr_actions/ghowner.txt
-          echo ${{ github.event.repository.name }} > wr_actions/ghrepo.txt
-          echo ${{ github.event.pull_request.number }} > wr_actions/prnumber.txt
+          printf '%s\n' "$GH_OWNER" > wr_actions/ghowner.txt
+          printf '%s\n' "$GH_REPO" > wr_actions/ghrepo.txt
+          printf '%s\n' "$PR_NUMBER" > wr_actions/prnumber.txt
 
       - name: Upload artifacts
         if: failure()

@@ -54,11 +54,19 @@ jobs:
       # Save artifacts on failure
       - name: Save artifacts
         if: failure()
+        # Through the environment, not through ${{ }}. An expression is spliced into the
+        # script text before the shell runs, and a fork's repository name is chosen by
+        # whoever owns the fork, so it can carry shell metacharacters. printf rather than
+        # echo because echo's handling of a leading dash or a backslash varies by shell.
+        env:
+          GH_OWNER: ${{ github.repository_owner }}
+          GH_REPO: ${{ github.event.repository.name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           mkdir -p wr_actions
-          echo ${{ github.repository_owner }} > wr_actions/ghowner.txt
-          echo ${{ github.event.repository.name }} > wr_actions/ghrepo.txt
-          echo ${{ github.event.pull_request.number }} > wr_actions/prnumber.txt
+          printf '%s\n' "$GH_OWNER" > wr_actions/ghowner.txt
+          printf '%s\n' "$GH_REPO" > wr_actions/ghrepo.txt
+          printf '%s\n' "$PR_NUMBER" > wr_actions/prnumber.txt
 
       - name: Upload artifacts
         if: failure()
@@ -78,10 +86,14 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           result-encoding: string
+          # No ${{ }} in the script body: github-script provides the issue number
+          # through its own context, and gha_url is already in the environment from the
+          # previous step, so both are read at run time rather than pasted into the
+          # source before it is evaluated.
           script: |
             github.rest.issues.createComment({
-              issue_number: ${{ github.event.pull_request.number }},
+              issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '<b>Build failure</b> \n\n This pull request contains a build failure which needs addressed [here](${{ env.gha_url}}) .'
+              body: `<b>Build failure</b> \n\n This pull request contains a build failure which needs addressed [here](${process.env.gha_url}) .`,
             })
