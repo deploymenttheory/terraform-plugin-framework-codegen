@@ -62,9 +62,9 @@ func TestUnit_Apierr_ClassifiesEveryEnvelope(t *testing.T) {
 		{
 			name:     "legacy",
 			status:   401,
-			body:     `{"errorMessage":"401 Not Authorized\nPlease ensure you are using the correct token."}`,
+			body:     `{"errorMessage":"401 Not Authorised\nPlease ensure you are using the correct token."}`,
 			envelope: EnvelopeLegacy,
-			message:  "401 Not Authorized\nPlease ensure you are using the correct token.",
+			message:  "401 Not Authorised\nPlease ensure you are using the correct token.",
 		},
 		{
 			name:     "empty",

@@ -192,30 +192,30 @@ type DataSource struct {
 	Drop           bool        `json:"drop,omitempty"`
 }
 
-// Presence is how Terraform treats an attribute. The four values are spelled
+// ComputedOptionalRequired is how Terraform treats an attribute. The four values are spelled
 // exactly as the Provider Code Specification spells them, so interop needs no
 // mapping table.
-type Presence string
+type ComputedOptionalRequired string
 
 const (
-	Required         Presence = "required"
-	Optional         Presence = "optional"
-	Computed         Presence = "computed"
-	ComputedOptional Presence = "computed_optional"
+	Required         ComputedOptionalRequired = "required"
+	Optional         ComputedOptionalRequired = "optional"
+	Computed         ComputedOptionalRequired = "computed"
+	ComputedOptional ComputedOptionalRequired = "computed_optional"
 )
 
 // IsComputed reports whether the framework schema sets Computed.
-func (p Presence) IsComputed() bool {
+func (p ComputedOptionalRequired) IsComputed() bool {
 	return p == Computed || p == ComputedOptional
 }
 
 // IsOptional reports whether the framework schema sets Optional.
-func (p Presence) IsOptional() bool {
+func (p ComputedOptionalRequired) IsOptional() bool {
 	return p == Optional || p == ComputedOptional
 }
 
 // IsRequired reports whether the framework schema sets Required.
-func (p Presence) IsRequired() bool { return p == Required }
+func (p ComputedOptionalRequired) IsRequired() bool { return p == Required }
 
 // TypeKind is the framework type an attribute maps to.
 type TypeKind string
@@ -263,10 +263,10 @@ func (k TypeKind) IsNestedCollection() bool {
 // AttrType is an attribute's type.
 type AttrType struct {
 	Kind TypeKind `json:"kind"`
-	// Elem is the element type of a list, set or map of scalars.
-	Elem *AttrType `json:"elem,omitempty"`
-	// Nested is the object shape of a nested kind.
-	Nested *Nested `json:"nested,omitempty"`
+	// ElementType is the element type of a list, set or map of scalars.
+	ElementType *AttrType `json:"elementType,omitempty"`
+	// NestedObject is the object shape of a nested kind.
+	NestedObject *NestedAttributeObject `json:"nestedObject,omitempty"`
 
 	// Enum is the value set the *specification* documents, and it is documentation only.
 	//
@@ -283,8 +283,8 @@ type AttrType struct {
 	Enum []string `json:"enum,omitempty"`
 }
 
-// Nested is the object shape a nested attribute holds.
-type Nested struct {
+// NestedAttributeObject is the object shape a nested attribute holds.
+type NestedAttributeObject struct {
 	// GoTypeName is the generated tfsdk model for this level, e.g.
 	// "TagAssignmentModel". It is a sibling of the parent model, not an inner type,
 	// because the framework needs a named type to decode elements into.
@@ -314,8 +314,8 @@ type Attribute struct {
 	// GoField is the model struct field.
 	GoField string `json:"goField"`
 
-	Type     AttrType `json:"type"`
-	Presence Presence `json:"presence"`
+	Type                     AttrType                 `json:"type"`
+	ComputedOptionalRequired ComputedOptionalRequired `json:"computedOptionalRequired"`
 
 	Sensitive bool `json:"sensitive,omitempty"`
 

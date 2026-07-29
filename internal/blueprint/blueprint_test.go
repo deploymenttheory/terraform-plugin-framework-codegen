@@ -21,10 +21,10 @@ func validResource() Resource {
 		ModelTypeName:  "TagResourceModel",
 		Attributes: []Attribute{
 			{
-				Name:     "id",
-				GoField:  "ID",
-				Type:     AttrType{Kind: KindString},
-				Presence: Computed,
+				Name:                     "id",
+				GoField:                  "ID",
+				Type:                     AttrType{Kind: KindString},
+				ComputedOptionalRequired: Computed,
 				Wire: WireBinding{
 					JSONPath:   "id",
 					SDKField:   "ID",
@@ -34,10 +34,10 @@ func validResource() Resource {
 				},
 			},
 			{
-				Name:     "key",
-				GoField:  "Key",
-				Type:     AttrType{Kind: KindString},
-				Presence: Required,
+				Name:                     "key",
+				GoField:                  "Key",
+				Type:                     AttrType{Kind: KindString},
+				ComputedOptionalRequired: Required,
 				Wire: WireBinding{
 					JSONPath:  "key",
 					SDKField:  "Key",
@@ -194,7 +194,7 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 		{
 			name: "scalar kind with an element type",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[1].Type.Elem = &AttrType{Kind: KindString}
+				b.Resources[0].Attributes[1].Type.ElementType = &AttrType{Kind: KindString}
 			},
 			wantPath: "elem",
 		},
@@ -616,7 +616,7 @@ func TestUnit_Blueprint_Presence_Predicates(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		p                              Presence
+		p                              ComputedOptionalRequired
 		computed, optional, isRequired bool
 	}{
 		{Required, false, false, true},

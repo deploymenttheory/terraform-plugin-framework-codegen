@@ -11,7 +11,7 @@ import (
 func validFact() Fact {
 	return Fact{
 		Resource:   "tag",
-		JSONPath:   "color",
+		JSONPath:   "colour",
 		Field:      FactWritable,
 		Value:      BoolValue(true),
 		Confidence: Observed,
@@ -145,8 +145,8 @@ func TestUnit_Probe_SortFactsIsStable(t *testing.T) {
 	facts := []Fact{
 		{Resource: "tag", JSONPath: "value", Field: FactWritable},
 		{Resource: "agent", JSONPath: "id", Field: FactVolatile},
-		{Resource: "tag", JSONPath: "color", Field: FactWritable},
-		{Resource: "tag", JSONPath: "color", Field: FactImmutable},
+		{Resource: "tag", JSONPath: "colour", Field: FactWritable},
+		{Resource: "tag", JSONPath: "colour", Field: FactImmutable},
 	}
 
 	SortFacts(facts)
@@ -158,8 +158,8 @@ func TestUnit_Probe_SortFactsIsStable(t *testing.T) {
 
 	want := []string{
 		"agent.id:volatile",
-		"tag.color:immutable",
-		"tag.color:writable",
+		"tag.colour:immutable",
+		"tag.colour:writable",
 		"tag.value:writable",
 	}
 
@@ -175,7 +175,7 @@ func TestUnit_Probe_FactString(t *testing.T) {
 	t.Parallel()
 
 	got := validFact().String()
-	for _, want := range []string{"tag.color", "writable", "true", "observed", "write.writable-returned"} {
+	for _, want := range []string{"tag.colour", "writable", "true", "observed", "write.writable-returned"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("String() = %q, missing %q", got, want)
 		}
@@ -192,9 +192,9 @@ func TestUnit_Probe_FactString(t *testing.T) {
 func TestUnit_Probe_NoteString(t *testing.T) {
 	t.Parallel()
 
-	full := Note{Resource: "tag", JSONPath: "color", Probe: "write.server-default", Message: "abandoned"}
+	full := Note{Resource: "tag", JSONPath: "colour", Probe: "write.server-default", Message: "abandoned"}
 	got := full.String()
-	for _, want := range []string{"tag.color", "write.server-default", "abandoned"} {
+	for _, want := range []string{"tag.colour", "write.server-default", "abandoned"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("String() = %q, missing %q", got, want)
 		}

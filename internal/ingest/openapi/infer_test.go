@@ -213,7 +213,7 @@ func TestUnit_Infer_PresenceComesFromReadOnlyAndRequired(t *testing.T) {
 
 	tests := []struct {
 		attr string
-		want blueprint.Presence
+		want blueprint.ComputedOptionalRequired
 		why  string
 	}{
 		{"name", blueprint.Required, "in the request body and listed as required"},
@@ -227,8 +227,8 @@ func TestUnit_Infer_PresenceComesFromReadOnlyAndRequired(t *testing.T) {
 		t.Run(tc.attr, func(t *testing.T) {
 			t.Parallel()
 			got := attrByName(t, res, tc.attr)
-			if got.Presence != tc.want {
-				t.Errorf("%s is %q, want %q: %s", tc.attr, got.Presence, tc.want, tc.why)
+			if got.ComputedOptionalRequired != tc.want {
+				t.Errorf("%s is %q, want %q: %s", tc.attr, got.ComputedOptionalRequired, tc.want, tc.why)
 			}
 		})
 	}
@@ -426,7 +426,7 @@ func TestUnit_Infer_ReportsWhatItSkipped(t *testing.T) {
 		}
 	}
 
-	// Nested objects are a known gap, and must be named rather than dropped.
+	// NestedAttributeObject objects are a known gap, and must be named rather than dropped.
 	if !strings.Contains(all, "parts") {
 		t.Errorf("the nested collection should be reported as skipped:\n%s", all)
 	}
@@ -595,7 +595,7 @@ func noteStrings(notes []Note) []string {
 func TestUnit_Infer_NoteString(t *testing.T) {
 	t.Parallel()
 
-	if got := (Note{Resource: "tag", Field: "color", Message: "why"}).String(); got != "tag.color: why" {
+	if got := (Note{Resource: "tag", Field: "colour", Message: "why"}).String(); got != "tag.colour: why" {
 		t.Errorf("String = %q", got)
 	}
 	if got := (Note{Resource: "tag", Message: "why"}).String(); got != "tag: why" {

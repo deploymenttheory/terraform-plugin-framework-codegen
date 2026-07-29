@@ -39,13 +39,13 @@ func everyKind() []blueprint.Attribute {
 	for _, k := range kinds {
 		a := blueprint.Attribute{
 			// Names are derived from the kind so a failure names the branch.
-			Name:                string(k) + "_field",
-			GoField:             "Field",
-			Presence:            blueprint.ComputedOptional,
-			MarkdownDescription: "a " + string(k),
-			DeprecationMessage:  "deprecated",
-			Sensitive:           true,
-			Type:                blueprint.AttrType{Kind: k},
+			Name:                     string(k) + "_field",
+			GoField:                  "Field",
+			ComputedOptionalRequired: blueprint.ComputedOptional,
+			MarkdownDescription:      "a " + string(k),
+			DeprecationMessage:       "deprecated",
+			Sensitive:                true,
+			Type:                     blueprint.AttrType{Kind: k},
 			Validators: []blueprint.CustomCode{{
 				SchemaDefinition: "validators.Something()",
 				Imports:          []blueprint.Import{{Path: "example.com/validators"}},
@@ -62,9 +62,9 @@ func everyKind() []blueprint.Attribute {
 
 		switch {
 		case k.IsCollection():
-			a.Type.Elem = &blueprint.AttrType{Kind: blueprint.KindString}
+			a.Type.ElementType = &blueprint.AttrType{Kind: blueprint.KindString}
 		case k.IsNested():
-			a.Type.Nested = &blueprint.Nested{
+			a.Type.NestedObject = &blueprint.NestedAttributeObject{
 				GoTypeName: "M", SDKType: "pkg.M",
 				AttrTypesVar: "mAttrTypes", ObjectTypeVar: "mObjectType",
 				ExpandFunc: "expandM", FlattenFunc: "flattenM",
@@ -297,12 +297,12 @@ func TestUnit_Interop_NestedObjectInAnElementType(t *testing.T) {
 	t.Parallel()
 
 	in := bp(blueprint.Attribute{
-		Name: "rows", Presence: blueprint.Optional,
+		Name: "rows", ComputedOptionalRequired: blueprint.Optional,
 		Type: blueprint.AttrType{
 			Kind: blueprint.KindList,
-			Elem: &blueprint.AttrType{
+			ElementType: &blueprint.AttrType{
 				Kind: blueprint.KindSingleNested,
-				Nested: &blueprint.Nested{
+				NestedObject: &blueprint.NestedAttributeObject{
 					GoTypeName: "RowModel",
 					Attributes: []blueprint.Attribute{
 						attr("id", blueprint.KindString, blueprint.Required),
@@ -355,17 +355,17 @@ func TestUnit_Interop_ObjectTypeRefusals(t *testing.T) {
 
 	// A dropped child inside a flattened object is omitted and counted.
 	in := bp(blueprint.Attribute{
-		Name: "rows", Presence: blueprint.Optional,
+		Name: "rows", ComputedOptionalRequired: blueprint.Optional,
 		Type: blueprint.AttrType{
 			Kind: blueprint.KindList,
-			Elem: &blueprint.AttrType{
+			ElementType: &blueprint.AttrType{
 				Kind: blueprint.KindSingleNested,
-				Nested: &blueprint.Nested{
+				NestedObject: &blueprint.NestedAttributeObject{
 					GoTypeName: "RowModel",
 					Attributes: []blueprint.Attribute{
 						attr("id", blueprint.KindString, blueprint.Required),
 						{
-							Name: "gone", Presence: blueprint.Optional, Drop: true,
+							Name: "gone", ComputedOptionalRequired: blueprint.Optional, Drop: true,
 							Type: blueprint.AttrType{Kind: blueprint.KindString},
 						},
 					},
@@ -387,12 +387,12 @@ func TestUnit_Interop_ObjectTypeRefusals(t *testing.T) {
 
 	// A kind with no object-type counterpart is refused rather than guessed at.
 	bad := bp(blueprint.Attribute{
-		Name: "rows", Presence: blueprint.Optional,
+		Name: "rows", ComputedOptionalRequired: blueprint.Optional,
 		Type: blueprint.AttrType{
 			Kind: blueprint.KindList,
-			Elem: &blueprint.AttrType{
+			ElementType: &blueprint.AttrType{
 				Kind: blueprint.KindSingleNested,
-				Nested: &blueprint.Nested{
+				NestedObject: &blueprint.NestedAttributeObject{
 					GoTypeName: "RowModel",
 					Attributes: []blueprint.Attribute{
 						collection("tags", blueprint.KindSet, blueprint.KindString),
@@ -408,10 +408,10 @@ func TestUnit_Interop_ObjectTypeRefusals(t *testing.T) {
 
 	// And a nested kind in Elem with no shape at all.
 	empty := bp(blueprint.Attribute{
-		Name: "rows", Presence: blueprint.Optional,
+		Name: "rows", ComputedOptionalRequired: blueprint.Optional,
 		Type: blueprint.AttrType{
-			Kind: blueprint.KindList,
-			Elem: &blueprint.AttrType{Kind: blueprint.KindSingleNested},
+			Kind:        blueprint.KindList,
+			ElementType: &blueprint.AttrType{Kind: blueprint.KindSingleNested},
 		},
 	})
 

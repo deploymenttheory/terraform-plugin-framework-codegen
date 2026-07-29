@@ -198,7 +198,7 @@ func (p writableAndReturned) bodyFor(
 		sent[f.JSONPath] = body[f.JSONPath]
 	}
 
-	// Nested paths the fixture set are still observed, they are simply not synthesised.
+	// NestedAttributeObject paths the fixture set are still observed, they are simply not synthesised.
 	for _, f := range sc.Sendable() {
 		if !strings.Contains(f.JSONPath, ".") {
 			continue

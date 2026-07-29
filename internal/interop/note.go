@@ -87,7 +87,10 @@ type Report struct {
 // name the offending value, and building the string at the call site keeps the
 // message next to the condition that produced it.
 func (r *Report) add(sev Severity, path, format string, args ...any) {
-	r.Notes = append(r.Notes, Note{Severity: sev, Path: path, Message: fmt.Sprintf(format, args...)})
+	r.Notes = append(
+		r.Notes,
+		Note{Severity: sev, Path: path, Message: fmt.Sprintf(format, args...)},
+	)
 }
 
 // Count returns how many notes carry the given severity.
@@ -220,7 +223,8 @@ var taxonomy = map[string]Note{
 
 	// Resource-level.
 	"binding": {
-		SeverityDropped, "binding",
+		SeverityDropped,
+		"binding",
 		"SDK call wiring has no counterpart, so a document exported from this blueprint cannot be emitted from",
 	},
 	"policy.updateStyle": {
@@ -244,7 +248,8 @@ var taxonomy = map[string]Note{
 		"per-operation timeouts have no counterpart",
 	},
 	"naming": {
-		SeverityInfo, "naming",
+		SeverityInfo,
+		"naming",
 		"Go package, type and model names have no counterpart; interop import re-derives them from the resource name",
 	},
 	"docRefUrl": {
@@ -259,7 +264,8 @@ var taxonomy = map[string]Note{
 		"model struct field names have no counterpart; internal/naming re-derives them",
 	},
 	"wire": {
-		SeverityDropped, "wire",
+		SeverityDropped,
+		"wire",
 		"expand and flatten bindings have no counterpart, so the exported attributes carry no mapping to the SDK",
 	},
 	"behaviour": {
@@ -267,14 +273,16 @@ var taxonomy = map[string]Note{
 		"observed API behaviour has no counterpart",
 	},
 	"markdownDescription": {
-		SeverityInfo, "markdownDescription",
+		SeverityInfo,
+		"markdownDescription",
 		"the format has no attribute-level markdown description, so descriptions were written to `description` unchanged",
 	},
 	// The import-side counterpart of markdownDescription. Every document this
 	// toolkit exports sets only the plain description, so importing one of our own
 	// exports promotes every attribute's text back to markdown.
 	"importedDescription": {
-		SeverityInfo, "description",
+		SeverityInfo,
+		"description",
 		"the document set description but not markdown_description, so the text is now treated as markdown",
 	},
 
@@ -288,10 +296,11 @@ var taxonomy = map[string]Note{
 		"float32 has no counterpart and was widened to float64",
 	},
 
-	// Nested object metadata. The SDK type does cross, via
+	// NestedAttributeObject object metadata. The SDK type does cross, via
 	// associated_external_type; the generated identifiers do not.
 	"type.nested.names": {
-		SeverityInfo, "type.nested",
+		SeverityInfo,
+		"type.nested",
 		"generated model, attr.Type and helper names have no counterpart; they are re-derived on import",
 	},
 	"type.nested.sdkType": {

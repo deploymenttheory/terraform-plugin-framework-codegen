@@ -287,9 +287,9 @@ func applyToAttribute(
 		applyAttributeFacts(res, attr, path, facts, opts, result)
 	}
 
-	if attr.Type.Nested != nil {
-		for i := range attr.Type.Nested.Attributes {
-			applyToAttribute(res, &attr.Type.Nested.Attributes[i], path, byPath, opts, result)
+	if attr.Type.NestedObject != nil {
+		for i := range attr.Type.NestedObject.Attributes {
+			applyToAttribute(res, &attr.Type.NestedObject.Attributes[i], path, byPath, opts, result)
 		}
 	}
 }
@@ -606,7 +606,7 @@ func applyServerDefault(
 
 	if lit == nil {
 		// No default observed. Only a problem if the blueprint assumed one.
-		if attr.Presence == blueprint.ComputedOptional {
+		if attr.ComputedOptionalRequired == blueprint.ComputedOptional {
 			result.Conflicts = append(result.Conflicts, Conflict{
 				Resource: res.Key, JSONPath: path,
 				Curated:   "presence is computed_optional",
@@ -635,13 +635,16 @@ func applyServerDefault(
 	// optional -> computed_optional is widening, so it is automatic under apply. Adding a
 	// *static* Default is not: it changes plan output for every existing configuration, which
 	// is a human's call.
-	if opts.Strategy == StrategyApply && attr.Presence == blueprint.Optional &&
+	if opts.Strategy == StrategyApply && attr.ComputedOptionalRequired == blueprint.Optional &&
 		f.Confidence.AtLeast(probe.Corroborated) {
 		result.Changes = append(result.Changes, Change{
-			Resource: res.Key, JSONPath: path,
-			What: "presence", From: string(attr.Presence), To: string(blueprint.ComputedOptional),
+			Resource: res.Key,
+			JSONPath: path,
+			What:     "presence",
+			From:     string(attr.ComputedOptionalRequired),
+			To:       string(blueprint.ComputedOptional),
 		})
-		attr.Presence = blueprint.ComputedOptional
+		attr.ComputedOptionalRequired = blueprint.ComputedOptional
 	}
 
 	result.Recommendations = append(result.Recommendations, fmt.Sprintf(
@@ -684,7 +687,7 @@ func applyDerivedDefault(
 
 	// Only news the first time. A confirmation re-reported on every merge would make merging
 	// twice a diff, which is the thing the description marker exists to prevent.
-	if attr.Presence == blueprint.ComputedOptional && !derivedAlreadyNoted(attr) {
+	if attr.ComputedOptionalRequired == blueprint.ComputedOptional && !derivedAlreadyNoted(attr) {
 		result.Changes = append(result.Changes, Change{
 			Resource: res.Key, JSONPath: path,
 			What:    "behaviour (confirmed)",
@@ -713,7 +716,7 @@ func applyRequiredPresence(
 		return
 	}
 
-	if !*v && attr.Presence == blueprint.Required {
+	if !*v && attr.ComputedOptionalRequired == blueprint.Required {
 		if opts.Strategy != StrategyApply {
 			result.Conflicts = append(result.Conflicts, Conflict{
 				Resource: res.Key, JSONPath: path,
@@ -728,19 +731,22 @@ func applyRequiredPresence(
 		}
 
 		result.Changes = append(result.Changes, Change{
-			Resource: res.Key, JSONPath: path,
-			What: "presence", From: string(attr.Presence), To: string(blueprint.Optional),
+			Resource: res.Key,
+			JSONPath: path,
+			What:     "presence",
+			From:     string(attr.ComputedOptionalRequired),
+			To:       string(blueprint.Optional),
 			Warning: "a required attribute turning out optional is surprising; check the " +
 				"fixture was not odd before trusting it",
 		})
-		attr.Presence = blueprint.Optional
+		attr.ComputedOptionalRequired = blueprint.Optional
 		return
 	}
 
-	// The API enforces it although the specification did not declare it. Presence is already
+	// The API enforces it although the specification did not declare it. ComputedOptionalRequired is already
 	// right; what is worth recording is that the requirement is real, so nobody regenerating
 	// from a newer specification "fixes" it back.
-	if *v && attr.Presence == blueprint.Required && wroteBehaviour {
+	if *v && attr.ComputedOptionalRequired == blueprint.Required && wroteBehaviour {
 		result.Changes = append(result.Changes, Change{
 			Resource: res.Key, JSONPath: path,
 			What: "behaviour.requiredByApi (confirmed)", To: "true",

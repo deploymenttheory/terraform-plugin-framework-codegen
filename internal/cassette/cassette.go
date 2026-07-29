@@ -185,7 +185,7 @@ func canonicalHeaders(h http.Header, allowed map[string]bool) (map[string]string
 		// Checked before the allow list, and separately from it. The allow list happens
 		// to exclude these today, but an allow list is a thing people add entries to --
 		// and "we need to see which auth scheme the API wants" is a plausible reason to
-		// add authorization to it. This check means that would still not leak the value.
+		// add authorisation to it. This check means that would still not leak the value.
 		if neverCaptured[lower] {
 			dropped++
 			continue

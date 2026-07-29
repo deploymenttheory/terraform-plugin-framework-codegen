@@ -19,24 +19,24 @@ func testBlueprint() blueprint.Blueprint {
 			Key: "thing",
 			Attributes: []blueprint.Attribute{
 				{
-					Name: "colour", Presence: blueprint.ComputedOptional,
+					Name: "colour", ComputedOptionalRequired: blueprint.ComputedOptional,
 					Type:                blueprint.AttrType{Kind: blueprint.KindString},
 					Wire:                blueprint.WireBinding{JSONPath: "colour"},
 					MarkdownDescription: "The thing's colour.",
 				},
 				{
-					Name: "key", Presence: blueprint.Required,
+					Name: "key", ComputedOptionalRequired: blueprint.Required,
 					Type: blueprint.AttrType{Kind: blueprint.KindString},
 					Wire: blueprint.WireBinding{JSONPath: "key"},
 				},
 				{
-					Name: "items", Presence: blueprint.Optional,
+					Name: "items", ComputedOptionalRequired: blueprint.Optional,
 					Type: blueprint.AttrType{
 						Kind: blueprint.KindSetNested,
-						Nested: &blueprint.Nested{
+						NestedObject: &blueprint.NestedAttributeObject{
 							GoTypeName: "ItemModel",
 							Attributes: []blueprint.Attribute{{
-								Name: "mode", Presence: blueprint.Optional,
+								Name: "mode", ComputedOptionalRequired: blueprint.Optional,
 								Type: blueprint.AttrType{Kind: blueprint.KindString},
 								Wire: blueprint.WireBinding{JSONPath: "mode"},
 							}},
@@ -72,7 +72,7 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()
-	before := bp.Resources[0].Attributes[0].Presence
+	before := bp.Resources[0].Attributes[0].ComputedOptionalRequired
 
 	facts := []probe.Fact{
 		// A server-default fact with no literal: the probe looked and found nothing.
@@ -103,9 +103,9 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 	}
 
 	// Nothing changed, even under apply.
-	if bp.Resources[0].Attributes[0].Presence != before {
+	if bp.Resources[0].Attributes[0].ComputedOptionalRequired != before {
 		t.Errorf("presence changed to %q; narrowing must never be automatic",
-			bp.Resources[0].Attributes[0].Presence)
+			bp.Resources[0].Attributes[0].ComputedOptionalRequired)
 	}
 
 	if !errors.Is(result.Err(), ErrConflicts) {
@@ -192,7 +192,7 @@ func TestUnit_Merge_DerivedDefaultConfirmsTheGuess(t *testing.T) {
 	if len(result.Conflicts) != 0 {
 		t.Errorf("a derived default should not conflict with computed_optional: %+v", result.Conflicts)
 	}
-	if bp.Resources[0].Attributes[0].Presence != blueprint.ComputedOptional {
+	if bp.Resources[0].Attributes[0].ComputedOptionalRequired != blueprint.ComputedOptional {
 		t.Error("presence should be left alone")
 	}
 
@@ -250,8 +250,8 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 		}
 
 		attr := bp.Resources[0].Attributes[1]
-		if attr.Presence != blueprint.Required {
-			t.Errorf("presence = %q, want it left required", attr.Presence)
+		if attr.ComputedOptionalRequired != blueprint.Required {
+			t.Errorf("presence = %q, want it left required", attr.ComputedOptionalRequired)
 		}
 		if attr.Behaviour.RequiredByAPI == nil || !*attr.Behaviour.RequiredByAPI {
 			t.Error("the behaviour should record that the API enforces it")
@@ -281,7 +281,7 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 		if len(result.Conflicts) != 1 {
 			t.Fatalf("annotate should report rather than change presence: %+v", result.Conflicts)
 		}
-		if annotated.Resources[0].Attributes[1].Presence != blueprint.Required {
+		if annotated.Resources[0].Attributes[1].ComputedOptionalRequired != blueprint.Required {
 			t.Error("annotate must not change presence")
 		}
 
@@ -290,8 +290,8 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 			t.Fatalf("Apply: %v", err)
 		}
 
-		if bp.Resources[0].Attributes[1].Presence != blueprint.Optional {
-			t.Errorf("presence = %q, want optional", bp.Resources[0].Attributes[1].Presence)
+		if bp.Resources[0].Attributes[1].ComputedOptionalRequired != blueprint.Optional {
+			t.Errorf("presence = %q, want optional", bp.Resources[0].Attributes[1].ComputedOptionalRequired)
 		}
 
 		// Widening is safe but surprising, so it has to be said out loud.
@@ -557,7 +557,7 @@ func TestUnit_Merge_NestedFieldsAreReached(t *testing.T) {
 		t.Fatalf("a nested field should be found: %+v", result.Conflicts)
 	}
 
-	nested := bp.Resources[0].Attributes[2].Type.Nested.Attributes[0]
+	nested := bp.Resources[0].Attributes[2].Type.NestedObject.Attributes[0]
 	if nested.Behaviour.Volatile == nil || !*nested.Behaviour.Volatile {
 		t.Errorf("the nested attribute's behaviour was not written: %+v", nested.Behaviour)
 	}

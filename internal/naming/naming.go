@@ -29,6 +29,7 @@ package naming
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -125,7 +126,7 @@ var DefaultStripPrefix = regexp.MustCompile(`^[A-Za-z0-9]+(_[A-Za-z0-9]+)*_API_`
 //	"iOSVersion"  -> [i os version]
 //	"ipv6Address" -> [ipv6 address]
 //	"_links"      -> [links]
-//	"tag.color"   -> [tag color]
+//	"tag.colour"   -> [tag colour]
 func SplitWords(s string) []string {
 	// Normalise every non-alphanumeric run to a single separator so dotted
 	// paths, hyphens and HAL underscores all funnel into one code path.
@@ -367,18 +368,10 @@ func Unique(taken map[string]bool, want string) string {
 		return want
 	}
 	for n := 2; ; n++ {
-		candidate := want + itoa(n)
+		candidate := want + strconv.Itoa(n)
 		if !taken[candidate] {
 			taken[candidate] = true
 			return candidate
 		}
 	}
-}
-
-// itoa avoids a strconv import for the small suffixes Unique needs.
-func itoa(n int) string {
-	if n < 10 {
-		return string(rune('0' + n))
-	}
-	return itoa(n/10) + string(rune('0'+n%10))
 }

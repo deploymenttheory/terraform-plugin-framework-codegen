@@ -73,14 +73,14 @@ func TestUnit_Render_AttrTypeExprCollections(t *testing.T) {
 	}{
 		{
 			"map of strings",
-			blueprint.AttrType{Kind: blueprint.KindMap, Elem: &blueprint.AttrType{Kind: blueprint.KindString}},
+			blueprint.AttrType{Kind: blueprint.KindMap, ElementType: &blueprint.AttrType{Kind: blueprint.KindString}},
 			"types.MapType{ElemType: types.StringType}", false,
 		},
 		{
 			"set of sets",
 			blueprint.AttrType{
-				Kind: blueprint.KindSet,
-				Elem: &blueprint.AttrType{Kind: blueprint.KindSet, Elem: &blueprint.AttrType{Kind: blueprint.KindString}},
+				Kind:        blueprint.KindSet,
+				ElementType: &blueprint.AttrType{Kind: blueprint.KindSet, ElementType: &blueprint.AttrType{Kind: blueprint.KindString}},
 			},
 			"types.SetType{ElemType: types.SetType{ElemType: types.StringType}}", false,
 		},
@@ -88,7 +88,7 @@ func TestUnit_Render_AttrTypeExprCollections(t *testing.T) {
 		{"map with no element", blueprint.AttrType{Kind: blueprint.KindMap}, "", true},
 		{
 			"collection of an unmappable element",
-			blueprint.AttrType{Kind: blueprint.KindList, Elem: &blueprint.AttrType{Kind: "octopus"}},
+			blueprint.AttrType{Kind: blueprint.KindList, ElementType: &blueprint.AttrType{Kind: "octopus"}},
 			"", true,
 		},
 	}
@@ -196,7 +196,7 @@ func TestUnit_Render_NestedSkipDirectionsAreHonoured(t *testing.T) {
 		if bp.Resources[0].Attributes[i].Type.Kind.IsNested() {
 			bp.Resources[0].Attributes[i].Wire.SkipExpand = true
 			bp.Resources[0].Attributes[i].Wire.Expand = nil
-			bp.Resources[0].Attributes[i].Presence = blueprint.Computed
+			bp.Resources[0].Attributes[i].ComputedOptionalRequired = blueprint.Computed
 			break
 		}
 	}
@@ -207,9 +207,9 @@ func TestUnit_Render_NestedSkipDirectionsAreHonoured(t *testing.T) {
 	}
 
 	// Two nested shapes, but only one expand helper now.
-	if len(v.State.Nested) <= len(v.Construct.Nested) {
+	if len(v.State.NestedObject) <= len(v.Construct.NestedObject) {
 		t.Errorf("suppressing an expand should leave fewer expand helpers than flatten helpers: %d vs %d",
-			len(v.Construct.Nested), len(v.State.Nested))
+			len(v.Construct.NestedObject), len(v.State.NestedObject))
 	}
 }
 

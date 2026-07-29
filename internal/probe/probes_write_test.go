@@ -710,11 +710,11 @@ func defaultSubject() Subject {
 	subj.Fields = append(subj.Fields,
 		Field{
 			JSONPath: "colour", Attribute: "colour",
-			Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true,
+			Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 		},
 		Field{
 			JSONPath: "rank", Attribute: "rank",
-			Kind: blueprint.KindInt64, Presence: blueprint.Optional, Writable: true,
+			Kind: blueprint.KindInt64, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 		},
 	)
 
@@ -850,7 +850,7 @@ func TestUnit_Probe_ConditionalRequirementIsANoteNotAFact(t *testing.T) {
 	subj := quirkSubject()
 	subj.Fields = append(subj.Fields, Field{
 		JSONPath: "objectType", Attribute: "object_type",
-		Kind: blueprint.KindString, Presence: blueprint.Required, Writable: true,
+		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true,
 	})
 
 	plan := Plan{
@@ -1083,13 +1083,13 @@ func TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled(t *testing.T) {
 	subj := quirkSubject()
 	subj.Fields = append(subj.Fields,
 		Field{JSONPath: "colour", Attribute: "colour", Kind: blueprint.KindString,
-			Presence: blueprint.ComputedOptional, Writable: true},
+			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true},
 		Field{JSONPath: "accessType", Attribute: "access_type", Kind: blueprint.KindString,
-			Presence: blueprint.ComputedOptional, Writable: true},
+			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true},
 		Field{JSONPath: "matchType", Attribute: "match_type", Kind: blueprint.KindString,
-			Presence: blueprint.ComputedOptional, Writable: true},
+			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true},
 		Field{JSONPath: "objectType", Attribute: "object_type", Kind: blueprint.KindString,
-			Presence: blueprint.Required, Writable: true},
+			ComputedOptionalRequired: blueprint.Required, Writable: true},
 	)
 
 	// The fixtures set key and objectType and omit the three computed_optional fields, which is
@@ -1364,7 +1364,7 @@ func enumSubject() Subject {
 
 	subj.Fields = append(subj.Fields, Field{
 		JSONPath: "mode", Attribute: "mode",
-		Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true,
+		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 		Enum: []string{"and", "or"},
 	})
 
@@ -1589,7 +1589,7 @@ func normaliseSubject() Subject {
 
 	subj.Fields = append(subj.Fields, Field{
 		JSONPath: "tags", Attribute: "tags",
-		Kind: blueprint.KindList, Presence: blueprint.Optional, Writable: true,
+		Kind: blueprint.KindList, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 	})
 
 	return subj
@@ -1744,11 +1744,11 @@ func sideEffectSubject() Subject {
 	subj.Fields = append(subj.Fields,
 		Field{
 			JSONPath: "enabled", Attribute: "enabled",
-			Kind: blueprint.KindBool, Presence: blueprint.Optional, Writable: true,
+			Kind: blueprint.KindBool, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 		},
 		Field{
 			JSONPath: "alsoEnabled", Attribute: "also_enabled",
-			Kind: blueprint.KindBool, Presence: blueprint.Computed,
+			Kind: blueprint.KindBool, ComputedOptionalRequired: blueprint.Computed,
 		},
 	)
 
@@ -1880,7 +1880,7 @@ func TestUnit_Probe_TheWholeCatalogueRunsAndSweepsClean(t *testing.T) {
 	subj := normaliseSubject()
 	subj.Fields = append(subj.Fields, Field{
 		JSONPath: "colour", Attribute: "colour",
-		Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true,
+		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 	})
 
 	plan := Plan{

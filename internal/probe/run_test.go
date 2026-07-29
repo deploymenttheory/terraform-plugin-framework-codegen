@@ -39,10 +39,10 @@ func quirkSubject() Subject {
 		NameField:          "key",
 		IDField:            "id",
 		Fields: []Field{
-			{JSONPath: "id", Kind: blueprint.KindString, Presence: blueprint.Computed},
-			{JSONPath: "key", Kind: blueprint.KindString, Presence: blueprint.Required, Writable: true},
-			{JSONPath: "value", Kind: blueprint.KindString, Presence: blueprint.Optional, Writable: true},
-			{JSONPath: "modifiedDate", Kind: blueprint.KindString, Presence: blueprint.Computed},
+			{JSONPath: "id", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Computed},
+			{JSONPath: "key", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true},
+			{JSONPath: "value", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true},
+			{JSONPath: "modifiedDate", Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Computed},
 		},
 	}
 }

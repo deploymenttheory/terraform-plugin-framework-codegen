@@ -764,7 +764,7 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 
 	grant := grantForReplay(plan, meta)
 
-	result, err := probe.Run(context.Background(), probe.RunOptions{
+	result, runErr := probe.Run(context.Background(), probe.RunOptions{
 		Mode:    probe.ModeReplay,
 		Subject: subj,
 		Plan:    plan,
@@ -776,11 +776,16 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 		BaseURL:      replayBaseURL + meta.BasePath,
 		Interactions: interactions,
 	})
-	if err != nil {
-		return err
-	}
 
+	// Printed before the error is returned, for the same reason recordProbe does it: a replay that
+	// leaves something unresolved is precisely the run whose report a reader needs, and returning
+	// first means they are told a count and nothing else.
 	printProbeReport(subj.Resource, result.Report)
+	reportOrphans(subj.Resource, result.Report)
+
+	if runErr != nil {
+		return runErr
+	}
 
 	if mode != modeVerify {
 		return nil

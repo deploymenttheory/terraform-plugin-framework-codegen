@@ -116,8 +116,8 @@ type ConstructView struct {
 	ConstructorExpr string
 	// Assignments are finished statements assigning to the request body.
 	Assignments []string
-	// Nested are the per-shape expand helpers this resource needs.
-	Nested []NestedFuncView
+	// NestedAttributeObject are the per-shape expand helpers this resource needs.
+	NestedObject []NestedFuncView
 	// NeedsDiagnostics is true when any assignment can fail, which decides
 	// whether the generated function returns diagnostics at all.
 	NeedsDiagnostics bool
@@ -128,8 +128,8 @@ type StateView struct {
 	ResponseType string
 	// Assignments are finished statements assigning to the model.
 	Assignments []string
-	// Nested are the per-shape flatten helpers this resource needs.
-	Nested           []NestedFuncView
+	// NestedAttributeObject are the per-shape flatten helpers this resource needs.
+	NestedObject     []NestedFuncView
 	NeedsDiagnostics bool
 }
 
@@ -283,8 +283,10 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 
 	if r.Import.Style == blueprint.ImportPassthroughID {
 		impResource.add(pkgPath, "")
-		v.ImportState = fmt.Sprintf("resource.ImportStatePassthroughID(ctx, path.Root(%q), req, resp)",
-			r.Import.Attribute)
+		v.ImportState = fmt.Sprintf(
+			"resource.ImportStatePassthroughID(ctx, path.Root(%q), req, resp)",
+			r.Import.Attribute,
+		)
 	}
 
 	attrs, fields, err := attributes(r, impResource)
@@ -393,7 +395,10 @@ func interfaces(r blueprint.Resource) []string {
 		fmt.Sprintf("_ resource.ResourceWithConfigure = (*%s)(nil)", r.GoTypeName),
 	}
 	if r.Import.Style == blueprint.ImportPassthroughID {
-		out = append(out, fmt.Sprintf("_ resource.ResourceWithImportState = (*%s)(nil)", r.GoTypeName))
+		out = append(
+			out,
+			fmt.Sprintf("_ resource.ResourceWithImportState = (*%s)(nil)", r.GoTypeName),
+		)
 	}
 	return out
 }
@@ -500,17 +505,20 @@ func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet)
 	fmt.Fprintf(&b, "%q: schema.%s{\n", a.Name, schemaType)
 
 	if a.Type.Kind.IsCollection() {
-		if a.Type.Elem == nil {
+		if a.Type.ElementType == nil {
 			return "", &ErrUnsupported{
 				What: fmt.Sprintf("attribute %q", a.Name),
 				Why:  "a collection needs an element type",
 			}
 		}
-		elem, ok := frameworkElemType[a.Type.Elem.Kind]
+		elem, ok := frameworkElemType[a.Type.ElementType.Kind]
 		if !ok {
 			return "", &ErrUnsupported{
 				What: fmt.Sprintf("attribute %q", a.Name),
-				Why:  fmt.Sprintf("element kind %q is not a scalar; nested elements are not yet supported", a.Type.Elem.Kind),
+				Why: fmt.Sprintf(
+					"element kind %q is not a scalar; nested elements are not yet supported",
+					a.Type.ElementType.Kind,
+				),
 			}
 		}
 		fmt.Fprintf(&b, "ElementType: %s,\n", elem)
@@ -525,8 +533,20 @@ func attributeDecl(a blueprint.Attribute, schemaType string, imports *importSet)
 		fmt.Fprintf(&b, "DeprecationMessage: %s,\n", goStringLit(a.DeprecationMessage))
 	}
 
-	writeCustomCodeBlock(&b, "Validators", "validator."+validatorKind(a.Type.Kind), a.Validators, imports)
-	writeCustomCodeBlock(&b, "PlanModifiers", "planmodifier."+validatorKind(a.Type.Kind), planModifiersFor(a, imports), imports)
+	writeCustomCodeBlock(
+		&b,
+		"Validators",
+		"validator."+validatorKind(a.Type.Kind),
+		a.Validators,
+		imports,
+	)
+	writeCustomCodeBlock(
+		&b,
+		"PlanModifiers",
+		"planmodifier."+validatorKind(a.Type.Kind),
+		planModifiersFor(a, imports),
+		imports,
+	)
 
 	if a.Default != nil {
 		def, err := defaultExpr(a, imports)
@@ -551,7 +571,7 @@ func planModifiersFor(a blueprint.Attribute, imports *importSet) []blueprint.Cus
 	if len(a.PlanModifiers) > 0 {
 		return a.PlanModifiers
 	}
-	if a.Presence == blueprint.Computed && a.Type.Kind == blueprint.KindString {
+	if a.ComputedOptionalRequired == blueprint.Computed && a.Type.Kind == blueprint.KindString {
 		imports.add(pkgStringPM, "")
 		return []blueprint.CustomCode{{SchemaDefinition: "stringplanmodifier.UseStateForUnknown()"}}
 	}
@@ -560,7 +580,12 @@ func planModifiersFor(a blueprint.Attribute, imports *importSet) []blueprint.Cus
 
 // writeCustomCodeBlock renders a slice of rendered Go expressions as a named
 // schema field, registering whatever imports they need.
-func writeCustomCodeBlock(b *strings.Builder, field, elemType string, items []blueprint.CustomCode, imports *importSet) {
+func writeCustomCodeBlock(
+	b *strings.Builder,
+	field, elemType string,
+	items []blueprint.CustomCode,
+	imports *importSet,
+) {
 	if len(items) == 0 {
 		return
 	}
@@ -582,13 +607,13 @@ func writeCustomCodeBlock(b *strings.Builder, field, elemType string, items []bl
 // writeAttributeFlags writes the presence and sensitivity flags shared by every
 // attribute kind, nested or not.
 func writeAttributeFlags(b *strings.Builder, a blueprint.Attribute) {
-	if a.Presence.IsRequired() {
+	if a.ComputedOptionalRequired.IsRequired() {
 		b.WriteString("Required: true,\n")
 	}
-	if a.Presence.IsOptional() {
+	if a.ComputedOptionalRequired.IsOptional() {
 		b.WriteString("Optional: true,\n")
 	}
-	if a.Presence.IsComputed() {
+	if a.ComputedOptionalRequired.IsComputed() {
 		b.WriteString("Computed: true,\n")
 	}
 	if a.Sensitive {
@@ -634,7 +659,12 @@ func defaultExpr(a blueprint.Attribute, imports *importSet) (string, error) {
 	case a.Default.Static != nil:
 		pkg := strings.ToLower(validatorKind(a.Type.Kind)) + "default"
 		imports.add("github.com/hashicorp/terraform-plugin-framework/resource/schema/"+pkg, "")
-		return fmt.Sprintf("%s.Static%s(%s)", pkg, validatorKind(a.Type.Kind), a.Default.Static.Raw), nil
+		return fmt.Sprintf(
+			"%s.Static%s(%s)",
+			pkg,
+			validatorKind(a.Type.Kind),
+			a.Default.Static.Raw,
+		), nil
 
 	default:
 		return "", &ErrUnsupported{
@@ -688,7 +718,7 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 		if sh.attr.Wire.SkipExpand {
 			continue
 		}
-		v.Nested = append(v.Nested, nestedExpandView(sh))
+		v.NestedObject = append(v.NestedObject, nestedExpandView(sh))
 	}
 
 	for _, a := range r.Attributes {
@@ -720,7 +750,7 @@ func stateView(r blueprint.Resource, shapes []nestedShape) StateView {
 		if sh.attr.Wire.SkipFlatten {
 			continue
 		}
-		v.Nested = append(v.Nested, nestedFlattenView(sh))
+		v.NestedObject = append(v.NestedObject, nestedFlattenView(sh))
 	}
 
 	for _, a := range r.Attributes {
@@ -797,7 +827,10 @@ func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 		if !ok {
 			return CRUDView{}, &ErrUnsupported{
 				What: fmt.Sprintf("resource %q", r.Key),
-				Why:  fmt.Sprintf("the ID binding names attribute %q, which does not exist", r.Binding.ID.Attribute),
+				Why: fmt.Sprintf(
+					"the ID binding names attribute %q, which does not exist",
+					r.Binding.ID.Attribute,
+				),
 			}
 		}
 		if idAttr.Wire.Flatten == nil {
@@ -815,7 +848,11 @@ func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 	return v, nil
 }
 
-func opView(r blueprint.Resource, op blueprint.Operation, phase, errOp, timeout string) (*OpView, error) {
+func opView(
+	r blueprint.Resource,
+	op blueprint.Operation,
+	phase, errOp, timeout string,
+) (*OpView, error) {
 	if op.Style != blueprint.CallStyleMethod {
 		return nil, &ErrUnsupported{
 			What: fmt.Sprintf("operation %q of resource %q", op.Method, r.Key),
@@ -833,7 +870,12 @@ func opView(r blueprint.Resource, op blueprint.Operation, phase, errOp, timeout 
 	}
 
 	v := &OpView{
-		Call:         fmt.Sprintf("%s.%s(%s)", r.Binding.Service.Accessor, op.Method, strings.Join(args, ", ")),
+		Call: fmt.Sprintf(
+			"%s.%s(%s)",
+			r.Binding.Service.Accessor,
+			op.Method,
+			strings.Join(args, ", "),
+		),
 		TimeoutConst: timeout,
 		Phase:        phase,
 		ErrorOp:      errOp,

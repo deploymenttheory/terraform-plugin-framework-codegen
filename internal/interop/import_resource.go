@@ -17,7 +17,13 @@ import (
 // equivalent. The blueprint has no notion of a block -- see TypeKind's comment on
 // why that choice is deliberate -- so this is the only representation available, and
 // importResource has already reported it.
-func importAttributes(attrs resource.Attributes, blocks resource.Blocks, path string, r *Report, acc *importLosses) ([]blueprint.Attribute, error) {
+func importAttributes(
+	attrs resource.Attributes,
+	blocks resource.Blocks,
+	path string,
+	r *Report,
+	acc *importLosses,
+) ([]blueprint.Attribute, error) {
 	out := make([]blueprint.Attribute, 0, len(attrs)+len(blocks))
 
 	for _, a := range attrs {
@@ -49,11 +55,20 @@ func importAttributes(attrs resource.Attributes, blocks resource.Blocks, path st
 // is that the fourteen cases are readable side by side.
 //
 //nolint:gocognit,cyclop // One case per upstream kind. Splitting it would put half
-func importAttribute(a resource.Attribute, parent string, r *Report, acc *importLosses) (blueprint.Attribute, error) {
+func importAttribute(
+	a resource.Attribute,
+	parent string,
+	r *Report,
+	acc *importLosses,
+) (blueprint.Attribute, error) {
 	path := fmt.Sprintf("%s.attributes[%s]", parent, a.Name)
 
 	if a.Name == "" {
-		return blueprint.Attribute{}, fmt.Errorf("%s: %w: an attribute with no name", parent, ErrInvalidSpec)
+		return blueprint.Attribute{}, fmt.Errorf(
+			"%s: %w: an attribute with no name",
+			parent,
+			ErrInvalidSpec,
+		)
 	}
 
 	out := blueprint.Attribute{
@@ -66,7 +81,7 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 	switch {
 	case a.Bool != nil:
 		out.Type = blueprint.AttrType{Kind: blueprint.KindBool}
-		out.Presence = presenceFrom(a.Bool.ComputedOptionalRequired)
+		out.ComputedOptionalRequired = presenceFrom(a.Bool.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.Bool.Description, acc)
 		out.DeprecationMessage = derefStr(a.Bool.DeprecationMessage)
 		out.Sensitive = derefBool(a.Bool.Sensitive)
@@ -77,7 +92,7 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 
 	case a.String != nil:
 		out.Type = blueprint.AttrType{Kind: blueprint.KindString}
-		out.Presence = presenceFrom(a.String.ComputedOptionalRequired)
+		out.ComputedOptionalRequired = presenceFrom(a.String.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.String.Description, acc)
 		out.DeprecationMessage = derefStr(a.String.DeprecationMessage)
 		out.Sensitive = derefBool(a.String.Sensitive)
@@ -88,7 +103,7 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 
 	case a.Int64 != nil:
 		out.Type = blueprint.AttrType{Kind: blueprint.KindInt64}
-		out.Presence = presenceFrom(a.Int64.ComputedOptionalRequired)
+		out.ComputedOptionalRequired = presenceFrom(a.Int64.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.Int64.Description, acc)
 		out.DeprecationMessage = derefStr(a.Int64.DeprecationMessage)
 		out.Sensitive = derefBool(a.Int64.Sensitive)
@@ -99,7 +114,7 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 
 	case a.Float64 != nil:
 		out.Type = blueprint.AttrType{Kind: blueprint.KindFloat64}
-		out.Presence = presenceFrom(a.Float64.ComputedOptionalRequired)
+		out.ComputedOptionalRequired = presenceFrom(a.Float64.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.Float64.Description, acc)
 		out.DeprecationMessage = derefStr(a.Float64.DeprecationMessage)
 		out.Sensitive = derefBool(a.Float64.Sensitive)
@@ -110,7 +125,7 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 
 	case a.Number != nil:
 		out.Type = blueprint.AttrType{Kind: blueprint.KindNumber}
-		out.Presence = presenceFrom(a.Number.ComputedOptionalRequired)
+		out.ComputedOptionalRequired = presenceFrom(a.Number.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.Number.Description, acc)
 		out.DeprecationMessage = derefStr(a.Number.DeprecationMessage)
 		out.Sensitive = derefBool(a.Number.Sensitive)
@@ -124,8 +139,8 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 		if err != nil {
 			return blueprint.Attribute{}, err
 		}
-		out.Type = blueprint.AttrType{Kind: blueprint.KindList, Elem: elem}
-		out.Presence = presenceFrom(a.List.ComputedOptionalRequired)
+		out.Type = blueprint.AttrType{Kind: blueprint.KindList, ElementType: elem}
+		out.ComputedOptionalRequired = presenceFrom(a.List.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.List.Description, acc)
 		out.DeprecationMessage = derefStr(a.List.DeprecationMessage)
 		out.Sensitive = derefBool(a.List.Sensitive)
@@ -139,8 +154,8 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 		if err != nil {
 			return blueprint.Attribute{}, err
 		}
-		out.Type = blueprint.AttrType{Kind: blueprint.KindSet, Elem: elem}
-		out.Presence = presenceFrom(a.Set.ComputedOptionalRequired)
+		out.Type = blueprint.AttrType{Kind: blueprint.KindSet, ElementType: elem}
+		out.ComputedOptionalRequired = presenceFrom(a.Set.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.Set.Description, acc)
 		out.DeprecationMessage = derefStr(a.Set.DeprecationMessage)
 		out.Sensitive = derefBool(a.Set.Sensitive)
@@ -154,8 +169,8 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 		if err != nil {
 			return blueprint.Attribute{}, err
 		}
-		out.Type = blueprint.AttrType{Kind: blueprint.KindMap, Elem: elem}
-		out.Presence = presenceFrom(a.Map.ComputedOptionalRequired)
+		out.Type = blueprint.AttrType{Kind: blueprint.KindMap, ElementType: elem}
+		out.ComputedOptionalRequired = presenceFrom(a.Map.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.Map.Description, acc)
 		out.DeprecationMessage = derefStr(a.Map.DeprecationMessage)
 		out.Sensitive = derefBool(a.Map.Sensitive)
@@ -169,8 +184,8 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 		if err != nil {
 			return blueprint.Attribute{}, err
 		}
-		out.Type = blueprint.AttrType{Kind: blueprint.KindListNested, Nested: nested}
-		out.Presence = presenceFrom(a.ListNested.ComputedOptionalRequired)
+		out.Type = blueprint.AttrType{Kind: blueprint.KindListNested, NestedObject: nested}
+		out.ComputedOptionalRequired = presenceFrom(a.ListNested.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.ListNested.Description, acc)
 		out.DeprecationMessage = derefStr(a.ListNested.DeprecationMessage)
 		out.Sensitive = derefBool(a.ListNested.Sensitive)
@@ -183,8 +198,8 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 		if err != nil {
 			return blueprint.Attribute{}, err
 		}
-		out.Type = blueprint.AttrType{Kind: blueprint.KindSetNested, Nested: nested}
-		out.Presence = presenceFrom(a.SetNested.ComputedOptionalRequired)
+		out.Type = blueprint.AttrType{Kind: blueprint.KindSetNested, NestedObject: nested}
+		out.ComputedOptionalRequired = presenceFrom(a.SetNested.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.SetNested.Description, acc)
 		out.DeprecationMessage = derefStr(a.SetNested.DeprecationMessage)
 		out.Sensitive = derefBool(a.SetNested.Sensitive)
@@ -203,8 +218,8 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 		if err != nil {
 			return blueprint.Attribute{}, err
 		}
-		out.Type = blueprint.AttrType{Kind: blueprint.KindSingleNested, Nested: nested}
-		out.Presence = presenceFrom(a.SingleNested.ComputedOptionalRequired)
+		out.Type = blueprint.AttrType{Kind: blueprint.KindSingleNested, NestedObject: nested}
+		out.ComputedOptionalRequired = presenceFrom(a.SingleNested.ComputedOptionalRequired)
 		out.MarkdownDescription = describe(nil, a.SingleNested.Description, acc)
 		out.DeprecationMessage = derefStr(a.SingleNested.DeprecationMessage)
 		out.Sensitive = derefBool(a.SingleNested.Sensitive)
@@ -216,29 +231,48 @@ func importAttribute(a resource.Attribute, parent string, r *Report, acc *import
 		// The blueprint has no map-nested kind. Converting to a list would change
 		// the configuration a practitioner writes, which is not something an import
 		// gets to decide.
-		return blueprint.Attribute{}, fmt.Errorf("%s: %w: map_nested has no blueprint counterpart", path, ErrUnrepresentable)
+		return blueprint.Attribute{}, fmt.Errorf(
+			"%s: %w: map_nested has no blueprint counterpart",
+			path,
+			ErrUnrepresentable,
+		)
 
 	case a.Object != nil:
 		// An object attribute is a single value with typed fields and no per-field
 		// presence, documentation or validators. The blueprint's single_nested is
 		// close but not equivalent, and silently upgrading would invent a schema the
 		// document did not describe.
-		return blueprint.Attribute{}, fmt.Errorf("%s: %w: object attributes have no blueprint counterpart; use single_nested", path, ErrUnrepresentable)
+		return blueprint.Attribute{}, fmt.Errorf(
+			"%s: %w: object attributes have no blueprint counterpart; use single_nested",
+			path,
+			ErrUnrepresentable,
+		)
 
 	case a.Dynamic != nil:
 		return blueprint.Attribute{}, fmt.Errorf(
 			"%s: %w: dynamic has no blueprint counterpart (tfplugingen-framework v0.4.1 never implemented it either)",
-			path, ErrUnrepresentable)
+			path,
+			ErrUnrepresentable,
+		)
 
 	default:
-		return blueprint.Attribute{}, fmt.Errorf("%s: %w: the attribute declares no type", path, ErrInvalidSpec)
+		return blueprint.Attribute{}, fmt.Errorf(
+			"%s: %w: the attribute declares no type",
+			path,
+			ErrInvalidSpec,
+		)
 	}
 
 	return out, nil
 }
 
 // importBlock converts a block to its nested-attribute equivalent.
-func importBlock(b resource.Block, parent string, r *Report, acc *importLosses) (blueprint.Attribute, error) {
+func importBlock(
+	b resource.Block,
+	parent string,
+	r *Report,
+	acc *importLosses,
+) (blueprint.Attribute, error) {
 	path := fmt.Sprintf("%s.blocks[%s]", parent, b.Name)
 
 	// Rebuilt as the equivalent attribute so the whole conversion runs through one
@@ -284,7 +318,11 @@ func importBlock(b resource.Block, parent string, r *Report, acc *importLosses) 
 		}}
 
 	default:
-		return blueprint.Attribute{}, fmt.Errorf("%s: %w: the block declares no type", path, ErrInvalidSpec)
+		return blueprint.Attribute{}, fmt.Errorf(
+			"%s: %w: the block declares no type",
+			path,
+			ErrInvalidSpec,
+		)
 	}
 
 	// A block has no presence field upstream; nested attributes need one, and
@@ -302,14 +340,20 @@ func importBlock(b resource.Block, parent string, r *Report, acc *importLosses) 
 // pluralisation in a code generator is a bug factory -- "statuses", "analyses",
 // "children" -- and the note costs one line where a wrong guess costs a rename
 // nobody notices is needed.
-func nestedFrom(attrName string, obj resource.NestedAttributeObject, path string, r *Report, acc *importLosses) (*blueprint.Nested, error) {
+func nestedFrom(
+	attrName string,
+	obj resource.NestedAttributeObject,
+	path string,
+	r *Report,
+	acc *importLosses,
+) (*blueprint.NestedAttributeObject, error) {
 	if len(obj.Attributes) == 0 {
 		return nil, fmt.Errorf("%s: %w: a nested object with no attributes", path, ErrInvalidSpec)
 	}
 
 	base := namingOpts.GoTypeName(attrName)
 
-	out := &blueprint.Nested{
+	out := &blueprint.NestedAttributeObject{
 		GoTypeName:    base + "Model",
 		AttrTypesVar:  lowerFirstRune(base) + "AttrTypes",
 		ObjectTypeVar: lowerFirstRune(base) + "ObjectType",
@@ -323,12 +367,18 @@ func nestedFrom(attrName string, obj resource.NestedAttributeObject, path string
 	if obj.AssociatedExternalType != nil {
 		out.SDKType = obj.AssociatedExternalType.Type
 	} else {
-		r.add(SeverityDropped, path+".type.nested.sdkType",
-			"the document names no external type, so the SDK struct this object maps to must be authored")
+		r.add(
+			SeverityDropped,
+			path+".type.nested.sdkType",
+			"the document names no external type, so the SDK struct this object maps to must be authored",
+		)
 	}
 
-	r.add(SeverityInfo, path+".type.nested",
-		"the nested model and helper names were derived from the attribute name and are not singularised")
+	r.add(
+		SeverityInfo,
+		path+".type.nested",
+		"the nested model and helper names were derived from the attribute name and are not singularised",
+	)
 
 	for _, child := range obj.Attributes {
 		converted, err := importAttribute(child, path+".nested", r, acc)
@@ -355,7 +405,7 @@ func lowerFirstRune(s string) string {
 // will refuse it with a message that names the attribute, which is a better report
 // than one from here, and the document was already schema-validated so this is
 // unreachable in practice.
-func presenceFrom(p schema.ComputedOptionalRequired) blueprint.Presence {
+func presenceFrom(p schema.ComputedOptionalRequired) blueprint.ComputedOptionalRequired {
 	switch p {
 	case schema.Required:
 		return blueprint.Required
@@ -366,7 +416,7 @@ func presenceFrom(p schema.ComputedOptionalRequired) blueprint.Presence {
 	case schema.ComputedOptional:
 		return blueprint.ComputedOptional
 	default:
-		return blueprint.Presence(p)
+		return blueprint.ComputedOptionalRequired(p)
 	}
 }
 
@@ -388,26 +438,30 @@ func elemFrom(e schema.ElementType, path string, r *Report) (*blueprint.AttrType
 		if err != nil {
 			return nil, err
 		}
-		return &blueprint.AttrType{Kind: blueprint.KindList, Elem: inner}, nil
+		return &blueprint.AttrType{Kind: blueprint.KindList, ElementType: inner}, nil
 	case e.Set != nil:
 		inner, err := elemFrom(e.Set.ElementType, path, r)
 		if err != nil {
 			return nil, err
 		}
-		return &blueprint.AttrType{Kind: blueprint.KindSet, Elem: inner}, nil
+		return &blueprint.AttrType{Kind: blueprint.KindSet, ElementType: inner}, nil
 	case e.Map != nil:
 		inner, err := elemFrom(e.Map.ElementType, path, r)
 		if err != nil {
 			return nil, err
 		}
-		return &blueprint.AttrType{Kind: blueprint.KindMap, Elem: inner}, nil
+		return &blueprint.AttrType{Kind: blueprint.KindMap, ElementType: inner}, nil
 
 	case e.Object != nil:
 		// An object element type has no blueprint counterpart: the blueprint's
 		// nested kinds live on the attribute, not in an element type. Note there is
 		// no dynamic case to handle -- schema.ElementType has no Dynamic field, so a
 		// collection of dynamic values is not expressible upstream either.
-		return nil, fmt.Errorf("%s: %w: an object element type has no counterpart", path, ErrUnrepresentable)
+		return nil, fmt.Errorf(
+			"%s: %w: an object element type has no counterpart",
+			path,
+			ErrUnrepresentable,
+		)
 
 	default:
 		return nil, fmt.Errorf("%s: %w: the element type declares no type", path, ErrInvalidSpec)

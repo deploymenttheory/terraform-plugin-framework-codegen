@@ -50,7 +50,9 @@ var (
 	// carry and that cannot honestly be coarsened into one it does. It is an error
 	// rather than a note because the alternative is writing a document that says
 	// something the blueprint did not.
-	ErrUnrepresentable = errors.New("cannot be represented in Provider Code Specification " + SpecVersion)
+	ErrUnrepresentable = errors.New(
+		"cannot be represented in Provider Code Specification " + SpecVersion,
+	)
 
 	// ErrInvalidSpec is returned for input that is not a valid specification.
 	ErrInvalidSpec = errors.New("invalid provider code specification")

@@ -19,8 +19,8 @@ const redactionPrefix = "<REDACTED:"
 // filled, and that distinction is the difference between one bug away from a leak and
 // structurally unable to leak.
 var neverCaptured = map[string]bool{
-	"authorization":       true,
-	"proxy-authorization": true,
+	"authorisation":       true,
+	"proxy-authorisation": true,
 	"cookie":              true,
 	"set-cookie":          true,
 	"x-api-key":           true,

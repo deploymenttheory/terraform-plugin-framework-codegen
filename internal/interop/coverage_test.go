@@ -29,8 +29,8 @@ func bp(attrs ...blueprint.Attribute) blueprint.Blueprint {
 	}
 }
 
-func attr(name string, kind blueprint.TypeKind, presence blueprint.Presence) blueprint.Attribute {
-	return blueprint.Attribute{Name: name, Presence: presence, Type: blueprint.AttrType{Kind: kind}}
+func attr(name string, kind blueprint.TypeKind, presence blueprint.ComputedOptionalRequired) blueprint.Attribute {
+	return blueprint.Attribute{Name: name, ComputedOptionalRequired: presence, Type: blueprint.AttrType{Kind: kind}}
 }
 
 // TestUnit_Interop_Conformance is the assertion that pays for this package.
@@ -69,12 +69,12 @@ func TestUnit_Interop_Conformance(t *testing.T) {
 			collection("map_field", blueprint.KindMap, blueprint.KindString),
 		}},
 		{"nested collection of collections", []blueprint.Attribute{{
-			Name: "matrix", Presence: blueprint.Optional,
+			Name: "matrix", ComputedOptionalRequired: blueprint.Optional,
 			Type: blueprint.AttrType{
 				Kind: blueprint.KindList,
-				Elem: &blueprint.AttrType{
-					Kind: blueprint.KindSet,
-					Elem: &blueprint.AttrType{Kind: blueprint.KindString},
+				ElementType: &blueprint.AttrType{
+					Kind:        blueprint.KindSet,
+					ElementType: &blueprint.AttrType{Kind: blueprint.KindString},
 				},
 			},
 		}}},
@@ -84,7 +84,7 @@ func TestUnit_Interop_Conformance(t *testing.T) {
 			nested("config", blueprint.KindSingleNested),
 		}},
 		{"validators, modifiers and defaults", []blueprint.Attribute{{
-			Name: "name", Presence: blueprint.ComputedOptional,
+			Name: "name", ComputedOptionalRequired: blueprint.ComputedOptional,
 			Type:                blueprint.AttrType{Kind: blueprint.KindString},
 			Sensitive:           true,
 			MarkdownDescription: "the **name**",
@@ -131,17 +131,17 @@ func TestUnit_Interop_Conformance(t *testing.T) {
 
 func collection(name string, kind, elem blueprint.TypeKind) blueprint.Attribute {
 	return blueprint.Attribute{
-		Name: name, Presence: blueprint.Optional,
-		Type: blueprint.AttrType{Kind: kind, Elem: &blueprint.AttrType{Kind: elem}},
+		Name: name, ComputedOptionalRequired: blueprint.Optional,
+		Type: blueprint.AttrType{Kind: kind, ElementType: &blueprint.AttrType{Kind: elem}},
 	}
 }
 
 func nested(name string, kind blueprint.TypeKind) blueprint.Attribute {
 	return blueprint.Attribute{
-		Name: name, Presence: blueprint.Optional,
+		Name: name, ComputedOptionalRequired: blueprint.Optional,
 		Type: blueprint.AttrType{
 			Kind: kind,
-			Nested: &blueprint.Nested{
+			NestedObject: &blueprint.NestedAttributeObject{
 				GoTypeName: "ItemModel", SDKType: "pkg.Item",
 				AttrTypesVar: "itemAttrTypes", ObjectTypeVar: "itemObjectType",
 				ExpandFunc: "expandItem", FlattenFunc: "flattenItem",
@@ -163,7 +163,7 @@ func nested(name string, kind blueprint.TypeKind) blueprint.Attribute {
 func TestUnit_Interop_Presence(t *testing.T) {
 	t.Parallel()
 
-	for _, p := range []blueprint.Presence{
+	for _, p := range []blueprint.ComputedOptionalRequired{
 		blueprint.Required, blueprint.Optional, blueprint.Computed, blueprint.ComputedOptional,
 	} {
 		t.Run(string(p), func(t *testing.T) {
@@ -500,10 +500,10 @@ func TestUnit_Interop_ExportRefusals(t *testing.T) {
 		{
 			name: "nested object with no attributes",
 			in: bp(blueprint.Attribute{
-				Name: "f", Presence: blueprint.Optional,
+				Name: "f", ComputedOptionalRequired: blueprint.Optional,
 				Type: blueprint.AttrType{
-					Kind:   blueprint.KindSetNested,
-					Nested: &blueprint.Nested{GoTypeName: "M"},
+					Kind:         blueprint.KindSetNested,
+					NestedObject: &blueprint.NestedAttributeObject{GoTypeName: "M"},
 				},
 			}),
 			want: "no attributes",
@@ -511,10 +511,10 @@ func TestUnit_Interop_ExportRefusals(t *testing.T) {
 		{
 			name: "unmappable element kind",
 			in: bp(blueprint.Attribute{
-				Name: "f", Presence: blueprint.Optional,
+				Name: "f", ComputedOptionalRequired: blueprint.Optional,
 				Type: blueprint.AttrType{
-					Kind: blueprint.KindList,
-					Elem: &blueprint.AttrType{Kind: "octopus"},
+					Kind:        blueprint.KindList,
+					ElementType: &blueprint.AttrType{Kind: "octopus"},
 				},
 			}),
 			want: "octopus",
@@ -771,7 +771,7 @@ func TestUnit_Interop_NestedSDKTypeCrosses(t *testing.T) {
 
 	// A nested shape with no SDK type must not invent an empty external type.
 	bare := nested("items", blueprint.KindSetNested)
-	bare.Type.Nested.SDKType = ""
+	bare.Type.NestedObject.SDKType = ""
 
 	s, _, err = FromBlueprint(bp(bare))
 	if err != nil {

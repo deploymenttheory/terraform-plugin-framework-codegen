@@ -1,0 +1,48 @@
+{
+  "id": "109-post-v7-tags",
+  "seq": 109,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tags",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "all",
+      "description": "MiXeD-probe-description-2",
+      "key": "tfpfgen-probe-write-normalisation-2",
+      "objectType": "test",
+      "value": "MiXeD-probe-value-2"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tags/12b60610-ddd1-4013-b335-9d2febfe5f6e"
+        }
+      },
+      "accessType": "all",
+      "aid": 281474976742769,
+      "builtIn": false,
+      "color": "#A7EB10",
+      "createDate": "2026-07-29T03:28:32Z",
+      "description": "MiXeD-probe-description-2",
+      "icon": "LABEL",
+      "id": "12b60610-ddd1-4013-b335-9d2febfe5f6e",
+      "key": "tfpfgen-probe-write-normalisation-2",
+      "legacyId": null,
+      "modifiedDate": null,
+      "objectType": "test",
+      "type": "static",
+      "value": "MiXeD-probe-value-2"
+    },
+    "droppedHeaders": 14
+  }
+}

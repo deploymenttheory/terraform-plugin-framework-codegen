@@ -21,23 +21,23 @@ func pilotResource() blueprint.Resource {
 		},
 		Attributes: []blueprint.Attribute{
 			{
-				Name: "id", Presence: blueprint.Computed,
+				Name: "id", ComputedOptionalRequired: blueprint.Computed,
 				Type: blueprint.AttrType{Kind: blueprint.KindString},
 				Wire: blueprint.WireBinding{JSONPath: "id"},
 			},
 			{
-				Name: "key", Presence: blueprint.Required,
+				Name: "key", ComputedOptionalRequired: blueprint.Required,
 				Type: blueprint.AttrType{Kind: blueprint.KindString},
 				Wire: blueprint.WireBinding{JSONPath: "key"},
 			},
 			{
-				Name: "assignments", Presence: blueprint.Optional,
+				Name: "assignments", ComputedOptionalRequired: blueprint.Optional,
 				Type: blueprint.AttrType{
 					Kind: blueprint.KindSetNested,
-					Nested: &blueprint.Nested{
+					NestedObject: &blueprint.NestedAttributeObject{
 						GoTypeName: "M",
 						Attributes: []blueprint.Attribute{{
-							Name: "type", Presence: blueprint.Optional,
+							Name: "type", ComputedOptionalRequired: blueprint.Optional,
 							Type: blueprint.AttrType{Kind: blueprint.KindString},
 							Wire: blueprint.WireBinding{JSONPath: "type"},
 						}},
@@ -174,7 +174,7 @@ func TestUnit_Probe_SubjectSkipsUnjoinableAttributes(t *testing.T) {
 
 	res := pilotResource()
 	res.Attributes = append(res.Attributes, blueprint.Attribute{
-		Name: "orphan", Presence: blueprint.Optional,
+		Name: "orphan", ComputedOptionalRequired: blueprint.Optional,
 		Type: blueprint.AttrType{Kind: blueprint.KindString},
 	})
 
@@ -383,18 +383,18 @@ func TestUnit_Probe_TheIdentifierIsNeverANestedField(t *testing.T) {
 
 	// A nested object whose child is also called "id", and named so it sorts before the real one.
 	res.Attributes = append(res.Attributes, blueprint.Attribute{
-		Name:     "assignments",
-		Presence: blueprint.ComputedOptional,
-		Wire:     blueprint.WireBinding{JSONPath: "assignments"},
+		Name:                     "assignments",
+		ComputedOptionalRequired: blueprint.ComputedOptional,
+		Wire:                     blueprint.WireBinding{JSONPath: "assignments"},
 		Type: blueprint.AttrType{
 			Kind: blueprint.KindSetNested,
-			Nested: &blueprint.Nested{
+			NestedObject: &blueprint.NestedAttributeObject{
 				GoTypeName: "AssignmentModel",
 				Attributes: []blueprint.Attribute{{
-					Name:     "id",
-					Presence: blueprint.Required,
-					Wire:     blueprint.WireBinding{JSONPath: "id"},
-					Type:     blueprint.AttrType{Kind: blueprint.KindString},
+					Name:                     "id",
+					ComputedOptionalRequired: blueprint.Required,
+					Wire:                     blueprint.WireBinding{JSONPath: "id"},
+					Type:                     blueprint.AttrType{Kind: blueprint.KindString},
 				}},
 			},
 		},

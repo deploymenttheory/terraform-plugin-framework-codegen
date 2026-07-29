@@ -62,11 +62,11 @@ func TestUnit_Probe_ReportSortIsDeterministic(t *testing.T) {
 	r := Report{
 		Facts: []Fact{
 			{Resource: "tag", JSONPath: "value", Field: FactWritable},
-			{Resource: "tag", JSONPath: "color", Field: FactWritable},
+			{Resource: "tag", JSONPath: "colour", Field: FactWritable},
 		},
 		Notes: []Note{
 			{Resource: "tag", JSONPath: "value", Message: "b"},
-			{Resource: "tag", JSONPath: "color", Message: "a"},
+			{Resource: "tag", JSONPath: "colour", Message: "a"},
 			{Resource: "agent", Message: "z"},
 		},
 		Probes: []ProbeOutcome{
@@ -79,7 +79,7 @@ func TestUnit_Probe_ReportSortIsDeterministic(t *testing.T) {
 
 	r.Sort()
 
-	if r.Facts[0].JSONPath != "color" {
+	if r.Facts[0].JSONPath != "colour" {
 		t.Errorf("facts are not sorted: %v", r.Facts)
 	}
 	if r.Notes[0].Resource != "agent" {
