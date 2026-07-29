@@ -31,60 +31,108 @@ jobs:
         uses: super-linter/super-linter@61abc07d755095a68f4987d1c2c3d1d64408f1f9 # v8.5.0
         env:
           DEFAULT_BRANCH: origin/main
-          VALIDATE_ALL_CODEBASE: false # tells the linter to only check files that have been modified in the current pull request
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # To report GitHub Actions status checks
 
-          # Go is linted by go-lint.yml, not here.
+          # Only files changed in the pull request. Note this cuts both ways: a
+          # validator configured differently from this repository's own tools fires
+          # only when a file is touched, so the same code passes or fails depending
+          # on whether it was in the diff. That inconsistency is the reason several
+          # validators below are off rather than merely configured.
+          VALIDATE_ALL_CODEBASE: false
+
+          # ---------------------------------------------------------------------
+          # Go: linted by go-lint.yml, not here.
           #
-          # Two reasons, and the second is decisive. First, these duplicate
-          # go-lint.yml, which runs golangci-lint over the whole module with this
-          # repository's own .golangci.yml -- and that config already enables
-          # govet, gocyclo and the gofumpt/goimports/gci/golines formatters, so
-          # super-linter's versions add nothing but a second opinion configured
-          # differently.
+          # go-lint.yml runs golangci-lint over the whole module with this
+          # repository's own .golangci.yml, which already enables govet, gocyclo and
+          # the gofumpt/goimports/gci/golines formatters -- and, importantly, its
+          # exclusions: gocyclo and dupl are off for _test.go, because a table-driven
+          # test is meant to be a long flat table.
           #
-          # Second, with VALIDATE_ALL_CODEBASE false, super-linter invokes
-          # golangci-lint with the list of *changed files*. golangci-lint rejects
-          # named files spanning more than one directory:
-          #
-          #   typechecking error: named files must all be in one directory;
-          #   have /github/workspace/internal/manifest and /github/workspace/cmd/tfpluginframeworkgen
-          #
-          # In a code generator almost every change touches several packages at
-          # once, so this fails on ordinary pull requests regardless of whether
-          # the code is correct. A check that cannot pass is worse than no check:
-          # people learn to ignore it, and then ignore it when it means something.
+          # super-linter's GO_MODULES runs golangci-lint again with its own
+          # configuration and none of those exclusions, over changed files only. The
+          # result is that touching a test file reports complexity the repository has
+          # deliberately decided not to police, and leaving it alone does not. Two
+          # golangci-lint runs disagreeing means the unowned one sets the style.
+          VALIDATE_GO_MODULES: false
           VALIDATE_GO: false
-          VALIDATE_GOFMT: false
-          VALIDATE_GOCYCLO: false
-          VALIDATE_GOVET: false
-          VALIDATE_GOLANGCI_LINT: false
+          VALIDATE_GO_RELEASER: false
 
+          # ---------------------------------------------------------------------
+          # Biome: a JavaScript/TypeScript toolchain. This repository has no
+          # JavaScript, so the only thing it reaches is JSON -- and every JSON file
+          # here is either written by blueprint.Save or by the emitter's manifest
+          # writer. Their byte-for-byte formatting is asserted by this repository's
+          # own tests and by the "Regenerate and diff" job, so Biome's opinion is not
+          # merely noise: satisfying it would make that job fail. Two checks cannot
+          # both be authoritative about the same bytes.
+          VALIDATE_BIOME_FORMAT: false
+          VALIDATE_BIOME_LINT: false
+          VALIDATE_JSON: false
+          VALIDATE_JSON_PRETTIER: false
+          VALIDATE_JSONC: false
+          VALIDATE_JSONC_PRETTIER: false
+
+          # ---------------------------------------------------------------------
+          # Copy-paste detection, at super-linter's bundled threshold of 0%.
+          #
+          # No codebase passes 0%, and this one would be among the last: a code
+          # generator's fixtures are near-identical by construction, its templates
+          # emit near-identical CRUD bodies on purpose, and its tests assert on both.
+          # Duplication here is the product, not a defect.
+          #
+          # The previous VALIDATE_CPD had no effect -- v8 names this validator JSCPD.
+          VALIDATE_JSCPD: false
+
+          # ---------------------------------------------------------------------
           # The pinned specifications are third-party documents committed verbatim
           # for reproducibility. Linting them reports faults we cannot fix without
           # editing a pinned artefact, which would defeat the point of pinning it.
           # The ThousandEyes v7 document alone has dozens of $ref-sibling errors.
           VALIDATE_OPENAPI: false
 
-          VALIDATE_CPD: false # Disable CPD (Copy Paste Detection) for all languages
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # To report GitHub Actions status checks
-          MARKDOWN_CONFIG_FILE: .markdown-lint.yml
+          # ---------------------------------------------------------------------
+          # Kept on, and why.
+          #
+          # GITLEAKS is the secret scanner this repository relies on, and it passes.
+          # CHECKOV and TRIVY also scan for secrets and both report one finding: an
+          # `example:` block inside the vendored OpenAPI document, which is a false
+          # positive on a third-party artefact we do not author. They are pointed at
+          # repository-level configs that skip that directory rather than switched
+          # off, because their other findings are worth having -- TRIVY reports zero
+          # vulnerabilities across both go.mod files and zero misconfigurations in
+          # the generated Terraform examples, and that is a real check.
+          # No env var is needed to point at either config: super-linter looks for
+          # CHECKOV_FILE_NAME (default .checkov.yaml) and TRIVY_CONFIG_FILE (default
+          # trivy.yaml) under LINTER_RULES_PATH, which defaults to .github/linters --
+          # where .codespellrc and .gitleaks.toml already live. A config at the
+          # repository root would be silently ignored in favour of the bundled one.
+
           # One regex on one line, deliberately.
           #
           # This was previously a YAML block scalar with trailing "# ..." comments.
           # A block scalar has no comments: the "#" text became part of the regex,
           # so the alternatives after the first never matched and .*\.json$ was
-          # silently doing nothing. That is why JSON was still being linted despite
-          # being listed here.
+          # silently doing nothing.
+          #
+          # Note this list only reaches validators that take a file list. Checkov and
+          # Trivy walk the workspace themselves, which is why they get config files
+          # above instead.
           #
           # Excluded, and why:
-          #   .*\.md$        prose, linted by the markdown validator instead
-          #   .*_test\.go$   test files
-          #   .*/test/.*     test fixtures
-          #   .*\.json$      blueprints and manifests, whose formatting this
-          #                  repository defines and asserts in its own tests
-          #   ^pilot/.*      generated output. Third-party style opinions about
-          #                  generated code are noise: the shape is decided by the
-          #                  templates, and duplicate-code detection in particular
-          #                  will always fire on it, because near-identical CRUD
-          #                  bodies are the point of generating them.
-          FILTER_REGEX_EXCLUDE: '(.*\.md$|.*_test\.go$|.*/test/.*|.*\.json$|^pilot/.*)'
+          #   .*\.md$          prose. Note this excludes markdown from *every*
+          #                    validator including MARKDOWN, so markdownlint is
+          #                    effectively off. Turning it on is a separate decision:
+          #                    the long-form docs here would need a rule set chosen
+          #                    for them, and there is no .markdown-lint.yml to do it.
+          #   .*_test\.go$     test files
+          #   .*/test/.*       test fixtures
+          #   .*\.json$        blueprints and manifests, whose formatting this
+          #                    repository defines and asserts in its own tests
+          #   ^pilot/.*        generated output. Third-party style opinions about
+          #                    generated code are noise: the shape is decided by the
+          #                    templates.
+          #   ^openapi-specs/. vendored third-party API documents, pinned verbatim
+          #   ^probe-evidence/ recorded HTTP cassettes and derived facts, replayed
+          #                    byte-for-byte by the probe verification job
+          FILTER_REGEX_EXCLUDE: '(.*\.md$|.*_test\.go$|.*/test/.*|.*\.json$|^pilot/.*|^openapi-specs/.*|^probe-evidence/.*)'
