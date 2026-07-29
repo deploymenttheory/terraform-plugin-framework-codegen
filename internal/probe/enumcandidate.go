@@ -153,9 +153,9 @@ const maxCandidateLength = 24
 // negatives. Order is part of the contract: a cassette is an ordered transcript, so a change here
 // invalidates every recorded enum interaction and must be a deliberate act.
 func EnumCandidates(f Field) []string {
-	out := append([]string(nil), f.Enum...)
+	out := append([]string(nil), f.AllowedValues...)
 
-	return append(out, negativeCandidates(f.Enum, negativeEnumCandidates)...)
+	return append(out, negativeCandidates(f.AllowedValues, negativeEnumCandidates)...)
 }
 
 // describeCandidate is how a note or a fact refers to a generated value.

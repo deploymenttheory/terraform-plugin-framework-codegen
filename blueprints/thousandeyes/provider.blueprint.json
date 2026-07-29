@@ -1,5 +1,5 @@
 {
-  "formatVersion": "2",
+  "formatVersion": "3",
   "provider": {
     "name": "thousandeyes",
     "goModule": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes",
