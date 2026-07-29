@@ -442,3 +442,37 @@ func TestUnit_Naming_TestNames(t *testing.T) {
 		t.Errorf("AccTestName = %q", got)
 	}
 }
+
+// TestUnit_Naming_GoVarName covers the package-level var spelling generated nested objects
+// need, which is the same rule as an import alias but a distinct promise.
+func TestUnit_Naming_GoVarName(t *testing.T) {
+	t.Parallel()
+
+	o := Options{StripPrefix: DefaultStripPrefix}
+
+	tests := []struct {
+		parts []string
+		want  string
+	}{
+		{[]string{"tag", "assignment"}, "tagAssignment"},
+		{[]string{"TagFilter"}, "tagFilter"},
+		{[]string{"v7", "tag"}, "v7Tag"},
+		// An acronym run is left alone: lowering only the first rune of "ID" reads as a typo.
+		{[]string{"ID", "map"}, "IDMap"},
+		// Nothing to build from returns empty, which is how PackageAlias knows to fall back.
+		{nil, ""},
+		{[]string{""}, ""},
+	}
+
+	for _, tc := range tests {
+		if got := o.GoVarName(tc.parts...); got != tc.want {
+			t.Errorf("GoVarName(%q) = %q, want %q", tc.parts, got, tc.want)
+		}
+	}
+
+	// PackageAlias still substitutes its own fallback rather than returning empty, because
+	// an empty import alias would not compile.
+	if got := o.PackageAlias(); got != "pkg" {
+		t.Errorf("PackageAlias() = %q, want pkg", got)
+	}
+}

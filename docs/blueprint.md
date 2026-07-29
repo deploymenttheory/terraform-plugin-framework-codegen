@@ -206,6 +206,33 @@ Two things are refused rather than half-emitted:
   decided at runtime from the practitioner's own configuration, which this IR cannot
   express at all, so the message says to write that resource by hand.
 
+### Where an inferred nested object's names come from
+
+`ingest` infers nested objects, so the five generated identifiers are derived rather than
+authored. The rule, for a schema `Assignment` inside resource `tag`:
+
+| field | value | rule |
+|---|---|---|
+| `goTypeName` | `TagAssignmentModel` | resource stem + schema name + `Model` |
+| `sdkType` | `tags.Assignment` | SDK package + schema name |
+| `attrTypesVar` | `tagAssignmentAttrTypes` | the same stem, lowerCamel |
+| `objectTypeVar` | `tagAssignmentObjectType` | ditto |
+| `expandFunc` / `flattenFunc` | `expandTagAssignments` | pluralised for a collection |
+
+A schema already carrying the resource's name keeps it rather than doubling it: `TagFilter`
+becomes `TagFilterModel`, not `TagTagFilterModel`. Collisions are resolved with a numeric
+suffix at the naming layer, before anything is rendered, because render refuses two nested
+objects that would declare the same identifier.
+
+These names are a starting point. They happen to match the pilot's hand-curated blueprint
+exactly, which is the evidence that the rule is the one a person reaches for — but renaming
+them is expected, and is the same thing curation does to every other inferred name.
+
+**A schema that contains itself is refused whole**, naming the schema. Not just at the
+cycle point: refusing only the recursive field would leave the enclosing object in place
+minus its recursive dimension — a `tree` attribute offering a label and no children, which
+looks usable and cannot express the shape it is named for.
+
 ## Wire
 
 How one attribute crosses the boundary.
