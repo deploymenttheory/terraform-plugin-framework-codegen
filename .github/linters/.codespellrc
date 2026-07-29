@@ -10,4 +10,6 @@ skip = ./openapi-specs,./.git,./go.sum,./pilot/thousandeyes/go.sum
 # AtLeast is Confidence.AtLeast, correct camelCase, and the framework's own validator
 # constructors spell it the same way -- LengthAtLeast, SizeAtLeast -- so it will only get
 # more common here.
-ignore-words-list = atleast
+# te is the import alias for the ThousandEyes SDK in the pilot's hand-written client
+# package (te "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes").
+ignore-words-list = atleast,te
