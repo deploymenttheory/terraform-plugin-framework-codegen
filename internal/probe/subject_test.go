@@ -19,31 +19,33 @@ func pilotResource() blueprint.Resource {
 			Update: &blueprint.Operation{HTTPMethod: "PUT", PathTemplate: "/v7/tags/{id}", SuccessCodes: []int{200}},
 			Delete: &blueprint.Operation{HTTPMethod: "DELETE", PathTemplate: "/v7/tags/{id}", SuccessCodes: []int{204}},
 		},
-		Attributes: []blueprint.Attribute{
-			{
-				Name: "id", ComputedOptionalRequired: blueprint.Computed,
-				Type: blueprint.AttrType{Kind: blueprint.KindString},
-				Wire: blueprint.WireBinding{JSONPath: "id"},
-			},
-			{
-				Name: "key", ComputedOptionalRequired: blueprint.Required,
-				Type: blueprint.AttrType{Kind: blueprint.KindString},
-				Wire: blueprint.WireBinding{JSONPath: "key"},
-			},
-			{
-				Name: "assignments", ComputedOptionalRequired: blueprint.Optional,
-				Type: blueprint.AttrType{
-					Kind: blueprint.KindSetNested,
-					NestedObject: &blueprint.NestedAttributeObject{
-						GoTypeName: "M",
-						Attributes: []blueprint.Attribute{{
-							Name: "type", ComputedOptionalRequired: blueprint.Optional,
-							Type: blueprint.AttrType{Kind: blueprint.KindString},
-							Wire: blueprint.WireBinding{JSONPath: "type"},
-						}},
-					},
+		Schema: blueprint.Schema{
+			Attributes: []blueprint.Attribute{
+				{
+					Name: "id", ComputedOptionalRequired: blueprint.Computed,
+					Type: blueprint.AttrType{Kind: blueprint.KindString},
+					Wire: blueprint.WireBinding{JSONPath: "id"},
 				},
-				Wire: blueprint.WireBinding{JSONPath: "assignments"},
+				{
+					Name: "key", ComputedOptionalRequired: blueprint.Required,
+					Type: blueprint.AttrType{Kind: blueprint.KindString},
+					Wire: blueprint.WireBinding{JSONPath: "key"},
+				},
+				{
+					Name: "assignments", ComputedOptionalRequired: blueprint.Optional,
+					Type: blueprint.AttrType{
+						Kind: blueprint.KindSetNested,
+						NestedObject: &blueprint.NestedAttributeObject{
+							GoTypeName: "M",
+							Attributes: []blueprint.Attribute{{
+								Name: "type", ComputedOptionalRequired: blueprint.Optional,
+								Type: blueprint.AttrType{Kind: blueprint.KindString},
+								Wire: blueprint.WireBinding{JSONPath: "type"},
+							}},
+						},
+					},
+					Wire: blueprint.WireBinding{JSONPath: "assignments"},
+				},
 			},
 		},
 	}
@@ -102,7 +104,7 @@ func TestUnit_Probe_IDFieldResolvesThroughTheWirePath(t *testing.T) {
 
 	res := pilotResource()
 	res.Binding.ID = blueprint.IDBinding{Attribute: "id", GoField: "ID", FromCreate: "created.ID"}
-	res.Attributes[0].Wire.JSONPath = "tagId"
+	res.Schema.Attributes[0].Wire.JSONPath = "tagId"
 
 	subj, err := SubjectOf(blueprint.Blueprint{}, res)
 	if err != nil {
@@ -173,7 +175,7 @@ func TestUnit_Probe_SubjectSkipsUnjoinableAttributes(t *testing.T) {
 	t.Parallel()
 
 	res := pilotResource()
-	res.Attributes = append(res.Attributes, blueprint.Attribute{
+	res.Schema.Attributes = append(res.Schema.Attributes, blueprint.Attribute{
 		Name: "orphan", ComputedOptionalRequired: blueprint.Optional,
 		Type: blueprint.AttrType{Kind: blueprint.KindString},
 	})
@@ -192,7 +194,7 @@ func TestUnit_Probe_SubjectSkipsUnjoinableAttributes(t *testing.T) {
 	// And a dropped attribute is not in the schema, so a fact about it would have
 	// nowhere to go either.
 	dropped := pilotResource()
-	dropped.Attributes[1].Drop = true
+	dropped.Schema.Attributes[1].Drop = true
 
 	subj, err = SubjectOf(blueprint.Blueprint{}, dropped)
 	if err != nil {
@@ -382,7 +384,7 @@ func TestUnit_Probe_TheIdentifierIsNeverANestedField(t *testing.T) {
 	res.Binding.ID = blueprint.IDBinding{Attribute: "id", GoField: "ID"}
 
 	// A nested object whose child is also called "id", and named so it sorts before the real one.
-	res.Attributes = append(res.Attributes, blueprint.Attribute{
+	res.Schema.Attributes = append(res.Schema.Attributes, blueprint.Attribute{
 		Name:                     "assignments",
 		ComputedOptionalRequired: blueprint.ComputedOptional,
 		Wire:                     blueprint.WireBinding{JSONPath: "assignments"},

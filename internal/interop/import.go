@@ -162,19 +162,21 @@ func importResource(res resource.Resource, opts Options, r *Report) (blueprint.R
 
 	out := blueprint.Resource{
 		Key:           res.Name,
-		TerraformType: naming.TerraformTypeName(opts.typePrefix(), res.Name),
+		Name:          res.Name,
 		GoPackage:     naming.SnakeDirName(res.Name),
 		GoTypeName:    namingOpts.GoTypeName(res.Name) + "Resource",
 		ModelTypeName: namingOpts.GoTypeName(res.Name) + "ResourceModel",
 		ServiceGroup:  opts.ServiceGroup,
 		APIVersionDir: opts.APIVersionDir,
 
-		MarkdownDescription: describe(
-			res.Schema.MarkdownDescription,
-			res.Schema.Description,
-			&resourceDesc,
-		),
-		DeprecationMessage: derefStr(res.Schema.DeprecationMessage),
+		Schema: blueprint.Schema{
+			MarkdownDescription: describe(
+				res.Schema.MarkdownDescription,
+				res.Schema.Description,
+				&resourceDesc,
+			),
+			DeprecationMessage: derefStr(res.Schema.DeprecationMessage),
+		},
 	}
 
 	out.GoPackageAlias = namingOpts.PackageAlias(opts.APIVersionDir, res.Name)
@@ -202,7 +204,7 @@ func importResource(res resource.Resource, opts Options, r *Report) (blueprint.R
 	if err != nil {
 		return blueprint.Resource{}, err
 	}
-	out.Attributes = attrs
+	out.Schema.Attributes = attrs
 
 	if acc.promoted > 0 {
 		r.noteCount("importedDescription", path+".attributes[*].description", acc.promoted)
@@ -240,7 +242,7 @@ func Unauthored(bp blueprint.Blueprint) []string {
 
 		wire, sdkTypes := 0, 0
 
-		for _, a := range res.Attributes {
+		for _, a := range res.Schema.Attributes {
 			if a.Wire == (blueprint.WireBinding{}) {
 				wire++
 			}

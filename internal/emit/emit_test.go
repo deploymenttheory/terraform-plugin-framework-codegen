@@ -337,14 +337,14 @@ func TestUnit_Emit_EnumValuesDoNotReachGeneratedCode(t *testing.T) {
 	stripped.Resources = append([]blueprint.Resource(nil), bp.Resources...)
 
 	for i := range stripped.Resources {
-		attrs := append([]blueprint.Attribute(nil), stripped.Resources[i].Attributes...)
+		attrs := append([]blueprint.Attribute(nil), stripped.Resources[i].Schema.Attributes...)
 		for j := range attrs {
 			if len(attrs[j].Type.Enum) > 0 {
 				carried++
 				attrs[j].Type.Enum = nil
 			}
 		}
-		stripped.Resources[i].Attributes = attrs
+		stripped.Resources[i].Schema.Attributes = attrs
 	}
 
 	if carried == 0 {

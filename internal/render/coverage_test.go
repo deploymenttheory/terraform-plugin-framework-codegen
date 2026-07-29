@@ -121,8 +121,10 @@ func TestUnit_Render_NestedDepthAllowsOneLevel(t *testing.T) {
 
 	r := blueprint.Resource{
 		Key: "tag",
-		Attributes: []blueprint.Attribute{
-			nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID")),
+		Schema: blueprint.Schema{
+			Attributes: []blueprint.Attribute{
+				nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID")),
+			},
 		},
 	}
 
@@ -136,7 +138,7 @@ func TestUnit_Render_NestedDepthAllowsOneLevel(t *testing.T) {
 
 	// A dropped nested attribute is not a shape to generate.
 	dropped := r
-	dropped.Attributes[0].Drop = true
+	dropped.Schema.Attributes[0].Drop = true
 	if got, err := nestedShapes(dropped); err != nil || len(got) != 0 {
 		t.Errorf("a dropped attribute should yield no shape: %v, %v", got, err)
 	}
@@ -147,10 +149,12 @@ func TestUnit_Render_NestedShapeWithoutAnObjectFails(t *testing.T) {
 
 	r := blueprint.Resource{
 		Key: "tag",
-		Attributes: []blueprint.Attribute{{
-			Name: "items", GoField: "Items",
-			Type: blueprint.AttrType{Kind: blueprint.KindSetNested},
-		}},
+		Schema: blueprint.Schema{
+			Attributes: []blueprint.Attribute{{
+				Name: "items", GoField: "Items",
+				Type: blueprint.AttrType{Kind: blueprint.KindSetNested},
+			}},
+		},
 	}
 
 	if _, err := nestedShapes(r); err == nil {
@@ -162,8 +166,10 @@ func TestUnit_Render_NestedFlattenView(t *testing.T) {
 	t.Parallel()
 
 	shapes, err := nestedShapes(blueprint.Resource{
-		Key:        "tag",
-		Attributes: []blueprint.Attribute{nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID"))},
+		Key: "tag",
+		Schema: blueprint.Schema{
+			Attributes: []blueprint.Attribute{nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID"))},
+		},
 	})
 	if err != nil {
 		t.Fatalf("nestedShapes: %v", err)
@@ -192,11 +198,11 @@ func TestUnit_Render_NestedSkipDirectionsAreHonoured(t *testing.T) {
 	bp := pilot(t)
 
 	// The pilot has two nested collections; suppress expansion on one.
-	for i := range bp.Resources[0].Attributes {
-		if bp.Resources[0].Attributes[i].Type.Kind.IsNested() {
-			bp.Resources[0].Attributes[i].Wire.SkipExpand = true
-			bp.Resources[0].Attributes[i].Wire.Expand = nil
-			bp.Resources[0].Attributes[i].ComputedOptionalRequired = blueprint.Computed
+	for i := range bp.Resources[0].Schema.Attributes {
+		if bp.Resources[0].Schema.Attributes[i].Type.Kind.IsNested() {
+			bp.Resources[0].Schema.Attributes[i].Wire.SkipExpand = true
+			bp.Resources[0].Schema.Attributes[i].Wire.Expand = nil
+			bp.Resources[0].Schema.Attributes[i].ComputedOptionalRequired = blueprint.Computed
 			break
 		}
 	}
@@ -218,7 +224,7 @@ func TestUnit_Render_DataSourcePackagePath(t *testing.T) {
 
 	bp := pilot(t)
 	bp.DataSources = []blueprint.DataSource{{
-		Key: "agent", TerraformType: "thousandeyes_agent", GoPackage: "agent",
+		Key: "agent", Name: "agent", GoPackage: "agent",
 		GoPackageAlias: "v7Agent", GoTypeName: "AgentDataSource", ModelTypeName: "AgentDataSourceModel",
 		ServiceGroup: "agents", APIVersionDir: "v7",
 	}}

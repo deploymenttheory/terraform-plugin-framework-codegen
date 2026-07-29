@@ -83,11 +83,74 @@ func (b Blueprint) Validate() error {
 		// the registration file fail to compile; two sharing a key make probe
 		// facts and overrides land on the wrong one.
 		dup(&p, seenKeys, r.Key, at+".key", "resource key")
-		dup(&p, seenTypes, r.TerraformType, at+".terraformType", "Terraform type")
+		dup(&p, seenTypes, r.Name, at+".name", "resource name")
 		dup(&p, seenAliases, r.GoPackageAlias, at+".goPackageAlias", "import alias")
 	}
 
+	// Data sources were not validated at all before format 2, which mattered less while none were
+	// emitted. Their keys and type names live in their own namespaces -- a `tag` resource and a
+	// `tag` data source are a normal pair -- but the import alias is shared, because both register
+	// into the same generated provider package.
+	seenDataKeys := map[string]bool{}
+	seenDataTypes := map[string]bool{}
+
+	for i, d := range b.DataSources {
+		at := fmt.Sprintf("dataSources[%d]", i)
+		if d.Key != "" {
+			at = fmt.Sprintf("dataSources[%s]", d.Key)
+		}
+
+		if d.Drop {
+			continue
+		}
+
+		d.validate(at, &p)
+
+		dup(&p, seenDataKeys, d.Key, at+".key", "data source key")
+		dup(&p, seenDataTypes, d.Name, at+".name", "data source name")
+		dup(&p, seenAliases, d.GoPackageAlias, at+".goPackageAlias", "import alias")
+	}
+
 	return p.err()
+}
+
+// validate checks one data source.
+//
+// The same skeleton as a resource minus everything a data source has no operation for: no binding
+// beyond a read, no policy, no import. Its attributes are validated against BlockDataSource, which
+// refuses a default or a plan modifier -- fields the framework's datasource/schema package does not
+// have.
+func (d DataSource) validate(at string, p *problems) {
+	required(p, at+".key", d.Key)
+	required(p, at+".name", d.Name)
+	required(p, at+".goPackage", d.GoPackage)
+	required(p, at+".goPackageAlias", d.GoPackageAlias)
+	required(p, at+".goTypeName", d.GoTypeName)
+	required(p, at+".modelTypeName", d.ModelTypeName)
+
+	if len(d.Schema.Attributes) == 0 {
+		p.add(at+".schema.attributes", "a data source with no attributes cannot be emitted")
+	}
+
+	seenNames := map[string]bool{}
+	seenFields := map[string]bool{}
+
+	for i, a := range d.Schema.Attributes {
+		aat := fmt.Sprintf("%s.schema.attributes[%d]", at, i)
+		if a.Name != "" {
+			aat = fmt.Sprintf("%s.schema.attributes[%s]", at, a.Name)
+		}
+
+		if a.Drop {
+			continue
+		}
+
+		a.validate(aat, p)
+		a.validateForKind(BlockDataSource, aat, p)
+
+		dup(p, seenNames, a.Name, aat+".name", "attribute name")
+		dup(p, seenFields, a.GoField, aat+".goField", "model field")
+	}
 }
 
 func dup(p *problems, seen map[string]bool, value, path, what string) {
@@ -122,30 +185,31 @@ func (pr Provider) validate(p *problems) {
 
 func (r Resource) validate(at string, p *problems) {
 	required(p, at+".key", r.Key)
-	required(p, at+".terraformType", r.TerraformType)
+	required(p, at+".name", r.Name)
 	required(p, at+".goPackage", r.GoPackage)
 	required(p, at+".goPackageAlias", r.GoPackageAlias)
 	required(p, at+".goTypeName", r.GoTypeName)
 	required(p, at+".modelTypeName", r.ModelTypeName)
 
-	if len(r.Attributes) == 0 {
-		p.add(at+".attributes", "a resource with no attributes cannot be emitted")
+	if len(r.Schema.Attributes) == 0 {
+		p.add(at+".schema.attributes", "a resource with no attributes cannot be emitted")
 	}
 
 	seenNames := map[string]bool{}
 	seenFields := map[string]bool{}
 	hasWritable := false
 
-	for i, a := range r.Attributes {
-		aat := fmt.Sprintf("%s.attributes[%d]", at, i)
+	for i, a := range r.Schema.Attributes {
+		aat := fmt.Sprintf("%s.schema.attributes[%d]", at, i)
 		if a.Name != "" {
-			aat = fmt.Sprintf("%s.attributes[%s]", at, a.Name)
+			aat = fmt.Sprintf("%s.schema.attributes[%s]", at, a.Name)
 		}
 		if a.Drop {
 			continue
 		}
 
 		a.validate(aat, p)
+		a.validateForKind(BlockResource, aat, p)
 
 		dup(p, seenNames, a.Name, aat+".name", "attribute name")
 		// A duplicated Go field is the subtler failure: the schema is fine and
@@ -357,9 +421,9 @@ func (n NestedAttributeObject) validate(at string, p *problems) {
 	seenFields := map[string]bool{}
 
 	for i, a := range n.Attributes {
-		aat := fmt.Sprintf("%s.attributes[%d]", at, i)
+		aat := fmt.Sprintf("%s.schema.attributes[%d]", at, i)
 		if a.Name != "" {
-			aat = fmt.Sprintf("%s.attributes[%s]", at, a.Name)
+			aat = fmt.Sprintf("%s.schema.attributes[%s]", at, a.Name)
 		}
 		if a.Drop {
 			continue

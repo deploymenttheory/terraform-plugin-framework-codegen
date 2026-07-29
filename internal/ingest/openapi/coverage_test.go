@@ -125,8 +125,8 @@ paths:
 		t.Fatalf("Infer: %v", err)
 	}
 
-	if len(res.Attributes) != 2 {
-		t.Fatalf("got %d attributes, want 2: a vendor JSON media type must still be read", len(res.Attributes))
+	if len(res.Schema.Attributes) != 2 {
+		t.Fatalf("got %d attributes, want 2: a vendor JSON media type must still be read", len(res.Schema.Attributes))
 	}
 }
 
@@ -375,7 +375,7 @@ paths:
 	}
 
 	byName := map[string]blueprint.TypeKind{}
-	for _, a := range res.Attributes {
+	for _, a := range res.Schema.Attributes {
 		byName[a.Name] = a.Type.Kind
 	}
 
