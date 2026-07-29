@@ -397,26 +397,40 @@ func applyAttributeFacts(
 						"constant, so no static default is generated.")
 			}
 
-		case probe.FactEnumAccepted:
+		case probe.FactAcceptedValues:
 			if len(f.Value.List) > 0 {
 				observations = append(observations, fmt.Sprintf(
 					"Values accepted here: %s.", joinCode(f.Value.List)))
-				// Reported rather than generated. An over-tight validator rejects
-				// configurations the API would have accepted, and the practitioner cannot
-				// work around it.
-				result.Recommendations = append(result.Recommendations, fmt.Sprintf(
-					"%s.%s: a OneOf validator over %s is now supportable. Add it by hand if "+
-						"you want it -- a generated one would reject values a later API "+
-						"version accepts.",
-					res.Key, path, joinCode(f.Value.List)))
+				// Stored as data as well as prose. The validator render generates comes from
+				// the *documented* set rather than this one -- the documented set is a
+				// superset of what any one tenant takes, so building from it errs toward
+				// permitting -- but the two together are what let render say, next to the
+				// validator, which documented values this tenant refused.
+				attr.Behaviour.AcceptedValues = append([]string(nil), f.Value.List...)
 			}
 
-		case probe.FactEnumRejectedDocumented:
+		case probe.FactRejectedValues:
 			if len(f.Value.List) > 0 {
 				observations = append(observations, fmt.Sprintf(
 					"The specification documents %s, which the API rejected.",
 					joinCode(f.Value.List),
 				))
+				attr.Behaviour.RejectedValues = append([]string(nil), f.Value.List...)
+			}
+
+		case probe.FactValuesClosed:
+			// Per attribute, not resource-level: this is the one fact with direct evidence
+			// that a generated OneOf would be harmful, so render needs it beside the
+			// attribute it belongs to. It was being discarded with the resource-level facts.
+			// setBool rather than a raw pointer: it records the change and returns false
+			// when the value already matches, which is what keeps a second merge over the
+			// same facts a no-op.
+			setBool(&attr.Behaviour.ValuesClosed, f, res, path, "behaviour.valuesClosed", result)
+
+			if v := f.Value.Bool; v != nil && !*v {
+				observations = append(observations,
+					"The API accepted a value from outside the documented set, so no OneOf "+
+						"validator is generated for this attribute.")
 			}
 
 		case probe.FactNormalisation:
@@ -435,7 +449,7 @@ func applyAttributeFacts(
 			observations = append(observations,
 				"Writing this also changes "+f.Value.Text+".")
 
-		case probe.FactEnumClosed, probe.FactErrorEnvelope, probe.FactUnknownParamTolerated,
+		case probe.FactErrorEnvelope, probe.FactUnknownParamTolerated,
 			probe.FactUpdateStyle, probe.FactReadBack, probe.FactNotFoundIsSuccess:
 			// Resource-level or informational; handled elsewhere or deliberately not merged
 			// into an attribute.

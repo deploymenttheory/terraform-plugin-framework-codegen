@@ -1,5 +1,5 @@
 {
-  "formatVersion": "2",
+  "formatVersion": "3",
   "resources": [
     {
       "key": "tag",
@@ -162,7 +162,7 @@
             "goField": "ObjectType",
             "type": {
               "kind": "string",
-              "enum": [
+              "allowedValues": [
                 "test",
                 "dashboard",
                 "endpoint-test",
@@ -172,11 +172,22 @@
               ]
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
             "behaviour": {
               "immutable": true,
               "requiredByApi": true,
-              "returnedOnRead": true
+              "returnedOnRead": true,
+              "acceptedValues": [
+                "test",
+                "dashboard",
+                "endpoint-test",
+                "v-agent",
+                "connected-devices-test"
+              ],
+              "rejectedValues": [
+                "endpoint-agent"
+              ],
+              "valuesClosed": true
             },
             "wire": {
               "jsonPath": "objectType",
@@ -198,7 +209,7 @@
             "goField": "AccessType",
             "type": {
               "kind": "string",
-              "enum": [
+              "allowedValues": [
                 "all",
                 "partner",
                 "system"
@@ -208,7 +219,14 @@
             "markdownDescription": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
             "behaviour": {
               "requiredByApi": true,
-              "returnedOnRead": true
+              "returnedOnRead": true,
+              "acceptedValues": [
+                "all"
+              ],
+              "rejectedValues": [
+                "system"
+              ],
+              "valuesClosed": true
             },
             "wire": {
               "jsonPath": "accessType",
@@ -230,7 +248,7 @@
             "goField": "MatchType",
             "type": {
               "kind": "string",
-              "enum": [
+              "allowedValues": [
                 "and",
                 "or"
               ]
@@ -238,7 +256,12 @@
             "computedOptionalRequired": "computed_optional",
             "markdownDescription": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->",
             "behaviour": {
-              "returnedOnRead": false
+              "returnedOnRead": false,
+              "acceptedValues": [
+                "and",
+                "or"
+              ],
+              "valuesClosed": true
             },
             "wire": {
               "jsonPath": "matchType",
@@ -260,7 +283,7 @@
             "goField": "Type",
             "type": {
               "kind": "string",
-              "enum": [
+              "allowedValues": [
                 "static",
                 "dynamic"
               ]

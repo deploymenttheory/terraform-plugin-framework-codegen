@@ -116,7 +116,7 @@ func (sc *Scope) compute() {
 			sc.immutable = append(sc.immutable, f)
 		}
 
-		if len(f.Enum) > 0 {
+		if len(f.AllowedValues) > 0 {
 			sc.enums = append(sc.enums, f)
 		}
 

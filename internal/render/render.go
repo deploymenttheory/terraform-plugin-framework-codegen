@@ -613,13 +613,7 @@ func attributeDecl(
 		fmt.Fprintf(&b, "DeprecationMessage: %s,\n", goStringLit(a.DeprecationMessage))
 	}
 
-	writeCustomCodeBlock(
-		&b,
-		"Validators",
-		"validator."+validatorKind(a.Type.Kind),
-		a.Validators,
-		imports,
-	)
+	writeValidators(&b, a, imports)
 	writeCustomCodeBlock(
 		&b,
 		"PlanModifiers",
@@ -668,6 +662,27 @@ func planModifiersFor(
 		return []blueprint.CustomCode{{SchemaDefinition: "stringplanmodifier.UseStateForUnknown()"}}
 	}
 	return nil
+}
+
+// writeValidators renders the Validators field, preceded by the note about a documented
+// value the API refused when there is one.
+//
+// Separate from writeCustomCodeBlock because the note belongs to the block rather than to
+// any one entry, and threading a comment through a type named CustomCode -- which models
+// code a person wrote -- would put a render concern in the IR.
+func writeValidators(b *strings.Builder, a blueprint.Attribute, imports *importSet) {
+	items := validatorsFor(a, imports)
+	if len(items) == 0 {
+		return
+	}
+
+	if note := validatorNote(a); note != "" {
+		b.WriteString(note + "\n")
+	}
+
+	imports.add(pkgValidator, "")
+
+	writeCustomCodeBlock(b, "Validators", "validator."+validatorKind(a.Type.Kind), items, imports)
 }
 
 // writeCustomCodeBlock renders a slice of rendered Go expressions as a named
