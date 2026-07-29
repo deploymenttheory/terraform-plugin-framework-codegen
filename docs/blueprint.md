@@ -67,31 +67,80 @@ picks one, and which one would depend on filename ordering.
 `support` is data rather than constants because those packages belong to the
 provider, not the generator.
 
+## Block kinds
+
+The top level is the **Terraform block kind**, not the Terraform type, and everything
+cascades down from it — the same organising principle the framework itself uses. Each
+kind is a `Name`, a `Schema`, and then the operations that kind supports.
+
+`resource` and `datasource` are built. `list`, `ephemeral` and `action` have their
+kinds declared in `internal/blueprint/blockkind.go` and arrive in later phases.
+
+**An attribute's legal fields depend on the kind rendering it.** Every kind has its own
+schema package — `resource/schema`, `datasource/schema` and so on — and those packages
+are structurally similar but deliberately not identical:
+
+| field | resource | datasource | ephemeral | action | list |
+|---|---|---|---|---|---|
+| `computedOptionalRequired` (computed), `sensitive` | ✓ | ✓ | ✓ | ✗ | ✗ |
+| `planModifiers`, `default` | ✓ | ✗ | ✗ | ✗ | ✗ |
+| `writeOnly` | ✓ | ✗ | ✗ | ✓ | ✗ |
+
+`Validate` refuses a field the target kind has no home for, naming both the attribute
+and the kind. Without that refusal the generator emits
+`datasourceschema.StringAttribute{Default: ...}` and the failure surfaces as a compiler
+error in generated output, which names neither.
+
+An action or list attribute having no `computed` is why a list resource's config schema
+is filter-only: there is nowhere to put a result.
+
 ## Resource
 
 `key` is the stable merge key. Probe facts and hand-authored overrides join on it,
 so it is the one field never to rename casually.
 
-The naming fields — `terraformType`, `goPackage`, `goPackageAlias`, `goTypeName`,
-`modelTypeName` — are explicit rather than derived. Deriving them would make a
-rename of the Go type an invisible consequence of a rename of the Terraform type.
+`name` is the type name **without** the provider prefix — `tag`, not
+`thousandeyes_tag`. The registry-visible type is composed at render time from
+`provider.typePrefix`, exactly as the framework composes it: `Metadata` sets
+`req.ProviderTypeName + "_" + Name`. Storing the composed string as well would
+denormalise it, and a denormalised field is one that can disagree with itself.
+
+The naming fields — `goPackage`, `goPackageAlias`, `goTypeName`, `modelTypeName` — are
+explicit rather than derived. Deriving them would make a rename of the Go type an
+invisible consequence of a rename of the Terraform type.
 
 `serviceGroup` and `apiVersionDir` place the package on disk:
 `<resourceRoot>/<serviceGroup>/<apiVersionDir>/<goPackage>`.
+
+## Schema
+
+Attributes hang off a `schema` object rather than off the block directly, because the
+framework's schema is itself a thing with a `Version`, a description and a deprecation
+message — and because that is where an attribute's legal field set is decided.
+
+```jsonc
+"schema": {
+  "attributes": [ ... ],
+  "version": 0,                 // resource schema version, for state upgrades
+  "markdownDescription": "..."
+}
+```
+
+There is no `blocks`. See the note below.
 
 ## Attributes
 
 ```jsonc
 {
-  "name": "color",              // tfsdk name, snake_case
-  "goField": "Color",           // model struct field
+  "name": "colour",             // tfsdk name, snake_case
+  "goField": "Colour",          // model struct field
   "type": { "kind": "string" },
-  "presence": "computed_optional",
+  "computedOptionalRequired": "computed_optional",
   "wire": { ... }
 }
 ```
 
-`presence` is spelled exactly as the official specification spells it —
+`computedOptionalRequired` is spelled exactly as the official specification spells it —
 `required`, `optional`, `computed`, `computed_optional` — so interop needs no
 mapping table.
 
@@ -99,9 +148,14 @@ mapping table.
 `number`. Collections of scalars: `list`, `set`, `map`, each with `elem`. Nested
 objects: `list_nested`, `set_nested`, `single_nested`, each with `nested`.
 
-Nested attributes, not blocks. The choice is permanent for a published provider,
-and HashiCorp's OpenAPI generator emits no blocks, so there is no upstream signal
-to follow. It is recorded here so it stays reviewable.
+Nested attributes, not blocks. The choice is permanent for a published provider, so it
+is recorded here to stay reviewable — and the evidence is one-sided. In
+`deploymenttheory/terraform-provider-microsoft365`, a 167-resource provider,
+`schema.ListNestedBlock` appears three times across two files, of which one use is live
+and one is dead code; `SetNestedBlock` and `SingleNestedBlock` appear not at all. Against
+366 `SingleNestedAttribute`, 178 `ListNestedAttribute` and 110 `SetNestedAttribute`. The
+single live block has an empty validator slice and enforces its cardinality by hand in
+`modify_plan.go`, which is what a nested attribute would have done for it.
 
 Nesting is supported **one level deep** and refused beyond it, naming the
 offending attribute. Each level needs its own model, `attr.Type` map and helper

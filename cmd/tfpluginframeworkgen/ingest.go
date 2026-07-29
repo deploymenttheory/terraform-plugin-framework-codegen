@@ -103,7 +103,7 @@ func inferAll(doc *openapi.Document, candidates []openapi.Candidate, opts openap
 			return err
 		}
 
-		log.Printf("wrote     %s (%d attributes)", path, len(res.Attributes))
+		log.Printf("wrote     %s (%d attributes)", path, len(res.Schema.Attributes))
 		written++
 	}
 

@@ -239,8 +239,8 @@ func applyToResource(
 
 	// Attributes are walked by pointer, including one level of nesting, so a fact about a
 	// field inside an object lands on the right attribute.
-	for i := range res.Attributes {
-		applyToAttribute(res, &res.Attributes[i], "", byPath, opts, result)
+	for i := range res.Schema.Attributes {
+		applyToAttribute(res, &res.Schema.Attributes[i], "", byPath, opts, result)
 	}
 
 	// Anything left addressed a field with no attribute. Reported, because a fact that cannot

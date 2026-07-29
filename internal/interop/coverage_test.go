@@ -22,9 +22,11 @@ func bp(attrs ...blueprint.Attribute) blueprint.Blueprint {
 			TypePrefix: "example",
 		},
 		Resources: []blueprint.Resource{{
-			Key:           "thing",
-			TerraformType: "example_thing",
-			Attributes:    attrs,
+			Key:  "thing",
+			Name: "thing",
+			Schema: blueprint.Schema{
+				Attributes: attrs,
+			},
 		}},
 	}
 }
@@ -552,7 +554,9 @@ func TestUnit_Interop_DataSourceLosesModifiersAndDefaults(t *testing.T) {
 	in := bp()
 	in.Resources = nil
 	in.DataSources = []blueprint.DataSource{{
-		Key: "thing", TerraformType: "example_thing", Attributes: []blueprint.Attribute{a},
+		Key: "thing", Name: "thing", Schema: blueprint.Schema{
+			Attributes: []blueprint.Attribute{a},
+		},
 	}}
 
 	s, report, err := FromBlueprint(in)
@@ -615,7 +619,7 @@ func TestUnit_Interop_DropIsCountedNotSilent(t *testing.T) {
 	// A dropped resource, and a dropped data source, take the same path.
 	in := bp(keep)
 	in.Resources[0].Drop = true
-	in.DataSources = []blueprint.DataSource{{Key: "d", TerraformType: "example_d", Drop: true}}
+	in.DataSources = []blueprint.DataSource{{Key: "d", Name: "d", Drop: true}}
 
 	_, report, err = FromBlueprint(in)
 	if err != nil {
@@ -623,30 +627,6 @@ func TestUnit_Interop_DropIsCountedNotSilent(t *testing.T) {
 	}
 	if report.Omitted != 2 || report.Resources != 0 || report.DataSources != 0 {
 		t.Errorf("report = %+v, want 2 omitted and nothing exported", report)
-	}
-}
-
-func TestUnit_Interop_ShortName(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		terraformType, prefix, provider, want string
-	}{
-		{"thousandeyes_tag", "thousandeyes", "thousandeyes", "tag"},
-		// TypePrefix empty is legal and means the provider name.
-		{"thousandeyes_tag", "", "thousandeyes", "tag"},
-		// A prefix that does not match leaves the name alone rather than mangling it.
-		{"tag", "thousandeyes", "thousandeyes", "tag"},
-		{"other_tag", "thousandeyes", "thousandeyes", "other_tag"},
-		{"thousandeyes_test_http_server", "thousandeyes", "thousandeyes", "test_http_server"},
-	}
-
-	for _, tc := range tests {
-		got := shortName(tc.terraformType, tc.prefix, tc.provider)
-		if got != tc.want {
-			t.Errorf("shortName(%q, %q, %q) = %q, want %q",
-				tc.terraformType, tc.prefix, tc.provider, got, tc.want)
-		}
 	}
 }
 
@@ -816,12 +796,16 @@ func TestUnit_Interop_ResourcesAreSortedByExportedName(t *testing.T) {
 	in := bp(attr("f", blueprint.KindString, blueprint.Optional))
 	in.Resources = []blueprint.Resource{
 		{
-			Key: "aaa", TerraformType: "example_zebra",
-			Attributes: []blueprint.Attribute{attr("f", blueprint.KindString, blueprint.Optional)},
+			Key: "aaa", Name: "zebra",
+			Schema: blueprint.Schema{
+				Attributes: []blueprint.Attribute{attr("f", blueprint.KindString, blueprint.Optional)},
+			},
 		},
 		{
-			Key: "zzz", TerraformType: "example_antelope",
-			Attributes: []blueprint.Attribute{attr("f", blueprint.KindString, blueprint.Optional)},
+			Key: "zzz", Name: "antelope",
+			Schema: blueprint.Schema{
+				Attributes: []blueprint.Attribute{attr("f", blueprint.KindString, blueprint.Optional)},
+			},
 		},
 	}
 

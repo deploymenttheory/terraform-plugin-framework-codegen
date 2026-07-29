@@ -91,9 +91,9 @@ type attrSlice struct {
 
 func schemaSliceOf(r blueprint.Resource) schemaSlice {
 	return schemaSlice{
-		MarkdownDescription: r.MarkdownDescription,
-		DeprecationMessage:  r.DeprecationMessage,
-		Attributes:          attrSlicesOf(r.Attributes),
+		MarkdownDescription: r.Schema.MarkdownDescription,
+		DeprecationMessage:  r.Schema.DeprecationMessage,
+		Attributes:          attrSlicesOf(r.Schema.Attributes),
 	}
 }
 
@@ -205,7 +205,7 @@ func TestUnit_Interop_RoundtripStaticDefaults(t *testing.T) {
 				t.Fatalf("ToBlueprint: %v", err)
 			}
 
-			got := back.Resources[0].Attributes[0].Default
+			got := back.Resources[0].Schema.Attributes[0].Default
 			if got == nil || got.Static == nil {
 				t.Fatalf("the static default did not come back: %+v", got)
 			}
@@ -294,8 +294,8 @@ func TestUnit_Interop_ImportRequiresAProviderName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ToBlueprint: %v", err)
 	}
-	if got := back.Resources[0].TerraformType; got != "example_thing" {
-		t.Errorf("TerraformType = %q, want example_thing", got)
+	if got := back.Resources[0].Name; got != "thing" {
+		t.Errorf("Name = %q, want thing", got)
 	}
 	if got := back.Provider.TypePrefix; got != "example" {
 		t.Errorf("TypePrefix = %q, want example", got)
@@ -500,7 +500,7 @@ func TestUnit_Interop_ImportConvertsBlocks(t *testing.T) {
 		t.Fatalf("ToBlueprint: %v", err)
 	}
 
-	attrs := back.Resources[0].Attributes
+	attrs := back.Resources[0].Schema.Attributes
 	if len(attrs) != 4 {
 		t.Fatalf("got %d attributes, want 4 (one attribute plus three converted blocks)", len(attrs))
 	}
@@ -554,7 +554,7 @@ func TestUnit_Interop_ImportPromotesAPlainDescription(t *testing.T) {
 		t.Fatalf("ToBlueprint: %v", err)
 	}
 
-	if got := back.Resources[0].Attributes[0].MarkdownDescription; got != plain {
+	if got := back.Resources[0].Schema.Attributes[0].MarkdownDescription; got != plain {
 		t.Errorf("MarkdownDescription = %q, want %q", got, plain)
 	}
 
@@ -788,7 +788,7 @@ func TestUnit_Interop_ImportDefaultsCarryBothForms(t *testing.T) {
 
 	wantRaw := map[string]string{"b": "true", "s": `"x"`, "i": "3", "f": "2.5"}
 
-	for _, a := range back.Resources[0].Attributes {
+	for _, a := range back.Resources[0].Schema.Attributes {
 		if a.Default == nil {
 			t.Errorf("%s: lost its default", a.Name)
 			continue
@@ -828,7 +828,7 @@ func TestUnit_Interop_ImportSkipsNilValidators(t *testing.T) {
 		t.Fatalf("ToBlueprint: %v", err)
 	}
 
-	a := back.Resources[0].Attributes[0]
+	a := back.Resources[0].Schema.Attributes[0]
 	if len(a.Validators) != 0 || len(a.PlanModifiers) != 0 {
 		t.Errorf("an empty entry should be skipped, got %d validators and %d modifiers",
 			len(a.Validators), len(a.PlanModifiers))
@@ -856,7 +856,7 @@ func TestUnit_Interop_ImportCollectionsOfCollections(t *testing.T) {
 		t.Fatalf("ToBlueprint: %v", err)
 	}
 
-	got := back.Resources[0].Attributes[0].Type
+	got := back.Resources[0].Schema.Attributes[0].Type
 	if got.Kind != blueprint.KindList ||
 		got.ElementType == nil || got.ElementType.Kind != blueprint.KindSet ||
 		got.ElementType.ElementType == nil || got.ElementType.ElementType.Kind != blueprint.KindMap ||
@@ -893,7 +893,7 @@ func TestUnit_Interop_ImportEveryScalarElementType(t *testing.T) {
 				t.Fatalf("ToBlueprint: %v", err)
 			}
 
-			if got := back.Resources[0].Attributes[0].Type.ElementType.Kind; got != want {
+			if got := back.Resources[0].Schema.Attributes[0].Type.ElementType.Kind; got != want {
 				t.Errorf("element kind = %q, want %q", got, want)
 			}
 		})

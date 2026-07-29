@@ -43,6 +43,14 @@ func Marshal(b Blueprint) ([]byte, error) {
 // schema says `policy.updateStyle`, sees no complaint, and gets a provider that
 // clears attributes it should preserve.
 func Unmarshal(data []byte) (Blueprint, error) {
+	// The version is read first, before the strict decode, and that ordering is the whole point of
+	// having a version at all. A format change moves fields, so a document from the previous format
+	// fails a strict decode with "unknown field \"attributes\"" -- which tells a reader nothing
+	// about what is actually wrong or what to do about it.
+	if err := checkFormatVersion(data); err != nil {
+		return Blueprint{}, err
+	}
+
 	var b Blueprint
 
 	dec := json.NewDecoder(bytes.NewReader(data))
@@ -52,16 +60,41 @@ func Unmarshal(data []byte) (Blueprint, error) {
 		return Blueprint{}, fmt.Errorf("parsing blueprint: %w", err)
 	}
 
-	if b.FormatVersion != FormatVersion {
-		return Blueprint{}, fmt.Errorf("%w: %q (this build understands %q)",
-			ErrUnsupportedFormat, b.FormatVersion, FormatVersion)
-	}
-
 	if err := b.Validate(); err != nil {
 		return Blueprint{}, err
 	}
 
 	return b, nil
+}
+
+// checkFormatVersion reads only formatVersion, tolerating everything else.
+//
+// Deliberately not strict: the document being checked is one this build may not understand, so
+// refusing it for an unknown field would defeat the purpose. A fragment with no formatVersion at all
+// is accepted here and settled by the caller, because a resource file legitimately omits it.
+func checkFormatVersion(data []byte) error {
+	var peek struct {
+		FormatVersion string `json:"formatVersion"`
+	}
+
+	if err := json.Unmarshal(data, &peek); err != nil {
+		// Not decodable even loosely, so let the strict decode produce the better message.
+		return nil
+	}
+
+	if peek.FormatVersion == "" || peek.FormatVersion == FormatVersion {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"%w: found %q, this build understands %q. Blueprints written before format %s "+
+			"put attributes directly on a resource; they now live under \"schema\". Re-run `ingest` "+
+			"against the snapshot, or move the key by hand",
+		ErrUnsupportedFormat,
+		peek.FormatVersion,
+		FormatVersion,
+		FormatVersion,
+	)
 }
 
 // Load reads and validates a blueprint from a file.
@@ -112,7 +145,12 @@ func LoadDir(root string) (Blueprint, error) {
 		return Blueprint{}, err
 	}
 	if len(paths) == 0 {
-		return Blueprint{}, fmt.Errorf("%w under %s (expected files named *%s)", ErrNoBlueprint, root, Ext)
+		return Blueprint{}, fmt.Errorf(
+			"%w under %s (expected files named *%s)",
+			ErrNoBlueprint,
+			root,
+			Ext,
+		)
 	}
 
 	// Sorted so that the merged result does not depend on directory order.
@@ -149,11 +187,21 @@ func LoadDir(root string) (Blueprint, error) {
 	}
 
 	if providerSetBy == "" {
-		return Blueprint{}, fmt.Errorf("%w: no file under %s declares a provider block", ErrInvalid, root)
+		return Blueprint{}, fmt.Errorf(
+			"%w: no file under %s declares a provider block",
+			ErrInvalid,
+			root,
+		)
 	}
 
-	sort.Slice(merged.Resources, func(i, j int) bool { return merged.Resources[i].Key < merged.Resources[j].Key })
-	sort.Slice(merged.DataSources, func(i, j int) bool { return merged.DataSources[i].Key < merged.DataSources[j].Key })
+	sort.Slice(
+		merged.Resources,
+		func(i, j int) bool { return merged.Resources[i].Key < merged.Resources[j].Key },
+	)
+	sort.Slice(
+		merged.DataSources,
+		func(i, j int) bool { return merged.DataSources[i].Key < merged.DataSources[j].Key },
+	)
 
 	// Validate once on the whole document. Cross-resource rules -- duplicate
 	// type names, duplicate import aliases -- are invisible to a per-file check,
@@ -171,6 +219,11 @@ func loadPart(path string) (Blueprint, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // the path is operator-supplied by design
 	if err != nil {
 		return Blueprint{}, fmt.Errorf("reading %s: %w", path, err)
+	}
+
+	// Version before strict decode, for the reason given on checkFormatVersion.
+	if err := checkFormatVersion(data); err != nil {
+		return Blueprint{}, fmt.Errorf("%s: %w", path, err)
 	}
 
 	var b Blueprint

@@ -150,7 +150,7 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 				// Plausible and absent, which is the shape of the mistake. "Colour" would not
 				// do: the SDK type really has one, so the binding would be valid and the case
 				// would silently stop testing anything.
-				b.Resources[0].Attributes[3].Wire.SDKField = "Shade"
+				b.Resources[0].Schema.Attributes[3].Wire.SDKField = "Shade"
 			},
 			wantPath:   "wire.sdkField",
 			wantDetail: `has no field "Shade"`,
@@ -219,7 +219,7 @@ func TestUnit_SDKBind_DoesNotCascadeOnABadBodyType(t *testing.T) {
 	t.Parallel()
 
 	bp, l := loadPilot(t)
-	attributeCount := len(bp.Resources[0].Attributes)
+	attributeCount := len(bp.Resources[0].Schema.Attributes)
 	bp.Resources[0].Binding.Body.ResponseType = "tags.TagResponse"
 
 	report := Verify(l, bp)

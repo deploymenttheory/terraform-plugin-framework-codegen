@@ -17,32 +17,34 @@ func testBlueprint() blueprint.Blueprint {
 		Provider:      blueprint.Provider{Name: "example"},
 		Resources: []blueprint.Resource{{
 			Key: "thing",
-			Attributes: []blueprint.Attribute{
-				{
-					Name: "colour", ComputedOptionalRequired: blueprint.ComputedOptional,
-					Type:                blueprint.AttrType{Kind: blueprint.KindString},
-					Wire:                blueprint.WireBinding{JSONPath: "colour"},
-					MarkdownDescription: "The thing's colour.",
-				},
-				{
-					Name: "key", ComputedOptionalRequired: blueprint.Required,
-					Type: blueprint.AttrType{Kind: blueprint.KindString},
-					Wire: blueprint.WireBinding{JSONPath: "key"},
-				},
-				{
-					Name: "items", ComputedOptionalRequired: blueprint.Optional,
-					Type: blueprint.AttrType{
-						Kind: blueprint.KindSetNested,
-						NestedObject: &blueprint.NestedAttributeObject{
-							GoTypeName: "ItemModel",
-							Attributes: []blueprint.Attribute{{
-								Name: "mode", ComputedOptionalRequired: blueprint.Optional,
-								Type: blueprint.AttrType{Kind: blueprint.KindString},
-								Wire: blueprint.WireBinding{JSONPath: "mode"},
-							}},
-						},
+			Schema: blueprint.Schema{
+				Attributes: []blueprint.Attribute{
+					{
+						Name: "colour", ComputedOptionalRequired: blueprint.ComputedOptional,
+						Type:                blueprint.AttrType{Kind: blueprint.KindString},
+						Wire:                blueprint.WireBinding{JSONPath: "colour"},
+						MarkdownDescription: "The thing's colour.",
 					},
-					Wire: blueprint.WireBinding{JSONPath: "items"},
+					{
+						Name: "key", ComputedOptionalRequired: blueprint.Required,
+						Type: blueprint.AttrType{Kind: blueprint.KindString},
+						Wire: blueprint.WireBinding{JSONPath: "key"},
+					},
+					{
+						Name: "items", ComputedOptionalRequired: blueprint.Optional,
+						Type: blueprint.AttrType{
+							Kind: blueprint.KindSetNested,
+							NestedObject: &blueprint.NestedAttributeObject{
+								GoTypeName: "ItemModel",
+								Attributes: []blueprint.Attribute{{
+									Name: "mode", ComputedOptionalRequired: blueprint.Optional,
+									Type: blueprint.AttrType{Kind: blueprint.KindString},
+									Wire: blueprint.WireBinding{JSONPath: "mode"},
+								}},
+							},
+						},
+						Wire: blueprint.WireBinding{JSONPath: "items"},
+					},
 				},
 			},
 		}},
@@ -72,7 +74,7 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()
-	before := bp.Resources[0].Attributes[0].ComputedOptionalRequired
+	before := bp.Resources[0].Schema.Attributes[0].ComputedOptionalRequired
 
 	facts := []probe.Fact{
 		// A server-default fact with no literal: the probe looked and found nothing.
@@ -103,9 +105,9 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 	}
 
 	// Nothing changed, even under apply.
-	if bp.Resources[0].Attributes[0].ComputedOptionalRequired != before {
+	if bp.Resources[0].Schema.Attributes[0].ComputedOptionalRequired != before {
 		t.Errorf("presence changed to %q; narrowing must never be automatic",
-			bp.Resources[0].Attributes[0].ComputedOptionalRequired)
+			bp.Resources[0].Schema.Attributes[0].ComputedOptionalRequired)
 	}
 
 	if !errors.Is(result.Err(), ErrConflicts) {
@@ -141,7 +143,7 @@ func TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed(t *testing.T) {
 		t.Errorf("Err() = %v, want nil", result.Err())
 	}
 
-	attr := bp.Resources[0].Attributes[0]
+	attr := bp.Resources[0].Schema.Attributes[0]
 
 	if attr.Behaviour.ServerDefault == nil || attr.Behaviour.ServerDefault.Raw != `"blue"` {
 		t.Errorf("the server default was not recorded: %+v", attr.Behaviour.ServerDefault)
@@ -192,7 +194,7 @@ func TestUnit_Merge_DerivedDefaultConfirmsTheGuess(t *testing.T) {
 	if len(result.Conflicts) != 0 {
 		t.Errorf("a derived default should not conflict with computed_optional: %+v", result.Conflicts)
 	}
-	if bp.Resources[0].Attributes[0].ComputedOptionalRequired != blueprint.ComputedOptional {
+	if bp.Resources[0].Schema.Attributes[0].ComputedOptionalRequired != blueprint.ComputedOptional {
 		t.Error("presence should be left alone")
 	}
 
@@ -211,7 +213,7 @@ func TestUnit_Merge_DerivedDefaultConfirmsTheGuess(t *testing.T) {
 
 	// And a static default on a derived value is a conflict, because it is a permanent lie.
 	withStatic := testBlueprint()
-	withStatic.Resources[0].Attributes[0].Default = &blueprint.Default{
+	withStatic.Resources[0].Schema.Attributes[0].Default = &blueprint.Default{
 		Static: &blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`},
 	}
 
@@ -249,7 +251,7 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 			t.Errorf("confirming a requirement should not conflict: %+v", result.Conflicts)
 		}
 
-		attr := bp.Resources[0].Attributes[1]
+		attr := bp.Resources[0].Schema.Attributes[1]
 		if attr.ComputedOptionalRequired != blueprint.Required {
 			t.Errorf("presence = %q, want it left required", attr.ComputedOptionalRequired)
 		}
@@ -281,7 +283,7 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 		if len(result.Conflicts) != 1 {
 			t.Fatalf("annotate should report rather than change presence: %+v", result.Conflicts)
 		}
-		if annotated.Resources[0].Attributes[1].ComputedOptionalRequired != blueprint.Required {
+		if annotated.Resources[0].Schema.Attributes[1].ComputedOptionalRequired != blueprint.Required {
 			t.Error("annotate must not change presence")
 		}
 
@@ -290,8 +292,8 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 			t.Fatalf("Apply: %v", err)
 		}
 
-		if bp.Resources[0].Attributes[1].ComputedOptionalRequired != blueprint.Optional {
-			t.Errorf("presence = %q, want optional", bp.Resources[0].Attributes[1].ComputedOptionalRequired)
+		if bp.Resources[0].Schema.Attributes[1].ComputedOptionalRequired != blueprint.Optional {
+			t.Errorf("presence = %q, want optional", bp.Resources[0].Schema.Attributes[1].ComputedOptionalRequired)
 		}
 
 		// Widening is safe but surprising, so it has to be said out loud.
@@ -379,7 +381,7 @@ func TestUnit_Merge_ImmutableNeverSetsAPlanModifier(t *testing.T) {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	attr := bp.Resources[0].Attributes[0]
+	attr := bp.Resources[0].Schema.Attributes[0]
 
 	if len(attr.PlanModifiers) != 0 {
 		t.Errorf("merge must never add a plan modifier: %+v", attr.PlanModifiers)
@@ -427,7 +429,7 @@ func TestUnit_Merge_SuspectedFactsAreNeverApplied(t *testing.T) {
 	if result.Ignored != 2 {
 		t.Errorf("Ignored = %d, want 2 -- a run that ignored facts must say so", result.Ignored)
 	}
-	if bp.Resources[0].Attributes[0].Behaviour.Writable != nil {
+	if bp.Resources[0].Schema.Attributes[0].Behaviour.Writable != nil {
 		t.Error("behaviour was written from a suspected fact")
 	}
 }
@@ -557,7 +559,7 @@ func TestUnit_Merge_NestedFieldsAreReached(t *testing.T) {
 		t.Fatalf("a nested field should be found: %+v", result.Conflicts)
 	}
 
-	nested := bp.Resources[0].Attributes[2].Type.NestedObject.Attributes[0]
+	nested := bp.Resources[0].Schema.Attributes[2].Type.NestedObject.Attributes[0]
 	if nested.Behaviour.Volatile == nil || !*nested.Behaviour.Volatile {
 		t.Errorf("the nested attribute's behaviour was not written: %+v", nested.Behaviour)
 	}
@@ -655,7 +657,7 @@ func TestUnit_Merge_IsIdempotent(t *testing.T) {
 		t.Fatal("the first merge should change something, or this test is vacuous")
 	}
 
-	afterFirst := bp.Resources[0].Attributes[0].MarkdownDescription
+	afterFirst := bp.Resources[0].Schema.Attributes[0].MarkdownDescription
 
 	second, err := Apply(&bp, facts, opts)
 	if err != nil {
@@ -666,7 +668,7 @@ func TestUnit_Merge_IsIdempotent(t *testing.T) {
 		t.Errorf("the second merge changed %d thing(s); merging the same evidence twice must be "+
 			"a no-op:\n%+v", len(second.Changes), second.Changes)
 	}
-	if got := bp.Resources[0].Attributes[0].MarkdownDescription; got != afterFirst {
+	if got := bp.Resources[0].Schema.Attributes[0].MarkdownDescription; got != afterFirst {
 		t.Errorf("the description drifted on a second merge:\n--- first\n%s\n--- second\n%s",
 			afterFirst, got)
 	}
@@ -776,7 +778,7 @@ func TestUnit_Merge_EnumFactsDescribeButDoNotValidate(t *testing.T) {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	attr := bp.Resources[0].Attributes[0]
+	attr := bp.Resources[0].Schema.Attributes[0]
 
 	// **No validator**, ever. An over-tight one rejects configurations the API would have
 	// accepted, and the practitioner cannot work around it.

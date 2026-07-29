@@ -21,7 +21,7 @@ const maxNestDepth = 1
 func nestedShapes(r blueprint.Resource) ([]nestedShape, error) {
 	var out []nestedShape
 
-	for _, a := range r.Attributes {
+	for _, a := range r.Schema.Attributes {
 		if a.Drop || !a.Type.Kind.IsNested() {
 			continue
 		}

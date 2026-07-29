@@ -235,14 +235,14 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	v := ResourceView{
 		Header:              GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
 		Package:             r.GoPackage,
-		ResourceName:        r.TerraformType,
+		ResourceName:        bp.Provider.TerraformType(r.Name),
 		GoTypeName:          r.GoTypeName,
 		ModelTypeName:       r.ModelTypeName,
 		ConstructorFn:       "New" + r.GoTypeName,
 		SDKClientType:       bp.Provider.SDK.ClientType,
 		ServiceAccessor:     r.Binding.Service.Accessor,
 		IDField:             r.Binding.ID.GoField,
-		MarkdownDescription: r.MarkdownDescription,
+		MarkdownDescription: r.Schema.MarkdownDescription,
 		Timeouts:            timeoutsView(r, bp.Provider.Conventions.DefaultTimeouts),
 	}
 
@@ -359,7 +359,7 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 }
 
 func usesElementTypes(r blueprint.Resource) bool {
-	for _, a := range r.Attributes {
+	for _, a := range r.Schema.Attributes {
 		if !a.Drop && a.Type.Kind.IsCollection() {
 			return true
 		}
@@ -465,7 +465,7 @@ func (e *ErrUnsupported) Error() string {
 }
 
 func attributes(r blueprint.Resource, imports *importSet) (attrs, fields []string, err error) {
-	for _, a := range r.Attributes {
+	for _, a := range r.Schema.Attributes {
 		if a.Drop {
 			continue
 		}
@@ -721,7 +721,7 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 		v.NestedObject = append(v.NestedObject, nestedExpandView(sh))
 	}
 
-	for _, a := range r.Attributes {
+	for _, a := range r.Schema.Attributes {
 		if a.Drop || a.Wire.SkipExpand || a.Wire.Expand == nil {
 			continue
 		}
@@ -753,7 +753,7 @@ func stateView(r blueprint.Resource, shapes []nestedShape) StateView {
 		v.NestedObject = append(v.NestedObject, nestedFlattenView(sh))
 	}
 
-	for _, a := range r.Attributes {
+	for _, a := range r.Schema.Attributes {
 		if a.Drop || a.Wire.SkipFlatten || a.Wire.Flatten == nil {
 			continue
 		}
@@ -945,7 +945,7 @@ func argExpr(r blueprint.Resource, a blueprint.Argument) (string, error) {
 }
 
 func findAttribute(r blueprint.Resource, name string) (blueprint.Attribute, bool) {
-	for _, a := range r.Attributes {
+	for _, a := range r.Schema.Attributes {
 		if a.Name == name {
 			return a, true
 		}
