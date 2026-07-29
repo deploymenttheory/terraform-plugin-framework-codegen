@@ -150,9 +150,11 @@ const (
 	ArgStateField ArgKind = "stateField"
 	// ArgPlanField reads a model field from the plan.
 	ArgPlanField ArgKind = "planField"
-	// ArgConfigField reads a model field from a data source's configuration, which is
-	// the only place a data source has to read an argument from: it has no prior state
-	// and no plan.
+	// ArgConfigField reads a model field from configuration.
+	//
+	// Used by a data source and by an action, which are the two kinds with nowhere else to
+	// read an argument from: neither has prior state and neither has a plan. Both decode
+	// into a variable named data, so one kind serves both rather than each having its own.
 	ArgConfigField ArgKind = "configField"
 	// ArgBody passes the constructed request body.
 	ArgBody ArgKind = "body"

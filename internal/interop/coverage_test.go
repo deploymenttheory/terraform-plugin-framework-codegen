@@ -422,6 +422,9 @@ func TestUnit_Interop_Severities(t *testing.T) {
 		// no coarser form to fall back to.
 		"identity": SeverityDropped,
 		"list":     SeverityDropped,
+		// An entire block kind with no counterpart, so it is reported once for the kind
+		// rather than per action.
+		"actionKind": SeverityDropped,
 
 		"goField":             SeverityInfo,
 		"wire":                SeverityDropped,

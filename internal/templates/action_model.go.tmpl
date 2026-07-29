@@ -1,0 +1,37 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{- if .NestedModels }}
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+{{- end }}
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// {{ .ModelTypeName }} is the configuration for a {{ .ActionName }}.
+//
+// Named for configuration rather than state, because an action has no state: this is decoded
+// from InvokeRequest.Config and never written back.
+type {{ .ModelTypeName }} struct {
+{{- range .ModelFields }}
+	{{ . }}
+{{- end }}
+}
+{{ range .NestedModels }}
+// {{ .GoTypeName }} is one element of a nested attribute.
+type {{ .GoTypeName }} struct {
+{{- range .Fields }}
+	{{ . }}
+{{- end }}
+}
+
+// {{ .AttrTypesVar }} describes {{ .GoTypeName }} to the framework.
+var {{ .AttrTypesVar }} = map[string]attr.Type{
+{{- range .AttrTypeEntries }}
+	{{ . }}
+{{- end }}
+}
+
+var {{ .ObjectTypeVar }} = types.ObjectType{AttrTypes: {{ .AttrTypesVar }}}
+{{ end }}

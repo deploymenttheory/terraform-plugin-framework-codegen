@@ -261,6 +261,12 @@ var taxonomy = map[string]Note{
 		"the resource identity schema has no counterpart: the specification models a schema " +
 			"and nothing about how Terraform addresses an object independently of it",
 	},
+	"actionKind": {
+		SeverityDropped, "actions",
+		"the specification has no representation for an action at all -- it models resources, " +
+			"data sources and a provider -- so every action in this blueprint is absent from " +
+			"the exported document",
+	},
 	"list": {
 		SeverityDropped, "list",
 		"the list facet has no counterpart: the specification models resources, data sources " +

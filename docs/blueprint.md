@@ -94,6 +94,41 @@ error in generated output, which names neither.
 An action or list attribute having no `computed` is why a list resource's config schema
 is filter-only: there is nowhere to put a result.
 
+## Action
+
+The simplest block kind, because an action has nothing to reconcile: it reads configuration,
+calls the API once and reports what happened. `InvokeRequest` carries only a config and
+`InvokeResponse` has no field for a result.
+
+```jsonc
+{
+  "key": "disable_endpoint_agent",
+  "name": "disable_endpoint_agent",
+  "schema":  { "attributes": [ { "name": "agent_id", ... } ] },
+  "binding": { "service": {...}, "invoke": { "method": "DisableEndpointAgent", ... } }
+}
+```
+
+Three files, against a resource's five: `action.go`, `model.go`, `invoke.go`. No
+`construct.go`, because an action sends its arguments as **call parameters** rather than a
+request body; no `state.go`, because it writes nothing back.
+
+That absence drives the per-kind rules, and correcting them was what generating the first
+real action forced:
+
+- **An action does not expand.** `Expands()` returned true for it on the reasoning that an
+  action sends values to the API — it does, but as arguments, and there is no construct
+  function for an expand to build into. It is now resource-only.
+- **An action does not flatten.** Requiring a flatten of every kind — "every kind reads" —
+  made the first action unrepresentable. A flatten *on* an action attribute is now refused,
+  because it would convert into somewhere that does not exist.
+- **No `computed`, no `sensitive`, no plan modifiers, no default.** There is no state for a
+  computed value to live in and no stored value to mark sensitive. `BlockAction` has encoded
+  this since format 3; the action is simply the first kind to exercise it.
+
+The deadline is a generated constant with no timeouts block to override it, because the
+framework's action schema has no home for one.
+
 ## Identity, and the list facet
 
 Both are **facets of a resource**, not sibling blocks, and that is not a modelling
