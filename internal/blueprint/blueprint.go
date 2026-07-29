@@ -187,6 +187,25 @@ type Resource struct {
 	Import   ImportPolicy    `json:"import,omitzero"`
 	Timeouts Timeouts        `json:"timeouts,omitzero"`
 
+	// Identity is the resource identity schema, which makes the generated resource satisfy
+	// ResourceWithIdentity. Absent means the resource declares no identity.
+	//
+	// A facet of the resource rather than a sibling block, because that is what it is: the
+	// framework reaches it through a method on the resource, and it is meaningless without
+	// one.
+	Identity *ResourceIdentity `json:"identity,omitempty"`
+
+	// List is the list-resource facet, which backs `terraform query` and feeds
+	// `terraform plan -generate-config-out`.
+	//
+	// A facet rather than a sibling block, and that is not a modelling preference. The
+	// framework requires a list resource's type name to equal the managed resource's --
+	// that string is the entire linkage between them, there is no import from one package
+	// to the other -- and it requires the managed resource to declare an identity, because
+	// ListResult.Identity is mandatory. Modelled here, both of those are unrepresentable if
+	// violated rather than validated after the fact.
+	List *ListFacet `json:"list,omitempty"`
+
 	// Drop excludes the resource from emission. Only a hand-authored override
 	// layer may set it, so that a probe run against a tenant which can see
 	// nothing cannot quietly delete half a provider.
@@ -314,6 +333,103 @@ type AttrType struct {
 	// from the specification rather than from somebody's transcription: the pilot's committed
 	// description listed five object types where the specification declares six.
 	AllowedValues []string `json:"allowedValues,omitempty"`
+}
+
+// ListFacet makes a resource list-supporting.
+//
+// Its purpose is discovery and import rather than data retrieval: `terraform query` reads it
+// and `terraform plan -generate-config-out` turns the answer into configuration. That is why
+// the reference provider populates only Identity and DisplayName on each result and never
+// Resource -- the workflow generates configuration from the identity, it does not read
+// objects out of the query.
+type ListFacet struct {
+	// GoTypeName is the generated list resource struct, e.g. "TagListResource".
+	GoTypeName string `json:"goTypeName"`
+
+	Service ServiceRef `json:"service"`
+
+	// Read is the SDK call returning many objects. A list resource needs nothing more of
+	// the API than this: if there is a collection GET, that is the whole requirement.
+	Read *Operation `json:"read,omitempty"`
+
+	// Response is the SDK type the read returns and how its fields are reached.
+	Response ResponseModel `json:"response"`
+
+	// CollectionField is the field on the response holding the elements, e.g. "Tags". Empty
+	// when the response is itself the slice.
+	CollectionField string `json:"collectionField,omitempty"`
+	// ElementType is the Go type of one element, e.g. "tags.Tag".
+	//
+	// Not consumed by the emitter -- the generated loop infers its variable's type from the
+	// slice -- and recorded for the same reason as Operation.HTTPMethod: a reader of the
+	// blueprint should be able to see what is being iterated without going to the SDK, and
+	// reconstructing it later would be guesswork.
+	ElementType string `json:"elementType"`
+
+	// IdentityFrom maps each element onto the resource's identity model. The field names
+	// must be the identity's own, which is why validation cross-checks them.
+	IdentityFrom []ListIdentityMapping `json:"identityFrom"`
+
+	// DisplayNameFrom is the element field shown in `terraform query` output. Optional: a
+	// result with no display name is legal, just less useful.
+	DisplayNameFrom string `json:"displayNameFrom,omitempty"`
+	// DisplayNameIsPointer records whether that field needs dereferencing, which generated
+	// SDKs make the common case for a string.
+	DisplayNameIsPointer bool `json:"displayNameIsPointer,omitempty"`
+}
+
+// ListIdentityMapping fills one identity field from one element field.
+type ListIdentityMapping struct {
+	// GoField is the field on the identity model.
+	GoField string `json:"goField"`
+	// FromSDKField is the field on the SDK element.
+	FromSDKField string `json:"fromSdkField"`
+	// IsPointer records whether the SDK field needs dereferencing before assignment.
+	IsPointer bool `json:"isPointer,omitempty"`
+}
+
+// ResourceIdentity is a resource's identity schema.
+//
+// Terraform uses it to address an object independently of configuration, which is what
+// makes import by identity and list resources possible. In terraform-provider-microsoft365
+// all 154 uses are the same shape -- one required-for-import "id" -- but it is modelled as
+// a list because the framework permits a composite identity, and an API keyed by a pair
+// would otherwise need the emitter changed rather than a blueprint written.
+type ResourceIdentity struct {
+	Attributes []IdentityAttribute `json:"attributes"`
+
+	// GoTypeName is the generated struct both the resource and its list facet decode the
+	// identity into, e.g. "TagResourceIdentity". One type shared by both, so the two cannot
+	// disagree about the shape.
+	GoTypeName string `json:"goTypeName"`
+}
+
+// IdentityAttribute is one member of an identity schema.
+//
+// Deliberately not blueprint.Attribute. An identity attribute has no presence, no
+// validators, no plan modifiers and no default -- the framework's identityschema package
+// gives it RequiredForImport and OptionalForImport instead, and reusing Attribute would
+// offer a dozen fields that have nowhere to go.
+type IdentityAttribute struct {
+	// Name is the identity attribute name, almost always "id".
+	Name string `json:"name"`
+	// GoField is the field on the generated identity struct.
+	GoField string `json:"goField"`
+	// Kind is the scalar type. The framework's identityschema has no nested or collection
+	// attribute beyond a list of scalars, so a nested kind here is refused.
+	Kind TypeKind `json:"kind"`
+
+	// RequiredForImport and OptionalForImport are the framework's own two flags. Exactly
+	// one must be set: an attribute that is neither can never be supplied, and one that is
+	// both is a contradiction the framework rejects at runtime.
+	RequiredForImport bool `json:"requiredForImport,omitempty"`
+	OptionalForImport bool `json:"optionalForImport,omitempty"`
+
+	Description string `json:"description,omitempty"`
+
+	// FromAttribute names the resource attribute this mirrors, so generated code can copy
+	// the value out of the resource model rather than fetching it again.
+	FromAttribute string `json:"fromAttribute"`
 }
 
 // NestedAttributeObject is the object shape a nested attribute holds.

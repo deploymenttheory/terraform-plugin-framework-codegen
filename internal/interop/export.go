@@ -214,6 +214,17 @@ func reportResourceLosses(res blueprint.Resource, path string, r *Report) {
 	if res.DocRefURL != "" {
 		r.note("docRefUrl", path+".docRefUrl")
 	}
+
+	// Both are facets the format has no representation for, and both are structural rather
+	// than cosmetic: a document exported from this blueprint describes a resource that cannot
+	// be addressed by identity and cannot be listed. Silence here would let a reader believe
+	// otherwise.
+	if res.Identity != nil {
+		r.note("identity", path+".identity")
+	}
+	if res.List != nil {
+		r.note("list", path+".list")
+	}
 }
 
 // reportDataSourceLosses is the data source counterpart of reportResourceLosses.

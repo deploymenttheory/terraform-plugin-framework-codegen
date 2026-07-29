@@ -167,6 +167,9 @@ func (g *Generator) resourceFiles(
 		{"construct.go", "construct.go.tmpl", len(view.Construct.Assignments) == 0},
 		{"state.go", "state.go.tmpl", len(view.State.Assignments) == 0},
 		{"crud.go", "crud.go.tmpl", false},
+		// A list resource lives beside the resource it lists, because it is a facet of it:
+		// same package, same type name, same identity schema.
+		{"list_resource.go", "list_resource.go.tmpl", view.List == nil},
 	}
 
 	out := make([]File, 0, len(wanted))
@@ -238,6 +241,7 @@ func (g *Generator) registrationFiles(
 	}{
 		{"resources.go", "provider_resources.go.tmpl", render.KindResources},
 		{"datasources.go", "provider_datasources.go.tmpl", render.KindDataSources},
+		{"list_resources.go", "provider_list_resources.go.tmpl", render.KindListResources},
 	}
 
 	out := make([]File, 0, len(specs))
