@@ -300,6 +300,169 @@
                         "func": "convert.PtrFloat64ToFramework"
                       }
                     }
+                  },
+                  {
+                    "name": "assignments",
+                    "goField": "Assignments",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "TagSummaryAssignmentModel",
+                        "sdkType": "tags.Assignment",
+                        "attrTypesVar": "tagSummaryAssignmentAttrTypes",
+                        "objectTypeVar": "tagSummaryAssignmentObjectType",
+                        "flattenFunc": "flattenTagSummaryAssignments",
+                        "attributes": [
+                          {
+                            "name": "id",
+                            "goField": "ID",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "markdownDescription": "The identifier of the object the tag is assigned to.",
+                            "wire": {
+                              "jsonPath": "id",
+                              "sdkField": "ID",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "type",
+                            "goField": "Type",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "markdownDescription": "The kind of object assigned. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`.",
+                            "wire": {
+                              "jsonPath": "type",
+                              "sdkField": "Type",
+                              "sdkGoType": "tags.AssignmentType",
+                              "flatten": {
+                                "func": "convert.EnumToFramework"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Objects this tag is assigned to. A set rather than a list because the API does not preserve ordering.",
+                    "wire": {
+                      "jsonPath": "assignments",
+                      "sdkField": "Assignments",
+                      "sdkGoType": "[]tags.Assignment",
+                      "flatten": {
+                        "func": "flattenTagSummaryAssignments",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "filters",
+                    "goField": "Filters",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "TagSummaryFilterModel",
+                        "sdkType": "tags.TagFilter",
+                        "attrTypesVar": "tagSummaryFilterAttrTypes",
+                        "objectTypeVar": "tagSummaryFilterObjectType",
+                        "flattenFunc": "flattenTagSummaryFilters",
+                        "attributes": [
+                          {
+                            "name": "key",
+                            "goField": "Key",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "markdownDescription": "The filter key used for matching.",
+                            "wire": {
+                              "jsonPath": "key",
+                              "sdkField": "Key",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "mode",
+                            "goField": "Mode",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "markdownDescription": "How the filter values are matched.",
+                            "wire": {
+                              "jsonPath": "mode",
+                              "sdkField": "Mode",
+                              "sdkGoType": "tags.TagFilterMode",
+                              "flatten": {
+                                "func": "convert.EnumToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "scope",
+                            "goField": "Scope",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "markdownDescription": "The scope the filter applies within.",
+                            "wire": {
+                              "jsonPath": "scope",
+                              "sdkField": "Scope",
+                              "sdkGoType": "tags.TagFilterScope",
+                              "flatten": {
+                                "func": "convert.EnumToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "values",
+                            "goField": "Values",
+                            "type": {
+                              "kind": "set",
+                              "elementType": {
+                                "kind": "string"
+                              }
+                            },
+                            "computedOptionalRequired": "computed",
+                            "markdownDescription": "The values the filter matches against.",
+                            "wire": {
+                              "jsonPath": "values",
+                              "sdkField": "Values",
+                              "sdkGoType": "[]string",
+                              "flatten": {
+                                "func": "convert.StringSliceToFrameworkSet",
+                                "needsCtx": true,
+                                "returnsError": true
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Filters that dynamically assign this tag to endpoint agents.",
+                    "wire": {
+                      "jsonPath": "filters",
+                      "sdkField": "Filters",
+                      "sdkGoType": "[]tags.TagFilter",
+                      "flatten": {
+                        "func": "flattenTagSummaryFilters",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
                   }
                 ]
               }

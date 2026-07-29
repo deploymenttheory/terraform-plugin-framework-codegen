@@ -186,7 +186,7 @@ func collectionOf(item string) string {
 	return trimmed
 }
 
-// fieldsOf flattens attributes, descending one level into nested objects.
+// fieldsOf flattens attributes, descending fully into nested objects.
 //
 // NestedAttributeObject children are addressed with a dotted JSON path, which is how a probe reports
 // a fact about a field inside an object without needing to know Terraform's nesting
