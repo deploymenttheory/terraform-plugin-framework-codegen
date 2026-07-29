@@ -2,6 +2,7 @@ package blueprint
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,36 +15,38 @@ import (
 func validResource() Resource {
 	return Resource{
 		Key:            "tag",
-		TerraformType:  "thousandeyes_tag",
+		Name:           "tag",
 		GoPackage:      "tag",
 		GoPackageAlias: "v7Tag",
 		GoTypeName:     "TagResource",
 		ModelTypeName:  "TagResourceModel",
-		Attributes: []Attribute{
-			{
-				Name:                     "id",
-				GoField:                  "ID",
-				Type:                     AttrType{Kind: KindString},
-				ComputedOptionalRequired: Computed,
-				Wire: WireBinding{
-					JSONPath:   "id",
-					SDKField:   "ID",
-					SDKGoType:  "*string",
-					SkipExpand: true,
-					Flatten:    &ConvertCall{Func: "convert.PtrStringToFramework"},
+		Schema: Schema{
+			Attributes: []Attribute{
+				{
+					Name:                     "id",
+					GoField:                  "ID",
+					Type:                     AttrType{Kind: KindString},
+					ComputedOptionalRequired: Computed,
+					Wire: WireBinding{
+						JSONPath:   "id",
+						SDKField:   "ID",
+						SDKGoType:  "*string",
+						SkipExpand: true,
+						Flatten:    &ConvertCall{Func: "convert.PtrStringToFramework"},
+					},
 				},
-			},
-			{
-				Name:                     "key",
-				GoField:                  "Key",
-				Type:                     AttrType{Kind: KindString},
-				ComputedOptionalRequired: Required,
-				Wire: WireBinding{
-					JSONPath:  "key",
-					SDKField:  "Key",
-					SDKGoType: "*string",
-					Expand:    &ConvertCall{Func: "convert.FrameworkToPtrString"},
-					Flatten:   &ConvertCall{Func: "convert.PtrStringToFramework"},
+				{
+					Name:                     "key",
+					GoField:                  "Key",
+					Type:                     AttrType{Kind: KindString},
+					ComputedOptionalRequired: Required,
+					Wire: WireBinding{
+						JSONPath:  "key",
+						SDKField:  "Key",
+						SDKGoType: "*string",
+						Expand:    &ConvertCall{Func: "convert.FrameworkToPtrString"},
+						Flatten:   &ConvertCall{Func: "convert.PtrStringToFramework"},
+					},
 				},
 			},
 		},
@@ -145,13 +148,13 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 		},
 		{
 			name:     "resource with no attributes",
-			mutate:   func(b *Blueprint) { b.Resources[0].Attributes = nil },
+			mutate:   func(b *Blueprint) { b.Resources[0].Schema.Attributes = nil },
 			wantPath: "attributes",
 		},
 		{
 			name: "duplicate attribute name",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[1].Name = "id"
+				b.Resources[0].Schema.Attributes[1].Name = "id"
 			},
 			wantPath: "attribute name",
 		},
@@ -160,26 +163,26 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 			// loses an attribute.
 			name: "duplicate model field",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[1].GoField = "ID"
+				b.Resources[0].Schema.Attributes[1].GoField = "ID"
 			},
 			wantPath: "model field",
 		},
 		{
-			name: "duplicate terraform type across resources",
+			name: "duplicate name across resources",
 			mutate: func(b *Blueprint) {
 				second := validResource()
 				second.Key = "tag2"
 				second.GoPackageAlias = "v7Tag2"
 				b.Resources = append(b.Resources, second)
 			},
-			wantPath: "Terraform type",
+			wantPath: "name",
 		},
 		{
 			name: "duplicate import alias across resources",
 			mutate: func(b *Blueprint) {
 				second := validResource()
 				second.Key = "tag2"
-				second.TerraformType = "thousandeyes_tag2"
+				second.Name = "tag2"
 				b.Resources = append(b.Resources, second)
 			},
 			wantPath: "import alias",
@@ -187,21 +190,21 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 		{
 			name: "collection kind without an element type",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[1].Type = AttrType{Kind: KindSet}
+				b.Resources[0].Schema.Attributes[1].Type = AttrType{Kind: KindSet}
 			},
 			wantPath: "elem",
 		},
 		{
 			name: "scalar kind with an element type",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[1].Type.ElementType = &AttrType{Kind: KindString}
+				b.Resources[0].Schema.Attributes[1].Type.ElementType = &AttrType{Kind: KindString}
 			},
 			wantPath: "elem",
 		},
 		{
 			name: "unknown type kind",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[1].Type = AttrType{Kind: "octopus"}
+				b.Resources[0].Schema.Attributes[1].Type = AttrType{Kind: "octopus"}
 			},
 			wantPath: "kind",
 		},
@@ -282,21 +285,21 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 			// and inert is worse than broken because nothing complains.
 			name: "writable attribute with skipExpand",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[1].Wire.SkipExpand = true
+				b.Resources[0].Schema.Attributes[1].Wire.SkipExpand = true
 			},
 			wantPath: "would never reach the API",
 		},
 		{
 			name: "writable attribute with no expand conversion",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[1].Wire.Expand = nil
+				b.Resources[0].Schema.Attributes[1].Wire.Expand = nil
 			},
 			wantPath: "wire.expand",
 		},
 		{
 			name: "attribute with neither flatten nor skipFlatten",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[0].Wire.Flatten = nil
+				b.Resources[0].Schema.Attributes[0].Wire.Flatten = nil
 			},
 			wantPath: "wire.flatten",
 		},
@@ -304,7 +307,7 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 			// A default on a non-computed attribute is silently dead config.
 			name: "default on a non-computed attribute",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[1].Default = &Default{
+				b.Resources[0].Schema.Attributes[1].Default = &Default{
 					Static: &Literal{Kind: KindString, Raw: `"x"`},
 				}
 			},
@@ -313,7 +316,7 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 		{
 			name: "default setting both static and custom",
 			mutate: func(b *Blueprint) {
-				b.Resources[0].Attributes[0].Default = &Default{
+				b.Resources[0].Schema.Attributes[0].Default = &Default{
 					Static: &Literal{Kind: KindString, Raw: `"x"`},
 					Custom: &CustomCode{SchemaDefinition: "x()"},
 				}
@@ -444,11 +447,14 @@ func TestUnit_Blueprint_Marshal_IsDeterministic(t *testing.T) {
 func TestUnit_Blueprint_Unmarshal_RejectsUnknownFields(t *testing.T) {
 	t.Parallel()
 
-	data := `{
-	  "formatVersion": "1",
+	// The version is interpolated rather than written out: the version check runs
+	// before the strict decode, so a stale literal here would turn this into a second
+	// test of the version check instead of the unknown-field check.
+	data := fmt.Sprintf(`{
+	  "formatVersion": %q,
 	  "provider": {"name": "x", "goModule": "m", "typePrefix": "x", "updateStile": "putFull",
 	               "sdk": {"dialect": "restyService", "modulePath": "m", "clientType": "*c"}}
-	}`
+	}`, FormatVersion)
 
 	_, err := Unmarshal([]byte(data))
 	if err == nil {
@@ -514,7 +520,7 @@ func TestUnit_Blueprint_LoadDir_MergesAndSorts(t *testing.T) {
 	// exercised.
 	zebra := validResource()
 	zebra.Key = "zebra"
-	zebra.TerraformType = "thousandeyes_zebra"
+	zebra.Name = "zebra"
 	zebra.GoPackageAlias = "v7Zebra"
 	if err := Save(filepath.Join(dir, "resources", "zebra"+Ext),
 		Blueprint{FormatVersion: FormatVersion, Resources: []Resource{zebra}}); err != nil {
@@ -607,7 +613,7 @@ func TestUnit_Blueprint_LoadDir_ValidatesAcrossFiles(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected the cross-file type collision to be caught")
 	}
-	if !strings.Contains(err.Error(), "Terraform type") {
+	if !strings.Contains(err.Error(), "used more than once") {
 		t.Errorf("error should name the collision: %v", err)
 	}
 }

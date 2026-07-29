@@ -25,9 +25,11 @@
 // input changing would make the drift check useless.
 package blueprint
 
+import "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
+
 // FormatVersion is the blueprint format version. It is deliberately unrelated to
 // the Provider Code Specification's version, which this format does not track.
-const FormatVersion = "1"
+const FormatVersion = "2"
 
 // Blueprint is one provider.
 type Blueprint struct {
@@ -72,6 +74,17 @@ type Provider struct {
 	SDK         SDKModule   `json:"sdk"`
 	Conventions Conventions `json:"conventions,omitzero"`
 	Support     SupportPkgs `json:"support,omitzero"`
+}
+
+// TerraformType composes the registry-visible type name for a block from its short
+// Name, the way the framework composes it: Metadata sets
+// req.ProviderTypeName + "_" + Name.
+//
+// Every caller that needs the composed name goes through here, so there is exactly
+// one place the composition rule lives. That is the whole reason the blocks store
+// only the short name — see the note on Resource.Name.
+func (p Provider) TerraformType(name string) string {
+	return naming.TerraformTypeName(p.TypePrefix, name)
 }
 
 // SDKDialect distinguishes the call shapes a generated provider must produce.
@@ -141,8 +154,13 @@ type Resource struct {
 	// on it, so it is the one field a human must never casually rename.
 	Key string `json:"key"`
 
-	// TerraformType is the registry-visible type, e.g. "thousandeyes_tag".
-	TerraformType string `json:"terraformType"`
+	// Name is the type name without the provider prefix, e.g. "tag".
+	//
+	// The registry-visible type is composed from Provider.TypePrefix at render time, exactly as the
+	// framework composes it: Metadata sets req.ProviderTypeName + "_" + Name. Storing the composed
+	// string as well would denormalise it, and a denormalised field is one that can disagree with
+	// itself.
+	Name string `json:"name"`
 	// GoPackage is the directory and package name, e.g. "tag".
 	GoPackage string `json:"goPackage"`
 	// GoPackageAlias is the import alias the provider registration uses. It must
@@ -158,13 +176,11 @@ type Resource struct {
 	ServiceGroup  string `json:"serviceGroup,omitempty"`
 	APIVersionDir string `json:"apiVersionDir,omitempty"`
 
-	MarkdownDescription string `json:"markdownDescription,omitempty"`
 	// DocRefURL becomes the "// REF: <url>" comment above the model's package
 	// clause, as the archetype provider does.
-	DocRefURL          string `json:"docRefUrl,omitempty"`
-	DeprecationMessage string `json:"deprecationMessage,omitempty"`
+	DocRefURL string `json:"docRefUrl,omitempty"`
 
-	Attributes []Attribute `json:"attributes"`
+	Schema Schema `json:"schema"`
 
 	Binding  ResourceBinding `json:"binding"`
 	Policy   ResourcePolicy  `json:"policy,omitzero"`
@@ -180,16 +196,20 @@ type Resource struct {
 // DataSource is one Terraform data source. Phase 1 does not emit these; the type
 // exists so a blueprint written now does not need reshaping later.
 type DataSource struct {
-	Key            string      `json:"key"`
-	TerraformType  string      `json:"terraformType"`
-	GoPackage      string      `json:"goPackage"`
-	GoPackageAlias string      `json:"goPackageAlias"`
-	GoTypeName     string      `json:"goTypeName"`
-	ModelTypeName  string      `json:"modelTypeName"`
-	ServiceGroup   string      `json:"serviceGroup,omitempty"`
-	APIVersionDir  string      `json:"apiVersionDir,omitempty"`
-	Attributes     []Attribute `json:"attributes"`
-	Drop           bool        `json:"drop,omitempty"`
+	Key            string `json:"key"`
+	Name           string `json:"name"`
+	GoPackage      string `json:"goPackage"`
+	GoPackageAlias string `json:"goPackageAlias"`
+	GoTypeName     string `json:"goTypeName"`
+	ModelTypeName  string `json:"modelTypeName"`
+	ServiceGroup   string `json:"serviceGroup,omitempty"`
+	APIVersionDir  string `json:"apiVersionDir,omitempty"`
+
+	DocRefURL string `json:"docRefUrl,omitempty"`
+
+	Schema Schema `json:"schema"`
+
+	Drop bool `json:"drop,omitempty"`
 }
 
 // ComputedOptionalRequired is how Terraform treats an attribute. The four values are spelled
@@ -307,7 +327,38 @@ type NestedAttributeObject struct {
 	Attributes []Attribute `json:"attributes"`
 }
 
+// Schema is a block's schema, mirroring the framework's own schema.Schema.
+//
+// Every block kind has its own schema package -- resource/schema, datasource/schema,
+// ephemeral/schema, action/schema, list/schema -- whose types are structurally identical and differ
+// only in which fields they carry. So one Schema serves every kind, and which of an Attribute's
+// fields are legal is a function of the kind rendering it: see Attribute.
+//
+// Deliberately no Blocks. Blocks are the older configuration syntax and the choice is permanent for
+// a published provider. The reference provider surveyed for phase 5 --
+// terraform-provider-microsoft365, 170 resources -- uses ListNestedBlock exactly once, with an empty
+// validator slice and its cardinality enforced by hand elsewhere, against 366 SingleNestedAttribute,
+// 178 ListNestedAttribute and 110 SetNestedAttribute. It should have been a nested attribute. That
+// is the evidence for nested attributes only, replacing an earlier argument from the absence of an
+// upstream signal.
+type Schema struct {
+	Attributes []Attribute `json:"attributes"`
+
+	// Version is the schema version, bumped when an attribute change needs a state upgrader. Zero
+	// is the framework's default and the common case.
+	Version int64 `json:"version,omitempty"`
+
+	Description         string `json:"description,omitempty"`
+	MarkdownDescription string `json:"markdownDescription,omitempty"`
+	DeprecationMessage  string `json:"deprecationMessage,omitempty"`
+}
+
 // Attribute is one Terraform schema attribute.
+//
+// One type serves every block kind, and not every field is legal in every one of them. The
+// framework's per-kind schema packages differ: an action or list attribute has no Computed or
+// Sensitive, and only a resource attribute has PlanModifiers or Default. Validate refuses a field
+// the target kind has no home for rather than emitting code that will not compile.
 type Attribute struct {
 	// Name is the tfsdk name, snake_case.
 	Name string `json:"name"`
@@ -318,6 +369,9 @@ type Attribute struct {
 	ComputedOptionalRequired ComputedOptionalRequired `json:"computedOptionalRequired"`
 
 	Sensitive bool `json:"sensitive,omitempty"`
+	// WriteOnly marks a value the practitioner supplies that is never persisted to state. Legal on
+	// resource and action attributes only.
+	WriteOnly bool `json:"writeOnly,omitempty"`
 
 	MarkdownDescription string `json:"markdownDescription,omitempty"`
 	DeprecationMessage  string `json:"deprecationMessage,omitempty"`

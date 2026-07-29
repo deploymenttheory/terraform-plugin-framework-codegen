@@ -163,7 +163,7 @@ func inferWidget(t *testing.T) (blueprint.Resource, []Note) {
 
 func attrByName(t *testing.T, r blueprint.Resource, name string) blueprint.Attribute {
 	t.Helper()
-	for _, a := range r.Attributes {
+	for _, a := range r.Schema.Attributes {
 		if a.Name == name {
 			return a
 		}
@@ -173,8 +173,8 @@ func attrByName(t *testing.T, r blueprint.Resource, name string) blueprint.Attri
 }
 
 func attrNames(r blueprint.Resource) []string {
-	out := make([]string, 0, len(r.Attributes))
-	for _, a := range r.Attributes {
+	out := make([]string, 0, len(r.Schema.Attributes))
+	for _, a := range r.Schema.Attributes {
 		out = append(out, a.Name)
 	}
 	return out
@@ -419,7 +419,7 @@ func TestUnit_Infer_ReportsWhatItSkipped(t *testing.T) {
 		t.Errorf("the hypermedia envelope should be reported as skipped:\n%s", all)
 	}
 	for _, name := range []string{"links", "_links"} {
-		for _, a := range res.Attributes {
+		for _, a := range res.Schema.Attributes {
 			if a.Name == name {
 				t.Errorf("%q should not have become an attribute", name)
 			}
@@ -452,7 +452,7 @@ func TestUnit_Infer_NamesFollowTheConventions(t *testing.T) {
 
 	tests := map[string]string{
 		"key":            res.Key,
-		"terraformType":  res.TerraformType,
+		"name":           res.Name,
 		"goPackage":      res.GoPackage,
 		"goPackageAlias": res.GoPackageAlias,
 		"goTypeName":     res.GoTypeName,
@@ -460,7 +460,7 @@ func TestUnit_Infer_NamesFollowTheConventions(t *testing.T) {
 	}
 	want := map[string]string{
 		"key":            "widget",
-		"terraformType":  "example_widget",
+		"name":           "widget",
 		"goPackage":      "widget",
 		"goPackageAlias": "v1Widget",
 		"goTypeName":     "WidgetResource",
@@ -514,14 +514,14 @@ func TestUnit_Infer_IsDeterministic(t *testing.T) {
 
 	for i := range 10 {
 		again, _ := inferWidget(t)
-		if len(again.Attributes) != len(first.Attributes) {
+		if len(again.Schema.Attributes) != len(first.Schema.Attributes) {
 			t.Fatalf("run %d produced %d attributes, first produced %d",
-				i, len(again.Attributes), len(first.Attributes))
+				i, len(again.Schema.Attributes), len(first.Schema.Attributes))
 		}
-		for j := range again.Attributes {
-			if again.Attributes[j].Name != first.Attributes[j].Name {
+		for j := range again.Schema.Attributes {
+			if again.Schema.Attributes[j].Name != first.Schema.Attributes[j].Name {
 				t.Fatalf("run %d differs at %d: %q vs %q",
-					i, j, again.Attributes[j].Name, first.Attributes[j].Name)
+					i, j, again.Schema.Attributes[j].Name, first.Schema.Attributes[j].Name)
 			}
 		}
 	}
@@ -554,8 +554,8 @@ func TestUnit_Infer_AgainstTheCommittedSpecification(t *testing.T) {
 	}
 
 	// The mechanical parts must match the curated blueprint exactly.
-	if res.TerraformType != "thousandeyes_tag" {
-		t.Errorf("terraformType = %q", res.TerraformType)
+	if res.Name != "tag" {
+		t.Errorf("name = %q", res.Name)
 	}
 	if res.Binding.Service.Accessor != "r.client.API.Tags" {
 		t.Errorf("accessor = %q; the pinned SDK groups services under API", res.Binding.Service.Accessor)

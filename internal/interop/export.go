@@ -3,7 +3,6 @@ package interop
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-codegen-spec/datasource"
 	"github.com/hashicorp/terraform-plugin-codegen-spec/provider"
@@ -40,7 +39,7 @@ func FromBlueprint(bp blueprint.Blueprint) (spec.Specification, Report, error) {
 			continue
 		}
 
-		converted, err := exportResource(bp, res, &r)
+		converted, err := exportResource(res, &r)
 		if err != nil {
 			return spec.Specification{}, r, err
 		}
@@ -55,7 +54,7 @@ func FromBlueprint(bp blueprint.Blueprint) (spec.Specification, Report, error) {
 			continue
 		}
 
-		converted, err := exportDataSource(bp, ds, &r)
+		converted, err := exportDataSource(ds, &r)
 		if err != nil {
 			return spec.Specification{}, r, err
 		}
@@ -65,13 +64,19 @@ func FromBlueprint(bp blueprint.Blueprint) (spec.Specification, Report, error) {
 	}
 
 	// Sorted by the name the official document carries, not by blueprint key.
-	// LoadDir sorts by Key, and Key need not sort the same way as TerraformType --
+	// LoadDir sorts by Key, and Key need not sort the same way as Name --
 	// a resource keyed "tag" and typed "thousandeyes_tag" is the common case, but
 	// nothing enforces the correspondence. Sorting on the field that actually
 	// appears in the output is what makes the export independent of how the
 	// blueprint happens to be split across files.
-	sort.Slice(out.Resources, func(i, j int) bool { return out.Resources[i].Name < out.Resources[j].Name })
-	sort.Slice(out.DataSources, func(i, j int) bool { return out.DataSources[i].Name < out.DataSources[j].Name })
+	sort.Slice(
+		out.Resources,
+		func(i, j int) bool { return out.Resources[i].Name < out.Resources[j].Name },
+	)
+	sort.Slice(
+		out.DataSources,
+		func(i, j int) bool { return out.DataSources[i].Name < out.DataSources[j].Name },
+	)
 
 	return out, r, nil
 }
@@ -106,18 +111,18 @@ func exportProvider(p blueprint.Provider, r *Report) *provider.Provider {
 	return &provider.Provider{Name: p.Name}
 }
 
-func exportResource(bp blueprint.Blueprint, res blueprint.Resource, r *Report) (resource.Resource, error) {
+func exportResource(res blueprint.Resource, r *Report) (resource.Resource, error) {
 	path := fmt.Sprintf("resources[%s]", res.Key)
 
 	out := resource.Resource{
-		Name: shortName(res.TerraformType, bp.Provider.TypePrefix, bp.Provider.Name),
+		Name: res.Name,
 		Schema: &resource.Schema{
 			// Only MarkdownDescription is set. The schema carries both it and a
 			// plain Description, and writing the same text into both would double
 			// the size of the block for no reader: every consumer that renders one
 			// falls back to the other.
-			MarkdownDescription: strPtr(res.MarkdownDescription),
-			DeprecationMessage:  strPtr(res.DeprecationMessage),
+			MarkdownDescription: strPtr(res.Schema.MarkdownDescription),
+			DeprecationMessage:  strPtr(res.Schema.DeprecationMessage),
 		},
 	}
 
@@ -128,7 +133,7 @@ func exportResource(bp blueprint.Blueprint, res blueprint.Resource, r *Report) (
 		described int
 	)
 
-	for _, a := range res.Attributes {
+	for _, a := range res.Schema.Attributes {
 		if a.Drop {
 			r.Omitted++
 			continue
@@ -153,7 +158,11 @@ func exportResource(bp blueprint.Blueprint, res blueprint.Resource, r *Report) (
 	}
 
 	if len(out.Schema.Attributes) == 0 {
-		return resource.Resource{}, fmt.Errorf("%s: %w: a resource with no attributes", path, ErrUnrepresentable)
+		return resource.Resource{}, fmt.Errorf(
+			"%s: %w: a resource with no attributes",
+			path,
+			ErrUnrepresentable,
+		)
 	}
 
 	// The aggregate notes, each with its count so the reader can see the scale of
@@ -207,11 +216,11 @@ func reportResourceLosses(res blueprint.Resource, path string, r *Report) {
 	}
 }
 
-func exportDataSource(bp blueprint.Blueprint, ds blueprint.DataSource, r *Report) (datasource.DataSource, error) {
+func exportDataSource(ds blueprint.DataSource, r *Report) (datasource.DataSource, error) {
 	path := fmt.Sprintf("dataSources[%s]", ds.Key)
 
 	out := datasource.DataSource{
-		Name:   shortName(ds.TerraformType, bp.Provider.TypePrefix, bp.Provider.Name),
+		Name:   ds.Name,
 		Schema: &datasource.Schema{},
 	}
 
@@ -219,7 +228,7 @@ func exportDataSource(bp blueprint.Blueprint, ds blueprint.DataSource, r *Report
 
 	var acc attrLosses
 
-	for _, a := range ds.Attributes {
+	for _, a := range ds.Schema.Attributes {
 		if a.Drop {
 			r.Omitted++
 			continue
@@ -240,7 +249,11 @@ func exportDataSource(bp blueprint.Blueprint, ds blueprint.DataSource, r *Report
 	}
 
 	if len(out.Schema.Attributes) == 0 {
-		return datasource.DataSource{}, fmt.Errorf("%s: %w: a data source with no attributes", path, ErrUnrepresentable)
+		return datasource.DataSource{}, fmt.Errorf(
+			"%s: %w: a data source with no attributes",
+			path,
+			ErrUnrepresentable,
+		)
 	}
 
 	if acc.wire > 0 {
@@ -251,24 +264,4 @@ func exportDataSource(bp blueprint.Blueprint, ds blueprint.DataSource, r *Report
 	}
 
 	return out, nil
-}
-
-// shortName strips the provider prefix from a Terraform type.
-//
-// The official format's resource name is the suffix -- "tag", not
-// "thousandeyes_tag" -- because the provider name is already stated once at the top
-// of the document. Both the configured prefix and the provider name are tried, in
-// that order, since a blueprint may legitimately leave TypePrefix empty and mean
-// Name.
-func shortName(terraformType, typePrefix, providerName string) string {
-	for _, prefix := range []string{typePrefix, providerName} {
-		if prefix == "" {
-			continue
-		}
-		if trimmed := strings.TrimPrefix(terraformType, prefix+"_"); trimmed != terraformType {
-			return trimmed
-		}
-	}
-
-	return terraformType
 }

@@ -181,7 +181,9 @@ func TestUnit_Interop_EveryKindExportsAsADataSource(t *testing.T) {
 	in := bp()
 	in.Resources = nil
 	in.DataSources = []blueprint.DataSource{{
-		Key: "thing", TerraformType: "example_thing", Attributes: attrs,
+		Key: "thing", Name: "thing", Schema: blueprint.Schema{
+			Attributes: attrs,
+		},
 	}}
 
 	s, report, err := FromBlueprint(in)
