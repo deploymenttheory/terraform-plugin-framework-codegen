@@ -6,20 +6,24 @@ on:
 
 jobs:
   validate-pr-title:
-    name: '✅ Validate PR Title'
+    name: "✅ Validate PR Title"
     runs-on: ubuntu-latest
     steps:
-
       - name: Harden Runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
 
       - name: Check PR Title
+        # The title reaches the script through the environment, not through ${{ }}.
+        # Actions splices an expression into the script text before the shell runs, so a
+        # title containing a quote and a semicolon would execute as commands on the
+        # runner -- and a pull request title is supplied by whoever opened it.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          PR_TITLE="${{ github.event.pull_request.title }}"
           PATTERN="^(([Ff]eat|[Ff]ix|[Dd]ocs|[Ss]tyle|[Rr]efactor|[Tt]est|[Cc]hore|[Bb]uild|[Cc]i|[Pp]erf)(\(.+\))?: .+|dependabot.*)$"
-          
+
           if ! echo "$PR_TITLE" | grep -qE "$PATTERN"; then
             echo "❌ ERROR: Invalid PR title format"
             echo ""
@@ -50,5 +54,5 @@ jobs:
             echo "✅ dependabot: bump lodash from 4.17.20 to 4.17.21"
             exit 1
           fi
-          
+
           echo "✅ PR title '$PR_TITLE' follows the conventional commit format and is compatible with the release-please"

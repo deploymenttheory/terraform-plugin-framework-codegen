@@ -3,20 +3,19 @@ name: Linter
 on:
   pull_request:
     paths-ignore:
-      - '.github/**'
+      - ".github/**"
 
 permissions:
   contents: read
   packages: read
   statuses: write # To report GitHub Actions status checks
-  
+
 jobs:
   build:
-    name: '✨ Linter'
+    name: "✨ Linter"
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-
       - name: Harden Runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
@@ -25,8 +24,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          # Full history: super-linter diffs against DEFAULT_BRANCH to find changed files.
           fetch-depth: 0
-          
+          # This job lints and reports; it never pushes. Leaving the token in the
+          # runner's git config would only widen what a compromised step could reach.
+          persist-credentials: false
+
       - name: Lint Code Base with Super-Linter
         uses: super-linter/super-linter@61abc07d755095a68f4987d1c2c3d1d64408f1f9 # v8.5.0
         env:
