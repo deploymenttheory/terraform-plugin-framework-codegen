@@ -1,0 +1,62 @@
+{
+  "formatVersion": "3",
+  "actions": [
+    {
+      "key": "disable_endpoint_agent",
+      "name": "disable_endpoint_agent",
+      "goPackage": "disable_endpoint_agent",
+      "goPackageAlias": "v7DisableEndpointAgent",
+      "goTypeName": "DisableEndpointAgentAction",
+      "modelTypeName": "DisableEndpointAgentConfig",
+      "serviceGroup": "endpoint_agents",
+      "apiVersionDir": "v7",
+      "docRefUrl": "https://developer.cisco.com/docs/thousandeyes/disable-endpoint-agent/",
+      "schema": {
+        "attributes": [
+          {
+            "name": "agent_id",
+            "goField": "AgentID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The identifier of the endpoint agent to disable. Disabling an agent stops it running tests without deleting it, so the operation is reversible by the matching enable action.",
+            "wire": {
+              "jsonPath": "agentId",
+              "sdkField": "AgentID",
+              "sdkGoType": "string"
+            }
+          }
+        ],
+        "markdownDescription": "Disables a ThousandEyes endpoint agent. An action rather than a resource: it is a one-shot operation with nothing for Terraform to reconcile, and the agent's enabled state is not something this manages over time."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api/endpoint_agents",
+          "typeName": "EndpointAgents",
+          "accessor": "a.client.API.EndpointAgents"
+        },
+        "invoke": {
+          "style": "method",
+          "method": "DisableEndpointAgent",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "configField",
+              "field": "AgentID"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "endpoint_agents.EndpointAgent",
+          "httpMethod": "POST",
+          "pathTemplate": "/endpoint/agents/{agentId}/disable",
+          "successCodes": [
+            200
+          ]
+        }
+      }
+    }
+  ]
+}

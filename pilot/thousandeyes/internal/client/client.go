@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
@@ -60,6 +61,30 @@ func ForResource(_ context.Context, req resource.ConfigureRequest, resp *resourc
 			"Unexpected provider data",
 			fmt.Sprintf("%s expected a *thousandeyes.Client but got %T. This is a bug in the provider.",
 				resourceType, req.ProviderData),
+		)
+		return nil
+	}
+
+	return client
+}
+
+// ForAction is the action counterpart of ForResource.
+//
+// A third near-identical function rather than one generic helper, because the three
+// ConfigureRequest types are distinct structs with no common interface -- the framework gives
+// each block kind its own. A generic version would need a type parameter per field it reads,
+// which is more machinery than the duplication costs.
+func ForAction(_ context.Context, req action.ConfigureRequest, resp *action.ConfigureResponse, actionType string) *te.Client {
+	if req.ProviderData == nil {
+		return nil
+	}
+
+	client, ok := req.ProviderData.(*te.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected provider data",
+			fmt.Sprintf("%s expected a *thousandeyes.Client but got %T. This is a bug in the provider.",
+				actionType, req.ProviderData),
 		)
 		return nil
 	}

@@ -127,6 +127,18 @@ func (g *Generator) Build(bp blueprint.Blueprint, opts Options) (Plan, error) {
 		plan.Files = append(plan.Files, files...)
 	}
 
+	for _, a := range bp.Actions {
+		if a.Drop || (opts.Only != "" && a.Key != opts.Only) {
+			continue
+		}
+
+		files, err := g.actionFiles(bp, a, ropts)
+		if err != nil {
+			return Plan{}, fmt.Errorf("action %q: %w", a.Key, err)
+		}
+		plan.Files = append(plan.Files, files...)
+	}
+
 	// Registration files are rendered from the whole blueprint even under -only,
 	// because a registration listing a subset would not compile against a tree
 	// containing the rest.
@@ -229,6 +241,41 @@ func (g *Generator) dataSourceFiles(
 	return out, nil
 }
 
+// actionFiles renders the three files that make up one action.
+//
+// Three, against a resource's five and a data source's four. An action sends its arguments as
+// call parameters rather than a request body, so there is no construct.go, and it writes
+// nothing back, so there is no state.go.
+func (g *Generator) actionFiles(
+	bp blueprint.Blueprint,
+	a blueprint.Action,
+	ropts render.Options,
+) ([]File, error) {
+	view, err := render.Action(bp, a, ropts)
+	if err != nil {
+		return nil, fmt.Errorf("building the render view: %w", err)
+	}
+
+	dir := render.ActionDir(bp, a)
+
+	wanted := []struct{ name, tmpl string }{
+		{"action.go", "action.go.tmpl"},
+		{"model.go", "action_model.go.tmpl"},
+		{"invoke.go", "action_invoke.go.tmpl"},
+	}
+
+	out := make([]File, 0, len(wanted))
+	for _, w := range wanted {
+		content, err := g.renderFile(w.tmpl, view)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", w.name, err)
+		}
+		out = append(out, File{Path: filepath.Join(dir, w.name), Content: content})
+	}
+
+	return out, nil
+}
+
 func (g *Generator) registrationFiles(
 	bp blueprint.Blueprint,
 	ropts render.Options,
@@ -242,6 +289,7 @@ func (g *Generator) registrationFiles(
 		{"resources.go", "provider_resources.go.tmpl", render.KindResources},
 		{"datasources.go", "provider_datasources.go.tmpl", render.KindDataSources},
 		{"list_resources.go", "provider_list_resources.go.tmpl", render.KindListResources},
+		{"actions.go", "provider_actions.go.tmpl", render.KindActions},
 	}
 
 	out := make([]File, 0, len(specs))

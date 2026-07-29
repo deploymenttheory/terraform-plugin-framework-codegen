@@ -70,9 +70,227 @@ func Verify(l *Loader, bp blueprint.Blueprint) Report {
 			continue
 		}
 		verifyResource(l, bp, res, clientType, &r)
+
+		// A list facet has its own service, method and response, none of which the
+		// resource's checks touch.
+		if res.List != nil {
+			verifyListFacet(l, res, *res.List, clientType, &r)
+		}
+	}
+
+	// Data sources and actions were unverified until actions were generated: this package
+	// walked bp.Resources and nothing else, so a data source naming an SDK method that does
+	// not exist produced a provider that failed to compile with no warning from here.
+	for _, d := range bp.DataSources {
+		if d.Drop {
+			continue
+		}
+		verifyDataSource(l, d, clientType, &r)
+	}
+
+	for _, a := range bp.Actions {
+		if a.Drop {
+			continue
+		}
+		verifyAction(l, a, clientType, &r)
 	}
 
 	return r
+}
+
+// verifyDataSource checks a data source's binding.
+//
+// Narrower than a resource's: one operation, and only the flatten direction to check, because
+// a data source sends no request body.
+func verifyDataSource(
+	l *Loader,
+	d blueprint.DataSource,
+	clientType types.Type,
+	r *Report,
+) {
+	svc := d.Binding.Service
+
+	verifyAccessor(l, clientType, d.Key, "binding.service.accessor", svc, r)
+
+	responseOK := verifyNamedType(
+		l,
+		d.Key,
+		"binding.response.type",
+		d.Binding.Response.Type,
+		svc,
+		r,
+	)
+
+	if d.Binding.Read != nil {
+		verifyOperation(l, d.Key, svc, "read", *d.Binding.Read, r)
+	}
+
+	if !responseOK {
+		// The type is already reported once; checking fields against it would repeat that
+		// one cause per attribute.
+		return
+	}
+
+	response := typeNameOf(d.Binding.Response.Type)
+
+	for _, a := range d.Schema.Attributes {
+		if a.Drop || a.Wire.SDKField == "" || a.Wire.SkipFlatten || a.Wire.Flatten == nil {
+			continue
+		}
+		verifyFieldOn(
+			l, d.Key,
+			fmt.Sprintf("schema.attributes[%s].wire.sdkField", a.Name),
+			response, a.Wire.SDKField, svc, r,
+		)
+	}
+}
+
+// verifyListFacet checks a list facet's binding.
+//
+// The element type matters as much as the response: identityFrom and displayNameFrom name
+// fields on one element, and a typo there is a compile error in the generated provider.
+func verifyListFacet(
+	l *Loader,
+	res blueprint.Resource,
+	lf blueprint.ListFacet,
+	clientType types.Type,
+	r *Report,
+) {
+	svc := lf.Service
+
+	verifyAccessor(l, clientType, res.Key, "list.service.accessor", svc, r)
+	verifyNamedType(l, res.Key, "list.response.type", lf.Response.Type, svc, r)
+
+	if lf.Read != nil {
+		verifyOperation(l, res.Key, svc, "read", *lf.Read, r)
+	}
+
+	if !verifyNamedType(l, res.Key, "list.elementType", lf.ElementType, svc, r) {
+		return
+	}
+
+	element := typeNameOf(lf.ElementType)
+
+	for i, m := range lf.IdentityFrom {
+		verifyFieldOn(
+			l, res.Key,
+			fmt.Sprintf("list.identityFrom[%d].fromSdkField", i),
+			element, m.FromSDKField, svc, r,
+		)
+	}
+
+	verifyFieldOn(l, res.Key, "list.displayNameFrom", element, lf.DisplayNameFrom, svc, r)
+}
+
+// verifyAction checks an action's binding.
+//
+// The narrowest of the four: an accessor and one method. An action sends its arguments as call
+// parameters rather than a body and writes nothing back, so there is no request or response
+// model to check fields against -- which is why its attributes carry no wire conversions.
+func verifyAction(
+	l *Loader,
+	a blueprint.Action,
+	clientType types.Type,
+	r *Report,
+) {
+	svc := a.Binding.Service
+
+	verifyAccessor(l, clientType, a.Key, "binding.service.accessor", svc, r)
+
+	if a.Binding.Invoke != nil {
+		verifyOperation(l, a.Key, svc, "invoke", *a.Binding.Invoke, r)
+	}
+}
+
+// verifyAccessor walks the field chain from the client type to the service.
+//
+// The check that pays for the package: it catches a service that does not hang where the
+// blueprint claims. Extracted from verifyResource once data sources, list facets and actions
+// each turned out to need it -- until then this package walked bp.Resources and nothing else,
+// so three quarters of the bindings in a blueprint were unverified.
+//
+// The key and path are parameters rather than read off a resource, because a Problem needs to
+// say which block it belongs to and each kind names its binding differently.
+func verifyAccessor(
+	l *Loader,
+	clientType types.Type,
+	key, path string,
+	svc blueprint.ServiceRef,
+	r *Report,
+) {
+	chain, ok := accessorChain(svc.Accessor)
+	if !ok {
+		r.Problems = append(r.Problems, Problem{
+			Resource: key,
+			Path:     path,
+			Detail: fmt.Sprintf(
+				"%q is not of the form \"<receiver>.client.<Field>...\", so it cannot be verified",
+				svc.Accessor,
+			),
+		})
+
+		return
+	}
+
+	if _, err := l.FieldChain(clientType, chain); err != nil {
+		r.Problems = append(r.Problems, Problem{
+			Resource: key,
+			Path:     path,
+			Detail:   fmt.Sprintf("%q does not resolve: %v", svc.Accessor, unwrapDetail(err)),
+		})
+
+		return
+	}
+
+	r.Checked++
+}
+
+// verifyNamedType checks that a Go type named in a binding exists in the SDK package.
+func verifyNamedType(l *Loader, key, path, expr string, svc blueprint.ServiceRef, r *Report) bool {
+	name := typeNameOf(expr)
+	if name == "" {
+		return false
+	}
+
+	if _, err := l.LookupType(svc.ImportPath, name); err != nil {
+		r.Problems = append(
+			r.Problems,
+			Problem{Resource: key, Path: path, Detail: unwrapDetail(err)},
+		)
+
+		return false
+	}
+
+	r.Checked++
+
+	return true
+}
+
+// verifyFieldOn checks that a named field exists on a named SDK type.
+//
+// A wrong field name is the quietest possible failure: if it happens to match another field
+// of the same type the code compiles and the provider moves the wrong value.
+func verifyFieldOn(
+	l *Loader,
+	key, path, typeName, field string,
+	svc blueprint.ServiceRef,
+	r *Report,
+) {
+	if typeName == "" || field == "" {
+		return
+	}
+
+	if _, err := l.LookupField(svc.ImportPath, typeName, field); err != nil {
+		r.Problems = append(r.Problems, Problem{
+			Resource: key,
+			Path:     path,
+			Detail:   fmt.Sprintf("%s needs it on %s: %s", field, typeName, unwrapDetail(err)),
+		})
+
+		return
+	}
+
+	r.Checked++
 }
 
 // resolveClientType resolves the declared client type to a real type.
@@ -110,29 +328,7 @@ func verifyResource(
 ) {
 	svc := res.Binding.Service
 
-	// The accessor. This is the check that pays for the package: it walks the
-	// field chain from the client type and catches a service that does not hang
-	// where the blueprint claims.
-	if chain, ok := accessorChain(svc.Accessor); ok {
-		if _, err := l.FieldChain(clientType, chain); err != nil {
-			r.Problems = append(r.Problems, Problem{
-				Resource: res.Key,
-				Path:     "binding.service.accessor",
-				Detail:   fmt.Sprintf("%q does not resolve: %v", svc.Accessor, unwrapDetail(err)),
-			})
-		} else {
-			r.Checked++
-		}
-	} else {
-		r.Problems = append(r.Problems, Problem{
-			Resource: res.Key,
-			Path:     "binding.service.accessor",
-			Detail: fmt.Sprintf(
-				"%q is not of the form \"r.client.<Field>...\", so it cannot be verified",
-				svc.Accessor,
-			),
-		})
-	}
+	verifyAccessor(l, clientType, res.Key, "binding.service.accessor", svc, r)
 
 	// The service type itself.
 	if _, err := l.LookupType(svc.ImportPath, svc.TypeName); err != nil {
@@ -156,7 +352,7 @@ func verifyResource(
 		if op == nil {
 			continue
 		}
-		verifyOperation(l, res, svc, name, *op, r)
+		verifyOperation(l, res.Key, svc, name, *op, r)
 	}
 
 	requestOK, responseOK := verifyBodyModels(l, res, r)
@@ -165,7 +361,7 @@ func verifyResource(
 
 func verifyOperation(
 	l *Loader,
-	res blueprint.Resource,
+	key string,
 	svc blueprint.ServiceRef,
 	name string,
 	op blueprint.Operation,
@@ -176,7 +372,7 @@ func verifyOperation(
 	m, err := l.LookupMethod(svc.ImportPath, svc.TypeName, op.Method)
 	if err != nil {
 		r.Problems = append(r.Problems, Problem{
-			Resource: res.Key,
+			Resource: key,
 			Path:     path + ".method",
 			Detail:   unwrapDetail(err),
 		})
@@ -193,7 +389,7 @@ func verifyOperation(
 
 	if gotArity != wantResults {
 		r.Problems = append(r.Problems, Problem{
-			Resource: res.Key,
+			Resource: key,
 			Path:     path + ".return",
 			Detail: fmt.Sprintf("declared %q implies %d result(s), but %s returns %d: %s",
 				op.Return, gotArity, op.Method, wantResults, m.Signature()),
@@ -208,7 +404,7 @@ func verifyOperation(
 		got := strings.TrimPrefix(m.Results[0], "*")
 		if want != got {
 			r.Problems = append(r.Problems, Problem{
-				Resource: res.Key,
+				Resource: key,
 				Path:     path + ".resultType",
 				Detail: fmt.Sprintf("declared %q but %s returns %s: %s",
 					op.ResultType, op.Method, m.Results[0], m.Signature()),
@@ -335,9 +531,19 @@ func typeNameOf(expr string) string {
 // rest is a chain on the SDK's client type.
 func accessorChain(accessor string) ([]string, bool) {
 	parts := strings.Split(accessor, ".")
-	if len(parts) < 3 || parts[0] != "r" || parts[1] != "client" {
+
+	// The receiver name is whatever the generated method uses -- r for a resource, d for a
+	// data source, l for a list resource, a for an action -- so it is not checked, only
+	// skipped. It was pinned to "r" while this package walked resources and nothing else,
+	// which meant every other kind's accessor came back unverifiable rather than verified.
+	//
+	// What must hold is the shape: a receiver, a field named client, and at least one field
+	// after it. The field chain from client onwards is the part that is resolved against the
+	// real client type, and that is where a wrong accessor is actually caught.
+	if len(parts) < 3 || parts[0] == "" || parts[1] != "client" {
 		return nil, false
 	}
+
 	return parts[2:], true
 }
 

@@ -200,6 +200,7 @@ func LoadDir(root string) (Blueprint, error) {
 
 		merged.Resources = append(merged.Resources, part.Resources...)
 		merged.DataSources = append(merged.DataSources, part.DataSources...)
+		merged.Actions = append(merged.Actions, part.Actions...)
 	}
 
 	if providerSetBy == "" {
@@ -217,6 +218,10 @@ func LoadDir(root string) (Blueprint, error) {
 	sort.Slice(
 		merged.DataSources,
 		func(i, j int) bool { return merged.DataSources[i].Key < merged.DataSources[j].Key },
+	)
+	sort.Slice(
+		merged.Actions,
+		func(i, j int) bool { return merged.Actions[i].Key < merged.Actions[j].Key },
 	)
 
 	// Validate once on the whole document. Cross-resource rules -- duplicate
