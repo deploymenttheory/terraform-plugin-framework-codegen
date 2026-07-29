@@ -45,10 +45,38 @@ type Field struct {
 	ObjectTypeName string
 	// EnumValues are the documented members, used for documentation only.
 	EnumValues []string
+
+	// Object holds a nested object's own fields, resolved recursively, so a shape
+	// several levels down arrives whole rather than as a name to look up later.
+	Object []Field
+	// SelfReferential marks a nested object that reaches itself. Its depth is decided by
+	// the data rather than by the schema, so it is not expressible as a fixed set of
+	// generated types -- inference reports it by name instead of recursing forever.
+	SelfReferential bool
 }
 
 // IsEnum reports whether the field resolved to a named enumeration.
 func (f Field) IsEnum() bool { return f.EnumTypeName != "" }
+
+// CyclicSchema returns the name of the schema that re-enters itself, anywhere beneath this
+// field, or empty.
+//
+// It looks all the way down rather than only at this field, and the caller refuses the
+// whole attribute on the strength of it. Refusing only the cycle point would leave the
+// enclosing object in place minus its recursive dimension -- a tree attribute offering a
+// label and no children, which looks usable and cannot express the shape it is named for.
+// That is the failure mode this package exists to avoid.
+func (f Field) CyclicSchema() string {
+	if f.SelfReferential {
+		return f.ObjectTypeName
+	}
+	for _, c := range f.Object {
+		if n := c.CyclicSchema(); n != "" {
+			return n
+		}
+	}
+	return ""
+}
 
 // jsonContentTypes are the media types a JSON body may be declared as.
 //
@@ -108,7 +136,8 @@ func schemaFromContent(content *orderedmap.Map[string, *v3.MediaType]) *base.Sch
 	// Fall back to any media type whose name looks like JSON, so an API using a
 	// vendor content type is not silently skipped.
 	for pair := content.First(); pair != nil; pair = pair.Next() {
-		if strings.Contains(pair.Key(), "json") && pair.Value() != nil && pair.Value().Schema != nil {
+		if strings.Contains(pair.Key(), "json") && pair.Value() != nil &&
+			pair.Value().Schema != nil {
 			return resolve(pair.Value().Schema)
 		}
 	}
@@ -127,7 +156,8 @@ func proxyFromContent(content *orderedmap.Map[string, *v3.MediaType]) *base.Sche
 		}
 	}
 	for pair := content.First(); pair != nil; pair = pair.Next() {
-		if strings.Contains(pair.Key(), "json") && pair.Value() != nil && pair.Value().Schema != nil {
+		if strings.Contains(pair.Key(), "json") && pair.Value() != nil &&
+			pair.Value().Schema != nil {
 			return pair.Value().Schema
 		}
 	}
@@ -150,6 +180,16 @@ func resolve(p *base.SchemaProxy) *base.Schema {
 // produces a resource that can express only part of the API -- inference reports
 // what it skipped instead.
 func Fields(s *base.Schema) []Field {
+	return fieldsWithin(s, nil)
+}
+
+// fieldsWithin is Fields, carrying the chain of object schema names already entered.
+//
+// The chain is what stops a self-referential schema recursing forever. It is a path
+// rather than a set of everything seen: the same object appearing twice in different
+// branches is ordinary reuse, and only re-entering one still on the current path is a
+// cycle.
+func fieldsWithin(s *base.Schema, path []string) []Field {
 	if s == nil {
 		return nil
 	}
@@ -167,14 +207,12 @@ func Fields(s *base.Schema) []Field {
 		if m == nil {
 			continue
 		}
-		for _, f := range Fields(m) {
-			out = append(out, f)
-		}
+		out = append(out, fieldsWithin(m, path)...)
 	}
 
 	if s.Properties != nil {
 		for pair := s.Properties.First(); pair != nil; pair = pair.Next() {
-			f, ok := fieldOf(pair.Key(), pair.Value())
+			f, ok := fieldOf(pair.Key(), pair.Value(), path)
 			if !ok {
 				continue
 			}
@@ -208,7 +246,7 @@ func replaceOrAppend(in []Field, f Field) []Field {
 // reports it.
 //
 // It returns false only when there is no schema at all to look at.
-func fieldOf(name string, proxy *base.SchemaProxy) (Field, bool) {
+func fieldOf(name string, proxy *base.SchemaProxy, path []string) (Field, bool) {
 	s := resolve(proxy)
 	if s == nil {
 		return Field{}, false
@@ -243,7 +281,39 @@ func fieldOf(name string, proxy *base.SchemaProxy) (Field, bool) {
 		f.ObjectTypeName = itemTypeName(s)
 	}
 
+	if kind.IsNested() {
+		f.Object, f.SelfReferential = nestedFields(s, f.ObjectTypeName, path)
+	}
+
 	return f, true
+}
+
+// nestedFields resolves a nested object's own fields, one level of recursion at a time.
+//
+// The object schema for a collection is its item schema; for a single nested object it is
+// the schema itself. Re-entering a name already on the path is a cycle, reported rather
+// than followed.
+func nestedFields(s *base.Schema, typeName string, path []string) (fields []Field, cyclic bool) {
+	obj := s
+	if primaryType(s) == "array" {
+		obj = itemSchema(s)
+	}
+	if obj == nil {
+		return nil, false
+	}
+
+	// An inline object has no name to key the cycle check on. That is not a gap: without
+	// a $ref it cannot refer back to anything, so it cannot be part of a cycle.
+	if typeName != "" {
+		for _, entered := range path {
+			if entered == typeName {
+				return nil, true
+			}
+		}
+		path = append(append([]string(nil), path...), typeName)
+	}
+
+	return fieldsWithin(obj, path), false
 }
 
 // kindOf maps an OpenAPI type onto a framework type.

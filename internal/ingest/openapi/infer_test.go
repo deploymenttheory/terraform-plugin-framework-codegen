@@ -426,9 +426,13 @@ func TestUnit_Infer_ReportsWhatItSkipped(t *testing.T) {
 		}
 	}
 
-	// NestedAttributeObject objects are a known gap, and must be named rather than dropped.
-	if !strings.Contains(all, "parts") {
-		t.Errorf("the nested collection should be reported as skipped:\n%s", all)
+	// The nested collection is inferred now, so it must not appear in the notes at all.
+	// It was a reported gap; a note about it would mean the inference silently regressed.
+	if strings.Contains(all, "parts") {
+		t.Errorf("parts is inferred and should not be reported as skipped:\n%s", all)
+	}
+	if a := attrByName(t, res, "parts"); a.Type.NestedObject == nil {
+		t.Error("parts should have become a nested attribute")
 	}
 }
 
@@ -575,11 +579,50 @@ func TestUnit_Infer_AgainstTheCommittedSpecification(t *testing.T) {
 		t.Errorf("legacy_id kind = %q, want float64 to match the SDK's *float64", legacy.Type.Kind)
 	}
 
-	// Both nested collections are a known gap and must be reported, not dropped.
+	// Both nested collections are inferred, and their generated identifiers match the
+	// curated blueprint exactly. That agreement is the point: it says the naming rule is
+	// the one a person reached for by hand, so a curated blueprint and an inferred draft
+	// differ only where judgement was applied.
+	for _, tc := range []struct {
+		attr, goType, sdkType, attrTypes, objectType, expand, flatten string
+	}{
+		{
+			"assignments", "TagAssignmentModel", "tags.Assignment",
+			"tagAssignmentAttrTypes", "tagAssignmentObjectType",
+			"expandTagAssignments", "flattenTagAssignments",
+		},
+		{
+			// TagFilter already carries the resource's name, so the prefix is elided
+			// rather than doubled into TagTagFilterModel.
+			"filters", "TagFilterModel", "tags.TagFilter",
+			"tagFilterAttrTypes", "tagFilterObjectType",
+			"expandTagFilters", "flattenTagFilters",
+		},
+	} {
+		n := attrByName(t, res, tc.attr).Type.NestedObject
+		if n == nil {
+			t.Errorf("%s should have become a nested attribute", tc.attr)
+			continue
+		}
+		for _, got := range []struct{ field, have, want string }{
+			{"goTypeName", n.GoTypeName, tc.goType},
+			{"sdkType", n.SDKType, tc.sdkType},
+			{"attrTypesVar", n.AttrTypesVar, tc.attrTypes},
+			{"objectTypeVar", n.ObjectTypeVar, tc.objectType},
+			{"expandFunc", n.ExpandFunc, tc.expand},
+			{"flattenFunc", n.FlattenFunc, tc.flatten},
+		} {
+			if got.have != got.want {
+				t.Errorf("%s.%s = %q, want %q", tc.attr, got.field, got.have, got.want)
+			}
+		}
+	}
+
+	// The only thing still reported is the hypermedia envelope.
 	reported := strings.Join(noteStrings(notes), "\n")
 	for _, field := range []string{"assignments", "filters"} {
-		if !strings.Contains(reported, field) {
-			t.Errorf("%s should be reported as not inferred:\n%s", field, reported)
+		if strings.Contains(reported, field) {
+			t.Errorf("%s is inferred and should not be reported:\n%s", field, reported)
 		}
 	}
 }

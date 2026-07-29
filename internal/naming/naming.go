@@ -314,6 +314,22 @@ func TerraformTypeName(providerPrefix string, parts ...string) string {
 //	("v7", "tag")              -> "v7Tag"
 //	("v7", "http_server_test") -> "v7HTTPServerTest"
 func (o Options) PackageAlias(parts ...string) string {
+	if out := o.GoVarName(parts...); out != "" {
+		return out
+	}
+	return "pkg"
+}
+
+// GoVarName builds a lowerCamel identifier from parts, or empty if there is nothing to
+// build one from.
+//
+// Package-level vars in generated code use it as well as import aliases: a nested
+// object's attr.Type map and object type are declared at package scope and need the same
+// spelling rule.
+//
+//	("tag", "assignment") -> "tagAssignment"
+//	("v7", "tag")         -> "v7Tag"
+func (o Options) GoVarName(parts ...string) string {
 	var b strings.Builder
 
 	for i, p := range parts {
@@ -331,9 +347,9 @@ func (o Options) PackageAlias(parts ...string) string {
 
 	out := b.String()
 	if out == "" {
-		return "pkg"
+		return ""
 	}
-	// An alias colliding with a keyword or an imported package name would break
+	// An identifier colliding with a keyword or an imported package name would break
 	// every file that used it.
 	return SafeIdentifier(out)
 }
