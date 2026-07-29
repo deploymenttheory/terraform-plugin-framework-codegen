@@ -80,8 +80,10 @@ func resolveClientType(l *Loader, bp blueprint.Blueprint) (types.Type, error) {
 	sdk := bp.Provider.SDK
 
 	if sdk.ClientImport.Path == "" {
-		return nil, fmt.Errorf("%w: provider.sdk.clientImport.path is empty, so the client type cannot be resolved",
-			ErrBindings)
+		return nil, fmt.Errorf(
+			"%w: provider.sdk.clientImport.path is empty, so the client type cannot be resolved",
+			ErrBindings,
+		)
 	}
 
 	// "*thousandeyes.Client" -> "Client". The package qualifier is carried by
@@ -99,7 +101,13 @@ func resolveClientType(l *Loader, bp blueprint.Blueprint) (types.Type, error) {
 	return named, nil
 }
 
-func verifyResource(l *Loader, bp blueprint.Blueprint, res blueprint.Resource, clientType types.Type, r *Report) {
+func verifyResource(
+	l *Loader,
+	bp blueprint.Blueprint,
+	res blueprint.Resource,
+	clientType types.Type,
+	r *Report,
+) {
 	svc := res.Binding.Service
 
 	// The accessor. This is the check that pays for the package: it walks the
@@ -119,8 +127,10 @@ func verifyResource(l *Loader, bp blueprint.Blueprint, res blueprint.Resource, c
 		r.Problems = append(r.Problems, Problem{
 			Resource: res.Key,
 			Path:     "binding.service.accessor",
-			Detail: fmt.Sprintf("%q is not of the form \"r.client.<Field>...\", so it cannot be verified",
-				svc.Accessor),
+			Detail: fmt.Sprintf(
+				"%q is not of the form \"r.client.<Field>...\", so it cannot be verified",
+				svc.Accessor,
+			),
 		})
 	}
 
@@ -238,7 +248,10 @@ func verifyBodyModels(l *Loader, res blueprint.Resource, r *Report) (requestOK, 
 			return false
 		}
 		if _, err := l.LookupType(svc.ImportPath, name); err != nil {
-			r.Problems = append(r.Problems, Problem{Resource: res.Key, Path: path, Detail: unwrapDetail(err)})
+			r.Problems = append(
+				r.Problems,
+				Problem{Resource: res.Key, Path: path, Detail: unwrapDetail(err)},
+			)
 			return false
 		}
 		r.Checked++
@@ -272,7 +285,7 @@ func verifyWireFields(l *Loader, res blueprint.Resource, requestOK, responseOK b
 		response = typeNameOf(res.Binding.Body.ResponseType)
 	}
 
-	for _, a := range res.Attributes {
+	for _, a := range res.Schema.Attributes {
 		if a.Drop || a.Wire.SDKField == "" {
 			continue
 		}
@@ -292,7 +305,12 @@ func verifyWireFields(l *Loader, res blueprint.Resource, requestOK, responseOK b
 				r.Problems = append(r.Problems, Problem{
 					Resource: res.Key,
 					Path:     fmt.Sprintf("attributes[%s].wire.sdkField", a.Name),
-					Detail:   fmt.Sprintf("%s needs it on %s: %s", direction, typeName, unwrapDetail(err)),
+					Detail: fmt.Sprintf(
+						"%s needs it on %s: %s",
+						direction,
+						typeName,
+						unwrapDetail(err),
+					),
 				})
 				continue
 			}

@@ -374,7 +374,7 @@ func TestUnit_Render_UnmappableTypeIsAHardError(t *testing.T) {
 	t.Parallel()
 
 	bp := pilot(t)
-	bp.Resources[0].Attributes[1].Type = blueprint.AttrType{Kind: "octopus"}
+	bp.Resources[0].Schema.Attributes[1].Type = blueprint.AttrType{Kind: "octopus"}
 
 	_, err := Resource(bp, bp.Resources[0], Options{})
 	if err == nil {
@@ -582,7 +582,7 @@ func TestUnit_Render_RegistrationIsSortedAndComplete(t *testing.T) {
 	// A second resource, added out of order, so the sort is exercised.
 	second := bp.Resources[0]
 	second.Key = "aaa"
-	second.TerraformType = "thousandeyes_aaa"
+	second.Name = "aaa"
 	second.GoPackage = "aaa"
 	second.GoPackageAlias = "v7Aaa"
 	second.GoTypeName = "AaaResource"

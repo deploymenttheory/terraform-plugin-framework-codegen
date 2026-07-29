@@ -97,7 +97,9 @@ func TestUnit_Render_NestedDepthIsRefusedRatherThanEmittedWrongly(t *testing.T) 
 
 	outer := nestedAttr(blueprint.KindSetNested, inner)
 
-	r := blueprint.Resource{Key: "tag", Attributes: []blueprint.Attribute{outer}}
+	r := blueprint.Resource{Key: "tag", Schema: blueprint.Schema{
+		Attributes: []blueprint.Attribute{outer},
+	}}
 
 	_, err := nestedShapes(r)
 	if err == nil {
@@ -119,8 +121,10 @@ func TestUnit_Render_NestedModelDeclaresTheShapeOnce(t *testing.T) {
 
 	shapes, err := nestedShapes(blueprint.Resource{
 		Key: "tag",
-		Attributes: []blueprint.Attribute{
-			nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID"), scalarChild("type", "Type")),
+		Schema: blueprint.Schema{
+			Attributes: []blueprint.Attribute{
+				nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID"), scalarChild("type", "Type")),
+			},
 		},
 	})
 	if err != nil {
@@ -166,8 +170,10 @@ func TestUnit_Render_FallibleChildMakesTheHelperFallible(t *testing.T) {
 	}
 
 	shapes, err := nestedShapes(blueprint.Resource{
-		Key:        "tag",
-		Attributes: []blueprint.Attribute{nestedAttr(blueprint.KindSetNested, fallible)},
+		Key: "tag",
+		Schema: blueprint.Schema{
+			Attributes: []blueprint.Attribute{nestedAttr(blueprint.KindSetNested, fallible)},
+		},
 	})
 	if err != nil {
 		t.Fatalf("nestedShapes: %v", err)

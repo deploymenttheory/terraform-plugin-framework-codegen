@@ -163,7 +163,7 @@ func SubjectOf(bp blueprint.Blueprint, res blueprint.Resource) (Subject, error) 
 		subj.CollectionTemplate = collectionOf(item)
 	}
 
-	subj.Fields = fieldsOf(res.Attributes, "")
+	subj.Fields = fieldsOf(res.Schema.Attributes, "")
 	subj.NameField = nameFieldOf(subj.Fields)
 	subj.IDField = idFieldOf(res, subj.Fields)
 

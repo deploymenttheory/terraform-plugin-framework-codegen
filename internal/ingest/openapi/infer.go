@@ -87,7 +87,7 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 
 	r := blueprint.Resource{
 		Key:            c.Key,
-		TerraformType:  naming.TerraformTypeName(opts.Provider, c.Key),
+		Name:           naming.TerraformName(c.Key),
 		GoPackage:      pkgDir,
 		GoPackageAlias: namingOpts.PackageAlias(opts.APIVersionDir, c.Key),
 		GoTypeName:     goType,
@@ -105,7 +105,7 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 	}
 
 	if s := summaryOf(c); s != "" {
-		r.MarkdownDescription = s
+		r.Schema.MarkdownDescription = s
 	}
 
 	requestType, responseType := d.bodyTypeNames(c)
@@ -132,10 +132,10 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 	bindOperations(&r, c, sdkPkg+"."+responseType)
 
 	attrs, attrNotes := d.attributes(c, sdkPkg)
-	r.Attributes = attrs
+	r.Schema.Attributes = attrs
 	notes = append(notes, attrNotes...)
 
-	if len(r.Attributes) == 0 {
+	if len(r.Schema.Attributes) == 0 {
 		return blueprint.Resource{}, notes, fmt.Errorf(
 			"%w: %s: nothing usable in its schemas", ErrNoAttributes,
 			c.Key,
@@ -143,7 +143,7 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 	}
 
 	// Without an identifier there is nothing to read, import or delete by.
-	if !hasAttribute(r.Attributes, "id") {
+	if !hasAttribute(r.Schema.Attributes, "id") {
 		notes = append(notes, Note{
 			Resource: c.Key,
 			Message:  "no id attribute in the schemas, so the resource cannot be imported or refreshed",

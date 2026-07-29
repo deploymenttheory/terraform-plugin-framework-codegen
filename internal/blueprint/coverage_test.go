@@ -61,7 +61,7 @@ func TestUnit_Blueprint_LoadReportsFileErrors(t *testing.T) {
 	// A file whose content is valid JSON but not a valid blueprint must fail
 	// validation rather than load a half-built document.
 	invalid := filepath.Join(t.TempDir(), "invalid"+Ext)
-	if err := os.WriteFile(invalid, []byte(`{"formatVersion":"1"}`), 0o600); err != nil {
+	if err := os.WriteFile(invalid, []byte(`{"formatVersion":"`+FormatVersion+`"}`), 0o600); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	if _, err := Load(invalid); !errors.Is(err, ErrInvalid) {
@@ -217,7 +217,7 @@ func TestUnit_Blueprint_ValidateNestedAttributes(t *testing.T) {
 			t.Parallel()
 
 			b := validBlueprint()
-			b.Resources[0].Attributes = append(b.Resources[0].Attributes, tc.attr)
+			b.Resources[0].Schema.Attributes = append(b.Resources[0].Schema.Attributes, tc.attr)
 
 			err := b.Validate()
 			if err == nil {
@@ -231,7 +231,7 @@ func TestUnit_Blueprint_ValidateNestedAttributes(t *testing.T) {
 
 	// The valid nested shape must pass, or every case above proves nothing.
 	b := validBlueprint()
-	b.Resources[0].Attributes = append(b.Resources[0].Attributes, nested(nil))
+	b.Resources[0].Schema.Attributes = append(b.Resources[0].Schema.Attributes, nested(nil))
 	if err := b.Validate(); err != nil {
 		t.Errorf("a well-formed nested attribute should validate: %v", err)
 	}
