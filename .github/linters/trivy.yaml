@@ -1,0 +1,33 @@
+---
+# Trivy configuration for this repository.
+#
+# Supplying this file replaces super-linter's bundled one wholesale -- it invokes
+# `trivy filesystem --config <this file>` -- so the scanner selection and exit code
+# are restated here rather than inherited.
+
+disable-telemetry: true
+
+# A finding must fail the job. The default is 0, which reports and passes.
+exit-code: 1
+
+scan:
+  scanners:
+    - vuln
+    - misconfig
+    - secret
+
+  skip-dirs:
+    # Pinned third-party API documents, committed verbatim for reproducibility.
+    #
+    # The ThousandEyes v7 document documents a client-certificate field, and its
+    # `example:` block contains a sample PEM private key. Both Trivy and Checkov read
+    # that as a leaked key. It is illustrative text in a vendor's documentation, and
+    # the only way to satisfy the scanner would be to edit a pinned artefact -- which
+    # would defeat the point of pinning it, and is why VALIDATE_OPENAPI is off too.
+    - openapi-specs
+
+    # Deliberately NOT skipped: probe-evidence. Those cassettes are our own recorded
+    # HTTP traffic against a live tenant, so a secret appearing there is exactly the
+    # thing worth being told about. The Authorization header is absent by construction
+    # -- it is not on the recorder's allow list -- but that is a property to keep
+    # verifying, not to assume.

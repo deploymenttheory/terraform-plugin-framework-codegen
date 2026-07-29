@@ -1,4 +1,4 @@
-name: 'Dependency Review'
+name: "Dependency Review"
 on: [pull_request]
 
 permissions:
@@ -6,19 +6,20 @@ permissions:
 
 jobs:
   dependency-review:
-    name: '🔎 Dependency Review'
+    name: "🔎 Dependency Review"
     runs-on: ubuntu-latest
     steps:
-
       - name: Harden Runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
 
-      - name: 'Checkout Repository'
+      - name: "Checkout Repository"
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          # These jobs only read the tree; none of them runs git push.
+          persist-credentials: false
           fetch-depth: 0
-          
-      - name: 'Dependency Review'
+
+      - name: "Dependency Review"
         uses: actions/dependency-review-action@3c4e3dcb1aa7874d2c16be7d79418e9b7efd6261 # v4.8.2

@@ -250,10 +250,9 @@ func (d *Document) attributes(c Candidate, sdkPkg string) ([]blueprint.Attribute
 	}
 	sort.Strings(names)
 
-	var (
-		out   []blueprint.Attribute
-		notes []Note
-	)
+	ctx := newInferCtx(c.Key, sdkPkg)
+
+	var out []blueprint.Attribute
 
 	for _, name := range names {
 		f, inRead := readable[name]
@@ -273,19 +272,19 @@ func (d *Document) attributes(c Candidate, sdkPkg string) ([]blueprint.Attribute
 		}
 
 		if skip, why := skipField(f); skip {
-			notes = append(notes, Note{Resource: c.Key, Field: name, Message: why})
+			ctx.note(name, why)
 			continue
 		}
 
-		attr, note := attributeOf(f, inWrite, sdkPkg)
-		if note != "" {
-			notes = append(notes, Note{Resource: c.Key, Field: name, Message: note})
+		attr, why := ctx.attributeOf(f, name, inWrite)
+		if why != "" {
+			ctx.note(name, why)
 			continue
 		}
 		out = append(out, attr)
 	}
 
-	return out, notes
+	return out, ctx.notes
 }
 
 func (d *Document) requestSchema(c Candidate) *base.Schema {
@@ -340,7 +339,17 @@ func skipField(f Field) (bool, string) {
 	case f.Kind == "":
 		return true, "no framework type maps to this schema"
 	case f.Kind.IsNested() && f.ObjectTypeName == "":
+		// Without a $ref there is no schema name, and a nested object's model, attr.Type
+		// map and helper pair all take their names from it. Naming them after the
+		// attribute instead would collide the moment two objects had a field in common.
 		return true, "nested object with no named schema, which cannot be given a model type"
+	case f.Kind.IsNested() && f.CyclicSchema() != "":
+		return true, fmt.Sprintf(
+			"the schema %s contains itself, so its depth is decided by the data rather than "+
+				"by the schema; that is not expressible as a fixed set of generated types, so "+
+				"write this resource by hand",
+			f.CyclicSchema(),
+		)
 	default:
 		return false, ""
 	}
@@ -349,8 +358,13 @@ func skipField(f Field) (bool, string) {
 // attributeOf builds one attribute from a merged field.
 //
 // inWrite is whether the field appears in the request body, which is what
-// decides presence and therefore whether the attribute is ever sent.
-func attributeOf(f Field, inWrite bool, sdkPkg string) (blueprint.Attribute, string) {
+// decides presence and therefore whether the attribute is ever sent. path is the dotted
+// attribute path, so a note about something inside a nested object says where it was.
+func (ctx *inferCtx) attributeOf(
+	f Field,
+	path string,
+	inWrite bool,
+) (blueprint.Attribute, string) {
 	goField := namingOpts.GoFieldName(f.Name)
 
 	a := blueprint.Attribute{
@@ -377,13 +391,44 @@ func attributeOf(f Field, inWrite bool, sdkPkg string) (blueprint.Attribute, str
 		a.Type.Enum = append([]string(nil), f.EnumValues...)
 	}
 
+	writable := a.ComputedOptionalRequired.IsRequired() || a.ComputedOptionalRequired.IsOptional()
+
 	if f.Kind.IsNested() {
-		// A nested shape needs a model, an attr.Type map and a helper pair, none
-		// of which can be named without the object's schema name.
-		return blueprint.Attribute{}, "nested objects are not inferred yet; add it by hand"
+		n, why := ctx.nestedObject(f, path, writable)
+		if why != "" {
+			return blueprint.Attribute{}, why
+		}
+		a.Type.NestedObject = n
+
+		// The SDK holds a collection of objects as a slice and a single object behind a
+		// pointer. That distinction decides the generated helper's signature, so it is
+		// recorded rather than left for the emitter to guess from the kind.
+		sdkGoType := "*" + n.SDKType
+		if f.Kind.IsNestedCollection() {
+			sdkGoType = "[]" + n.SDKType
+		}
+
+		a.Wire = blueprint.WireBinding{
+			JSONPath:  f.Name,
+			SDKField:  goField,
+			SDKGoType: sdkGoType,
+			Flatten: &blueprint.ConvertCall{
+				Func: n.FlattenFunc, NeedsCtx: true, ReturnsError: true,
+			},
+		}
+
+		if writable {
+			a.Wire.Expand = &blueprint.ConvertCall{
+				Func: n.ExpandFunc, NeedsCtx: true, ReturnsError: true,
+			}
+		} else {
+			a.Wire.SkipExpand = true
+		}
+
+		return a, ""
 	}
 
-	sdkType, convertFlatten, convertExpand := conversionsFor(f, sdkPkg)
+	sdkType, convertFlatten, convertExpand := conversionsFor(f, ctx.sdkPkg)
 
 	a.Wire = blueprint.WireBinding{
 		JSONPath:  f.Name,
@@ -395,7 +440,7 @@ func attributeOf(f Field, inWrite bool, sdkPkg string) (blueprint.Attribute, str
 	// A computed field is read and never sent. Marking it here is what stops the
 	// generated construct function referring to a request field that may not
 	// exist.
-	if a.ComputedOptionalRequired.IsRequired() || a.ComputedOptionalRequired.IsOptional() {
+	if writable {
 		a.Wire.Expand = convertExpand
 	} else {
 		a.Wire.SkipExpand = true

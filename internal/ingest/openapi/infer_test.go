@@ -426,9 +426,13 @@ func TestUnit_Infer_ReportsWhatItSkipped(t *testing.T) {
 		}
 	}
 
-	// NestedAttributeObject objects are a known gap, and must be named rather than dropped.
-	if !strings.Contains(all, "parts") {
-		t.Errorf("the nested collection should be reported as skipped:\n%s", all)
+	// The nested collection is inferred now, so it must not appear in the notes at all.
+	// It was a reported gap; a note about it would mean the inference silently regressed.
+	if strings.Contains(all, "parts") {
+		t.Errorf("parts is inferred and should not be reported as skipped:\n%s", all)
+	}
+	if a := attrByName(t, res, "parts"); a.Type.NestedObject == nil {
+		t.Error("parts should have become a nested attribute")
 	}
 }
 
@@ -575,11 +579,62 @@ func TestUnit_Infer_AgainstTheCommittedSpecification(t *testing.T) {
 		t.Errorf("legacy_id kind = %q, want float64 to match the SDK's *float64", legacy.Type.Kind)
 	}
 
-	// Both nested collections are a known gap and must be reported, not dropped.
+	// Both nested collections are inferred, and their generated identifiers match the
+	// curated blueprint exactly. That agreement is the point: it says the naming rule is
+	// the one a person reached for by hand, so a curated blueprint and an inferred draft
+	// differ only where judgement was applied.
+	assertNestedIdentifiers(t, res, nestedIdentifiers{
+		attr: "assignments", goType: "TagAssignmentModel", sdkType: "tags.Assignment",
+		attrTypes: "tagAssignmentAttrTypes", objectType: "tagAssignmentObjectType",
+		expand: "expandTagAssignments", flatten: "flattenTagAssignments",
+	})
+	// TagFilter already carries the resource's name, so the prefix is elided rather than
+	// doubled into TagTagFilterModel.
+	assertNestedIdentifiers(t, res, nestedIdentifiers{
+		attr: "filters", goType: "TagFilterModel", sdkType: "tags.TagFilter",
+		attrTypes: "tagFilterAttrTypes", objectType: "tagFilterObjectType",
+		expand: "expandTagFilters", flatten: "flattenTagFilters",
+	})
+
+	// The only thing still reported is the hypermedia envelope.
 	reported := strings.Join(noteStrings(notes), "\n")
 	for _, field := range []string{"assignments", "filters"} {
-		if !strings.Contains(reported, field) {
-			t.Errorf("%s should be reported as not inferred:\n%s", field, reported)
+		if strings.Contains(reported, field) {
+			t.Errorf("%s is inferred and should not be reported:\n%s", field, reported)
+		}
+	}
+}
+
+// nestedIdentifiers is the five generated identifiers a nested object declares, plus the
+// SDK type it binds to.
+type nestedIdentifiers struct {
+	attr, goType, sdkType, attrTypes, objectType, expand, flatten string
+}
+
+// assertNestedIdentifiers checks one inferred nested object against the curated blueprint.
+//
+// Extracted from the caller rather than inlined: the assertions are a flat table, and
+// keeping them here is what stops the test that reads the real specification from growing
+// a cyclomatic complexity the house linter refuses.
+func assertNestedIdentifiers(t *testing.T, res blueprint.Resource, want nestedIdentifiers) {
+	t.Helper()
+
+	n := attrByName(t, res, want.attr).Type.NestedObject
+	if n == nil {
+		t.Errorf("%s should have become a nested attribute", want.attr)
+		return
+	}
+
+	for _, got := range []struct{ field, have, want string }{
+		{"goTypeName", n.GoTypeName, want.goType},
+		{"sdkType", n.SDKType, want.sdkType},
+		{"attrTypesVar", n.AttrTypesVar, want.attrTypes},
+		{"objectTypeVar", n.ObjectTypeVar, want.objectType},
+		{"expandFunc", n.ExpandFunc, want.expand},
+		{"flattenFunc", n.FlattenFunc, want.flatten},
+	} {
+		if got.have != got.want {
+			t.Errorf("%s.%s = %q, want %q", want.attr, got.field, got.have, got.want)
 		}
 	}
 }
