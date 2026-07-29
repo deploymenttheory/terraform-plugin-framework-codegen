@@ -125,6 +125,9 @@ type ResourceView struct {
 	// resource does not support import.
 	ImportState string
 
+	// Identity is the resource identity schema, or nil when the resource declares none.
+	Identity *IdentityView
+
 	// Construct and State are the finished bodies of the expand and flatten
 	// functions.
 	Construct ConstructView
@@ -336,6 +339,12 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	// because three callers with different response types share them.
 	impCRUD.add(pkgDiag, "")
 
+	identity, err := identityView(r, impResource)
+	if err != nil {
+		return ResourceView{}, err
+	}
+	v.Identity = identity
+
 	v.Interfaces = interfaces(r)
 
 	if r.Import.Style == blueprint.ImportPassthroughID {
@@ -502,6 +511,12 @@ func interfaces(r blueprint.Resource) []string {
 		out = append(
 			out,
 			fmt.Sprintf("_ resource.ResourceWithImportState = (*%s)(nil)", r.GoTypeName),
+		)
+	}
+	if r.Identity != nil {
+		out = append(
+			out,
+			fmt.Sprintf("_ resource.ResourceWithIdentity = (*%s)(nil)", r.GoTypeName),
 		)
 	}
 	return out
