@@ -104,10 +104,12 @@ func TestUnit_Render_ImportsAreSeparatePerFile(t *testing.T) {
 		}
 	}
 
-	// crud.go appends to resp.Diagnostics rather than naming the diag package,
-	// so importing it there would not compile.
-	if strings.Contains(v.Imports.CRUD, "framework/diag") {
-		t.Error("crud.go must not import diag")
+	// crud.go does now name the diag package, where once it only appended to
+	// resp.Diagnostics. readState and readAfterWrite are shared by Create, Update and
+	// Read, whose response types differ, so they return diagnostics rather than taking a
+	// response to append to -- and that is what gives state mapping a single call site.
+	if !strings.Contains(v.Imports.CRUD, "framework/diag") {
+		t.Error("crud.go should import diag: its shared read helpers return diagnostics")
 	}
 	// The schema package belongs to resource.go alone.
 	if strings.Contains(v.Imports.Construct, "resource/schema") {

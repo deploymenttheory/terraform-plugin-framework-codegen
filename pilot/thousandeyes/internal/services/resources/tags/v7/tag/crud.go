@@ -7,6 +7,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
@@ -44,11 +45,16 @@ func (r *TagResource) Create(ctx context.Context, req resource.CreateRequest, re
 		return
 	}
 
-	// The identifier is assigned before mapping the rest of the response, so that
-	// a partially-successful create still leaves a resource Terraform can find
-	// and delete rather than an orphan it has no record of.
+	// The identifier is assigned first, so that a partially-successful create still
+	// leaves a resource Terraform can find and delete rather than an orphan it has no
+	// record of.
 	plan.ID = convert.PtrStringToFramework(created.ID)
-	resp.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &plan, created)...)
+
+	// State comes from a read, not from the create response. The two are not
+	// interchangeable: a field the API only returns when asked to expand it is absent
+	// from a create response, so mapping that response would write it null and the next
+	// read would contradict it -- a diff no configuration change can resolve.
+	resp.Diagnostics.Append(r.readAfterWrite(ctx, &plan, errors.OpCreate)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -74,27 +80,102 @@ func (r *TagResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	remote, _, err := r.client.API.Tags.GetTag(ctx, state.ID.ValueString())
-	if err != nil {
-		// Something deleted outside Terraform must produce a plan that recreates
-		// it, not an error the practitioner has no way to clear.
-		if errors.IsNotFound(err) {
-			tflog.Debug(ctx, "resource no longer exists, removing it from state", map[string]any{
-				"resource": ResourceName,
-			})
-			resp.State.RemoveResource(ctx)
-			return
-		}
-
-		errors.Handle(&resp.Diagnostics, ResourceName, errors.OpRead, err)
-		return
-	}
-	resp.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &state, remote)...)
+	found, diags := r.readState(ctx, &state, errors.OpRead)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// Something deleted outside Terraform must produce a plan that recreates it, not an
+	// error the practitioner has no way to clear.
+	if !found {
+		tflog.Debug(ctx, "resource no longer exists, removing it from state", map[string]any{
+			"resource": ResourceName,
+		})
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// readState fetches thousandeyes_tag and maps it onto state.
+//
+// The single call site of mapRemoteStateToTerraform. Create, Update and Read all arrive
+// here, so a change to state mapping is one edit rather than three that have to agree.
+//
+// The bool distinguishes "not there" from "the request failed", which need different
+// handling and used to be conflated: Read turns absence into a recreate, while a read
+// after a write treats it as not-yet-consistent and tries again.
+func (r *TagResource) readState(
+	ctx context.Context,
+	state *TagResourceModel,
+	op errors.Operation,
+) (bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	remote, _, err := r.client.API.Tags.GetTag(ctx, state.ID.ValueString())
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, diags
+		}
+
+		errors.Handle(&diags, ResourceName, op, err)
+
+		return false, diags
+	}
+	diags.Append(mapRemoteStateToTerraform(ctx, state, remote)...)
+
+	return true, diags
+}
+
+// readAfterWrite refreshes state from the API after a create or an update, retrying while
+// the object is not yet readable.
+//
+// Why a read at all, rather than mapping the write's own response: the two are not
+// interchangeable. A field the API only returns when asked to expand it is absent from a
+// write response, so mapping that response writes it null and the next read contradicts
+// it. The pilot's own probe evidence says so.
+//
+// Why a retry: an API that is not read-your-writes consistent returns 404 for an object it
+// has just created, and a create that reports success on state the next plan disagrees with
+// is worse than one that waits.
+//
+// The budget is the built-in default: this API's consistency has not been measured, so
+// there is no observation to size it from. An API that is consistent succeeds on the first
+// attempt and pays nothing for the loop.
+func (r *TagResource) readAfterWrite(
+	ctx context.Context,
+	state *TagResourceModel,
+	op errors.Operation,
+) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	opts := crud.ReadBackOptions{
+		MaxRetries:   10,
+		Interval:     2000 * time.Millisecond,
+		ResourceType: ResourceName,
+		Operation:    string(op),
+	}
+
+	err := crud.ReadBack(ctx, opts, func(ctx context.Context) (bool, error) {
+		found, d := r.readState(ctx, state, op)
+		diags.Append(d...)
+
+		if d.HasError() {
+			return false, crud.ErrStopRetrying
+		}
+
+		return found, nil
+	})
+
+	// A stop signal means readState has already produced the diagnostic, so reporting
+	// here as well would say the same thing twice.
+	if err != nil && !crud.IsStopRetrying(err) {
+		errors.Handle(&diags, ResourceName, op, err)
+	}
+
+	return diags
 }
 
 // Update applies configuration changes to an existing thousandeyes_tag.
@@ -121,7 +202,7 @@ func (r *TagResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		return
 	}
 
-	updated, _, err := r.client.API.Tags.UpdateTag(ctx, state.ID.ValueString(), body)
+	_, _, err := r.client.API.Tags.UpdateTag(ctx, state.ID.ValueString(), body)
 	if err != nil {
 		errors.Handle(&resp.Diagnostics, ResourceName, errors.OpUpdate, err)
 		return
@@ -130,7 +211,9 @@ func (r *TagResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	// The plan carries no identifier, since it is computed. Carrying it over from
 	// prior state keeps it in the model in case the response omits it.
 	plan.ID = state.ID
-	resp.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &plan, updated)...)
+
+	// As with create: state comes from a read rather than from the update response.
+	resp.Diagnostics.Append(r.readAfterWrite(ctx, &plan, errors.OpUpdate)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

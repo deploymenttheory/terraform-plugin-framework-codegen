@@ -59,7 +59,7 @@
     },
     {
       "path": "internal/services/resources/tags/v7/tag/crud.go",
-      "sha256": "c663e747ad246da151f2459fa8c027d5ae2a9ec92ebeacb2d83c86bef415772f",
+      "sha256": "f797cbb7ef0c44ba3d1400123ffc8a2b4ea97fccfaa98af6fddd4cac30344bf2",
       "blueprint": "blueprints/thousandeyes"
     },
     {

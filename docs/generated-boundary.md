@@ -9,6 +9,7 @@ to do when a file genuinely cannot be generated.
 | Path | Owner | Change it by |
 |---|---|---|
 | `internal/services/resources/**/{resource,model,construct,state,crud}.go` | toolkit | editing the blueprint, then `emit` |
+| `internal/services/**/predicate.go` | **you** | editing it — see the note on the consistency predicate |
 | `internal/services/datasources/**/{datasource,model,read,state}.go` | toolkit | editing the blueprint, then `emit` |
 | `internal/services/**/{modify_plan,validate}.go` | **you** | editing them; `emit` never touches them again |
 | `internal/provider/{resources,datasources}.go` | toolkit | adding a blueprint, then `emit` |
@@ -76,6 +77,40 @@ The workflow then builds and tests **both modules**. The explicit
 `go build ./...` silently skips every generated file. Without that step the gate
 would pass on generated code that does not compile — the exact failure it exists
 to prevent.
+
+## State mapping has exactly one call site
+
+`crud.go` reads like this, and the shape is the point rather than a style choice:
+
+| method | what it does |
+|---|---|
+| `Create` | construct → POST → assign the identifier → `readAfterWrite` |
+| `Update` | construct → PUT/PATCH → carry the identifier over → `readAfterWrite` |
+| `Read` | `readState`, and absence becomes a recreate |
+| `readAfterWrite` | retries `readState` while the object is not yet readable |
+| `readState` | GET → **the only caller of `mapRemoteStateToTerraform`** |
+
+Create and Update deliberately do **not** map their own responses. It is not only that
+three call sites for one mapper is three places to keep in agreement — the responses are
+not interchangeable. A field the API returns only when asked to expand it is absent from a
+write response, so mapping that response writes it null, the next read fills it in, and the
+practitioner gets a diff no configuration change resolves. The pilot's own probe evidence
+says exactly that about `assignments`.
+
+`TestUnit_Emit_TheStateMapperHasOneCallSite` parses the generated output and counts the
+call expressions, so the property survives a template edit.
+
+The retry budget comes from `policy.readBack` when the prober measured it, and from a
+built-in default otherwise — with the generated comment saying which, because a retry loop
+with no stated reason is indistinguishable from cargo cult. An API that is read-your-writes
+consistent succeeds on the first attempt and pays nothing for the loop.
+
+**The consistency predicate is not generated.** `readAfterWrite` retries until the object is
+*readable*, which is the question every API answers the same way. Waiting for a *particular
+field to change* — the shape that catches an API which returns a stale object rather than a
+404 — depends on which field that API touches on write, and is sometimes resource-specific.
+That belongs in a hand-written file per the section below, and is why the reference provider
+carries a `predicate.go` in 28 of its 167 resource packages rather than in all of them.
 
 ## The escape hatch
 
