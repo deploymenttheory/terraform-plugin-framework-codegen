@@ -4,3 +4,10 @@
 # and reporting them on every pull request is noise that trains people to ignore
 # the spell check.
 skip = ./openapi-specs,./.git,./go.sum,./pilot/thousandeyes/go.sum
+
+# Words codespell reads as run-together prose when they are Go identifiers.
+#
+# AtLeast is Confidence.AtLeast, correct camelCase, and the framework's own validator
+# constructors spell it the same way -- LengthAtLeast, SizeAtLeast -- so it will only get
+# more common here.
+ignore-words-list = atleast

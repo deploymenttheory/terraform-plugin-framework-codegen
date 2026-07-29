@@ -301,20 +301,20 @@ func withoutProvenance(content []byte) string {
 	return strings.Join(kept, "\n")
 }
 
-// TestUnit_Emit_EnumValuesDoNotReachGeneratedCode.
+// TestUnit_Emit_AllowedValuesBecomeAValidator is the inverse of the test that used to be
+// here.
 //
-// AttrType.Enum records what the specification documents, and it exists for one consumer: the enum
-// probe, whose claim is "the specification is stale". It must not become a validator.
+// TestUnit_Emit_EnumValuesDoNotReachGeneratedCode asserted that AttrType.Enum reached no
+// generated code at all, on the reasoning that a validator built from a scraped set rejects
+// configurations the API would have accepted. The reasoning was half right, and which half
+// depends on *which* set is used.
 //
-// A generated OneOf built from a scraped enum rejects configurations the API would have accepted,
-// and a practitioner has no way around it. That is the specific harm the README forbids, and it is
-// the easiest possible mistake to make later -- the values are right there in the IR, and turning
-// them into a validator looks like an improvement.
-//
-// Two assertions, because either alone is weak. The first is that adding the field changed nothing
-// about the rendered output. The second is that no validator constructor appears, so a future
-// change that also updated the fixture would still be caught.
-func TestUnit_Emit_EnumValuesDoNotReachGeneratedCode(t *testing.T) {
+// The documented set is a superset of what any one tenant accepts, so a validator built
+// from it errs toward permitting: a stale specification surfaces as a real API error
+// carrying the API's own message. Built from the observed accepted set it would err toward
+// blocking, which is the harm the old test was guarding against. So the validator is now
+// generated, from AllowedValues, and this asserts both halves of that.
+func TestUnit_Emit_AllowedValuesBecomeAValidator(t *testing.T) {
 	t.Parallel()
 
 	bp := pilotBlueprint(t)
@@ -324,64 +324,81 @@ func TestUnit_Emit_EnumValuesDoNotReachGeneratedCode(t *testing.T) {
 		t.Fatalf("New: %v", err)
 	}
 
-	withEnums, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	plan, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
 
-	var carried int
-
-	// Strip every enum and render again. Byte-identical output is the property: the field is
-	// documentation for a different consumer, and nothing downstream may read it.
-	stripped := bp
-	stripped.Resources = append([]blueprint.Resource(nil), bp.Resources...)
-
-	for i := range stripped.Resources {
-		attrs := append([]blueprint.Attribute(nil), stripped.Resources[i].Schema.Attributes...)
-		for j := range attrs {
-			if len(attrs[j].Type.Enum) > 0 {
-				carried++
-				attrs[j].Type.Enum = nil
-			}
+	// The pilot's objectType documents six values, of which the prober saw one refused. The
+	// validator carries all six, and the refused one is named in a comment beside it.
+	var schemaFile string
+	for _, f := range plan.Files {
+		if strings.HasSuffix(f.Path, "resources/tags/v7/tag/resource.go") {
+			schemaFile = string(f.Content)
 		}
-		stripped.Resources[i].Schema.Attributes = attrs
+	}
+	if schemaFile == "" {
+		t.Fatal("no resource schema was emitted")
 	}
 
-	if carried == 0 {
-		t.Fatal("the pilot blueprint carries no enum values, so this test proves nothing; " +
-			"re-run ingest")
+	wantAll := `stringvalidator.OneOf("test", "dashboard", "endpoint-test", "v-agent", ` +
+		`"connected-devices-test", "endpoint-agent")`
+	if !strings.Contains(schemaFile, wantAll) {
+		t.Errorf("the validator should carry the whole documented set:\n%s", schemaFile)
 	}
 
-	without, err := gen.Build(stripped, Options{BlueprintPath: "blueprints/thousandeyes"})
+	// endpoint-agent was refused by this tenant and is still permitted. That is the decision
+	// the phase turns on, so it is asserted rather than left to the reader.
+	if !strings.Contains(schemaFile, "The API refused \"endpoint-agent\"") {
+		t.Error("a documented value the API refused should be named beside the validator")
+	}
+
+	// And the observed accepted set must not be what the validator was built from: it omits
+	// endpoint-agent, so a validator over exactly those five would be the blocking mistake.
+	bad := `stringvalidator.OneOf("test", "dashboard", "endpoint-test", "v-agent", ` +
+		`"connected-devices-test")`
+	if strings.Contains(schemaFile, bad) {
+		t.Error("the validator was built from the accepted set, not the documented one")
+	}
+}
+
+// TestUnit_Emit_APurelyComputedAttributeGetsNoValidator.
+//
+// A validator runs against configuration. The pilot's `type` attribute documents two values
+// and is computed only, so a validator there is code that can never run.
+func TestUnit_Emit_APurelyComputedAttributeGetsNoValidator(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	// Confirm the fixture still has the shape this test needs, rather than passing because
+	// the attribute stopped carrying documented values.
+	var found bool
+	for _, a := range bp.Resources[0].Schema.Attributes {
+		if a.Name == "type" {
+			found = len(a.Type.AllowedValues) > 0 &&
+				a.ComputedOptionalRequired == blueprint.Computed
+		}
+	}
+	if !found {
+		t.Skip("the pilot's type attribute is no longer a computed attribute with documented values")
+	}
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	plan, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
 
-	if len(without.Files) != len(withEnums.Files) {
-		t.Fatalf("stripping enums changed the file count: %d vs %d",
-			len(without.Files), len(withEnums.Files))
-	}
-
-	for i := range withEnums.Files {
-		// Compared without the provenance line. That line carries the blueprint's own digest,
-		// which legitimately changes when the blueprint changes -- it is how drift is detected.
-		// What must not change is the code.
-		if withoutProvenance(without.Files[i].Content) != withoutProvenance(withEnums.Files[i].Content) {
-			t.Errorf("%s differs when enum values are stripped, so something downstream is "+
-				"reading them", withEnums.Files[i].Path)
+	for _, f := range plan.Files {
+		if !strings.HasSuffix(f.Path, "resources/tags/v7/tag/resource.go") {
+			continue
 		}
-	}
-
-	// No validator, whatever the fixture says. These are the constructors a well-meaning change
-	// would reach for.
-	forbidden := []string{"stringvalidator.OneOf", "int64validator.OneOf", "OneOfCaseInsensitive"}
-
-	for _, f := range withEnums.Files {
-		for _, bad := range forbidden {
-			if strings.Contains(string(f.Content), bad) {
-				t.Errorf("%s contains %s; a validator built from a scraped enum rejects "+
-					"configurations the API would accept", f.Path, bad)
-			}
+		if strings.Contains(string(f.Content), `stringvalidator.OneOf("static", "dynamic")`) {
+			t.Error("a purely computed attribute should get no validator")
 		}
 	}
 }

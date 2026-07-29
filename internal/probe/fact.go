@@ -98,14 +98,21 @@ const (
 	// FactSideEffect: writing one field changed another that was not sent.
 	FactSideEffect FactField = "sideEffect"
 
-	// FactEnumClosed: the API rejects values outside the documented set.
-	FactEnumClosed FactField = "enumClosed"
-	// FactEnumAccepted: the documented values the API actually accepted.
-	FactEnumAccepted FactField = "enumAccepted"
-	// FactEnumRejectedDocumented: documented values the API refused. The valuable
-	// result: the specification is stale, and a spec-derived validator would have
-	// been actively harmful.
-	FactEnumRejectedDocumented FactField = "enumRejectedDocumented"
+	// The three below name themselves after the Behaviour fields merge writes them into,
+	// as every other fact field does -- FactWritable to Writable, FactServerDefault to
+	// ServerDefault. Keeping that mirroring is worth re-deriving the committed facts from
+	// the cassette, which is a replay and touches no recorded traffic.
+
+	// FactValuesClosed: whether the API rejects values outside the documented set. False is
+	// the load-bearing answer -- it is direct evidence that a generated OneOf would reject
+	// configurations this API takes.
+	FactValuesClosed FactField = "valuesClosed"
+	// FactAcceptedValues: the documented values the API actually accepted.
+	FactAcceptedValues FactField = "acceptedValues"
+	// FactRejectedValues: documented values the API refused, which says the specification is
+	// stale. The generated schema names them in a comment beside the validator, so a reader
+	// of the schema meets the staleness rather than having to go looking for it.
+	FactRejectedValues FactField = "rejectedValues"
 
 	// FactErrorEnvelope: which error shape the API returns for which status.
 	FactErrorEnvelope FactField = "errorEnvelope"
@@ -240,7 +247,7 @@ var knownFactFields = map[FactField]bool{
 	FactUpdateStyle: true, FactReadBack: true, FactNotFoundIsSuccess: true,
 	FactDefaultIsDerived: true, FactSilentlyIgnoredOnUpdate: true,
 	FactNormalisation: true, FactSideEffect: true,
-	FactEnumClosed: true, FactEnumAccepted: true, FactEnumRejectedDocumented: true,
+	FactValuesClosed: true, FactAcceptedValues: true, FactRejectedValues: true,
 	FactErrorEnvelope: true, FactUnknownParamTolerated: true,
 }
 

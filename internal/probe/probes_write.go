@@ -55,8 +55,8 @@ func sentinelFor(sc Scope, f Field, round int) any {
 	// field, both fixture rounds came back 400, and the probe observed nothing whatsoever about
 	// writability for any field. Rounds take different documented values where the set has more
 	// than one, which preserves the two-distinct-values property the writability conclusion needs.
-	if len(f.Enum) > 0 {
-		return f.Enum[(round-1)%len(f.Enum)]
+	if len(f.AllowedValues) > 0 {
+		return f.AllowedValues[(round-1)%len(f.AllowedValues)]
 	}
 
 	switch f.Kind {
@@ -1998,7 +1998,7 @@ func (p enumBoundary) probeEnum(
 	)
 
 	documented := map[string]bool{}
-	for _, v := range f.Enum {
+	for _, v := range f.AllowedValues {
 		documented[v] = true
 	}
 
@@ -2035,10 +2035,17 @@ func (p enumBoundary) probeEnum(
 		if !resp.Error().Names(f.JSONPath) {
 			out.Notes = append(out.Notes, Note{
 				Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
-				Message: fmt.Sprintf("the create carrying %s was refused with %d (%s), and the "+
-					"error does not name this field, so the refusal says nothing about its value "+
-					"set and this candidate was not counted",
-					describeCandidate(f.Enum, candidate), resp.Status, resp.Error().Detail),
+				Message: fmt.Sprintf(
+					"the create carrying %s was refused with %d (%s), and the "+
+						"error does not name this field, so the refusal says nothing about its value "+
+						"set and this candidate was not counted",
+					describeCandidate(
+						f.AllowedValues,
+						candidate,
+					),
+					resp.Status,
+					resp.Error().Detail,
+				),
 			})
 
 			continue
@@ -2121,13 +2128,13 @@ func (p enumBoundary) concludeEnum(sc Scope, f Field, o enumOutcome, out *Result
 		out.Facts = append(out.Facts, Fact{
 			Resource:   sc.Subject.Resource,
 			JSONPath:   f.JSONPath,
-			Field:      FactEnumAccepted,
+			Field:      FactAcceptedValues,
 			Value:      ListValue(o.accepted),
 			Confidence: Observed,
 			Probe:      p.Name(),
 			Evidence:   o.evidence,
 			Rationale: fmt.Sprintf("%d of the %d documented value(s) were accepted on create",
-				len(o.accepted), len(f.Enum)),
+				len(o.accepted), len(f.AllowedValues)),
 		})
 	}
 
@@ -2137,13 +2144,13 @@ func (p enumBoundary) concludeEnum(sc Scope, f Field, o enumOutcome, out *Result
 		out.Facts = append(out.Facts, Fact{
 			Resource:   sc.Subject.Resource,
 			JSONPath:   f.JSONPath,
-			Field:      FactEnumRejectedDocumented,
+			Field:      FactRejectedValues,
 			Value:      ListValue(o.rejected),
 			Confidence: Observed,
 			Probe:      p.Name(),
 			Evidence:   o.evidence,
 			Rationale: fmt.Sprintf("the specification documents %s but this API refused %s",
-				strings.Join(f.Enum, ", "), strings.Join(o.rejected, ", ")),
+				strings.Join(f.AllowedValues, ", "), strings.Join(o.rejected, ", ")),
 			Alternatives: []string{
 				"a value this tenant refuses may be licence-gated or plan-gated rather than " +
 					"nonexistent, so this says rejected here and not does not exist",
@@ -2179,7 +2186,7 @@ func (p enumBoundary) concludeEnum(sc Scope, f Field, o enumOutcome, out *Result
 	out.Facts = append(out.Facts, Fact{
 		Resource: sc.Subject.Resource,
 		JSONPath: f.JSONPath,
-		Field:    FactEnumClosed,
+		Field:    FactValuesClosed,
 		Value:    BoolValue(closed),
 		// Observed either way: both answers rest on what the API did with values this probe
 		// chose, and neither needs a second fixture to be believable.
@@ -2193,13 +2200,18 @@ func (p enumBoundary) concludeEnum(sc Scope, f Field, o enumOutcome, out *Result
 				"documented values"),
 	})
 
-	// Whatever the answer, no validator. An over-tight one rejects configurations the API would
-	// have accepted and the practitioner cannot work around it.
+	// What this probe establishes is which way a generated validator should err, not whether
+	// there is one. The validator comes from the documented set, because that set is a
+	// superset of what any one tenant takes; the accepted set is narrower, so building from
+	// it would reject configurations a differently-licensed tenant can use.
 	out.Notes = append(out.Notes, Note{
 		Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
-		Message: "the accepted set is recorded for the attribute's description only; no " +
-			"validator is generated from it, because a routine upstream addition to the set " +
-			"would then become a plan failure the practitioner cannot work around",
+		Message: "a generated OneOf comes from the documented set, not from this accepted " +
+			"set: the documented set is the wider of the two, so a validator built from it " +
+			"errs toward permitting and a stale specification surfaces as the API's own " +
+			"error rather than as a plan failure. What this probe decides is whether there " +
+			"is a validator at all -- an accepted value from outside the documented set " +
+			"suppresses it",
 	})
 }
 
@@ -2362,7 +2374,7 @@ var normalisationTransforms = []transform{
 // cost: "Invalid Access Type: '  all  '" refused a create carrying awkward values for four fields.
 func freeText(sc Scope, f Field) bool {
 	return f.Kind == blueprint.KindString &&
-		len(f.Enum) == 0 &&
+		len(f.AllowedValues) == 0 &&
 		len(sc.Candidates(f.JSONPath)) == 0
 }
 
@@ -2679,7 +2691,7 @@ func withOrWithout(include bool) string {
 func (p writeSideEffect) perturbed(sc Scope, trigger Field, first bool) any {
 	alternatives := sc.Candidates(trigger.JSONPath)
 	if len(alternatives) == 0 {
-		for _, v := range trigger.Enum {
+		for _, v := range trigger.AllowedValues {
 			alternatives = append(alternatives, v)
 		}
 	}

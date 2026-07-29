@@ -28,6 +28,14 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
+          # No "!" alternative, deliberately. That is conventional commits' breaking-change
+          # marker, and nothing has been released yet -- there is no consumer for a
+          # breaking change to break, so claiming one would only mislead the changelog and
+          # push release-please to a 1.0.0 it has no reason to cut. Add "!?" before the
+          # colon at the first release, not before.
+          #
+          # chore stays in the list because dependabot titles its own pull requests
+          # "chore(deps): bump ...".
           PATTERN="^(([Ff]eat|[Ff]ix|[Dd]ocs|[Ss]tyle|[Rr]efactor|[Tt]est|[Cc]hore|[Bb]uild|[Cc]i|[Pp]erf)(\(.+\))?: .+|dependabot.*)$"
 
           if ! echo "$PR_TITLE" | grep -qE "$PATTERN"; then

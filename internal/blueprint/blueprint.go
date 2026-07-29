@@ -29,7 +29,7 @@ import "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/
 
 // FormatVersion is the blueprint format version. It is deliberately unrelated to
 // the Provider Code Specification's version, which this format does not track.
-const FormatVersion = "2"
+const FormatVersion = "3"
 
 // Blueprint is one provider.
 type Blueprint struct {
@@ -295,19 +295,25 @@ type AttrType struct {
 	// NestedObject is the object shape of a nested kind.
 	NestedObject *NestedAttributeObject `json:"nestedObject,omitempty"`
 
-	// Enum is the value set the *specification* documents, and it is documentation only.
+	// AllowedValues is the value set the *specification* documents.
 	//
-	// Explicitly not a validator input. A generated OneOf built from a scraped enum rejects
-	// configurations the API would have accepted, and the practitioner has no way around it --
-	// which is the specific harm the README forbids, and which TestUnit_Emit_EnumValuesDoNot-
-	// ReachGeneratedCode pins.
+	// It is the declared half of a pair, and Behaviour.AcceptedValues is the observed half --
+	// the same split the IR already uses for ComputedOptionalRequired against
+	// Behaviour.RequiredByAPI, and Default against Behaviour.ServerDefault. At a use site the
+	// two are never bare, so a.Type.AllowedValues and a.Behaviour.AcceptedValues say which is
+	// which without the reader having to remember.
 	//
-	// Its purpose is the opposite: it is the *claim* the enum probe refutes. A documented value
-	// the API rejects means the specification is stale, and that fact is only worth anything
-	// when the values provably came from the specification rather than from somebody's
-	// transcription. The pilot is already a case in point -- its committed description lists
-	// five object types and the specification declares six.
-	Enum []string `json:"enum,omitempty"`
+	// A generated OneOf comes from *this* set rather than from what was observed, which reads
+	// backwards until you consider which way each errs. The documented set is a superset of
+	// what any one tenant accepts, so a validator built from it errs toward permitting: a stale
+	// specification surfaces as a real API error carrying the API's own message. Built from the
+	// observed accepted set it would err toward blocking, and the pilot is the case in point --
+	// accessType documents "system", this sandbox refused it, and another licence may allow it.
+	//
+	// It is also the claim the enum probe exists to refute, which is why it must provably come
+	// from the specification rather than from somebody's transcription: the pilot's committed
+	// description listed five object types where the specification declares six.
+	AllowedValues []string `json:"allowedValues,omitempty"`
 }
 
 // NestedAttributeObject is the object shape a nested attribute holds.
@@ -439,6 +445,40 @@ type Behaviour struct {
 	// Volatile marks a field that differs between two identical reads, which
 	// must be Computed or every plan reports drift.
 	Volatile *bool `json:"volatile,omitempty"`
+
+	// AcceptedValues and RejectedValues are the documented values this API took and refused.
+	// They are the observed half of AttrType.AllowedValues.
+	//
+	// Recorded structurally rather than only in prose because a rejected documented value is
+	// evidence the specification is stale, and the generated schema names those values in a
+	// comment beside the validator -- which it can only do if they survive the merge as data.
+	AcceptedValues []string `json:"acceptedValues,omitempty"`
+	RejectedValues []string `json:"rejectedValues,omitempty"`
+
+	// ValuesClosed is false when the API accepted a value from outside the documented set.
+	//
+	// That is the one case with direct evidence that a generated OneOf would be harmful: it
+	// would reject configurations this API demonstrably takes. Render suppresses the validator
+	// on it, which is why merge must carry it per attribute rather than discarding it as
+	// resource-level information.
+	ValuesClosed *bool `json:"valuesClosed,omitempty"`
+}
+
+// IsZero reports whether nothing has been observed about an attribute.
+//
+// Behaviour stopped being comparable with != when it gained slices, and this is the one
+// definition of "empty" rather than a comparison spelled out at each call site.
+// encoding/json's omitzero uses it as well, so the JSON and the Go agree by construction.
+func (b Behaviour) IsZero() bool {
+	return b.Writable == nil &&
+		b.Immutable == nil &&
+		b.RequiredByAPI == nil &&
+		b.ServerDefault == nil &&
+		b.ReturnedOnRead == nil &&
+		b.Volatile == nil &&
+		len(b.AcceptedValues) == 0 &&
+		len(b.RejectedValues) == 0 &&
+		b.ValuesClosed == nil
 }
 
 // UpdateStyle is how the API's update operation treats fields the request omits.

@@ -184,10 +184,17 @@ provider-defined functions, state upgraders.
   seen is still findable; the sweeper removes by identifier and then by name
   prefix. Anything left is reported with a runnable `curl` and exits 5 even if
   every fact was gathered. See [docs/probing.md](docs/probing.md).
-- **A wrong fact is worse than no fact.** Inferred field interdependencies and
-  scraped enum values are emitted as documentation and commented-out validators,
-  never as active constraints — an over-tight validator rejects configurations
-  the API would have accepted, and the user cannot work around it.
+- **A wrong fact is worse than no fact.** Inferred field interdependencies are emitted as
+  documentation, never as active constraints.
+- **A generated validator errs toward permitting.** `OneOf` comes from the value set the
+  *specification documents*, not from the narrower set one tenant was observed to accept:
+  the documented set is the wider of the two, so a stale specification surfaces as a real
+  API error carrying the API's own message rather than as a plan failure nobody can work
+  around. Where the prober saw a documented value refused, it stays permitted and the
+  refusal is named in a comment beside the validator — a value one tenant rejects may be
+  licence-gated rather than nonexistent. The one case that suppresses the validator
+  outright is direct evidence of harm: the API accepted a value from *outside* the
+  documented set, so a `OneOf` would reject configurations it demonstrably takes.
 - **The prober cannot learn everything.** Licence-gated behaviour, cross-object
   constraints, RBAC, production latency, and whether a field is *semantically* a
   secret all need a human. The probe plan's deny list is where that boundary is

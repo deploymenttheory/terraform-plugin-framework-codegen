@@ -2,6 +2,7 @@ package merge
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -761,15 +762,15 @@ func TestUnit_Merge_NotFoundIsSuccessMovesEitherWay(t *testing.T) {
 	}
 }
 
-func TestUnit_Merge_EnumFactsDescribeButDoNotValidate(t *testing.T) {
+func TestUnit_Merge_ObservedValueSetsAreStoredAsData(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactEnumAccepted,
+		fact("colour", probe.FactAcceptedValues,
 			probe.ListValue([]string{"blue", "red"}), probe.Observed),
-		fact("colour", probe.FactEnumRejectedDocumented,
+		fact("colour", probe.FactRejectedValues,
 			probe.ListValue([]string{"deprecated"}), probe.Observed),
 	}
 
@@ -780,25 +781,76 @@ func TestUnit_Merge_EnumFactsDescribeButDoNotValidate(t *testing.T) {
 
 	attr := bp.Resources[0].Schema.Attributes[0]
 
-	// **No validator**, ever. An over-tight one rejects configurations the API would have
-	// accepted, and the practitioner cannot work around it.
+	// Merge still puts no validator in the IR: it records what was observed, and render
+	// decides what to generate from it. Attribute.Validators stays for hand-authored ones.
 	if len(attr.Validators) != 0 {
-		t.Errorf("merge must not generate a validator: %+v", attr.Validators)
+		t.Errorf("merge must not write a validator into the IR: %+v", attr.Validators)
 	}
+
+	// Stored as data, which is what lets render name the rejected value beside the
+	// validator. Previously these reached the description and nothing else, so the
+	// evidence was there to read and not to act on.
+	if got := attr.Behaviour.AcceptedValues; !slices.Equal(got, []string{"blue", "red"}) {
+		t.Errorf("acceptedValues = %v, want [blue red]", got)
+	}
+	if got := attr.Behaviour.RejectedValues; !slices.Equal(got, []string{"deprecated"}) {
+		t.Errorf("rejectedValues = %v, want [deprecated]", got)
+	}
+
+	// And still in the description, because that is what a practitioner reads.
 	for _, want := range []string{"blue", "red", "deprecated"} {
 		if !strings.Contains(attr.MarkdownDescription, want) {
 			t.Errorf("the description should mention %q: %q", want, attr.MarkdownDescription)
 		}
 	}
 
-	var recommended bool
+	// No recommendation to add a OneOf by hand: render generates it.
 	for _, r := range result.Recommendations {
 		if strings.Contains(r, "OneOf") {
-			recommended = true
+			t.Errorf("a OneOf is generated, so it should not be recommended: %q", r)
 		}
 	}
-	if !recommended {
-		t.Errorf("a OneOf should be recommended, not generated: %v", result.Recommendations)
+}
+
+// TestUnit_Merge_ValuesClosedLandsOnTheAttribute is the fact merge used to discard.
+//
+// It was grouped with the resource-level facts and counted as ignored, even though it
+// carries a JSON path. It is the one observation with direct evidence that a generated
+// OneOf would be harmful, so render needs it beside the attribute.
+func TestUnit_Merge_ValuesClosedLandsOnTheAttribute(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name   string
+		closed bool
+	}{
+		{"an API that enforces its documented set", true},
+		{"an API that takes values outside it", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			bp := testBlueprint()
+			facts := []probe.Fact{
+				fact("colour", probe.FactValuesClosed, probe.BoolValue(tc.closed), probe.Observed),
+			}
+
+			result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "s1"})
+			if err != nil {
+				t.Fatalf("Apply: %v", err)
+			}
+			if result.Ignored != 0 {
+				t.Errorf("valuesClosed must not be counted as ignored: %+v", result)
+			}
+
+			got := bp.Resources[0].Schema.Attributes[0].Behaviour.ValuesClosed
+			if got == nil {
+				t.Fatal("valuesClosed did not reach the attribute")
+			}
+			if *got != tc.closed {
+				t.Errorf("valuesClosed = %v, want %v", *got, tc.closed)
+			}
+		})
 	}
 }
 

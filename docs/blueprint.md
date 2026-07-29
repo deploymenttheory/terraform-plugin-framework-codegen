@@ -173,6 +173,45 @@ There is no `blocks`. See the note below.
 }
 ```
 
+### Values, declared and observed
+
+An attribute's value set appears twice, and the pair is the same shape the IR already uses
+for `computedOptionalRequired` against `behaviour.requiredByApi`, and `default` against
+`behaviour.serverDefault`:
+
+| field | meaning |
+|---|---|
+| `type.allowedValues` | what the **specification documents** |
+| `behaviour.acceptedValues` | the documented values this API **took** |
+| `behaviour.rejectedValues` | the documented values this API **refused** |
+| `behaviour.valuesClosed` | whether values from *outside* the documented set were refused |
+
+**A generated `OneOf` comes from `allowedValues`**, the declared set — which reads backwards
+until you consider which way each errs. The documented set is a superset of what any single
+tenant accepts, so a validator built from it errs toward *permitting*: a stale specification
+surfaces as a real API error carrying the API's own message. Built from `acceptedValues` it
+would err toward *blocking*, and the pilot is the case in point — `access_type` documents
+`system`, this sandbox refused it, and another licence may well allow it.
+
+So a documented value the API refused stays permitted, with the refusal named in a comment
+beside the validator. The reader of the schema meets the staleness; the practitioner is not
+blocked by it.
+
+Three things suppress the validator:
+
+- **`valuesClosed` is `false`.** The only case with direct evidence of harm — the API
+  accepted a value from outside the documented set, so a `OneOf` would reject configurations
+  it demonstrably takes. `valuesClosed` being *absent* is not the same thing: an unprobed
+  attribute keeps its validator, or ingesting a specification and emitting from it straight
+  away would produce none at all.
+- **A purely `computed` attribute.** A validator runs against configuration, and a computed
+  attribute is never configured, so one there could never run. `computed_optional` still
+  gets it.
+- **A collection.** Constraining elements needs the element-level wrapper, which is a
+  different shape rather than a string validator applied to a set.
+
+## Attributes, continued
+
 `computedOptionalRequired` is spelled exactly as the official specification spells it —
 `required`, `optional`, `computed`, `computed_optional` — so interop needs no
 mapping table.

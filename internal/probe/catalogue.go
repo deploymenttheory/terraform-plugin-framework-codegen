@@ -596,7 +596,7 @@ func omissionCreates(sc Scope) int {
 func enumValueCount(sc Scope) int {
 	n := 0
 	for _, f := range sc.Enums() {
-		n += len(f.Enum) + negativeEnumCandidates
+		n += len(f.AllowedValues) + negativeEnumCandidates
 	}
 
 	return n
