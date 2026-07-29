@@ -1,0 +1,15 @@
+---
+# Checkov configuration for this repository.
+# Options: https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html
+#
+# Supplying this file replaces super-linter's bundled one: it invokes
+# `checkov --config-file <this file>`.
+
+# Passed checks are not interesting; a failure is.
+quiet: true
+
+skip-path:
+  # See the note in trivy.yaml. The pinned ThousandEyes document's
+  # client-certificate example is a sample PEM, not a credential, and the document is
+  # committed verbatim so it cannot be edited to satisfy a scanner.
+  - openapi-specs
