@@ -79,7 +79,7 @@ jobs:
       - name: Get run url
         if: failure()
         run: |
-          echo "gha_url=https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}" >> $GITHUB_ENV
+          echo "gha_url=https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}" >> "$GITHUB_ENV"
 
       - name: Send build failure comment
         if: failure()

@@ -51,8 +51,18 @@ jobs:
       - name: Run Unit Tests
         run: |
           echo "::group::🧪 Unit Tests"
+          # The package list goes into an array. Relying on the shell to split an
+          # unquoted command substitution works, but says nothing about whether the
+          # splitting is wanted; here it is, because go test takes many packages.
+          #
+          # read in a loop rather than mapfile: mapfile arrived in bash 4, and while the
+          # runner has bash 5, this form can be tested on a machine that does not.
+          packages=()
+          while IFS= read -r pkg; do packages+=("$pkg"); done < <(
+            go list ./... | grep -v '/acceptance' | grep -v '/examples'
+          )
           go test -v -race -coverprofile=coverage.out -covermode=atomic \
-            $(go list ./... | grep -v '/acceptance' | grep -v '/examples') 2>&1 | tee test_output.txt
+            "${packages[@]}" 2>&1 | tee test_output.txt
           echo "::endgroup::"
 
           echo ""
@@ -136,7 +146,7 @@ jobs:
       - name: Get run url
         if: failure()
         run: |
-          echo "gha_url=https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}" >> $GITHUB_ENV
+          echo "gha_url=https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}" >> "$GITHUB_ENV"
 
       - name: Send build failure comment
         if: failure() && github.event.pull_request.head.repo.full_name == github.repository

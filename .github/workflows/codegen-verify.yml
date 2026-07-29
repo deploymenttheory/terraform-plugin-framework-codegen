@@ -245,8 +245,11 @@ jobs:
             echo "### ❌ The exported specification is out of date"
             echo ""
             echo '```bash'
-            echo 'go run ./cmd/tfpluginframeworkgen interop export \'
-            echo '  -blueprint blueprints/thousandeyes \'
+            # Double quotes with an escaped backslash, not a single-quoted string ending
+            # in one: the latter reads as an attempt to escape the closing quote. The text
+            # has no expansion in it, so the quoting style makes no other difference.
+            echo "go run ./cmd/tfpluginframeworkgen interop export \\"
+            echo "  -blueprint blueprints/thousandeyes \\"
             echo '  -out interop-specs/thousandeyes/provider-code-spec.json'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
