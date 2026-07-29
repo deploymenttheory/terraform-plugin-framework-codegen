@@ -341,8 +341,10 @@ func TestUnit_Probe_DirtyErrorNamesTheFix(t *testing.T) {
 	}
 
 	msg := err.Error()
-	for _, want := range []string{"2 object(s)", "42", "identifier never recorded",
-		"-mode sweep", "-resource tag", "/tmp/x/ledger.jsonl"} {
+	for _, want := range []string{
+		"2 object(s)", "42", "identifier never recorded",
+		"-mode sweep", "-resource tag", "/tmp/x/ledger.jsonl",
+	} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("the message omits %q:\n%s", want, msg)
 		}

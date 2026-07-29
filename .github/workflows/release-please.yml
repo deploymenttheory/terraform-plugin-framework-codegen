@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-    - main
+      - main
 
 permissions:
   contents: write
@@ -11,16 +11,15 @@ name: release-please
 
 jobs:
   release-please:
-    name: '🔖 Release Please'
+    name: "🔖 Release Please"
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
 
-    - name: Harden Runner
-      uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
-      with:
-        egress-policy: audit
-
-    - uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # v4.4.0
-      with:
-        release-type: terraform-module
-        token: ${{ secrets.RELEASE_PLEASE_PAT }}
+      - uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # v4.4.0
+        with:
+          release-type: terraform-module
+          token: ${{ secrets.RELEASE_PLEASE_PAT }}
