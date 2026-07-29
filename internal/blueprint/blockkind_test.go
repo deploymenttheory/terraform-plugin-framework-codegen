@@ -198,6 +198,13 @@ func TestUnit_BlockKind_ValidateAcceptsEveryFieldOnAResource(t *testing.T) {
 		WriteOnly:                true,
 		PlanModifiers:            []CustomCode{{}},
 		Default:                  &Default{Static: &Literal{Kind: KindString, Raw: `"x"`}},
+		// Both wire directions, because a resource is a kind that expands: the
+		// per-kind check covers wire as well as the schema fields, and an attribute
+		// missing an expand would fail here for a reason this test is not about.
+		Wire: WireBinding{
+			Expand:  &ConvertCall{Func: "convert.FrameworkToPtrString"},
+			Flatten: &ConvertCall{Func: "convert.PtrStringToFramework"},
+		},
 	}
 
 	var p problems
@@ -205,5 +212,153 @@ func TestUnit_BlockKind_ValidateAcceptsEveryFieldOnAResource(t *testing.T) {
 
 	if len(p) != 0 {
 		t.Errorf("a resource attribute may set all of these; got %v", p)
+	}
+}
+
+// TestUnit_BlockKind_Expands pins which kinds send attribute values to the API.
+//
+// A kind that expands needs an expand conversion on every settable attribute; one that
+// does not must have none, because a settable attribute there is a lookup argument or a
+// filter that reaches the API as a call argument rather than through a request body.
+func TestUnit_BlockKind_Expands(t *testing.T) {
+	t.Parallel()
+
+	want := map[BlockKind]bool{
+		BlockResource:   true,
+		BlockAction:     true,
+		BlockDataSource: false,
+		BlockEphemeral:  false,
+		BlockList:       false,
+	}
+
+	for kind, w := range want {
+		if got := kind.Expands(); got != w {
+			t.Errorf("%s.Expands() = %v, want %v", kind, got, w)
+		}
+	}
+}
+
+// TestUnit_BlockKind_WireDirectionsAreCheckedPerKind covers the rule that moved out of
+// Attribute.validate in this phase.
+//
+// The flatten direction is universal, because every kind reads. The expand direction is
+// required on a resource and refused on a data source, and putting that check in the
+// kind-agnostic path made the first data source blueprint unrepresentable: its lookup
+// argument is required, and a required attribute was assumed to need an expand.
+func TestUnit_BlockKind_WireDirectionsAreCheckedPerKind(t *testing.T) {
+	t.Parallel()
+
+	expand := &ConvertCall{Func: "convert.FrameworkToPtrString"}
+	flatten := &ConvertCall{Func: "convert.PtrStringToFramework"}
+
+	tests := []struct {
+		name     string
+		kind     BlockKind
+		attr     Attribute
+		wantPath string
+	}{
+		{
+			name: "a writable resource attribute needs an expand",
+			kind: BlockResource,
+			attr: Attribute{
+				Name: "f", ComputedOptionalRequired: Required,
+				Wire: WireBinding{Flatten: flatten},
+			},
+			wantPath: "attributes[f].wire.expand",
+		},
+		{
+			name: "skipExpand on a writable resource attribute is refused",
+			kind: BlockResource,
+			attr: Attribute{
+				Name: "f", ComputedOptionalRequired: Optional,
+				Wire: WireBinding{Flatten: flatten, SkipExpand: true},
+			},
+			wantPath: "attributes[f].wire.skipExpand",
+		},
+		{
+			name: "an expand on a data source attribute is refused",
+			kind: BlockDataSource,
+			attr: Attribute{
+				Name: "f", ComputedOptionalRequired: Required,
+				Wire: WireBinding{Expand: expand, Flatten: flatten},
+			},
+			wantPath: "attributes[f].wire.expand",
+		},
+		{
+			name:     "every kind needs a flatten",
+			kind:     BlockDataSource,
+			attr:     Attribute{Name: "f", ComputedOptionalRequired: Computed},
+			wantPath: "attributes[f].wire.flatten",
+		},
+		{
+			name: "a resource's nested object needs an expand helper",
+			kind: BlockResource,
+			attr: Attribute{
+				Name: "outer", ComputedOptionalRequired: Computed,
+				Wire: WireBinding{Flatten: flatten},
+				Type: AttrType{
+					Kind: KindSetNested,
+					NestedObject: &NestedAttributeObject{
+						FlattenFunc: "flattenOuter",
+						Attributes:  []Attribute{{Name: "id", Wire: WireBinding{Flatten: flatten}}},
+					},
+				},
+			},
+			wantPath: "attributes[outer].type.nested.expandFunc",
+		},
+		{
+			name: "every kind's nested object needs a flatten helper",
+			kind: BlockDataSource,
+			attr: Attribute{
+				Name: "outer", ComputedOptionalRequired: Computed,
+				Wire: WireBinding{Flatten: flatten},
+				Type: AttrType{
+					Kind: KindSetNested,
+					NestedObject: &NestedAttributeObject{
+						Attributes: []Attribute{{Name: "id", Wire: WireBinding{Flatten: flatten}}},
+					},
+				},
+			},
+			wantPath: "attributes[outer].type.nested.flattenFunc",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var p problems
+			tc.attr.validateForKind(tc.kind, "attributes["+tc.attr.Name+"]", &p)
+
+			var paths []string
+			for _, prob := range p {
+				paths = append(paths, prob.path)
+			}
+			joined := strings.Join(paths, "; ")
+			if !strings.Contains(joined, tc.wantPath) {
+				t.Errorf("path %q not among %q", tc.wantPath, joined)
+			}
+		})
+	}
+}
+
+// TestUnit_BlockKind_ReadOnlyAttributeNeedsNoExpand is the converse: the shape the pilot's
+// data sources actually use must pass.
+func TestUnit_BlockKind_ReadOnlyAttributeNeedsNoExpand(t *testing.T) {
+	t.Parallel()
+
+	flatten := &ConvertCall{Func: "convert.PtrStringToFramework"}
+
+	// A required lookup argument with no expand, which is what a by-id data source is.
+	lookup := Attribute{
+		Name: "id", GoField: "ID", ComputedOptionalRequired: Required,
+		Wire: WireBinding{Flatten: flatten},
+	}
+
+	var p problems
+	lookup.validateForKind(BlockDataSource, "attributes[id]", &p)
+
+	if len(p) != 0 {
+		t.Errorf("a data source's required lookup argument needs no expand; got %v", p)
 	}
 }

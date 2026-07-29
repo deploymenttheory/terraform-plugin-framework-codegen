@@ -1,0 +1,45 @@
+{{ .Header }}
+{{ if .DocRefComment }}
+{{ .DocRefComment }}
+{{- end }}
+package {{ .Package }}
+
+import (
+{{- if .NestedModels }}
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+{{- end }}
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/datasource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// {{ .ModelTypeName }} is the Terraform state for a {{ .DataSourceName }}.
+//
+// Field order follows the schema, and the timeouts value is last.
+type {{ .ModelTypeName }} struct {
+{{- range .ModelFields }}
+	{{ . }}
+{{- end }}
+}
+{{ range .NestedModels }}
+// {{ .GoTypeName }} is one element of a nested attribute.
+//
+// It is a sibling of the data source model rather than an inner type, because the
+// framework decodes collection elements into a named type.
+type {{ .GoTypeName }} struct {
+{{- range .Fields }}
+	{{ . }}
+{{- end }}
+}
+
+// {{ .AttrTypesVar }} describes {{ .GoTypeName }} to the framework.
+//
+// It is declared once and referenced by the conversion helper, so the shape cannot
+// drift between the declaration and the code that populates it.
+var {{ .AttrTypesVar }} = map[string]attr.Type{
+{{- range .AttrTypeEntries }}
+	{{ . }}
+{{- end }}
+}
+
+var {{ .ObjectTypeVar }} = types.ObjectType{AttrTypes: {{ .AttrTypesVar }}}
+{{ end }}

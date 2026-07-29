@@ -19,15 +19,15 @@ import (
 // This function replaces what a reflection-based provider does at runtime. Being
 // generated code, a field whose conversion is wrong is a compile error rather
 // than a surprise during apply.
-func mapRemoteStateToTerraform(ctx context.Context, data *TagResourceModel, remote *tags.Tag) diag.Diagnostics {
+func mapRemoteStateToTerraform(ctx context.Context, data *TagDataSourceModel, remote *tags.Tag) diag.Diagnostics {
 	var (
 		diags diag.Diagnostics
 		d     diag.Diagnostics
 	)
 
 	if remote == nil {
-		tflog.Debug(ctx, "remote resource is nil, leaving state untouched", map[string]any{
-			"resource": ResourceName,
+		tflog.Debug(ctx, "remote object is nil, leaving state untouched", map[string]any{
+			"dataSource": DataSourceName,
 		})
 		return diags
 	}
@@ -52,7 +52,7 @@ func mapRemoteStateToTerraform(ctx context.Context, data *TagResourceModel, remo
 	data.Filters, d = flattenTagFilters(ctx, remote.Filters)
 	diags.Append(d...)
 
-	tflog.Debug(ctx, "mapped remote state", map[string]any{"resource": ResourceName})
+	tflog.Debug(ctx, "mapped remote state", map[string]any{"dataSource": DataSourceName})
 
 	return diags
 }

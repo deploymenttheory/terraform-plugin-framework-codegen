@@ -132,6 +132,8 @@ func (d DataSource) validate(at string, p *problems) {
 		p.add(at+".schema.attributes", "a data source with no attributes cannot be emitted")
 	}
 
+	d.Binding.validate(at+".binding", p)
+
 	seenNames := map[string]bool{}
 	seenFields := map[string]bool{}
 
@@ -354,22 +356,8 @@ func (a Attribute) validate(at string, p *problems) {
 		}
 	}
 
-	// An attribute the practitioner can set must have a way to reach the API,
-	// and one that is read must have a way back. Catching this here is the
-	// difference between a clear message and a silently inert attribute.
-	if a.ComputedOptionalRequired.IsRequired() || a.ComputedOptionalRequired.IsOptional() {
-		if a.Wire.SkipExpand {
-			p.add(
-				at+".wire.skipExpand",
-				"is set on a writable attribute, so its value would never reach the API",
-			)
-		} else if a.Wire.Expand == nil {
-			p.add(at+".wire.expand", "is required on a writable attribute")
-		}
-	}
-	if !a.Wire.SkipFlatten && a.Wire.Flatten == nil {
-		p.add(at+".wire.flatten", "is required unless skipFlatten is set")
-	}
+	// The wire directions are checked by validateForKind, because which of them an
+	// attribute needs depends on whether its block kind sends anything to the API.
 }
 
 func (t AttrType) validate(at string, p *problems) {
@@ -409,8 +397,8 @@ func (n NestedAttributeObject) validate(at string, p *problems) {
 	required(p, at+".sdkType", n.SDKType)
 	required(p, at+".attrTypesVar", n.AttrTypesVar)
 	required(p, at+".objectTypeVar", n.ObjectTypeVar)
-	required(p, at+".expandFunc", n.ExpandFunc)
-	required(p, at+".flattenFunc", n.FlattenFunc)
+	// expandFunc and flattenFunc are checked by validateWireForKind: a data source needs
+	// only the flatten direction, so requiring both here would refuse a valid one.
 
 	if len(n.Attributes) == 0 {
 		p.add(at+".attributes", "a nested object with no attributes cannot be emitted")
@@ -472,6 +460,38 @@ func (b ResourceBinding) validate(at string, p *problems) {
 	}
 }
 
+// validate checks a data source's binding.
+//
+// Read is not merely required, it is the whole binding: a data source that cannot read is
+// not a data source. The resource equivalent has three more operations and a request
+// body, none of which exist on this type, so there is nothing here to refuse.
+func (b DataSourceBinding) validate(at string, p *problems) {
+	required(p, at+".service.importPath", b.Service.ImportPath)
+	required(p, at+".service.typeName", b.Service.TypeName)
+	required(p, at+".service.accessor", b.Service.Accessor)
+
+	required(p, at+".response.type", b.Response.Type)
+
+	switch b.Response.AccessStyle {
+	case AccessStructField:
+	case AccessMethod:
+		p.add(
+			at+".response.accessStyle",
+			"%q is reserved but not yet implemented by the emitter",
+			b.Response.AccessStyle,
+		)
+	default:
+		p.add(at+".response.accessStyle", "%q is not a known access style", b.Response.AccessStyle)
+	}
+
+	if b.Read == nil {
+		p.add(at+".read", "is required: a data source with no read operation has nothing to do")
+		return
+	}
+
+	b.Read.validate(at+".read", p)
+}
+
 func (o Operation) validate(at string, p *problems) {
 	switch o.Style {
 	case CallStyleMethod:
@@ -507,7 +527,7 @@ func (o Operation) validate(at string, p *problems) {
 func (a Argument) validate(at string, p *problems) {
 	switch a.Kind {
 	case ArgContext, ArgBody:
-	case ArgStateField, ArgPlanField:
+	case ArgStateField, ArgPlanField, ArgConfigField:
 		if a.Field == "" && a.Expr == "" {
 			p.add(at, "kind %q needs either field or expr", a.Kind)
 		}

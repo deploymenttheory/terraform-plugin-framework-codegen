@@ -1,0 +1,62 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.DataSource }}
+)
+
+const (
+	// DataSourceName is the Terraform type this data source registers as.
+	DataSourceName = "{{ .DataSourceName }}"
+
+	// ReadTimeout is the default read deadline in seconds. A practitioner overrides it
+	// with the data source's timeouts block. Read is the only operation a data source
+	// has, so it is the only deadline there is.
+	ReadTimeout = {{ .ReadTimeout }}
+)
+
+// Compile-time assertions that this data source implements what it claims to. They
+// turn a missing method into a build failure rather than a runtime surprise.
+var (
+{{- range .Interfaces }}
+	{{ . }}
+{{- end }}
+)
+
+// {{ .ConstructorFn }} returns the {{ .DataSourceName }} data source.
+func {{ .ConstructorFn }}() datasource.DataSource {
+	return &{{ .GoTypeName }}{}
+}
+
+// {{ .GoTypeName }} implements the {{ .DataSourceName }} data source.
+type {{ .GoTypeName }} struct {
+	client {{ .SDKClientType }}
+}
+
+// Metadata returns the data source type name.
+func (d *{{ .GoTypeName }}) Metadata(_ context.Context, _ datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = DataSourceName
+}
+
+// Configure receives the configured SDK client from the provider.
+func (d *{{ .GoTypeName }}) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	d.client = client.ForDataSource(ctx, req, resp, DataSourceName)
+}
+
+// Schema returns the data source schema.
+func (d *{{ .GoTypeName }}) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+{{- if .MarkdownDescription }}
+		MarkdownDescription: {{ printf "%q" .MarkdownDescription }},
+{{- end }}
+		Attributes: map[string]schema.Attribute{
+{{- range .SchemaAttributes }}
+			{{ . }},
+{{- end }}
+		},
+		Blocks: map[string]schema.Block{
+			"timeouts": commonschema.DataSourceTimeouts(ctx),
+		},
+	}
+}

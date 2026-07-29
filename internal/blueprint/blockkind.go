@@ -68,6 +68,17 @@ func (k BlockKind) SupportsDefault() bool { return k == BlockResource }
 // SupportsWriteOnly reports whether this kind's attributes may be write-only.
 func (k BlockKind) SupportsWriteOnly() bool { return k == BlockResource || k == BlockAction }
 
+// Expands reports whether this kind sends attribute values to the API, and so needs an
+// expand conversion on every attribute a practitioner can set.
+//
+// Only a resource and an action do. A data source, an ephemeral resource and a list
+// resource read: a settable attribute on one of those is a lookup argument or a filter,
+// which reaches the API as a call argument rather than through a request body. Requiring
+// an expand there would demand a conversion into a body that is never sent.
+func (k BlockKind) Expands() bool {
+	return k == BlockResource || k == BlockAction
+}
+
 // validateForKind refuses a field the target block kind has no home for.
 //
 // Without this the generator emits code that does not compile: a Default on a data source attribute
@@ -100,6 +111,8 @@ func (a Attribute) validateForKind(kind BlockKind, at string, p *problems) {
 		p.add(at+".writeOnly", "a %s attribute cannot be write-only", kind)
 	}
 
+	a.validateWireForKind(kind, at, p)
+
 	for i, nested := range a.nestedAttributes() {
 		nat := fmt.Sprintf("%s.type.nestedObject.attributes[%d]", at, i)
 		if nested.Name != "" {
@@ -107,6 +120,58 @@ func (a Attribute) validateForKind(kind BlockKind, at string, p *problems) {
 		}
 
 		nested.validateForKind(kind, nat, p)
+	}
+}
+
+// validateWireForKind checks the wire directions the kind actually uses.
+//
+// The flatten direction is universal: every kind reads. The expand direction is not, and
+// which of the two an attribute needs is decided by the kind rather than by the
+// attribute, which is why this lives here rather than in Attribute.validate.
+func (a Attribute) validateWireForKind(kind BlockKind, at string, p *problems) {
+	// An attribute the practitioner can set must have a way to reach the API, and one
+	// that is read must have a way back. Catching this here is the difference between a
+	// clear message and a silently inert attribute.
+	if !a.Wire.SkipFlatten && a.Wire.Flatten == nil {
+		p.add(at+".wire.flatten", "is required unless skipFlatten is set")
+	}
+
+	if n := a.Type.NestedObject; n != nil {
+		if n.FlattenFunc == "" {
+			p.add(at+".type.nested.flattenFunc", "is required")
+		}
+		if kind.Expands() && n.ExpandFunc == "" {
+			p.add(
+				at+".type.nested.expandFunc",
+				"is required for a %s, which sends this object to the API",
+				kind,
+			)
+		}
+	}
+
+	if !kind.Expands() {
+		if a.Wire.Expand != nil {
+			p.add(
+				at+".wire.expand",
+				"is set on a %s attribute, which sends nothing to the API",
+				kind,
+			)
+		}
+		return
+	}
+
+	if !a.ComputedOptionalRequired.IsRequired() && !a.ComputedOptionalRequired.IsOptional() {
+		return
+	}
+	if a.Wire.SkipExpand {
+		p.add(
+			at+".wire.skipExpand",
+			"is set on a writable attribute, so its value would never reach the API",
+		)
+		return
+	}
+	if a.Wire.Expand == nil {
+		p.add(at+".wire.expand", "is required on a writable attribute")
 	}
 }
 

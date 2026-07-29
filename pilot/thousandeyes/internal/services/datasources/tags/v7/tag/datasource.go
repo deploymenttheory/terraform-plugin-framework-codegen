@@ -6,11 +6,8 @@ package tag
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	thousandeyes "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes"
@@ -19,73 +16,61 @@ import (
 )
 
 const (
-	// ResourceName is the Terraform type this resource registers as.
-	ResourceName = "thousandeyes_tag"
+	// DataSourceName is the Terraform type this data source registers as.
+	DataSourceName = "thousandeyes_tag"
 
-	// Default per-operation timeouts, in seconds. A practitioner overrides them
-	// with the resource's timeouts block.
-	CreateTimeout = 180
-	ReadTimeout   = 180
-	UpdateTimeout = 180
-	DeleteTimeout = 180
+	// ReadTimeout is the default read deadline in seconds. A practitioner overrides it
+	// with the data source's timeouts block. Read is the only operation a data source
+	// has, so it is the only deadline there is.
+	ReadTimeout = 180
 )
 
-// Compile-time assertions that this resource implements what it claims to. They
+// Compile-time assertions that this data source implements what it claims to. They
 // turn a missing method into a build failure rather than a runtime surprise.
 var (
-	_ resource.Resource                = (*TagResource)(nil)
-	_ resource.ResourceWithConfigure   = (*TagResource)(nil)
-	_ resource.ResourceWithImportState = (*TagResource)(nil)
+	_ datasource.DataSource              = &TagDataSource{}
+	_ datasource.DataSourceWithConfigure = &TagDataSource{}
 )
 
-// NewTagResource returns the thousandeyes_tag resource.
-func NewTagResource() resource.Resource {
-	return &TagResource{}
+// NewTagDataSource returns the thousandeyes_tag data source.
+func NewTagDataSource() datasource.DataSource {
+	return &TagDataSource{}
 }
 
-// TagResource implements the thousandeyes_tag resource.
-type TagResource struct {
+// TagDataSource implements the thousandeyes_tag data source.
+type TagDataSource struct {
 	client *thousandeyes.Client
 }
 
-// Metadata returns the resource type name.
-func (r *TagResource) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = ResourceName
+// Metadata returns the data source type name.
+func (d *TagDataSource) Metadata(_ context.Context, _ datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = DataSourceName
 }
 
 // Configure receives the configured SDK client from the provider.
-func (r *TagResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	r.client = client.ForResource(ctx, req, resp, ResourceName)
+func (d *TagDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	d.client = client.ForDataSource(ctx, req, resp, DataSourceName)
 }
 
-// ImportState maps a terraform import into state.
-func (r *TagResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
-
-// Schema returns the resource schema.
-func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+// Schema returns the data source schema.
+func (d *TagDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a ThousandEyes tag. Tags are key/value labels that can be assigned to tests, agents and dashboards.",
+		MarkdownDescription: "Looks up a single ThousandEyes tag by its identifier.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The tag's unique identifier, assigned by the API.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Required:            true,
+				MarkdownDescription: "The identifier of the tag to look up.",
 			},
 			"key": schema.StringAttribute{
-				Required:            true,
+				Computed:            true,
 				MarkdownDescription: "The tag's key. Together with `value` this forms the label applied to assigned objects.",
 			},
 			"value": schema.StringAttribute{
-				Optional: true,
+				Computed: true,
 				MarkdownDescription: "The tag's value. <!-- probed:7.0.97-t1785295713598 --> The API enforces this field's " +
 					"presence, which the specification does not declare. <!-- /probed -->",
 			},
 			"color": schema.StringAttribute{
-				Optional: true,
 				Computed: true,
 				MarkdownDescription: "The tag's display colour as a hex string. Computed as well as optional because the API " +
 					"assigns one when it is omitted; this has not yet been confirmed by probing. <!-- " +
@@ -93,16 +78,16 @@ func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 					"<!-- /probed -->",
 			},
 			"description": schema.StringAttribute{
-				Optional:            true,
+				Computed:            true,
 				MarkdownDescription: "A human-readable description of the tag.",
 			},
 			"icon": schema.StringAttribute{
-				Optional: true,
+				Computed: true,
 				MarkdownDescription: "The tag's icon. <!-- probed:7.0.97-t1785295713598 --> Observed: the API assigns \"LABEL\" " +
 					"when this is omitted. <!-- /probed -->",
 			},
 			"object_type": schema.StringAttribute{
-				Required: true,
+				Computed: true,
 				MarkdownDescription: "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, " +
 					"`endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated " +
 					"because the API's enumerations are open: an undocumented value must not be rejected by the " +
@@ -112,7 +97,6 @@ func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 					"the specification does not declare. <!-- /probed -->",
 			},
 			"access_type": schema.StringAttribute{
-				Optional: true,
 				Computed: true,
 				MarkdownDescription: "The tag's access level. Documented values are `all`, `partner` and `system`. <!-- " +
 					"probed:7.0.97-t1785295713598 --> Values accepted here: `all`. The specification documents " +
@@ -120,7 +104,6 @@ func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 					"specification does not declare. <!-- /probed -->",
 			},
 			"match_type": schema.StringAttribute{
-				Optional: true,
 				Computed: true,
 				MarkdownDescription: "How the tag's filters combine when it is assigned dynamically. <!-- " +
 					"probed:7.0.97-t1785295713598 --> Values accepted here: `and`, `or`. <!-- /probed -->",
@@ -128,9 +111,6 @@ func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 			"type": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The tag's type, assigned by the API.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"built_in": schema.BoolAttribute{
 				Computed:            true,
@@ -145,16 +125,10 @@ func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 			"create_date": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "When the tag was created.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"modified_date": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "When the tag was last modified.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"legacy_id": schema.Float64Attribute{
 				Computed: true,
@@ -166,52 +140,49 @@ func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Required:            true,
+							Computed:            true,
 							MarkdownDescription: "The identifier of the object the tag is assigned to.",
 						},
 						"type": schema.StringAttribute{
-							Required: true,
+							Computed: true,
 							MarkdownDescription: "The kind of object assigned. Documented values are `test`, `v-agent`, `endpoint-test`, " +
 								"`dashboard` and `connected-devices-test`.",
 						},
 					},
 				},
-				Optional: true,
 				Computed: true,
-				MarkdownDescription: "Objects this tag is assigned to. A set rather than a list because the API does not " +
-					"preserve ordering.",
+				MarkdownDescription: "Objects this tag is assigned to. The API returns assignments only when the request asks " +
+					"for them to be expanded, which this data source does not, so this is null rather than " +
+					"empty.",
 			},
 			"filters": schema.SetNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"key": schema.StringAttribute{
-							Required:            true,
+							Computed:            true,
 							MarkdownDescription: "The filter key used for matching.",
 						},
 						"mode": schema.StringAttribute{
-							Optional:            true,
 							Computed:            true,
 							MarkdownDescription: "How the filter values are matched.",
 						},
 						"scope": schema.StringAttribute{
-							Optional:            true,
 							Computed:            true,
 							MarkdownDescription: "The scope the filter applies within.",
 						},
 						"values": schema.SetAttribute{
 							ElementType:         types.StringType,
-							Required:            true,
+							Computed:            true,
 							MarkdownDescription: "The values the filter matches against.",
 						},
 					},
 				},
-				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "Filters that dynamically assign this tag to endpoint agents.",
 			},
 		},
 		Blocks: map[string]schema.Block{
-			"timeouts": commonschema.ResourceTimeouts(ctx),
+			"timeouts": commonschema.DataSourceTimeouts(ctx),
 		},
 	}
 }

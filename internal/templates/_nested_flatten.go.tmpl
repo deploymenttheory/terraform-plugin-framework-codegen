@@ -1,0 +1,66 @@
+{{- /*
+nestedFlattenHelpers renders the per-shape helpers that turn SDK structs into the
+framework values state holds.
+
+It is defined here and included by both state.go.tmpl and datasource_state.go.tmpl
+because the two are character-for-character identical: a flatten helper reads an SDK
+struct and writes a framework value, and neither of those depends on whether a resource
+or a data source is asking. The dot passed in is the StateView, not the whole view, so
+this fragment cannot reach anything kind-specific even by accident.
+*/ -}}
+{{ define "nestedFlattenHelpers" }}
+{{- range .NestedObject }}
+// {{ .FuncName }} converts SDK structs into the framework value state holds.
+{{- if .IsCollection }}
+func {{ .FuncName }}(ctx context.Context, in []{{ .SDKType }}) ({{ .FrameworkType }}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+{{- if .NeedsDiagnostics }}
+	var d diag.Diagnostics
+{{- end }}
+
+	// A nil slice is null and an empty slice is empty. Conflating them produces a
+	// diff no configuration change can resolve.
+	if in == nil {
+		return types.{{ .Container }}Null({{ .ObjectTypeVar }}), diags
+	}
+
+	models := make([]{{ .ModelType }}, 0, len(in))
+	for _, item := range in {
+		var m {{ .ModelType }}
+{{ range .Assignments }}
+		{{ . }}
+{{- end }}
+		models = append(models, m)
+	}
+
+	out, d2 := types.{{ .Container }}ValueFrom(ctx, {{ .ObjectTypeVar }}, models)
+	diags.Append(d2...)
+
+	return out, diags
+}
+{{- else }}
+func {{ .FuncName }}(ctx context.Context, in *{{ .SDKType }}) ({{ .FrameworkType }}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+{{- if .NeedsDiagnostics }}
+	var d diag.Diagnostics
+{{- end }}
+
+	if in == nil {
+		return types.ObjectNull({{ .ObjectTypeVar }}.AttrTypes), diags
+	}
+
+	item := *in
+
+	var m {{ .ModelType }}
+{{ range .Assignments }}
+	{{ . }}
+{{- end }}
+
+	out, d2 := types.ObjectValueFrom(ctx, {{ .ObjectTypeVar }}.AttrTypes, m)
+	diags.Append(d2...)
+
+	return out, diags
+}
+{{- end }}
+{{ end }}
+{{- end }}
