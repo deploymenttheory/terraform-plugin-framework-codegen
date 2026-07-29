@@ -13,7 +13,13 @@ jobs:
     name: "🤖 Auto-Merge Dependabot"
     runs-on: ubuntu-latest
 
-    if: ${{ github.actor == 'dependabot[bot]' }}
+    # Gated on the pull request author's immutable numeric id, not on github.actor.
+    #
+    # This job holds contents: write and merges pull requests, so this condition is the
+    # whole of its security. github.actor is a login, and a login is a display name that
+    # can be changed; 49699333 is dependabot[bot]'s user id and cannot be. Verified
+    # against dependabot pull requests in this repository.
+    if: ${{ github.event.pull_request.user.id == 49699333 }}
 
     steps:
       - name: Harden Runner

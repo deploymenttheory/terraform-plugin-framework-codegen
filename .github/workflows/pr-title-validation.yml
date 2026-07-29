@@ -4,6 +4,12 @@ on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
 
+# Declared rather than inherited: a workflow with no permissions block gets the
+# repository default, which may be write-all. This one reads the title out of the event
+# payload and checks it out of nothing, so it needs no write anywhere.
+permissions:
+  contents: read
+
 jobs:
   validate-pr-title:
     name: "✅ Validate PR Title"
