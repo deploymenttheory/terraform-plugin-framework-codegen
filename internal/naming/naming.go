@@ -263,11 +263,18 @@ func (o Options) GoFieldName(s string) string {
 	return exported(SplitWords(s), o.initialisms())
 }
 
+// fallbackIdentifier is what an empty name becomes.
+//
+// Both places that need it would otherwise repeat the literal, and they have to agree:
+// SafeIdentifier and Unique are routinely composed, so a divergence would produce two
+// different names for the same nothing.
+const fallbackIdentifier = "value"
+
 // SafeIdentifier returns an identifier safe to use as a local variable or
 // parameter, suffixing anything reserved rather than silently shadowing it.
 func SafeIdentifier(s string) string {
 	if s == "" {
-		return "value"
+		return fallbackIdentifier
 	}
 	if IsReserved(s) {
 		return s + "Value"
@@ -377,7 +384,7 @@ func lowerFirst(s string) string {
 // it at the naming layer removes the entire class of bug.
 func Unique(taken map[string]bool, want string) string {
 	if want == "" {
-		want = "value"
+		want = fallbackIdentifier
 	}
 	if !taken[want] {
 		taken[want] = true
