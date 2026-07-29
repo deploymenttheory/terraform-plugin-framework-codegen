@@ -1,0 +1,352 @@
+{
+  "formatVersion": "2",
+  "dataSources": [
+    {
+      "key": "tags",
+      "name": "tags",
+      "goPackage": "tags",
+      "goPackageAlias": "v7TagsData",
+      "goTypeName": "TagsDataSource",
+      "modelTypeName": "TagsDataSourceModel",
+      "serviceGroup": "tags",
+      "apiVersionDir": "v7",
+      "docRefUrl": "https://developer.cisco.com/docs/thousandeyes/list-tags/",
+      "schema": {
+        "attributes": [
+          {
+            "name": "tags",
+            "goField": "Tags",
+            "type": {
+              "kind": "list_nested",
+              "nestedObject": {
+                "goTypeName": "TagSummaryModel",
+                "sdkType": "tags.Tag",
+                "attrTypesVar": "tagSummaryAttrTypes",
+                "objectTypeVar": "tagSummaryObjectType",
+                "flattenFunc": "flattenTagSummaries",
+                "attributes": [
+                  {
+                    "name": "id",
+                    "goField": "ID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The tag's unique identifier, assigned by the API.",
+                    "wire": {
+                      "jsonPath": "id",
+                      "sdkField": "ID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "key",
+                    "goField": "Key",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The tag's key. Together with `value` this forms the label applied to assigned objects.",
+                    "wire": {
+                      "jsonPath": "key",
+                      "sdkField": "Key",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "goField": "Value",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The tag's value.\n\n<!-- probed:7.0.97-t1785295713598 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+                    "wire": {
+                      "jsonPath": "value",
+                      "sdkField": "Value",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "color",
+                    "goField": "Color",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->",
+                    "wire": {
+                      "jsonPath": "color",
+                      "sdkField": "Color",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "description",
+                    "goField": "Description",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "A human-readable description of the tag.",
+                    "wire": {
+                      "jsonPath": "description",
+                      "sdkField": "Description",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "icon",
+                    "goField": "Icon",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The tag's icon.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->",
+                    "wire": {
+                      "jsonPath": "icon",
+                      "sdkField": "Icon",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "object_type",
+                    "goField": "ObjectType",
+                    "type": {
+                      "kind": "string",
+                      "enum": [
+                        "test",
+                        "dashboard",
+                        "endpoint-test",
+                        "v-agent",
+                        "connected-devices-test",
+                        "endpoint-agent"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+                    "wire": {
+                      "jsonPath": "objectType",
+                      "sdkField": "ObjectType",
+                      "sdkGoType": "tags.ObjectType",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "access_type",
+                    "goField": "AccessType",
+                    "type": {
+                      "kind": "string",
+                      "enum": [
+                        "all",
+                        "partner",
+                        "system"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+                    "wire": {
+                      "jsonPath": "accessType",
+                      "sdkField": "AccessType",
+                      "sdkGoType": "tags.AccessType",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "match_type",
+                    "goField": "MatchType",
+                    "type": {
+                      "kind": "string",
+                      "enum": [
+                        "and",
+                        "or"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->",
+                    "wire": {
+                      "jsonPath": "matchType",
+                      "sdkField": "MatchType",
+                      "sdkGoType": "tags.TagMatchType",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "goField": "Type",
+                    "type": {
+                      "kind": "string",
+                      "enum": [
+                        "static",
+                        "dynamic"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The tag's type, assigned by the API.",
+                    "wire": {
+                      "jsonPath": "type",
+                      "sdkField": "Type",
+                      "sdkGoType": "tags.Type",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "built_in",
+                    "goField": "BuiltIn",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Whether the tag is built in rather than user-created.",
+                    "wire": {
+                      "jsonPath": "builtIn",
+                      "sdkField": "BuiltIn",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "account_group_id",
+                    "goField": "AccountGroupID",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The account group the tag belongs to. Computed rather than configurable: the provider scopes every request through its own `account_group_id` setting, so accepting a second value here would let the two disagree.",
+                    "wire": {
+                      "jsonPath": "aid",
+                      "sdkField": "AID",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "create_date",
+                    "goField": "CreateDate",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "When the tag was created.",
+                    "wire": {
+                      "jsonPath": "createDate",
+                      "sdkField": "CreateDate",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "modified_date",
+                    "goField": "ModifiedDate",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "When the tag was last modified.",
+                    "wire": {
+                      "jsonPath": "modifiedDate",
+                      "sdkField": "ModifiedDate",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "legacy_id",
+                    "goField": "LegacyID",
+                    "type": {
+                      "kind": "float64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The tag's identifier in the v6 API. Typed as a number because the specification declares it as one, although observed values are integral; probing will settle whether this should be an integer.",
+                    "wire": {
+                      "jsonPath": "legacyId",
+                      "sdkField": "LegacyID",
+                      "sdkGoType": "*float64",
+                      "flatten": {
+                        "func": "convert.PtrFloat64ToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Every tag visible to the account group, in the order the API returned them. A list rather than a set because the API's ordering is the only ordering there is, and a set would discard it.",
+            "wire": {
+              "jsonPath": "tags",
+              "sdkField": "Tags",
+              "sdkGoType": "[]tags.Tag",
+              "flatten": {
+                "func": "flattenTagSummaries",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Lists every ThousandEyes tag visible to the configured account group."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api/tags",
+          "typeName": "Tags",
+          "accessor": "d.client.API.Tags"
+        },
+        "read": {
+          "style": "method",
+          "method": "GetTags",
+          "args": [
+            {
+              "kind": "ctx"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "tags.ResourceTags",
+          "httpMethod": "GET",
+          "pathTemplate": "/tags",
+          "successCodes": [
+            200
+          ]
+        },
+        "response": {
+          "type": "tags.ResourceTags",
+          "accessStyle": "structField"
+        }
+      }
+    }
+  ]
+}

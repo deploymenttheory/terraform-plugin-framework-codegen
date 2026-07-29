@@ -248,7 +248,7 @@ func TestUnit_Render_AttributeDeclarations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := attributeDecl(tc.attr, frameworkSchemaType[tc.attr.Type.Kind], imports)
+			got, err := attributeDecl(testResourceScope, tc.attr, frameworkSchemaType[tc.attr.Type.Kind], imports)
 			if err != nil {
 				t.Fatalf("attributeDecl: %v", err)
 			}
@@ -274,7 +274,7 @@ func TestUnit_Render_ComputedStringsGetUseStateForUnknown(t *testing.T) {
 
 	imports := newImportSet()
 
-	got, err := attributeDecl(blueprint.Attribute{
+	got, err := attributeDecl(testResourceScope, blueprint.Attribute{
 		Name: "id", GoField: "ID", ComputedOptionalRequired: blueprint.Computed,
 		Type: blueprint.AttrType{Kind: blueprint.KindString},
 	}, "StringAttribute", imports)
@@ -287,7 +287,7 @@ func TestUnit_Render_ComputedStringsGetUseStateForUnknown(t *testing.T) {
 	}
 
 	// An explicit plan modifier replaces the default rather than adding to it.
-	custom := planModifiersFor(blueprint.Attribute{
+	custom := planModifiersFor(testResourceScope, blueprint.Attribute{
 		ComputedOptionalRequired: blueprint.Computed,
 		Type:                     blueprint.AttrType{Kind: blueprint.KindString},
 		PlanModifiers:            []blueprint.CustomCode{{SchemaDefinition: "mine()"}},
@@ -298,7 +298,7 @@ func TestUnit_Render_ComputedStringsGetUseStateForUnknown(t *testing.T) {
 
 	// Optional attributes get none: pinning a configurable value to prior state
 	// would stop a practitioner changing it.
-	if got := planModifiersFor(blueprint.Attribute{
+	if got := planModifiersFor(testResourceScope, blueprint.Attribute{
 		ComputedOptionalRequired: blueprint.Optional,
 		Type:                     blueprint.AttrType{Kind: blueprint.KindString},
 	}, imports); len(got) != 0 {
@@ -311,7 +311,7 @@ func TestUnit_Render_ValidatorsAndImportsAreRegistered(t *testing.T) {
 
 	imports := newImportSet()
 
-	got, err := attributeDecl(blueprint.Attribute{
+	got, err := attributeDecl(testResourceScope, blueprint.Attribute{
 		Name: "mode", GoField: "Mode", ComputedOptionalRequired: blueprint.Optional,
 		Type: blueprint.AttrType{Kind: blueprint.KindString},
 		Validators: []blueprint.CustomCode{{
@@ -336,7 +336,7 @@ func TestUnit_Render_Defaults(t *testing.T) {
 
 	imports := newImportSet()
 
-	static, err := attributeDecl(blueprint.Attribute{
+	static, err := attributeDecl(testResourceScope, blueprint.Attribute{
 		Name: "size", GoField: "Size", ComputedOptionalRequired: blueprint.ComputedOptional,
 		Type:    blueprint.AttrType{Kind: blueprint.KindInt64},
 		Default: &blueprint.Default{Static: &blueprint.Literal{Kind: blueprint.KindInt64, Raw: "5"}},
@@ -348,7 +348,7 @@ func TestUnit_Render_Defaults(t *testing.T) {
 		t.Errorf("static default not rendered:\n%s", static)
 	}
 
-	custom, err := attributeDecl(blueprint.Attribute{
+	custom, err := attributeDecl(testResourceScope, blueprint.Attribute{
 		Name: "x", GoField: "X", ComputedOptionalRequired: blueprint.ComputedOptional,
 		Type:    blueprint.AttrType{Kind: blueprint.KindString},
 		Default: &blueprint.Default{Custom: &blueprint.CustomCode{SchemaDefinition: "mydefault()"}},
@@ -362,7 +362,7 @@ func TestUnit_Render_Defaults(t *testing.T) {
 
 	// A default with neither form set is a blueprint bug, and must not silently
 	// render nothing.
-	if _, err := attributeDecl(blueprint.Attribute{
+	if _, err := attributeDecl(testResourceScope, blueprint.Attribute{
 		Name: "y", GoField: "Y", ComputedOptionalRequired: blueprint.Computed,
 		Type: blueprint.AttrType{Kind: blueprint.KindString}, Default: &blueprint.Default{},
 	}, "StringAttribute", imports); err == nil {
@@ -395,7 +395,7 @@ func TestUnit_Render_UnmappableTypeIsAHardError(t *testing.T) {
 func TestUnit_Render_CollectionWithoutAnElementTypeFails(t *testing.T) {
 	t.Parallel()
 
-	_, err := attributeDecl(blueprint.Attribute{
+	_, err := attributeDecl(testResourceScope, blueprint.Attribute{
 		Name: "x", GoField: "X", ComputedOptionalRequired: blueprint.Optional,
 		Type: blueprint.AttrType{Kind: blueprint.KindSet},
 	}, "SetAttribute", newImportSet())
@@ -607,9 +607,24 @@ func TestUnit_Render_RegistrationIsSortedAndComplete(t *testing.T) {
 		t.Errorf("a dropped resource should not be registered: %v", got.Entries)
 	}
 
-	// No data sources yet, and an empty list must still render.
+	// Data sources register through the same path, sorted by the same rule.
+	ds := Registration(bp, KindDataSources, Options{})
+	if len(ds.Entries) != 2 {
+		t.Fatalf("got %d data source entries, want 2: %v", len(ds.Entries), ds.Entries)
+	}
+	if !strings.HasPrefix(ds.Entries[0], "v7TagData.") {
+		t.Errorf("data source entries are not sorted by alias: %v", ds.Entries)
+	}
+	if !strings.Contains(ds.Imports, "v7TagsData ") {
+		t.Errorf("data source imports missing an alias:\n%s", ds.Imports)
+	}
+
+	// A dropped data source must not be registered either, and an empty list must
+	// still render rather than failing.
+	bp.DataSources[0].Drop = true
+	bp.DataSources[1].Drop = true
 	if got := Registration(bp, KindDataSources, Options{}); len(got.Entries) != 0 {
-		t.Errorf("expected no data sources: %v", got.Entries)
+		t.Errorf("dropped data sources should not be registered: %v", got.Entries)
 	}
 }
 

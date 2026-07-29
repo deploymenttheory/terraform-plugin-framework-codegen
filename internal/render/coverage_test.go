@@ -10,8 +10,6 @@ import (
 func TestUnit_Render_ArgExpr(t *testing.T) {
 	t.Parallel()
 
-	r := blueprint.Resource{Key: "tag"}
-
 	tests := []struct {
 		name    string
 		arg     blueprint.Argument
@@ -31,6 +29,13 @@ func TestUnit_Render_ArgExpr(t *testing.T) {
 			"plan.Name.ValueString()", false,
 		},
 		{
+			// A data source has no prior state and no plan, so its arguments come from
+			// configuration. The variable name differs accordingly.
+			"config field",
+			blueprint.Argument{Kind: blueprint.ArgConfigField, Field: "ID"},
+			"data.ID.ValueString()", false,
+		},
+		{
 			// An explicit expression overrides the derived one, which is the
 			// escape hatch for an argument the convention does not cover.
 			"explicit expression wins",
@@ -45,7 +50,7 @@ func TestUnit_Render_ArgExpr(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := argExpr(r, tc.arg)
+			got, err := argExpr(`resource "tag"`, tc.arg)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected an error")
@@ -128,7 +133,7 @@ func TestUnit_Render_NestedDepthAllowsOneLevel(t *testing.T) {
 		},
 	}
 
-	shapes, err := nestedShapes(r)
+	shapes, err := nestedShapes(testResourceScope, r.Schema)
 	if err != nil {
 		t.Fatalf("one level of nesting must be supported: %v", err)
 	}
@@ -139,7 +144,7 @@ func TestUnit_Render_NestedDepthAllowsOneLevel(t *testing.T) {
 	// A dropped nested attribute is not a shape to generate.
 	dropped := r
 	dropped.Schema.Attributes[0].Drop = true
-	if got, err := nestedShapes(dropped); err != nil || len(got) != 0 {
+	if got, err := nestedShapes(testResourceScope, dropped.Schema); err != nil || len(got) != 0 {
 		t.Errorf("a dropped attribute should yield no shape: %v, %v", got, err)
 	}
 }
@@ -157,7 +162,7 @@ func TestUnit_Render_NestedShapeWithoutAnObjectFails(t *testing.T) {
 		},
 	}
 
-	if _, err := nestedShapes(r); err == nil {
+	if _, err := nestedShapes(testResourceScope, r.Schema); err == nil {
 		t.Error("a nested kind with no object shape must fail")
 	}
 }
@@ -165,11 +170,8 @@ func TestUnit_Render_NestedShapeWithoutAnObjectFails(t *testing.T) {
 func TestUnit_Render_NestedFlattenView(t *testing.T) {
 	t.Parallel()
 
-	shapes, err := nestedShapes(blueprint.Resource{
-		Key: "tag",
-		Schema: blueprint.Schema{
-			Attributes: []blueprint.Attribute{nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID"))},
-		},
+	shapes, err := nestedShapes(testResourceScope, blueprint.Schema{
+		Attributes: []blueprint.Attribute{nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID"))},
 	})
 	if err != nil {
 		t.Fatalf("nestedShapes: %v", err)

@@ -8,6 +8,13 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 )
 
+// testResourceScope is the scope the resource-oriented rendering tests pass. It is named
+// rather than inlined so a test that means to render as a data source has to say so.
+var testResourceScope = schemaScope{
+	kind: blueprint.BlockResource,
+	what: `resource "tag"`,
+}
+
 func nestedAttr(kind blueprint.TypeKind, children ...blueprint.Attribute) blueprint.Attribute {
 	return blueprint.Attribute{
 		Name:                     "assignments",
@@ -52,7 +59,7 @@ func TestUnit_Render_NestedSchemaUsesNestedObject(t *testing.T) {
 
 	imports := newImportSet()
 
-	decl, err := nestedAttributeDecl(nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID")), imports)
+	decl, err := nestedAttributeDecl(testResourceScope, nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID")), imports)
 	if err != nil {
 		t.Fatalf("nestedAttributeDecl: %v", err)
 	}
@@ -71,7 +78,7 @@ func TestUnit_Render_NestedSchemaUsesNestedObject(t *testing.T) {
 func TestUnit_Render_SingleNestedHoldsAttributesDirectly(t *testing.T) {
 	t.Parallel()
 
-	decl, err := nestedAttributeDecl(nestedAttr(blueprint.KindSingleNested, scalarChild("id", "ID")), newImportSet())
+	decl, err := nestedAttributeDecl(testResourceScope, nestedAttr(blueprint.KindSingleNested, scalarChild("id", "ID")), newImportSet())
 	if err != nil {
 		t.Fatalf("nestedAttributeDecl: %v", err)
 	}
@@ -101,7 +108,7 @@ func TestUnit_Render_NestedDepthIsRefusedRatherThanEmittedWrongly(t *testing.T) 
 		Attributes: []blueprint.Attribute{outer},
 	}}
 
-	_, err := nestedShapes(r)
+	_, err := nestedShapes(testResourceScope, r.Schema)
 	if err == nil {
 		t.Fatal("expected nesting beyond the supported depth to be refused")
 	}
@@ -119,12 +126,9 @@ func TestUnit_Render_NestedDepthIsRefusedRatherThanEmittedWrongly(t *testing.T) 
 func TestUnit_Render_NestedModelDeclaresTheShapeOnce(t *testing.T) {
 	t.Parallel()
 
-	shapes, err := nestedShapes(blueprint.Resource{
-		Key: "tag",
-		Schema: blueprint.Schema{
-			Attributes: []blueprint.Attribute{
-				nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID"), scalarChild("type", "Type")),
-			},
+	shapes, err := nestedShapes(testResourceScope, blueprint.Schema{
+		Attributes: []blueprint.Attribute{
+			nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID"), scalarChild("type", "Type")),
 		},
 	})
 	if err != nil {
@@ -169,11 +173,8 @@ func TestUnit_Render_FallibleChildMakesTheHelperFallible(t *testing.T) {
 		Func: "convert.FrameworkSetToStringSlice", NeedsCtx: true, ReturnsError: true,
 	}
 
-	shapes, err := nestedShapes(blueprint.Resource{
-		Key: "tag",
-		Schema: blueprint.Schema{
-			Attributes: []blueprint.Attribute{nestedAttr(blueprint.KindSetNested, fallible)},
-		},
+	shapes, err := nestedShapes(testResourceScope, blueprint.Schema{
+		Attributes: []blueprint.Attribute{nestedAttr(blueprint.KindSetNested, fallible)},
 	})
 	if err != nil {
 		t.Fatalf("nestedShapes: %v", err)
