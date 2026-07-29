@@ -416,6 +416,13 @@ func TestUnit_Interop_Severities(t *testing.T) {
 		"naming":             SeverityInfo,
 		"docRefUrl":          SeverityInfo,
 
+		// Both are facets the format has no representation for at all, so a document
+		// exported from a blueprint carrying them describes a resource that cannot be
+		// addressed by identity and cannot be listed. Dropped rather than lossy: there is
+		// no coarser form to fall back to.
+		"identity": SeverityDropped,
+		"list":     SeverityDropped,
+
 		"goField":             SeverityInfo,
 		"wire":                SeverityDropped,
 		"behaviour":           SeverityDropped,

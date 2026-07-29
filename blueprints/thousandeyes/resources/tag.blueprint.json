@@ -720,6 +720,45 @@
             "fromAttribute": "id"
           }
         ]
+      },
+      "list": {
+        "goTypeName": "TagListResource",
+        "service": {
+          "importPath": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api/tags",
+          "typeName": "Tags",
+          "accessor": "l.client.API.Tags"
+        },
+        "read": {
+          "style": "method",
+          "method": "GetTags",
+          "args": [
+            {
+              "kind": "ctx"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "tags.ResourceTags",
+          "httpMethod": "GET",
+          "pathTemplate": "/tags",
+          "successCodes": [
+            200
+          ]
+        },
+        "response": {
+          "type": "tags.ResourceTags",
+          "accessStyle": "structField"
+        },
+        "collectionField": "Tags",
+        "elementType": "tags.Tag",
+        "identityFrom": [
+          {
+            "goField": "ID",
+            "fromSdkField": "ID",
+            "isPointer": true
+          }
+        ],
+        "displayNameFrom": "Key",
+        "displayNameIsPointer": true
       }
     }
   ]
