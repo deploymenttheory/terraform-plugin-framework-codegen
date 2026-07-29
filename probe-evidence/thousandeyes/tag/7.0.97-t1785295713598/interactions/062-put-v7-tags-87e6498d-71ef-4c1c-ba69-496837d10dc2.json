@@ -1,0 +1,34 @@
+{
+  "id": "062-put-v7-tags-87e6498d-71ef-4c1c-ba69-496837d10dc2",
+  "seq": 62,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tags/87e6498d-71ef-4c1c-ba69-496837d10dc2",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "all",
+      "key": "tfpfgen-probe-write-immutability-5",
+      "objectType": "endpoint-test",
+      "value": "probe"
+    }
+  },
+  "response": {
+    "status": 409,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Cannot update ObjectType. Original 'test' and new 'endpoint-test' objectType",
+      "error": "Conflict",
+      "path": "/v7/tags/87e6498d-71ef-4c1c-ba69-496837d10dc2",
+      "status": 409,
+      "timestamp": 1785295696502,
+      "title": "Resource already exists"
+    },
+    "droppedHeaders": 14
+  }
+}

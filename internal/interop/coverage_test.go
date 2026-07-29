@@ -157,7 +157,7 @@ func nested(name string, kind blueprint.TypeKind) blueprint.Attribute {
 // have laundered.
 //
 // The two formats spell these identically, which makes schema.ComputedOptionalRequired(p)
-// look like a free conversion. It is not: an unrecognized value would reach the JSON
+// look like a free conversion. It is not: an unrecognised value would reach the JSON
 // and be caught, if at all, as an opaque enum violation from upstream's validator,
 // a long way from the attribute that caused it.
 func TestUnit_Interop_Presence(t *testing.T) {
@@ -314,9 +314,9 @@ func TestUnit_Interop_Downgrade(t *testing.T) {
 	}
 }
 
-// TestUnit_Interop_BehaviorReportedOnlyWhenPopulated: an unprobed blueprint must
+// TestUnit_Interop_BehaviourReportedOnlyWhenPopulated: an unprobed blueprint must
 // not produce a note per attribute saying nothing was observed.
-func TestUnit_Interop_BehaviorReportedOnlyWhenPopulated(t *testing.T) {
+func TestUnit_Interop_BehaviourReportedOnlyWhenPopulated(t *testing.T) {
 	t.Parallel()
 
 	_, quiet, err := FromBlueprint(bp(attr("f", blueprint.KindString, blueprint.Optional)))
@@ -324,14 +324,14 @@ func TestUnit_Interop_BehaviorReportedOnlyWhenPopulated(t *testing.T) {
 		t.Fatalf("FromBlueprint: %v", err)
 	}
 	for _, n := range quiet.Notes {
-		if strings.Contains(n.Path, "behavior") {
-			t.Errorf("an unpopulated Behavior should be silent, got %v", n)
+		if strings.Contains(n.Path, "behaviour") {
+			t.Errorf("an unpopulated Behaviour should be silent, got %v", n)
 		}
 	}
 
 	writable := false
 	probed := attr("f", blueprint.KindString, blueprint.Optional)
-	probed.Behavior = blueprint.Behavior{Writable: &writable}
+	probed.Behaviour = blueprint.Behaviour{Writable: &writable}
 
 	_, loud, err := FromBlueprint(bp(probed))
 	if err != nil {
@@ -340,12 +340,12 @@ func TestUnit_Interop_BehaviorReportedOnlyWhenPopulated(t *testing.T) {
 
 	found := false
 	for _, n := range loud.Notes {
-		if strings.Contains(n.Path, "behavior") {
+		if strings.Contains(n.Path, "behaviour") {
 			found = true
 		}
 	}
 	if !found {
-		t.Error("a populated Behavior must be reported as dropped")
+		t.Error("a populated Behaviour must be reported as dropped")
 	}
 }
 
@@ -416,7 +416,7 @@ func TestUnit_Interop_Severities(t *testing.T) {
 
 		"goField":             SeverityInfo,
 		"wire":                SeverityDropped,
-		"behavior":            SeverityDropped,
+		"behaviour":           SeverityDropped,
 		"markdownDescription": SeverityInfo,
 		"importedDescription": SeverityInfo,
 

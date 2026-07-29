@@ -50,7 +50,7 @@ type RunOptions struct {
 	// the tier was skipped rather than silently omitting it.
 	AllowMutations bool
 	// Grant is proof the gate passed. Without one, mutating probes do not run whatever
-	// AllowMutations says -- the flag is a request, the grant is the authorization.
+	// AllowMutations says -- the flag is a request, the grant is the authorisation.
 	Grant *Grant
 
 	// Ledger records every create before it is issued. Required whenever Grant is set;
@@ -174,9 +174,9 @@ func runMutatingTier(
 
 	// The one hole ReplayGrant opens, closed in the one place that can see both facts. A
 	// replay grant exists so cmd can replay a recorded mutating cassette without a profile or
-	// a tenant; handed to a recording run it would be authorization from nowhere.
+	// a tenant; handed to a recording run it would be authorisation from nowhere.
 	if opts.Grant.IsReplay() && opts.Mode == ModeRecord {
-		return fmt.Errorf("%w: a replay grant cannot authorize a recording run", ErrNoGrant)
+		return fmt.Errorf("%w: a replay grant cannot authorise a recording run", ErrNoGrant)
 	}
 
 	ms, err := newMutatingSession(opts.Grant, session, MutationConfig{
@@ -499,7 +499,7 @@ func pathMatches(recorded, cited string) bool {
 // appendUnique appends the values not already present.
 //
 // Generic over comparable rather than duplicated for strings and ints: the two call sites want
-// identical behavior, and a second copy is a second place for the loop to be subtly wrong.
+// identical behaviour, and a second copy is a second place for the loop to be subtly wrong.
 func appendUnique[T comparable](dst []T, values ...T) []T {
 	for _, v := range values {
 		found := false

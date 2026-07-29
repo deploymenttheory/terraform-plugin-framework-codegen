@@ -313,7 +313,7 @@ func TestUnit_CLI_Probe_ReportsAnUnprobeableResourceWithoutFailing(t *testing.T)
 // you get by typing less. If this ever flips, a bare `probe -blueprint …` becomes a command
 // that reaches for the network.
 //
-// Asserted on the flag's own default rather than on a run's behavior, because a run's failure
+// Asserted on the flag's own default rather than on a run's behaviour, because a run's failure
 // mode could coincidentally match for the wrong reason.
 func TestUnit_CLI_Probe_DefaultModeIsReplay(t *testing.T) {
 	t.Parallel()

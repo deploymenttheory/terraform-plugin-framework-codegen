@@ -136,7 +136,7 @@ func TestUnit_Interop_EveryKindExportsAsAResource(t *testing.T) {
 // Written out per kind rather than with reflection, because the risk this test
 // exists to catch is a branch reading from the wrong kind's field -- a set attribute
 // given list validators, say. Reflection over "whichever field happens to be set"
-// cannot distinguish that from correct behavior, so it would make the test agree
+// cannot distinguish that from correct behaviour, so it would make the test agree
 // with any implementation.
 func resourceExtras(a resource.Attribute) (validators, modifiers int, hasDefault bool) {
 	switch {
@@ -421,7 +421,7 @@ func TestUnit_Interop_ObjectTypeRefusals(t *testing.T) {
 }
 
 // TestUnit_Interop_ResourceLossesAreSelective: the resource-level sections are
-// reported only when populated, for the same reason Behavior is.
+// reported only when populated, for the same reason Behaviour is.
 func TestUnit_Interop_ResourceLossesAreSelective(t *testing.T) {
 	t.Parallel()
 

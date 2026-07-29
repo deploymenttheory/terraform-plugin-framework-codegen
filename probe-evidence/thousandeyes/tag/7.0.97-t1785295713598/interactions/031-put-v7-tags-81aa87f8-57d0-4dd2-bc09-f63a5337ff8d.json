@@ -1,0 +1,31 @@
+{
+  "id": "031-put-v7-tags-81aa87f8-57d0-4dd2-bc09-f63a5337ff8d",
+  "seq": 31,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tags/81aa87f8-57d0-4dd2-bc09-f63a5337ff8d",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "key": "tfpfgen-probe-write-update-style-2"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Validation failure",
+      "error": "Bad Request",
+      "path": "/v7/tags/81aa87f8-57d0-4dd2-bc09-f63a5337ff8d",
+      "status": 400,
+      "timestamp": 1785295685722,
+      "title": "Request validation failed. There are invalid or missing fields"
+    },
+    "droppedHeaders": 14
+  }
+}

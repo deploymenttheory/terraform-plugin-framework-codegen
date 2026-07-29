@@ -24,7 +24,7 @@ import (
 // It is the same division the house draws between internal/render and
 // internal/templates: every decision happens here, and reading export_resource.go
 // should tell you the shape of the output without containing any logic to reason
-// about. It carries no JSON tags because it is never serialized, which is also why
+// about. It carries no JSON tags because it is never serialised, which is also why
 // tagliatelle has nothing to say about it.
 type prepared struct {
 	name string
@@ -82,7 +82,7 @@ type staticValue struct {
 // each one individually produces a page of identical lines: the pilot alone yields
 // twenty-two "goField has no counterpart" notes and twenty-four for wire. That
 // buries the losses a reader actually has to think about -- a coarsened int32, a
-// populated Behavior, an unrepresentable default -- which are selective and stay
+// populated Behaviour, an unrepresentable default -- which are selective and stay
 // addressed per attribute. So the uniform ones are counted here and reported once
 // per resource with the count.
 type attrLosses struct {
@@ -118,7 +118,7 @@ func prepare(
 	p.kind = coarsen(a.Type.Kind, path, r)
 
 	// The uniform losses are counted for one aggregate note per resource; the
-	// selective ones are addressed here. Behavior in particular must be reported
+	// selective ones are addressed here. Behaviour in particular must be reported
 	// only when populated: an unprobed blueprint would otherwise produce a note per
 	// attribute saying nothing was observed.
 	if a.GoField != "" {
@@ -127,8 +127,8 @@ func prepare(
 	if a.Wire != (blueprint.WireBinding{}) {
 		acc.wire++
 	}
-	if a.Behavior != (blueprint.Behavior{}) {
-		r.note("behavior", path+".behavior")
+	if a.Behaviour != (blueprint.Behaviour{}) {
+		r.note("behaviour", path+".behaviour")
 	}
 
 	for _, v := range a.Validators {
@@ -236,7 +236,7 @@ func coarsen(k blueprint.TypeKind, path string, r *Report) blueprint.TypeKind {
 // presenceOf maps blueprint presence onto the upstream enum.
 //
 // The four values are spelled identically in both formats, which invites a cast.
-// A cast would be wrong: it would launder an unrecognized blueprint value straight
+// A cast would be wrong: it would launder an unrecognised blueprint value straight
 // into the JSON, where the only thing standing between it and a committed document
 // is upstream's schema validation, reported as an opaque enum violation a long way
 // from the attribute that caused it. A switch with an explicit default names the

@@ -11,11 +11,11 @@ import (
 	"time"
 )
 
-// This file declares the two session types and the Grant that authorizes the mutating
+// This file declares the two session types and the Grant that authorises the mutating
 // one. The read half is implemented in Phase 4.4 and the mutating half in 4.6; what is
 // fixed here is the shape, because the shape is the safety property.
 
-// Grant is proof that mutating probes were authorized.
+// Grant is proof that mutating probes were authorised.
 //
 // It has no exported fields and exactly one constructor, which performs the whole
 // gating conjunction: record mode, the --allow-mutations flag, a profile declaring
@@ -57,7 +57,7 @@ func (g *Grant) NamePrefix() string {
 // IsReplay reports whether this grant was issued for replay rather than by the gate.
 func (g *Grant) IsReplay() bool { return g != nil && g.replay }
 
-// ReplayGrant authorizes a mutating replay.
+// ReplayGrant authorises a mutating replay.
 //
 // Exported so cmd can replay a mutating cassette without a profile, a token or a tenant.
 // Safe because a replay transport cannot reach a network at all: its base is DenyTransport.
@@ -179,14 +179,14 @@ type MutationConfig struct {
 	Findings *Findings
 }
 
-// ErrNoGrant is returned when a mutating session is requested without authorization.
+// ErrNoGrant is returned when a mutating session is requested without authorisation.
 // Unreachable through the exported API -- newMutatingSession is unexported and takes a
 // *Grant -- and returned rather than panicking so that a mistake degrades into a refused
 // run rather than a crash.
 var ErrNoGrant = errors.New("a mutating session requires a grant")
 
 // newMutatingSession is unexported and takes a *Grant, which cannot be obtained without
-// Authorize having succeeded.
+// Authorise having succeeded.
 //
 // The signature is the safety property this file exists to fix, which is why it is
 // declared in Phase 4.1 rather than alongside the gate it depends on.
@@ -221,7 +221,7 @@ func (s *MutatingSession) NamePrefix() string { return s.grant.NamePrefix() }
 // replayed create must send the identical name it recorded.
 //
 // Composed by the probe rather than injected by Create, which is the correction that matters
-// here. Silently rewriting a probe's body to add the prefix would confound the normalization
+// here. Silently rewriting a probe's body to add the prefix would confound the normalisation
 // protocol -- send "  MiXeD  ", receive prefix + "  MiXeD  " -- and make bodies unpredictable
 // at replay. So the session states the rule and enforces it; the probe follows it.
 func (s *MutatingSession) NameValue(probe string, seq int) string {

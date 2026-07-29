@@ -165,10 +165,10 @@ func TestUnit_Cassette_KeyOrderProducesNoDiff(t *testing.T) {
 	at := time.UnixMilli(1785152261691)
 
 	oneOrder := sampleInteractions()
-	oneOrder[1].Response.Body = map[string]any{"id": "1", "key": "probe", "color": "blue"}
+	oneOrder[1].Response.Body = map[string]any{"id": "1", "key": "probe", "colour": "blue"}
 
 	otherOrder := sampleInteractions()
-	otherOrder[1].Response.Body = map[string]any{"color": "blue", "key": "probe", "id": "1"}
+	otherOrder[1].Response.Body = map[string]any{"colour": "blue", "key": "probe", "id": "1"}
 
 	rootA, rootB := t.TempDir(), t.TempDir()
 

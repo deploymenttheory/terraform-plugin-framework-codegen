@@ -370,7 +370,7 @@ func TestUnit_Probe_SweepContextSurvivesACancelledRun(t *testing.T) {
 		t.Error("a sweep with no deadline could hang a CI job indefinitely")
 	}
 
-	// And an end-to-end sweep works under a cancelled parent, which is the behavior that
+	// And an end-to-end sweep works under a cancelled parent, which is the behaviour that
 	// matters rather than the context's fields.
 	srv := quirkserver.New(t, quirkserver.Quirks{})
 	l := MemoryLedger()

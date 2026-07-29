@@ -108,7 +108,7 @@ func attrSlicesOf(in []blueprint.Attribute) []attrSlice {
 		s := attrSlice{
 			Name: a.Name,
 			// int32 and float32 widen on export and cannot come back, so the
-			// expectation is normalized the same way rather than pretending
+			// expectation is normalised the same way rather than pretending
 			// otherwise.
 			Kind:                     widen(a.Type.Kind),
 			ComputedOptionalRequired: a.ComputedOptionalRequired,
@@ -117,7 +117,7 @@ func attrSlicesOf(in []blueprint.Attribute) []attrSlice {
 			DeprecationMessage:       a.DeprecationMessage,
 			Validators:               a.Validators,
 			PlanModifiers:            a.PlanModifiers,
-			Default:                  normalizeDefault(a.Default, widen(a.Type.Kind)),
+			Default:                  normaliseDefault(a.Default, widen(a.Type.Kind)),
 		}
 
 		if a.Type.ElementType != nil {
@@ -145,13 +145,13 @@ func widen(k blueprint.TypeKind) blueprint.TypeKind {
 	}
 }
 
-// normalizeDefault rewrites a static literal into the form an import produces.
+// normaliseDefault rewrites a static literal into the form an import produces.
 //
 // A raw string literal exports and re-imports as an interpreted one -- `devices`
 // becomes "devices" -- because the official format carries the value, not the
-// syntax. That is a real and acceptable difference, so the expectation is normalized
+// syntax. That is a real and acceptable difference, so the expectation is normalised
 // rather than the code being made to preserve backticks it cannot see.
-func normalizeDefault(d *blueprint.Default, kind blueprint.TypeKind) *blueprint.Default {
+func normaliseDefault(d *blueprint.Default, kind blueprint.TypeKind) *blueprint.Default {
 	if d == nil || d.Static == nil {
 		return d
 	}

@@ -2,7 +2,7 @@
 //
 // The blueprint is a superset of that format, so export is a projection: the
 // schema slice crosses, and everything the format cannot express -- CRUD wiring,
-// SDK bindings, observed behavior, timeouts -- is reported rather than dropped in
+// SDK bindings, observed behaviour, timeouts -- is reported rather than dropped in
 // silence. Import is the reverse, and produces a draft (see DraftExt) because a
 // document with a schema and no bindings is not something the emitter can use.
 //

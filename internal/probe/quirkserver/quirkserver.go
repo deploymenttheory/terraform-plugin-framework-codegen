@@ -1,13 +1,13 @@
 // Package quirkserver is an API that misbehaves on purpose.
 //
 // It exists so that every claim the prober makes is checked against a server whose
-// behavior is known by construction. That is a different and much stronger thing than
+// behaviour is known by construction. That is a different and much stronger thing than
 // exercising a probe against a real API: a live tenant tells you what *that* API does,
 // while a quirk server tells you whether the probe would notice if it did something else.
 //
-// Each switch on Quirks encodes one behavior observed in a real API. Most were drawn from the
+// Each switch on Quirks encodes one behaviour observed in a real API. Most were drawn from the
 // hardcoded special cases that accumulate in hand-written providers -- fixup tables, runtime
-// re-normalizers, lists of fields to treat specially. Those are a catalogue of quirks
+// re-normalisers, lists of fields to treat specially. Those are a catalogue of quirks
 // discovered the hard way, one production bug at a time, and turning them into switches is
 // what lets a probe be *validated* rather than merely run.
 //
@@ -60,7 +60,7 @@ type Conditional struct {
 	Then string
 }
 
-// Quirks turns each misbehavior on.
+// Quirks turns each misbehaviour on.
 //
 // The zero value is a well-behaved API, so a test enables exactly the quirk it is about.
 type Quirks struct {
@@ -111,8 +111,8 @@ type Quirks struct {
 	// field to the field it also sets.
 	WriteSideEffects map[string]string
 
-	// NormalizesCase lower-cases these fields' values.
-	NormalizesCase []string
+	// NormalisesCase lower-cases these fields' values.
+	NormalisesCase []string
 	// TrimsWhitespace strips surrounding whitespace from these fields.
 	TrimsWhitespace []string
 	// SortsLists sorts these list-valued fields.
@@ -132,7 +132,7 @@ type Quirks struct {
 	// SilentlyDiscardsOnUpdate accepts these fields on update, answers 2xx, and leaves the
 	// stored value alone. Create stores them normally.
 	//
-	// The behavior that has to be distinguishable from immutability, and conflating the two is
+	// The behaviour that has to be distinguishable from immutability, and conflating the two is
 	// the classic error: an API that refuses a change says so, and one that drops it does not.
 	// Only the second produces a perpetual diff in a generated provider.
 	SilentlyDiscardsOnUpdate []string
@@ -169,7 +169,7 @@ type Quirks struct {
 	// VolatileFields change on every read. The modifiedDate perpetual-diff class.
 	VolatileFields []string
 
-	// IgnoresUnknownQueryParams returns 200 for an unrecognized query parameter rather
+	// IgnoresUnknownQueryParams returns 200 for an unrecognised query parameter rather
 	// than 400.
 	//
 	// Calibrates every probe that depends on unknown *body* fields being ignored rather
@@ -412,7 +412,7 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 			// Accepted and thrown away. The response says 201 and the object never has it.
 			continue
 		}
-		obj[k] = s.normalize(k, v)
+		obj[k] = s.normalise(k, v)
 	}
 
 	s.applyDefaults(obj, body)
@@ -504,7 +504,7 @@ func (s *Server) update(w http.ResponseWriter, r *http.Request, path string) {
 		if contains(s.quirks.SilentlyDiscardsOnUpdate, k) {
 			continue
 		}
-		updated[k] = s.normalize(k, v)
+		updated[k] = s.normalise(k, v)
 	}
 
 	s.applySideEffects(updated, body)
@@ -618,9 +618,9 @@ func (s *Server) applySideEffects(obj, sent map[string]any) {
 	}
 }
 
-// normalize applies the transforms that cause perpetual diffs.
-func (s *Server) normalize(field string, v any) any {
-	if contains(s.quirks.NormalizesCase, field) {
+// normalise applies the transforms that cause perpetual diffs.
+func (s *Server) normalise(field string, v any) any {
+	if contains(s.quirks.NormalisesCase, field) {
 		if str, ok := v.(string); ok {
 			v = strings.ToLower(str)
 		}

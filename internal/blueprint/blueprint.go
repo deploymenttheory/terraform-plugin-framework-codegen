@@ -3,7 +3,7 @@
 //
 // It is a superset of HashiCorp's Provider Code Specification. That format can
 // describe a schema and nothing else — it has no representation for CRUD wiring,
-// for the SDK symbols a resource calls, for observed API behavior, or for test
+// for the SDK symbols a resource calls, for observed API behaviour, or for test
 // scaffolding. Those are most of what a working provider is, so the blueprint
 // carries them and the official format is something internal/interop reads and
 // writes rather than this package's model.
@@ -100,7 +100,7 @@ type SDKModule struct {
 }
 
 // Conventions are the emitter's per-target editorial choices. They are data
-// because two providers in the same organization legitimately differ.
+// because two providers in the same organisation legitimately differ.
 type Conventions struct {
 	ResourceRoot   string `json:"resourceRoot,omitempty"`
 	DataSourceRoot string `json:"dataSourceRoot,omitempty"`
@@ -326,8 +326,8 @@ type Attribute struct {
 	PlanModifiers []CustomCode `json:"planModifiers,omitempty"`
 	Default       *Default     `json:"default,omitempty"`
 
-	Behavior Behavior    `json:"behavior,omitzero"`
-	Wire     WireBinding `json:"wire,omitzero"`
+	Behaviour Behaviour   `json:"behaviour,omitzero"`
+	Wire      WireBinding `json:"wire,omitzero"`
 
 	Drop bool `json:"drop,omitempty"`
 }
@@ -354,13 +354,13 @@ type Literal struct {
 	Raw string `json:"raw"`
 }
 
-// Behavior is what the API actually does, as opposed to what its specification
+// Behaviour is what the API actually does, as opposed to what its specification
 // claims. It is populated chiefly by the prober.
 //
 // Every field is a pointer because "not observed" must be distinguishable from
 // "observed to be false". That distinction is what makes the layered merge
 // decidable, and it is why this struct looks more verbose than it needs to.
-type Behavior struct {
+type Behaviour struct {
 	// Writable is false for a field the API accepts and discards, which is the
 	// difference between Computed and Optional+Computed.
 	Writable *bool `json:"writable,omitempty"`
@@ -396,7 +396,7 @@ const (
 	UpdateReplaceOnly UpdateStyle = "replaceOnly"
 )
 
-// ResourcePolicy is the per-resource behavior the generated CRUD depends on.
+// ResourcePolicy is the per-resource behaviour the generated CRUD depends on.
 type ResourcePolicy struct {
 	UpdateStyle UpdateStyle `json:"updateStyle,omitempty"`
 	ReadBack    ReadBack    `json:"readBack,omitzero"`

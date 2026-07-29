@@ -115,9 +115,9 @@ type Field struct {
 	// them; it never turns them into a validator.
 	Enum []string
 
-	// Behavior is what is already recorded. A probe may skip a field whose fact it
+	// Behaviour is what is already recorded. A probe may skip a field whose fact it
 	// would only be re-deriving, and merge needs to know what it is overwriting.
-	Behavior blueprint.Behavior
+	Behaviour blueprint.Behaviour
 }
 
 // pathParam matches a path parameter, e.g. "{id}".
@@ -219,7 +219,7 @@ func fieldsOf(attrs []blueprint.Attribute, prefix string) []Field {
 			ComputedOptionalRequired: a.ComputedOptionalRequired,
 			Writable:                 writable(a),
 			Enum:                     a.Type.Enum,
-			Behavior:                 a.Behavior,
+			Behaviour:                a.Behaviour,
 		})
 
 		if a.Type.NestedObject != nil {

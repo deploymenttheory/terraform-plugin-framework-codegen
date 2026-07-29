@@ -209,7 +209,7 @@ func TestUnit_OpenAPI_SkipField(t *testing.T) {
 		skip bool
 		why  string
 	}{
-		{"ordinary", Field{Name: "color", Kind: blueprint.KindString}, false, ""},
+		{"ordinary", Field{Name: "colour", Kind: blueprint.KindString}, false, ""},
 		{"hal links", Field{Name: "_links", Kind: blueprint.KindSingleNested}, true, "hypermedia"},
 		{"hal embedded", Field{Name: "_embedded", Kind: blueprint.KindSingleNested}, true, "hypermedia"},
 		{"unmapped kind", Field{Name: "x"}, true, "no framework type"},

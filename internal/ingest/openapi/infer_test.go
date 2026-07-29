@@ -595,7 +595,7 @@ func noteStrings(notes []Note) []string {
 func TestUnit_Infer_NoteString(t *testing.T) {
 	t.Parallel()
 
-	if got := (Note{Resource: "tag", Field: "color", Message: "why"}).String(); got != "tag.color: why" {
+	if got := (Note{Resource: "tag", Field: "colour", Message: "why"}).String(); got != "tag.colour: why" {
 		t.Errorf("String = %q", got)
 	}
 	if got := (Note{Resource: "tag", Message: "why"}).String(); got != "tag: why" {

@@ -403,7 +403,7 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	if opts.allowMutate {
 		var err error
 
-		grant, assertions, err = authorizeMutations(ctx, opts, subj, endpoint, token, root)
+		grant, assertions, err = authoriseMutations(ctx, opts, subj, endpoint, token, root)
 		if err != nil {
 			return err
 		}
@@ -497,13 +497,13 @@ func worthWriting(err error) bool {
 	return !errors.Is(err, cassette.ErrSecretFound) && !errors.Is(err, probe.ErrRedaction)
 }
 
-// authorizeMutations runs the gate.
+// authoriseMutations runs the gate.
 //
 // The gate's tenant reads go through their own unrecorded transport, and that is not an
 // oversight. Replay has no gate, so a cassette holding requests the replayed run will never
 // issue is a cassette that cannot reproduce itself -- the same silent, total failure class as a
 // base path that does not round-trip.
-func authorizeMutations(
+func authoriseMutations(
 	ctx context.Context,
 	opts probeRun,
 	subj probe.Subject,
@@ -536,7 +536,7 @@ func authorizeMutations(
 		return nil, nil, err
 	}
 
-	return probe.Authorize(ctx, read, profile, probe.GateOptions{
+	return probe.Authorise(ctx, read, profile, probe.GateOptions{
 		Mode:                     probe.ModeRecord,
 		AllowMutations:           opts.allowMutate,
 		Subject:                  subj,
@@ -596,7 +596,7 @@ func sweepEverything(opts probeRun) error {
 		return err
 	}
 
-	grant, err := probe.AuthorizeSweep(profile, probe.GateOptions{Mode: probe.ModeSweep},
+	grant, err := probe.AuthoriseSweep(profile, probe.GateOptions{Mode: probe.ModeSweep},
 		probe.OSEnviron{})
 	if err != nil {
 		return err
@@ -808,7 +808,7 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 	return nil
 }
 
-// grantForReplay authorizes the mutating tier during a replay, and only when the recording had one.
+// grantForReplay authorises the mutating tier during a replay, and only when the recording had one.
 //
 // A read-only recording carries no plan and no name prefix, so no grant is issued and the mutating
 // probes are reported skipped -- which is what they were. A mutating recording gets a replay grant

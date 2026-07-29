@@ -27,7 +27,7 @@ const testToken = "00zz-11111111-2222-3333-4444-555555555555"
 // The "never captured" guarantee has to be enforced by its own code path rather than by the
 // allow list happening to omit those headers. An allow list is a thing people add entries
 // to, and "we need to see which auth scheme the API wants" is a plausible reason to add
-// authorization to one. This asserts that even then the value does not reach a cassette.
+// authorisation to one. This asserts that even then the value does not reach a cassette.
 func TestUnit_Cassette_NeverCapturedBeatsTheAllowList(t *testing.T) {
 	t.Parallel()
 
@@ -39,14 +39,14 @@ func TestUnit_Cassette_NeverCapturedBeatsTheAllowList(t *testing.T) {
 	// An allow list that has been widened to include the credential headers, which is the
 	// mistake being defended against.
 	widened := map[string]bool{
-		"authorization": true,
+		"authorisation": true,
 		"cookie":        true,
 		"content-type":  true,
 	}
 
 	got, dropped := canonicalHeaders(h, widened)
 
-	for _, forbidden := range []string{"authorization", "cookie"} {
+	for _, forbidden := range []string{"authorisation", "cookie"} {
 		if _, present := got[forbidden]; present {
 			t.Errorf("%s was captured despite being on the never-captured list: %v", forbidden, got)
 		}
@@ -319,7 +319,7 @@ func TestUnit_Cassette_ScanFindsDeclaredSecrets(t *testing.T) {
 
 	findings := Scan("001", []byte(`{"aid":"1234567890"}`), secrets)
 	if len(findings) == 0 {
-		t.Error("a declared secret must be found even with no recognizable shape")
+		t.Error("a declared secret must be found even with no recognisable shape")
 	}
 
 	// Too short to substitute safely, so it is not scanned for either -- consistent with

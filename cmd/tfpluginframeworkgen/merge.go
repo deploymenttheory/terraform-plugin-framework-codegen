@@ -21,7 +21,7 @@ func runMerge(args []string) error {
 		blueprintPath = fs.String("blueprint", "", "blueprint file or directory (required)")
 		factsPath     = fs.String("facts", "", "facts JSON to fold in (required)")
 		strategy      = fs.String("strategy", string(merge.StrategyAnnotate),
-			"annotate writes behavior and descriptions; apply may also widen presence")
+			"annotate writes behaviour and descriptions; apply may also widen presence")
 		check = fs.Bool("check", false,
 			"write nothing and exit 1 if merging would change anything")
 		acceptConflicts = fs.Bool("accept-conflicts", false,

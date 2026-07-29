@@ -46,7 +46,7 @@ func scopePlan() Plan {
 // TestUnit_Probe_ScopeNarrowsByThePlan.
 //
 // Each set is derived once and read by both Cost and Exercise. Asserting them here is asserting
-// that the budget and the behavior cannot diverge.
+// that the budget and the behaviour cannot diverge.
 func TestUnit_Probe_ScopeNarrowsByThePlan(t *testing.T) {
 	t.Parallel()
 
@@ -91,9 +91,9 @@ func TestUnit_Probe_ScopeNarrowsByThePlan(t *testing.T) {
 		},
 		{
 			// Top-level strings only: a nested field is not reliably present on every object,
-			// and normalization is read back from a list response.
-			name: "normalizable",
-			got:  sc.Normalizable(),
+			// and normalisation is read back from a list response.
+			name: "normalisable",
+			got:  sc.Normalisable(),
 			want: []string{"key", "mode", "value"},
 		},
 		{

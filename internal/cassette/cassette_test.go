@@ -395,14 +395,14 @@ func TestUnit_Cassette_CredentialHeadersAreNeverCaptured(t *testing.T) {
 		t.Fatalf("Interactions: %v", err)
 	}
 
-	serialized, err := json.Marshal(interactions)
+	serialised, err := json.Marshal(interactions)
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
 
-	for _, forbidden := range []string{"Bearer", "secret-token", "session=abc123", "authorization", "cookie"} {
-		if strings.Contains(strings.ToLower(string(serialized)), strings.ToLower(forbidden)) {
-			t.Errorf("the recording contains %q:\n%s", forbidden, serialized)
+	for _, forbidden := range []string{"Bearer", "secret-token", "session=abc123", "authorisation", "cookie"} {
+		if strings.Contains(strings.ToLower(string(serialised)), strings.ToLower(forbidden)) {
+			t.Errorf("the recording contains %q:\n%s", forbidden, serialised)
 		}
 	}
 

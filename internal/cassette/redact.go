@@ -19,8 +19,8 @@ const redactionPrefix = "<REDACTED:"
 // filled, and that distinction is the difference between one bug away from a leak and
 // structurally unable to leak.
 var neverCaptured = map[string]bool{
-	"authorization":       true,
-	"proxy-authorization": true,
+	"authorisation":       true,
+	"proxy-authorisation": true,
 	"cookie":              true,
 	"set-cookie":          true,
 	"x-api-key":           true,
@@ -95,7 +95,7 @@ const minSecretLength = 8
 
 // Apply substitutes secrets throughout a value, at any depth.
 //
-// Recurses through maps and slices rather than operating on the serialized form, so that
+// Recurses through maps and slices rather than operating on the serialised form, so that
 // a token nested six levels down in a response is caught -- and so that the result is
 // still valid JSON of the same shape. FuzzCassette_Redaction plants a secret at a random
 // depth precisely because this traversal is where a miss would hide.
@@ -233,9 +233,9 @@ func (f Finding) String() string {
 	return fmt.Sprintf("%s: matched %s", at, f.Shape)
 }
 
-// Scan checks serialized bytes for anything secret-shaped.
+// Scan checks serialised bytes for anything secret-shaped.
 //
-// Run over the fully serialized form immediately before writing, which is what makes the
+// Run over the fully serialised form immediately before writing, which is what makes the
 // guarantee hold: it does not matter which layer above failed to substitute, or whether
 // the secret arrived somewhere nobody thought to look. If it is in the bytes, it is
 // found, and nothing is written.
@@ -262,7 +262,7 @@ func Scan(interaction string, data []byte, extraSecrets map[string]string) []Fin
 			findings = append(findings, Finding{
 				Interaction: interaction,
 				Shape:       "declared secret " + name,
-				Pointer:     "somewhere in the serialized interaction",
+				Pointer:     "somewhere in the serialised interaction",
 			})
 		}
 	}
@@ -289,11 +289,11 @@ func Scan(interaction string, data []byte, extraSecrets map[string]string) []Fin
 	return findings
 }
 
-// ScanInteraction serializes an interaction and scans it.
+// ScanInteraction serialises an interaction and scans it.
 func ScanInteraction(i Interaction, extraSecrets map[string]string) ([]Finding, error) {
 	data, err := json.Marshal(i)
 	if err != nil {
-		return nil, fmt.Errorf("%w: serializing interaction %s: %w", ErrInvalidCassette, i.ID, err)
+		return nil, fmt.Errorf("%w: serialising interaction %s: %w", ErrInvalidCassette, i.ID, err)
 	}
 
 	return Scan(i.ID, data, extraSecrets), nil

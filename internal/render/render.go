@@ -204,7 +204,7 @@ type OpView struct {
 // GeneratedHeader returns the canonical generated-file marker.
 //
 // The wording matters twice over: the house golangci configuration sets
-// generated exclusions to strict, which only recognizes Go's canonical form, and
+// generated exclusions to strict, which only recognises Go's canonical form, and
 // gofmt's own tooling looks for the same. It carries the source blueprint and its
 // digest, and deliberately carries neither a timestamp nor a tool version --
 // either would make every regeneration a diff, which would destroy the drift check.
@@ -958,7 +958,7 @@ func findAttribute(r blueprint.Resource, name string) (blueprint.Attribute, bool
 // -----------------------------------------------------------------------------
 
 // importSet collects imports and renders them in the three groups the house gci
-// configuration expects: standard library, third party, then this organization.
+// configuration expects: standard library, third party, then this organisation.
 //
 // Emitting them in that order matters more than it looks: the target repository's
 // formatter regroups imports on save, so output that is merely valid rather than
@@ -984,7 +984,7 @@ func (s *importSet) add(path, alias string) {
 }
 
 func (s *importSet) render(orgModule string) string {
-	orgPrefix := organizationPrefix(orgModule)
+	orgPrefix := organisationPrefix(orgModule)
 
 	var std, third, org []string
 
@@ -1018,10 +1018,10 @@ func (s *importSet) render(orgModule string) string {
 	return strings.Join(groups, "\n\n")
 }
 
-// organizationPrefix reduces a module path to its organization, so that the
+// organisationPrefix reduces a module path to its organisation, so that the
 // generated provider's own packages and its sibling SDK land in the same group,
 // as the house gci configuration specifies.
-func organizationPrefix(module string) string {
+func organisationPrefix(module string) string {
 	parts := strings.Split(module, "/")
 	if len(parts) < 2 {
 		return ""

@@ -115,7 +115,7 @@ var builtMutatingProbes = map[string]bool{
 	"write.server-default":    true,
 	"write.immutability":      true,
 	"write.enum":              true,
-	"write.normalization":     true,
+	"write.normalisation":     true,
 	"write.side-effect":       true,
 }
 

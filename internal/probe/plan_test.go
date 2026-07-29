@@ -46,7 +46,7 @@ func TestUnit_Probe_PlanValidate(t *testing.T) {
 		},
 		{
 			name: "fixture key that is not an attribute",
-			plan: Plan{Fixtures: []Fixture{{Name: "typo", Body: map[string]any{"color": "blue"}}}},
+			plan: Plan{Fixtures: []Fixture{{Name: "typo", Body: map[string]any{"colour": "blue"}}}},
 			want: "no attribute has this JSON path",
 		},
 		{

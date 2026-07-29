@@ -26,14 +26,14 @@ func TestUnit_Probe_FindingsAnswersTheOneRealDependency(t *testing.T) {
 
 	f := NewFindings([]Fact{
 		boolFact("value", FactWritable, true, Observed),
-		boolFact("color", FactWritable, false, Observed),
+		boolFact("colour", FactWritable, false, Observed),
 	})
 
 	if !f.True("value", FactWritable, Observed) {
 		t.Error("value was established as writable")
 	}
-	if f.True("color", FactWritable, Observed) {
-		t.Error("color was established as NOT writable, which is not the same as unknown")
+	if f.True("colour", FactWritable, Observed) {
+		t.Error("colour was established as NOT writable, which is not the same as unknown")
 	}
 	if f.True("absent", FactWritable, Observed) {
 		t.Error("a field nothing was established about must not read as true")
@@ -95,7 +95,7 @@ func TestUnit_Probe_RetractRemovesADisprovedFact(t *testing.T) {
 	f := NewFindings([]Fact{
 		boolFact("value", FactWritable, true, Observed),
 		boolFact("value", FactReturnedOnRead, true, Observed),
-		boolFact("color", FactWritable, true, Observed),
+		boolFact("colour", FactWritable, true, Observed),
 	})
 
 	if got := f.Retract("value", FactWritable); got != 1 {
@@ -110,7 +110,7 @@ func TestUnit_Probe_RetractRemovesADisprovedFact(t *testing.T) {
 	if !f.True("value", FactReturnedOnRead, Suspected) {
 		t.Error("a different claim about the same path was removed")
 	}
-	if !f.True("color", FactWritable, Suspected) {
+	if !f.True("colour", FactWritable, Suspected) {
 		t.Error("the same claim about a different path was removed")
 	}
 

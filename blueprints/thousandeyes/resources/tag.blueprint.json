@@ -39,7 +39,7 @@
           },
           "computedOptionalRequired": "required",
           "markdownDescription": "The tag's key. Together with `value` this forms the label applied to assigned objects.",
-          "behavior": {
+          "behaviour": {
             "immutable": false,
             "returnedOnRead": true
           },
@@ -62,8 +62,8 @@
             "kind": "string"
           },
           "computedOptionalRequired": "optional",
-          "markdownDescription": "The tag's value.\n\n<!-- probed:7.0.97-t1785269512542 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
-          "behavior": {
+          "markdownDescription": "The tag's value.\n\n<!-- probed:7.0.97-t1785295713598 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+          "behaviour": {
             "requiredByApi": true,
             "returnedOnRead": true
           },
@@ -86,8 +86,8 @@
             "kind": "string"
           },
           "computedOptionalRequired": "computed_optional",
-          "markdownDescription": "The tag's display color as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785269512542 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->",
-          "behavior": {
+          "markdownDescription": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->",
+          "behaviour": {
             "immutable": false,
             "serverDefault": {
               "kind": "",
@@ -115,7 +115,7 @@
           },
           "computedOptionalRequired": "optional",
           "markdownDescription": "A human-readable description of the tag.",
-          "behavior": {
+          "behaviour": {
             "returnedOnRead": true
           },
           "wire": {
@@ -137,8 +137,8 @@
             "kind": "string"
           },
           "computedOptionalRequired": "optional",
-          "markdownDescription": "The tag's icon.\n\n<!-- probed:7.0.97-t1785269512542 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->",
-          "behavior": {
+          "markdownDescription": "The tag's icon.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->",
+          "behaviour": {
             "serverDefault": {
               "kind": "",
               "raw": "\"LABEL\""
@@ -172,8 +172,8 @@
             ]
           },
           "computedOptionalRequired": "required",
-          "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.\n\n<!-- probed:7.0.97-t1785269512542 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
-          "behavior": {
+          "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. No validator is generated because the API's enumerations are open: an undocumented value must not be rejected by the provider.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+          "behaviour": {
             "immutable": true,
             "requiredByApi": true,
             "returnedOnRead": true
@@ -205,8 +205,8 @@
             ]
           },
           "computedOptionalRequired": "computed_optional",
-          "markdownDescription": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785269512542 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
-          "behavior": {
+          "markdownDescription": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+          "behaviour": {
             "requiredByApi": true,
             "returnedOnRead": true
           },
@@ -236,8 +236,8 @@
             ]
           },
           "computedOptionalRequired": "computed_optional",
-          "markdownDescription": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785269512542 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->",
-          "behavior": {
+          "markdownDescription": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->",
+          "behaviour": {
             "returnedOnRead": false
           },
           "wire": {

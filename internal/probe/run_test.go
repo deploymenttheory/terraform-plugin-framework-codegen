@@ -554,7 +554,7 @@ func TestUnit_Probe_VerifyFactsDetectsDrift(t *testing.T) {
 	t.Parallel()
 
 	base := []Fact{{
-		Resource: "tag", JSONPath: "color", Field: FactWritable,
+		Resource: "tag", JSONPath: "colour", Field: FactWritable,
 		Value: BoolValue(true), Confidence: Observed,
 	}}
 
@@ -565,15 +565,15 @@ func TestUnit_Probe_VerifyFactsDetectsDrift(t *testing.T) {
 	tests := map[string][]Fact{
 		"a missing fact": {},
 		"a changed value": {{
-			Resource: "tag", JSONPath: "color", Field: FactWritable,
+			Resource: "tag", JSONPath: "colour", Field: FactWritable,
 			Value: BoolValue(false), Confidence: Observed,
 		}},
 		"a changed confidence": {{
-			Resource: "tag", JSONPath: "color", Field: FactWritable,
+			Resource: "tag", JSONPath: "colour", Field: FactWritable,
 			Value: BoolValue(true), Confidence: Suspected,
 		}},
 		"a different field": {{
-			Resource: "tag", JSONPath: "color", Field: FactImmutable,
+			Resource: "tag", JSONPath: "colour", Field: FactImmutable,
 			Value: BoolValue(true), Confidence: Observed,
 		}},
 	}

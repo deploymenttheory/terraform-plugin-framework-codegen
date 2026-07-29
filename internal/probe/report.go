@@ -15,7 +15,7 @@ import (
 // window belongs in a fact with its provenance attached, where nobody can mistake it
 // for a property of the real system.
 type Report struct {
-	// Profile summarizes where this ran, and never carries the token.
+	// Profile summarises where this ran, and never carries the token.
 	Profile ProfileSummary `json:"profile"`
 
 	Facts []Fact `json:"facts,omitempty"`

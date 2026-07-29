@@ -151,7 +151,7 @@ func (t *RecordingTransport) record(
 	if err != nil {
 		t.findings = append(t.findings, Finding{
 			Interaction: i.ID,
-			Shape:       "unserializable",
+			Shape:       "unserialisable",
 			Pointer:     err.Error(),
 		})
 	}

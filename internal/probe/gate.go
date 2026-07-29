@@ -12,7 +12,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
 )
 
-// The gate is the whole of the authorization for writing to somebody's API.
+// The gate is the whole of the authorisation for writing to somebody's API.
 //
 // # Why it is a table
 //
@@ -65,7 +65,7 @@ func (m MapEnviron) Lookup(name string) (string, bool) {
 // GateOptions is what the caller asked for, as distinct from what the profile allows.
 type GateOptions struct {
 	Mode Mode
-	// AllowMutations is the flag. A request, not an authorization.
+	// AllowMutations is the flag. A request, not an authorisation.
 	AllowMutations bool
 
 	Subject Subject
@@ -106,7 +106,7 @@ type condition struct {
 	// name is stable and is what a refusal and the report's AssertionsPassed both use.
 	name string
 	// modes are the run modes this condition applies to. A sweep is gated differently: see
-	// AuthorizeSweep.
+	// AuthoriseSweep.
 	modes []Mode
 	// check returns "" when satisfied, and otherwise the sentence an operator reads.
 	check func(gateInput) string
@@ -428,13 +428,13 @@ func credentialNamedKey(v any) string {
 	return ""
 }
 
-// Authorize performs the whole gating conjunction and issues a Grant only if all of it holds.
+// Authorise performs the whole gating conjunction and issues a Grant only if all of it holds.
 //
 // Takes a context because the runtime tier makes read-only requests. Returns the passed
 // assertions alongside the grant so the report can state what evidence stood behind a mutating
 // run -- a report that recorded only "sandbox: true" would be recording the claim rather than
 // the evidence.
-func Authorize(
+func Authorise(
 	ctx context.Context,
 	read ReadSession,
 	p Profile,
@@ -481,13 +481,13 @@ func Authorize(
 	return &Grant{namePrefix: p.NamePrefix}, passed, nil
 }
 
-// AuthorizeSweep is the same table, filtered to what cleaning up needs.
+// AuthoriseSweep is the same table, filtered to what cleaning up needs.
 //
 // Deliberately does not require --allow-mutations: demanding the mutation flag in order to clean
 // up after yourself is perverse, and an operator staring at an orphan table should not have to
 // re-read the documentation. Deliberately does not check maxExistingObjects either: a tenant
 // that now fails it may be failing it *because* it is holding your orphans.
-func AuthorizeSweep(p Profile, opts GateOptions, env Environ) (*Grant, error) {
+func AuthoriseSweep(p Profile, opts GateOptions, env Environ) (*Grant, error) {
 	if env == nil {
 		env = OSEnviron{}
 	}

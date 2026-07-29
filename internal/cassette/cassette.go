@@ -24,7 +24,7 @@
 //
 // Cassettes are as public as the repository. Three layers: credential headers are never
 // captured at all rather than captured and scrubbed; declared literals are substituted;
-// and then the serialized bytes are scanned for anything secret-shaped *before any file
+// and then the serialised bytes are scanned for anything secret-shaped *before any file
 // is written*. A hit writes nothing -- not a partial directory, not a single interaction
 // -- and fails the run. So a bug in the substitution layer cannot commit a token; it can
 // only stop the build.
@@ -89,7 +89,7 @@ type Request struct {
 	// Path excludes the host: a cassette recorded against one tenant must replay
 	// against another, and the host is in the profile rather than the transcript.
 	Path string `json:"path"`
-	// Query is canonicalized: keys sorted, values sorted within a key.
+	// Query is canonicalised: keys sorted, values sorted within a key.
 	Query map[string][]string `json:"query,omitempty"`
 	// Header holds only what the allow list permits.
 	Header map[string]string `json:"header,omitempty"`
@@ -147,7 +147,7 @@ var recordedResponseHeaders = map[string]bool{
 	"x-organization-rate-limit-limit": true,
 }
 
-// canonicalQuery normalizes a query string for storage and matching.
+// canonicalQuery normalises a query string for storage and matching.
 func canonicalQuery(u *url.URL) map[string][]string {
 	if u.RawQuery == "" {
 		return nil
@@ -185,7 +185,7 @@ func canonicalHeaders(h http.Header, allowed map[string]bool) (map[string]string
 		// Checked before the allow list, and separately from it. The allow list happens
 		// to exclude these today, but an allow list is a thing people add entries to --
 		// and "we need to see which auth scheme the API wants" is a plausible reason to
-		// add authorization to it. This check means that would still not leak the value.
+		// add authorisation to it. This check means that would still not leak the value.
 		if neverCaptured[lower] {
 			dropped++
 			continue

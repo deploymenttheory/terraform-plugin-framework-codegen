@@ -401,7 +401,7 @@ func lowerFirstRune(s string) string {
 
 // presenceFrom maps the upstream enum onto blueprint presence.
 //
-// An unrecognized value is carried through rather than rejected: blueprint.Validate
+// An unrecognised value is carried through rather than rejected: blueprint.Validate
 // will refuse it with a message that names the attribute, which is a better report
 // than one from here, and the document was already schema-validated so this is
 // unreachable in practice.

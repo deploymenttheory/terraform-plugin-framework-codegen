@@ -119,8 +119,8 @@ func TestUnit_Probe_WritableIsSettledByTwoDistinctValues(t *testing.T) {
 		{
 			// Stored and transformed. Writable, and the transform is another probe's business --
 			// conflating the two would mark a perfectly writable field as computed.
-			name:   "a field the API normalizes",
-			quirks: quirkserver.Quirks{NormalizesCase: []string{"value"}},
+			name:   "a field the API normalises",
+			quirks: quirkserver.Quirks{NormalisesCase: []string{"value"}},
 			found:  true, wantWritable: true, wantAtLeast: Corroborated,
 		},
 	}
@@ -520,7 +520,7 @@ func TestUnit_Probe_AMutatingRunReplaysToTheSameFacts(t *testing.T) {
 
 	srv := quirkserver.New(t, quirkserver.Quirks{
 		SilentlyDiscards: []string{"modifiedDate"},
-		NormalizesCase:   []string{"value"},
+		NormalisesCase:   []string{"value"},
 	})
 
 	recorded, interactions := runWriteProbesFast(t, srv, writePlan(), "")
@@ -561,7 +561,7 @@ func TestUnit_Probe_AMutatingRunReplaysToTheSameFacts(t *testing.T) {
 }
 
 // TestUnit_Probe_AMutatingReplayNeedsAGrant: the probes are the same code in replay, so they need
-// the same authorization type -- and a replay grant cannot be used to record.
+// the same authorisation type -- and a replay grant cannot be used to record.
 func TestUnit_Probe_AMutatingReplayNeedsAGrant(t *testing.T) {
 	t.Parallel()
 
@@ -637,7 +637,7 @@ func TestUnit_Probe_ADeniedFieldIsNotedRatherThanSkipped(t *testing.T) {
 
 // TestUnit_Probe_TheDeclaredCostIsNeverExceeded is the second of the cost model's two invariants.
 //
-// Cost is what a run is authorized against, so a probe that issues more requests than it declared
+// Cost is what a run is authorised against, so a probe that issues more requests than it declared
 // has spent a budget nobody granted.
 //
 // Measured against the fixture's own request counter rather than the probe's self-report, because
@@ -709,7 +709,7 @@ func defaultSubject() Subject {
 
 	subj.Fields = append(subj.Fields,
 		Field{
-			JSONPath: "color", Attribute: "color",
+			JSONPath: "colour", Attribute: "colour",
 			Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 		},
 		Field{
@@ -920,21 +920,21 @@ func TestUnit_Probe_AConstantDefaultIsDistinguishedFromADerivedOne(t *testing.T)
 	}{
 		{
 			name:        "a constant",
-			quirks:      quirkserver.Quirks{ConstantDefaults: map[string]any{"color": "blue"}},
+			quirks:      quirkserver.Quirks{ConstantDefaults: map[string]any{"colour": "blue"}},
 			wantDefault: `"blue"`,
 		},
 		{
 			// A counter: two byte-identical creates disagree, so nothing constant can be
 			// claimed. This is the case a single create would get confidently wrong.
 			name:        "a counter",
-			quirks:      quirkserver.Quirks{CounterDefault: "color"},
+			quirks:      quirkserver.Quirks{CounterDefault: "colour"},
 			wantDerived: true,
 		},
 		{
 			// Derived from another field. Identical across the byte-identical pair and different
 			// for the third create, which is exactly what the third create is for.
 			name:        "derived from the request",
-			quirks:      quirkserver.Quirks{DerivedDefaults: map[string]string{"color": "value"}},
+			quirks:      quirkserver.Quirks{DerivedDefaults: map[string]string{"colour": "value"}},
 			wantDerived: true,
 		},
 	}
@@ -947,8 +947,8 @@ func TestUnit_Probe_AConstantDefaultIsDistinguishedFromADerivedOne(t *testing.T)
 
 			report := runAgainst(t, srv, defaultSubject(), defaultsPlan(), "write.server-default")
 
-			derived, hasDerived := factFor(t, report, "color", FactDefaultIsDerived)
-			def, hasDefault := factFor(t, report, "color", FactServerDefault)
+			derived, hasDerived := factFor(t, report, "colour", FactDefaultIsDerived)
+			def, hasDefault := factFor(t, report, "colour", FactServerDefault)
 
 			if tc.wantDerived {
 				if !hasDerived {
@@ -992,7 +992,7 @@ func TestUnit_Probe_ADefaultIsALiteralNotAString(t *testing.T) {
 	t.Parallel()
 
 	srv := quirkserver.New(t, quirkserver.Quirks{
-		ConstantDefaults: map[string]any{"rank": 7, "color": "blue"},
+		ConstantDefaults: map[string]any{"rank": 7, "colour": "blue"},
 	})
 
 	report := runAgainst(t, srv, defaultSubject(), defaultsPlan(), "write.server-default")
@@ -1005,9 +1005,9 @@ func TestUnit_Probe_ADefaultIsALiteralNotAString(t *testing.T) {
 		t.Errorf("rank default = %v, want the bare literal 7", number.Value)
 	}
 
-	text, _ := factFor(t, report, "color", FactServerDefault)
+	text, _ := factFor(t, report, "colour", FactServerDefault)
 	if text.Value.Literal == nil || text.Value.Literal.Raw != `"blue"` {
-		t.Errorf("color default = %v, want a quoted string literal", text.Value)
+		t.Errorf("colour default = %v, want a quoted string literal", text.Value)
 	}
 }
 
@@ -1023,17 +1023,17 @@ func TestUnit_Probe_ADefaultIsALiteralNotAString(t *testing.T) {
 func TestUnit_Probe_AValueOnAFieldTheAPIDiscardsIsNotADefault(t *testing.T) {
 	t.Parallel()
 
-	// color is discarded on write and defaulted when absent, so a read always shows "blue"
+	// colour is discarded on write and defaulted when absent, so a read always shows "blue"
 	// however the field was sent. Every observation a default probe can make says "constant".
 	srv := quirkserver.New(t, quirkserver.Quirks{
-		SilentlyDiscards: []string{"color"},
-		ConstantDefaults: map[string]any{"color": "blue"},
+		SilentlyDiscards: []string{"colour"},
+		ConstantDefaults: map[string]any{"colour": "blue"},
 	})
 
 	// Both probes, in registry order, so the dependency is exercised rather than simulated.
 	report := runAgainst(t, srv, defaultSubject(), defaultsPlan(), "")
 
-	if fact, ok := factFor(t, report, "color", FactServerDefault); ok {
+	if fact, ok := factFor(t, report, "colour", FactServerDefault); ok {
 		t.Errorf("a value on a field the API discards was recorded as a default: %v", fact)
 	}
 
@@ -1050,7 +1050,7 @@ func TestUnit_Probe_OneFixtureCannotRuleOutDerivation(t *testing.T) {
 	t.Parallel()
 
 	srv := quirkserver.New(t, quirkserver.Quirks{
-		ConstantDefaults: map[string]any{"color": "blue"},
+		ConstantDefaults: map[string]any{"colour": "blue"},
 	})
 
 	plan := defaultsPlan()
@@ -1058,7 +1058,7 @@ func TestUnit_Probe_OneFixtureCannotRuleOutDerivation(t *testing.T) {
 
 	report := runAgainst(t, srv, defaultSubject(), plan, "write.server-default")
 
-	fact, ok := factFor(t, report, "color", FactServerDefault)
+	fact, ok := factFor(t, report, "colour", FactServerDefault)
 	if !ok {
 		t.Fatalf("no fact: %v (notes %v)", report.Facts, report.Notes)
 	}
@@ -1071,7 +1071,7 @@ func TestUnit_Probe_OneFixtureCannotRuleOutDerivation(t *testing.T) {
 
 // TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled is the Phase 4.7c milestone.
 //
-// The pilot blueprint carries five decisions nothing has tested: color, accessType and matchType
+// The pilot blueprint carries five decisions nothing has tested: colour, accessType and matchType
 // are computed_optional on an assumption, and key and objectType are required although the request
 // schema declares no required list.
 //
@@ -1082,7 +1082,7 @@ func TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled(t *testing.T) {
 
 	subj := quirkSubject()
 	subj.Fields = append(subj.Fields,
-		Field{JSONPath: "color", Attribute: "color", Kind: blueprint.KindString,
+		Field{JSONPath: "colour", Attribute: "colour", Kind: blueprint.KindString,
 			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true},
 		Field{JSONPath: "accessType", Attribute: "access_type", Kind: blueprint.KindString,
 			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true},
@@ -1112,7 +1112,7 @@ func TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled(t *testing.T) {
 	// enforces neither of the two the blueprint marks required.
 	srv := quirkserver.New(t, quirkserver.Quirks{
 		ConstantDefaults: map[string]any{"accessType": "all"},
-		DerivedDefaults:  map[string]string{"color": "objectType"},
+		DerivedDefaults:  map[string]string{"colour": "objectType"},
 	})
 
 	report := runAgainst(t, srv, subj, plan, "")
@@ -1126,7 +1126,7 @@ func TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled(t *testing.T) {
 		note string
 	}{
 		{path: "accessType", field: FactServerDefault},
-		{path: "color", field: FactDefaultIsDerived},
+		{path: "colour", field: FactDefaultIsDerived},
 		{path: "matchType", note: "assigns no value"},
 		{path: "objectType", field: FactRequiredByAPI},
 		{path: "key", note: "its requiredness is therefore unprobed"},
@@ -1536,12 +1536,12 @@ func TestUnit_Probe_TheNegativesAreShapedLikeTheDocumentedValues(t *testing.T) {
 // TestUnit_Probe_CaseHandlingIsReportedNotAsserted.
 //
 // The contract's third question, and it has no fact field: recording one would need merge to act on
-// it, and the only sound action -- describing the behavior -- is what a note already does.
+// it, and the only sound action -- describing the behaviour -- is what a note already does.
 func TestUnit_Probe_CaseHandlingIsReportedNotAsserted(t *testing.T) {
 	t.Parallel()
 
 	// Case-insensitive: the API lower-cases whatever it is given, so AND is accepted.
-	loose := quirkserver.New(t, quirkserver.Quirks{NormalizesCase: []string{"mode"}})
+	loose := quirkserver.New(t, quirkserver.Quirks{NormalisesCase: []string{"mode"}})
 
 	report := runAgainst(t, loose, enumSubject(), enumPlan(), "write.enum")
 
@@ -1582,9 +1582,9 @@ func TestUnit_Probe_NoDocumentedValuesMeansNothingToCheck(t *testing.T) {
 	}
 }
 
-// normalizeSubject has a string field and a collection field, which are the two types the
+// normaliseSubject has a string field and a collection field, which are the two types the
 // transforms apply to.
-func normalizeSubject() Subject {
+func normaliseSubject() Subject {
 	subj := quirkSubject()
 
 	subj.Fields = append(subj.Fields, Field{
@@ -1597,7 +1597,7 @@ func normalizeSubject() Subject {
 
 // TestUnit_Probe_AnIdentifiedTransformIsObservedAndAVagueOneIsSuspected.
 //
-// The highest-value class of fact in the catalogue: server normalization is the direct cause of a
+// The highest-value class of fact in the catalogue: server normalisation is the direct cause of a
 // perpetual diff. A specific named transform is Observed; "changed somehow" is only Suspected,
 // because merge writes the first into a description a human acts on.
 func TestUnit_Probe_AnIdentifiedTransformIsObservedAndAVagueOneIsSuspected(t *testing.T) {
@@ -1617,7 +1617,7 @@ func TestUnit_Probe_AnIdentifiedTransformIsObservedAndAVagueOneIsSuspected(t *te
 		},
 		{
 			name:    "case",
-			quirks:  quirkserver.Quirks{NormalizesCase: []string{"value"}},
+			quirks:  quirkserver.Quirks{NormalisesCase: []string{"value"}},
 			path:    "value",
 			wantSay: "lower-cased",
 		},
@@ -1636,11 +1636,11 @@ func TestUnit_Probe_AnIdentifiedTransformIsObservedAndAVagueOneIsSuspected(t *te
 
 			srv := quirkserver.New(t, tc.quirks)
 
-			report := runAgainst(t, srv, normalizeSubject(), writePlan(), "write.normalization")
+			report := runAgainst(t, srv, normaliseSubject(), writePlan(), "write.normalisation")
 
-			fact, ok := factFor(t, report, tc.path, FactNormalization)
+			fact, ok := factFor(t, report, tc.path, FactNormalisation)
 			if !ok {
-				t.Fatalf("no normalization fact for %s: %v (notes %v)",
+				t.Fatalf("no normalisation fact for %s: %v (notes %v)",
 					tc.path, report.Facts, report.Notes)
 			}
 
@@ -1662,26 +1662,26 @@ func TestUnit_Probe_AnIdentifiedTransformIsObservedAndAVagueOneIsSuspected(t *te
 	}
 }
 
-// TestUnit_Probe_AnApiThatChangesNothingProducesNoNormalizationFact.
+// TestUnit_Probe_AnApiThatChangesNothingProducesNoNormalisationFact.
 //
 // Absence of a fact is the correct outcome, and it has to be distinguishable from a probe that did
 // not run: the run still costs its creates and still reports them.
-func TestUnit_Probe_AnApiThatChangesNothingProducesNoNormalizationFact(t *testing.T) {
+func TestUnit_Probe_AnApiThatChangesNothingProducesNoNormalisationFact(t *testing.T) {
 	t.Parallel()
 
 	srv := quirkserver.New(t, quirkserver.Quirks{})
 
-	report := runAgainst(t, srv, normalizeSubject(), writePlan(), "write.normalization")
+	report := runAgainst(t, srv, normaliseSubject(), writePlan(), "write.normalisation")
 
 	for _, f := range report.Facts {
-		if f.Field == FactNormalization {
-			t.Errorf("an API that stores values verbatim produced a normalization fact: %v", f)
+		if f.Field == FactNormalisation {
+			t.Errorf("an API that stores values verbatim produced a normalisation fact: %v", f)
 		}
 	}
 
 	var outcome ProbeOutcome
 	for _, o := range report.Probes {
-		if o.Name == "write.normalization" {
+		if o.Name == "write.normalisation" {
 			outcome = o
 		}
 	}
@@ -1703,10 +1703,10 @@ func TestUnit_Probe_ARefusedAwkwardValueIsNoObservation(t *testing.T) {
 		ClosedEnum: map[string][]string{"value": {"a", "b"}},
 	})
 
-	report := runAgainst(t, srv, normalizeSubject(), writePlan(), "write.normalization")
+	report := runAgainst(t, srv, normaliseSubject(), writePlan(), "write.normalisation")
 
 	for _, f := range report.Facts {
-		if f.Field == FactNormalization {
+		if f.Field == FactNormalisation {
 			t.Errorf("a refused value produced a fact: %v", f)
 		}
 	}
@@ -1726,7 +1726,7 @@ func TestUnit_Probe_TheNameFieldCannotCarryEveryAwkwardShape(t *testing.T) {
 
 	srv := quirkserver.New(t, quirkserver.Quirks{TrimsWhitespace: []string{"key"}})
 
-	report := runAgainst(t, srv, normalizeSubject(), writePlan(), "write.normalization")
+	report := runAgainst(t, srv, normaliseSubject(), writePlan(), "write.normalisation")
 
 	note, ok := noteMentioning(report, "the awkward shape would destroy it")
 	if !ok {
@@ -1871,15 +1871,15 @@ func TestUnit_Probe_TheWholeCatalogueRunsAndSweepsClean(t *testing.T) {
 		// A fixture that misbehaves in several ways at once, because that is what a real API
 		// does.
 		SilentlyDiscards:          []string{"modifiedDate"},
-		NormalizesCase:            []string{"value"},
-		ConstantDefaults:          map[string]any{"color": "blue"},
+		NormalisesCase:            []string{"value"},
+		ConstantDefaults:          map[string]any{"colour": "blue"},
 		EventuallyConsistentReads: 1,
 		PutClearsOmitted:          true,
 	})
 
-	subj := normalizeSubject()
+	subj := normaliseSubject()
 	subj.Fields = append(subj.Fields, Field{
-		JSONPath: "color", Attribute: "color",
+		JSONPath: "colour", Attribute: "colour",
 		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 	})
 

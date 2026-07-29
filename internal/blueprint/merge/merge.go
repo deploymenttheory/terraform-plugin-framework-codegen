@@ -14,7 +14,7 @@
 //
 // # What merge may do unaided
 //
-//   - Always write attribute.behavior.*. Nothing else writes those fields, so no conflict is
+//   - Always write attribute.behaviour.*. Nothing else writes those fields, so no conflict is
 //     possible. This is the bulk of the value and it is entirely safe.
 //   - Turn policy.readBack on, never off, and never lower its retries. The confidence in that
 //     fact is asymmetric: seeing a stale read proves inconsistency, while one fast success
@@ -47,7 +47,7 @@ import (
 type Strategy string
 
 const (
-	// StrategyAnnotate writes behavior and descriptions only. The default, because it
+	// StrategyAnnotate writes behaviour and descriptions only. The default, because it
 	// cannot change what a practitioner may write.
 	StrategyAnnotate Strategy = "annotate"
 	// StrategyApply additionally changes presence, in the widening direction only.
@@ -108,7 +108,7 @@ func (c Conflict) String() string {
 type Change struct {
 	Resource string `json:"resource"`
 	JSONPath string `json:"jsonPath,omitempty"`
-	// What names the field that changed, e.g. "behavior.writable".
+	// What names the field that changed, e.g. "behaviour.writable".
 	What string `json:"what"`
 	From string `json:"from,omitempty"`
 	To   string `json:"to"`
@@ -294,7 +294,7 @@ func applyToAttribute(
 	}
 }
 
-// a fact whose field merge did not recognize would be silently ignored, which is the one
+// a fact whose field merge did not recognise would be silently ignored, which is the one
 // One case per fact field, deliberately.
 //
 // The complexity is the arity of the fact vocabulary, not tangled control flow: every branch is
@@ -302,7 +302,7 @@ func applyToAttribute(
 // reads one case; a handler map would satisfy the linter and turn that into a two-hop lookup.
 //
 // More importantly, the switch is what makes the coverage visible. A fact whose field merge did
-// not recognize would be silently ignored -- the one failure mode a fact store must not have --
+// not recognise would be silently ignored -- the one failure mode a fact store must not have --
 // and the default case sitting in plain sight next to the others is what stops that.
 //
 //nolint:gocognit,cyclop,gocyclo // See above: the shape is the point.
@@ -336,7 +336,7 @@ func applyAttributeFacts(
 					"writable=false"))
 				continue
 			}
-			setBool(&attr.Behavior.Writable, f, res, path, "behavior.writable", result)
+			setBool(&attr.Behaviour.Writable, f, res, path, "behaviour.writable", result)
 			observations = append(observations, describeWritable(f))
 
 		case probe.FactImmutable:
@@ -345,7 +345,7 @@ func applyAttributeFacts(
 					"immutable=true"))
 				continue
 			}
-			setBool(&attr.Behavior.Immutable, f, res, path, "behavior.immutable", result)
+			setBool(&attr.Behaviour.Immutable, f, res, path, "behaviour.immutable", result)
 
 			// Never a plan modifier, whatever the confidence. Whether Terraform should destroy
 			// and recreate is a decision about somebody's infrastructure; the toolkit's job is
@@ -359,23 +359,23 @@ func applyAttributeFacts(
 			}
 
 		case probe.FactRequiredByAPI:
-			wrote := setBool(&attr.Behavior.RequiredByAPI, f, res, path,
-				"behavior.requiredByApi", result)
+			wrote := setBool(&attr.Behaviour.RequiredByAPI, f, res, path,
+				"behaviour.requiredByApi", result)
 			observations = append(observations, describeRequired(f))
 			applyRequiredPresence(res, attr, path, f, wrote, opts, result)
 
 		case probe.FactReturnedOnRead:
 			setBool(
-				&attr.Behavior.ReturnedOnRead,
+				&attr.Behaviour.ReturnedOnRead,
 				f,
 				res,
 				path,
-				"behavior.returnedOnRead",
+				"behaviour.returnedOnRead",
 				result,
 			)
 
 		case probe.FactVolatile:
-			setBool(&attr.Behavior.Volatile, f, res, path, "behavior.volatile", result)
+			setBool(&attr.Behaviour.Volatile, f, res, path, "behaviour.volatile", result)
 			if v := f.Value.Bool; v != nil && *v {
 				observations = append(
 					observations,
@@ -420,9 +420,9 @@ func applyAttributeFacts(
 				))
 			}
 
-		case probe.FactNormalization:
+		case probe.FactNormalisation:
 			observations = append(observations,
-				"The API normalizes this value: "+f.Value.Text+".")
+				"The API normalises this value: "+f.Value.Text+".")
 
 		case probe.FactSilentlyIgnoredOnUpdate:
 			if v := f.Value.Bool; v != nil && *v {
@@ -443,12 +443,12 @@ func applyAttributeFacts(
 			result.Ignored++
 
 		default:
-			// An unrecognized field is reported rather than skipped. Silently ignoring a fact
+			// An unrecognised field is reported rather than skipped. Silently ignoring a fact
 			// is the one failure mode a fact store must not have: it would look merged and
 			// would not be.
 			result.Conflicts = append(result.Conflicts, Conflict{
 				Resource: res.Key, JSONPath: path,
-				Curated:  "merge does not recognize this fact field",
+				Curated:  "merge does not recognise this fact field",
 				Observed: string(f.Field),
 				Why:      "a fact merge cannot interpret must not be silently discarded",
 				Evidence: f.Evidence,
@@ -622,14 +622,14 @@ func applyServerDefault(
 		return
 	}
 
-	if attr.Behavior.ServerDefault == nil ||
-		attr.Behavior.ServerDefault.Raw != lit.Raw {
+	if attr.Behaviour.ServerDefault == nil ||
+		attr.Behaviour.ServerDefault.Raw != lit.Raw {
 		result.Changes = append(result.Changes, Change{
 			Resource: res.Key, JSONPath: path,
-			What: "behavior.serverDefault", To: lit.Raw,
+			What: "behaviour.serverDefault", To: lit.Raw,
 		})
 		copied := *lit
-		attr.Behavior.ServerDefault = &copied
+		attr.Behaviour.ServerDefault = &copied
 	}
 
 	// optional -> computed_optional is widening, so it is automatic under apply. Adding a
@@ -690,7 +690,7 @@ func applyDerivedDefault(
 	if attr.ComputedOptionalRequired == blueprint.ComputedOptional && !derivedAlreadyNoted(attr) {
 		result.Changes = append(result.Changes, Change{
 			Resource: res.Key, JSONPath: path,
-			What:    "behavior (confirmed)",
+			What:    "behaviour (confirmed)",
 			To:      "computed_optional is correct: the default is derived, not constant",
 			Warning: "the blueprint's assumption was right, for a reason nobody had established",
 		})
@@ -707,7 +707,7 @@ func applyRequiredPresence(
 	attr *blueprint.Attribute,
 	path string,
 	f probe.Fact,
-	wroteBehavior bool,
+	wroteBehaviour bool,
 	opts Options,
 	result *Result,
 ) {
@@ -746,17 +746,17 @@ func applyRequiredPresence(
 	// The API enforces it although the specification did not declare it. ComputedOptionalRequired is already
 	// right; what is worth recording is that the requirement is real, so nobody regenerating
 	// from a newer specification "fixes" it back.
-	if *v && attr.ComputedOptionalRequired == blueprint.Required && wroteBehavior {
+	if *v && attr.ComputedOptionalRequired == blueprint.Required && wroteBehaviour {
 		result.Changes = append(result.Changes, Change{
 			Resource: res.Key, JSONPath: path,
-			What: "behavior.requiredByApi (confirmed)", To: "true",
+			What: "behaviour.requiredByApi (confirmed)", To: "true",
 		})
 	}
 }
 
-// setBool writes a Behavior pointer, recording the change.
+// setBool writes a Behaviour pointer, recording the change.
 //
-// Behavior is the one place merge writes freely: nothing else populates those fields, so no
+// Behaviour is the one place merge writes freely: nothing else populates those fields, so no
 // conflict is possible and this is the bulk of merge's value.
 func setBool(
 	target **bool,

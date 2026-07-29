@@ -19,10 +19,10 @@ func testBlueprint() blueprint.Blueprint {
 			Key: "thing",
 			Attributes: []blueprint.Attribute{
 				{
-					Name: "color", ComputedOptionalRequired: blueprint.ComputedOptional,
+					Name: "colour", ComputedOptionalRequired: blueprint.ComputedOptional,
 					Type:                blueprint.AttrType{Kind: blueprint.KindString},
-					Wire:                blueprint.WireBinding{JSONPath: "color"},
-					MarkdownDescription: "The thing's color.",
+					Wire:                blueprint.WireBinding{JSONPath: "colour"},
+					MarkdownDescription: "The thing's colour.",
 				},
 				{
 					Name: "key", ComputedOptionalRequired: blueprint.Required,
@@ -76,7 +76,7 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 
 	facts := []probe.Fact{
 		// A server-default fact with no literal: the probe looked and found nothing.
-		fact("color", probe.FactServerDefault, probe.Value{Text: "none observed"}, probe.Observed),
+		fact("colour", probe.FactServerDefault, probe.Value{Text: "none observed"}, probe.Observed),
 	}
 
 	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
@@ -115,7 +115,7 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 
 // TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed is the other half of the milestone.
 //
-// A constant default confirms the guess, so it applies cleanly: behavior is written, the
+// A constant default confirms the guess, so it applies cleanly: behaviour is written, the
 // description gains a probed block, and the exit is zero. Adding a *static* default is only
 // recommended, because it changes plan output for every existing configuration.
 func TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed(t *testing.T) {
@@ -124,7 +124,7 @@ func TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("color", probe.FactServerDefault,
+		fact("colour", probe.FactServerDefault,
 			probe.LiteralValue(blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`}),
 			probe.Corroborated),
 	}
@@ -143,11 +143,11 @@ func TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed(t *testing.T) {
 
 	attr := bp.Resources[0].Attributes[0]
 
-	if attr.Behavior.ServerDefault == nil || attr.Behavior.ServerDefault.Raw != `"blue"` {
-		t.Errorf("the server default was not recorded: %+v", attr.Behavior.ServerDefault)
+	if attr.Behaviour.ServerDefault == nil || attr.Behaviour.ServerDefault.Raw != `"blue"` {
+		t.Errorf("the server default was not recorded: %+v", attr.Behaviour.ServerDefault)
 	}
 	// The curated prose survives, because a human wrote it.
-	if !strings.Contains(attr.MarkdownDescription, "The thing's color.") {
+	if !strings.Contains(attr.MarkdownDescription, "The thing's colour.") {
 		t.Errorf("the curated description was lost: %q", attr.MarkdownDescription)
 	}
 	if !strings.Contains(attr.MarkdownDescription, "blue") {
@@ -181,7 +181,7 @@ func TestUnit_Merge_DerivedDefaultConfirmsTheGuess(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("color", probe.FactDefaultIsDerived, probe.BoolValue(true), probe.Observed),
+		fact("colour", probe.FactDefaultIsDerived, probe.BoolValue(true), probe.Observed),
 	}
 
 	result, err := Apply(&bp, facts, Options{SnapshotID: "1.0-t1"})
@@ -253,8 +253,8 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 		if attr.ComputedOptionalRequired != blueprint.Required {
 			t.Errorf("presence = %q, want it left required", attr.ComputedOptionalRequired)
 		}
-		if attr.Behavior.RequiredByAPI == nil || !*attr.Behavior.RequiredByAPI {
-			t.Error("the behavior should record that the API enforces it")
+		if attr.Behaviour.RequiredByAPI == nil || !*attr.Behaviour.RequiredByAPI {
+			t.Error("the behaviour should record that the API enforces it")
 		}
 		// The description tells whoever regenerates from a newer specification not to "fix" it.
 		if !strings.Contains(attr.MarkdownDescription, "does not declare") {
@@ -329,7 +329,7 @@ func TestUnit_Merge_DangerousClaimsNeedCorroboration(t *testing.T) {
 			bp := testBlueprint()
 
 			// Observed is not enough.
-			result, err := Apply(&bp, []probe.Fact{fact("color", tc.field, tc.value, probe.Observed)},
+			result, err := Apply(&bp, []probe.Fact{fact("colour", tc.field, tc.value, probe.Observed)},
 				Options{Strategy: StrategyApply})
 			if err != nil {
 				t.Fatalf("Apply: %v", err)
@@ -346,7 +346,7 @@ func TestUnit_Merge_DangerousClaimsNeedCorroboration(t *testing.T) {
 
 			// Corroborated is.
 			bp = testBlueprint()
-			result, err = Apply(&bp, []probe.Fact{fact("color", tc.field, tc.value, probe.Corroborated)},
+			result, err = Apply(&bp, []probe.Fact{fact("colour", tc.field, tc.value, probe.Corroborated)},
 				Options{Strategy: StrategyApply})
 			if err != nil {
 				t.Fatalf("Apply: %v", err)
@@ -355,7 +355,7 @@ func TestUnit_Merge_DangerousClaimsNeedCorroboration(t *testing.T) {
 				t.Errorf("%s at Corroborated should be accepted: %+v", name, result.Conflicts)
 			}
 			if len(result.Changes) == 0 {
-				t.Error("the behavior should have been written")
+				t.Error("the behaviour should have been written")
 			}
 		})
 	}
@@ -371,7 +371,7 @@ func TestUnit_Merge_ImmutableNeverSetsAPlanModifier(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("color", probe.FactImmutable, probe.BoolValue(true), probe.Corroborated),
+		fact("colour", probe.FactImmutable, probe.BoolValue(true), probe.Corroborated),
 	}
 
 	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
@@ -384,8 +384,8 @@ func TestUnit_Merge_ImmutableNeverSetsAPlanModifier(t *testing.T) {
 	if len(attr.PlanModifiers) != 0 {
 		t.Errorf("merge must never add a plan modifier: %+v", attr.PlanModifiers)
 	}
-	if attr.Behavior.Immutable == nil || !*attr.Behavior.Immutable {
-		t.Error("the behavior should be recorded")
+	if attr.Behaviour.Immutable == nil || !*attr.Behaviour.Immutable {
+		t.Error("the behaviour should be recorded")
 	}
 
 	var recommended bool
@@ -412,8 +412,8 @@ func TestUnit_Merge_SuspectedFactsAreNeverApplied(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("color", probe.FactWritable, probe.BoolValue(false), probe.Suspected),
-		fact("color", probe.FactVolatile, probe.BoolValue(true), probe.Suspected),
+		fact("colour", probe.FactWritable, probe.BoolValue(false), probe.Suspected),
+		fact("colour", probe.FactVolatile, probe.BoolValue(true), probe.Suspected),
 	}
 
 	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
@@ -427,8 +427,8 @@ func TestUnit_Merge_SuspectedFactsAreNeverApplied(t *testing.T) {
 	if result.Ignored != 2 {
 		t.Errorf("Ignored = %d, want 2 -- a run that ignored facts must say so", result.Ignored)
 	}
-	if bp.Resources[0].Attributes[0].Behavior.Writable != nil {
-		t.Error("behavior was written from a suspected fact")
+	if bp.Resources[0].Attributes[0].Behaviour.Writable != nil {
+		t.Error("behaviour was written from a suspected fact")
 	}
 }
 
@@ -558,8 +558,8 @@ func TestUnit_Merge_NestedFieldsAreReached(t *testing.T) {
 	}
 
 	nested := bp.Resources[0].Attributes[2].Type.NestedObject.Attributes[0]
-	if nested.Behavior.Volatile == nil || !*nested.Behavior.Volatile {
-		t.Errorf("the nested attribute's behavior was not written: %+v", nested.Behavior)
+	if nested.Behaviour.Volatile == nil || !*nested.Behaviour.Volatile {
+		t.Errorf("the nested attribute's behaviour was not written: %+v", nested.Behaviour)
 	}
 }
 
@@ -604,16 +604,16 @@ func TestUnit_Merge_UnmatchedFactsAreReported(t *testing.T) {
 	}
 }
 
-// TestUnit_Merge_UnrecognizedFactFieldIsReported.
+// TestUnit_Merge_UnrecognisedFactFieldIsReported.
 //
 // Silently ignoring a fact is the one failure mode a fact store must not have: it would look
 // merged and would not be.
-func TestUnit_Merge_UnrecognizedFactFieldIsReported(t *testing.T) {
+func TestUnit_Merge_UnrecognisedFactFieldIsReported(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()
 
-	facts := []probe.Fact{fact("color", "telepathy", probe.BoolValue(true), probe.Observed)}
+	facts := []probe.Fact{fact("colour", "telepathy", probe.BoolValue(true), probe.Observed)}
 
 	result, err := Apply(&bp, facts, Options{})
 	if err != nil {
@@ -621,7 +621,7 @@ func TestUnit_Merge_UnrecognizedFactFieldIsReported(t *testing.T) {
 	}
 
 	if len(result.Conflicts) != 1 {
-		t.Fatalf("an unrecognized field must be reported: %+v", result.Conflicts)
+		t.Fatalf("an unrecognised field must be reported: %+v", result.Conflicts)
 	}
 	if !strings.Contains(result.Conflicts[0].Observed, "telepathy") {
 		t.Errorf("the conflict should name the field: %+v", result.Conflicts[0])
@@ -637,10 +637,10 @@ func TestUnit_Merge_IsIdempotent(t *testing.T) {
 	t.Parallel()
 
 	facts := []probe.Fact{
-		fact("color", probe.FactServerDefault,
+		fact("colour", probe.FactServerDefault,
 			probe.LiteralValue(blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`}),
 			probe.Corroborated),
-		fact("color", probe.FactVolatile, probe.BoolValue(false), probe.Observed),
+		fact("colour", probe.FactVolatile, probe.BoolValue(false), probe.Observed),
 		fact("key", probe.FactRequiredByAPI, probe.BoolValue(true), probe.Observed),
 	}
 
@@ -765,9 +765,9 @@ func TestUnit_Merge_EnumFactsDescribeButDoNotValidate(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("color", probe.FactEnumAccepted,
+		fact("colour", probe.FactEnumAccepted,
 			probe.ListValue([]string{"blue", "red"}), probe.Observed),
-		fact("color", probe.FactEnumRejectedDocumented,
+		fact("colour", probe.FactEnumRejectedDocumented,
 			probe.ListValue([]string{"deprecated"}), probe.Observed),
 	}
 
@@ -804,12 +804,12 @@ func TestUnit_Merge_ResultRendering(t *testing.T) {
 	t.Parallel()
 
 	c := Conflict{
-		Resource: "thing", JSONPath: "color",
+		Resource: "thing", JSONPath: "colour",
 		Curated: "computed_optional", Observed: "no default", Suggested: "optional",
 		Why: "narrowing breaks state", Evidence: []string{"004-post"}, Fix: "edit it",
 	}
 	for _, want := range []string{
-		"thing.color", "computed_optional", "no default", "optional",
+		"thing.colour", "computed_optional", "no default", "optional",
 		"narrowing breaks state", "004-post", "edit it",
 	} {
 		if !strings.Contains(c.String(), want) {

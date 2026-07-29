@@ -29,7 +29,7 @@ func TestUnit_Naming_TerraformName(t *testing.T) {
 		{"httpTimeLimit", "http_time_limit"},
 
 		// Already snake or single words.
-		{"color", "color"},
+		{"colour", "colour"},
 		{"key", "key"},
 		{"value", "value"},
 		{"type", "type"},
@@ -64,7 +64,7 @@ func TestUnit_Naming_TerraformName(t *testing.T) {
 
 		// Non-alphanumeric input: HAL envelopes, dotted paths, hyphens.
 		{"_links", "links"},
-		{"tag.color", "tag_color"},
+		{"tag.colour", "tag_colour"},
 		{"agent-to-agent", "agent_to_agent"},
 		{"a..b", "a_b"},
 		{"  spaced  name  ", "spaced_name"},
@@ -93,7 +93,7 @@ func TestUnit_Naming_TerraformName_IsIdempotent(t *testing.T) {
 
 	inputs := []string{
 		"displayName", "legacyId", "HTTPProxy", "iOSVersion", "_links",
-		"tag.color", "ipv6Address", "URL", "agent-to-agent", "",
+		"tag.colour", "ipv6Address", "URL", "agent-to-agent", "",
 	}
 
 	for _, in := range inputs {
@@ -178,7 +178,7 @@ func TestUnit_Naming_GoTypeName_NeverProducesInvalidGo(t *testing.T) {
 	valid := regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 	inputs := []string{
 		"", " ", "...", "123", "1a", "_", "a-b", "a.b.c", "@!#", "9lives",
-		"Tests_API_", "type", "func", "-", "é", "tag/color", "___", "9",
+		"Tests_API_", "type", "func", "-", "é", "tag/colour", "___", "9",
 	}
 
 	o := testOptions()
@@ -211,7 +211,7 @@ func TestUnit_Naming_SplitWords(t *testing.T) {
 		{"ipv6Address", []string{"ipv6", "address"}},
 		{"URL", []string{"url"}},
 		{"_links", []string{"links"}},
-		{"tag.color", []string{"tag", "color"}},
+		{"tag.colour", []string{"tag", "colour"}},
 		{"agent-to-agent", []string{"agent", "to", "agent"}},
 		{"already_snake", []string{"already", "snake"}},
 		{"", nil},
@@ -244,7 +244,7 @@ func TestUnit_Naming_TerraformNameAndGoFieldName_AgreeOnWordBoundaries(t *testin
 
 	// Every scalar property name on the ThousandEyes Tag model.
 	properties := []string{
-		"id", "aid", "key", "value", "color", "description", "icon",
+		"id", "aid", "key", "value", "colour", "description", "icon",
 		"accessType", "matchType", "objectType", "type", "builtIn",
 		"createDate", "modifiedDate", "legacyId",
 	}
@@ -317,7 +317,7 @@ func TestUnit_Naming_SafeIdentifier_AvoidsShadowingImports(t *testing.T) {
 
 	// Ordinary names must pass through untouched, or every generated variable
 	// would carry a pointless suffix.
-	for _, in := range []string{"tagID", "displayName", "filters", "color"} {
+	for _, in := range []string{"tagID", "displayName", "filters", "colour"} {
 		t.Run("unchanged/"+in, func(t *testing.T) {
 			t.Parallel()
 			if got := SafeIdentifier(in); got != in {

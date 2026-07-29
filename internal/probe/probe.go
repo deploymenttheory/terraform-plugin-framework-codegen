@@ -3,7 +3,7 @@
 //
 // An OpenAPI document does not record the facts that decide whether a provider
 // works: which fields are genuinely writable, which are immutable, what the server
-// normalizes, what it defaults. internal/ingest is faithful to the specification and
+// normalises, what it defaults. internal/ingest is faithful to the specification and
 // therefore inherits its gaps, and the gaps are where perpetual diffs and spurious
 // replacements come from. This package settles them empirically and commits the HTTP
 // evidence.

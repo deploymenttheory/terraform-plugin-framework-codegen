@@ -130,7 +130,7 @@ func TestUnit_Probe_LedgerWritesIntentBeforeTheRequest(t *testing.T) {
 // TestUnit_Probe_CreateRefusesAnUnprefixedBody.
 //
 // The session enforces the invariant rather than performing it. Silently injecting the prefix
-// would confound the normalization protocol -- send "  MiXeD  ", receive prefix + "  MiXeD  " --
+// would confound the normalisation protocol -- send "  MiXeD  ", receive prefix + "  MiXeD  " --
 // and make request bodies unpredictable at replay, where a cassette matches on bytes.
 func TestUnit_Probe_CreateRefusesAnUnprefixedBody(t *testing.T) {
 	t.Parallel()
@@ -295,7 +295,7 @@ func TestUnit_Probe_InFlightContextIgnoresCancellation(t *testing.T) {
 	}
 	_ = deadline
 
-	// And a create still completes under an already-cancelled parent, which is the behavior
+	// And a create still completes under an already-cancelled parent, which is the behaviour
 	// the detachment exists for.
 	srv := quirkserver.New(t, quirkserver.Quirks{})
 	ms := mutatingAgainst(t, srv.BaseURL(), MemoryLedger())
@@ -447,7 +447,7 @@ func TestUnit_Probe_RemainingProbesAreReportedSkippedNotOmitted(t *testing.T) {
 // TestUnit_Probe_ADeleteFailureStopsTheRunCreating.
 //
 // Continuing to create after demonstrating you cannot clean up is the worst available
-// behavior, so the first failure is enough -- MaxDeleteFailures is deliberately not defaulted,
+// behaviour, so the first failure is enough -- MaxDeleteFailures is deliberately not defaulted,
 // because treating zero as "unset" would make the safest setting the one you cannot express.
 func TestUnit_Probe_ADeleteFailureStopsTheRunCreating(t *testing.T) {
 	t.Parallel()
@@ -535,7 +535,7 @@ func TestUnit_Probe_UpdateAndDeleteRefuseAnEmptyIdentifier(t *testing.T) {
 // TestUnit_Probe_ConcurrentRequestsAreRefused.
 //
 // A cassette is a strictly ordered transcript, so two requests in flight at once land in it in
-// whichever order the server answered. A mutex would serialize them silently; silently is the
+// whichever order the server answered. A mutex would serialise them silently; silently is the
 // problem, because the recording would then replay only by luck.
 func TestUnit_Probe_ConcurrentRequestsAreRefused(t *testing.T) {
 	t.Parallel()
@@ -579,12 +579,12 @@ func TestUnit_Probe_ConcurrentRequestsAreRefused(t *testing.T) {
 	}
 }
 
-// TestUnit_Probe_ReplayGrantCannotAuthorizeARecordingRun.
+// TestUnit_Probe_ReplayGrantCannotAuthoriseARecordingRun.
 //
 // ReplayGrant is exported so cmd can replay a mutating cassette with no profile, no token and
 // no tenant, which is safe because a replay transport cannot reach a network. This is the one
 // hole that opens, closed in the one place that can see both facts.
-func TestUnit_Probe_ReplayGrantCannotAuthorizeARecordingRun(t *testing.T) {
+func TestUnit_Probe_ReplayGrantCannotAuthoriseARecordingRun(t *testing.T) {
 	t.Parallel()
 
 	var report Report

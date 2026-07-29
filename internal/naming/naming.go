@@ -126,9 +126,9 @@ var DefaultStripPrefix = regexp.MustCompile(`^[A-Za-z0-9]+(_[A-Za-z0-9]+)*_API_`
 //	"iOSVersion"  -> [i os version]
 //	"ipv6Address" -> [ipv6 address]
 //	"_links"      -> [links]
-//	"tag.color"   -> [tag color]
+//	"tag.colour"   -> [tag colour]
 func SplitWords(s string) []string {
-	// Normalize every non-alphanumeric run to a single separator so dotted
+	// Normalise every non-alphanumeric run to a single separator so dotted
 	// paths, hyphens and HAL underscores all funnel into one code path.
 	s = strings.Trim(nonAlphanumeric.ReplaceAllString(s, "_"), "_")
 	if s == "" {

@@ -268,9 +268,9 @@ var taxonomy = map[string]Note{
 		"wire",
 		"expand and flatten bindings have no counterpart, so the exported attributes carry no mapping to the SDK",
 	},
-	"behavior": {
-		SeverityDropped, "behavior",
-		"observed API behavior has no counterpart",
+	"behaviour": {
+		SeverityDropped, "behaviour",
+		"observed API behaviour has no counterpart",
 	},
 	"markdownDescription": {
 		SeverityInfo,

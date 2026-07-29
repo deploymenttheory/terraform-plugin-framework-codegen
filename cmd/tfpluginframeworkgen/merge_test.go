@@ -82,7 +82,7 @@ func TestUnit_CLI_Merge_NoServerDefaultConflicts(t *testing.T) {
 
 // TestUnit_CLI_Merge_CorroboratedDefaultApplies is the other half.
 //
-// A corroborated constant default confirms the guess, so it applies: the behavior is recorded
+// A corroborated constant default confirms the guess, so it applies: the behaviour is recorded
 // and the description gains a probed block. A *static* default is only recommended, because
 // adding one changes plan output for every existing configuration.
 func TestUnit_CLI_Merge_CorroboratedDefaultApplies(t *testing.T) {

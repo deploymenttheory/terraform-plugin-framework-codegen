@@ -44,7 +44,7 @@ var (
 	// ErrDeleteFailures marks a run that could not remove something it created.
 	//
 	// The cap defaults to zero, so this fires on the first failure. Continuing to create after
-	// demonstrating you cannot clean up is the worst available behavior, and it is worth a
+	// demonstrating you cannot clean up is the worst available behaviour, and it is worth a
 	// dedicated sentinel so the runner does not have to infer the reason from a status code.
 	ErrDeleteFailures = errors.New("a delete failed, so the run stopped creating")
 

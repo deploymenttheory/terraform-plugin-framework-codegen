@@ -147,7 +147,7 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 			// value.
 			name: "wire field that does not exist on the model",
 			mutate: func(b *blueprint.Blueprint) {
-				// Plausible and absent, which is the shape of the mistake. "Color" would not
+				// Plausible and absent, which is the shape of the mistake. "Colour" would not
 				// do: the SDK type really has one, so the binding would be valid and the case
 				// would silently stop testing anything.
 				b.Resources[0].Attributes[3].Wire.SDKField = "Shade"
