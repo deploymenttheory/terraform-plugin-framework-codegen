@@ -707,6 +707,58 @@
         "style": "passthroughId",
         "attribute": "id",
         "example": "thousandeyes_tag.example 1234"
+      },
+      "identity": {
+        "goTypeName": "TagResourceIdentity",
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "kind": "string",
+            "requiredForImport": true,
+            "description": "The tag's unique identifier, which Terraform addresses it by.",
+            "fromAttribute": "id"
+          }
+        ]
+      },
+      "list": {
+        "goTypeName": "TagListResource",
+        "service": {
+          "importPath": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api/tags",
+          "typeName": "Tags",
+          "accessor": "l.client.API.Tags"
+        },
+        "read": {
+          "style": "method",
+          "method": "GetTags",
+          "args": [
+            {
+              "kind": "ctx"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "tags.ResourceTags",
+          "httpMethod": "GET",
+          "pathTemplate": "/tags",
+          "successCodes": [
+            200
+          ]
+        },
+        "response": {
+          "type": "tags.ResourceTags",
+          "accessStyle": "structField"
+        },
+        "collectionField": "Tags",
+        "elementType": "tags.Tag",
+        "identityFrom": [
+          {
+            "goField": "ID",
+            "fromSdkField": "ID",
+            "isPointer": true
+          }
+        ],
+        "displayNameFrom": "Key",
+        "displayNameIsPointer": true
       }
     }
   ]

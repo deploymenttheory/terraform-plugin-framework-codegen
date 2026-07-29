@@ -51,6 +51,22 @@ func (r *{{ .GoTypeName }}) ImportState(ctx context.Context, req resource.Import
 	{{ .ImportState }}
 }
 {{ end }}
+{{ with .Identity }}
+// IdentitySchema returns the resource identity schema.
+//
+// Terraform addresses an object by its identity independently of configuration, which is
+// what makes import by identity and list resources possible. Declaring it is what makes
+// this resource satisfy resource.ResourceWithIdentity.
+func (r *{{ $.GoTypeName }}) IdentitySchema(_ context.Context, _ resource.IdentitySchemaRequest, resp *resource.IdentitySchemaResponse) {
+	resp.IdentitySchema = identityschema.Schema{
+		Attributes: map[string]identityschema.Attribute{
+{{- range .Attributes }}
+			{{ . }},
+{{- end }}
+		},
+	}
+}
+{{ end }}
 // Schema returns the resource schema.
 func (r *{{ .GoTypeName }}) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{

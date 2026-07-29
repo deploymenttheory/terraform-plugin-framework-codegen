@@ -256,6 +256,16 @@ var taxonomy = map[string]Note{
 		SeverityInfo, "docRefUrl",
 		"the documentation reference URL has no counterpart",
 	},
+	"identity": {
+		SeverityDropped, "identity",
+		"the resource identity schema has no counterpart: the specification models a schema " +
+			"and nothing about how Terraform addresses an object independently of it",
+	},
+	"list": {
+		SeverityDropped, "list",
+		"the list facet has no counterpart: the specification models resources, data sources " +
+			"and a provider, and has no representation for a list resource at all",
+	},
 
 	// Attribute-level. goField and wire are aggregated per resource -- see
 	// attrLosses -- so their wording reads as a count rather than as one field.

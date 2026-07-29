@@ -58,13 +58,27 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 				ctor:       "New" + d.GoTypeName,
 			})
 		}
+	case KindListResources:
+		// From the resources, not from a list of their own: a list resource is a facet, and
+		// it is registered because the resource it lists declares one. The import is the
+		// resource's package, since that is where the generated file lives.
+		for _, r := range bp.Resources {
+			if r.Drop || r.List == nil {
+				continue
+			}
+			entries = append(entries, entry{
+				alias:      r.GoPackageAlias,
+				importPath: resourcePackagePath(bp, r),
+				ctor:       "New" + r.List.GoTypeName,
+			})
+		}
 	}
 
 	// Sorted by alias so the file's contents do not depend on blueprint ordering.
 	// Without this the drift check would fire whenever a blueprint was reordered.
 	sort.Slice(entries, func(i, j int) bool { return entries[i].alias < entries[j].alias })
 
-	var imports []string
+	imports := make([]string, 0, len(entries))
 	for _, e := range entries {
 		imports = append(imports, fmt.Sprintf("%s %s", e.alias, strconv.Quote(e.importPath)))
 		v.Entries = append(v.Entries, e.alias+"."+e.ctor)
@@ -78,8 +92,9 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 type Kind string
 
 const (
-	KindResources   Kind = "resources"
-	KindDataSources Kind = "dataSources"
+	KindResources     Kind = "resources"
+	KindDataSources   Kind = "dataSources"
+	KindListResources Kind = "listResources"
 )
 
 // providerPackage is the Go package name of the provider directory.
@@ -93,14 +108,17 @@ func providerPackage(bp blueprint.Blueprint) string {
 
 // ResourceDir returns the repo-relative directory a resource is emitted into.
 func ResourceDir(bp blueprint.Blueprint, r blueprint.Resource) string {
-	return path.Join(append([]string{root(bp.Provider.Conventions.ResourceRoot, "internal/services/resources")},
-		nonEmpty(r.ServiceGroup, r.APIVersionDir, r.GoPackage)...)...)
+	return path.Join(
+		append([]string{root(bp.Provider.Conventions.ResourceRoot, "internal/services/resources")},
+			nonEmpty(r.ServiceGroup, r.APIVersionDir, r.GoPackage)...)...)
 }
 
 // DataSourceDir returns the repo-relative directory a data source is emitted into.
 func DataSourceDir(bp blueprint.Blueprint, d blueprint.DataSource) string {
-	return path.Join(append([]string{root(bp.Provider.Conventions.DataSourceRoot, "internal/services/datasources")},
-		nonEmpty(d.ServiceGroup, d.APIVersionDir, d.GoPackage)...)...)
+	return path.Join(
+		append(
+			[]string{root(bp.Provider.Conventions.DataSourceRoot, "internal/services/datasources")},
+			nonEmpty(d.ServiceGroup, d.APIVersionDir, d.GoPackage)...)...)
 }
 
 // ProviderDir returns the repo-relative provider package directory.

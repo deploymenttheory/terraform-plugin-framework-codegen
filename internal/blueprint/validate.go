@@ -224,6 +224,14 @@ func (r Resource) validate(at string, p *problems) {
 	}
 
 	r.Binding.validate(at+".binding", p)
+
+	if r.Identity != nil {
+		r.Identity.validate(r, at+".identity", p)
+	}
+
+	if r.List != nil {
+		r.List.validate(r, at+".list", p)
+	}
 	r.validateIDBinding(at, seenNames, seenFields, p)
 	r.validatePolicy(at, hasWritable, p)
 	r.validateImport(at, seenNames, p)
@@ -465,6 +473,150 @@ func (b ResourceBinding) validate(at string, p *problems) {
 // Read is not merely required, it is the whole binding: a data source that cannot read is
 // not a data source. The resource equivalent has three more operations and a request
 // body, none of which exist on this type, so there is nothing here to refuse.
+// validate checks an identity schema.
+//
+// Every attribute must name a resource attribute it mirrors, because generated code copies
+// the value out of the resource model rather than fetching it again -- and a name that does
+// not resolve would be a compile error in someone else's provider.
+func (ri ResourceIdentity) validate(r Resource, at string, p *problems) {
+	required(p, at+".goTypeName", ri.GoTypeName)
+
+	if len(ri.Attributes) == 0 {
+		p.add(at+".attributes", "an identity schema with no attributes cannot be emitted")
+		return
+	}
+
+	seenNames := map[string]bool{}
+	seenFields := map[string]bool{}
+
+	for i, a := range ri.Attributes {
+		aat := fmt.Sprintf("%s.attributes[%d]", at, i)
+		if a.Name != "" {
+			aat = fmt.Sprintf("%s.attributes[%s]", at, a.Name)
+		}
+
+		required(p, aat+".name", a.Name)
+		required(p, aat+".goField", a.GoField)
+
+		dup(p, seenNames, a.Name, aat+".name", "identity attribute name")
+		dup(p, seenFields, a.GoField, aat+".goField", "identity model field")
+
+		// The framework's identityschema has scalars and a list of scalars, and nothing
+		// else. A nested identity is not expressible there, so refusing it here names the
+		// attribute instead of producing a type that does not exist.
+		switch {
+		case a.Kind == "":
+			p.add(aat+".kind", "is required")
+		case a.Kind.IsNested(), a.Kind == KindMap:
+			p.add(aat+".kind",
+				"%q has no identityschema counterpart; an identity is scalars, or a list of them",
+				a.Kind)
+		}
+
+		// Exactly one of the two flags. Neither means the attribute can never be supplied;
+		// both is a contradiction the framework rejects at runtime, which is a worse place
+		// to find out.
+		switch {
+		case !a.RequiredForImport && !a.OptionalForImport:
+			p.add(aat, "must set either requiredForImport or optionalForImport")
+		case a.RequiredForImport && a.OptionalForImport:
+			p.add(aat, "sets both requiredForImport and optionalForImport, which are exclusive")
+		}
+
+		if a.FromAttribute == "" {
+			p.add(aat+".fromAttribute",
+				"is required: generated code copies the identity value out of the resource model")
+			continue
+		}
+		if !hasAttributeNamed(r.Schema.Attributes, a.FromAttribute) {
+			p.add(aat+".fromAttribute",
+				"names attribute %q, which this resource does not declare", a.FromAttribute)
+		}
+	}
+}
+
+// validate checks a list facet.
+//
+// The first refusal is the one that matters: the framework raises an error diagnostic for a
+// ListResult with no identity, so a list resource on a resource that declares none cannot
+// work. Catching it here names both halves; at runtime it surfaces as a query that fails
+// with nothing to point at.
+func (lf ListFacet) validate(r Resource, at string, p *problems) {
+	if r.Identity == nil {
+		p.add(at,
+			"requires the resource to declare an identity: ListResult.Identity is mandatory, "+
+				"so a list resource without one cannot produce a usable result")
+		return
+	}
+
+	required(p, at+".goTypeName", lf.GoTypeName)
+	required(p, at+".service.importPath", lf.Service.ImportPath)
+	required(p, at+".service.typeName", lf.Service.TypeName)
+	required(p, at+".service.accessor", lf.Service.Accessor)
+	required(p, at+".elementType", lf.ElementType)
+	required(p, at+".response.type", lf.Response.Type)
+
+	if lf.Read == nil {
+		p.add(at+".read",
+			"is required: a list resource's whole requirement of the API is a collection read")
+	} else {
+		lf.Read.validate(at+".read", p)
+	}
+
+	if len(lf.IdentityFrom) == 0 {
+		p.add(at+".identityFrom",
+			"is required: every result must carry an identity, so each identity field needs a "+
+				"source on the element")
+		return
+	}
+
+	// Every identity field must be filled. A partially-populated identity is worse than
+	// none: Terraform would record an address that does not resolve.
+	want := map[string]bool{}
+	for _, ia := range r.Identity.Attributes {
+		want[ia.GoField] = true
+	}
+
+	seen := map[string]bool{}
+
+	for i, m := range lf.IdentityFrom {
+		mat := fmt.Sprintf("%s.identityFrom[%d]", at, i)
+
+		required(p, mat+".goField", m.GoField)
+		required(p, mat+".fromSdkField", m.FromSDKField)
+
+		if m.GoField == "" {
+			continue
+		}
+		if !want[m.GoField] {
+			p.add(mat+".goField",
+				"names %q, which the resource's identity does not declare", m.GoField)
+			continue
+		}
+		dup(p, seen, m.GoField, mat+".goField", "identity mapping")
+	}
+
+	for _, ia := range r.Identity.Attributes {
+		if !seen[ia.GoField] {
+			p.add(at+".identityFrom",
+				"does not fill identity field %q; a partly-filled identity records an address "+
+					"that does not resolve", ia.GoField)
+		}
+	}
+}
+
+// hasAttributeNamed reports whether a schema declares an attribute by that name, ignoring
+// dropped ones -- a dropped attribute is not in the generated model, so an identity cannot
+// read from it.
+func hasAttributeNamed(attrs []Attribute, name string) bool {
+	for _, a := range attrs {
+		if a.Name == name && !a.Drop {
+			return true
+		}
+	}
+	return false
+}
+
 func (b DataSourceBinding) validate(at string, p *problems) {
 	required(p, at+".service.importPath", b.Service.ImportPath)
 	required(p, at+".service.typeName", b.Service.TypeName)
