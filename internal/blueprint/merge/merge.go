@@ -237,8 +237,8 @@ func applyToResource(
 
 	applyResourceLevel(res, resourceLevel, result)
 
-	// Attributes are walked by pointer, including one level of nesting, so a fact about a
-	// field inside an object lands on the right attribute.
+	// Attributes are walked by pointer, to any depth of nesting, so a fact about a field
+	// inside an object lands on the right attribute wherever it sits.
 	for i := range res.Schema.Attributes {
 		applyToAttribute(res, &res.Schema.Attributes[i], "", byPath, opts, result)
 	}
@@ -294,8 +294,7 @@ func applyToAttribute(
 	}
 }
 
-// a fact whose field merge did not recognise would be silently ignored, which is the one
-// One case per fact field, deliberately.
+// applyAttributeFacts is one case per fact field, deliberately.
 //
 // The complexity is the arity of the fact vocabulary, not tangled control flow: every branch is
 // a flat "this kind of fact means this". A reviewer checking what merge does with a given fact

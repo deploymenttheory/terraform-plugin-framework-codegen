@@ -715,6 +715,11 @@ func writeAttributeFlags(b *strings.Builder, a blueprint.Attribute) {
 
 // validatorKind is the framework's per-type sub-package suffix, which both the
 // validator and planmodifier packages share.
+//
+// The nested kinds matter as much as the scalars: a ListNestedAttribute takes
+// []validator.List, and the fallthrough to String below would have emitted
+// []validator.String against it. That was unreachable while nested attributes silently
+// dropped their validators, and became reachable the moment they stopped.
 func validatorKind(k blueprint.TypeKind) string {
 	switch k {
 	case blueprint.KindBool:
@@ -735,6 +740,12 @@ func validatorKind(k blueprint.TypeKind) string {
 		return "Set"
 	case blueprint.KindMap:
 		return "Map"
+	case blueprint.KindListNested:
+		return "List"
+	case blueprint.KindSetNested:
+		return "Set"
+	case blueprint.KindSingleNested:
+		return "Object"
 	default:
 		return "String"
 	}

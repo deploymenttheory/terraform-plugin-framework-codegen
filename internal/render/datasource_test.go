@@ -144,17 +144,32 @@ func TestUnit_Render_DataSourceFlattensAListAsAList(t *testing.T) {
 
 	_, v := dataSourceByKey(t, "tags")
 
-	if len(v.State.NestedObject) != 1 {
-		t.Fatalf("got %d nested helpers, want 1", len(v.State.NestedObject))
+	// Three helpers now, because the element carries two nested objects of its own. The
+	// list one is the outermost.
+	var list *NestedFuncView
+	for i := range v.State.NestedObject {
+		if v.State.NestedObject[i].FuncName == "flattenTagSummaries" {
+			list = &v.State.NestedObject[i]
+		}
+	}
+	if list == nil {
+		t.Fatalf("no flattenTagSummaries helper among %d", len(v.State.NestedObject))
 	}
 
-	h := v.State.NestedObject[0]
-	if h.FrameworkType != "types.List" {
-		t.Errorf("FrameworkType = %q, want types.List", h.FrameworkType)
+	if list.FrameworkType != "types.List" {
+		t.Errorf("FrameworkType = %q, want types.List", list.FrameworkType)
 	}
-	if h.Container != "List" {
+	if list.Container != "List" {
 		t.Errorf("Container = %q, want List; a types.List built with types.SetNull does not compile",
-			h.Container)
+			list.Container)
+	}
+
+	// Every helper's container must match its own framework type, at any depth.
+	for _, h := range v.State.NestedObject {
+		want := strings.TrimPrefix(h.FrameworkType, "types.")
+		if h.Container != want {
+			t.Errorf("%s: Container = %q but FrameworkType = %q", h.FuncName, h.Container, h.FrameworkType)
+		}
 	}
 
 	// And a set still says Set, or the parameterisation has simply flipped the bug.

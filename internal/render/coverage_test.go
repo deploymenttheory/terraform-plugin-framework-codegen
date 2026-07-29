@@ -121,7 +121,7 @@ func TestUnit_Render_AttrTypeExprCollections(t *testing.T) {
 
 // TestUnit_Render_NestedDepthAllowsOneLevel is the companion to the refusal test:
 // the supported depth must actually be supported.
-func TestUnit_Render_NestedDepthAllowsOneLevel(t *testing.T) {
+func TestUnit_Render_NestedShapesSkipDroppedAttributes(t *testing.T) {
 	t.Parallel()
 
 	r := blueprint.Resource{
