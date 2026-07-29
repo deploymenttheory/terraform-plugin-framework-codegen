@@ -28,6 +28,8 @@ jobs:
       - name: Check Out
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          # These jobs only read the tree; none of them runs git push.
+          persist-credentials: false
           fetch-depth: 0 # Get full history for full merge-base detection
 
       - name: Set up Go
