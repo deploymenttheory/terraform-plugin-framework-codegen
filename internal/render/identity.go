@@ -29,16 +29,19 @@ type IdentityView struct {
 // The identity is populated from the resource model rather than fetched again: the values
 // are by definition already in state, and a second request to learn what Terraform is
 // holding would be a request that can fail for no reason.
-func identityView(r blueprint.Resource, imports *importSet) (*IdentityView, error) {
-	if r.Identity == nil {
-		return nil, nil
-	}
-
-	v := &IdentityView{GoTypeName: r.Identity.GoTypeName}
+// The identity is a parameter rather than something this looks for on the resource: absence
+// is the caller's business, and taking it here means the function cannot return a nil view
+// with a nil error -- which reads as "no error and no result" and says nothing about which.
+func identityView(
+	r blueprint.Resource,
+	ri blueprint.ResourceIdentity,
+	imports *importSet,
+) (*IdentityView, error) {
+	v := &IdentityView{GoTypeName: ri.GoTypeName}
 
 	imports.add(pkgIdentitySchema, "")
 
-	for _, a := range r.Identity.Attributes {
+	for _, a := range ri.Attributes {
 		schemaType, ok := identitySchemaType[a.Kind]
 		if !ok {
 			return nil, &ErrUnsupported{

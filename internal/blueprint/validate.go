@@ -228,6 +228,10 @@ func (r Resource) validate(at string, p *problems) {
 	if r.Identity != nil {
 		r.Identity.validate(r, at+".identity", p)
 	}
+
+	if r.List != nil {
+		r.List.validate(r, at+".list", p)
+	}
 	r.validateIDBinding(at, seenNames, seenFields, p)
 	r.validatePolicy(at, hasWritable, p)
 	r.validateImport(at, seenNames, p)
@@ -527,6 +531,76 @@ func (ri ResourceIdentity) validate(r Resource, at string, p *problems) {
 		if !hasAttributeNamed(r.Schema.Attributes, a.FromAttribute) {
 			p.add(aat+".fromAttribute",
 				"names attribute %q, which this resource does not declare", a.FromAttribute)
+		}
+	}
+}
+
+// validate checks a list facet.
+//
+// The first refusal is the one that matters: the framework raises an error diagnostic for a
+// ListResult with no identity, so a list resource on a resource that declares none cannot
+// work. Catching it here names both halves; at runtime it surfaces as a query that fails
+// with nothing to point at.
+func (lf ListFacet) validate(r Resource, at string, p *problems) {
+	if r.Identity == nil {
+		p.add(at,
+			"requires the resource to declare an identity: ListResult.Identity is mandatory, "+
+				"so a list resource without one cannot produce a usable result")
+		return
+	}
+
+	required(p, at+".goTypeName", lf.GoTypeName)
+	required(p, at+".service.importPath", lf.Service.ImportPath)
+	required(p, at+".service.typeName", lf.Service.TypeName)
+	required(p, at+".service.accessor", lf.Service.Accessor)
+	required(p, at+".elementType", lf.ElementType)
+	required(p, at+".response.type", lf.Response.Type)
+
+	if lf.Read == nil {
+		p.add(at+".read",
+			"is required: a list resource's whole requirement of the API is a collection read")
+	} else {
+		lf.Read.validate(at+".read", p)
+	}
+
+	if len(lf.IdentityFrom) == 0 {
+		p.add(at+".identityFrom",
+			"is required: every result must carry an identity, so each identity field needs a "+
+				"source on the element")
+		return
+	}
+
+	// Every identity field must be filled. A partially-populated identity is worse than
+	// none: Terraform would record an address that does not resolve.
+	want := map[string]bool{}
+	for _, ia := range r.Identity.Attributes {
+		want[ia.GoField] = true
+	}
+
+	seen := map[string]bool{}
+
+	for i, m := range lf.IdentityFrom {
+		mat := fmt.Sprintf("%s.identityFrom[%d]", at, i)
+
+		required(p, mat+".goField", m.GoField)
+		required(p, mat+".fromSdkField", m.FromSDKField)
+
+		if m.GoField == "" {
+			continue
+		}
+		if !want[m.GoField] {
+			p.add(mat+".goField",
+				"names %q, which the resource's identity does not declare", m.GoField)
+			continue
+		}
+		dup(p, seen, m.GoField, mat+".goField", "identity mapping")
+	}
+
+	for _, ia := range r.Identity.Attributes {
+		if !seen[ia.GoField] {
+			p.add(at+".identityFrom",
+				"does not fill identity field %q; a partly-filled identity records an address "+
+					"that does not resolve", ia.GoField)
 		}
 	}
 }

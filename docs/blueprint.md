@@ -94,6 +94,67 @@ error in generated output, which names neither.
 An action or list attribute having no `computed` is why a list resource's config schema
 is filter-only: there is nowhere to put a result.
 
+## Identity, and the list facet
+
+Both are **facets of a resource**, not sibling blocks, and that is not a modelling
+preference — the framework makes them so.
+
+```jsonc
+"identity": {
+  "goTypeName": "TagResourceIdentity",
+  "attributes": [
+    { "name": "id", "goField": "ID", "kind": "string",
+      "requiredForImport": true, "fromAttribute": "id" }
+  ]
+},
+"list": {
+  "goTypeName": "TagListResource",
+  "read": { "method": "GetTags", ... },
+  "collectionField": "Tags",
+  "identityFrom": [ { "goField": "ID", "fromSdkField": "ID", "isPointer": true } ],
+  "displayNameFrom": "Key"
+}
+```
+
+**Identity** renders an `IdentitySchema` method, an identity model of plain Go scalars, and
+the copy that fills it from the resource model. From the model rather than the API: the
+values are already in state, so a request to learn what Terraform is holding is one that can
+fail for no reason.
+
+Create, Read *and* Update all set it. That is not decoration — `fwserver` refuses a resource
+that declares an identity schema and returns none (*"Missing Resource Identity After
+Create"*), and Read and Update additionally refuse an identity that differs from the one
+Terraform holds. A version that declared the schema without setting it compiled perfectly
+and would have failed on every apply.
+
+`IdentityAttribute` is deliberately **not** `Attribute`: an identity attribute has no
+presence, no validators, no plan modifiers and no default, and `identityschema` gives it
+`requiredForImport`/`optionalForImport` instead. Exactly one of those two must be set —
+neither means the attribute can never be supplied, both is a contradiction the framework
+rejects at runtime.
+
+**The list facet** backs `terraform query`, and its purpose is discovery and import rather
+than data retrieval: the results feed `terraform plan -generate-config-out`. So only
+`Identity` and `DisplayName` are populated, never `Resource` — reading whole objects would
+cost a request per element for data the query does not use.
+
+Three properties the framework imposes, and which being a facet makes unrepresentable-if-
+violated rather than validated afterwards:
+
+- **The type name must equal the resource's.** That string is the entire linkage between the
+  two — there is no import from one package to the other — and the framework returns an
+  error diagnostic from `GetMetadata` if they differ. Both read the same `ResourceName`.
+- **The resource must declare an identity.** `ListResult.Identity` is mandatory, so a list
+  facet on a resource without one is refused, naming both halves.
+- **`Metadata` and `Configure` take `resource.*` request types**, not list-specific ones. The
+  framework declares them that way so one implementation can satisfy both interfaces, and
+  reaching for `list.MetadataRequest` is the mistake the shape invites. A test asserts the
+  generated signatures.
+
+A list config schema is **filter-only**: a list attribute cannot be `Computed`, because there
+is nowhere in a query to put a result. Validation also refuses a facet that leaves any
+identity field unfilled — a partly-filled identity records an address that does not resolve.
+
 ## Data source
 
 The same skeleton as a resource, minus everything a data source has no operation for.

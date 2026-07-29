@@ -153,3 +153,96 @@ func TestUnit_Emit_CreateAndUpdateDoNotMapTheirOwnResponse(t *testing.T) {
 		}
 	}
 }
+
+// TestUnit_Emit_AListFacetEmitsItsFileAndRegistration is the end-to-end property of phase
+// 5.6: a resource declaring a list facet makes the provider serve it, with no hand-written
+// change anywhere.
+func TestUnit_Emit_AListFacetEmitsItsFileAndRegistration(t *testing.T) {
+	t.Parallel()
+
+	g, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	bp := pilotBlueprint(t)
+
+	var listed *string
+	for i := range bp.Resources {
+		if bp.Resources[i].List != nil {
+			listed = &bp.Resources[i].Key
+		}
+	}
+	if listed == nil {
+		t.Skip("the committed pilot blueprint declares no list facet")
+	}
+
+	plan, err := g.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	files := map[string]string{}
+	for _, f := range plan.Files {
+		files[f.Path] = string(f.Content)
+	}
+
+	// The list resource lives beside the resource it lists, because it is a facet of it.
+	var listFile string
+	for path, content := range files {
+		if strings.HasSuffix(path, "resources/tags/v7/tag/list_resource.go") {
+			listFile = content
+		}
+	}
+	if listFile == "" {
+		t.Fatal("no list_resource.go was emitted for a resource with a list facet")
+	}
+
+	// The type name is read from the same constant the resource uses. That equality is the
+	// entire linkage between the two -- the framework errors from GetMetadata if they
+	// differ -- so it is asserted rather than left to inspection.
+	if !strings.Contains(listFile, "resp.TypeName = ResourceName") {
+		t.Error("the list resource should take its type name from ResourceName")
+	}
+
+	// Metadata and Configure take resource.* request types, not list.*. The framework
+	// declares them that way so one implementation can satisfy both interfaces, and
+	// reaching for a list-specific type is the trap the shape invites.
+	for _, want := range []string{
+		"Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse)",
+		"Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse)",
+	} {
+		if !strings.Contains(listFile, want) {
+			t.Errorf("list_resource.go should declare %q", want)
+		}
+	}
+	for _, bad := range []string{"list.MetadataRequest", "list.ConfigureRequest"} {
+		if strings.Contains(listFile, bad) {
+			t.Errorf("list_resource.go must not use %s: the framework uses the resource types", bad)
+		}
+	}
+
+	// The identity is shared with the resource rather than redeclared, so the two cannot
+	// disagree about its shape.
+	if !strings.Contains(listFile, "var identity TagResourceIdentity") {
+		t.Error("the list resource should use the resource's own identity type")
+	}
+
+	// And the registration file is what makes the provider satisfy
+	// ProviderWithListResources.
+	var registry string
+	for path, content := range files {
+		if strings.HasSuffix(path, "provider/list_resources.go") {
+			registry = content
+		}
+	}
+	if registry == "" {
+		t.Fatal("no list_resources.go registration was emitted")
+	}
+	if !strings.Contains(registry, "func (p *Provider) ListResources(") {
+		t.Error("the registration should declare ListResources")
+	}
+	if !strings.Contains(registry, ".NewTagListResource") {
+		t.Errorf("the registration should reference the constructor:\n%s", registry)
+	}
+}

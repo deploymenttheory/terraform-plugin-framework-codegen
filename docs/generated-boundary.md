@@ -8,11 +8,12 @@ to do when a file genuinely cannot be generated.
 
 | Path | Owner | Change it by |
 |---|---|---|
-| `internal/services/resources/**/{resource,model,construct,state,crud}.go` | toolkit | editing the blueprint, then `emit` |
+| `internal/services/resources/**/{resource,model,construct,state,crud,list_resource}.go` | toolkit | editing the blueprint, then `emit` |
 | `internal/services/**/predicate.go` | **you** | editing it — see the note on the consistency predicate |
 | `internal/services/datasources/**/{datasource,model,read,state}.go` | toolkit | editing the blueprint, then `emit` |
 | `internal/services/**/{modify_plan,validate}.go` | **you** | editing them; `emit` never touches them again |
-| `internal/provider/{resources,datasources}.go` | toolkit | adding a blueprint, then `emit` |
+| `internal/provider/{resources,datasources,list_resources}.go` | toolkit | adding a blueprint, then `emit` |
+| `internal/provider/interfaces.go` | **you** | it pins that the generated registries are what satisfy each `ProviderWith*` |
 | `internal/provider/provider.go` | **you** | editing it — authentication is always bespoke |
 | `internal/client/` | **you** | editing it |
 | `internal/services/common/{crud,errors,schema}/` | **you** | editing them |

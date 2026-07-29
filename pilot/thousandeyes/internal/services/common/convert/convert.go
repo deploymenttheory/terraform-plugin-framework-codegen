@@ -211,3 +211,24 @@ func elementsToStringSlice(ctx context.Context, absent bool, elems []attr.Value,
 
 	return out, diags
 }
+
+// Deref reads a pointer field as a plain Go value, treating nil as the zero value.
+//
+// The exception to this package's null-versus-empty rule, and only because its one caller
+// is outside Terraform's value system. A resource identity holds plain Go scalars, not
+// framework values, so there is no null to represent: a list result either carries an
+// identifier or it is unusable. Yielding the zero value keeps a query that meets one odd
+// element from panicking, and an empty identity is visible in the output.
+//
+// Nothing that writes Terraform state should use this. Flattening a nil pointer to the zero
+// value is what produces a provider with a permanent diff, which is why every other
+// function here returns null instead.
+func Deref[T any](p *T) T {
+	if p == nil {
+		var zero T
+
+		return zero
+	}
+
+	return *p
+}
