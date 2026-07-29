@@ -55,6 +55,17 @@ func (r *{{ $.GoTypeName }}) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+{{- if $.Identity }}
+
+	// The framework refuses a resource that declares an identity schema and then returns no
+	// identity data, so this is not optional decoration. It must also be stable: Read and
+	// Update reject an identity that differs from the one Terraform is holding.
+	resp.Diagnostics.Append(resp.Identity.Set(ctx, identityOf(&plan))...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 {{ end }}
@@ -92,6 +103,17 @@ func (r *{{ $.GoTypeName }}) Read(ctx context.Context, req resource.ReadRequest,
 		resp.State.RemoveResource(ctx)
 		return
 	}
+
+{{- if $.Identity }}
+
+	// The framework refuses a resource that declares an identity schema and then returns no
+	// identity data, so this is not optional decoration. It must also be stable: Read and
+	// Update reject an identity that differs from the one Terraform is holding.
+	resp.Diagnostics.Append(resp.Identity.Set(ctx, identityOf(&state))...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -234,6 +256,17 @@ func (r *{{ $.GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+{{- if $.Identity }}
+
+	// The framework refuses a resource that declares an identity schema and then returns no
+	// identity data, so this is not optional decoration. It must also be stable: Read and
+	// Update reject an identity that differs from the one Terraform is holding.
+	resp.Diagnostics.Append(resp.Identity.Set(ctx, identityOf(&plan))...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }

@@ -707,6 +707,19 @@
         "style": "passthroughId",
         "attribute": "id",
         "example": "thousandeyes_tag.example 1234"
+      },
+      "identity": {
+        "goTypeName": "TagResourceIdentity",
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "kind": "string",
+            "requiredForImport": true,
+            "description": "The tag's unique identifier, which Terraform addresses it by.",
+            "fromAttribute": "id"
+          }
+        ]
       }
     }
   ]

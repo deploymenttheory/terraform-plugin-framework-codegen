@@ -187,6 +187,14 @@ type Resource struct {
 	Import   ImportPolicy    `json:"import,omitzero"`
 	Timeouts Timeouts        `json:"timeouts,omitzero"`
 
+	// Identity is the resource identity schema, which makes the generated resource satisfy
+	// ResourceWithIdentity. Absent means the resource declares no identity.
+	//
+	// A facet of the resource rather than a sibling block, because that is what it is: the
+	// framework reaches it through a method on the resource, and it is meaningless without
+	// one.
+	Identity *ResourceIdentity `json:"identity,omitempty"`
+
 	// Drop excludes the resource from emission. Only a hand-authored override
 	// layer may set it, so that a probe run against a tenant which can see
 	// nothing cannot quietly delete half a provider.
@@ -314,6 +322,50 @@ type AttrType struct {
 	// from the specification rather than from somebody's transcription: the pilot's committed
 	// description listed five object types where the specification declares six.
 	AllowedValues []string `json:"allowedValues,omitempty"`
+}
+
+// ResourceIdentity is a resource's identity schema.
+//
+// Terraform uses it to address an object independently of configuration, which is what
+// makes import by identity and list resources possible. In terraform-provider-microsoft365
+// all 154 uses are the same shape -- one required-for-import "id" -- but it is modelled as
+// a list because the framework permits a composite identity, and an API keyed by a pair
+// would otherwise need the emitter changed rather than a blueprint written.
+type ResourceIdentity struct {
+	Attributes []IdentityAttribute `json:"attributes"`
+
+	// GoTypeName is the generated struct both the resource and its list facet decode the
+	// identity into, e.g. "TagResourceIdentity". One type shared by both, so the two cannot
+	// disagree about the shape.
+	GoTypeName string `json:"goTypeName"`
+}
+
+// IdentityAttribute is one member of an identity schema.
+//
+// Deliberately not blueprint.Attribute. An identity attribute has no presence, no
+// validators, no plan modifiers and no default -- the framework's identityschema package
+// gives it RequiredForImport and OptionalForImport instead, and reusing Attribute would
+// offer a dozen fields that have nowhere to go.
+type IdentityAttribute struct {
+	// Name is the identity attribute name, almost always "id".
+	Name string `json:"name"`
+	// GoField is the field on the generated identity struct.
+	GoField string `json:"goField"`
+	// Kind is the scalar type. The framework's identityschema has no nested or collection
+	// attribute beyond a list of scalars, so a nested kind here is refused.
+	Kind TypeKind `json:"kind"`
+
+	// RequiredForImport and OptionalForImport are the framework's own two flags. Exactly
+	// one must be set: an attribute that is neither can never be supplied, and one that is
+	// both is a contradiction the framework rejects at runtime.
+	RequiredForImport bool `json:"requiredForImport,omitempty"`
+	OptionalForImport bool `json:"optionalForImport,omitempty"`
+
+	Description string `json:"description,omitempty"`
+
+	// FromAttribute names the resource attribute this mirrors, so generated code can copy
+	// the value out of the resource model rather than fetching it again.
+	FromAttribute string `json:"fromAttribute"`
 }
 
 // NestedAttributeObject is the object shape a nested attribute holds.

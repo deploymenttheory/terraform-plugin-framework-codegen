@@ -20,6 +20,32 @@ type {{ .ModelTypeName }} struct {
 	{{ . }}
 {{- end }}
 }
+{{ with .Identity }}
+// {{ .GoTypeName }} is the identity Terraform addresses this resource by.
+//
+// Plain Go scalars rather than framework values, because that is what the framework decodes
+// an identity into. One type, shared by the resource and by its list facet, so the two
+// cannot disagree about the shape.
+type {{ .GoTypeName }} struct {
+{{- range .Fields }}
+	{{ . }}
+{{- end }}
+}
+
+// identityOf reads the identity out of the resource model.
+//
+// From the model rather than from the API: the values are by definition already in state,
+// so a request to learn what Terraform is holding would be one that can fail for no reason.
+func identityOf(state *{{ $.ModelTypeName }}) {{ .GoTypeName }} {
+	var identity {{ .GoTypeName }}
+
+{{ range .Assignments }}
+	{{ . }}
+{{- end }}
+
+	return identity
+}
+{{ end }}
 {{ range .NestedModels }}
 // {{ .GoTypeName }} is one element of a nested attribute.
 //
