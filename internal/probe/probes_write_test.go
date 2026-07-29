@@ -1082,14 +1082,22 @@ func TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled(t *testing.T) {
 
 	subj := quirkSubject()
 	subj.Fields = append(subj.Fields,
-		Field{JSONPath: "colour", Attribute: "colour", Kind: blueprint.KindString,
-			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true},
-		Field{JSONPath: "accessType", Attribute: "access_type", Kind: blueprint.KindString,
-			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true},
-		Field{JSONPath: "matchType", Attribute: "match_type", Kind: blueprint.KindString,
-			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true},
-		Field{JSONPath: "objectType", Attribute: "object_type", Kind: blueprint.KindString,
-			ComputedOptionalRequired: blueprint.Required, Writable: true},
+		Field{
+			JSONPath: "colour", Attribute: "colour", Kind: blueprint.KindString,
+			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true,
+		},
+		Field{
+			JSONPath: "accessType", Attribute: "access_type", Kind: blueprint.KindString,
+			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true,
+		},
+		Field{
+			JSONPath: "matchType", Attribute: "match_type", Kind: blueprint.KindString,
+			ComputedOptionalRequired: blueprint.ComputedOptional, Writable: true,
+		},
+		Field{
+			JSONPath: "objectType", Attribute: "object_type", Kind: blueprint.KindString,
+			ComputedOptionalRequired: blueprint.Required, Writable: true,
+		},
 	)
 
 	// The fixtures set key and objectType and omit the three computed_optional fields, which is
