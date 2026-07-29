@@ -194,8 +194,10 @@ provider-defined functions, state upgraders.
   drawn honestly.
 - **`ingest` refuses partial resources by default.** A resource whose CRUD set is
   incomplete is a curation decision, not something to guess at.
-- **Nesting is supported one level deep** and refused beyond it, naming the
-  offending attribute. Deeper shapes need flattening or a deliberate extension.
+- **Nesting is generated to any depth** the blueprint declares. Two things are refused,
+  naming the offending attribute: two nested objects that would declare the same Go
+  identifier, and nesting past ten levels — a runaway guard, since a schema deeper than
+  that is usually one whose depth is decided at runtime and so is not expressible here.
 - **Two attribute decisions in the pilot are unprobed guesses**, recorded as such
   in the blueprint's own descriptions: whether `color`, `access_type` and
   `match_type` really carry server defaults, and whether `legacy_id` is

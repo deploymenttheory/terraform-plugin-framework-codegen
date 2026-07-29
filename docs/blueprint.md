@@ -190,10 +190,21 @@ and one is dead code; `SetNestedBlock` and `SingleNestedBlock` appear not at all
 single live block has an empty validator slice and enforces its cardinality by hand in
 `modify_plan.go`, which is what a nested attribute would have done for it.
 
-Nesting is supported **one level deep** and refused beyond it, naming the
-offending attribute. Each level needs its own model, `attr.Type` map and helper
-pair, and a partially-correct nested mapping is the class of bug that surfaces as
-a diff a practitioner cannot resolve.
+**Nesting is generated to whatever depth the blueprint declares.** Four levels is routine
+in the reference provider. Each level gets its own model struct, `attr.Type` map, object
+type var and conversion helper pair, and an enclosing level refers to the one below it
+through that object type var rather than restating its shape.
+
+Two things are refused rather than half-emitted:
+
+- **Two nested objects that would declare the same Go identifier.** Every nested object
+  contributes a package-level model, `attr.Type` map, object type var and helper pair, so
+  a repeat is a redeclaration error in the generated package. The refusal names both
+  attributes; the compiler error would name neither.
+- **Nesting past ten levels.** That is a runaway guard rather than a design limit — above
+  any fixed schema in the reference provider. What exceeds it is a schema whose depth is
+  decided at runtime from the practitioner's own configuration, which this IR cannot
+  express at all, so the message says to write that resource by hand.
 
 ## Wire
 

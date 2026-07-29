@@ -303,6 +303,79 @@
                       "computed_optional_required": "computed",
                       "description": "The tag's identifier in the v6 API. Typed as a number because the specification declares it as one, although observed values are integral; probing will settle whether this should be an integer."
                     }
+                  },
+                  {
+                    "name": "assignments",
+                    "set_nested": {
+                      "computed_optional_required": "computed",
+                      "nested_object": {
+                        "associated_external_type": {
+                          "type": "tags.Assignment"
+                        },
+                        "attributes": [
+                          {
+                            "name": "id",
+                            "string": {
+                              "computed_optional_required": "computed",
+                              "description": "The identifier of the object the tag is assigned to."
+                            }
+                          },
+                          {
+                            "name": "type",
+                            "string": {
+                              "computed_optional_required": "computed",
+                              "description": "The kind of object assigned. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`."
+                            }
+                          }
+                        ]
+                      },
+                      "description": "Objects this tag is assigned to. A set rather than a list because the API does not preserve ordering."
+                    }
+                  },
+                  {
+                    "name": "filters",
+                    "set_nested": {
+                      "computed_optional_required": "computed",
+                      "nested_object": {
+                        "associated_external_type": {
+                          "type": "tags.TagFilter"
+                        },
+                        "attributes": [
+                          {
+                            "name": "key",
+                            "string": {
+                              "computed_optional_required": "computed",
+                              "description": "The filter key used for matching."
+                            }
+                          },
+                          {
+                            "name": "mode",
+                            "string": {
+                              "computed_optional_required": "computed",
+                              "description": "How the filter values are matched."
+                            }
+                          },
+                          {
+                            "name": "scope",
+                            "string": {
+                              "computed_optional_required": "computed",
+                              "description": "The scope the filter applies within."
+                            }
+                          },
+                          {
+                            "name": "values",
+                            "set": {
+                              "computed_optional_required": "computed",
+                              "element_type": {
+                                "string": {}
+                              },
+                              "description": "The values the filter matches against."
+                            }
+                          }
+                        ]
+                      },
+                      "description": "Filters that dynamically assign this tag to endpoint agents."
+                    }
                   }
                 ]
               },

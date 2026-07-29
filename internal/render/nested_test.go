@@ -1,7 +1,6 @@
 package render
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -91,35 +90,40 @@ func TestUnit_Render_SingleNestedHoldsAttributesDirectly(t *testing.T) {
 	}
 }
 
-// TestUnit_Render_NestedDepthIsRefusedRatherThanEmittedWrongly is the important
-// one. Each nesting level needs its own model, attr.Type map and helper; emitting
-// a partially-correct mapping produces a diff a practitioner cannot resolve, so
-// exceeding the supported depth must fail loudly.
-func TestUnit_Render_NestedDepthIsRefusedRatherThanEmittedWrongly(t *testing.T) {
+// TestUnit_Render_NestedDepthTwoLevelsGenerateTwoShapes replaces a test that asserted two
+// levels were refused.
+//
+// Deleting rather than adapting it: the old fixture kept passing after the cap was
+// removed, but against the identifier-collision check, because nestedAttr gives every
+// level the same generated names. A test that still passes for a reason its name disowns
+// is worse than one that fails.
+func TestUnit_Render_NestedDepthTwoLevelsGenerateTwoShapes(t *testing.T) {
 	t.Parallel()
 
 	inner := nestedAttr(blueprint.KindSetNested, scalarChild("id", "ID"))
 	inner.Name = "inner"
 	inner.GoField = "Inner"
+	// Distinct generated identifiers, or the collision check fires and the depth path is
+	// never exercised.
+	inner.Type.NestedObject.GoTypeName = "InnerModel"
+	inner.Type.NestedObject.AttrTypesVar = "innerAttrTypes"
+	inner.Type.NestedObject.ObjectTypeVar = "innerObjectType"
+	inner.Type.NestedObject.ExpandFunc = "expandInner"
+	inner.Type.NestedObject.FlattenFunc = "flattenInner"
 
 	outer := nestedAttr(blueprint.KindSetNested, inner)
 
-	r := blueprint.Resource{Key: "tag", Schema: blueprint.Schema{
+	shapes, err := nestedShapes(testResourceScope, blueprint.Schema{
 		Attributes: []blueprint.Attribute{outer},
-	}}
-
-	_, err := nestedShapes(testResourceScope, r.Schema)
-	if err == nil {
-		t.Fatal("expected nesting beyond the supported depth to be refused")
+	})
+	if err != nil {
+		t.Fatalf("two levels of nesting must be supported: %v", err)
 	}
-
-	var unsupported *ErrUnsupported
-	if !errors.As(err, &unsupported) {
-		t.Fatalf("error should be an ErrUnsupported: %v", err)
+	if len(shapes) != 2 {
+		t.Fatalf("got %d shapes, want one per level", len(shapes))
 	}
-	// The message has to name the offending attribute, not merely the limit.
-	if !strings.Contains(err.Error(), "inner") {
-		t.Errorf("error should name the attribute at fault: %v", err)
+	if shapes[0].path != "assignments" || shapes[1].path != "assignments.inner" {
+		t.Errorf("paths = %q, %q; want the outermost first", shapes[0].path, shapes[1].path)
 	}
 }
 
@@ -227,11 +231,45 @@ func TestUnit_Render_AttrTypeExpr(t *testing.T) {
 
 // TestUnit_Render_AttrTypeExprRefusesNesting confirms an unsupported shape errors
 // rather than silently emitting something that does not compile.
-func TestUnit_Render_AttrTypeExprRefusesNesting(t *testing.T) {
+func TestUnit_Render_AttrTypeExprNeedsAnObjectToNameIt(t *testing.T) {
 	t.Parallel()
 
-	_, err := attrTypeExpr(blueprint.AttrType{Kind: blueprint.KindSetNested})
-	if err == nil {
-		t.Fatal("expected a nested kind to have no attr.Type expression")
+	// A nested kind now has an attr.Type expression -- the object type var its own model
+	// declares -- so what is refused is a nested kind with nothing to name.
+	if _, err := attrTypeExpr(blueprint.AttrType{Kind: blueprint.KindSetNested}); err == nil {
+		t.Error("a nested kind with no object shape has nothing to name")
+	}
+
+	noVar := blueprint.AttrType{
+		Kind:         blueprint.KindSetNested,
+		NestedObject: &blueprint.NestedAttributeObject{GoTypeName: "ItemModel"},
+	}
+	if _, err := attrTypeExpr(noVar); err == nil {
+		t.Error("a nested object with no objectTypeVar cannot be referred to")
+	}
+
+	// And the expressions an enclosing attr.Type map actually gets.
+	set := blueprint.AttrType{
+		Kind:         blueprint.KindSetNested,
+		NestedObject: &blueprint.NestedAttributeObject{ObjectTypeVar: "itemObjectType"},
+	}
+	got, err := attrTypeExpr(set)
+	if err != nil {
+		t.Fatalf("attrTypeExpr: %v", err)
+	}
+	if want := "types.SetType{ElemType: itemObjectType}"; got != want {
+		t.Errorf("attrTypeExpr = %q, want %q", got, want)
+	}
+
+	single := blueprint.AttrType{
+		Kind:         blueprint.KindSingleNested,
+		NestedObject: &blueprint.NestedAttributeObject{ObjectTypeVar: "itemObjectType"},
+	}
+	got, err = attrTypeExpr(single)
+	if err != nil {
+		t.Fatalf("attrTypeExpr: %v", err)
+	}
+	if want := "itemObjectType"; got != want {
+		t.Errorf("a single nested object is its own object type: got %q, want %q", got, want)
 	}
 }
