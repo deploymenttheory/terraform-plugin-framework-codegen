@@ -340,3 +340,57 @@ func TestUnit_Blueprint_ASchemaVersionBumpNeedsSomethingToMigrateWith(t *testing
 		}
 	}
 }
+
+// TestUnit_Blueprint_AnOptionalAttributeTheAPIFillsInIsRefused.
+//
+// Terraform requires the value after an apply to equal the value it planned. An attribute that is
+// Optional and not Computed plans as null when omitted, so an API supplying its own value makes
+// every such apply fail:
+//
+//	unexpected new value: .icon: was null, but now cty.StringVal("LABEL").
+//
+// Found by the first live acceptance run, on the third attempt, having passed compilation, the
+// drift check, terraform validate and every unit test. The pilot had the same situation both ways
+// round -- `color` was optional-and-computed and worked, `icon` was optional alone and failed --
+// which is what makes this a rule worth enforcing rather than a note worth writing.
+func TestUnit_Blueprint_AnOptionalAttributeTheAPIFillsInIsRefused(t *testing.T) {
+	t.Parallel()
+
+	withDefault := func(cor ComputedOptionalRequired, returned *bool) Blueprint {
+		b := validBlueprint()
+		for i := range b.Resources[0].Schema.Attributes {
+			if b.Resources[0].Schema.Attributes[i].Name != "key" {
+				continue
+			}
+			a := &b.Resources[0].Schema.Attributes[i]
+			a.ComputedOptionalRequired = cor
+			a.Behaviour.ServerDefault = &Literal{Raw: `"LABEL"`}
+			a.Behaviour.ReturnedOnRead = returned
+		}
+
+		return b
+	}
+
+	yes, no := true, false
+
+	err := withDefault(Optional, &yes).Validate()
+	if err == nil {
+		t.Fatal("optional plus an observed server default should be refused")
+	}
+	for _, want := range []string{"was null, but now", "computed_optional", "LABEL"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("the refusal should mention %q: %v", want, err)
+		}
+	}
+
+	// Optional-and-computed is the fix, and is accepted.
+	if err := withDefault(ComputedOptional, &yes).Validate(); err != nil {
+		t.Errorf("optional-and-computed should be valid: %v", err)
+	}
+
+	// So is an attribute the API never returns: state keeps the configured null, so the planned
+	// and applied values agree and there is nothing to reconcile.
+	if err := withDefault(Optional, &no).Validate(); err != nil {
+		t.Errorf("a never-returned attribute needs no Computed: %v", err)
+	}
+}

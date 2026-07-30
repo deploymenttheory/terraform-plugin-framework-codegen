@@ -268,41 +268,72 @@ func TestUnit_Render_AttributeDeclarations(t *testing.T) {
 	}
 }
 
-// TestUnit_Render_ComputedStringsGetUseStateForUnknown: without it, a computed
-// attribute shows as "(known after apply)" on every plan even when nothing about
-// it changed, which trains people to skim plans.
-func TestUnit_Render_ComputedStringsGetUseStateForUnknown(t *testing.T) {
+// TestUnit_Render_OnlyTheIdentifierGetsUseStateForUnknown.
+//
+// This test used to assert the opposite -- that every computed string got the modifier, for plan
+// tidiness. The first live acceptance run showed what that costs.
+//
+// UseStateForUnknown tells Terraform to plan the prior state value rather than unknown, which is a
+// correctness claim: this value cannot change while the resource exists. `modified_date` is a
+// computed string the server rewrites on every update, so the plan carried the prior null, the
+// update returned a timestamp, and Terraform refused the result with "was null, but now ...".
+//
+// No fact distinguishes a computed value the server keeps from one it rewrites, so the claim is
+// only made where it holds structurally: the identifier, which cannot change under Terraform
+// without breaking far more than a plan.
+func TestUnit_Render_OnlyTheIdentifierGetsUseStateForUnknown(t *testing.T) {
 	t.Parallel()
 
 	imports := newImportSet()
 
-	got, err := attributeDecl(testResourceScope, blueprint.Attribute{
-		Name: "id", GoField: "ID", ComputedOptionalRequired: blueprint.Computed,
-		Type: blueprint.AttrType{Kind: blueprint.KindString},
-	}, "StringAttribute", imports)
+	computedString := func(name, field string) blueprint.Attribute {
+		return blueprint.Attribute{
+			Name: name, GoField: field, ComputedOptionalRequired: blueprint.Computed,
+			Type: blueprint.AttrType{Kind: blueprint.KindString},
+		}
+	}
+
+	got, err := attributeDecl(
+		testResourceScope, computedString("id", "ID"), "StringAttribute", imports,
+	)
 	if err != nil {
 		t.Fatalf("attributeDecl: %v", err)
 	}
-
 	if !strings.Contains(got, "UseStateForUnknown()") {
-		t.Errorf("a computed string should get UseStateForUnknown:\n%s", got)
+		t.Errorf("the identifier should keep the modifier:\n%s", got)
 	}
 
-	// An explicit plan modifier replaces the default rather than adding to it.
+	// Any other computed string must not, however tidy it would make the plan.
+	other, err := attributeDecl(
+		testResourceScope, computedString("modified_date", "ModifiedDate"),
+		"StringAttribute", imports,
+	)
+	if err != nil {
+		t.Fatalf("attributeDecl: %v", err)
+	}
+	if strings.Contains(other, "UseStateForUnknown()") {
+		t.Errorf(
+			"a computed string that is not the identifier must not claim to be immutable:\n%s",
+			other,
+		)
+	}
+
+	// An explicit plan modifier replaces the default rather than adding to it, so a blueprint can
+	// still assert immutability where somebody knows it holds.
 	custom := planModifiersFor(testResourceScope, blueprint.Attribute{
-		ComputedOptionalRequired: blueprint.Computed,
-		Type:                     blueprint.AttrType{Kind: blueprint.KindString},
-		PlanModifiers:            []blueprint.CustomCode{{SchemaDefinition: "mine()"}},
+		Name: "id", ComputedOptionalRequired: blueprint.Computed,
+		Type:          blueprint.AttrType{Kind: blueprint.KindString},
+		PlanModifiers: []blueprint.CustomCode{{SchemaDefinition: "mine()"}},
 	}, imports)
 	if len(custom) != 1 || custom[0].SchemaDefinition != "mine()" {
 		t.Errorf("an explicit plan modifier should win: %+v", custom)
 	}
 
-	// Optional attributes get none: pinning a configurable value to prior state
-	// would stop a practitioner changing it.
+	// Optional attributes get none: pinning a configurable value to prior state would stop a
+	// practitioner changing it.
 	if got := planModifiersFor(testResourceScope, blueprint.Attribute{
-		ComputedOptionalRequired: blueprint.Optional,
-		Type:                     blueprint.AttrType{Kind: blueprint.KindString},
+		Name: "id", ComputedOptionalRequired: blueprint.Optional,
+		Type: blueprint.AttrType{Kind: blueprint.KindString},
 	}, imports); len(got) != 0 {
 		t.Errorf("an optional attribute should get no default plan modifier: %+v", got)
 	}

@@ -154,7 +154,15 @@ func DataSource(
 		impState.add(pkgDiag, "")
 	}
 
-	v.State = stateView(d.Schema, d.Binding.Response.Type, shapes)
+	state, err := stateView(d.Schema, d.Binding.Response.Type, shapes)
+	if err != nil {
+		return DataSourceView{}, err
+	}
+	v.State = state
+
+	if v.State.NeedsTypes {
+		impState.add(pkgTypes, "")
+	}
 
 	if d.Binding.Read == nil {
 		return DataSourceView{}, &ErrUnsupported{

@@ -451,9 +451,46 @@ func (r Resource) validateImport(at string, names map[string]bool, p *problems) 
 	}
 }
 
+// validateServerDefaultIsComputed refuses an optional attribute the API fills in for itself.
+//
+// Terraform requires the value after an apply to equal the value it planned. An attribute that is
+// Optional and not Computed plans as null when the practitioner omits it, so an API that supplies
+// its own value makes every such apply fail:
+//
+//	Error: Provider produced inconsistent result after apply
+//	unexpected new value: .icon: was null, but now cty.StringVal("LABEL").
+//
+// Computed is what tells Terraform the value may arrive from elsewhere. Adding it takes nothing
+// away from a practitioner -- they can still set the attribute -- which is why this is refused
+// outright rather than merely recommended, unlike promoting something to Required.
+//
+// The exception is an attribute the API never returns: state keeps the configured null, so the
+// planned and applied values agree and there is nothing to reconcile.
+//
+// The pilot had this both ways round, which is what makes the rule worth enforcing rather than
+// documenting: `color` was optional-and-computed and worked, `icon` was optional alone and failed
+// on the first live apply.
+func (a Attribute) validateServerDefaultIsComputed(at string, p *problems) {
+	if a.Behaviour.ServerDefault == nil || a.ComputedOptionalRequired != Optional {
+		return
+	}
+	if a.Behaviour.ReturnedOnRead != nil && !*a.Behaviour.ReturnedOnRead {
+		return
+	}
+
+	p.add(at+".computedOptionalRequired",
+		"is %q, but the API was observed applying its own value (%s) and returning it. Terraform "+
+			"requires the applied value to equal the planned one, so every apply that omits this "+
+			"attribute fails with \"was null, but now ...\". Use %q, which still lets a "+
+			"practitioner set it",
+		Optional, a.Behaviour.ServerDefault.Raw, ComputedOptional)
+}
+
 func (a Attribute) validate(at string, p *problems) {
 	required(p, at+".name", a.Name)
 	required(p, at+".goField", a.GoField)
+
+	a.validateServerDefaultIsComputed(at, p)
 
 	switch a.ComputedOptionalRequired {
 	case Required, Optional, Computed, ComputedOptional:

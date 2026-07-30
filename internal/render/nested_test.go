@@ -12,6 +12,8 @@ import (
 var testResourceScope = schemaScope{
 	kind: blueprint.BlockResource,
 	what: `resource "tag"`,
+	// The identifier, which is the only attribute UseStateForUnknown is applied to.
+	idAttribute: "id",
 }
 
 func nestedAttr(kind blueprint.TypeKind, children ...blueprint.Attribute) blueprint.Attribute {
