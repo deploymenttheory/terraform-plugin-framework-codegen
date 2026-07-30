@@ -1,4 +1,9 @@
 terraform {
+  # Protocol 6, which Terraform has spoken since 1.0. The provider also registers
+  # list resources and actions; using those needs 1.14 or newer, but nothing in
+  # this example does.
+  required_version = ">= 1.0"
+
   required_providers {
     thousandeyes = {
       source = "deploymenttheory/thousandeyes"

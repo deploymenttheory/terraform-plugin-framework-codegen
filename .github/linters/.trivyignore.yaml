@@ -1,0 +1,34 @@
+---
+# Vulnerabilities accepted deliberately, each with the reason and an expiry so it
+# gets looked at again rather than becoming permanent.
+#
+# Referenced explicitly from trivy.yaml. Trivy's filesystem scanner walks the tree
+# rather than reading super-linter's changed-file list, which is why an exception
+# has to live here and not in FILTER_REGEX_EXCLUDE -- the same reason openapi-specs
+# is handled by scan.skip-dirs.
+
+vulnerabilities:
+  - id: GO-2026-5932
+    statement: >-
+      "golang.org/x/crypto/openpgp is unmaintained, unsafe by design" -- a
+      module-level advisory against golang.org/x/crypto with no fixed version,
+      because the remedy is to stop using that package rather than to upgrade.
+
+      We do not use it. `go mod why` gives the whole chain:
+      internal/acceptance/check -> terraform-plugin-testing/helper/resource ->
+      internal/plugintest -> hc-install/checkpoint -> internal/releasesjson ->
+      ProtonMail/go-crypto/openpgp -> golang.org/x/crypto/sha3. The package
+      actually imported from x/crypto is sha3; the openpgp work is done by
+      ProtonMail/go-crypto, which is the maintained fork the advisory points
+      people towards. Trivy flags the module, not the import, so this is a
+      false positive at package granularity, and govulncheck agrees: "0
+      vulnerabilities" in code and imports, 1 in "modules you require".
+
+      It is also test-only. hc-install uses it to verify the signature on the
+      Terraform release archive it downloads for an acceptance run, which is a
+      signature check we want rather than one to route around. Nothing on this
+      path reaches a built provider.
+
+      Revisit when x/crypto drops openpgp, or when hc-install stops depending on
+      a module that still contains it.
+    expired_at: 2027-01-31
