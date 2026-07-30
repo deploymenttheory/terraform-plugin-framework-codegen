@@ -92,6 +92,11 @@ func (r *{{ .GoTypeName }}) ConfigValidators(_ context.Context) []resource.Confi
 // Schema returns the resource schema.
 func (r *{{ .GoTypeName }}) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+{{- if .SchemaVersion }}
+		// Past zero, so Terraform will ask UpgradeState to migrate any state written by an
+		// earlier version. See state_upgrade.go.
+		Version: {{ .SchemaVersion }},
+{{- end }}
 {{- if .MarkdownDescription }}
 		MarkdownDescription: {{ printf "%q" .MarkdownDescription }},
 {{- end }}

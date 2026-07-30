@@ -315,9 +315,45 @@ func (r Resource) validate(at string, p *problems) {
 	for i, cv := range r.ConfigValidators {
 		cv.validate(r, fmt.Sprintf("%s.configValidators[%d]", at, i), p)
 	}
+	r.validateSchemaVersion(at, p)
 	r.validateIDBinding(at, seenNames, seenFields, p)
 	r.validatePolicy(at, hasWritable, p)
 	r.validateImport(at, seenNames, p)
+}
+
+// validateSchemaVersion refuses a schema version bump with nothing to migrate old state.
+//
+// The framework's behaviour decides this, and it is worth stating exactly, because the failure
+// does not appear in testing. fwserver's UpgradeResourceState passes state through untouched when
+// the stored version equals the schema version, and demands a ResourceWithUpgradeState carrying an
+// entry for the stored version when it does not:
+//
+//	"This resource was implemented without an UpgradeState() method, however Terraform was
+//	 expecting an implementation for version N upgrade."
+//
+// So a bumped version with no upgrader works perfectly for anyone creating the resource fresh, and
+// fails for everyone holding state written by an earlier version -- which is precisely the people
+// a version bump exists to serve, and nobody a green test suite covers.
+//
+// A version of zero is the framework's default and needs nothing.
+func (r Resource) validateSchemaVersion(at string, p *problems) {
+	switch {
+	case r.Schema.Version < 0:
+		p.add(at+".schema.version", "cannot be negative")
+
+	case r.Schema.Version > 0 && !r.Hooks.StateUpgrade:
+		p.add(at+".schema.version",
+			"is %d, but hooks.stateUpgrade is not set, so nothing migrates state written by an "+
+				"earlier version. Terraform refuses such a state with \"this resource was "+
+				"implemented without an UpgradeState() method\", which affects only practitioners "+
+				"upgrading -- exactly who the bump is for, and nobody a test suite covers",
+			r.Schema.Version)
+
+	case r.Schema.Version == 0 && r.Hooks.StateUpgrade:
+		p.add(at+".hooks.stateUpgrade",
+			"is set but schema.version is 0, so UpgradeState can never be called: the framework "+
+				"passes state through untouched when the stored version already matches")
+	}
 }
 
 // validateIDBinding checks the ID wiring points at an attribute that exists. A

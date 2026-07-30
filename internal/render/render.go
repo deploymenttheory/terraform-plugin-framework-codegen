@@ -147,6 +147,21 @@ type ResourceView struct {
 
 	// ConfigValidators are finished cross-attribute rule expressions.
 	ConfigValidators []string
+	// SchemaVersion is the resource schema's version, emitted only when past zero.
+	//
+	// Zero is the framework's default, and emitting "Version: 0" would be noise -- but a
+	// nonzero value not reaching the schema is worse than noise. Terraform would keep reading
+	// state as version 0, find it matching, pass it through untouched, and reinterpret old
+	// fields under the new schema with no upgrade and no error.
+	SchemaVersion int64
+	// PriorVersions is every version an upgrader must handle: 0 up to SchemaVersion-1.
+	//
+	// All of them, not just the most recent. fwserver looks up the map by the version found in
+	// state, and a practitioner who skipped a provider release is holding an older one -- a
+	// missing key gives them "Terraform was expecting an implementation for version N upgrade"
+	// and no way forward.
+	PriorVersions []int64
+
 	// Hooks are the hand-written seams this resource opts into. Generated code refers to a
 	// hook only when its flag is set, so a scaffold deleted by hand takes the reference with
 	// it rather than leaving a package that does not compile.
@@ -391,6 +406,10 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	}
 
 	v.Hooks = r.Hooks
+	v.SchemaVersion = r.Schema.Version
+	for prior := int64(0); prior < r.Schema.Version; prior++ {
+		v.PriorVersions = append(v.PriorVersions, prior)
+	}
 
 	cvs, err := configValidators(r, impResource)
 	if err != nil {
@@ -586,6 +605,12 @@ func interfaces(r blueprint.Resource) []string {
 		out = append(
 			out,
 			fmt.Sprintf("_ resource.ResourceWithModifyPlan = (*%s)(nil)", r.GoTypeName),
+		)
+	}
+	if r.Hooks.StateUpgrade {
+		out = append(
+			out,
+			fmt.Sprintf("_ resource.ResourceWithUpgradeState = (*%s)(nil)", r.GoTypeName),
 		)
 	}
 	return out

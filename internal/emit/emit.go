@@ -199,6 +199,7 @@ func (g *Generator) resourceFiles(
 	}{
 		{"modify_plan.go", "modify_plan.go.tmpl", !r.Hooks.ModifyPlan},
 		{"predicate.go", "predicate.go.tmpl", !r.Hooks.ReadBackPredicate},
+		{"state_upgrade.go", "state_upgrade.go.tmpl", !r.Hooks.StateUpgrade},
 	}
 
 	out := make([]File, 0, len(wanted))
