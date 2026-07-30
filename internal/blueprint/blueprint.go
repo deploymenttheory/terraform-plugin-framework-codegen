@@ -486,6 +486,10 @@ type Hooks struct {
 	// Which field an API touches on write is API-specific and sometimes resource-specific, so
 	// it cannot be generated. 28 of the reference provider's 167 resources carry one.
 	ReadBackPredicate bool `json:"readBackPredicate,omitempty"`
+	// StateUpgrade scaffolds UpgradeState, which a resource needs once its schema version is
+	// past zero. The migration itself is judgement no specification carries: only whoever
+	// changed the schema knows what an old state's fields meant.
+	StateUpgrade bool `json:"stateUpgrade,omitempty"`
 }
 
 // IsZero reports whether the resource opts into no hand-written seams.

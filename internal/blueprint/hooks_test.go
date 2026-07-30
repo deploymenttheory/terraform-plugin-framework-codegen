@@ -158,14 +158,15 @@ func TestUnit_Blueprint_HooksIsZeroTracksItsOwnFields(t *testing.T) {
 	}{
 		{"modifyPlan", Hooks{ModifyPlan: true}},
 		{"readBackPredicate", Hooks{ReadBackPredicate: true}},
+		{"stateUpgrade", Hooks{StateUpgrade: true}},
 	} {
 		if tc.h.IsZero() {
 			t.Errorf("a Hooks with %s set is not zero", tc.name)
 		}
 	}
 
-	if got := reflect.TypeOf(Hooks{}).NumField(); got != 2 {
-		t.Errorf("Hooks has %d fields but only 2 are covered above; cover the new one", got)
+	if got := reflect.TypeOf(Hooks{}).NumField(); got != 3 {
+		t.Errorf("Hooks has %d fields but only 3 are covered above; cover the new one", got)
 	}
 }
 
@@ -257,6 +258,85 @@ func TestUnit_Blueprint_ARuleOverAnUnsettableOrAlwaysSetMemberIsRefused(t *testi
 	} {
 		if err := setKind(k, ComputedOptional).Validate(); err != nil {
 			t.Errorf("%s over an optional-and-computed member should be valid: %v", k, err)
+		}
+	}
+}
+
+// TestUnit_Blueprint_ASchemaVersionBumpNeedsSomethingToMigrateWith.
+//
+// The framework decides this, and the failure mode is why it is worth refusing rather than
+// documenting. fwserver's UpgradeResourceState passes state through untouched when the stored
+// version equals the schema's, and demands a ResourceWithUpgradeState when it does not. So a
+// bumped version with no upgrader works perfectly for anyone creating the resource fresh and
+// fails for everyone holding older state -- which is exactly who the bump is for, and nobody a
+// green test suite covers.
+func TestUnit_Blueprint_ASchemaVersionBumpNeedsSomethingToMigrateWith(t *testing.T) {
+	t.Parallel()
+
+	// versioned returns the fixture at the given schema version and hook setting.
+	versioned := func(version int64, upgrade bool) Blueprint {
+		b := validBlueprint()
+		b.Resources[0].Schema.Version = version
+		b.Resources[0].Hooks.StateUpgrade = upgrade
+
+		return b
+	}
+
+	tests := []struct {
+		name    string
+		version int64
+		upgrade bool
+		wantMsg string
+	}{
+		{
+			name:    "bumped with no upgrader",
+			version: 2,
+			upgrade: false,
+			wantMsg: "nothing migrates state written by an earlier version",
+		},
+		{
+			// The converse, and just as wrong: fwserver never calls UpgradeState when the
+			// stored version already matches, so the scaffolded file is dead code that reads
+			// as a migration somebody can rely on.
+			name:    "an upgrader with no bump",
+			version: 0,
+			upgrade: true,
+			wantMsg: "can never be called",
+		},
+		{
+			name:    "a negative version",
+			version: -1,
+			upgrade: true,
+			wantMsg: "cannot be negative",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := versioned(tc.version, tc.upgrade).Validate()
+			if err == nil {
+				t.Fatal("expected this combination to be refused")
+			}
+			if !strings.Contains(err.Error(), tc.wantMsg) {
+				t.Errorf("error should explain %q: %v", tc.wantMsg, err)
+			}
+		})
+	}
+
+	// The two coherent combinations pass, or the table above could be refusing versions
+	// outright rather than refusing the incoherent pairs.
+	for _, ok := range []struct {
+		name    string
+		version int64
+		upgrade bool
+	}{
+		{"version 0 and no upgrader, the default", 0, false},
+		{"a bump with an upgrader", 3, true},
+	} {
+		if err := versioned(ok.version, ok.upgrade).Validate(); err != nil {
+			t.Errorf("%s should be valid: %v", ok.name, err)
 		}
 	}
 }

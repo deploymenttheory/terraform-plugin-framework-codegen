@@ -165,6 +165,19 @@ resource asks for them:
 `resource.ResourceWithModifyPlan`. `readBackPredicate: true` scaffolds
 `predicate.go` and adds the call site in the generated `crud.go`, so the
 predicate is wired in rather than being a file nobody reads.
+`stateUpgrade: true` scaffolds `state_upgrade.go` and asserts
+`resource.ResourceWithUpgradeState`; it is required once `schema.version` is
+past zero, and refused when it is not.
+
+The state upgrader is the clearest case of the whole principle. The generator
+knows the schema changed and cannot know what the old fields *meant* — whether
+a renamed attribute is the same value, whether a string that became a list
+should be wrapped or split, whether a removed field's value belongs anywhere.
+Get that wrong and you corrupt state a practitioner cannot recover without
+hand-editing state files. So each scaffolded version key returns an error
+rather than passing state through: an error tells somebody to stay on the older
+provider until the migration is written, which is recoverable, and a
+passthrough would silently reinterpret every old field under the new schema.
 
 Four things make the ownership real rather than a convention:
 

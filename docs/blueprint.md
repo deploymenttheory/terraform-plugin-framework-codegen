@@ -280,8 +280,28 @@ that is what `resourcevalidator` reads:
 `hooks` asks for a hand-written file to be scaffolded:
 
 ```json
-"hooks": { "modifyPlan": true, "readBackPredicate": true }
+"hooks": { "modifyPlan": true, "readBackPredicate": true, "stateUpgrade": true }
 ```
+
+### `schema.version` and `hooks.stateUpgrade`
+
+These two are validated against each other, because the framework's behaviour
+makes either one alone a trap.
+
+`fwserver` passes state through untouched when the version stored in state
+equals the schema's, and demands a `ResourceWithUpgradeState` carrying an entry
+for the stored version when it does not. So:
+
+- **a bump with no upgrader** works perfectly for anyone creating the resource
+  fresh and fails for everyone holding older state — exactly who a version bump
+  exists to serve, and nobody a green test suite covers;
+- **an upgrader with no bump** can never be called, so it reads as a migration
+  somebody could rely on while being dead code.
+
+Both are refused. The scaffolded file carries one entry per version a
+practitioner might still hold — `0` to `version-1`, not just the most recent —
+because the map is looked up by the version found in state, and somebody who
+skipped a provider release has no way forward if their key is missing.
 
 Each scaffolded file is written once and then owned by whoever edits it. See
 [the generated boundary](generated-boundary.md) for how that ownership is

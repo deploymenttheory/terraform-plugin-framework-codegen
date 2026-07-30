@@ -222,3 +222,74 @@ func TestUnit_Render_TheStateMapperDoesNotFlattenWhatTheAPINeverReturns(t *testi
 		t.Errorf("the omission should explain itself in the generated code:\n%s", got)
 	}
 }
+
+// TestUnit_Render_ASchemaVersionReachesTheSchemaAndTheUpgraderKeys.
+//
+// This was the third dead field in this project, after ReadBack and the never-returned flatten.
+// The IR documented Schema.Version as "bumped when an attribute change needs a state upgrader" and
+// nothing read it, so a blueprint could say version 2 and emit a schema Terraform reads as version
+// 0. State written earlier also says 0, the versions match, fwserver passes it through untouched --
+// and every old field is silently reinterpreted under the new schema with no upgrade and no error.
+// Silence is the whole problem: a version that fails to arrive is invisible.
+//
+// Driven through the real Resource() view builder against the committed pilot, because a test that
+// recomputed the assignment itself would pass whether or not the generator did it.
+func TestUnit_Render_ASchemaVersionReachesTheSchemaAndTheUpgraderKeys(t *testing.T) {
+	t.Parallel()
+
+	bp := pilot(t)
+
+	// The pilot declares no version, and zero is the framework's default, so nothing is emitted.
+	base, err := Resource(bp, bp.Resources[0], Options{})
+	if err != nil {
+		t.Fatalf("Resource: %v", err)
+	}
+	if base.SchemaVersion != 0 || len(base.PriorVersions) != 0 {
+		t.Errorf("version 0 should emit nothing, got %d with keys %v",
+			base.SchemaVersion, base.PriorVersions)
+	}
+	for _, iface := range base.Interfaces {
+		if strings.Contains(iface, "ResourceWithUpgradeState") {
+			t.Error("no upgrader is declared, so the interface must not be asserted")
+		}
+	}
+
+	r := bp.Resources[0]
+	r.Schema.Version = 3
+	r.Hooks.StateUpgrade = true
+
+	got, err := Resource(bp, r, Options{})
+	if err != nil {
+		t.Fatalf("Resource: %v", err)
+	}
+
+	if got.SchemaVersion != 3 {
+		t.Errorf("SchemaVersion = %d, want 3 -- the whole point is that it arrives",
+			got.SchemaVersion)
+	}
+
+	// Every version a practitioner might hold, not just the most recent. fwserver looks the map up
+	// by the version found in state, so somebody who skipped a release needs their key present or
+	// they get "expecting an implementation for version N upgrade" and no way forward.
+	want := []int64{0, 1, 2}
+	if len(got.PriorVersions) != len(want) {
+		t.Fatalf("PriorVersions = %v, want %v", got.PriorVersions, want)
+	}
+	for i := range want {
+		if got.PriorVersions[i] != want[i] {
+			t.Fatalf("PriorVersions = %v, want %v", got.PriorVersions, want)
+		}
+	}
+
+	// And the assertion appears, so deleting the scaffold breaks the build with a message naming
+	// the interface rather than silently ceasing to migrate state.
+	var asserted bool
+	for _, iface := range got.Interfaces {
+		if strings.Contains(iface, "ResourceWithUpgradeState") {
+			asserted = true
+		}
+	}
+	if !asserted {
+		t.Errorf("ResourceWithUpgradeState should be asserted: %v", got.Interfaces)
+	}
+}
