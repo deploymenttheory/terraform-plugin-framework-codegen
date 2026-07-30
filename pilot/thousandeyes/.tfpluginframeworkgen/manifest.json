@@ -103,8 +103,13 @@
       "blueprint": "blueprints/thousandeyes"
     },
     {
+      "path": "internal/services/resources/tags/v7/tag/resource_acceptance_test.go",
+      "sha256": "35d6047adecf189daf1be427d33748019e99b19a92b490efd97fc3b5245b2308",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
       "path": "internal/services/resources/tags/v7/tag/state.go",
-      "sha256": "991e8c3a86a5de2f29c524f79b3fe094fcd014d6234b3520acfb3c8388bef0f1",
+      "sha256": "50b838164e5c203d6fe39cf13f368c44dae31bb007c099ccc5410c9df8f231e8",
       "blueprint": "blueprints/thousandeyes"
     },
     {

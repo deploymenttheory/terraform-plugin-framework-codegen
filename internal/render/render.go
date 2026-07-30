@@ -1000,6 +1000,24 @@ func stateView(s blueprint.Schema, responseType string, shapes []nestedShape) St
 			continue
 		}
 
+		// A field the API accepts and never returns must not be flattened, or every read
+		// overwrites the configured value with the zero one and the next plan reports a diff
+		// nobody caused. The IR has said so since the field was added -- "must not be flattened
+		// or state blanks on every read" -- and nothing acted on it until a generated
+		// acceptance test made the consequence visible.
+		//
+		// Suppressed here from observed behaviour rather than by editing the blueprint, which is
+		// the same shape as ValuesClosed suppressing a OneOf: evidence decides at render time,
+		// and the curated document keeps saying what the API documents.
+		if a.Behaviour.ReturnedOnRead != nil && !*a.Behaviour.ReturnedOnRead {
+			v.Assignments = append(v.Assignments, fmt.Sprintf(
+				"// %s is deliberately not read back: the API accepts it and never returns it,\n"+
+					"// so flattening it would blank the configured value on every read.",
+				a.Name))
+
+			continue
+		}
+
 		if a.Wire.Flatten.ReturnsError {
 			v.NeedsDiagnostics = true
 			v.Assignments = append(v.Assignments, fmt.Sprintf(

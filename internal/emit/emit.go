@@ -269,6 +269,21 @@ func (g *Generator) acceptanceFiles(
 	}
 	out = append(out, File{Path: filepath.Join(dir, "test_helper_test.go"), Content: content})
 
+	acc, err := render.AccTest(bp, r, ropts)
+	switch {
+	case err == nil:
+		body, rErr := g.renderFile("resource_acceptance_test.go.tmpl", acc)
+		if rErr != nil {
+			return nil, fmt.Errorf("resource_acceptance_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "resource_acceptance_test.go"),
+			Content: body,
+		})
+	case !unsupported(err):
+		return nil, fmt.Errorf("acceptance test: %w", err)
+	}
+
 	fixtures := []struct {
 		name     string
 		tmpl     string
