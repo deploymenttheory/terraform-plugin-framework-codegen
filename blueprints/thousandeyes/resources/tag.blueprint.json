@@ -136,7 +136,7 @@
             "type": {
               "kind": "string"
             },
-            "computedOptionalRequired": "optional",
+            "computedOptionalRequired": "computed_optional",
             "markdownDescription": "The tag's icon.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
