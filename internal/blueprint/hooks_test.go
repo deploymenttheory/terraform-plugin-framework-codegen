@@ -81,7 +81,7 @@ func TestUnit_Blueprint_AConfigValidatorThatCouldNeverFireIsRefused(t *testing.T
 		{
 			// One attribute is a per-attribute validator declared in the wrong place, and
 			// the rules behave surprisingly rather than obviously: ExactlyOneOf over a
-			// single path is satisfied by that one path, i.e. it is Required spelt at
+			// single path is satisfied by that one path, i.e. it is Required spelled at
 			// length.
 			name:     "a single attribute",
 			mutate:   func(cv *ConfigValidator) { cv.Attributes = []string{"assignments"} },
