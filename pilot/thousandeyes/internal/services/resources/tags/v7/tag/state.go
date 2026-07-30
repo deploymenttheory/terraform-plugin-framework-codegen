@@ -40,7 +40,8 @@ func mapRemoteStateToTerraform(ctx context.Context, data *TagResourceModel, remo
 	data.Icon = convert.PtrStringToFramework(remote.Icon)
 	data.ObjectType = convert.EnumToFramework(remote.ObjectType)
 	data.AccessType = convert.EnumToFramework(remote.AccessType)
-	data.MatchType = convert.EnumToFramework(remote.MatchType)
+	// match_type is deliberately not read back: the API accepts it and never returns it,
+	// so flattening it would blank the configured value on every read.
 	data.Type = convert.EnumToFramework(remote.Type)
 	data.BuiltIn = convert.PtrBoolToFramework(remote.BuiltIn)
 	data.AccountGroupID = convert.PtrInt64ToFramework(remote.AID)

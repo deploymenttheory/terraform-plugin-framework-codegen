@@ -717,6 +717,14 @@ type Behaviour struct {
 	// Volatile marks a field that differs between two identical reads, which
 	// must be Computed or every plan reports drift.
 	Volatile *bool `json:"volatile,omitempty"`
+	// Normalises describes a transformation the API applied to a value it accepted, e.g.
+	// "lowercases it". Empty when the value came back as it was sent.
+	//
+	// Structural for exactly the reason AcceptedValues below is, and the reason is worth
+	// restating because merge previously recorded this as prose in the description only. A
+	// generated acceptance test cannot read prose, and an equality assertion on an attribute
+	// the API rewrites fails by design -- so the generator has to be able to see that it does.
+	Normalises string `json:"normalises,omitempty"`
 
 	// AcceptedValues and RejectedValues are the documented values this API took and refused.
 	// They are the observed half of AttrType.AllowedValues.
@@ -748,6 +756,7 @@ func (b Behaviour) IsZero() bool {
 		b.ServerDefault == nil &&
 		b.ReturnedOnRead == nil &&
 		b.Volatile == nil &&
+		b.Normalises == "" &&
 		len(b.AcceptedValues) == 0 &&
 		len(b.RejectedValues) == 0 &&
 		b.ValuesClosed == nil

@@ -437,6 +437,18 @@ func applyAttributeFacts(
 			observations = append(observations,
 				"The API normalises this value: "+f.Value.Text+".")
 
+			// Also recorded structurally, because a generated acceptance test has to act on
+			// it: an equality assertion on a value the API rewrites fails by design. The
+			// prose is for whoever reads the schema; this is for the generator. Guarded so a
+			// second merge over the same facts stays a no-op.
+			if attr.Behaviour.Normalises != f.Value.Text {
+				result.Changes = append(result.Changes, Change{
+					Resource: res.Key, JSONPath: path, What: "behaviour.normalises",
+					From: attr.Behaviour.Normalises, To: f.Value.Text,
+				})
+				attr.Behaviour.Normalises = f.Value.Text
+			}
+
 		case probe.FactSilentlyIgnoredOnUpdate:
 			if v := f.Value.Bool; v != nil && *v {
 				result.Recommendations = append(result.Recommendations, fmt.Sprintf(
