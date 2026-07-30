@@ -350,15 +350,24 @@ const commentWidth = 96
 
 // wrapComment turns prose into "// "-prefixed lines no wider than commentWidth.
 func wrapComment(text string) string {
+	return wrapCommentPrefix(text, "//")
+}
+
+// wrapCommentPrefix is wrapComment for a comment syntax other than Go's.
+//
+// The prefix carries the indent as well as the marker, so an HCL comment inside a block passes
+// "  #" and the continuation lines line up under the first. Needed because `terraform fmt` does
+// not reflow comments either, so the same unwrapped-prose problem applies to emitted HCL.
+func wrapCommentPrefix(text, prefix string) string {
 	var (
 		lines []string
-		line  = "//"
+		line  = prefix
 	)
 
 	for _, word := range strings.Fields(text) {
 		if len(line)+1+len(word) > commentWidth {
 			lines = append(lines, line)
-			line = "//"
+			line = prefix
 		}
 		line += " " + word
 	}

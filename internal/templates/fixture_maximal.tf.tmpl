@@ -1,0 +1,32 @@
+# This file is yours.
+#
+# It was scaffolded once, carries no generated marker, and `emit` will not write over it again --
+# so your edits survive regeneration and the drift check does not police it.
+#
+# What it is for: exercising more of the schema than the minimal fixture does. The generator has
+# filled in every writable attribute whose value it could derive; what it could not is listed
+# inside the block, and filling those in is the point of the file being yours.
+
+resource "{{ .TerraformType }}" "{{ .Label }}" {
+{{- if .Notes }}
+  # Where a value came from.
+{{- range .Notes }}
+  #
+{{ .Comment }}
+{{- end }}
+
+{{- end }}
+{{- if .Skipped }}
+  #
+  # Not filled in, because no correct value could be derived. Each of these is optional, so this
+  # configuration is valid as it stands -- but it is testing less than it could.
+{{- range .Skipped }}
+  #
+{{ .Comment }}
+{{- end }}
+
+{{- end }}
+{{- range .Values }}
+  {{ .Name }}{{ .Padding }} = {{ .HCL }}
+{{- end }}
+}
