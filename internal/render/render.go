@@ -145,6 +145,13 @@ type ResourceView struct {
 	// List is the list-resource facet, or nil when the resource declares none.
 	List *ListView
 
+	// ConfigValidators are finished cross-attribute rule expressions.
+	ConfigValidators []string
+	// Hooks are the hand-written seams this resource opts into. Generated code refers to a
+	// hook only when its flag is set, so a scaffold deleted by hand takes the reference with
+	// it rather than leaving a package that does not compile.
+	Hooks blueprint.Hooks
+
 	// Construct and State are the finished bodies of the expand and flatten
 	// functions.
 	Construct ConstructView
@@ -372,6 +379,14 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 		v.List = lv
 	}
 
+	v.Hooks = r.Hooks
+
+	cvs, err := configValidators(r, impResource)
+	if err != nil {
+		return ResourceView{}, err
+	}
+	v.ConfigValidators = cvs
+
 	v.Interfaces = interfaces(r)
 
 	if r.Import.Style == blueprint.ImportPassthroughID {
@@ -545,6 +560,21 @@ func interfaces(r blueprint.Resource) []string {
 		out = append(
 			out,
 			fmt.Sprintf("_ resource.ResourceWithIdentity = (*%s)(nil)", r.GoTypeName),
+		)
+	}
+	if len(r.ConfigValidators) > 0 {
+		out = append(
+			out,
+			fmt.Sprintf("_ resource.ResourceWithConfigValidators = (*%s)(nil)", r.GoTypeName),
+		)
+	}
+	// Asserted here even though the method is hand-written, which is the point: the assertion
+	// and the scaffold are both driven by the same flag, so a deleted scaffold fails the build
+	// with a message naming the interface rather than silently ceasing to modify plans.
+	if r.Hooks.ModifyPlan {
+		out = append(
+			out,
+			fmt.Sprintf("_ resource.ResourceWithModifyPlan = (*%s)(nil)", r.GoTypeName),
 		)
 	}
 	return out

@@ -76,6 +76,19 @@ func (r *{{ $.GoTypeName }}) IdentitySchema(_ context.Context, _ resource.Identi
 	}
 }
 {{ end }}
+{{ if .ConfigValidators }}
+// ConfigValidators returns the cross-attribute rules for this resource.
+//
+// On the resource rather than on an attribute because that is what they are about: a rule
+// relating two fields has no single field to hang off, and the diagnostic should name the block.
+func (r *{{ .GoTypeName }}) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+{{- range .ConfigValidators }}
+		{{ . }},
+{{- end }}
+	}
+}
+{{ end }}
 // Schema returns the resource schema.
 func (r *{{ .GoTypeName }}) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{

@@ -198,6 +198,16 @@ func (r *{{ $.GoTypeName }}) readAfterWrite(
 		if d.HasError() {
 			return false, crud.ErrStopRetrying
 		}
+{{- if $.Hooks.ReadBackPredicate }}
+
+		// The hand-written predicate in predicate.go decides whether the write has landed,
+		// not merely whether the object is readable. That distinction matters for an API
+		// that returns a stale object rather than a 404, and it cannot be generated: which
+		// field changes on write is API-specific.
+		if found && !readBackLanded(ctx, state) {
+			return false, nil
+		}
+{{- end }}
 
 		return found, nil
 	})

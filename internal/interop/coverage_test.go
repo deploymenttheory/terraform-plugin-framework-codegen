@@ -426,6 +426,13 @@ func TestUnit_Interop_Severities(t *testing.T) {
 		// rather than per action.
 		"actionKind": SeverityDropped,
 
+		// The escape hatches, dropped for two different reasons. A cross-attribute rule has
+		// no coarser form to degrade to, because the format's validators are per-attribute
+		// and it has no path expression at all. The hooks are files somebody else wrote, and
+		// an export that stayed quiet about them would invite losing that work.
+		"configValidators": SeverityDropped,
+		"hooks":            SeverityDropped,
+
 		"goField":             SeverityInfo,
 		"wire":                SeverityDropped,
 		"behaviour":           SeverityDropped,

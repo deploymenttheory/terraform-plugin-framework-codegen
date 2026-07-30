@@ -143,7 +143,15 @@ func writePlan(plan emit.Plan, o emitOptions) error {
 	for _, p := range res.Unchanged {
 		log.Printf("unchanged %s", p)
 	}
-	log.Printf("%d written, %d unchanged", len(res.Written), len(res.Unchanged))
+	// Kept scaffolds are named, not just counted: a practitioner who has edited one should see
+	// that the generator noticed it and left it alone, rather than wonder whether it was
+	// overwritten.
+	for _, p := range res.Kept {
+		log.Printf("kept      %s (yours; scaffolded once and not regenerated)", p)
+	}
+
+	log.Printf("%d written, %d unchanged, %d kept",
+		len(res.Written), len(res.Unchanged), len(res.Kept))
 
 	return nil
 }
@@ -168,6 +176,9 @@ func handleOrphans(root string, plan emit.Plan, clean bool) ([]manifest.Entry, e
 
 	produced := make(map[string]bool, len(plan.Files))
 	for _, f := range plan.Files {
+		if f.Scaffold {
+			continue
+		}
 		produced[filepath.ToSlash(f.Path)] = true
 	}
 
@@ -202,9 +213,18 @@ func handleOrphans(root string, plan emit.Plan, clean bool) ([]manifest.Entry, e
 
 // manifestEntries records what the run produced, so a later run can tell which
 // files it used to produce and no longer does.
+// manifestEntries records what the generator owns.
+//
+// Scaffolds are excluded, and that exclusion is the whole escape hatch: the manifest is what
+// the drift check reads, so a file listed there is one the practitioner may not edit. Leaving a
+// scaffold out is what makes it theirs -- and it also keeps it from being reported as an orphan
+// once it stops appearing in a later plan.
 func manifestEntries(plan emit.Plan, blueprintPath string) []manifest.Entry {
 	out := make([]manifest.Entry, 0, len(plan.Files))
 	for _, f := range plan.Files {
+		if f.Scaffold {
+			continue
+		}
 		out = append(out, manifest.Entry{
 			Path:      filepath.ToSlash(f.Path),
 			SHA256:    f.SHA256(),
