@@ -164,9 +164,6 @@ func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 			"type": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The tag's type, assigned by the API.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"built_in": schema.BoolAttribute{
 				Computed:            true,
@@ -181,16 +178,10 @@ func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 			"create_date": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "When the tag was created.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"modified_date": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "When the tag was last modified.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"legacy_id": schema.Float64Attribute{
 				Computed: true,

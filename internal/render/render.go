@@ -61,6 +61,10 @@ type schemaScope struct {
 	// reference. Per-schema state, like the kind, rather than a parameter threaded through
 	// every attribute call site.
 	patterns *patternVars
+	// idAttribute is the attribute holding the object's identifier, or "" for a kind that has
+	// none. It is the one attribute UseStateForUnknown can be applied to safely -- see
+	// planModifiersFor.
+	idAttribute string
 }
 
 // schemaImport is the framework import path this scope's `schema` selector resolves to.
@@ -72,9 +76,10 @@ func (sc schemaScope) schemaImport() string {
 // rendering produces.
 func resourceScope(r blueprint.Resource) schemaScope {
 	return schemaScope{
-		kind:     blueprint.BlockResource,
-		what:     fmt.Sprintf("resource %q", r.Key),
-		patterns: newPatternVars(),
+		kind:        blueprint.BlockResource,
+		what:        fmt.Sprintf("resource %q", r.Key),
+		patterns:    newPatternVars(),
+		idAttribute: r.Binding.ID.Attribute,
 	}
 }
 
@@ -792,10 +797,27 @@ func attributeDecl(
 
 // planModifiersFor returns the plan modifiers an attribute should carry.
 //
-// A computed attribute with none shows as "(known after apply)" on every plan,
-// even when nothing about it changed. UseStateForUnknown is the standard remedy,
-// and applying it by default is what stops a generated provider producing noisy
-// plans that train people to skim them.
+// UseStateForUnknown is applied to the identifier and to nothing else, and the narrowness is the
+// whole point. It tells Terraform to plan the prior state value instead of unknown, which is a
+// correctness claim -- "this value cannot change while the resource exists" -- dressed up as a
+// tidiness optimisation.
+//
+// It used to be applied to every computed string, for exactly that tidiness: a computed attribute
+// without it shows as "(known after apply)" on every plan. The first live acceptance run showed
+// what that costs. `modified_date` is a computed string the server rewrites on every update, so
+// the plan carried the prior null, the update returned a timestamp, and Terraform refused the
+// result:
+//
+//	unexpected new value: .modified_date: was null, but now cty.StringVal(...)
+//
+// No fact in the evidence set distinguishes a computed value the server keeps from one it rewrites
+// -- `volatile` means "differs between two identical reads", which a modification timestamp does
+// not. So the generator has no basis for the claim, except for the identifier, where it holds
+// structurally: an id that changed under Terraform would break far more than a plan.
+//
+// The trade is deliberate. Without the modifier a plan is noisier; with it wrongly applied, every
+// update fails. Noise is recoverable. A blueprint can still declare plan modifiers per attribute
+// where somebody knows the value is stable.
 func planModifiersFor(
 	sc schemaScope,
 	a blueprint.Attribute,
@@ -812,7 +834,9 @@ func planModifiersFor(
 	if len(a.PlanModifiers) > 0 {
 		return a.PlanModifiers
 	}
-	if a.ComputedOptionalRequired == blueprint.Computed && a.Type.Kind == blueprint.KindString {
+	if a.ComputedOptionalRequired == blueprint.Computed &&
+		a.Type.Kind == blueprint.KindString &&
+		a.Name != "" && a.Name == sc.idAttribute {
 		imports.add(pkgStringPM, "")
 		return []blueprint.CustomCode{{SchemaDefinition: "stringplanmodifier.UseStateForUnknown()"}}
 	}
