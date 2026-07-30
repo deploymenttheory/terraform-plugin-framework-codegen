@@ -132,7 +132,9 @@ func probeMain(args []string) error {
 	fs, _ := newFlagSet("probe", usageProbe)
 
 	var (
-		mode          = fs.String("mode", modeReplay, "record, replay, verify or sweep")
+		mode     = fs.String("mode", modeReplay, "record, replay, verify or sweep")
+		rederive = fs.Bool("rederive", false,
+			"with -mode replay: rewrite facts.json from the committed cassette, no network")
 		blueprintPath = fs.String("blueprint", "", "blueprint file or directory (required)")
 		resource      = fs.String("resource", "", "probe one resource, by blueprint key")
 		only          = fs.String("only", "", "run one probe, by name")
@@ -218,6 +220,7 @@ func probeMain(args []string) error {
 
 	opts := probeRun{
 		mode:         *mode,
+		rederive:     *rederive,
 		subjects:     subjects,
 		only:         *only,
 		evidenceRoot: *evidenceRoot,
@@ -240,6 +243,7 @@ func probeMain(args []string) error {
 // instead of nine positional strings nobody can read at a call site.
 type probeRun struct {
 	mode         string
+	rederive     bool
 	subjects     []probe.Subject
 	only         string
 	evidenceRoot string
@@ -349,7 +353,7 @@ func runProbeMode(opts probeRun) error {
 			}
 
 		case modeReplay, modeVerify:
-			if err := replayProbe(opts.mode, subj, opts.only, root); err != nil {
+			if err := replayProbe(opts.mode, subj, opts.only, root, opts.rederive); err != nil {
 				if errors.Is(err, probe.ErrReplayMismatch) {
 					// Reported and counted rather than returned, so a multi-resource run
 					// reports every mismatch instead of one per invocation.
@@ -734,7 +738,7 @@ func or(v, fallback string) string {
 }
 
 // replayProbe re-derives facts from a committed snapshot with no network.
-func replayProbe(mode string, subj probe.Subject, only, root string) error {
+func replayProbe(mode string, subj probe.Subject, only, root string, rederive bool) error {
 	snap, err := cassette.Latest(root)
 	if err != nil {
 		return err
@@ -776,6 +780,23 @@ func replayProbe(mode string, subj probe.Subject, only, root string) error {
 		BaseURL:      replayBaseURL + meta.BasePath,
 		Interactions: interactions,
 	})
+
+	if rederive && mode == modeReplay {
+		// Legitimate precisely because derivation is a pure function of the transcript, which is
+		// the claim `probe -mode verify` exists to keep true. The cassette is untouched and its
+		// checksum was verified above, so the diff to facts.json is reviewable against traffic
+		// that has not moved -- which is the difference between re-deriving and re-recording.
+		//
+		// Needed because there was no way to act on a derivation improvement: a probe that stopped
+		// drawing a wrong conclusion made `verify` fail, and the only way to update the facts was a
+		// live run that also replaced the evidence.
+		if err := writeFacts(snap.FactsPath(), result.Report.Facts); err != nil {
+			return err
+		}
+
+		fmt.Fprintf(os.Stderr, "re-derived %d fact(s) into %s from the committed cassette\n",
+			len(result.Report.Facts), snap.FactsPath())
+	}
 
 	// Printed before the error is returned, for the same reason recordProbe does it: a replay that
 	// leaves something unresolved is precisely the run whose report a reader needs, and returning

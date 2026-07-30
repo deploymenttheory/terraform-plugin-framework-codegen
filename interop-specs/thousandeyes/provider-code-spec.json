@@ -441,7 +441,7 @@
             "name": "object_type",
             "string": {
               "computed_optional_required": "required",
-              "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {

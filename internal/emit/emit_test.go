@@ -354,8 +354,13 @@ func TestUnit_Emit_AllowedValuesBecomeAValidator(t *testing.T) {
 		t.Fatalf("Build: %v", err)
 	}
 
-	// The pilot's objectType documents six values, of which the prober saw one refused. The
-	// validator carries all six, and the refused one is named in a comment beside it.
+	// The pilot's objectType documents six values and the validator carries all six.
+	//
+	// It used to be the example of a refused documented value too, and it was the wrong example:
+	// `endpoint-agent` was recorded as refused because the enum probe substituted it into a
+	// static-tag fixture, and the API answered "type: Static tags are not supported for the
+	// provided object type" -- a refusal about `type`, not about the value. accessType carries
+	// the genuine case, so the refusal assertion moved there.
 	var schemaFile string
 	for _, f := range plan.Files {
 		if strings.HasSuffix(f.Path, "resources/tags/v7/tag/resource.go") {
@@ -372,10 +377,18 @@ func TestUnit_Emit_AllowedValuesBecomeAValidator(t *testing.T) {
 		t.Errorf("the validator should carry the whole documented set:\n%s", schemaFile)
 	}
 
-	// endpoint-agent was refused by this tenant and is still permitted. That is the decision
-	// the phase turns on, so it is asserted rather than left to the reader.
-	if !strings.Contains(schemaFile, "The API refused \"endpoint-agent\"") {
+	// accessType documents `system`, the API refused it naming the field, and it is still
+	// permitted. That is the decision the whole approach turns on -- a validator errs toward
+	// permitting -- so it is asserted rather than left to the reader.
+	if !strings.Contains(schemaFile, "The API refused \"system\"") {
 		t.Error("a documented value the API refused should be named beside the validator")
+	}
+
+	// And the value that was never really refused must not be named as though it were. This is
+	// the assertion that would have caught the false fact.
+	if strings.Contains(schemaFile, "The API refused \"endpoint-agent\"") {
+		t.Error("endpoint-agent was refused for a reason unrelated to its value; " +
+			"naming it here would repeat a withdrawn fact")
 	}
 
 	// And the observed accepted set must not be what the validator was built from: it omits

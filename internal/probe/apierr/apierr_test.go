@@ -308,3 +308,92 @@ func quote(s string) string {
 	}
 	return string(out)
 }
+
+// TestUnit_APIErr_ProseThatMentionsAFieldIsNotBlamingIt.
+//
+// Every string here is one a live tenant actually returned, and the first one produced a wrong fact
+// at Observed confidence.
+//
+// The prober varied `objectType`; the API answered "type: Static tags are not supported for the
+// provided object type"; the word-adjacency match said yes, because "object type" appears
+// contiguously in the prose. So `endpoint-agent` was recorded as a rejected documented value, and
+// it is a perfectly good object type -- for a dynamic tag.
+//
+// Adjacency cannot separate those two readings. What separates them is that a validation failure
+// prefixes the offending field and a colon, and prose does not.
+func TestUnit_APIErr_ProseThatMentionsAFieldIsNotBlamingIt(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		detail string
+		field  string
+		want   bool
+	}{
+		{
+			name:   "prose mentioning the field, blaming another",
+			detail: "type: Static tags are not supported for the provided object type",
+			field:  "objectType",
+			want:   false,
+		},
+		{
+			name:   "the field it actually blames",
+			detail: "type: Static tags are not supported for the provided object type",
+			field:  "type",
+			want:   true,
+		},
+		{
+			name:   "one of several blamed fields",
+			detail: "filters: must not be empty\n matchType: must not be null",
+			field:  "matchType",
+			want:   true,
+		},
+		{
+			name:   "another of them",
+			detail: "filters: must not be empty\n matchType: must not be null",
+			field:  "filters",
+			want:   true,
+		},
+		{
+			name:   "a field none of them blames",
+			detail: "filters: must not be empty\n matchType: must not be null",
+			field:  "objectType",
+			want:   false,
+		},
+		{
+			// The blamed name is spelled camelCase and the attribute snake_case; both normalise
+			// to the same words, which is the behaviour that was already right.
+			name:   "spelling normalises",
+			detail: "accessType: You need to provide the accessType for the tag",
+			field:  "access_type",
+			want:   true,
+		},
+		{
+			// No colon-prefixed token, so the error blames nobody and the prose fallback decides.
+			// Without this the guard would reject every unstructured error and the probe would
+			// stop concluding anything on APIs that do not use this shape.
+			name:   "unstructured prose still falls back",
+			detail: "The accessType you provided is not valid",
+			field:  "accessType",
+			want:   true,
+		},
+		{
+			name:   "unstructured prose about something else",
+			detail: "The request could not be processed",
+			field:  "accessType",
+			want:   false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			e := Error{Status: 400, Detail: tc.detail}
+			if got := e.Names(tc.field); got != tc.want {
+				t.Errorf("Names(%q) = %t, want %t\n  detail: %s",
+					tc.field, got, tc.want, tc.detail)
+			}
+		})
+	}
+}

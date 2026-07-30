@@ -172,7 +172,7 @@
               ]
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
             "behaviour": {
               "immutable": true,
               "requiredByApi": true,
@@ -183,9 +183,6 @@
                 "endpoint-test",
                 "v-agent",
                 "connected-devices-test"
-              ],
-              "rejectedValues": [
-                "endpoint-agent"
               ],
               "valuesClosed": true
             },
@@ -709,7 +706,6 @@
         "example": "thousandeyes_tag.example 1234"
       },
       "identity": {
-        "goTypeName": "TagResourceIdentity",
         "attributes": [
           {
             "name": "id",
@@ -719,7 +715,12 @@
             "description": "The tag's unique identifier, which Terraform addresses it by.",
             "fromAttribute": "id"
           }
-        ]
+        ],
+        "goTypeName": "TagResourceIdentity"
+      },
+      "hooks": {
+        "modifyPlan": true,
+        "readBackPredicate": true
       },
       "list": {
         "goTypeName": "TagListResource",
@@ -759,10 +760,6 @@
         ],
         "displayNameFrom": "Key",
         "displayNameIsPointer": true
-      },
-      "hooks": {
-        "modifyPlan": true,
-        "readBackPredicate": true
       }
     }
   ]
