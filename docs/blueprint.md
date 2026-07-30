@@ -293,6 +293,44 @@ So a documented value the API refused stays permitted, with the refusal named in
 beside the validator. The reader of the schema meets the staleness; the practitioner is not
 blocked by it.
 
+### Declared bounds
+
+A type's `constraints` become the framework validator its kind provides:
+
+| declared | on | generated |
+|---|---|---|
+| `pattern` | string | `stringvalidator.RegexMatches` + a package-level `regexp.MustCompile` var |
+| `minLength` / `maxLength` | string | `LengthAtLeast` / `AtMost` / `Between` |
+| `minItems` / `maxItems` | list, set, map, nested collection | `SizeAtLeast` / `AtMost` / `Between` |
+| `minimum` / `maximum` | int32, int64, float32, float64 | `AtLeast` / `AtMost` / `Between` in that kind's package |
+
+Both bounds present becomes `Between` rather than two validators, so one mistake reports one
+diagnostic. Constraints live on `AttrType` rather than `Attribute` because they are properties
+of the type: a collection's **element type carries its own**, and those are lifted onto the
+collection as `ValueStringsAre(...)` — a bound on a set's elements is not a bound on the set.
+
+Three refusals, each because the framework has no validator to generate:
+
+- A bound on a kind that has none — a `pattern` on a number, a length on a collection.
+- **`minimum`/`maximum` on `number`.** `numbervalidator` exists but carries only
+  `AtLeastOneOf`, so an arbitrary-precision number has no range validator at all. The message
+  says to narrow the attribute to an int or float kind.
+- A range nothing can satisfy, such as `minLength` above `maxLength`.
+
+Two things worth knowing about the numbers. JSON Schema states every bound as a number, so an
+`int64` attribute's minimum arrives as a `float64` and is **narrowed** — emitting it as a float
+would not compile against `int64validator`. And a whole-number float bound keeps its decimal
+point, so the literal's type is unambiguous where it reaches a float validator.
+
+Unlike allowed values there is **no observed counterpart**: the prober has no protocol for
+discovering a length limit or a numeric range, so there is no evidence that could suppress a
+constraint validator. Only the computed rule below applies.
+
+`ingest` reads these from the specification, and refuses a `pattern` Go's `regexp` cannot
+compile — reported by name rather than passed on, because the generated code calls
+`regexp.MustCompile` and an expression RE2 rejects would panic when the provider starts. JSON
+Schema permits ECMA constructs, lookahead most often, that RE2 does not.
+
 Three things suppress the validator:
 
 - **`valuesClosed` is `false`.** The only case with direct evidence of harm — the API

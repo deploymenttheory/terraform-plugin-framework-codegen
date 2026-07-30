@@ -18,6 +18,15 @@ const (
 	DeleteTimeout = {{ .Timeouts.Delete }}
 )
 
+{{ if .PatternVars }}
+// Patterns the schema's RegexMatches validators check against.
+//
+// Compiled once at package scope rather than inline in the schema, so the expression sits
+// somewhere a reader can find it instead of buried mid-literal.
+{{- range .PatternVars }}
+{{ . }}
+{{- end }}
+{{ end }}
 // Compile-time assertions that this resource implements what it claims to. They
 // turn a missing method into a build failure rather than a runtime surprise.
 var (

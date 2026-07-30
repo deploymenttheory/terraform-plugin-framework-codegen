@@ -37,8 +37,10 @@ type DataSourceView struct {
 	Interfaces []string
 
 	SchemaAttributes []string
-	ModelFields      []string
-	NestedModels     []NestedModelView
+	// PatternVars are the package-level regexp declarations the schema references.
+	PatternVars  []string
+	ModelFields  []string
+	NestedModels []NestedModelView
 
 	// Read is the SDK call, and State is the flatten function it feeds.
 	Read  *OpView
@@ -122,6 +124,7 @@ func DataSource(
 		return DataSourceView{}, err
 	}
 	v.SchemaAttributes = attrs
+	v.PatternVars = sc.patterns.Decls()
 
 	// The timeouts value is last in the model, as it is for a resource. The type comes
 	// from the framework's datasource timeouts package, not the resource one: they are

@@ -18,6 +18,15 @@ const (
 	InvokeTimeout = {{ .InvokeTimeout }}
 )
 
+{{ if .PatternVars }}
+// Patterns the schema's RegexMatches validators check against.
+//
+// Compiled once at package scope rather than inline in the schema, so the expression sits
+// somewhere a reader can find it instead of buried mid-literal.
+{{- range .PatternVars }}
+{{ . }}
+{{- end }}
+{{ end }}
 // Compile-time assertions that this action implements what it claims to.
 var (
 {{- range .Interfaces }}

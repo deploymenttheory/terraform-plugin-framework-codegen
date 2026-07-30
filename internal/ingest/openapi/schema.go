@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 
@@ -45,6 +46,20 @@ type Field struct {
 	ObjectTypeName string
 	// EnumValues are the documented members, used for documentation only.
 	EnumValues []string
+
+	// Constraints are the bounds the schema declares, and BadPattern is set when it declares
+	// a regular expression Go's regexp cannot compile.
+	//
+	// Refused rather than passed on: the generated code compiles the pattern with
+	// regexp.MustCompile, so an expression Go rejects is a panic when the provider starts.
+	// JSON Schema permits ECMA constructs -- lookahead in particular -- that RE2 does not.
+	Constraints blueprint.Constraints
+	BadPattern  string
+
+	// ElemConstraints are the bounds declared on a scalar collection's *item* schema, which
+	// are not the collection's own: maxLength on the items bounds each string, and becomes a
+	// per-element validator rather than one applied to the whole collection.
+	ElemConstraints blueprint.Constraints
 
 	// Object holds a nested object's own fields, resolved recursively, so a shape
 	// several levels down arrives whole rather than as a name to look up later.
@@ -285,7 +300,64 @@ func fieldOf(name string, proxy *base.SchemaProxy, path []string) (Field, bool) 
 		f.Object, f.SelfReferential = nestedFields(s, f.ObjectTypeName, path)
 	}
 
+	f.Constraints, f.BadPattern = constraintsOf(s, kind)
+
+	if kind.IsCollection() && f.ElemKind != "" {
+		if item := itemSchema(s); item != nil {
+			// A bad pattern on an element is reported against the attribute, so the second
+			// return is folded in rather than tracked separately -- there is one note either
+			// way and it names the same field.
+			ec, bad := constraintsOf(item, f.ElemKind)
+			f.ElemConstraints = ec
+
+			if bad != "" && f.BadPattern == "" {
+				f.BadPattern = bad
+			}
+		}
+	}
+
 	return f, true
+}
+
+// constraintsOf reads the bounds a schema declares.
+//
+// Only those that belong to the kind: a maxLength on an array is something the document says
+// and the framework has no validator for, so carrying it into the IR would only give
+// blueprint.Validate something to refuse. What a document declares in the wrong place is not
+// worth propagating.
+func constraintsOf(s *base.Schema, kind blueprint.TypeKind) (blueprint.Constraints, string) {
+	var (
+		c   blueprint.Constraints
+		bad string
+	)
+
+	switch {
+	case kind == blueprint.KindString:
+		c.MinLength = s.MinLength
+		c.MaxLength = s.MaxLength
+
+		if s.Pattern != "" {
+			// Compiled here, not merely copied: the generated code will call
+			// regexp.MustCompile on it, and a pattern RE2 cannot parse would panic at
+			// provider start rather than fail here where it can be reported.
+			if _, err := regexp.Compile(s.Pattern); err != nil {
+				bad = s.Pattern
+			} else {
+				c.Pattern = s.Pattern
+			}
+		}
+
+	case kind.IsCollection(), kind.IsNestedCollection():
+		c.MinItems = s.MinItems
+		c.MaxItems = s.MaxItems
+
+	case kind == blueprint.KindInt32, kind == blueprint.KindInt64,
+		kind == blueprint.KindFloat32, kind == blueprint.KindFloat64:
+		c.Minimum = s.Minimum
+		c.Maximum = s.Maximum
+	}
+
+	return c, bad
 }
 
 // nestedFields resolves a nested object's own fields, one level of recursion at a time.
