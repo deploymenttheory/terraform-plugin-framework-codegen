@@ -311,6 +311,10 @@ func (r Resource) validate(at string, p *problems) {
 	if r.List != nil {
 		r.List.validate(r, at+".list", p)
 	}
+
+	for i, cv := range r.ConfigValidators {
+		cv.validate(r, fmt.Sprintf("%s.configValidators[%d]", at, i), p)
+	}
 	r.validateIDBinding(at, seenNames, seenFields, p)
 	r.validatePolicy(at, hasWritable, p)
 	r.validateImport(at, seenNames, p)
@@ -743,6 +747,105 @@ func (lf ListFacet) validate(r Resource, at string, p *problems) {
 					"that does not resolve", ia.GoField)
 		}
 	}
+}
+
+// validate checks one cross-attribute rule.
+//
+// Every named attribute must exist, because the rule is rendered as path.MatchRoot on that
+// name: a name that does not resolve is not a compile error -- the framework accepts any path
+// expression -- it is a rule that silently never fires. That makes it worse than a typo the
+// compiler would catch, and the reason to check it here.
+func (cv ConfigValidator) validate(r Resource, at string, p *problems) {
+	switch cv.Kind {
+	case ConfigConflicting, ConfigAtLeastOneOf, ConfigExactlyOneOf, ConfigRequiredTogether:
+	case "":
+		p.add(at+".kind", "is required")
+	default:
+		p.add(at+".kind", "%q is not a known cross-attribute rule", cv.Kind)
+	}
+
+	if len(cv.Attributes) < 2 {
+		p.add(at+".attributes",
+			"a cross-attribute rule relates at least two attributes; over one it is a "+
+				"per-attribute validator written in the wrong place")
+
+		return
+	}
+
+	seen := map[string]bool{}
+
+	for i, name := range cv.Attributes {
+		aat := fmt.Sprintf("%s.attributes[%d]", at, i)
+
+		if name == "" {
+			p.add(aat, "is empty")
+			continue
+		}
+		if !hasAttributeNamed(r.Schema.Attributes, name) {
+			p.add(aat,
+				"names attribute %q, which this resource does not declare, so the rule would "+
+					"never fire", name)
+			continue
+		}
+		dup(p, seen, name, aat, "attribute in this rule")
+
+		cv.validateMember(r, name, aat, p)
+	}
+}
+
+// validateMember refuses a member whose configurability makes the rule degenerate.
+//
+// These rules are about *configuration* -- resourcevalidator reads config values, not state --
+// so what a member can hold in configuration decides whether the rule means anything. Both
+// cases below compile, both produce a rule that is not the rule the blueprint states, and
+// neither announces itself: one rule silently relates fewer attributes than it names, the
+// other is satisfied by every configuration ever written.
+func (cv ConfigValidator) validateMember(r Resource, name, at string, p *problems) {
+	src, ok := findAttributeNamed(r.Schema.Attributes, name)
+	if !ok {
+		return
+	}
+
+	// Computed-only: the practitioner cannot set it, so its config value is always null and it
+	// can never participate. The rule then relates one fewer attribute than it claims to.
+	if src.ComputedOptionalRequired == Computed {
+		p.add(at,
+			"names attribute %q, which is computed and so cannot be set in configuration; a "+
+				"cross-attribute rule reads config values, so this member can never "+
+				"participate", name)
+
+		return
+	}
+
+	// Required: always set, so "at least one is set" and "exactly one is set" are decided
+	// before the practitioner writes anything.
+	if src.ComputedOptionalRequired == Required {
+		switch cv.Kind {
+		case ConfigAtLeastOneOf:
+			p.add(at,
+				"names required attribute %q, so at-least-one is satisfied by every "+
+					"configuration and the rule would never fire", name)
+		case ConfigExactlyOneOf:
+			p.add(at,
+				"names required attribute %q, which is always set, so exactly-one does not "+
+					"choose between the members -- it forbids all the others, which is what "+
+					"conflicting says plainly", name)
+		case ConfigConflicting, ConfigRequiredTogether:
+			// Both stay meaningful: conflicting over a required member forbids the others,
+			// and required-together over one is what makes the rest required too.
+		}
+	}
+}
+
+// findAttributeNamed returns a declared, undropped attribute by name.
+func findAttributeNamed(attrs []Attribute, name string) (Attribute, bool) {
+	for _, a := range attrs {
+		if a.Name == name && !a.Drop {
+			return a, true
+		}
+	}
+
+	return Attribute{}, false
 }
 
 // hasAttributeNamed reports whether a schema declares an attribute by that name, ignoring

@@ -149,6 +149,13 @@ func TestUnit_Emit_EveryFileIsMarkedGenerated(t *testing.T) {
 	}
 
 	for _, f := range plan.Files {
+		// A scaffold is deliberately unmarked -- the marker is what the drift check and the
+		// overwrite refusal key on, and a file the practitioner owns must be policed by
+		// neither. TestUnit_Emit_AScaffoldCarriesNoGeneratedMarker asserts the converse.
+		if f.Scaffold {
+			continue
+		}
+
 		body := string(f.Content)
 
 		if !strings.Contains(body, generatedMarker) {
@@ -236,8 +243,16 @@ func TestUnit_Emit_WriteIsIdempotent(t *testing.T) {
 	if len(second.Written) != 0 {
 		t.Errorf("second write rewrote %d file(s): %v", len(second.Written), second.Written)
 	}
-	if len(second.Unchanged) != len(plan.Files) {
-		t.Errorf("second write reported %d unchanged, want %d", len(second.Unchanged), len(plan.Files))
+
+	// Unchanged plus kept, because a scaffold that already exists is reported as kept even
+	// when its content still matches -- the generator did not compare it, which is the point.
+	// Summed rather than checked separately, so the property under test stays "every file was
+	// accounted for and none was rewritten" rather than becoming a count of scaffolds.
+	if got := len(second.Unchanged) + len(second.Kept); got != len(plan.Files) {
+		t.Errorf(
+			"second write accounted for %d file(s) (%d unchanged, %d kept), want %d",
+			got, len(second.Unchanged), len(second.Kept), len(plan.Files),
+		)
 	}
 }
 

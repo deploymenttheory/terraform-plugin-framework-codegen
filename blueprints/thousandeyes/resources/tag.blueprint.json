@@ -759,6 +759,19 @@
         ],
         "displayNameFrom": "Key",
         "displayNameIsPointer": true
+      },
+      "configValidators": [
+        {
+          "kind": "conflicting",
+          "attributes": [
+            "assignments",
+            "filters"
+          ]
+        }
+      ],
+      "hooks": {
+        "modifyPlan": true,
+        "readBackPredicate": true
       }
     }
   ]

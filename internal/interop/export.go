@@ -231,6 +231,18 @@ func reportResourceLosses(res blueprint.Resource, path string, r *Report) {
 	if res.List != nil {
 		r.note("list", path+".list")
 	}
+
+	// The escape hatches. codegen-spec has no path-typed validator at all, so a cross-attribute
+	// rule has nowhere to go -- and unlike the per-attribute validators above, there is not even
+	// an approximation to degrade to. The hooks are worse than unexpressible: they are files a
+	// practitioner owns, so a document exported from here and generated from elsewhere would
+	// quietly lose hand-written plan modification.
+	if len(res.ConfigValidators) > 0 {
+		r.note("configValidators", path+".configValidators")
+	}
+	if !res.Hooks.IsZero() {
+		r.note("hooks", path+".hooks")
+	}
 }
 
 // reportDataSourceLosses is the data source counterpart of reportResourceLosses.

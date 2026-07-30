@@ -7,9 +7,9 @@ skip = ./openapi-specs,./.git,./go.sum,./pilot/thousandeyes/go.sum
 
 # Words codespell reads as run-together prose when they are Go identifiers.
 #
-# AtLeast is Confidence.AtLeast, correct camelCase, and the framework's own validator
-# constructors spell it the same way -- LengthAtLeast, SizeAtLeast -- so it will only get
-# more common here.
+# AtLeast is Confidence.AtLeast, and both are the framework's own validator constructor
+# names -- LengthAtLeast, LengthAtMost, SizeAtLeast, SizeAtMost, int64validator.AtMost. They
+# only get more common as more constraint kinds are generated.
 # te is the import alias for the ThousandEyes SDK in the pilot's hand-written client
 # package (te "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes").
-ignore-words-list = atleast,te
+ignore-words-list = atleast,atmost,te
