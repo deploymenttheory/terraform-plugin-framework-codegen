@@ -21,5 +21,30 @@ jobs:
 
       - uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # v4.4.0
         with:
-          release-type: terraform-module
-          token: ${{ secrets.RELEASE_PLEASE_PAT }}
+          # Configuration lives in release-please-config.json and the version in
+          # .release-please-manifest.json, rather than as inputs here. release-type was
+          # `terraform-module`, which is for repositories that *are* a Terraform module and
+          # rewrites version references in README and .tf files. This is a Go CLI, so the
+          # strategy is `go`: it maintains CHANGELOG.md and tags vX.Y.Z, and the binary takes
+          # its version from ldflags rather than from a file anything needs to rewrite.
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+          # The config deliberately names no `versionFile`. release-please's Go updater rewrites
+          # `const Version = "X.Y.Z"`, and internal/version declares `var Version = "dev"` because
+          # a release overrides it with `-ldflags -X`, which works on a var and never on a const.
+          # The two are mutually exclusive, so naming a version file would have matched nothing
+          # while appearing to keep it in sync. This releases a tag and a changelog; a published
+          # binary takes its version from ldflags.
+
+          # A PAT if one exists, GITHUB_TOKEN otherwise.
+          #
+          # This workflow failed on every push to main for the whole of phase 5 with "Input
+          # required and not supplied: token", because RELEASE_PLEASE_PAT was never set -- and
+          # nobody saw it, because it runs on push and `gh pr checks` only ever shows PR checks.
+          # Falling back means it works now instead of waiting on a secret.
+          #
+          # The PAT is still worth setting: a pull request opened with GITHUB_TOKEN does not
+          # trigger other workflows, so the release PR's own CI stays unrun until somebody
+          # pushes to it.
+          token: ${{ secrets.RELEASE_PLEASE_PAT || secrets.GITHUB_TOKEN }}

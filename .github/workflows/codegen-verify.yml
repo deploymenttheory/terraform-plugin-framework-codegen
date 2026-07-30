@@ -379,3 +379,146 @@ jobs:
               -accept-conflicts
           done
           echo "::endgroup::"
+
+  # The gate that runs Terraform. Every other job here answers "does it compile" or
+  # "does it match the blueprint"; none of them can see a configuration the provider's
+  # own schema rejects.
+  #
+  # This is not hypothetical. The committed tag example carried
+  # `match_type = "all"` against a generated OneOf("and", "or") from the moment
+  # validators were generated, and nothing noticed, because nothing ran Terraform.
+  # This step reproduces that failure exactly:
+  #
+  #   Error: Invalid Attribute Value Match
+  #   Attribute match_type value must be one of: ["and" "or"], got: "all"
+  terraform:
+    name: "🌍 Terraform validates the examples"
+    runs-on: ubuntu-24.04-arm
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Check Out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: "go.mod"
+          cache-dependency-path: "go.sum"
+          cache: true
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_wrapper: false
+
+      # Committed HCL must already be in the shape terraform fmt leaves it, for the same
+      # reason emitted Go must be a gofumpt fixed point: a file the canonical formatter
+      # rewrites shows up as drift with no source change. The generated fixtures are
+      # aligned by the generator itself, which is what this keeps honest.
+      - name: HCL is a terraform fmt fixed point
+        run: |
+          echo "::group::✨ terraform fmt"
+          terraform fmt -check -recursive -diff pilot/
+          echo "::endgroup::"
+
+      # dev_overrides rather than a published provider, because publishing is out of
+      # scope. It also means no `terraform init`: the override is resolved from disk, so
+      # there is no registry lookup and no version constraint to satisfy -- which is why
+      # .tflint.hcl disables terraform_required_providers for these files.
+      - name: Build the provider and point Terraform at it
+        working-directory: pilot/thousandeyes
+        run: |
+          echo "::group::🔨 Building the provider"
+          mkdir -p "${RUNNER_TEMP}/tfdev"
+          go build -o "${RUNNER_TEMP}/tfdev/terraform-provider-thousandeyes" .
+          echo "::endgroup::"
+
+          cat > "${RUNNER_TEMP}/dev.tfrc" <<EOF
+          provider_installation {
+            dev_overrides {
+              "deploymenttheory/thousandeyes" = "${RUNNER_TEMP}/tfdev"
+            }
+            direct {}
+          }
+          EOF
+
+      # Validation runs the provider's own ValidateResourceConfig, so every generated
+      # validator -- OneOf, RegexMatches, Length*, Size*, and the cross-attribute rules --
+      # is exercised against real committed HCL.
+      #
+      # Examples are complete configurations and validate where they sit.
+      - name: Terraform validates every example
+        env:
+          TF_CLI_CONFIG_FILE: ${{ runner.temp }}/dev.tfrc
+        run: |
+          failed=0
+
+          while IFS= read -r dir; do
+            echo "::group::🌍 terraform validate $dir"
+            if terraform -chdir="$dir" validate; then
+              echo "✅ $dir"
+            else
+              echo "::error file=$dir::terraform validate rejected this configuration"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done < <(find pilot -type f -name '*.tf' -not -path '*/testdata/*' \
+            -exec dirname {} \; | sort -u)
+
+          exit "$failed"
+
+      # Fixtures are fragments rather than configurations, and are validated one at a time.
+      #
+      # Two reasons they cannot be validated where they sit. minimal.tf and maximal.tf both
+      # declare the same resource address -- they are alternatives for successive test steps,
+      # never applied together -- and Terraform reads a directory as one configuration, so it
+      # reports a duplicate. They also carry no `terraform` block, because the acceptance test
+      # supplies the provider through ProtoV6ProviderFactories rather than through HCL; without
+      # one, Terraform would resolve `thousandeyes_tag` to hashicorp/thousandeyes and fail
+      # looking for a provider that does not exist.
+      #
+      # So each is copied into a scratch directory beside a synthesised provider block. That
+      # wrapper is the acceptance harness's job expressed in HCL, and nothing else.
+      - name: Terraform validates every generated fixture
+        env:
+          TF_CLI_CONFIG_FILE: ${{ runner.temp }}/dev.tfrc
+        run: |
+          failed=0
+
+          while IFS= read -r fixture; do
+            scratch="${RUNNER_TEMP}/fixture"
+            rm -rf "$scratch"
+            mkdir -p "$scratch"
+
+            cat > "$scratch/provider.tf" <<'EOF'
+          terraform {
+            required_version = ">= 1.0"
+            required_providers {
+              thousandeyes = {
+                source = "deploymenttheory/thousandeyes"
+              }
+            }
+          }
+          EOF
+
+            cp "$fixture" "$scratch/"
+
+            echo "::group::🌍 terraform validate $fixture"
+            if terraform -chdir="$scratch" validate; then
+              echo "✅ $fixture"
+            else
+              echo "::error file=$fixture::terraform validate rejected this fixture"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done < <(find pilot -type f -path '*/testdata/*.tf' | sort)
+
+          exit "$failed"
