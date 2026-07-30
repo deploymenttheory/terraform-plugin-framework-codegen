@@ -1,0 +1,35 @@
+// Package testlog narrates an acceptance run.
+//
+// An acceptance test spends most of its wall clock waiting on a live API, and a run that prints
+// nothing is indistinguishable from a run that has hung. These lines are the difference between
+// "it is stuck" and "it is waiting 30 seconds for consistency, as measured".
+package testlog
+
+import (
+	"fmt"
+	"os"
+	"time"
+)
+
+// StepAction announces what a test step is about to do.
+func StepAction(resourceType, action string) {
+	emit("STEP", "%s: %s", resourceType, action)
+}
+
+// WaitForConsistency announces a deliberate wait, and why it is that long.
+//
+// The reason is the point. A bare sleep in a test is indistinguishable from superstition; one
+// that names the fact it came from can be shortened when the measurement changes, and deleted
+// when the API stops needing it.
+func WaitForConsistency(resourceType string, d time.Duration, reason string) {
+	emit("WAIT", "%s: waiting %s before asserting -- %s", resourceType, d, reason)
+}
+
+// Cleanup announces out-of-band tidying, which is the part that matters when it fails.
+func Cleanup(resourceType, detail string) {
+	emit("CLEANUP", "%s: %s", resourceType, detail)
+}
+
+func emit(kind, format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "[acc %s] %s\n", kind, fmt.Sprintf(format, args...))
+}

@@ -10,6 +10,14 @@ disable-telemetry: true
 # A finding must fail the job. The default is 0, which reports and passes.
 exit-code: 1
 
+# Accepted findings, each with its reasoning and an expiry date. Named explicitly
+# rather than relying on the default `.trivyignore` lookup, because which directory
+# super-linter invokes Trivy from is its business and not ours.
+#
+# Deliberately not `vulnerability.ignore-unfixed: true`. That would have silenced
+# the one finding here and every future unfixed one along with it.
+ignorefile: .github/linters/.trivyignore.yaml
+
 scan:
   scanners:
     - vuln

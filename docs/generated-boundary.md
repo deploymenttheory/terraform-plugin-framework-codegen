@@ -19,12 +19,46 @@ to do when a file genuinely cannot be generated.
 | `internal/client/` | **you** | editing it |
 | `internal/services/common/{crud,errors,schema}/` | **you** | editing them |
 | `internal/services/common/convert/` | **you**, for now | see the note below |
+| `internal/acceptance/` | **you** | editing it — see the note on the acceptance harness |
+| `go.mod`, `go.sum` | **you**, for now | `go get`; see the note below |
 | `.tfpluginframeworkgen/manifest.json` | toolkit | it is written by `emit` |
 
 The `convert` package is hand-written today. It was expected to be generated, and
 may be later, but the resty-dialect version turned out to be sixteen functions
 rather than the fifty a Kiota-shaped SDK needs — small enough that generating it
 would be more machinery than it saves.
+
+`go.mod` is hand-maintained for now, which is why it appears in the table at all —
+its ownership was previously undocumented, and an undocumented owner is the one a
+generator eventually overwrites. It becomes partly generated when a blueprint
+starts declaring where its SDK comes from, since the SDK requirement and any
+`replace` for local development are then facts the blueprint holds.
+
+## The acceptance harness
+
+`internal/acceptance/{check,destroy,exists,testlog,types}` is hand-written and
+owned, on the same principle as `internal/client`: it decides how to authenticate
+and whether it is safe to touch a live tenant, and neither is a generator's call.
+
+It is deliberately thin, because two things it would otherwise reimplement already
+exist and must not be duplicated:
+
+- `exists` uses **`errors.IsNotFound`** — the same predicate the generated CRUD
+  uses to decide a resource has been deleted out from under Terraform. Sharing it
+  means an acceptance check cannot disagree with the provider about what "gone"
+  looks like.
+- `destroy` uses **`crud.ReadBack`** with its predicate inverted, rather than a
+  second poll loop. So the test waits exactly as long as the provider does, and
+  treats a hard failure the same way — `ReadBack` returns a real error immediately
+  instead of spending the whole retry budget on a 403.
+
+What *is* generated is the per-resource `test_helper_test.go`, because the question
+"does this object exist" is answered by the resource's own read operation, which
+the blueprint already describes. It lives in a `_test.go` file rather than an
+ordinary one — the one deliberate departure from the reference provider, which
+compiles its equivalent into the shipped binary. An external `_test` package can
+still reach the exported identifiers of a package's own test files, so nothing is
+lost and no test scaffolding reaches a release build.
 
 ## Four ways the boundary is enforced
 
