@@ -117,16 +117,71 @@ carries a `predicate.go` in 28 of its 167 resource packages rather than in all o
 ## The escape hatch
 
 Some files cannot be generated. A resource may need a `ModifyPlan` that encodes
-judgement no specification carries, or a construct function for an API too odd to
-describe.
+judgement no specification carries, or a read-back predicate that knows which
+field this particular API touches on write.
 
-Those files are **scaffolded once and then yours**. They carry no generated
-header, and `emit` never touches them again.
+Those files are **scaffolded once and then yours**. Declaring `hooks` on a
+resource asks for them:
+
+```json
+"hooks": { "modifyPlan": true, "readBackPredicate": true }
+```
+
+`modifyPlan: true` scaffolds `modify_plan.go` and makes the resource assert
+`resource.ResourceWithModifyPlan`. `readBackPredicate: true` scaffolds
+`predicate.go` and adds the call site in the generated `crud.go`, so the
+predicate is wired in rather than being a file nobody reads.
+
+Four things make the ownership real rather than a convention:
+
+1. **`emit` writes the file only if it is absent.** It stats the path before
+   reading it, because the content is irrelevant — the only question is whether
+   somebody already owns this file.
+2. **It reports what it kept**, rather than staying quiet:
+   `kept internal/services/.../modify_plan.go (yours; scaffolded once and not regenerated)`.
+   A silent skip is indistinguishable from a file the generator forgot.
+3. **The scaffold carries no generated marker**, and is absent from the manifest.
+   Both are what the drift check keys on, so `verify` does not report your edit
+   as drift or the file as an orphan.
+4. **The refusal is not what protects it.** `emit` already refuses to overwrite
+   an unmarked file, but that is a safety net for a collision nobody intended.
+   Relying on it here would mean every regeneration *failed* once you edited a
+   scaffold: `TestUnit_Emit_AScaffoldIsWrittenOnceAndThenKept` fails with exactly
+   that error if the skip is removed.
 
 There is deliberately **no** preserved-region mechanism inside a generated file.
 Ownership is all-or-nothing per file. Partial ownership means a merge on every
 regeneration, and a merge that can conflict is a merge that will, at which point
 nobody trusts the generator.
+
+## Cross-attribute rules
+
+A rule relating two attributes has no single attribute to hang off, so it is
+declared on the resource and rendered into a `ConfigValidators` method:
+
+```json
+"configValidators": [
+  { "kind": "conflicting", "attributes": ["assignments", "filters"] }
+]
+```
+
+Four kinds — `conflicting`, `atLeastOneOf`, `exactlyOneOf`, `requiredTogether` —
+matching `resourcevalidator`. This is generated rather than hand-written, unlike
+the hooks above, because there is nothing API-specific to know: the rule is
+entirely about the schema.
+
+What makes it worth validating is that every mistake here **compiles**.
+`path.MatchRoot` accepts any string, so a rule naming an attribute the resource
+does not declare builds cleanly and then never fires for the lifetime of the
+provider — a blueprint claiming a constraint that is not being enforced. So
+`blueprint.Validate` refuses an unknown attribute name, a duplicate one, and
+fewer than two attributes (over one, `exactlyOneOf` is `Required` spelt at
+length).
+
+`interop export` reports both `configValidators` and `hooks` as dropped.
+`codegen-spec` has no path expression at all, so a cross-attribute rule has no
+coarser form to degrade to; and the hooks are files a practitioner owns, which a
+round trip through the format would silently lose.
 
 ## Why registration files are generated whole
 

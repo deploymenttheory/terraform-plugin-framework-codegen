@@ -1,0 +1,46 @@
+// This file is yours.
+//
+// It was scaffolded once, carries no generated marker, and `emit` will not write over it
+// again -- so the drift check does not police it and your edits survive regeneration. Deleting
+// it means removing `hooks.modifyPlan` from the blueprint too, because the generated resource
+// asserts resource.ResourceWithModifyPlan when that flag is set.
+//
+// # What belongs here
+//
+// Plan-time judgement no specification carries. The usual cases:
+//
+//   - marking a resource for replacement on a change the API cannot apply in place, when
+//     RequiresReplace on one attribute is too blunt because it depends on another
+//   - suppressing a diff the API creates by normalising a value, which is what the probe's
+//     write.normalisation fact reports
+//   - enforcing a cardinality or a dependency that spans attributes in a way
+//     configValidators cannot state
+//
+// A stub that does nothing is a perfectly good state for this file. The reference provider
+// carries one in 93 of its 167 resource packages, and many are exactly that.
+
+package tag
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+)
+
+// ModifyPlan adjusts the planned state for a thousandeyes_tag.
+//
+// Called on create, update and destroy. Distinguish them before doing anything: on destroy the
+// plan is null, and on create the prior state is.
+func (r *TagResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// Destroy: nothing planned, so there is nothing to modify.
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+
+	// Create: no prior state to compare against.
+	if req.State.Raw.IsNull() {
+		return
+	}
+
+	// An update. Read plan and state into TagResourceModel and adjust resp.Plan as needed.
+}

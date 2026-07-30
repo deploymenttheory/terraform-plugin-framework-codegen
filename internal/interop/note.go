@@ -272,6 +272,18 @@ var taxonomy = map[string]Note{
 		"the list facet has no counterpart: the specification models resources, data sources " +
 			"and a provider, and has no representation for a list resource at all",
 	},
+	"configValidators": {
+		SeverityDropped, "configValidators",
+		"cross-attribute rules have no counterpart: the specification's validators are " +
+			"per-attribute custom code, with no path-typed expression and nowhere on a resource " +
+			"to hang a rule relating two attributes",
+	},
+	"hooks": {
+		SeverityDropped, "hooks",
+		"the hand-written hook points have no counterpart: they are scaffolded files a " +
+			"practitioner owns, and a document exported here and generated elsewhere would " +
+			"silently lose them",
+	},
 
 	// Attribute-level. goField and wire are aggregated per resource -- see
 	// attrLosses -- so their wording reads as a count rather than as one field.
