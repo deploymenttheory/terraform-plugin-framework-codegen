@@ -23,8 +23,8 @@ format is something the toolkit interoperates with rather than its model.
 **Absence is representable everywhere.** Optional scalars are pointers and
 optional collections are nil-able, so a layer can say "I have no opinion about
 this" distinctly from "this is false". Without that distinction the layered merge
-in Phase 4 is not decidable — a probe that observed nothing would be
-indistinguishable from a probe that observed `false`.
+is not decidable — a probe that observed nothing would be indistinguishable from
+a probe that observed `false`.
 
 **JSON keys are camelCase.** The house `.golangci.yml` enables `tagliatelle`,
 which defaults to camelCase. A consequence worth knowing: `internal/interop` must
@@ -558,7 +558,7 @@ terraform-plugin-framework's exported types, `schema.NestedAttributeObject` amon
 
 ### What is deliberately ours
 
-Four names have no counterpart in their spec, because the concepts do not exist in it. Each is kept,
+Five names have no counterpart in their spec, because the concepts do not exist in it. Each is kept,
 and the reason belongs next to the name rather than in a reviewer's head.
 
 - **Blueprint**, not `Specification`. Their `Specification` is a schema description; a blueprint is
@@ -566,11 +566,15 @@ and the reason belongs next to the name rather than in a reviewer's head.
   two are not the same document, and calling ours theirs would promise interoperability we do not
   have. `interop export` produces a real `Specification` from a blueprint, and that command is where
   the equivalence is claimed.
-- **Behavior**, on an attribute. What a probe observed about the API: writability, immutability,
+- **Behaviour**, on an attribute. What a probe observed about the API: writability, immutability,
   requiredness, server defaults. Their spec has nowhere to put an empirical finding.
 - **Wire**, on an attribute. How a field is spelled on the wire and in the SDK. Their spec stops at
   the Terraform schema.
 - **Fact**, **cassette**, **probe**. The evidence pipeline is entirely ours.
+- **Hooks**, on a resource. Which hand-written files to scaffold. The framework has the *methods* —
+  `ModifyPlan` is theirs and is spelled their way — but nothing anywhere names the decision to leave
+  a file to a person, because no schema format has a reason to. `configValidators` beside it is not
+  in this list: that one is `resource.ConfigValidators` and takes their spelling.
 
 `AttrType` differs structurally as well as in name: their spec models the type by which pointer is
 non-nil, and ours by a `Kind` discriminant. That is a deliberate difference — a discriminant is what

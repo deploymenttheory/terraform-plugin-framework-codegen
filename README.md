@@ -165,13 +165,24 @@ observed behaviour, test scaffolding — lives in this project's own richer IR.
 | 1b | nested attributes | **done** |
 | 2 | `ingest`: OpenAPI → the same blueprint, byte-identical | **done** |
 | 3 | `terraform-plugin-codegen-spec` v0.1 interop | **done** |
-| 4 | the prober: record, replay, gating, cleanup | next |
-| 5 | tests, mocks and fixtures derived from probe evidence | |
-| 6 | breadth — ~20 resources, docs, weekly spec refresh | |
+| 4 | the prober: record, replay, gating, cleanup | **done** |
+| 5 | block kinds: data sources, actions, identity, list resources, arbitrary-depth nesting, generated validators, read-after-write, escape hatches | **done** |
+| 6 | breadth — ~20 resources, docs, weekly spec refresh | next |
 | 7 | a second API, proving nothing is pilot-shaped | |
 
-Deferred beyond v0.1.0: ephemeral resources, actions, list resources,
-provider-defined functions, state upgraders.
+Phase 5 was re-scoped against a real 167-resource provider rather than the
+original guess, and the reasoning is recorded in
+[`docs/blueprint.md`](docs/blueprint.md) where each decision landed. Tests,
+mocks and fixtures derived from probe evidence — the original phase 5 line —
+moved into phase 6, since the evidence turned out to be more useful for
+deciding *schema* than for generating tests.
+
+**Generated today:** resources, data sources, actions, resource identity, list
+resources. `ephemeral` exists as a block kind — so attribute validation knows
+that its attributes may not carry a `Default` or plan modifiers — but there is
+no way to declare one and no template to emit it. Provider-defined functions,
+state upgraders and `statestore` are not modelled at all. None of these appears
+in the reference provider, which is why they are last rather than next.
 
 ## Limitations
 
@@ -210,10 +221,16 @@ provider-defined functions, state upgraders.
   naming the offending attribute: two nested objects that would declare the same Go
   identifier, and nesting past ten levels — a runaway guard, since a schema deeper than
   that is usually one whose depth is decided at runtime and so is not expressible here.
-- **Two attribute decisions in the pilot are unprobed guesses**, recorded as such
-  in the blueprint's own descriptions: whether `color`, `access_type` and
-  `match_type` really carry server defaults, and whether `legacy_id` is
-  integral despite the specification typing it as a number. Phase 4 settles both.
+- **One attribute decision in the pilot is still an unprobed guess.** The prober
+  settled the server-default question: `color` really does carry one (`#A7EB10`,
+  corroborated), `access_type` is required by the API so cannot have one, and
+  `match_type` is not returned on read so a default is not observable. What it did
+  *not* settle is whether `legacy_id` is integral despite the specification typing
+  it as a `number`, so it is still generated as a `float64`. The cassette contains
+  63 integral observations and no fractional one, which is suggestive but is not a
+  fact the prober derives — there is no numeric-integrality probe. Adding one
+  changes the fact protocol, so it belongs in a phase that re-records rather than
+  in one that replays.
 
 ## Contributing
 
