@@ -210,16 +210,68 @@ func TestUnit_Render_TheStateMapperDoesNotFlattenWhatTheAPINeverReturns(t *testi
 
 	s := blueprint.Schema{Attributes: []blueprint.Attribute{returned, notReturned}}
 
-	got := joined(stateView(s, "tags.Tag", nil).Assignments)
+	view, err := stateView(s, "tags.Tag", nil)
+	if err != nil {
+		t.Fatalf("stateView: %v", err)
+	}
+
+	got := joined(view.Assignments)
 
 	if !strings.Contains(got, "data.Key = convert.PtrStringToFramework(remote.Key)") {
 		t.Errorf("a returned field should still be flattened:\n%s", got)
 	}
-	if strings.Contains(got, "data.MatchType = ") {
-		t.Errorf("a never-returned field must not be flattened:\n%s", got)
+	if strings.Contains(got, "data.MatchType = convert.") {
+		t.Errorf("a never-returned field must not be flattened from the response:\n%s", got)
 	}
 	if !strings.Contains(got, "match_type is deliberately not read back") {
 		t.Errorf("the omission should explain itself in the generated code:\n%s", got)
+	}
+
+	// Skipping the flatten is necessary and not sufficient. An optional-and-computed attribute
+	// the practitioner left unset is unknown during apply, and the framework rejects a provider
+	// that returns an unknown -- which the first live run proved, having passed every other gate:
+	//
+	//	After the apply operation, the provider still indicated an unknown value for
+	//	thousandeyes_tag.test.match_type. All values must be known after apply.
+	if !strings.Contains(got, "data.MatchType.IsUnknown()") {
+		t.Errorf("an unset value must be resolved rather than left unknown:\n%s", got)
+	}
+	if !strings.Contains(got, "data.MatchType = types.StringNull()") {
+		t.Errorf("it should resolve to null, which is the honest answer:\n%s", got)
+	}
+	if !view.NeedsTypes {
+		t.Error("the null constructor needs the types package imported")
+	}
+}
+
+// TestUnit_Render_ANeverReturnedCollectionIsRefusedRatherThanApproximated.
+//
+// types.ListNull and types.ObjectNull take the element or attribute types, which are not
+// derivable where the null is emitted. A collection the API never returns has not been observed
+// on any API yet, so it is refused by name rather than approximated into something that compiles
+// and is wrong.
+func TestUnit_Render_ANeverReturnedCollectionIsRefusedRatherThanApproximated(t *testing.T) {
+	t.Parallel()
+
+	for _, kind := range []blueprint.TypeKind{
+		blueprint.KindList, blueprint.KindSet, blueprint.KindMap, blueprint.KindSetNested,
+	} {
+		a := attr("things", kind, blueprint.ComputedOptional)
+		a.GoField = "Things"
+		a.Behaviour.ReturnedOnRead = boolPtr(false)
+		a.Wire = blueprint.WireBinding{
+			SDKField: "Things",
+			Flatten:  &blueprint.ConvertCall{Func: "convert.Whatever"},
+		}
+
+		_, err := stateView(blueprint.Schema{Attributes: []blueprint.Attribute{a}}, "x.Y", nil)
+		if err == nil {
+			t.Errorf("%s should be refused rather than approximated", kind)
+			continue
+		}
+		if !strings.Contains(err.Error(), "things") {
+			t.Errorf("%s: the refusal should name the attribute: %v", kind, err)
+		}
 	}
 }
 

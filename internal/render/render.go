@@ -209,6 +209,9 @@ type StateView struct {
 	// NestedAttributeObject are the per-shape flatten helpers this resource needs.
 	NestedObject     []NestedFuncView
 	NeedsDiagnostics bool
+	// NeedsTypes is set when an assignment references the types package, which happens for a
+	// null constructor even in a resource that has no nested shapes at all.
+	NeedsTypes bool
 }
 
 // NestedModelView is one generated nested model, its attr.Type map and its
@@ -477,7 +480,15 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	}
 
 	v.Construct = constructView(r, shapes)
-	v.State = stateView(r.Schema, r.Binding.Body.ResponseType, shapes)
+	state, err := stateView(r.Schema, r.Binding.Body.ResponseType, shapes)
+	if err != nil {
+		return ResourceView{}, err
+	}
+	v.State = state
+
+	if v.State.NeedsTypes {
+		impState.add(pkgTypes, "")
+	}
 
 	// A fallible conversion anywhere means construct or state returns diagnostics,
 	// which changes the shape of the generated CRUD call sites. crud.go needs no
@@ -1010,7 +1021,11 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 	return v
 }
 
-func stateView(s blueprint.Schema, responseType string, shapes []nestedShape) StateView {
+func stateView(
+	s blueprint.Schema,
+	responseType string,
+	shapes []nestedShape,
+) (StateView, error) {
 	v := StateView{ResponseType: responseType}
 
 	for _, sh := range shapes {
@@ -1031,14 +1046,44 @@ func stateView(s blueprint.Schema, responseType string, shapes []nestedShape) St
 		// or state blanks on every read" -- and nothing acted on it until a generated
 		// acceptance test made the consequence visible.
 		//
-		// Suppressed here from observed behaviour rather than by editing the blueprint, which is
-		// the same shape as ValuesClosed suppressing a OneOf: evidence decides at render time,
-		// and the curated document keeps saying what the API documents.
+		// Suppressed from observed behaviour rather than by editing the blueprint, which is the
+		// same shape as ValuesClosed suppressing a OneOf: evidence decides at render time, and
+		// the curated document keeps saying what the API documents.
+		//
+		// Skipping the assignment is necessary and not sufficient, which the first live run
+		// proved. An optional-and-computed attribute the practitioner left unset is *unknown*
+		// during apply, and the framework rejects a provider that returns one:
+		//
+		//	After the apply operation, the provider still indicated an unknown value for
+		//	thousandeyes_tag.test.match_type. All values must be known after apply.
+		//
+		// So the value is carried through when set and resolved to null when not. Null is the
+		// honest answer: nothing configured it and the API will never say what it holds.
 		if a.Behaviour.ReturnedOnRead != nil && !*a.Behaviour.ReturnedOnRead {
+			null, ok := scalarNullExpr(a.Type.Kind)
+			if !ok {
+				return StateView{}, &ErrUnsupported{
+					What: fmt.Sprintf("attribute %q", a.Name),
+					Why: fmt.Sprintf(
+						"the API never returns it and it is a %s, whose null constructor needs "+
+							"an element or attribute type this does not derive; a collection the "+
+							"API never returns has not been seen and is refused rather than "+
+							"guessed at",
+						a.Type.Kind,
+					),
+				}
+			}
+
+			v.NeedsTypes = true
 			v.Assignments = append(v.Assignments, fmt.Sprintf(
-				"// %s is deliberately not read back: the API accepts it and never returns it,\n"+
-					"// so flattening it would blank the configured value on every read.",
-				a.Name))
+				"// %[1]s is deliberately not read back: the API accepts it and never returns\n"+
+					"// it, so flattening would blank the configured value on every read. An\n"+
+					"// unset value still has to resolve, or the apply is rejected for leaving\n"+
+					"// it unknown.\n"+
+					"if data.%[2]s.IsUnknown() {\n"+
+					"\tdata.%[2]s = %[3]s\n"+
+					"}",
+				a.Name, a.GoField, null))
 
 			continue
 		}
@@ -1055,7 +1100,21 @@ func stateView(s blueprint.Schema, responseType string, shapes []nestedShape) St
 			a.GoField, convertExpr(*a.Wire.Flatten, "remote."+a.Wire.SDKField)))
 	}
 
-	return v
+	return v, nil
+}
+
+// scalarNullExpr is the framework's null constructor for a scalar kind.
+//
+// Only scalars. types.ListNull and types.ObjectNull take the element or attribute types, which
+// are not derivable here, so a collection is reported rather than approximated.
+func scalarNullExpr(kind blueprint.TypeKind) (string, bool) {
+	modelType, ok := frameworkModelType[kind]
+	if !ok || kind.IsNested() || kind == blueprint.KindList ||
+		kind == blueprint.KindSet || kind == blueprint.KindMap {
+		return "", false
+	}
+
+	return modelType + "Null()", true
 }
 
 // convertExpr renders a call into the provider's convert package.
