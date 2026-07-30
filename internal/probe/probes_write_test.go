@@ -833,12 +833,19 @@ func TestUnit_Probe_ARefusalThatNamesNothingIsOnlyInferred(t *testing.T) {
 	}
 }
 
-// TestUnit_Probe_ConditionalRequirementIsANoteNotAFact.
+// TestUnit_Probe_ConditionalRequirementIsANoteWhenNothingExplainsIt.
 //
 // Hand-maintained fixup tables in existing providers are full of these -- a port field that
-// matters only when a protocol field says tcp. One-field-at-a-time omission from a single fixture
-// reports half a truth either way, so disagreement between fixtures produces a note.
-func TestUnit_Probe_ConditionalRequirementIsANoteNotAFact(t *testing.T) {
+// matters only when a protocol field says tcp.
+//
+// The quirk server really does make `value` required only when objectType is "conditional", and
+// the two fixtures really do straddle it. What is missing is any *declaration* that objectType
+// might be the deciding field, so the prober has nothing to attribute the disagreement to and
+// reports a note. "Conditional on something in the body" is not a fact.
+//
+// The companion test below declares the gate and gets facts, which is what makes this one a
+// statement about attribution rather than about detection.
+func TestUnit_Probe_ConditionalRequirementIsANoteWhenNothingExplainsIt(t *testing.T) {
 	t.Parallel()
 
 	srv := quirkserver.New(t, quirkserver.Quirks{
@@ -873,6 +880,86 @@ func TestUnit_Probe_ConditionalRequirementIsANoteNotAFact(t *testing.T) {
 
 	if _, ok := noteMentioning(report, "requiredness is conditional"); !ok {
 		t.Errorf("the disagreement must be reported: %v", report.Notes)
+	}
+}
+
+// TestUnit_Probe_ADeclaredGateTurnsTheDisagreementIntoFacts.
+//
+// The same quirk server and the same two fixtures as above, with one line added to the plan: the
+// field that might decide. That is the whole difference between a note and a pair of facts, and it
+// is deliberately the operator's declaration rather than a discovery -- the prober can only vary a
+// field across values somebody listed.
+//
+// Two facts, not one. Each branch was measured separately and says something different, so
+// collapsing them would hide that.
+func TestUnit_Probe_ADeclaredGateTurnsTheDisagreementIntoFacts(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		ConditionallyRequired: &quirkserver.Conditional{
+			WhenField: "objectType", WhenValue: "conditional", Then: "value",
+		},
+	})
+
+	subj := quirkSubject()
+	subj.Fields = append(subj.Fields, Field{
+		JSONPath: "objectType", Attribute: "object_type",
+		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true,
+	})
+
+	plan := Plan{
+		Fixtures: []Fixture{
+			{Name: "plain", Body: map[string]any{
+				"key": "stamped", "value": "a", "objectType": "ordinary",
+			}},
+			{Name: "conditional", Body: map[string]any{
+				"key": "stamped", "value": "b", "objectType": "conditional",
+			}},
+		},
+		// The one added line.
+		DefaultInfluencers: []string{"objectType"},
+		Budget:             Budget{MaxRequests: 80, MaxCreates: 30},
+	}
+
+	report := runAgainst(t, srv, subj, plan, "write.required")
+
+	var conditional []Fact
+	for _, f := range report.Facts {
+		if f.JSONPath == "value" && f.Field == FactRequiredByAPI {
+			conditional = append(conditional, f)
+		}
+	}
+
+	if len(conditional) != 2 {
+		t.Fatalf("want one fact per branch of objectType, got %d: %+v", len(conditional), conditional)
+	}
+
+	byValue := map[string]Fact{}
+	for _, f := range conditional {
+		if len(f.When) != 1 || f.When[0].JSONPath != "objectType" {
+			t.Fatalf("each fact should be conditioned on objectType, got %v", f.When)
+		}
+		byValue[f.When[0].Equals] = f
+	}
+
+	// Required where the quirk server says so.
+	if f, ok := byValue["conditional"]; !ok {
+		t.Error("no fact for objectType=conditional")
+	} else if f.Value.Bool == nil || !*f.Value.Bool {
+		t.Errorf("value is required under this gate: %v", f.Value)
+	}
+
+	// And not required where it does not.
+	if f, ok := byValue["ordinary"]; !ok {
+		t.Error("no fact for objectType=ordinary")
+	} else if f.Value.Bool == nil || *f.Value.Bool {
+		t.Errorf("value is not required under this gate: %v", f.Value)
+	}
+
+	// The note is gone: it exists to say "something decides this and I cannot tell what", which is
+	// no longer true.
+	if _, ok := noteMentioning(report, "requiredness is conditional"); ok {
+		t.Error("the disagreement was attributed, so it should not also be reported as unexplained")
 	}
 }
 

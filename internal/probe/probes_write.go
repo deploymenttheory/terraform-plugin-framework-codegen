@@ -1023,6 +1023,13 @@ type omission struct {
 	named    bool
 	detail   string
 	evidence string
+
+	// gates are the values the scope's candidate gate fields held for this attempt.
+	//
+	// Recorded per attempt rather than looked up later, because the correlation this feeds is
+	// only sound if it reads the body that was actually sent. A fixture's body is copied and
+	// mutated per attempt, so reconstructing it afterwards would be reconstructing a guess.
+	gates []Condition
 }
 
 // create issues one create, optionally with a key removed.
@@ -1052,6 +1059,8 @@ func (p requiredByAPI) create(
 		delete(body, omit)
 	}
 
+	gates := gateConditions(sc, body)
+
 	resp, _, err := s.Create(ctx, p.Name(), body)
 	if err != nil {
 		// A missing identifier is not fatal here: the object exists, the prefix sweep will
@@ -1070,7 +1079,53 @@ func (p requiredByAPI) create(
 		named:    omit != "" && e.Names(omit),
 		detail:   e.Detail,
 		evidence: resp.Interaction,
+		gates:    gates,
 	}, nil
+}
+
+// gateConditions reads the candidate gate fields out of a body about to be sent.
+//
+// Candidate gates come from Scope.Influencers(), which the plan already declares as the fields
+// "whose value might determine another field's default". That is the same relation as a gate, one
+// consequence narrower -- so this reuses the declaration rather than adding a second way to say
+// the same thing. Phase 7.2 widens it to gates with declared value sets.
+//
+// Only scalars. A gate whose value is an object or an array cannot be compared for equality in a
+// condition, and pretending otherwise would produce a precondition nothing could evaluate.
+func gateConditions(sc Scope, body map[string]any) []Condition {
+	var out []Condition
+
+	for _, f := range sc.Influencers() {
+		v, ok := body[f.JSONPath]
+		if !ok {
+			continue
+		}
+
+		if text, scalar := scalarText(v); scalar {
+			out = append(out, Condition{JSONPath: f.JSONPath, Equals: text})
+		}
+	}
+
+	sort.Slice(out, func(i, j int) bool { return out[i].JSONPath < out[j].JSONPath })
+
+	return out
+}
+
+// scalarText renders a JSON scalar as the text a condition compares against.
+//
+// Reports false for anything else, rather than formatting it: "%v" on a map produces something
+// that looks like a value and matches nothing, which is worse than declining.
+func scalarText(v any) (string, bool) {
+	switch t := v.(type) {
+	case string:
+		return t, true
+	case bool:
+		return fmt.Sprintf("%t", t), true
+	case float64:
+		return trimFloat(t), true
+	default:
+		return "", false
+	}
 }
 
 // concludeRequired turns the omission attempts into facts.
@@ -1095,14 +1150,27 @@ func (p requiredByAPI) concludeRequired(sc Scope, attempts map[string][]omission
 
 		// Disagreement between fixtures is the conditional-requirement signature, and it is the
 		// case hand-maintained fixup tables in existing providers are full of: a port field that
-		// matters only when a protocol field says tcp. One-field-at-a-time omission from a single
-		// fixture reports half a truth either way, so this is a note and never a fact.
+		// matters only when a protocol field says tcp.
+		//
+		// This used to be a note and never a fact, because "conditional on something else in the
+		// body" was all a fact could say. Now a fact can carry a precondition, so the question
+		// becomes whether the disagreement can be attributed to a specific gate value. If it can,
+		// each branch is its own fact under its own condition. If it cannot, it stays a note --
+		// "conditional on something" is still not a fact, and inventing a condition to make it one
+		// would be worse than the note ever was.
 		if accepted > 0 && refused > 0 {
+			if facts := p.conditionalRequiredFacts(sc, path, rounds); len(facts) > 0 {
+				out.Facts = append(out.Facts, facts...)
+
+				continue
+			}
+
 			out.Notes = append(out.Notes, Note{
 				Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
 				Message: fmt.Sprintf("omitting this field was accepted by %d fixture(s) and "+
 					"refused by %d, so its requiredness is conditional on something else in the "+
-					"body and no fact was recorded", accepted, refused),
+					"body. No candidate gate separated the two, so no fact was recorded -- "+
+					"declare the deciding field in the plan to settle it", accepted, refused),
 			})
 
 			continue
@@ -1110,6 +1178,142 @@ func (p requiredByAPI) concludeRequired(sc Scope, attempts map[string][]omission
 
 		out.Facts = append(out.Facts, p.requiredFact(sc, path, rounds, accepted > 0))
 	}
+}
+
+// conditionalRequiredFacts attributes a requiredness disagreement to one gate field.
+//
+// Returns nothing when the disagreement cannot be attributed, which is the common case and the
+// honest answer: the caller then keeps its note.
+//
+// "Attributed" means one candidate gate separates the outcomes cleanly -- every attempt that
+// succeeded held a gate value that no failing attempt held, and vice versa. A gate that took the
+// same value on both sides explains nothing, and a gate that varies without correlating is
+// coincidence. Exactly one separating gate is required: two would mean the observations cannot
+// distinguish which of them decides, and picking either would be a guess presented as evidence.
+func (p requiredByAPI) conditionalRequiredFacts(
+	sc Scope,
+	path string,
+	rounds []omission,
+) []Fact {
+	separator, ok := separatingGate(rounds)
+	if !ok {
+		return nil
+	}
+
+	// Grouped by the separating gate's value, so each fact is measured under one condition
+	// rather than being one fact with a disjunction bolted on.
+	byValue := map[string][]omission{}
+	order := []string{}
+
+	for _, a := range rounds {
+		v, held := conditionValue(a.gates, separator)
+		if !held {
+			return nil
+		}
+
+		if _, seen := byValue[v]; !seen {
+			order = append(order, v)
+		}
+		byValue[v] = append(byValue[v], a)
+	}
+
+	sort.Strings(order)
+
+	facts := make([]Fact, 0, len(order))
+
+	for _, v := range order {
+		group := byValue[v]
+
+		// A branch whose own attempts disagree is not a branch this gate explains.
+		acceptedHere := 0
+		for _, a := range group {
+			if a.status < 400 {
+				acceptedHere++
+			}
+		}
+		if acceptedHere != 0 && acceptedHere != len(group) {
+			return nil
+		}
+
+		fact := p.requiredFact(sc, path, group, acceptedHere > 0)
+		fact.When = []Condition{{JSONPath: separator, Equals: v}}
+		fact.Rationale += ", " + fact.Because()
+
+		facts = append(facts, fact)
+	}
+
+	return facts
+}
+
+// separatingGate finds the one gate whose value partitions success from failure.
+func separatingGate(rounds []omission) (string, bool) {
+	paths := map[string]bool{}
+	for _, a := range rounds {
+		for _, c := range a.gates {
+			paths[c.JSONPath] = true
+		}
+	}
+
+	var found string
+
+	for gate := range paths {
+		onSuccess, onFailure := map[string]bool{}, map[string]bool{}
+
+		for _, a := range rounds {
+			v, held := conditionValue(a.gates, gate)
+			if !held {
+				// A gate absent from one attempt cannot partition them.
+				onSuccess, onFailure = nil, nil
+
+				break
+			}
+
+			if a.status < 400 {
+				onSuccess[v] = true
+			} else {
+				onFailure[v] = true
+			}
+		}
+
+		if len(onSuccess) == 0 || len(onFailure) == 0 {
+			continue
+		}
+
+		if overlaps(onSuccess, onFailure) {
+			continue
+		}
+
+		if found != "" {
+			// Two gates both separate the outcomes, so the evidence cannot say which decides.
+			return "", false
+		}
+
+		found = gate
+	}
+
+	return found, found != ""
+}
+
+// conditionValue reads one gate's value out of a recorded condition set.
+func conditionValue(gates []Condition, path string) (string, bool) {
+	for _, c := range gates {
+		if c.JSONPath == path {
+			return c.Equals, true
+		}
+	}
+
+	return "", false
+}
+
+// overlaps reports whether two value sets share a member.
+func overlaps(a, b map[string]bool) bool {
+	for v := range a {
+		if b[v] {
+			return true
+		}
+	}
+
+	return false
 }
 
 // requiredFact records whether the API enforced a field's presence.
