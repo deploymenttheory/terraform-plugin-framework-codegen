@@ -195,6 +195,11 @@ provider-defined functions, state upgraders.
   licence-gated rather than nonexistent. The one case that suppresses the validator
   outright is direct evidence of harm: the API accepted a value from *outside* the
   documented set, so a `OneOf` would reject configurations it demonstrably takes.
+- **Declared bounds become validators too.** A `pattern`, a length, a size or a numeric range
+  in the specification becomes the framework validator its type provides — and a bound the
+  framework has no validator for is refused by name rather than emitted as a call to a function
+  that does not exist. A `pattern` Go's `regexp` cannot compile is reported and dropped: the
+  generated code would call `regexp.MustCompile` on it and panic at provider start.
 - **The prober cannot learn everything.** Licence-gated behaviour, cross-object
   constraints, RBAC, production latency, and whether a field is *semantically* a
   secret all need a human. The probe plan's deny list is where that boundary is

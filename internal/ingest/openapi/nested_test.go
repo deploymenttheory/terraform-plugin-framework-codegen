@@ -396,3 +396,127 @@ func TestUnit_Infer_Pluralise(t *testing.T) {
 		}
 	}
 }
+
+// TestUnit_Infer_ConstraintsAreExtractedForTheKindThatCanHoldThem.
+func TestUnit_Infer_ConstraintsAreExtractedForTheKindThatCanHoldThem(t *testing.T) {
+	t.Parallel()
+
+	const spec = `
+openapi: 3.0.3
+info: {title: Bound API, version: "1.0"}
+paths:
+  /things:
+    post:
+      operationId: createThing
+      tags: [Things]
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Thing'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Thing'}
+  /things/{id}:
+    get:
+      operationId: getThing
+      tags: [Things]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Thing'}
+    put:
+      operationId: updateThing
+      tags: [Things]
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Thing'}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Thing'}
+    delete:
+      operationId: deleteThing
+      tags: [Things]
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Thing:
+      type: object
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string, pattern: '^[a-z]+$', minLength: 1, maxLength: 63}
+        weight: {type: integer, minimum: 1, maximum: 100}
+        ratio: {type: number, minimum: 0, maximum: 1}
+        labels:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items: {type: string, maxLength: 32}
+        lookahead: {type: string, pattern: '^(?=x)y$'}
+`
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "api.yaml")
+	if err := os.WriteFile(path, []byte(spec), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	doc, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	res, notes, err := doc.Infer(find(t, doc.Discover(), "thing"), inferOptions())
+	if err != nil {
+		t.Fatalf("Infer: %v", err)
+	}
+
+	name := attrByName(t, res, "name").Type.Constraints
+	if name.Pattern != "^[a-z]+$" {
+		t.Errorf("name pattern = %q", name.Pattern)
+	}
+	if name.MinLength == nil || *name.MinLength != 1 || name.MaxLength == nil || *name.MaxLength != 63 {
+		t.Errorf("name length bounds = %+v", name)
+	}
+
+	weight := attrByName(t, res, "weight").Type.Constraints
+	if weight.Minimum == nil || *weight.Minimum != 1 || weight.Maximum == nil || *weight.Maximum != 100 {
+		t.Errorf("weight range = %+v", weight)
+	}
+
+	// A JSON number maps to float64 to match the SDK, so its bounds are kept.
+	ratio := attrByName(t, res, "ratio").Type.Constraints
+	if ratio.Maximum == nil || *ratio.Maximum != 1 {
+		t.Errorf("ratio range = %+v", ratio)
+	}
+
+	// The collection's own size, and the element's bound on the element type.
+	labels := attrByName(t, res, "labels").Type
+	if labels.Constraints.MinItems == nil || *labels.Constraints.MinItems != 1 {
+		t.Errorf("labels size = %+v", labels.Constraints)
+	}
+	if labels.ElementType == nil || labels.ElementType.Constraints.MaxLength == nil ||
+		*labels.ElementType.Constraints.MaxLength != 32 {
+		t.Errorf("label element bound = %+v", labels.ElementType)
+	}
+
+	// A pattern RE2 cannot parse is dropped and reported, not passed on: the generated code
+	// compiles it with regexp.MustCompile, so it would panic at provider start.
+	if got := attrByName(t, res, "lookahead").Type.Constraints.Pattern; got != "" {
+		t.Errorf("a pattern Go cannot compile should be dropped, got %q", got)
+	}
+
+	all := strings.Join(noteStrings(notes), "\n")
+	if !strings.Contains(all, "not a valid Go regular expression") {
+		t.Errorf("the dropped pattern should be reported:\n%s", all)
+	}
+	if !strings.Contains(all, "lookahead") {
+		t.Errorf("the note should name the field or the construct:\n%s", all)
+	}
+}
