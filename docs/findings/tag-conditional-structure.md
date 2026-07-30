@@ -105,6 +105,34 @@ consequences already visible in the pilot:
 Until that exists, re-recording would only re-measure the same unconditional half-truths against a
 larger enum set. Which is why the re-record waits for the probe rather than the other way round.
 
+## The dynamic-branch fixture
+
+Added to `blueprints/thousandeyes/probe.plan.json` as `endpoint-agent-tag`. Every field in it is
+load-bearing, which is the point: this is the smallest body that reaches the dynamic branch at all,
+and each of the findings above is one of the reasons.
+
+```json
+{ "objectType": "endpoint-agent", "type": "dynamic", "matchType": "and",
+  "filters": [{ "key": "...", "mode": "in", "scope": "custom", "values": ["..."] }] }
+```
+
+Cost, from `probe -list` before and after: 147 → 174 requests, 47 → 56 creates. Inside the plan's
+existing budget of 200 and 60, so no cap change. `write.required` is where the increase lands —
+16 → 30 requests — because it now omits fields from three fixtures instead of two, and that is
+exactly the probe whose disagreements become conditional facts.
+
+Verified by sending the fixture's own body: 201, and the response returns `matchType: "and"` where a
+static tag returned `null`. That is the conditional `returnedOnRead` finding confirmed from the
+other side, and it is what the re-record will now be able to observe.
+
+**One coverage consequence, stated rather than discovered.** `Scope.fixtureKeys` is deliberately
+cross-fixture — "a field one fixture sets is a field the operator has told us a valid value for, so
+it is not a candidate for what does the server do when this is omitted". Setting `matchType` and
+`filters` here therefore removes them from the omitted set, so the server-default protocol stops
+probing them. That is the design working: a valid dynamic body cannot omit either, so claiming to
+know a valid value for them is simply true. Their omission behaviour is still covered by
+`write.required`, which is where it belongs.
+
 ## Consequences for the blueprint, not yet applied
 
 Each of these is a schema change whose evidence is above, and each changes the probe plan, so they
