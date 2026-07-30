@@ -40,7 +40,7 @@ func TestUnit_Render_OneOfComesFromTheDocumentedSet(t *testing.T) {
 
 	imports := newImportSet()
 
-	got := validatorsFor(a, imports)
+	got := validatorsFor(a, imports, newPatternVars())
 	if len(got) != 1 {
 		t.Fatalf("got %d validators, want 1: %+v", len(got), got)
 	}
@@ -66,13 +66,13 @@ func TestUnit_Render_AnOpenValueSetSuppressesTheValidator(t *testing.T) {
 	// The prober sent a value from outside the documented set and the API took it.
 	a.Behaviour.ValuesClosed = boolPtr(false)
 
-	if got := validatorsFor(a, newImportSet()); len(got) != 0 {
+	if got := validatorsFor(a, newImportSet(), newPatternVars()); len(got) != 0 {
 		t.Errorf("an open value set must generate no validator: %+v", got)
 	}
 
 	// Observed closed, and it comes back.
 	a.Behaviour.ValuesClosed = boolPtr(true)
-	if got := validatorsFor(a, newImportSet()); len(got) != 1 {
+	if got := validatorsFor(a, newImportSet(), newPatternVars()); len(got) != 1 {
 		t.Errorf("a closed value set should generate one validator: %+v", got)
 	}
 
@@ -80,7 +80,7 @@ func TestUnit_Render_AnOpenValueSetSuppressesTheValidator(t *testing.T) {
 	// validator, or ingesting a specification and emitting from it straight away would
 	// produce no validators at all.
 	a.Behaviour.ValuesClosed = nil
-	if got := validatorsFor(a, newImportSet()); len(got) != 1 {
+	if got := validatorsFor(a, newImportSet(), newPatternVars()); len(got) != 1 {
 		t.Errorf("an unprobed attribute should still get its validator: %+v", got)
 	}
 }
@@ -92,14 +92,14 @@ func TestUnit_Render_ValidatorIsStringAndConfigurableOnly(t *testing.T) {
 	// A purely computed attribute is never configured, so a validator on it cannot run.
 	computed := valued("static", "dynamic")
 	computed.ComputedOptionalRequired = blueprint.Computed
-	if got := validatorsFor(computed, newImportSet()); len(got) != 0 {
+	if got := validatorsFor(computed, newImportSet(), newPatternVars()); len(got) != 0 {
 		t.Errorf("a computed attribute needs no validator: %+v", got)
 	}
 
 	// Optional-and-computed can be set, so it does.
 	both := valued("static", "dynamic")
 	both.ComputedOptionalRequired = blueprint.ComputedOptional
-	if got := validatorsFor(both, newImportSet()); len(got) != 1 {
+	if got := validatorsFor(both, newImportSet(), newPatternVars()); len(got) != 1 {
 		t.Errorf("an optional-and-computed attribute should get one: %+v", got)
 	}
 
@@ -108,7 +108,7 @@ func TestUnit_Render_ValidatorIsStringAndConfigurableOnly(t *testing.T) {
 	set := valued("a", "b")
 	set.Type.Kind = blueprint.KindSet
 	set.Type.ElementType = &blueprint.AttrType{Kind: blueprint.KindString}
-	if got := validatorsFor(set, newImportSet()); len(got) != 0 {
+	if got := validatorsFor(set, newImportSet(), newPatternVars()); len(got) != 0 {
 		t.Errorf("a collection should not take a bare string validator: %+v", got)
 	}
 }
@@ -121,7 +121,7 @@ func TestUnit_Render_HandAuthoredValidatorsComeFirst(t *testing.T) {
 	a := valued("and", "or")
 	a.Validators = []blueprint.CustomCode{{SchemaDefinition: "myvalidator.Whatever()"}}
 
-	got := validatorsFor(a, newImportSet())
+	got := validatorsFor(a, newImportSet(), newPatternVars())
 	if len(got) != 2 {
 		t.Fatalf("got %d validators, want the declared one plus the generated one: %+v", len(got), got)
 	}

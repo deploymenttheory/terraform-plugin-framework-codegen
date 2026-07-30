@@ -389,3 +389,127 @@ func TestUnit_BlockKind_ReadOnlyAttributeNeedsNoExpand(t *testing.T) {
 		t.Errorf("a data source's required lookup argument needs no expand; got %v", p)
 	}
 }
+
+func cInt(v int64) *int64     { return &v }
+func cFlt(v float64) *float64 { return &v }
+
+// TestUnit_Blueprint_ConstraintsMustHaveAValidatorToGenerate.
+//
+// Every framework validator lives in a per-type package, so a bound on the wrong kind is not a
+// warning -- it is a reference to a function that does not exist. Refusing here names the
+// attribute; the alternative is a compile error in generated output.
+func TestUnit_Blueprint_ConstraintsMustHaveAValidatorToGenerate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		kind    TypeKind
+		c       Constraints
+		wantMsg string
+	}{
+		{
+			name:    "a pattern on a number",
+			kind:    KindInt64,
+			c:       Constraints{Pattern: "^a$"},
+			wantMsg: "no RegexMatches validator",
+		},
+		{
+			name:    "a length bound on a collection",
+			kind:    KindSet,
+			c:       Constraints{MaxLength: cInt(8)},
+			wantMsg: "no Length validator",
+		},
+		{
+			name:    "a size bound on a string",
+			kind:    KindString,
+			c:       Constraints{MinItems: cInt(1)},
+			wantMsg: "no Size validator",
+		},
+		{
+			name:    "a range on a string",
+			kind:    KindString,
+			c:       Constraints{Minimum: cFlt(1)},
+			wantMsg: "no range validator",
+		},
+		{
+			// numbervalidator exists but carries only AtLeastOneOf, so there is genuinely
+			// nothing to generate for an arbitrary-precision number.
+			name:    "a range on an arbitrary-precision number",
+			kind:    KindNumber,
+			c:       Constraints{Maximum: cFlt(10)},
+			wantMsg: "narrow the attribute",
+		},
+		{
+			name:    "a length range nothing can satisfy",
+			kind:    KindString,
+			c:       Constraints{MinLength: cInt(10), MaxLength: cInt(2)},
+			wantMsg: "nothing can satisfy",
+		},
+		{
+			name:    "a size range nothing can satisfy",
+			kind:    KindSet,
+			c:       Constraints{MinItems: cInt(5), MaxItems: cInt(1)},
+			wantMsg: "nothing can satisfy",
+		},
+		{
+			name:    "a numeric range nothing can satisfy",
+			kind:    KindInt64,
+			c:       Constraints{Minimum: cFlt(100), Maximum: cFlt(1)},
+			wantMsg: "nothing can satisfy",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var p problems
+			tc.c.validate(tc.kind, "type.constraints", &p)
+
+			if len(p) == 0 {
+				t.Fatalf("%v on a %s attribute should be refused", tc.c, tc.kind)
+			}
+
+			var msgs []string
+			for _, prob := range p {
+				msgs = append(msgs, prob.msg)
+			}
+			joined := strings.Join(msgs, "; ")
+			if !strings.Contains(joined, tc.wantMsg) {
+				t.Errorf("error should explain %q: %q", tc.wantMsg, joined)
+			}
+		})
+	}
+}
+
+// TestUnit_Blueprint_ConstraintsOnTheRightKindPass is the converse: every bound the framework
+// has a validator for is accepted, or the refusals above could be passing by rejecting
+// everything.
+func TestUnit_Blueprint_ConstraintsOnTheRightKindPass(t *testing.T) {
+	t.Parallel()
+
+	ok := []struct {
+		kind TypeKind
+		c    Constraints
+	}{
+		{KindString, Constraints{Pattern: "^a$", MinLength: cInt(1), MaxLength: cInt(9)}},
+		{KindInt32, Constraints{Minimum: cFlt(0), Maximum: cFlt(9)}},
+		{KindInt64, Constraints{Minimum: cFlt(0)}},
+		{KindFloat32, Constraints{Maximum: cFlt(1.5)}},
+		{KindFloat64, Constraints{Minimum: cFlt(0), Maximum: cFlt(1e9)}},
+		{KindList, Constraints{MinItems: cInt(1), MaxItems: cInt(4)}},
+		{KindSet, Constraints{MaxItems: cInt(4)}},
+		{KindMap, Constraints{MinItems: cInt(1)}},
+		{KindSetNested, Constraints{MaxItems: cInt(3)}},
+		// Equal bounds are a fixed value, not a contradiction.
+		{KindString, Constraints{MinLength: cInt(4), MaxLength: cInt(4)}},
+	}
+
+	for _, tc := range ok {
+		var p problems
+		tc.c.validate(tc.kind, "type.constraints", &p)
+		if len(p) != 0 {
+			t.Errorf("%s with %+v should be valid: %v", tc.kind, tc.c, p)
+		}
+	}
+}

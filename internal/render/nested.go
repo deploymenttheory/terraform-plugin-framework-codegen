@@ -200,13 +200,11 @@ func nestedAttributeDecl(
 	// A nested attribute takes validators and plan modifiers like any other, and
 	// dropping a declared one silently is worse than refusing it: the blueprint says the
 	// value is constrained and the generated provider does not enforce it.
-	writeCustomCodeBlock(
-		&b,
-		"Validators",
-		"validator."+validatorKind(a.Type.Kind),
-		a.Validators,
-		imports,
-	)
+	// writeValidators rather than the hand-authored slice alone. Phase 5.3 stopped a declared
+	// validator being dropped here; passing a.Validators straight through then dropped the
+	// *generated* ones instead, so a nested collection's declared size bound went missing in
+	// exactly the same silent way.
+	writeValidators(&b, sc, a, imports)
 	writeCustomCodeBlock(
 		&b,
 		"PlanModifiers",

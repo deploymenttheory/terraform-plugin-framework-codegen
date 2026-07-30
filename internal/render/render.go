@@ -57,6 +57,10 @@ type schemaScope struct {
 	kind blueprint.BlockKind
 	// what names the block in an error message, e.g. `resource "tag"`.
 	what string
+	// patterns collects the package-level regexp vars this schema's RegexMatches validators
+	// reference. Per-schema state, like the kind, rather than a parameter threaded through
+	// every attribute call site.
+	patterns *patternVars
 }
 
 // schemaImport is the framework import path this scope's `schema` selector resolves to.
@@ -67,11 +71,19 @@ func (sc schemaScope) schemaImport() string {
 // resourceScope and dataSourceScope name a block for the error messages attribute
 // rendering produces.
 func resourceScope(r blueprint.Resource) schemaScope {
-	return schemaScope{kind: blueprint.BlockResource, what: fmt.Sprintf("resource %q", r.Key)}
+	return schemaScope{
+		kind:     blueprint.BlockResource,
+		what:     fmt.Sprintf("resource %q", r.Key),
+		patterns: newPatternVars(),
+	}
 }
 
 func dataSourceScope(d blueprint.DataSource) schemaScope {
-	return schemaScope{kind: blueprint.BlockDataSource, what: fmt.Sprintf("data source %q", d.Key)}
+	return schemaScope{
+		kind:     blueprint.BlockDataSource,
+		what:     fmt.Sprintf("data source %q", d.Key),
+		patterns: newPatternVars(),
+	}
 }
 
 // ResourceView is everything the per-resource templates need.
@@ -114,6 +126,9 @@ type ResourceView struct {
 
 	// SchemaAttributes are finished `"name": schema.XAttribute{...}` entries.
 	SchemaAttributes []string
+	// PatternVars are finished package-level `var x = regexp.MustCompile(...)` declarations
+	// that the schema's RegexMatches validators reference.
+	PatternVars []string
 	// ModelFields are finished struct field declarations.
 	ModelFields []string
 	// NestedModels are the sibling model structs a nested attribute needs. They
@@ -372,6 +387,7 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 		return ResourceView{}, err
 	}
 	v.SchemaAttributes = attrs
+	v.PatternVars = sc.patterns.Decls()
 
 	// The timeouts value is last in the model, matching the archetype, and is what the
 	// generated CRUD reads its per-operation deadlines from.
@@ -675,7 +691,7 @@ func attributeDecl(
 		fmt.Fprintf(&b, "DeprecationMessage: %s,\n", goStringLit(a.DeprecationMessage))
 	}
 
-	writeValidators(&b, a, imports)
+	writeValidators(&b, sc, a, imports)
 	writeCustomCodeBlock(
 		&b,
 		"PlanModifiers",
@@ -732,8 +748,13 @@ func planModifiersFor(
 // Separate from writeCustomCodeBlock because the note belongs to the block rather than to
 // any one entry, and threading a comment through a type named CustomCode -- which models
 // code a person wrote -- would put a render concern in the IR.
-func writeValidators(b *strings.Builder, a blueprint.Attribute, imports *importSet) {
-	items := validatorsFor(a, imports)
+func writeValidators(
+	b *strings.Builder,
+	sc schemaScope,
+	a blueprint.Attribute,
+	imports *importSet,
+) {
+	items := validatorsFor(a, imports, sc.patterns)
 	if len(items) == 0 {
 		return
 	}

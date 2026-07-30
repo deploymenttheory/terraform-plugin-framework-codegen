@@ -385,7 +385,48 @@ type AttrType struct {
 	// from the specification rather than from somebody's transcription: the pilot's committed
 	// description listed five object types where the specification declares six.
 	AllowedValues []string `json:"allowedValues,omitempty"`
+
+	// Constraints are the bounds the specification declares on the value.
+	//
+	// On the type rather than the attribute, because they are properties of the type: a
+	// collection's element type carries its own, which is what lets a set of strings get a
+	// per-element validator rather than one applied to the set.
+	Constraints Constraints `json:"constraints,omitzero"`
 }
+
+// Constraints are declared bounds on a value, from which validators are generated.
+//
+// Every numeric field is a pointer because zero is a meaningful bound: a minimum of 0 and no
+// minimum at all are different claims, and conflating them would silently drop the bound the
+// specification actually made.
+//
+// These are the *declared* set, like AttrType.AllowedValues and for the same reason -- a
+// validator built from them errs toward permitting what the API documents. Unlike allowed
+// values there is no observed counterpart: the prober has no protocol for discovering a length
+// limit or a numeric range, so there is nothing to suppress a constraint validator on.
+type Constraints struct {
+	// Pattern is a regular expression the value must match, in the specification's own
+	// syntax. Emitted through regexp.MustCompile, so a pattern Go's regexp cannot parse is a
+	// panic at provider start -- which is why ingest refuses one rather than passing it on.
+	Pattern string `json:"pattern,omitempty"`
+
+	// MinLength and MaxLength bound a string's length.
+	MinLength *int64 `json:"minLength,omitempty"`
+	MaxLength *int64 `json:"maxLength,omitempty"`
+
+	// MinItems and MaxItems bound a collection's size.
+	MinItems *int64 `json:"minItems,omitempty"`
+	MaxItems *int64 `json:"maxItems,omitempty"`
+
+	// Minimum and Maximum bound a number. Held as float64 whatever the attribute's kind,
+	// because that is how JSON Schema expresses them; render narrows to the kind's own
+	// validator package.
+	Minimum *float64 `json:"minimum,omitempty"`
+	Maximum *float64 `json:"maximum,omitempty"`
+}
+
+// IsZero reports whether the specification declared no bounds at all.
+func (c Constraints) IsZero() bool { return c == Constraints{} }
 
 // ListFacet makes a resource list-supporting.
 //

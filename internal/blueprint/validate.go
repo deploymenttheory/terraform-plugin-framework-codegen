@@ -452,6 +452,8 @@ func (t AttrType) validate(at string, p *problems) {
 		p.add(at+".nested", "is set on non-nested kind %q", t.Kind)
 	}
 
+	t.Constraints.validate(t.Kind, at+".constraints", p)
+
 	switch t.Kind {
 	case KindBool, KindString, KindInt32, KindInt64, KindFloat32, KindFloat64, KindNumber:
 		if t.ElementType != nil {
@@ -476,6 +478,65 @@ func (t AttrType) validate(at string, p *problems) {
 		p.add(at+".kind", "is required")
 	default:
 		p.add(at+".kind", "%q is not a known type kind", t.Kind)
+	}
+}
+
+// validate refuses a constraint the kind has no validator for.
+//
+// Every framework validator lives in a per-type package, so a bound on the wrong kind is not a
+// warning -- it is a reference to a function that does not exist. Refusing here names the
+// attribute; the alternative surfaces as a compile error in generated output.
+func (c Constraints) validate(kind TypeKind, at string, p *problems) {
+	if c.IsZero() {
+		return
+	}
+
+	isString := kind == KindString
+	isCollection := kind.IsCollection() || kind.IsNestedCollection()
+
+	if c.Pattern != "" && !isString {
+		p.add(at+".pattern", "applies to a string; %q has no RegexMatches validator", kind)
+	}
+
+	if (c.MinLength != nil || c.MaxLength != nil) && !isString {
+		p.add(at+".minLength/maxLength",
+			"bound a string's length; %q has no Length validator", kind)
+	}
+
+	if (c.MinItems != nil || c.MaxItems != nil) && !isCollection {
+		p.add(at+".minItems/maxItems",
+			"bound a collection's size; %q has no Size validator", kind)
+	}
+
+	if c.Minimum != nil || c.Maximum != nil {
+		switch kind {
+		case KindInt32, KindInt64, KindFloat32, KindFloat64:
+		case KindNumber:
+			// numbervalidator exists but carries only AtLeastOneOf: the framework provides no
+			// range validator for an arbitrary-precision number, so there is nothing to
+			// generate. A bound on one needs the attribute narrowing to a float or int kind.
+			p.add(at+".minimum/maximum",
+				"the framework's numbervalidator has no range validator; narrow the attribute "+
+					"to an int or float kind to bound it")
+		default:
+			p.add(at+".minimum/maximum",
+				"bound a number; %q has no range validator", kind)
+		}
+	}
+
+	// A contradiction rather than a mistake about types: no value satisfies it, so every plan
+	// against the generated provider would fail.
+	if c.MinLength != nil && c.MaxLength != nil && *c.MinLength > *c.MaxLength {
+		p.add(at+".minLength", "is %d, above maxLength %d, which nothing can satisfy",
+			*c.MinLength, *c.MaxLength)
+	}
+	if c.MinItems != nil && c.MaxItems != nil && *c.MinItems > *c.MaxItems {
+		p.add(at+".minItems", "is %d, above maxItems %d, which nothing can satisfy",
+			*c.MinItems, *c.MaxItems)
+	}
+	if c.Minimum != nil && c.Maximum != nil && *c.Minimum > *c.Maximum {
+		p.add(at+".minimum", "is %v, above maximum %v, which nothing can satisfy",
+			*c.Minimum, *c.Maximum)
 	}
 }
 
