@@ -139,7 +139,7 @@ is enforced, orphan detection, and the escape hatch.
 | `blueprints/` | committed blueprints, one directory per provider |
 | `probe-evidence/` | committed probe cassettes and derived facts |
 | `openapi-specs/` | pinned, immutable specification snapshots |
-| `pilot/thousandeyes/` | a nested module: a fully generated provider, built and plan-tested in CI |
+| `pilot/thousandeyes/` | a nested module: a fully generated provider, built and unit-tested in CI |
 | `docs/` | architecture, CLI reference, and the new-API onboarding runbook |
 
 ## Relationship to HashiCorp's code generation tooling

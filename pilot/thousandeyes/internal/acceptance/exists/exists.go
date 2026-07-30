@@ -1,0 +1,61 @@
+// Package exists turns "the read call returned an error" into "the object is not there".
+//
+// Every generated test helper needs that translation and none of them should own it: a helper
+// that decided for itself which errors mean absent would be one place the rule could be got
+// wrong per resource.
+package exists
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
+	te "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/services/common/errors"
+)
+
+// ReadFunc performs the API read whose success or failure answers the question.
+//
+// It returns only an error because the object itself is not wanted -- the test asks whether the
+// read succeeded, not what came back. Anything more would invite assertions here, and those
+// belong in the test's own Check functions where a reader can see them.
+type ReadFunc func(ctx context.Context, client *te.Client, state *terraform.InstanceState) error
+
+// Check reports whether an object exists, by attempting to read it.
+//
+// A not-found is a successful answer of "no", not a failure. Every other error is a failure to
+// answer, and is returned as one: reporting "absent" because the token expired would turn a
+// broken test run into a passing destroy check.
+//
+// errors.IsNotFound is the same predicate the generated CRUD uses to decide that a resource has
+// been deleted out from under Terraform. Sharing it means an acceptance test cannot disagree
+// with the provider about what "gone" looks like.
+func Check(ctx context.Context, state *terraform.InstanceState, read ReadFunc) (*bool, error) {
+	if state == nil {
+		return nil, fmt.Errorf("no instance state, so there is no object to look for")
+	}
+	if state.ID == "" {
+		return nil, fmt.Errorf("the instance state carries no id")
+	}
+
+	client, err := Client()
+	if err != nil {
+		return nil, err
+	}
+
+	if readErr := read(ctx, client, state); readErr != nil {
+		if errors.IsNotFound(readErr) {
+			absent := false
+
+			return &absent, nil
+		}
+
+		return nil, fmt.Errorf("reading %s to check whether it exists: %w", state.ID, readErr)
+	}
+
+	present := true
+
+	return &present, nil
+}

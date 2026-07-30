@@ -26,7 +26,7 @@ resource "thousandeyes_tag" "maximal" {
   color       = "#8A2BE2"
   icon        = "ICON_STAR"
   access_type = "all"
-  match_type  = "all"
+  match_type  = "or"
 
   assignments = [
     {
