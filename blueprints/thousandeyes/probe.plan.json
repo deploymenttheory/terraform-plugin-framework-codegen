@@ -17,6 +17,27 @@
         "objectType": "dashboard",
         "accessType": "all"
       }
+    },
+    {
+      "name": "endpoint-agent-tag",
+      "body": {
+        "key": "placeholder-replaced-with-the-stamped-name",
+        "value": "probe-three",
+        "objectType": "endpoint-agent",
+        "accessType": "all",
+        "type": "dynamic",
+        "matchType": "and",
+        "filters": [
+          {
+            "key": "probe-filter-key",
+            "mode": "in",
+            "scope": "custom",
+            "values": [
+              "probe-filter-value"
+            ]
+          }
+        ]
+      }
     }
   ],
   "candidates": {
