@@ -41,8 +41,10 @@ type ActionView struct {
 	Interfaces []string
 
 	SchemaAttributes []string
-	ModelFields      []string
-	NestedModels     []NestedModelView
+	// PatternVars are the package-level regexp declarations the schema references.
+	PatternVars  []string
+	ModelFields  []string
+	NestedModels []NestedModelView
 
 	// Invoke is the SDK call.
 	Invoke *OpView
@@ -114,6 +116,7 @@ func Action(bp blueprint.Blueprint, a blueprint.Action, opts Options) (ActionVie
 		return ActionView{}, err
 	}
 	v.SchemaAttributes = attrs
+	v.PatternVars = sc.patterns.Decls()
 
 	// No timeouts field appended to the model, unlike a resource or a data source. An action
 	// has no timeouts block: the framework's action schema has no home for one, so the
@@ -171,5 +174,9 @@ func Action(bp blueprint.Blueprint, a blueprint.Action, opts Options) (ActionVie
 
 // actionScope names an action for the error messages attribute rendering produces.
 func actionScope(a blueprint.Action) schemaScope {
-	return schemaScope{kind: blueprint.BlockAction, what: fmt.Sprintf("action %q", a.Key)}
+	return schemaScope{
+		kind:     blueprint.BlockAction,
+		what:     fmt.Sprintf("action %q", a.Key),
+		patterns: newPatternVars(),
+	}
 }

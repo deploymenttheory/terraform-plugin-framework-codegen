@@ -380,7 +380,23 @@ func (ctx *inferCtx) attributeOf(
 	}
 
 	if f.Kind.IsCollection() {
-		a.Type.ElementType = &blueprint.AttrType{Kind: f.ElemKind}
+		a.Type.ElementType = &blueprint.AttrType{
+			Kind:        f.ElemKind,
+			Constraints: f.ElemConstraints,
+		}
+	}
+
+	a.Type.Constraints = f.Constraints
+
+	// Reported rather than dropped in silence. A pattern RE2 cannot parse is the document
+	// making a claim this toolchain cannot enforce, and the practitioner should know the
+	// constraint is unenforced rather than assume it is generated.
+	if f.BadPattern != "" {
+		ctx.note(path, fmt.Sprintf(
+			"the pattern %q is not a valid Go regular expression, so no RegexMatches validator "+
+				"is generated; JSON Schema permits constructs RE2 does not, lookahead most often",
+			f.BadPattern,
+		))
 	}
 
 	// Carried into the IR rather than dropped. Extracted here already and used only for a
