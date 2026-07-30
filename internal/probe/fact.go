@@ -3,6 +3,7 @@ package probe
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 )
@@ -197,6 +198,62 @@ type Fact struct {
 	// number nobody can interrogate; with it, a reviewer can see exactly which other
 	// readings of the same traffic remain open, and decide whether they care.
 	Alternatives []string `json:"alternatives,omitempty"`
+
+	// When is the precondition this fact holds under. Empty means unconditional.
+	//
+	// Every fact was unconditional until this existed, which made a whole class of
+	// observation unrecordable -- and, worse, made half of one recordable as though it were
+	// whole. The pilot has two. `matchType` is not returned on read *for a static tag*, where
+	// the field is meaningless; on a dynamic tag it is, and the unconditional fact makes
+	// generated code suppress its read-back for every tag. `endpoint-agent` sits in
+	// `objectType`'s rejected set because every fixture that tried it was creating a static
+	// tag; it is a perfectly good object type for a dynamic one.
+	//
+	// The design already knew. requiredByAPI.concludeRequired detects exactly this shape -- a
+	// field required by one fixture and not another -- and deliberately downgrades it to a
+	// note, because "conditional on something else in the body" was all it could say. With a
+	// precondition it can say which something, and only then is it a fact.
+	//
+	// Conditions are conjunctive: all of them held. There is no disjunction, because two
+	// branches producing the same observation are two facts, and merging them into one would
+	// hide that each was separately measured.
+	When []Condition `json:"when,omitempty"`
+}
+
+// Condition is one precondition: a field held this value while the fact was observed.
+//
+// Equals is a string rather than a Value because a gate has to be *enumerable* to be crossed
+// -- a probe can only vary a field across values somebody listed -- and Plan.Gates declares
+// those as strings. A field with no enumerable value set cannot be a gate, so a condition can
+// only ever name one of those strings.
+type Condition struct {
+	// JSONPath is the gate field, in the same vocabulary as Fact.JSONPath.
+	JSONPath string `json:"jsonPath"`
+	// Equals is the value it held.
+	Equals string `json:"equals"`
+}
+
+// String renders a condition for a report and for an attribute's description.
+func (c Condition) String() string { return fmt.Sprintf("%s is %q", c.JSONPath, c.Equals) }
+
+// Conditional reports whether this fact holds only under a precondition.
+func (f Fact) Conditional() bool { return len(f.When) > 0 }
+
+// Because renders a fact's preconditions as one prose clause, empty when unconditional.
+//
+// Used by merge to state the condition in an attribute's description, which is where a
+// conditional fact goes until something can act on it.
+func (f Fact) Because() string {
+	if len(f.When) == 0 {
+		return ""
+	}
+
+	parts := make([]string, 0, len(f.When))
+	for _, c := range f.When {
+		parts = append(parts, c.String())
+	}
+
+	return "when " + strings.Join(parts, " and ")
 }
 
 // Validate checks a fact is well-formed enough to be trusted.
@@ -228,8 +285,39 @@ func (f Fact) Validate() error {
 			f.Field,
 		)
 	default:
-		return nil
+		return f.validateConditions()
 	}
+}
+
+// validateConditions refuses a precondition that does not say anything.
+//
+// A condition with no path constrains nothing, so the fact would read as conditional while
+// applying always -- the worst of both, and undetectable downstream. An empty Equals is
+// refused for the same reason rather than being treated as "absent": absence of a gate value
+// is a different observation from a gate holding the empty string, and nothing distinguishes
+// them once written.
+func (f Fact) validateConditions() error {
+	seen := make(map[string]bool, len(f.When))
+
+	for _, c := range f.When {
+		switch {
+		case c.JSONPath == "":
+			return fmt.Errorf("%w: %s.%s: a condition with no jsonPath",
+				ErrInvalidFacts, f.Resource, f.Field)
+		case c.Equals == "":
+			return fmt.Errorf("%w: %s.%s: condition on %q with no value",
+				ErrInvalidFacts, f.Resource, f.Field, c.JSONPath)
+		case seen[c.JSONPath]:
+			// Two values for one path cannot both have held, so the fact is about a state
+			// that never existed.
+			return fmt.Errorf("%w: %s.%s: conditions name %q twice, which cannot both hold",
+				ErrInvalidFacts, f.Resource, f.Field, c.JSONPath)
+		}
+
+		seen[c.JSONPath] = true
+	}
+
+	return nil
 }
 
 // String renders a fact for a report.
@@ -238,6 +326,11 @@ func (f Fact) String() string {
 	if f.JSONPath != "" {
 		at += "." + f.JSONPath
 	}
+	if because := f.Because(); because != "" {
+		return fmt.Sprintf("%s: %s = %s %s (%s, %s)",
+			at, f.Field, f.Value, because, f.Confidence, f.Probe)
+	}
+
 	return fmt.Sprintf("%s: %s = %s (%s, %s)", at, f.Field, f.Value, f.Confidence, f.Probe)
 }
 
