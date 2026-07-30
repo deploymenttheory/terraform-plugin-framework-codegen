@@ -223,9 +223,13 @@ func TestUnit_BlockKind_ValidateAcceptsEveryFieldOnAResource(t *testing.T) {
 func TestUnit_BlockKind_Expands(t *testing.T) {
 	t.Parallel()
 
+	// Resource only. This said resource-and-action until the first action was generated:
+	// an action does send values, which is why it looked like it belonged, but it sends them
+	// as call arguments and the emitter generates no construct function for one -- so there
+	// is no request body for an expand to build.
 	want := map[BlockKind]bool{
 		BlockResource:   true,
-		BlockAction:     true,
+		BlockAction:     false,
 		BlockDataSource: false,
 		BlockEphemeral:  false,
 		BlockList:       false,
@@ -234,6 +238,29 @@ func TestUnit_BlockKind_Expands(t *testing.T) {
 	for kind, w := range want {
 		if got := kind.Expands(); got != w {
 			t.Errorf("%s.Expands() = %v, want %v", kind, got, w)
+		}
+	}
+}
+
+// TestUnit_BlockKind_Flattens pins which kinds read values back.
+//
+// Everything except an action. InvokeResponse has no field to carry a result, so a flatten
+// conversion on an action attribute would convert into somewhere that does not exist -- and
+// requiring one, as the kind-agnostic rule did, made the first action unrepresentable.
+func TestUnit_BlockKind_Flattens(t *testing.T) {
+	t.Parallel()
+
+	want := map[BlockKind]bool{
+		BlockResource:   true,
+		BlockDataSource: true,
+		BlockEphemeral:  true,
+		BlockList:       true,
+		BlockAction:     false,
+	}
+
+	for kind, w := range want {
+		if got := kind.Flattens(); got != w {
+			t.Errorf("%s.Flattens() = %v, want %v", kind, got, w)
 		}
 	}
 }

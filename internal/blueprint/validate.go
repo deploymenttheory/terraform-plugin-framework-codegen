@@ -93,6 +93,8 @@ func (b Blueprint) Validate() error {
 	// into the same generated provider package.
 	seenDataKeys := map[string]bool{}
 	seenDataTypes := map[string]bool{}
+	seenActionKeys := map[string]bool{}
+	seenActionTypes := map[string]bool{}
 
 	for i, d := range b.DataSources {
 		at := fmt.Sprintf("dataSources[%d]", i)
@@ -111,7 +113,84 @@ func (b Blueprint) Validate() error {
 		dup(&p, seenAliases, d.GoPackageAlias, at+".goPackageAlias", "import alias")
 	}
 
+	for i, a := range b.Actions {
+		at := fmt.Sprintf("actions[%d]", i)
+		if a.Key != "" {
+			at = fmt.Sprintf("actions[%s]", a.Key)
+		}
+
+		if a.Drop {
+			continue
+		}
+
+		a.validate(at, &p)
+
+		dup(&p, seenActionKeys, a.Key, at+".key", "action key")
+		dup(&p, seenActionTypes, a.Name, at+".name", "action name")
+		dup(&p, seenAliases, a.GoPackageAlias, at+".goPackageAlias", "import alias")
+	}
+
 	return p.err()
+}
+
+// validate checks one action.
+//
+// The skeleton a resource and a data source share, minus everything an action has nothing to
+// reconcile with: no policy, no import, no identity, and one operation rather than four.
+// Attributes are validated against BlockAction, which refuses Computed and Sensitive --
+// an action has no state for a computed value to live in.
+func (a Action) validate(at string, p *problems) {
+	required(p, at+".key", a.Key)
+	required(p, at+".name", a.Name)
+	required(p, at+".goPackage", a.GoPackage)
+	required(p, at+".goPackageAlias", a.GoPackageAlias)
+	required(p, at+".goTypeName", a.GoTypeName)
+	required(p, at+".modelTypeName", a.ModelTypeName)
+
+	if len(a.Schema.Attributes) == 0 {
+		p.add(at+".schema.attributes",
+			"an action with no attributes cannot be emitted: it would have nothing to act on")
+	}
+
+	a.Binding.validate(at+".binding", p)
+
+	seenNames := map[string]bool{}
+	seenFields := map[string]bool{}
+
+	for i, attr := range a.Schema.Attributes {
+		aat := fmt.Sprintf("%s.schema.attributes[%d]", at, i)
+		if attr.Name != "" {
+			aat = fmt.Sprintf("%s.schema.attributes[%s]", at, attr.Name)
+		}
+
+		if attr.Drop {
+			continue
+		}
+
+		attr.validate(aat, p)
+		attr.validateForKind(BlockAction, aat, p)
+
+		dup(p, seenNames, attr.Name, aat+".name", "attribute name")
+		dup(p, seenFields, attr.GoField, aat+".goField", "model field")
+	}
+}
+
+// validate checks an action's binding.
+//
+// One operation and no response model. An action returns nothing to Terraform -- there is no
+// field on InvokeResponse to put a result in -- so whatever the SDK hands back is discarded,
+// and asking for a response type would be asking for something with nowhere to go.
+func (b ActionBinding) validate(at string, p *problems) {
+	required(p, at+".service.importPath", b.Service.ImportPath)
+	required(p, at+".service.typeName", b.Service.TypeName)
+	required(p, at+".service.accessor", b.Service.Accessor)
+
+	if b.Invoke == nil {
+		p.add(at+".invoke", "is required: an action that calls nothing does nothing")
+		return
+	}
+
+	b.Invoke.validate(at+".invoke", p)
 }
 
 // validate checks one data source.

@@ -68,15 +68,29 @@ func (k BlockKind) SupportsDefault() bool { return k == BlockResource }
 // SupportsWriteOnly reports whether this kind's attributes may be write-only.
 func (k BlockKind) SupportsWriteOnly() bool { return k == BlockResource || k == BlockAction }
 
-// Expands reports whether this kind sends attribute values to the API, and so needs an
-// expand conversion on every attribute a practitioner can set.
+// Expands reports whether this kind sends attribute values to the API through a request
+// body, and so needs an expand conversion on every attribute a practitioner can set.
 //
-// Only a resource and an action do. A data source, an ephemeral resource and a list
-// resource read: a settable attribute on one of those is a lookup argument or a filter,
-// which reaches the API as a call argument rather than through a request body. Requiring
-// an expand there would demand a conversion into a body that is never sent.
+// Only a resource. Every other kind's settable attributes reach the API as *call arguments*
+// -- a data source's lookup argument, a list resource's filter, an action's parameters --
+// and requiring an expand there would demand a conversion into a body that is never sent.
+//
+// This was resource-and-action until the first action was generated. An action does send
+// values, which is why it looked like it belonged, but it sends them as arguments: the
+// emitter generates no construct function for an action, so there is no body for an expand
+// to build. An action that genuinely POSTs a payload is a deliberate extension rather than
+// something this should have quietly claimed to support.
 func (k BlockKind) Expands() bool {
-	return k == BlockResource || k == BlockAction
+	return k == BlockResource
+}
+
+// Flattens reports whether this kind reads values back from the API into Terraform.
+//
+// Everything except an action. An action writes nothing back: InvokeResponse has no field to
+// carry a result, so whatever the SDK returns is discarded, and a flatten conversion would be
+// a conversion into somewhere that does not exist.
+func (k BlockKind) Flattens() bool {
+	return k != BlockAction
 }
 
 // validateForKind refuses a field the target block kind has no home for.
@@ -132,12 +146,17 @@ func (a Attribute) validateWireForKind(kind BlockKind, at string, p *problems) {
 	// An attribute the practitioner can set must have a way to reach the API, and one
 	// that is read must have a way back. Catching this here is the difference between a
 	// clear message and a silently inert attribute.
-	if !a.Wire.SkipFlatten && a.Wire.Flatten == nil {
-		p.add(at+".wire.flatten", "is required unless skipFlatten is set")
+	if kind.Flattens() {
+		if !a.Wire.SkipFlatten && a.Wire.Flatten == nil {
+			p.add(at+".wire.flatten", "is required unless skipFlatten is set")
+		}
+	} else if a.Wire.Flatten != nil {
+		p.add(at+".wire.flatten",
+			"is set on a %s attribute, which reads nothing back from the API", kind)
 	}
 
 	if n := a.Type.NestedObject; n != nil {
-		if n.FlattenFunc == "" {
+		if kind.Flattens() && n.FlattenFunc == "" {
 			p.add(at+".type.nested.flattenFunc", "is required")
 		}
 		if kind.Expands() && n.ExpandFunc == "" {

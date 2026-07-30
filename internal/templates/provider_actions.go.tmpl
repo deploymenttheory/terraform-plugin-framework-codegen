@@ -1,0 +1,28 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/action"
+{{- if .Entries }}
+
+{{ .Imports }}
+{{- end }}
+)
+
+// Actions returns every action this provider serves.
+//
+// Declaring this method is what makes the provider satisfy provider.ProviderWithActions, so
+// adding an action needs no hand-written change here.
+//
+// This file is generated in full. Add an action by adding a blueprint and regenerating, not
+// by editing here.
+func (p *Provider) Actions(_ context.Context) []func() action.Action {
+	return []func() action.Action{
+{{- range .Entries }}
+		{{ . }},
+{{- end }}
+	}
+}

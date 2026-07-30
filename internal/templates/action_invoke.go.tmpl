@@ -1,0 +1,45 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.Invoke }}
+)
+
+{{ with .Invoke }}
+// Invoke performs the {{ $.ActionName }} operation.
+//
+// One call, and nothing written back. The SDK's response is deliberately discarded:
+// action.InvokeResponse carries diagnostics and a progress channel, and has no field for a
+// result -- so an action reports that it happened, not what it returned.
+func (a *{{ $.GoTypeName }}) Invoke(ctx context.Context, req action.InvokeRequest, resp *action.InvokeResponse) {
+	var data {{ $.ModelTypeName }}
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "invoking action", map[string]any{"action": ActionName})
+
+	ctx, cancel := context.WithTimeout(ctx, InvokeTimeout*time.Second)
+	defer cancel()
+
+	// Progress is reported before the call rather than after: an action that takes a while
+	// otherwise looks hung, and the practitioner has no other signal that it started.
+	if resp.SendProgress != nil {
+		resp.SendProgress(action.InvokeProgressEvent{
+			Message: "calling the API",
+		})
+	}
+
+	{{ .Assign }} {{ .Call }}
+	if err != nil {
+		errors.Handle(&resp.Diagnostics, ActionName, {{ .ErrorOp }}, err)
+
+		return
+	}
+
+	tflog.Debug(ctx, "action completed", map[string]any{"action": ActionName})
+}
+{{ end }}

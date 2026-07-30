@@ -33,6 +33,12 @@ func FromBlueprint(bp blueprint.Blueprint) (spec.Specification, Report, error) {
 		r.note("source", "source")
 	}
 
+	// Reported once for the kind rather than once per action: the loss is that the format has
+	// no such concept, which is one fact however many actions a blueprint carries.
+	if len(bp.Actions) > 0 {
+		r.note("actionKind", "actions")
+	}
+
 	for _, res := range bp.Resources {
 		if res.Drop {
 			r.Omitted++

@@ -58,6 +58,17 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 				ctor:       "New" + d.GoTypeName,
 			})
 		}
+	case KindActions:
+		for _, a := range bp.Actions {
+			if a.Drop {
+				continue
+			}
+			entries = append(entries, entry{
+				alias:      a.GoPackageAlias,
+				importPath: actionPackagePath(bp, a),
+				ctor:       "New" + a.GoTypeName,
+			})
+		}
 	case KindListResources:
 		// From the resources, not from a list of their own: a list resource is a facet, and
 		// it is registered because the resource it lists declares one. The import is the
@@ -95,6 +106,7 @@ const (
 	KindResources     Kind = "resources"
 	KindDataSources   Kind = "dataSources"
 	KindListResources Kind = "listResources"
+	KindActions       Kind = "actions"
 )
 
 // providerPackage is the Go package name of the provider directory.
@@ -121,6 +133,13 @@ func DataSourceDir(bp blueprint.Blueprint, d blueprint.DataSource) string {
 			nonEmpty(d.ServiceGroup, d.APIVersionDir, d.GoPackage)...)...)
 }
 
+// ActionDir returns the repo-relative directory an action is emitted into.
+func ActionDir(bp blueprint.Blueprint, a blueprint.Action) string {
+	return path.Join(
+		append([]string{root(bp.Provider.Conventions.ActionRoot, "internal/services/actions")},
+			nonEmpty(a.ServiceGroup, a.APIVersionDir, a.GoPackage)...)...)
+}
+
 // ProviderDir returns the repo-relative provider package directory.
 func ProviderDir(bp blueprint.Blueprint) string {
 	return root(bp.Provider.Conventions.ProviderPkgDir, "internal/provider")
@@ -132,6 +151,10 @@ func resourcePackagePath(bp blueprint.Blueprint, r blueprint.Resource) string {
 
 func dataSourcePackagePath(bp blueprint.Blueprint, d blueprint.DataSource) string {
 	return path.Join(bp.Provider.GoModule, DataSourceDir(bp, d))
+}
+
+func actionPackagePath(bp blueprint.Blueprint, a blueprint.Action) string {
+	return path.Join(bp.Provider.GoModule, ActionDir(bp, a))
 }
 
 func root(configured, def string) string {
