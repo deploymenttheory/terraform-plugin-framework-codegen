@@ -52,6 +52,13 @@ type File struct {
 	Path string
 	// Content is the formatted bytes.
 	Content []byte
+
+	// Scaffold marks a file the generator writes once and then never again.
+	//
+	// It is the escape hatch made mechanical. A scaffold carries no generated marker, so it is
+	// not recorded in the manifest and the drift check does not police it: once it exists it
+	// belongs to whoever edits it, and a later emit leaves it exactly as found.
+	Scaffold bool
 }
 
 // SHA256 returns the content digest, which the manifest records so drift can be
@@ -184,6 +191,16 @@ func (g *Generator) resourceFiles(
 		{"list_resource.go", "list_resource.go.tmpl", view.List == nil},
 	}
 
+	// The escape hatches. Scaffolded once and then owned by whoever edits them, which is why
+	// they are a separate list: the loop above produces files the generator keeps writing.
+	scaffolds := []struct {
+		name, tmpl string
+		skip       bool
+	}{
+		{"modify_plan.go", "modify_plan.go.tmpl", !r.Hooks.ModifyPlan},
+		{"predicate.go", "predicate.go.tmpl", !r.Hooks.ReadBackPredicate},
+	}
+
 	out := make([]File, 0, len(wanted))
 	for _, w := range wanted {
 		if w.skip {
@@ -194,6 +211,21 @@ func (g *Generator) resourceFiles(
 			return nil, fmt.Errorf("%s: %w", w.name, err)
 		}
 		out = append(out, File{Path: filepath.Join(dir, w.name), Content: content})
+	}
+
+	for _, w := range scaffolds {
+		if w.skip {
+			continue
+		}
+		content, err := g.renderFile(w.tmpl, view)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", w.name, err)
+		}
+		out = append(out, File{
+			Path:     filepath.Join(dir, w.name),
+			Content:  content,
+			Scaffold: true,
+		})
 	}
 
 	return out, nil
@@ -382,6 +414,8 @@ type WriteOptions struct {
 type WriteResult struct {
 	Written   []string
 	Unchanged []string
+	// Kept are scaffolds that already existed and were deliberately left alone.
+	Kept []string
 }
 
 // Write writes a plan to disk.
@@ -394,6 +428,20 @@ func Write(plan Plan, opts WriteOptions) (WriteResult, error) {
 
 	for _, f := range plan.Files {
 		target := filepath.Join(opts.Root, f.Path)
+
+		// A scaffold that exists is left exactly as found, whatever it now contains. Checked
+		// before reading it, because the content is irrelevant: the only question is whether
+		// somebody already owns this file.
+		//
+		// Distinct from the overwrite refusal below, which is a safety net for a collision
+		// nobody intended. This is intent -- the file is meant to diverge.
+		if f.Scaffold {
+			if _, statErr := os.Stat(target); statErr == nil {
+				res.Kept = append(res.Kept, f.Path)
+
+				continue
+			}
+		}
 
 		existing, err := os.ReadFile(
 			target,

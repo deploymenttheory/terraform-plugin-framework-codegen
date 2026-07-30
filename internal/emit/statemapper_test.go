@@ -1,9 +1,11 @@
 package emit
 
 import (
+	"bytes"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -244,5 +246,130 @@ func TestUnit_Emit_AListFacetEmitsItsFileAndRegistration(t *testing.T) {
 	}
 	if !strings.Contains(registry, ".NewTagListResource") {
 		t.Errorf("the registration should reference the constructor:\n%s", registry)
+	}
+}
+
+// TestUnit_Emit_AScaffoldIsWrittenOnceAndThenKept is the escape hatch's defining property.
+//
+// A scaffold is not "a file the generator has not overwritten yet" -- it is one it will never
+// overwrite. Without that, a practitioner's ModifyPlan would be replaced by the stub on the next
+// emit, or worse, the run would fail with the overwrite refusal and there would be no way to
+// keep the file at all.
+func TestUnit_Emit_AScaffoldIsWrittenOnceAndThenKept(t *testing.T) {
+	t.Parallel()
+
+	g, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	bp := pilotBlueprint(t)
+
+	plan, err := g.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	var scaffolds []string
+	for _, f := range plan.Files {
+		if f.Scaffold {
+			scaffolds = append(scaffolds, f.Path)
+		}
+	}
+	if len(scaffolds) == 0 {
+		t.Skip("the committed pilot blueprint declares no hooks")
+	}
+
+	root := t.TempDir()
+
+	// First write: everything lands, nothing is kept.
+	first, err := Write(plan, WriteOptions{Root: root})
+	if err != nil {
+		t.Fatalf("first Write: %v", err)
+	}
+	if len(first.Kept) != 0 {
+		t.Errorf("nothing exists yet, so nothing should be kept: %v", first.Kept)
+	}
+
+	// Edit one, as a practitioner would.
+	target := filepath.Join(root, scaffolds[0])
+
+	edited := []byte("package tag\n\n// mine\n")
+	if err := os.WriteFile(target, edited, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	// Second write: the edit survives, and the run says so rather than staying silent.
+	second, err := Write(plan, WriteOptions{Root: root})
+	if err != nil {
+		t.Fatalf("second Write: %v", err)
+	}
+
+	got, err := os.ReadFile(target) //nolint:gosec // the path is a test temp dir
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	if !bytes.Equal(got, edited) {
+		t.Errorf("the edit was overwritten:\n%s", got)
+	}
+
+	var reported bool
+	for _, p := range second.Kept {
+		if p == scaffolds[0] {
+			reported = true
+		}
+	}
+	if !reported {
+		t.Errorf("%s should be reported as kept, got %v", scaffolds[0], second.Kept)
+	}
+	for _, p := range second.Written {
+		if p == scaffolds[0] {
+			t.Errorf("%s was rewritten", p)
+		}
+	}
+}
+
+// TestUnit_Emit_AScaffoldCarriesNoGeneratedMarker.
+//
+// The marker is what the drift check and the overwrite refusal both key on. A scaffold carrying
+// one would be policed as generated code, which is the opposite of the point -- and the
+// manifest excluding it is only half the job if the file still announces itself as generated.
+func TestUnit_Emit_AScaffoldCarriesNoGeneratedMarker(t *testing.T) {
+	t.Parallel()
+
+	g, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	plan, err := g.Build(pilotBlueprint(t), Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	var checked int
+
+	for _, f := range plan.Files {
+		if !f.Scaffold {
+			// And the converse: everything the generator owns must carry it.
+			if !bytes.Contains(f.Content, []byte(generatedMarker)) {
+				t.Errorf("%s is generated but carries no marker", f.Path)
+			}
+
+			continue
+		}
+
+		checked++
+
+		if bytes.Contains(f.Content, []byte(generatedMarker)) {
+			t.Errorf("%s is a scaffold and must not carry the generated marker", f.Path)
+		}
+		if !bytes.Contains(f.Content, []byte("This file is yours")) {
+			t.Errorf("%s should say plainly that it is not regenerated", f.Path)
+		}
+	}
+
+	if checked == 0 {
+		t.Skip("the committed pilot blueprint declares no hooks")
 	}
 }

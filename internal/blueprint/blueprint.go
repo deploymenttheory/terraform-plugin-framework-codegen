@@ -198,6 +198,17 @@ type Resource struct {
 	// one.
 	Identity *ResourceIdentity `json:"identity,omitempty"`
 
+	// ConfigValidators are cross-attribute rules, which no per-attribute validator can
+	// express: they compare one attribute against another.
+	//
+	// Rendered into the resource's own ConfigValidators method, so they run once per plan
+	// rather than once per attribute -- and the diagnostic names the block rather than a
+	// field, which is what a rule about two fields should do.
+	ConfigValidators []ConfigValidator `json:"configValidators,omitempty"`
+
+	// Hooks are the hand-written seams this resource opts into.
+	Hooks Hooks `json:"hooks,omitzero"`
+
 	// List is the list-resource facet, which backs `terraform query` and feeds
 	// `terraform plan -generate-config-out`.
 	//
@@ -427,6 +438,58 @@ type Constraints struct {
 
 // IsZero reports whether the specification declared no bounds at all.
 func (c Constraints) IsZero() bool { return c == Constraints{} }
+
+// ConfigValidatorKind is a cross-attribute rule the framework provides.
+type ConfigValidatorKind string
+
+const (
+	// ConfigConflicting refuses a configuration setting more than one of the attributes.
+	ConfigConflicting ConfigValidatorKind = "conflicting"
+	// ConfigAtLeastOneOf requires at least one to be set.
+	ConfigAtLeastOneOf ConfigValidatorKind = "atLeastOneOf"
+	// ConfigExactlyOneOf requires exactly one.
+	ConfigExactlyOneOf ConfigValidatorKind = "exactlyOneOf"
+	// ConfigRequiredTogether requires all or none.
+	ConfigRequiredTogether ConfigValidatorKind = "requiredTogether"
+)
+
+// ConfigValidator is one cross-attribute rule.
+//
+// Deliberately a fixed set of kinds rather than free-form code. The four the framework
+// provides cover what a specification can actually state about two fields, and a rule needing
+// more than that is judgement rather than schema -- which is what Hooks.ModifyPlan is for.
+type ConfigValidator struct {
+	Kind ConfigValidatorKind `json:"kind"`
+
+	// Attributes are the top-level attribute names the rule relates, rendered as
+	// path.MatchRoot expressions. At least two: a cross-attribute rule over one attribute is
+	// a per-attribute validator written in the wrong place.
+	Attributes []string `json:"attributes"`
+}
+
+// Hooks are the hand-written files a resource opts into.
+//
+// Each is scaffolded once and then owned by whoever edits it -- `emit` never writes over one
+// that exists. The flag lives in the blueprint rather than being inferred from the file being
+// present, because generated code has to agree with it: an interface assertion or a call to
+// the hook is emitted only when the flag is set, so a scaffold deleted by hand takes the
+// generated reference with it instead of leaving a package that does not compile.
+type Hooks struct {
+	// ModifyPlan scaffolds modify_plan.go and makes the resource assert
+	// ResourceWithModifyPlan. The reference provider carries one in 93 of 167 packages,
+	// frequently as a deliberate stub.
+	ModifyPlan bool `json:"modifyPlan,omitempty"`
+
+	// ReadBackPredicate scaffolds predicate.go and makes the generated read-after-write ask
+	// it whether the write has landed, rather than only whether the object is readable.
+	//
+	// Which field an API touches on write is API-specific and sometimes resource-specific, so
+	// it cannot be generated. 28 of the reference provider's 167 resources carry one.
+	ReadBackPredicate bool `json:"readBackPredicate,omitempty"`
+}
+
+// IsZero reports whether the resource opts into no hand-written seams.
+func (h Hooks) IsZero() bool { return h == Hooks{} }
 
 // ListFacet makes a resource list-supporting.
 //

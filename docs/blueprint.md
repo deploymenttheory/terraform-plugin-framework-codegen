@@ -241,6 +241,52 @@ invisible consequence of a rename of the Terraform type.
 `serviceGroup` and `apiVersionDir` place the package on disk:
 `<resourceRoot>/<serviceGroup>/<apiVersionDir>/<goPackage>`.
 
+### `configValidators` and `hooks`
+
+Two fields for the things a single attribute cannot express.
+
+`configValidators` declares cross-attribute rules, rendered into a
+`ConfigValidators` method. `kind` is one of `conflicting`, `atLeastOneOf`,
+`exactlyOneOf`, `requiredTogether` — matching `resourcevalidator` — over two or
+more `attributes` named as they are in the schema:
+
+```json
+"configValidators": [
+  { "kind": "conflicting", "attributes": ["assignments", "filters"] }
+]
+```
+
+These live on the resource rather than on an attribute because that is what they
+are about: a rule relating two fields has no single field to hang off, and the
+diagnostic should name the block. Validation is unusually strict here for one
+reason — every mistake compiles. `path.MatchRoot` takes any string, so a rule
+naming an attribute that does not exist builds and then never fires. An unknown
+name, a duplicate, or fewer than two attributes are all refused.
+
+Two further refusals come from what a member can hold *in configuration*, since
+that is what `resourcevalidator` reads:
+
+- A **`computed`** member cannot be set at all, so its config value is always
+  null and it can never participate. The rule then relates one fewer attribute
+  than it names.
+- A **`required`** member is always set, which decides `atLeastOneOf` (satisfied
+  by every configuration) and `exactlyOneOf` (it stops choosing between the
+  members and instead forbids all the others — which is what `conflicting` says
+  plainly). `conflicting` and `requiredTogether` stay meaningful over a required
+  member and are allowed.
+
+`computed_optional` — what the pilot uses — is accepted by all four.
+
+`hooks` asks for a hand-written file to be scaffolded:
+
+```json
+"hooks": { "modifyPlan": true, "readBackPredicate": true }
+```
+
+Each scaffolded file is written once and then owned by whoever edits it. See
+[the generated boundary](generated-boundary.md) for how that ownership is
+enforced, and why the read-back predicate is a hook rather than generated.
+
 ## Schema
 
 Attributes hang off a `schema` object rather than off the block directly, because the

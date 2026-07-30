@@ -84,13 +84,20 @@ func runVerify(args []string) error {
 		return err
 	}
 
+	checked := 0
+	for _, f := range plan.Files {
+		if !f.Scaffold {
+			checked++
+		}
+	}
+
 	if res.clean() {
 		if !res.checkedOrphans {
 			log.Printf("✅ %d generated file(s) match their blueprints "+
-				"(no manifest present, so orphans were not checked)", len(plan.Files))
+				"(no manifest present, so orphans were not checked)", checked)
 			return nil
 		}
-		log.Printf("✅ %d generated file(s) match their blueprints, with no orphans", len(plan.Files))
+		log.Printf("✅ %d generated file(s) match their blueprints, with no orphans", checked)
 		return nil
 	}
 
@@ -119,6 +126,14 @@ func compareAgainstDisk(plan emit.Plan, out string) (verifyResult, error) {
 	produced := make(map[string]bool, len(plan.Files))
 
 	for _, f := range plan.Files {
+		// A scaffold is not compared and not counted as produced. It belongs to whoever edits
+		// it, so an edit is not drift and its absence from a later plan is not an orphan --
+		// which is exactly the difference between an escape hatch and a file the generator
+		// merely has not overwritten yet.
+		if f.Scaffold {
+			continue
+		}
+
 		produced[filepath.ToSlash(f.Path)] = true
 
 		target := filepath.Join(out, f.Path)
