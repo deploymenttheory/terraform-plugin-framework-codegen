@@ -140,6 +140,12 @@ type Result struct {
 	// Ignored counts facts too weak to act on, so a report distinguishes "nothing was
 	// observed" from "nothing observed was strong enough".
 	Ignored int `json:"ignored,omitempty"`
+	// Conditional counts facts held back because they hold only under a precondition.
+	//
+	// Separate from Ignored, which would be the wrong word: these are strong enough to act on
+	// and were withheld because Behaviour cannot express the condition, not because the
+	// evidence was weak. A reader deciding whether to trust a schema needs to tell those apart.
+	Conditional int `json:"conditional,omitempty"`
 	// Recommendations are things a human may want to do that merge will not do itself --
 	// notably RequiresReplace, which is always a decision about somebody's infrastructure.
 	Recommendations []string `json:"recommendations,omitempty"`
@@ -294,6 +300,17 @@ func applyToAttribute(
 	}
 }
 
+// conditionalObservation is how a withheld fact reads in an attribute's description.
+//
+// The condition comes first, because that is the part a reader needs before the claim means
+// anything -- "matchType is not returned on read" is wrong, and "when objectType is
+// endpoint-agent, matchType is not returned on read" is right.
+func conditionalObservation(f probe.Fact) string {
+	return fmt.Sprintf("Conditionally, %s: %s. Not applied to the schema, because this holds "+
+		"only under that condition and the schema has no way to say so.",
+		f.Because(), f.Rationale)
+}
+
 // applyAttributeFacts is one case per fact field, deliberately.
 //
 // The complexity is the arity of the fact vocabulary, not tangled control flow: every branch is
@@ -323,6 +340,25 @@ func applyAttributeFacts(
 		// claim there that no sequence actually supports.
 		if !f.Confidence.AtLeast(probe.Inferred) {
 			result.Ignored++
+			continue
+		}
+
+		// A conditional fact is recorded and not applied, and this is the guard that fixes the
+		// class of bug the phase exists for.
+		//
+		// Behaviour is unconditional: one Writable, one ReturnedOnRead, one RejectedValues per
+		// attribute. Writing a fact that holds only under a precondition into one of those
+		// fields makes it a claim about every case -- which is exactly how the pilot came to
+		// suppress matchType's read-back for every tag on the strength of an observation about
+		// static ones, and how endpoint-agent came to sit in objectType's rejected set.
+		//
+		// So it goes into the description with its condition stated, where a person reads it and
+		// nothing generates from it. That is strictly better than both alternatives: applying it
+		// is the bug, and dropping it silently loses evidence somebody paid a live run for.
+		if f.Conditional() {
+			observations = append(observations, conditionalObservation(f))
+			result.Conditional++
+
 			continue
 		}
 
