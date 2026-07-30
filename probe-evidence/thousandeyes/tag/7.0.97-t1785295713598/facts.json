@@ -149,27 +149,6 @@
   {
     "resource": "tag",
     "jsonPath": "accessType",
-    "field": "valuesClosed",
-    "value": {
-      "bool": true
-    },
-    "confidence": "observed",
-    "probe": "write.enum",
-    "evidence": [
-      "070-post-v7-tags",
-      "071-post-v7-tags",
-      "072-post-v7-tags",
-      "073-post-v7-tags",
-      "074-post-v7-tags"
-    ],
-    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
-    "alternatives": [
-      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
-    ]
-  },
-  {
-    "resource": "tag",
-    "jsonPath": "accessType",
     "field": "rejectedValues",
     "value": {
       "list": [
@@ -218,6 +197,27 @@
       "025-get-v7-tags-caff936a-11ae-459b-a6e2-03ac40772ad1"
     ],
     "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "accessType",
+    "field": "valuesClosed",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "070-post-v7-tags",
+      "071-post-v7-tags",
+      "072-post-v7-tags",
+      "073-post-v7-tags",
+      "074-post-v7-tags"
+    ],
+    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+    "alternatives": [
+      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+    ]
   },
   {
     "resource": "tag",
@@ -548,26 +548,6 @@
   {
     "resource": "tag",
     "jsonPath": "matchType",
-    "field": "valuesClosed",
-    "value": {
-      "bool": true
-    },
-    "confidence": "observed",
-    "probe": "write.enum",
-    "evidence": [
-      "076-post-v7-tags",
-      "077-post-v7-tags",
-      "078-post-v7-tags",
-      "079-post-v7-tags"
-    ],
-    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
-    "alternatives": [
-      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
-    ]
-  },
-  {
-    "resource": "tag",
-    "jsonPath": "matchType",
     "field": "returnedOnRead",
     "value": {
       "bool": false
@@ -607,6 +587,26 @@
   },
   {
     "resource": "tag",
+    "jsonPath": "matchType",
+    "field": "valuesClosed",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "076-post-v7-tags",
+      "077-post-v7-tags",
+      "078-post-v7-tags",
+      "079-post-v7-tags"
+    ],
+    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+    "alternatives": [
+      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+    ]
+  },
+  {
+    "resource": "tag",
     "jsonPath": "objectType",
     "field": "acceptedValues",
     "value": {
@@ -631,56 +631,6 @@
       "088-post-v7-tags"
     ],
     "rationale": "5 of the 6 documented value(s) were accepted on create"
-  },
-  {
-    "resource": "tag",
-    "jsonPath": "objectType",
-    "field": "valuesClosed",
-    "value": {
-      "bool": true
-    },
-    "confidence": "observed",
-    "probe": "write.enum",
-    "evidence": [
-      "081-post-v7-tags",
-      "082-post-v7-tags",
-      "083-post-v7-tags",
-      "084-post-v7-tags",
-      "085-post-v7-tags",
-      "086-post-v7-tags",
-      "087-post-v7-tags",
-      "088-post-v7-tags"
-    ],
-    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
-    "alternatives": [
-      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
-    ]
-  },
-  {
-    "resource": "tag",
-    "jsonPath": "objectType",
-    "field": "rejectedValues",
-    "value": {
-      "list": [
-        "endpoint-agent"
-      ]
-    },
-    "confidence": "observed",
-    "probe": "write.enum",
-    "evidence": [
-      "081-post-v7-tags",
-      "082-post-v7-tags",
-      "083-post-v7-tags",
-      "084-post-v7-tags",
-      "085-post-v7-tags",
-      "086-post-v7-tags",
-      "087-post-v7-tags",
-      "088-post-v7-tags"
-    ],
-    "rationale": "the specification documents test, dashboard, endpoint-test, v-agent, connected-devices-test, endpoint-agent but this API refused endpoint-agent",
-    "alternatives": [
-      "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
-    ]
   },
   {
     "resource": "tag",
@@ -729,6 +679,30 @@
       "025-get-v7-tags-caff936a-11ae-459b-a6e2-03ac40772ad1"
     ],
     "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "objectType",
+    "field": "valuesClosed",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "081-post-v7-tags",
+      "082-post-v7-tags",
+      "083-post-v7-tags",
+      "084-post-v7-tags",
+      "085-post-v7-tags",
+      "086-post-v7-tags",
+      "087-post-v7-tags",
+      "088-post-v7-tags"
+    ],
+    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+    "alternatives": [
+      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+    ]
   },
   {
     "resource": "tag",

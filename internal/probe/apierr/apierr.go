@@ -183,6 +183,27 @@ func (e Error) Names(field string) bool {
 		return false
 	}
 
+	// Where the error blames fields explicitly, that list is authoritative and prose is not.
+	//
+	// A live run recorded exactly why this matters. The prober varied `objectType`, the API
+	// answered "type: Static tags are not supported for the provided object type", and the loose
+	// match below said yes -- because "object" and "type" appear next to each other in the prose.
+	// The refusal was about `type`, so `endpoint-agent` was recorded as a rejected documented
+	// value at Observed confidence, and it is a perfectly good object type.
+	//
+	// Adjacency is not enough to separate those: "the provided object type" is contiguous. What
+	// separates them is that this API, like most, prefixes the offending field and a colon.
+	if blamed := e.blamedFields(); len(blamed) > 0 {
+		needle := strings.Join(want, "")
+		for _, b := range blamed {
+			if strings.Join(words(b), "") == needle {
+				return true
+			}
+		}
+
+		return false
+	}
+
 	for _, haystack := range []string{e.Detail, e.Message, e.Code} {
 		if containsWords(words(haystack), want) {
 			return true
@@ -190,6 +211,39 @@ func (e Error) Names(field string) bool {
 	}
 
 	return false
+}
+
+// blamedFields are the field names this error names explicitly, empty when it names none.
+//
+// The shape is "field: explanation", one per line, which is what every validation failure this
+// project has seen looks like:
+//
+//	value: value for the label cannot be null
+//	accessType: You need to provide the accessType for the tag. It cannot be null or empty
+//
+// Only a single unbroken token before the colon counts. "Request validation failed. There are
+// invalid or missing fields" has no colon-prefixed token and yields nothing, which is correct --
+// it blames nobody, so the prose fallback should decide.
+func (e Error) blamedFields() []string {
+	var out []string
+
+	for _, text := range []string{e.Detail, e.Message} {
+		for _, line := range strings.Split(text, "\n") {
+			name, _, found := strings.Cut(line, ":")
+			if !found {
+				continue
+			}
+
+			name = strings.TrimSpace(name)
+			if name == "" || strings.ContainsAny(name, " \t.") {
+				continue
+			}
+
+			out = append(out, name)
+		}
+	}
+
+	return out
 }
 
 // words splits a string into lower-case alphanumeric words, breaking on camelCase humps as well as
