@@ -14,6 +14,10 @@ resource "thousandeyes_tag" "test" {
   # input rather than a contract.
   #
   # object_type: observed accepted; the API refused endpoint-agent
+  #
+  # access_type: observed accepted; the API refused system
   key         = "tfacc-key"
+  value       = "tfacc-value"
   object_type = "test"
+  access_type = "all"
 }

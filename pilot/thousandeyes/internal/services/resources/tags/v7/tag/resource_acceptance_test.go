@@ -50,9 +50,11 @@ func TestAccResourceTag_01_Lifecycle(t *testing.T) {
 					check.That(address).ExistsInAPI(testResource),
 					check.That(address).Key("id").Exists(),
 					check.That(address).Key("key").HasValue("tfacc-key"),
+					check.That(address).Key("value").HasValue("tfacc-value"),
 					check.That(address).Key("color").HasValue("#A7EB10"),
 					check.That(address).Key("icon").HasValue("LABEL"),
 					check.That(address).Key("object_type").HasValue("test"),
+					check.That(address).Key("access_type").HasValue("all"),
 				),
 			},
 			// Import, then compare every attribute against the state the apply produced.

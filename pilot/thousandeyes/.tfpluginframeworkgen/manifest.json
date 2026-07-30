@@ -104,7 +104,7 @@
     },
     {
       "path": "internal/services/resources/tags/v7/tag/resource_acceptance_test.go",
-      "sha256": "35d6047adecf189daf1be427d33748019e99b19a92b490efd97fc3b5245b2308",
+      "sha256": "9e77ae8b8723f534df2cf7dd1373e34f9fd55d65eb597db36f0c335135bc63b4",
       "blueprint": "blueprints/thousandeyes"
     },
     {
@@ -119,7 +119,7 @@
     },
     {
       "path": "internal/services/resources/tags/v7/tag/testdata/minimal.tf",
-      "sha256": "bc0651d6cee94c7373818cb0675057aa42eee5669e3532398977df1570dc92a1",
+      "sha256": "3b496e16f4a2db31eb50ff896140dbd7dce9a6bc6794d1a1790d1cd4d5216686",
       "blueprint": "blueprints/thousandeyes"
     }
   ]

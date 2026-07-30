@@ -284,3 +284,60 @@ func TestUnit_Render_OnlyTheMinimalFixtureCarriesAGeneratedMarker(t *testing.T) 
 		t.Errorf("the scaffolded fixture must carry no header: %q", maximal.Header)
 	}
 }
+
+// TestUnit_Render_AMinimalFixtureIncludesWhatTheAPIRequires.
+//
+// "Minimal" means the smallest configuration that works, not the smallest the schema permits.
+// Those differ whenever the API enforces a field the specification does not declare, and the
+// first live acceptance run is what proved it: the pilot's minimal fixture set only the two
+// attributes marked required, and POST /tags answered "value for the label cannot be null" and
+// "You need to provide the accessType for the tag".
+//
+// Both were already recorded as requiredByApi in the committed blueprint, corroborated, from a
+// probe run months earlier. This test is what stops that evidence going unread again.
+func TestUnit_Render_AMinimalFixtureIncludesWhatTheAPIRequires(t *testing.T) {
+	t.Parallel()
+
+	yes := true
+
+	// Optional per the specification, enforced by the API.
+	enforced := attr("value", blueprint.KindString, blueprint.Optional)
+	enforced.Behaviour.RequiredByAPI = &yes
+
+	// Optional-and-computed, also enforced. The pilot's access_type is this shape, and it is the
+	// one most likely to be assumed safe to omit.
+	enforcedComputed := attr("access_type", blueprint.KindString, blueprint.ComputedOptional)
+	enforcedComputed.Behaviour.RequiredByAPI = &yes
+
+	bp, r := fixtureResource(
+		attr("key", blueprint.KindString, blueprint.Required),
+		enforced,
+		enforcedComputed,
+		attr("description", blueprint.KindString, blueprint.Optional),
+	)
+
+	minimal, err := fixtureView(bp, r, "", true)
+	if err != nil {
+		t.Fatalf("fixtureView: %v", err)
+	}
+
+	got := names(minimal.Values)
+	for _, want := range []string{"key", "value", "access_type"} {
+		var found bool
+		for _, g := range got {
+			if g == want {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%s must be in the minimal fixture, got %v", want, got)
+		}
+	}
+
+	// And a genuinely optional attribute stays out, or "minimal" has stopped meaning anything.
+	for _, g := range got {
+		if g == "description" {
+			t.Errorf("an attribute neither required nor API-enforced should stay out: %v", got)
+		}
+	}
+}

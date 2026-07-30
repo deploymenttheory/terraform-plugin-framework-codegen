@@ -158,15 +158,37 @@ func alignNames(values []fixtureValue) {
 //
 // A purely computed attribute never does: it cannot be set in configuration, so writing it
 // would be invalid HCL rather than merely redundant.
+//
+// "Minimal" means the smallest configuration that *works*, not the smallest the schema permits.
+// Those differ whenever the API enforces a field the specification does not declare, and the
+// first live acceptance run is what proved it. The pilot's minimal fixture set only `key` and
+// `object_type` -- the two the specification marks required -- and POST /tags answered:
+//
+//	value: value for the label cannot be null
+//	accessType: You need to provide the accessType for the tag. It cannot be null or empty
+//
+// Both were already recorded as `requiredByApi: true` in the committed blueprint, corroborated,
+// from a probe run months earlier. The evidence was gathered, stored, and not consulted -- the
+// same shape as ReadBack in 5.5, the never-returned flatten in 6.3 and Schema.Version in 6.4.
+//
+// Note this reads Behaviour rather than promoting the attribute to Required in the schema.
+// Promoting changes what a practitioner may write with no workaround, so merge deliberately
+// refuses to do it automatically and records the observation in the description instead. A
+// fixture has no such constraint: it is an input, and it either works or wastes a live run.
 func fixtureWants(a blueprint.Attribute, minimal bool) bool {
 	if a.ComputedOptionalRequired == blueprint.Computed {
 		return false
 	}
 	if minimal {
-		return a.ComputedOptionalRequired == blueprint.Required
+		return a.ComputedOptionalRequired == blueprint.Required || requiredByAPI(a)
 	}
 
 	return true
+}
+
+// requiredByAPI reports whether the prober watched the API reject a request omitting this field.
+func requiredByAPI(a blueprint.Attribute) bool {
+	return a.Behaviour.RequiredByAPI != nil && *a.Behaviour.RequiredByAPI
 }
 
 // fixtureValueFor derives one attribute's test value.
