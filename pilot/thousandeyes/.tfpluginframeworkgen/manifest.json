@@ -106,6 +106,16 @@
       "path": "internal/services/resources/tags/v7/tag/state.go",
       "sha256": "991e8c3a86a5de2f29c524f79b3fe094fcd014d6234b3520acfb3c8388bef0f1",
       "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/test_helper_test.go",
+      "sha256": "b78a705691bed6e47b3661ced562424ebf294871a2ad0b7af460b4fe26e21191",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/testdata/minimal.tf",
+      "sha256": "bc0651d6cee94c7373818cb0675057aa42eee5669e3532398977df1570dc92a1",
+      "blueprint": "blueprints/thousandeyes"
     }
   ]
 }

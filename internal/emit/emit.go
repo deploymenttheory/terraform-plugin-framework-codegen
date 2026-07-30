@@ -228,7 +228,87 @@ func (g *Generator) resourceFiles(
 		})
 	}
 
+	acc, err := g.acceptanceFiles(bp, r, ropts, dir)
+	if err != nil {
+		return nil, err
+	}
+	out = append(out, acc...)
+
 	return out, nil
+}
+
+// acceptanceFiles renders the test helper and the two HCL fixtures.
+//
+// Separate from resourceFiles' own lists because these are not all one kind of file: the helper
+// and the minimal fixture are generated and policed, and the maximal fixture is a scaffold.
+//
+// A resource that cannot produce them is not a failure. A read call an acceptance check has no
+// arguments for, or a required attribute with no derivable value, are both refusals with a stated
+// reason -- and refusing the test while still emitting a working resource is better than refusing
+// both. The reason is surfaced by `emit -v` rather than swallowed.
+func (g *Generator) acceptanceFiles(
+	bp blueprint.Blueprint,
+	r blueprint.Resource,
+	ropts render.Options,
+	dir string,
+) ([]File, error) {
+	var out []File
+
+	helper, err := render.TestHelper(bp, r, ropts)
+	if err != nil {
+		if unsupported(err) {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("test helper: %w", err)
+	}
+
+	content, err := g.renderFile("test_helper_test.go.tmpl", helper)
+	if err != nil {
+		return nil, fmt.Errorf("test_helper_test.go: %w", err)
+	}
+	out = append(out, File{Path: filepath.Join(dir, "test_helper_test.go"), Content: content})
+
+	fixtures := []struct {
+		name     string
+		tmpl     string
+		minimal  bool
+		scaffold bool
+	}{
+		{"minimal.tf", "fixture_minimal.tf.tmpl", true, false},
+		{"maximal.tf", "fixture_maximal.tf.tmpl", false, true},
+	}
+
+	for _, f := range fixtures {
+		view, vErr := render.Fixture(bp, r, ropts, f.minimal)
+		if vErr != nil {
+			if unsupported(vErr) {
+				continue
+			}
+
+			return nil, fmt.Errorf("%s: %w", f.name, vErr)
+		}
+
+		body, rErr := g.renderFile(f.tmpl, view)
+		if rErr != nil {
+			return nil, fmt.Errorf("%s: %w", f.name, rErr)
+		}
+
+		out = append(out, File{
+			Path:     filepath.Join(dir, "testdata", f.name),
+			Content:  body,
+			Scaffold: f.scaffold,
+		})
+	}
+
+	return out, nil
+}
+
+// unsupported reports whether an error is a stated refusal rather than a fault.
+func unsupported(err error) bool {
+	var u *render.ErrUnsupported
+
+	return errors.As(err, &u)
 }
 
 // dataSourceFiles renders the four files that make up one data source.
@@ -339,10 +419,19 @@ func (g *Generator) registrationFiles(
 }
 
 // renderFile executes one template and formats the result.
+//
+// Go output goes through gofumpt; anything else is emitted as the template wrote it. The
+// distinction comes from the template's own name rather than a flag at each call site, because a
+// caller that forgot the flag would hand HCL to a Go parser and get an error about the language
+// instead of about the mistake.
 func (g *Generator) renderFile(name string, data any) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := g.tmpl.ExecuteTemplate(&buf, name, data); err != nil {
 		return nil, fmt.Errorf("rendering %s: %w", name, err)
+	}
+
+	if !strings.HasSuffix(name, ".go.tmpl") {
+		return buf.Bytes(), nil
 	}
 
 	formatted, err := formatGo(buf.Bytes())
