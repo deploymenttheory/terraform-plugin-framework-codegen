@@ -175,7 +175,7 @@ What makes it worth validating is that every mistake here **compiles**.
 does not declare builds cleanly and then never fires for the lifetime of the
 provider — a blueprint claiming a constraint that is not being enforced. So
 `blueprint.Validate` refuses an unknown attribute name, a duplicate one, and
-fewer than two attributes (over one, `exactlyOneOf` is `Required` spelt at
+fewer than two attributes (over one, `exactlyOneOf` is `Required` spelled at
 length).
 
 `interop export` reports both `configValidators` and `hooks` as dropped.

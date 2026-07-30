@@ -2541,15 +2541,22 @@ func (p normalisation) compare(
 		})
 
 		if identified {
-			// Named in the framework's own terms, because that is what a provider author reaches
-			// for: an attribute whose stored form differs from the configured one needs a
-			// semantic-equality implementation, not a runtime helper that re-sorts on every read.
+			// Named in the layer a provider author actually reaches for. This note used to point
+			// at semantic equality on a custom type, which is the framework's most precise
+			// answer and almost nobody's: the reference provider -- 167 resources -- implements
+			// CustomType zero times and StringSemanticEquals zero times, and solves exactly this
+			// problem with plan modifiers instead. Pointing at the mechanism nobody uses reads
+			// as a recommendation to go and build one.
 			out.Notes = append(out.Notes, Note{
 				Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
 				Message: "this is the direct cause of a perpetual diff: the practitioner writes " +
-					"one value and the API stores another. terraform-plugin-framework's " +
-					"semantic-equality interface on a custom type is where that is suppressed " +
-					"properly; a helper that re-sorts on every read is the wrong layer",
+					"one value and the API stores another. Suppress it with a plan modifier on " +
+					"this attribute that applies the same transformation to the planned value, " +
+					"so the plan already says what the API will store. A custom type " +
+					"implementing the framework's semantic-equality interface is the more " +
+					"precise answer and is worth it for a type used widely; re-sorting or " +
+					"re-casing inside the state mapper on every read is the wrong layer either " +
+					"way, because it hides the difference rather than planning for it",
 			})
 		}
 	}

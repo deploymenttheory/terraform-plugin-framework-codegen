@@ -18,14 +18,14 @@ Every arrow's output is a committed, reviewable artefact. That is deliberate: a
 pipeline whose intermediate state lives only in memory can only be reviewed by
 reading its output, and its output is thousands of lines of generated Go.
 
-Stages marked *planned* are designed for but not built.
+Every stage is built, and each is a subcommand of the one binary.
 
 | Stage | Package | State |
 |---|---|---|
-| `specs` — fetch and pin an OpenAPI snapshot | `internal/specstore` | planned (Phase 2) |
-| `ingest` — OpenAPI → blueprint | `internal/ingest/openapi` | planned (Phase 2) |
-| `probe` — live API → behaviour facts | `internal/probe` | planned (Phase 4) |
-| `merge` — fold facts into a blueprint | `internal/blueprint/merge` | planned (Phase 4) |
+| `specs` — fetch and pin an OpenAPI snapshot | `internal/specstore` | **built** |
+| `ingest` — OpenAPI → blueprint | `internal/ingest/openapi` | **built** |
+| `probe` — live API → behaviour facts | `internal/probe` | **built** (record and replay) |
+| `merge` — fold facts into a blueprint | `internal/blueprint/merge` | **built** |
 | `emit` — blueprint → provider | `internal/emit`, `internal/render`, `internal/templates` | **built** |
 | `verify` — fail on drift | `cmd/tfpluginframeworkgen/verify.go`, `internal/manifest` | **built** |
 | `bindings` — type-check bindings against the SDK | `internal/sdkbind` | **built** |
