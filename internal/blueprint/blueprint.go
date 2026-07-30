@@ -41,6 +41,7 @@ type Blueprint struct {
 	Provider Provider `json:"provider,omitzero"`
 
 	Resources   []Resource   `json:"resources,omitempty"`
+	Actions     []Action     `json:"actions,omitempty"`
 	DataSources []DataSource `json:"dataSources,omitempty"`
 
 	Source SourceInfo `json:"source,omitzero"`
@@ -117,6 +118,8 @@ type SDKModule struct {
 type Conventions struct {
 	ResourceRoot   string `json:"resourceRoot,omitempty"`
 	DataSourceRoot string `json:"dataSourceRoot,omitempty"`
+	// ActionRoot is where action packages live. Defaults to internal/services/actions.
+	ActionRoot     string `json:"actionRoot,omitempty"`
 	ProviderPkgDir string `json:"providerPkgDir,omitempty"`
 
 	DefaultTimeouts Timeouts `json:"defaultTimeouts,omitzero"`
@@ -236,6 +239,55 @@ type DataSource struct {
 	Timeouts Timeouts `json:"timeouts,omitzero"`
 
 	Drop bool `json:"drop,omitempty"`
+}
+
+// Action is one Terraform action: an imperative operation with no state.
+//
+// The third most-used block kind in terraform-provider-microsoft365 -- 43 of them, against
+// 4 list resources -- and the simplest, because an action has nothing to reconcile. It reads
+// configuration, calls the API once and reports what happened; InvokeRequest carries only a
+// config and InvokeResponse returns no value at all.
+//
+// That absence of state is why an action attribute cannot be Computed or Sensitive, which
+// BlockAction already encodes: there is no state for a computed value to live in, and no
+// stored value to mark sensitive.
+type Action struct {
+	Key            string `json:"key"`
+	Name           string `json:"name"`
+	GoPackage      string `json:"goPackage"`
+	GoPackageAlias string `json:"goPackageAlias"`
+	GoTypeName     string `json:"goTypeName"`
+	// ModelTypeName is the struct the action decodes its configuration into. Named for what
+	// it is rather than "state", which an action does not have.
+	ModelTypeName string `json:"modelTypeName"`
+
+	ServiceGroup  string `json:"serviceGroup,omitempty"`
+	APIVersionDir string `json:"apiVersionDir,omitempty"`
+
+	DocRefURL string `json:"docRefUrl,omitempty"`
+
+	Schema Schema `json:"schema"`
+
+	Binding ActionBinding `json:"binding"`
+
+	// Timeouts carries only an invoke deadline that is ever read. Modelled with the shared
+	// Timeouts type rather than a bespoke one so Conventions.DefaultTimeouts stays a single
+	// shape; CreateSeconds is the field it uses, since an invoke is a write.
+	Timeouts Timeouts `json:"timeouts,omitzero"`
+
+	Drop bool `json:"drop,omitempty"`
+}
+
+// ActionBinding is the single SDK call an action makes.
+//
+// One operation, and no response model: an action returns nothing to Terraform, so whatever
+// the SDK hands back is discarded. That is not a simplification -- InvokeResponse has no
+// field to put a result in.
+type ActionBinding struct {
+	Service ServiceRef `json:"service"`
+
+	// Invoke is the call. Required.
+	Invoke *Operation `json:"invoke,omitempty"`
 }
 
 // ComputedOptionalRequired is how Terraform treats an attribute. The four values are spelled

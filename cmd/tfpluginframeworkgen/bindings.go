@@ -38,7 +38,21 @@ func runBindings(args []string) error {
 		return err
 	}
 
-	log.Printf("verifying %d resource binding set(s) against the SDK pinned by %s", len(bp.Resources), *module)
+	// Counted per kind rather than as one number, because this said "resource binding
+	// set(s)" while verifying only resources -- so a blueprint whose data sources and actions
+	// were entirely unchecked still reported a reassuring count.
+	lists := 0
+	for _, r := range bp.Resources {
+		if r.List != nil {
+			lists++
+		}
+	}
+
+	log.Printf(
+		"verifying bindings against the SDK pinned by %s: "+
+			"%d resource(s), %d data source(s), %d list facet(s), %d action(s)",
+		*module, len(bp.Resources), len(bp.DataSources), lists, len(bp.Actions),
+	)
 
 	report := sdkbind.Verify(sdkbind.NewLoader(*module), bp)
 

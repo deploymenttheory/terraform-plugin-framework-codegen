@@ -12,7 +12,8 @@ to do when a file genuinely cannot be generated.
 | `internal/services/**/predicate.go` | **you** | editing it — see the note on the consistency predicate |
 | `internal/services/datasources/**/{datasource,model,read,state}.go` | toolkit | editing the blueprint, then `emit` |
 | `internal/services/**/{modify_plan,validate}.go` | **you** | editing them; `emit` never touches them again |
-| `internal/provider/{resources,datasources,list_resources}.go` | toolkit | adding a blueprint, then `emit` |
+| `internal/provider/{resources,datasources,list_resources,actions}.go` | toolkit | adding a blueprint, then `emit` |
+| `internal/services/actions/**/{action,model,invoke}.go` | toolkit | editing the blueprint, then `emit` |
 | `internal/provider/interfaces.go` | **you** | it pins that the generated registries are what satisfy each `ProviderWith*` |
 | `internal/provider/provider.go` | **you** | editing it — authentication is always bespoke |
 | `internal/client/` | **you** | editing it |

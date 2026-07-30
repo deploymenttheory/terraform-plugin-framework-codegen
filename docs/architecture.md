@@ -67,6 +67,9 @@ internal/
   manifest/            what the last run produced, so orphans can be found
   naming/              identifiers. One word-splitter, several joins.
   sdkbind/             type-checks bindings against the SDK actually pinned
+                       -- every kind that has one: resources, data sources,
+                       list facets and actions. It walked resources alone until
+                       actions landed, so three quarters went unchecked
   version/             the tool version, in exactly one place
 ```
 
