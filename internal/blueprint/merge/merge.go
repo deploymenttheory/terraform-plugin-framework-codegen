@@ -653,6 +653,18 @@ func applyAttributeFacts(
 			observations = append(observations,
 				"Writing this also changes "+f.Value.Text+".")
 
+		case probe.FactIntegral:
+			// A recommendation and nothing else, deliberately: changing an attribute's
+			// type breaks state compatibility, which is a human decision, like
+			// RequiresReplace -- and the fact is capped at Inferred anyway, because JSON
+			// cannot distinguish 5 from 5.0.
+			if v := f.Value.Bool; v != nil && *v {
+				result.Recommendations = append(result.Recommendations, fmt.Sprintf(
+					"%s.%s: every observed value was a whole number. If the API's own type "+
+						"is an integer, consider int64 -- a type change breaks state "+
+						"compatibility, so it is not made automatically.", res.Key, path))
+			}
+
 		case probe.FactErrorEnvelope, probe.FactUnknownParamTolerated,
 			probe.FactUpdateStyle, probe.FactReadBack, probe.FactNotFoundIsSuccess:
 			// Resource-level or informational; handled elsewhere or deliberately not merged

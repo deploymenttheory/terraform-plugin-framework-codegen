@@ -578,6 +578,45 @@ func TestUnit_Merge_AConditionalResourceLevelFactIsNotApplied(t *testing.T) {
 	}
 }
 
+// TestUnit_Merge_AnIntegralFactIsARecommendationOnly.
+//
+// Changing an attribute's type breaks state compatibility, which is a human decision, like
+// RequiresReplace -- and the fact is capped at Inferred anyway, because JSON cannot
+// distinguish 5 from 5.0. So the blueprint must not move, and the evidence must not vanish.
+func TestUnit_Merge_AnIntegralFactIsARecommendationOnly(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+	before, err := blueprint.Marshal(bp)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+
+	integral := fact("colour", probe.FactIntegral, probe.BoolValue(true), probe.Inferred)
+
+	res, err := Apply(&bp, []probe.Fact{integral}, Options{SnapshotID: "snap-1"})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	after, err := blueprint.Marshal(bp)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if string(before) != string(after) {
+		t.Error("an integral fact must not change the blueprint")
+	}
+
+	if len(res.Recommendations) != 1 ||
+		!strings.Contains(res.Recommendations[0], "whole number") {
+		t.Errorf("the evidence should surface as a recommendation: %v", res.Recommendations)
+	}
+	if len(res.Conflicts) != 0 {
+		t.Errorf("a recognised fact must not fall into the unknown-field conflict: %+v",
+			res.Conflicts)
+	}
+}
+
 // TestUnit_Merge_NestedFieldsAreReached: a fact about a field inside an object has to land on
 // the right attribute, addressed by its dotted JSON path.
 func TestUnit_Merge_NestedFieldsAreReached(t *testing.T) {

@@ -115,6 +115,14 @@ const (
 	// of the schema meets the staleness rather than having to go looking for it.
 	FactRejectedValues FactField = "rejectedValues"
 
+	// FactIntegral: every observed value of a number-typed field was a whole number.
+	//
+	// Capped at Inferred by design: JSON cannot distinguish 5 from 5.0, so integral
+	// observations are consistent with a genuinely fractional field that happened to hold
+	// whole values. Merge turns it into a recommendation only -- changing an attribute's
+	// type breaks state compatibility, which is a human decision, like RequiresReplace.
+	FactIntegral FactField = "integral"
+
 	// FactErrorEnvelope: which error shape the API returns for which status.
 	FactErrorEnvelope FactField = "errorEnvelope"
 	// FactUnknownParamTolerated: the API ignores query parameters it does not know,
@@ -373,6 +381,7 @@ var knownFactFields = map[FactField]bool{
 	FactDefaultIsDerived: true, FactSilentlyIgnoredOnUpdate: true,
 	FactNormalisation: true, FactSideEffect: true,
 	FactValuesClosed: true, FactAcceptedValues: true, FactRejectedValues: true,
+	FactIntegral:      true,
 	FactErrorEnvelope: true, FactUnknownParamTolerated: true,
 }
 

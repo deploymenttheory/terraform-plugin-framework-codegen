@@ -356,6 +356,56 @@ func TestUnit_Probe_VolatileOnRead(t *testing.T) {
 	})
 }
 
+// TestUnit_Probe_IntegralNumbersAreReported.
+//
+// The legacy_id case: a field typed float64 on the specification's word, observed integral
+// in every read, and nothing recording it. Capped at Inferred by design -- JSON cannot
+// distinguish 5 from 5.0 -- and a fractional observation produces nothing, because the type
+// already says fractional.
+func TestUnit_Probe_IntegralNumbersAreReported(t *testing.T) {
+	t.Parallel()
+
+	subj := quirkSubject()
+	subj.Fields = append(subj.Fields,
+		Field{
+			JSONPath: "legacyId", Attribute: "legacy_id",
+			Kind: blueprint.KindFloat64, ComputedOptionalRequired: blueprint.Computed,
+		},
+		Field{
+			JSONPath: "score", Attribute: "score",
+			Kind: blueprint.KindFloat64, ComputedOptionalRequired: blueprint.Computed,
+		},
+	)
+
+	snapshots := []map[string]any{
+		{"legacyId": float64(63), "score": 1.5, "count": float64(2)},
+		{"legacyId": float64(63), "score": 2.5, "count": float64(2)},
+		{"legacyId": float64(63), "score": 3.5, "count": float64(2)},
+	}
+
+	facts := integralFacts(
+		Scope{Subject: subj}, "read.list-shape", snapshots, []string{"001-get-things"})
+
+	if len(facts) != 1 {
+		t.Fatalf("facts = %+v, want exactly the integral one", facts)
+	}
+
+	f := facts[0]
+	if f.JSONPath != "legacyId" || f.Field != FactIntegral {
+		t.Errorf("fact = %v, want legacyId integral", f)
+	}
+	if f.Value.Bool == nil || !*f.Value.Bool {
+		t.Errorf("value = %v, want true", f.Value)
+	}
+	if f.Confidence != Inferred {
+		t.Errorf("confidence = %s, want inferred -- JSON cannot distinguish 5 from 5.0, so "+
+			"this must never rise above an assumption", f.Confidence)
+	}
+	if len(f.Alternatives) == 0 {
+		t.Error("the assumption must be stated in the alternatives")
+	}
+}
+
 // TestUnit_Probe_ReturnedOnReadWeakIsAlwaysSuspected.
 //
 // Deliberately capped, because an absent field could mean never-returned, null-for-this-object

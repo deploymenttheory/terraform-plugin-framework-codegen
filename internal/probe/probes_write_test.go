@@ -963,6 +963,131 @@ func TestUnit_Probe_ADeclaredGateTurnsTheDisagreementIntoFacts(t *testing.T) {
 	}
 }
 
+// TestUnit_Probe_MixedPresenceWithAGateBecomesBranchFacts.
+//
+// The matchType case, on ground truth: a field stored and returned on one branch of a gate
+// and silently dropped on the other. An unconditional answer in either direction is a
+// half-truth -- returnedOnRead=false measured on the static branch is exactly how the pilot
+// came to suppress an attribute's read-back for every tag -- so each branch gets its own
+// fact under its own condition.
+func TestUnit_Probe_MixedPresenceWithAGateBecomesBranchFacts(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		DiscardsWhen: &quirkserver.Conditional{
+			WhenField: "objectType", WhenValue: "static", Then: "value",
+		},
+	})
+
+	subj := quirkSubject()
+	// AllowedValues matters: the probe synthesises each round's body, and a documented set
+	// is what makes it send the real branch values rather than an arbitrary sentinel.
+	subj.Fields = append(subj.Fields, Field{
+		JSONPath: "objectType", Attribute: "object_type",
+		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true,
+		AllowedValues: []string{"static", "dynamic"},
+	})
+
+	plan := Plan{
+		Fixtures: []Fixture{
+			{Name: "static", Body: map[string]any{
+				"key": "stamped", "value": "a", "objectType": "static",
+			}},
+			{Name: "dynamic", Body: map[string]any{
+				"key": "stamped", "value": "b", "objectType": "dynamic",
+			}},
+		},
+		DefaultInfluencers: []string{"objectType"},
+		Budget:             Budget{MaxRequests: 80, MaxCreates: 30},
+	}
+
+	report := runAgainst(t, srv, subj, plan, "write.writable-returned")
+
+	var returned []Fact
+	for _, f := range report.Facts {
+		if f.JSONPath == "value" && f.Field == FactReturnedOnRead {
+			returned = append(returned, f)
+		}
+	}
+
+	if len(returned) != 2 {
+		t.Fatalf("want one returnedOnRead fact per branch, got %d: %+v", len(returned), returned)
+	}
+
+	byValue := map[string]Fact{}
+	for _, f := range returned {
+		if len(f.When) != 1 || f.When[0].JSONPath != "objectType" {
+			t.Fatalf("each fact should be conditioned on objectType, got %v", f.When)
+		}
+		byValue[f.When[0].Equals] = f
+	}
+
+	if f, ok := byValue["static"]; !ok {
+		t.Error("no fact for the discarding branch")
+	} else if f.Value.Bool == nil || *f.Value.Bool {
+		t.Errorf("the field is not returned on the static branch: %v", f.Value)
+	}
+
+	if f, ok := byValue["dynamic"]; !ok {
+		t.Error("no fact for the storing branch")
+	} else if f.Value.Bool == nil || !*f.Value.Bool {
+		t.Errorf("the field is returned on the dynamic branch: %v", f.Value)
+	}
+
+	// No unconditional fact for the path: that is the half-truth this exists to prevent.
+	for _, f := range returned {
+		if !f.Conditional() {
+			t.Errorf("an unconditional returnedOnRead survived alongside the branches: %v", f)
+		}
+	}
+}
+
+// TestUnit_Probe_MixedPresenceWithoutAGateStaysANote.
+//
+// The same ground truth with the deciding field undeclared. "Conditional on something" is
+// still not a fact, and inventing a condition to make it one would be worse than the note.
+func TestUnit_Probe_MixedPresenceWithoutAGateStaysANote(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		DiscardsWhen: &quirkserver.Conditional{
+			WhenField: "objectType", WhenValue: "static", Then: "value",
+		},
+	})
+
+	subj := quirkSubject()
+	subj.Fields = append(subj.Fields, Field{
+		JSONPath: "objectType", Attribute: "object_type",
+		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true,
+		AllowedValues: []string{"static", "dynamic"},
+	})
+
+	plan := Plan{
+		Fixtures: []Fixture{
+			{Name: "static", Body: map[string]any{
+				"key": "stamped", "value": "a", "objectType": "static",
+			}},
+			{Name: "dynamic", Body: map[string]any{
+				"key": "stamped", "value": "b", "objectType": "dynamic",
+			}},
+		},
+		// No defaultInfluencers: the gate exists and nobody declared it.
+		Budget: Budget{MaxRequests: 80, MaxCreates: 30},
+	}
+
+	report := runAgainst(t, srv, subj, plan, "write.writable-returned")
+
+	for _, f := range report.Facts {
+		if f.JSONPath == "value" && f.Field == FactReturnedOnRead {
+			t.Errorf("no returnedOnRead fact should be recorded for an unattributed mix: %v", f)
+		}
+	}
+
+	if _, ok := noteMentioning(report, "presence is conditional"); !ok {
+		t.Errorf("the mix must be reported with the fix named: %v", report.Notes)
+	}
+}
+
 // TestUnit_Probe_TheNameFieldsRequirednessIsUnprobed.
 //
 // An object created without the stamped prefix could not be found by the sweeper, so the session

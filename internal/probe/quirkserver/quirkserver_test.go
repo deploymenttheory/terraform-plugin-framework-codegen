@@ -103,6 +103,32 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 		}
 	})
 
+	t.Run("DiscardsWhen", func(t *testing.T) {
+		t.Parallel()
+
+		s := New(t, Quirks{DiscardsWhen: &Conditional{
+			WhenField: "mode", WhenValue: "static", Then: "colour",
+		}})
+
+		// On the matching branch: 201, and the value is gone -- the matchType case.
+		status, created := post(t, s.CollectionURL(),
+			map[string]any{"key": "k", "mode": "static", "colour": "blue"})
+		if status != http.StatusCreated {
+			t.Fatalf("create = %d, want 201; a refusal would be requiredness, not this", status)
+		}
+		if _, present := created["colour"]; present {
+			t.Errorf("colour = %v, want it silently dropped on the static branch", created["colour"])
+		}
+
+		// On every other branch it is stored, which is what makes the unconditional
+		// answer a half-truth in both directions.
+		status, created = post(t, s.CollectionURL(),
+			map[string]any{"key": "k2", "mode": "dynamic", "colour": "blue"})
+		if status != http.StatusCreated || created["colour"] != "blue" {
+			t.Fatalf("the other branch should store the field: %d %v", status, created)
+		}
+	})
+
 	t.Run("SilentlyDiscards", func(t *testing.T) {
 		t.Parallel()
 

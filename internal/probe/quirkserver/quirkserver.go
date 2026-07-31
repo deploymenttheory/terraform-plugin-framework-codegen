@@ -104,6 +104,14 @@ type Quirks struct {
 	// ConditionallyRequired makes one field required only when another has a given value.
 	ConditionallyRequired *Conditional
 
+	// DiscardsWhen accepts field Then on create and stores it only when the request's
+	// WhenField does NOT hold WhenValue; on the matching branch it is silently dropped.
+	//
+	// The conditional variant of SilentlyDiscards, and the matchType case exactly: sent on
+	// a static tag, 201, and the value is gone; sent on a dynamic one, stored and
+	// returned. A probe measuring one branch records a half-truth about both.
+	DiscardsWhen *Conditional
+
 	// WriteSideEffects sets one field as a consequence of another being written.
 	//
 	// Enabling one measurement silently enabling another: the class of quirk a human would
@@ -410,6 +418,11 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 	for k, v := range body {
 		if contains(s.quirks.SilentlyDiscards, k) {
 			// Accepted and thrown away. The response says 201 and the object never has it.
+			continue
+		}
+		if dw := s.quirks.DiscardsWhen; dw != nil && k == dw.Then &&
+			fmt.Sprint(body[dw.WhenField]) == fmt.Sprint(dw.WhenValue) {
+			// The conditional variant: dropped on this branch, stored on every other.
 			continue
 		}
 		obj[k] = s.normalise(k, v)

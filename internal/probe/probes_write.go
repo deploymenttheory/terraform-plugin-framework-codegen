@@ -83,6 +83,10 @@ type observation struct {
 	gated bool
 	// evidence is the exact interaction the read came from.
 	evidence string
+	// gates is what the declared influencer fields held in the body this round actually
+	// sent -- recorded, never reconstructed, so a conclusion about a branch cites the
+	// state that was really measured.
+	gates []Condition
 }
 
 // writableAndReturned implements the contract on the type in catalogue.go.
@@ -150,9 +154,15 @@ func (p writableAndReturned) Exercise(
 
 		expanded := p.readExpanded(ctx, s, sc, id, &out)
 
+		// Read off the body actually sent, after bodyFor's substitutions, so a branch
+		// conclusion cites the state that was really measured.
+		gates := gateConditions(sc, body)
+
 		for path, value := range sent {
 			field, _ := sc.Subject.Field(path)
-			seen[path] = append(seen[path], observe(fixture.Name, field, value, bare, expanded))
+			o := observe(fixture.Name, field, value, bare, expanded)
+			o.gates = gates
+			seen[path] = append(seen[path], o)
 		}
 	}
 
@@ -337,6 +347,15 @@ func (p writableAndReturned) conclude(sc Scope, seen map[string][]observation, o
 					"from here",
 			})
 
+		case !allPresent(rounds):
+			// Mixed presence: returned under some fixtures and not others. This used to fall
+			// through to an unconditional returnedOnRead=true, which is the same half-truth
+			// the unconditional false was -- matchType is returned for a dynamic tag and
+			// discarded for a static one, and either answer stored unconditionally makes the
+			// generated code wrong for one branch. Attributed to a declared gate when the
+			// observations allow it; a note naming what to declare when they do not.
+			p.concludeMixed(sc, path, rounds, out)
+
 		default:
 			out.Facts = append(out.Facts, p.returnedFact(sc, path, rounds))
 
@@ -358,6 +377,77 @@ func (p writableAndReturned) conclude(sc Scope, seen map[string][]observation, o
 				Message: fmt.Sprintf("this field was returned only when an expansion was "+
 					"requested (%d of %d round(s)); the generated read must ask for it or it "+
 					"will blank a real value on every refresh", gated, len(rounds)),
+			})
+		}
+	}
+}
+
+// concludeMixed turns a field's mixed presence -- returned under some fixtures, absent
+// under others -- into per-branch facts when a declared gate separates them.
+//
+// The attribution semantics are attributeToGate's, shared with the requiredness probe: one
+// clean separator or nothing. When a branch's rounds allow it, writability is decided
+// within the branch too, because "did the server store what I sent" is as branch-scoped a
+// question as "did it return the field".
+func (p writableAndReturned) concludeMixed(
+	sc Scope,
+	path string,
+	rounds []observation,
+	out *Result,
+) {
+	outcomes := make([]gatedOutcome, len(rounds))
+	for i, o := range rounds {
+		outcomes[i] = gatedOutcome{gates: o.gates, pass: o.outcome == Present}
+	}
+
+	separator, branches, ok := attributeToGate(outcomes)
+	if !ok {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
+			Message: "the field was returned under some fixtures and not others, so its " +
+				"presence is conditional on something else in the body. No declared gate " +
+				"separated the two, so no fact was recorded -- declare the deciding field " +
+				"in the plan's defaultInfluencers to settle it",
+		})
+
+		return
+	}
+
+	condition := func(br gateBranch) []Condition {
+		return []Condition{{JSONPath: separator, Equals: br.value}}
+	}
+
+	for _, br := range branches {
+		group := make([]observation, 0, len(br.indices))
+		for _, i := range br.indices {
+			group = append(group, rounds[i])
+		}
+
+		var fact Fact
+		if br.pass {
+			fact = p.returnedFact(sc, path, group)
+		} else {
+			fact = p.absentFact(sc, path, group)
+		}
+		fact.When = condition(br)
+		fact.Rationale += ", " + fact.Because()
+		out.Facts = append(out.Facts, fact)
+
+		if !br.pass {
+			continue
+		}
+
+		if wf, ok := p.writableFact(sc, path, group); ok {
+			wf.When = condition(br)
+			wf.Rationale += ", " + wf.Because()
+			out.Facts = append(out.Facts, wf)
+		} else {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
+				Message: fmt.Sprintf("the field was returned when %s is %q, but the rounds "+
+					"under that branch cannot separate \"the server stored what was sent\" "+
+					"from \"the server returned its own value\"; a second fixture on the "+
+					"same branch would settle it", separator, br.value),
 			})
 		}
 	}
@@ -1184,59 +1274,31 @@ func (p requiredByAPI) concludeRequired(sc Scope, attempts map[string][]omission
 //
 // Returns nothing when the disagreement cannot be attributed, which is the common case and the
 // honest answer: the caller then keeps its note.
-//
-// "Attributed" means one candidate gate separates the outcomes cleanly -- every attempt that
-// succeeded held a gate value that no failing attempt held, and vice versa. A gate that took the
-// same value on both sides explains nothing, and a gate that varies without correlating is
-// coincidence. Exactly one separating gate is required: two would mean the observations cannot
-// distinguish which of them decides, and picking either would be a guess presented as evidence.
 func (p requiredByAPI) conditionalRequiredFacts(
 	sc Scope,
 	path string,
 	rounds []omission,
 ) []Fact {
-	separator, ok := separatingGate(rounds)
+	outcomes := make([]gatedOutcome, len(rounds))
+	for i, a := range rounds {
+		outcomes[i] = gatedOutcome{gates: a.gates, pass: a.status < 400}
+	}
+
+	separator, branches, ok := attributeToGate(outcomes)
 	if !ok {
 		return nil
 	}
 
-	// Grouped by the separating gate's value, so each fact is measured under one condition
-	// rather than being one fact with a disjunction bolted on.
-	byValue := map[string][]omission{}
-	order := []string{}
+	facts := make([]Fact, 0, len(branches))
 
-	for _, a := range rounds {
-		v, held := conditionValue(a.gates, separator)
-		if !held {
-			return nil
+	for _, br := range branches {
+		group := make([]omission, 0, len(br.indices))
+		for _, i := range br.indices {
+			group = append(group, rounds[i])
 		}
 
-		if _, seen := byValue[v]; !seen {
-			order = append(order, v)
-		}
-		byValue[v] = append(byValue[v], a)
-	}
-
-	sort.Strings(order)
-
-	facts := make([]Fact, 0, len(order))
-
-	for _, v := range order {
-		group := byValue[v]
-
-		// A branch whose own attempts disagree is not a branch this gate explains.
-		acceptedHere := 0
-		for _, a := range group {
-			if a.status < 400 {
-				acceptedHere++
-			}
-		}
-		if acceptedHere != 0 && acceptedHere != len(group) {
-			return nil
-		}
-
-		fact := p.requiredFact(sc, path, group, acceptedHere > 0)
-		fact.When = []Condition{{JSONPath: separator, Equals: v}}
+		fact := p.requiredFact(sc, path, group, br.pass)
+		fact.When = []Condition{{JSONPath: separator, Equals: br.value}}
 		fact.Rationale += ", " + fact.Because()
 
 		facts = append(facts, fact)
@@ -1245,8 +1307,71 @@ func (p requiredByAPI) conditionalRequiredFacts(
 	return facts
 }
 
-// separatingGate finds the one gate whose value partitions success from failure.
-func separatingGate(rounds []omission) (string, bool) {
+// gatedOutcome is one attempt seen through its gates: which gate values held while it ran,
+// and which side of a pass/fail question it landed on.
+//
+// The question is the caller's -- "was the omission accepted", "was the field returned" --
+// which is what lets one attribution semantics serve every probe that measures the same
+// thing under more than one fixture.
+type gatedOutcome struct {
+	gates []Condition
+	pass  bool
+}
+
+// gateBranch is one value of the separating gate, with the outcomes measured under it.
+type gateBranch struct {
+	value   string
+	indices []int
+	// pass is the branch's shared outcome; attribution guarantees homogeneity, because a
+	// value appearing on both sides of the partition would have been refused as overlap.
+	pass bool
+}
+
+// attributeToGate attributes a pass/fail disagreement to exactly one gate field, and groups
+// the outcomes by that gate's value, in sorted value order.
+//
+// "Attributed" means one candidate gate separates the outcomes cleanly -- every passing
+// outcome held a gate value that no failing outcome held, and vice versa. A gate that took
+// the same value on both sides explains nothing, and a gate that varies without correlating
+// is coincidence. Exactly one separating gate is required: two would mean the observations
+// cannot distinguish which of them decides, and picking either would be a guess presented as
+// evidence. Not ok is the common case and the honest answer.
+func attributeToGate(rounds []gatedOutcome) (string, []gateBranch, bool) {
+	separator, ok := separatingGate(rounds)
+	if !ok {
+		return "", nil, false
+	}
+
+	byValue := map[string]*gateBranch{}
+	order := []string{}
+
+	for i, o := range rounds {
+		v, held := conditionValue(o.gates, separator)
+		if !held {
+			return "", nil, false
+		}
+
+		br, seen := byValue[v]
+		if !seen {
+			br = &gateBranch{value: v, pass: o.pass}
+			byValue[v] = br
+			order = append(order, v)
+		}
+		br.indices = append(br.indices, i)
+	}
+
+	sort.Strings(order)
+
+	branches := make([]gateBranch, 0, len(order))
+	for _, v := range order {
+		branches = append(branches, *byValue[v])
+	}
+
+	return separator, branches, true
+}
+
+// separatingGate finds the one gate whose value partitions pass from fail.
+func separatingGate(rounds []gatedOutcome) (string, bool) {
 	paths := map[string]bool{}
 	for _, a := range rounds {
 		for _, c := range a.gates {
@@ -1257,29 +1382,29 @@ func separatingGate(rounds []omission) (string, bool) {
 	var found string
 
 	for gate := range paths {
-		onSuccess, onFailure := map[string]bool{}, map[string]bool{}
+		onPass, onFail := map[string]bool{}, map[string]bool{}
 
 		for _, a := range rounds {
 			v, held := conditionValue(a.gates, gate)
 			if !held {
 				// A gate absent from one attempt cannot partition them.
-				onSuccess, onFailure = nil, nil
+				onPass, onFail = nil, nil
 
 				break
 			}
 
-			if a.status < 400 {
-				onSuccess[v] = true
+			if a.pass {
+				onPass[v] = true
 			} else {
-				onFailure[v] = true
+				onFail[v] = true
 			}
 		}
 
-		if len(onSuccess) == 0 || len(onFailure) == 0 {
+		if len(onPass) == 0 || len(onFail) == 0 {
 			continue
 		}
 
-		if overlaps(onSuccess, onFailure) {
+		if overlaps(onPass, onFail) {
 			continue
 		}
 

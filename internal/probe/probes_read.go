@@ -3,10 +3,12 @@ package probe
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/url"
 	"sort"
 	"strings"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe/apierr"
 )
 
@@ -196,6 +198,19 @@ func (p listShape) Observe(ctx context.Context, s ReadSession, sc Scope) (Result
 		})
 	}
 
+	// Numeric texture, from the same response. The collection is the right vantage point:
+	// one listing observes every object's value at once, where an item read observes one --
+	// and the pilot's legacy_id was integral in thirteen collection items while null on the
+	// one object the item-read probes happened to touch.
+	objects := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		if obj, ok := item.(map[string]any); ok {
+			objects = append(objects, obj)
+		}
+	}
+	out.Facts = append(out.Facts, integralFacts(
+		sc, p.Name(), objects, []string{evidenceID(1, "GET", s.CollectionPath())})...)
+
 	return out, nil
 }
 
@@ -253,11 +268,16 @@ func (p volatileOnRead) Observe(ctx context.Context, s ReadSession, sc Scope) (R
 		snapshots = append(snapshots, obj)
 	}
 
+	evidence := make([]string, 0, volatileReads)
+	for i := range volatileReads {
+		evidence = append(evidence, evidenceID(i+2, "GET", s.ItemPath(id)))
+	}
+
 	changed := fieldsThatDiffer(snapshots)
 
-	// No diff produces **no fact at all**. Stability across three reads a few milliseconds
-	// apart is not evidence of stability, and emitting Volatile=false would license merge to
-	// act on an absence of evidence.
+	// No diff produces **no fact at all**. Stability across three reads a few
+	// milliseconds apart is not evidence of stability, and emitting Volatile=false would
+	// license merge to act on an absence of evidence.
 	if len(changed) == 0 {
 		out.Notes = append(out.Notes, Note{
 			Resource: subj.Resource, Probe: p.Name(),
@@ -265,11 +285,6 @@ func (p volatileOnRead) Observe(ctx context.Context, s ReadSession, sc Scope) (R
 				"stability, so no volatility fact was recorded", volatileReads),
 		})
 		return out, nil
-	}
-
-	evidence := make([]string, 0, volatileReads)
-	for i := range volatileReads {
-		evidence = append(evidence, evidenceID(i+2, "GET", s.ItemPath(id)))
 	}
 
 	for _, field := range changed {
@@ -300,6 +315,82 @@ func (p volatileOnRead) Observe(ctx context.Context, s ReadSession, sc Scope) (R
 	}
 
 	return out, nil
+}
+
+// integralFacts reports each number-typed field whose every observed value was whole.
+//
+// This is the fact the pilot's legacy_id was waiting for: float64 on the specification's
+// word, sixty-three integral observations in the cassette, and nothing recording it. The
+// confidence is capped at Inferred by design -- JSON cannot distinguish 5 from 5.0, so
+// integral observations are consistent with a fractional field that happened to hold whole
+// values -- and merge turns it into a recommendation only, because changing an attribute's
+// type breaks state compatibility.
+func integralFacts(sc Scope, probeName string, objects []map[string]any, evidence []string) []Fact {
+	var out []Fact
+
+	for _, f := range sc.Subject.Fields {
+		switch f.Kind {
+		case blueprint.KindFloat64, blueprint.KindNumber:
+		default:
+			continue
+		}
+		// Only top-level fields: a dotted path crossing a collection is ambiguous here for
+		// the same reason it is in the write probe.
+		if strings.Contains(f.JSONPath, ".") {
+			continue
+		}
+
+		values := make([]float64, 0, len(objects))
+		nonNumeric := false
+		for _, obj := range objects {
+			v, ok := obj[f.JSONPath]
+			if !ok || v == nil {
+				// Absent and null carry no numeric evidence either way.
+				continue
+			}
+			n, isNumber := v.(float64)
+			if !isNumber {
+				nonNumeric = true
+				break
+			}
+			values = append(values, n)
+		}
+		if nonNumeric || len(values) == 0 {
+			continue
+		}
+
+		integral := true
+		for _, n := range values {
+			if n != math.Trunc(n) {
+				integral = false
+				break
+			}
+		}
+		if !integral {
+			// A fractional observation answers the question the other way, and the type
+			// already says fractional; there is nothing to recommend.
+			continue
+		}
+
+		out = append(out, Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   f.JSONPath,
+			Field:      FactIntegral,
+			Value:      BoolValue(true),
+			Confidence: Inferred,
+			Probe:      probeName,
+			Evidence:   evidence,
+			Rationale: fmt.Sprintf(
+				"every observed value of this number-typed field was a whole number "+
+					"(%d observation(s))", len(values)),
+			Alternatives: []string{
+				"JSON cannot distinguish 5 from 5.0, so a genuinely fractional field may " +
+					"simply have held whole values while observed",
+			},
+		})
+	}
+
+	return out
 }
 
 // fieldsThatDiffer returns the top-level fields that are not identical across every snapshot.
