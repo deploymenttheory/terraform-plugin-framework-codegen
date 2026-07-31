@@ -402,30 +402,29 @@ func TestUnit_CLI_ThePilotPlanMatchesTheCommittedBlueprint(t *testing.T) {
 		t.Fatalf("LoadDir: %v", err)
 	}
 
-	plan, err := loadPlan(filepath.Join(blueprintDir(), "probe.plan.json"))
-	if err != nil {
-		t.Fatalf("loadPlan: %v", err)
-	}
-
-	if len(plan.Fixtures) < 2 {
-		t.Errorf("the pilot plan declares %d fixture(s); conditional requirement is only "+
-			"detectable with two or more", len(plan.Fixtures))
-	}
-
 	var checked int
 
+	// Every committed plan is found by the same convention the bulk record driver uses --
+	// KEY.probe.plan.json beside the blueprint -- so this test is also the proof the
+	// convention holds: a plan filed under the wrong name is a plan no wave will load.
 	for _, res := range bp.Resources {
 		if res.Drop {
 			continue
 		}
 
-		// The committed plan is the tag's: its fixtures, candidates and deny list speak
-		// that schema's wire vocabulary. Validating it against every other resource would
-		// demand one plan fit all schemas, which no plan can. A per-resource plan story
-		// is the re-record PR's work; until then a record run scopes itself with
-		// -resource, exactly as the runbook says.
-		if res.Key != "tag" {
+		path := filepath.Join(blueprintDir(), res.Key+".probe.plan.json")
+		if _, statErr := os.Stat(path); errors.Is(statErr, os.ErrNotExist) {
 			continue
+		}
+
+		plan, err := loadPlan(path)
+		if err != nil {
+			t.Fatalf("loadPlan(%s): %v", path, err)
+		}
+
+		if res.Key == "tag" && len(plan.Fixtures) < 2 {
+			t.Errorf("the tag plan declares %d fixture(s); conditional requirement is only "+
+				"detectable with two or more", len(plan.Fixtures))
 		}
 
 		subj, err := probe.SubjectOf(bp, res)
@@ -451,18 +450,22 @@ func TestUnit_CLI_ThePilotPlanMatchesTheCommittedBlueprint(t *testing.T) {
 			}
 		}
 
-		// The narrowing has to actually narrow, or the plan is decorative.
-		if len(sc.Immutable()) == 0 {
-			t.Error("the plan declares no field with two candidates, so the immutability " +
-				"protocol has nothing to probe")
-		}
-		if len(sc.Omitted()) == 0 {
-			t.Error("every sendable field is set by some fixture, so the server-default " +
-				"protocol has nothing to observe")
-		}
-		if len(sc.Enums()) == 0 {
-			t.Error("no sendable field carries documented enum values, so the enum protocol " +
-				"has nothing to check the specification against")
+		// The narrowing has to actually narrow, or the plan is decorative. Asserted on the
+		// tag plan alone: it is the exemplar every protocol was proven on, whereas a small
+		// resource -- the credential -- can legitimately have no candidates or enums.
+		if res.Key == "tag" {
+			if len(sc.Immutable()) == 0 {
+				t.Error("the plan declares no field with two candidates, so the immutability " +
+					"protocol has nothing to probe")
+			}
+			if len(sc.Omitted()) == 0 {
+				t.Error("every sendable field is set by some fixture, so the server-default " +
+					"protocol has nothing to observe")
+			}
+			if len(sc.Enums()) == 0 {
+				t.Error("no sendable field carries documented enum values, so the enum protocol " +
+					"has nothing to check the specification against")
+			}
 		}
 
 		// And the whole catalogue has to fit, which is the milestone this phase is measured by.
@@ -481,6 +484,58 @@ func TestUnit_CLI_ThePilotPlanMatchesTheCommittedBlueprint(t *testing.T) {
 
 	if checked == 0 {
 		t.Fatal("no resource was checked against the plan")
+	}
+}
+
+// TestUnit_CLI_APlanWithoutAResourceIsRefused: one plan speaks one schema's wire
+// vocabulary, so applying it to every subject of a multi-resource run would inject one
+// resource's fixtures into every other's probes -- refused rather than quietly wrong.
+func TestUnit_CLI_APlanWithoutAResourceIsRefused(t *testing.T) {
+	t.Parallel()
+
+	err := runProbe([]string{
+		"-blueprint", blueprintDir(),
+		"-plan", filepath.Join(blueprintDir(), "tag.probe.plan.json"),
+		"-list",
+	})
+	if err == nil || !strings.Contains(err.Error(), "-plan needs -resource") {
+		t.Fatalf("expected the combination to be refused by name, got: %v", err)
+	}
+}
+
+// TestUnit_CLI_PlansResolvePerResourceByConvention: the bulk driver's whole mechanism
+// is KEY.probe.plan.json beside the blueprint, so -list with no -plan at all must cost
+// the tag against its own committed plan rather than against the unnarrowed worst case.
+func TestUnit_CLI_PlansResolvePerResourceByConvention(t *testing.T) {
+	t.Parallel()
+
+	// The default plan directory follows the blueprint path, whether it is the
+	// directory itself or a file inside it.
+	if got := planDirFor("", blueprintDir()); got != blueprintDir() {
+		t.Errorf("planDirFor(dir) = %q, want the directory itself", got)
+	}
+	file := filepath.Join(blueprintDir(), "provider.blueprint.json")
+	if got := planDirFor("", file); got != blueprintDir() {
+		t.Errorf("planDirFor(file) = %q, want the containing directory", got)
+	}
+	if got := planDirFor("elsewhere", blueprintDir()); got != "elsewhere" {
+		t.Errorf("an explicit -plan-dir must win, got %q", got)
+	}
+
+	opts := probeRun{planDir: blueprintDir()}
+
+	plan, found, err := opts.planFor("tag")
+	if err != nil {
+		t.Fatalf("planFor(tag): %v", err)
+	}
+	if !found || len(plan.Fixtures) == 0 {
+		t.Error("the committed tag plan should resolve by convention")
+	}
+
+	// A resource nobody has planned resolves to nothing, found=false -- the signal the
+	// record wave uses to skip it with a stated note instead of failing the wave.
+	if _, found, err := opts.planFor("no-such-resource"); err != nil || found {
+		t.Errorf("an absent plan must be (zero, false, nil), got found=%v err=%v", found, err)
 	}
 }
 
