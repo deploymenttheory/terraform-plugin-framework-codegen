@@ -86,7 +86,13 @@ all hand-authored, shaped exactly like the pilot's committed examples
   fixtures (complete valid bodies — one per *branch* of the API's dispatch, see step 6),
   candidates for fields whose valid values the spec does not describe, and
   `defaultInfluencers` naming every field whose value decides another field's behaviour.
-  **A gate nobody declares is a branch nobody measures.**
+  **A gate nobody declares is a branch nobody measures.** Don't start from a blank
+  file: `ingest … -plan-drafts blueprints/PROVIDER` scaffolds a
+  `RESOURCE.probe.plan.draft.json` worksheet per resource — required fields filled
+  where the specification can say, `CURATE_ME` everywhere it cannot, documented enum
+  alternatives prefilled as candidates. The `.draft` suffix keeps it invisible to
+  every loader; curate the placeholders, think about influencers (the scaffold
+  deliberately guesses none), and promotion is the rename — a diff a reviewer sees.
 - Validation runs on every load and reports every problem at once. So does `LoadDir`'s
   cross-resource checking (duplicate type names, import aliases).
 

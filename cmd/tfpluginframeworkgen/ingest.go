@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/ingest/openapi"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specstore"
 )
 
@@ -21,7 +23,8 @@ func runIngest(args []string) error {
 		specRoot = fs.String("spec-root", "openapi-specs/thousandeyes", "directory holding pinned snapshots")
 		snapshot = fs.String("snapshot", "", "snapshot to read (default: the newest)")
 		specPath = fs.String("spec", "", "read this document directly, bypassing the snapshot store")
-		only     = fs.String("only", "", "restrict to candidates whose tag or key contains this")
+		only     = fs.String("only", "",
+			"restrict to candidates whose tag or key contains this; comma-separate several")
 		list     = fs.Bool("list", false, "list what the document offers and exit")
 		all      = fs.Bool("all", false, "include candidates that cannot become resources or data sources")
 		out      = fs.String("out", "", "write inferred blueprints under this directory")
@@ -31,6 +34,8 @@ func runIngest(args []string) error {
 			"import prefix the SDK's service packages live under")
 		accessor      = fs.String("sdk-accessor", "r.client.API", "expression reaching a service from the resource receiver")
 		apiVersionDir = fs.String("api-version-dir", "v7", "version directory generated packages live under")
+		planDrafts    = fs.String("plan-drafts", "",
+			"also scaffold a KEY.probe.plan.draft.json worksheet per resource under this directory")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -70,10 +75,16 @@ func runIngest(args []string) error {
 		APIVersionDir:     *apiVersionDir,
 	}
 
-	return inferAll(doc, candidates, opts, *out)
+	return inferAll(doc, candidates, opts, *out, *planDrafts)
 }
 
-func inferAll(doc *openapi.Document, candidates []openapi.Candidate, opts openapi.InferOptions, out string) error {
+func inferAll(
+	doc *openapi.Document,
+	candidates []openapi.Candidate,
+	opts openapi.InferOptions,
+	out string,
+	planDrafts string,
+) error {
 	var (
 		notes   []openapi.Note
 		written int
@@ -109,6 +120,12 @@ func inferAll(doc *openapi.Document, candidates []openapi.Candidate, opts openap
 
 		log.Printf("wrote     %s (%d attributes)", path, len(res.Schema.Attributes))
 		written++
+
+		if planDrafts != "" {
+			if err := writePlanDraft(planDrafts, bp, res); err != nil {
+				return err
+			}
+		}
 	}
 
 	printNotes(notes)
@@ -118,6 +135,46 @@ func inferAll(doc *openapi.Document, candidates []openapi.Candidate, opts openap
 	}
 
 	log.Printf("%d blueprint(s) written, %d candidate(s) skipped, %d note(s)", written, skipped, len(notes))
+
+	return nil
+}
+
+// writePlanDraft scaffolds one resource's probe-plan worksheet.
+//
+// The .draft.json suffix is the whole mechanism, borrowed from interop's drafts: no
+// loader resolves it -- the bulk record driver reads only KEY.probe.plan.json -- so a
+// scaffold nobody has curated can never be recorded against by accident. Promotion is
+// a rename, which is a diff a reviewer sees. An existing draft is never overwritten:
+// a worksheet somebody has started marking up is theirs.
+func writePlanDraft(dir string, bp blueprint.Blueprint, res blueprint.Resource) error {
+	subj, err := probe.SubjectOf(bp, res)
+	if err != nil {
+		// A resource the prober cannot subject at all gets no worksheet; the probe
+		// run will state the same refusal in full when it matters.
+		log.Printf("no draft  %s: %v", res.Key, err)
+		return nil
+	}
+
+	path := filepath.Join(dir, res.Key+".probe.plan.draft.json")
+	if _, err := os.Stat(path); err == nil {
+		log.Printf("kept      %s (already exists; drafts are never overwritten)", path)
+		return nil
+	}
+
+	data, err := json.MarshalIndent(probe.DraftPlan(subj), "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshalling the %s plan draft: %w", res.Key, err)
+	}
+
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return err
+	}
+	if err := os.WriteFile(path, append(data, '\n'), 0o600); err != nil {
+		return err
+	}
+
+	log.Printf("drafted   %s (curate every %q, then rename away the .draft)",
+		path, probe.CurateMe)
 
 	return nil
 }
@@ -178,11 +235,25 @@ func filterCandidates(in []openapi.Candidate, only string, includeUnusable bool)
 	return out
 }
 
+// matches reports whether a candidate matches any of the comma-separated terms.
+//
+// Any-of rather than all-of, because the flag's job is selecting a wave: `-only
+// tests,alerts,dashboards` names three areas, and no candidate belongs to all three.
 func matches(c openapi.Candidate, want string) bool {
-	want = strings.ToLower(want)
-	return strings.Contains(strings.ToLower(c.Tag), want) ||
-		strings.Contains(strings.ToLower(c.Key), want) ||
-		strings.Contains(strings.ToLower(c.CollectionPath), want)
+	for _, term := range strings.Split(want, ",") {
+		term = strings.ToLower(strings.TrimSpace(term))
+		if term == "" {
+			continue
+		}
+
+		if strings.Contains(strings.ToLower(c.Tag), term) ||
+			strings.Contains(strings.ToLower(c.Key), term) ||
+			strings.Contains(strings.ToLower(c.CollectionPath), term) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // printCandidates reports what the document offers.
