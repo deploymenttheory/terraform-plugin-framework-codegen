@@ -224,10 +224,16 @@ func TestUnit_Probe_NameFieldPreference(t *testing.T) {
 		// The suffix tier: a camelCase "<noun>Name" carries name semantics, which is
 		// what makes whole families -- testName, ruleName, accountGroupName -- probeable.
 		{"a noun-prefixed name qualifies", []string{"testName", "url"}, "testName"},
-		{"every exact candidate outranks a suffixed one",
-			[]string{"testName", "description"}, "description"},
-		{"deterministic: shortest, then lexical",
-			[]string{"accountGroupName", "ruleName", "testName"}, "ruleName"},
+		{
+			"every exact candidate outranks a suffixed one",
+			[]string{"testName", "description"},
+			"description",
+		},
+		{
+			"deterministic: shortest, then lexical",
+			[]string{"accountGroupName", "ruleName", "testName"},
+			"ruleName",
+		},
 
 		// A compound word whose trailing letters spell "name" is not a name field:
 		// stamping a prefix into a hostname would corrupt a field with semantics.
