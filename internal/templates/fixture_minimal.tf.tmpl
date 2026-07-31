@@ -5,10 +5,9 @@
 # Regenerated, so it follows the schema. If the API starts requiring a field, this file gains it
 # on the next emit rather than an acceptance run discovering it.
 
-{{- range .DataBlocks }}
-{{ . }}
-{{ end }}
-resource "{{ .TerraformType }}" "{{ .Label }}" {
+{{ range .DataBlocks }}{{ . }}
+
+{{ end }}resource "{{ .TerraformType }}" "{{ .Label }}" {
 {{- if .Notes }}
   # Where a value came from. A fixture takes what the API was observed to accept, not the first
   # value the specification documents -- which is the opposite of how a generated validator is

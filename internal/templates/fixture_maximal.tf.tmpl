@@ -7,10 +7,9 @@
 # filled in every writable attribute whose value it could derive; what it could not is listed
 # inside the block, and filling those in is the point of the file being yours.
 
-{{- range .DataBlocks }}
-{{ . }}
-{{ end }}
-resource "{{ .TerraformType }}" "{{ .Label }}" {
+{{ range .DataBlocks }}{{ . }}
+
+{{ end }}resource "{{ .TerraformType }}" "{{ .Label }}" {
 {{- if .Notes }}
   # Where a value came from.
 {{- range .Notes }}
