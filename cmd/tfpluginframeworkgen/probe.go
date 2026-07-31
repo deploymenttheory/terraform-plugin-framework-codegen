@@ -588,6 +588,15 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 		}
 	}
 
+	// The subject too, for the same reason and from a live failure: request synthesis
+	// reads the subject -- writability, documented values, recorded behaviour -- and the
+	// very merge that follows a record run moves those. The committed case: the
+	// re-record's own curation made `type` writable, and every full-body probe then
+	// replayed with one more key than the transcript held.
+	if err := writeJSONFile(snap.SubjectPath(), subj); err != nil {
+		return err
+	}
+
 	log.Printf("wrote %s", snap.Dir)
 
 	// Returned last, so the exit code reflects what went wrong while the evidence of it is
@@ -849,6 +858,39 @@ func or(v, fallback string) string {
 }
 
 // replayProbe re-derives facts from a committed snapshot with no network.
+// frozenSubject loads the snapshot's frozen subject, or falls back to the working
+// tree's with a stated note.
+//
+// The frozen file must speak about the same resource: a snapshot copied into the wrong
+// evidence directory would otherwise replay one resource's requests under another's key,
+// and every fact would join to the wrong attributes.
+func frozenSubject(snap cassette.Snapshot, current probe.Subject) (probe.Subject, error) {
+	data, err := os.ReadFile(snap.SubjectPath()) //nolint:gosec // committed evidence path
+	if errors.Is(err, os.ErrNotExist) {
+		fmt.Fprintf(os.Stderr,
+			"  note  %s: the snapshot predates subject freezing, so this replay synthesises "+
+				"requests from the working tree's blueprint; re-record to freeze the subject\n",
+			current.Resource)
+
+		return current, nil
+	}
+	if err != nil {
+		return probe.Subject{}, err
+	}
+
+	var frozen probe.Subject
+	if err := json.Unmarshal(data, &frozen); err != nil {
+		return probe.Subject{}, fmt.Errorf("reading %s: %w", snap.SubjectPath(), err)
+	}
+
+	if frozen.Resource != current.Resource {
+		return probe.Subject{}, fmt.Errorf("%s speaks about %q, not %q; the snapshot is in "+
+			"the wrong evidence directory", snap.SubjectPath(), frozen.Resource, current.Resource)
+	}
+
+	return frozen, nil
+}
+
 func replayProbe(mode string, subj probe.Subject, only, root string, rederive bool) error {
 	snap, err := cassette.Latest(root)
 	if err != nil {
@@ -873,6 +915,16 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 
 	// The plan the *recording* was made with, never the working tree's. See Snapshot.PlanPath.
 	plan, err := loadPlanIfPresent(snap.PlanPath())
+	if err != nil {
+		return err
+	}
+
+	// The subject too: request synthesis reads writability, documented values and
+	// recorded behaviour off it, and the working tree's copy moves with every curation
+	// pass -- starting with the merge of this very recording's facts. A snapshot from
+	// before subjects were frozen replays against the working tree's, stated out loud,
+	// because a silent fallback is how the divergence went unnoticed the first time.
+	subj, err = frozenSubject(snap, subj)
 	if err != nil {
 		return err
 	}

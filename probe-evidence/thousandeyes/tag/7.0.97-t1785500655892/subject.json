@@ -1,0 +1,283 @@
+{
+  "resource": "tag",
+  "collectionTemplate": "/tags",
+  "itemTemplate": "/tags/{id}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/tags",
+    "successCodes": [
+      201
+    ]
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/tags/{id}",
+    "successCodes": [
+      200
+    ]
+  },
+  "update": {
+    "method": "PUT",
+    "pathTemplate": "/tags/{id}",
+    "successCodes": [
+      200
+    ]
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/tags/{id}",
+    "successCodes": [
+      204
+    ]
+  },
+  "fields": [
+    {
+      "jsonPath": "accessType",
+      "attribute": "access_type",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "all",
+        "partner",
+        "system"
+      ],
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnRead": true,
+        "acceptedValues": [
+          "all"
+        ],
+        "rejectedValues": [
+          "system"
+        ],
+        "valuesClosed": true
+      }
+    },
+    {
+      "jsonPath": "aid",
+      "attribute": "account_group_id",
+      "kind": "int64",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "assignments",
+      "attribute": "assignments",
+      "kind": "set_nested",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "assignments.id",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "assignments.type",
+      "attribute": "type",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "builtIn",
+      "attribute": "built_in",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "color",
+      "attribute": "color",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "immutable": false,
+        "serverDefault": {
+          "kind": "",
+          "raw": "\"#A7EB10\""
+        },
+        "returnedOnRead": true
+      }
+    },
+    {
+      "jsonPath": "createDate",
+      "attribute": "create_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "description",
+      "attribute": "description",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "returnedOnRead": true
+      }
+    },
+    {
+      "jsonPath": "filters",
+      "attribute": "filters",
+      "kind": "set_nested",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "filters.key",
+      "attribute": "key",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "filters.mode",
+      "attribute": "mode",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "filters.scope",
+      "attribute": "scope",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "filters.values",
+      "attribute": "values",
+      "kind": "set",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "icon",
+      "attribute": "icon",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "\"LABEL\""
+        },
+        "returnedOnRead": true
+      }
+    },
+    {
+      "jsonPath": "id",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "key",
+      "attribute": "key",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true,
+      "behaviour": {
+        "immutable": false,
+        "returnedOnRead": true
+      }
+    },
+    {
+      "jsonPath": "legacyId",
+      "attribute": "legacy_id",
+      "kind": "float64",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "matchType",
+      "attribute": "match_type",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "and",
+        "or"
+      ],
+      "behaviour": {
+        "returnedOnRead": false,
+        "acceptedValues": [
+          "and",
+          "or"
+        ],
+        "valuesClosed": true
+      }
+    },
+    {
+      "jsonPath": "modifiedDate",
+      "attribute": "modified_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "objectType",
+      "attribute": "object_type",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true,
+      "allowedValues": [
+        "test",
+        "dashboard",
+        "endpoint-test",
+        "v-agent",
+        "connected-devices-test",
+        "endpoint-agent"
+      ],
+      "behaviour": {
+        "immutable": true,
+        "requiredByApi": true,
+        "returnedOnRead": true,
+        "acceptedValues": [
+          "test",
+          "dashboard",
+          "endpoint-test",
+          "v-agent",
+          "connected-devices-test"
+        ],
+        "valuesClosed": true
+      }
+    },
+    {
+      "jsonPath": "type",
+      "attribute": "type",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false,
+      "allowedValues": [
+        "static",
+        "dynamic"
+      ]
+    },
+    {
+      "jsonPath": "value",
+      "attribute": "value",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnRead": true
+      }
+    }
+  ],
+  "policy": {
+    "updateStyle": "putFull",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "id",
+  "nameField": "key"
+}
