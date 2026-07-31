@@ -1,0 +1,25 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
+{{- if .Entries }}
+
+{{ .Imports }}
+{{- end }}
+)
+
+// EphemeralResources returns every ephemeral resource this provider serves.
+//
+// This file is generated in full. Add an ephemeral by adding a blueprint and
+// regenerating, not by editing here.
+func (p *Provider) EphemeralResources(_ context.Context) []func() ephemeral.EphemeralResource {
+	return []func() ephemeral.EphemeralResource{
+{{- range .Entries }}
+		{{ . }},
+{{- end }}
+	}
+}

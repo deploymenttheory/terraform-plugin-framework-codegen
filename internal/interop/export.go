@@ -38,6 +38,9 @@ func FromBlueprint(bp blueprint.Blueprint) (spec.Specification, Report, error) {
 	if len(bp.Actions) > 0 {
 		r.note("actionKind", "actions")
 	}
+	if len(bp.Ephemerals) > 0 {
+		r.note("ephemeralKind", "ephemerals")
+	}
 
 	for _, res := range bp.Resources {
 		if res.Drop {

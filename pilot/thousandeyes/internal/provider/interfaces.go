@@ -5,15 +5,16 @@
 // from a claim into a build failure if it stops being true.
 //
 // Each of these is satisfied by a *generated* file: resources.go, datasources.go,
-// list_resources.go and actions.go respectively. Adding a resource, a data source or a list facet to a
-// blueprint and regenerating is the whole change -- nothing here needs editing, which is
-// the property being pinned.
+// list_resources.go, actions.go and ephemerals.go respectively. Adding a resource, a data
+// source, a list facet or an ephemeral to a blueprint and regenerating is the whole change
+// -- nothing here needs editing, which is the property being pinned.
 package provider
 
 import "github.com/hashicorp/terraform-plugin-framework/provider"
 
 var (
-	_ provider.Provider                  = (*Provider)(nil)
-	_ provider.ProviderWithListResources = (*Provider)(nil)
-	_ provider.ProviderWithActions       = (*Provider)(nil)
+	_ provider.Provider                       = (*Provider)(nil)
+	_ provider.ProviderWithListResources      = (*Provider)(nil)
+	_ provider.ProviderWithActions            = (*Provider)(nil)
+	_ provider.ProviderWithEphemeralResources = (*Provider)(nil)
 )

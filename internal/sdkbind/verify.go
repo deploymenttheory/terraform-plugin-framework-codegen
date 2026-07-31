@@ -95,7 +95,63 @@ func Verify(l *Loader, bp blueprint.Blueprint) Report {
 		verifyAction(l, a, clientType, &r)
 	}
 
+	// Added with the block kind, not after it: the bindings job previously reported a
+	// reassuring count while whole kinds went unchecked, and that is the failure this
+	// walk-per-kind shape exists to prevent.
+	for _, e := range bp.Ephemerals {
+		if e.Drop {
+			continue
+		}
+		verifyEphemeral(l, e, clientType, &r)
+	}
+
 	return r
+}
+
+// verifyEphemeral checks an ephemeral's binding.
+//
+// Shaped like a data source's, because the binding is: one operation, a response model,
+// and only the flatten direction to check. Renew and close are validated away before
+// anything reaches here.
+func verifyEphemeral(
+	l *Loader,
+	e blueprint.Ephemeral,
+	clientType types.Type,
+	r *Report,
+) {
+	svc := e.Binding.Service
+
+	verifyAccessor(l, clientType, e.Key, "binding.service.accessor", svc, r)
+
+	responseOK := verifyNamedType(
+		l,
+		e.Key,
+		"binding.response.type",
+		e.Binding.Response.Type,
+		svc,
+		r,
+	)
+
+	if e.Binding.Open != nil {
+		verifyOperation(l, e.Key, svc, "open", *e.Binding.Open, r)
+	}
+
+	if !responseOK {
+		return
+	}
+
+	response := typeNameOf(e.Binding.Response.Type)
+
+	for _, a := range e.Schema.Attributes {
+		if a.Drop || a.Wire.SDKField == "" || a.Wire.SkipFlatten || a.Wire.Flatten == nil {
+			continue
+		}
+		verifyFieldOn(
+			l, e.Key,
+			fmt.Sprintf("schema.attributes[%s].wire.sdkField", a.Name),
+			response, a.Wire.SDKField, svc, r,
+		)
+	}
 }
 
 // verifyDataSource checks a data source's binding.

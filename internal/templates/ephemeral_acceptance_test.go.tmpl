@@ -1,0 +1,60 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports }}
+)
+
+// The echoed value's address, the seed resource, and its existence helper. An ephemeral
+// value never reaches state -- that is the kind's contract -- so the echo provider is
+// the one place a check can read what Open produced.
+const (
+	echoAddress = "{{ .EchoAddress }}"
+	seedAddress = "{{ .SeedAddress }}"
+)
+
+var seedResource = {{ .SeedTestResourceType }}{}
+
+// {{ .TestName }} seeds one object, opens it ephemerally, and reads the value back
+// through the echo provider.
+//
+// The cross-checks compare what Open returned against what the seed's configuration
+// set: the value made a full round trip -- stored encrypted by the create, decrypted by
+// the open -- without ever being persisted to Terraform state.
+func {{ .TestName }}(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acceptance.PreCheck(t) },
+		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,
+		// Ephemeral resources need a modern CLI; skipping is stated, not silent.
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_10_0),
+		},
+		// The ephemeral owns nothing; destroy verification is the seed's.
+		//
+{{ .DestroyReason }}
+		CheckDestroy: destroy.CheckDestroyed(seedResource, "{{ .SeedTerraformType }}", {{ .DestroyTimeout }}),
+		Steps: []resource.TestStep{
+			{
+				Config: config(t, "ephemeral.tf"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+{{- range .Checks }}
+					{{ . }},
+{{- end }}
+				),
+			},
+		},
+	})
+}
+
+// config reads the committed fixture; see the resource acceptance test for why testdata.
+func config(t *testing.T, name string) string {
+	t.Helper()
+
+	body, err := os.ReadFile(filepath.Join("testdata", name))
+	if err != nil {
+		t.Fatalf("reading fixture %s: %v", name, err)
+	}
+
+	return string(body)
+}

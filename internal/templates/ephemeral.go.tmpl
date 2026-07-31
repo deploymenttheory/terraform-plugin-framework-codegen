@@ -1,0 +1,68 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.Ephemeral }}
+)
+
+const (
+	// EphemeralName is the Terraform type this ephemeral resource registers as.
+	EphemeralName = "{{ .EphemeralName }}"
+
+	// OpenTimeout is the open deadline in seconds. Open is the one operation this
+	// ephemeral has, and an ephemeral schema carries no timeouts block for a
+	// practitioner to override it with, so the deadline is this constant.
+	OpenTimeout = {{ .OpenTimeout }}
+)
+
+{{ if .PatternVars }}
+// Patterns the schema's RegexMatches validators check against.
+{{- range .PatternVars }}
+{{ . }}
+{{- end }}
+{{ end }}
+// Compile-time assertions that this ephemeral resource implements what it claims to.
+var (
+{{- range .Interfaces }}
+	{{ . }}
+{{- end }}
+)
+
+// {{ .ConstructorFn }} returns the {{ .EphemeralName }} ephemeral resource.
+func {{ .ConstructorFn }}() ephemeral.EphemeralResource {
+	return &{{ .GoTypeName }}{}
+}
+
+// {{ .GoTypeName }} implements the {{ .EphemeralName }} ephemeral resource.
+//
+// The value it opens lives for the duration of a plan or apply and is never persisted
+// to state -- which is the point of the kind: a secret handed to another provider's
+// configuration without a copy surviving in the state file.
+type {{ .GoTypeName }} struct {
+	client {{ .SDKClientType }}
+}
+
+// Metadata returns the ephemeral resource type name.
+func (e *{{ .GoTypeName }}) Metadata(_ context.Context, _ ephemeral.MetadataRequest, resp *ephemeral.MetadataResponse) {
+	resp.TypeName = EphemeralName
+}
+
+// Configure receives the configured SDK client from the provider.
+func (e *{{ .GoTypeName }}) Configure(ctx context.Context, req ephemeral.ConfigureRequest, resp *ephemeral.ConfigureResponse) {
+	e.client = client.ForEphemeral(ctx, req, resp, EphemeralName)
+}
+
+// Schema returns the ephemeral resource schema.
+func (e *{{ .GoTypeName }}) Schema(_ context.Context, _ ephemeral.SchemaRequest, resp *ephemeral.SchemaResponse) {
+	resp.Schema = schema.Schema{
+{{- if .MarkdownDescription }}
+		MarkdownDescription: {{ printf "%q" .MarkdownDescription }},
+{{- end }}
+		Attributes: map[string]schema.Attribute{
+{{- range .SchemaAttributes }}
+			{{ . }},
+{{- end }}
+		},
+	}
+}

@@ -16,6 +16,20 @@ func pilot(t *testing.T) blueprint.Blueprint {
 	if err != nil {
 		t.Fatalf("loading the committed pilot blueprint: %v", err)
 	}
+
+	// The tests below built their expectations around the tag resource, and resources
+	// are sorted by key -- so it stopped being Resources[0] the day credential landed.
+	// Rotated to the front rather than re-addressed at every site.
+	for i := range bp.Resources {
+		if bp.Resources[i].Key == "tag" {
+			bp.Resources[0], bp.Resources[i] = bp.Resources[i], bp.Resources[0]
+			break
+		}
+	}
+	if bp.Resources[0].Key != "tag" {
+		t.Fatal("no tag resource in the committed blueprint")
+	}
+
 	return bp
 }
 
@@ -623,8 +637,10 @@ func TestUnit_Render_RegistrationIsSortedAndComplete(t *testing.T) {
 
 	v := Registration(bp, KindResources, Options{BlueprintPath: "b", BlueprintSHA256: "s"})
 
-	if len(v.Entries) != 2 {
-		t.Fatalf("got %d entries, want 2", len(v.Entries))
+	// The committed blueprint's resources plus the one appended above.
+	want := len(bp.Resources)
+	if len(v.Entries) != want {
+		t.Fatalf("got %d entries, want %d", len(v.Entries), want)
 	}
 	// Sorted by alias, so the file does not depend on blueprint ordering.
 	if !strings.HasPrefix(v.Entries[0], "v7Aaa.") {
@@ -635,8 +651,8 @@ func TestUnit_Render_RegistrationIsSortedAndComplete(t *testing.T) {
 	}
 
 	// A dropped resource must not be registered.
-	bp.Resources[1].Drop = true
-	if got := Registration(bp, KindResources, Options{}); len(got.Entries) != 1 {
+	bp.Resources[len(bp.Resources)-1].Drop = true
+	if got := Registration(bp, KindResources, Options{}); len(got.Entries) != want-1 {
 		t.Errorf("a dropped resource should not be registered: %v", got.Entries)
 	}
 
