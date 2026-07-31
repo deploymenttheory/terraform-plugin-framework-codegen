@@ -105,7 +105,6 @@ func TestAccResourceTestsPageLoad_01_Lifecycle(t *testing.T) {
 					check.That(address).Key("page_load_target_time").HasValue("1"),
 					check.That(address).Key("page_load_time_limit").HasValue("5"),
 					check.That(address).Key("page_loading_strategy").HasValue("normal"),
-					check.That(address).Key("password").HasValue("tfacc-password"),
 					check.That(address).Key("path_trace_mode").HasValue("classic"),
 					check.That(address).Key("probe_mode").HasValue("auto"),
 					check.That(address).Key("protocol").HasValue("tcp"),

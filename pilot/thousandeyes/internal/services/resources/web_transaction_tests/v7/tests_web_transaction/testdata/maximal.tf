@@ -12,6 +12,8 @@ resource "thousandeyes_tests_web_transaction" "test" {
   #
   # auth_type: documented; unprobed
   #
+  # interval: documented; unprobed
+  #
   # page_loading_strategy: documented; unprobed
   #
   # path_trace_mode: documented; unprobed
@@ -29,11 +31,12 @@ resource "thousandeyes_tests_web_transaction" "test" {
   # Not filled in, because no correct value could be derived. Each of these is optional, so this
   # configuration is valid as it stands -- but it is testing less than it could.
   #
-  # agent_interfaces: a nested object's members may be identifiers of objects that must already
-  # exist, and nothing in the specification says whether they are
+  # credentials: its elements have no derivable value: it is credential-shaped, and a generated
+  # fixture must not invent values that read as secrets; supply one through accFixture if the
+  # test needs it
   #
-  # o_auth: a nested object's members may be identifiers of objects that must already exist, and
-  # nothing in the specification says whether they are
+  # password: it is credential-shaped, and a generated fixture must not invent values that read
+  # as secrets; supply one through accFixture if the test needs it
   #
   # vault_credentials: a nested object's members may be identifiers of objects that must already
   # exist, and nothing in the specification says whether they are
@@ -51,7 +54,6 @@ resource "thousandeyes_tests_web_transaction" "test" {
   client_certificate                     = "tfacc-client-certificate"
   collect_proxy_network_data             = true
   content_regex                          = "tfacc-content-regex"
-  credentials                            = ["tfacc-credentials-element"]
   description                            = "tfacc-description"
   desired_status_code                    = "tfacc-desired-status-code"
   disable_screenshot                     = true
@@ -67,14 +69,13 @@ resource "thousandeyes_tests_web_transaction" "test" {
   http_version                           = 1
   identify_agent_traffic_with_user_agent = true
   include_headers                        = true
-  interval                               = 1
+  interval                               = "60"
   mtu_measurements                       = true
   network_measurements                   = true
   num_path_traces                        = 1
   override_agent_proxy                   = true
   override_proxy_id                      = "tfacc-override-proxy-id"
   page_loading_strategy                  = "normal"
-  password                               = "tfacc-password"
   path_trace_mode                        = "classic"
   probe_mode                             = "auto"
   protocol                               = "tcp"

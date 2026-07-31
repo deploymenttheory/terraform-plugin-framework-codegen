@@ -103,7 +103,6 @@ func TestAccResourceTestsWebTransaction_01_Lifecycle(t *testing.T) {
 					check.That(address).Key("override_agent_proxy").HasValue("true"),
 					check.That(address).Key("override_proxy_id").HasValue("tfacc-override-proxy-id"),
 					check.That(address).Key("page_loading_strategy").HasValue("normal"),
-					check.That(address).Key("password").HasValue("tfacc-password"),
 					check.That(address).Key("path_trace_mode").HasValue("classic"),
 					check.That(address).Key("probe_mode").HasValue("auto"),
 					check.That(address).Key("protocol").HasValue("tcp"),

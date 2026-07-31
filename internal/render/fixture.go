@@ -508,6 +508,20 @@ func stringValue(a blueprint.Attribute, salt string) fixtureValue {
 	fv := fixtureValue{Name: a.Name}
 	c := a.Type.Constraints
 
+	// A credential-shaped attribute gets no synthesised value. Not because the
+	// synthetic string is a secret -- it is not -- but because it is shaped like one:
+	// secret scanners flag it in every committed fixture, and a generated file that
+	// trains reviewers to wave through credential-looking literals is worse than a
+	// stated omission. A curated accFixture hint carries one deliberately if a test
+	// genuinely needs it.
+	if credentialShaped(a.Name) {
+		fv.Skipped = true
+		fv.Reason = "it is credential-shaped, and a generated fixture must not invent " +
+			"values that read as secrets; supply one through accFixture if the test needs it"
+
+		return fv
+	}
+
 	if c.Pattern != "" {
 		// A value satisfying an arbitrary regular expression cannot be constructed by
 		// working forwards from the pattern. Generating a plausible-looking string and
@@ -633,4 +647,18 @@ func floatWithinBounds(c blueprint.Constraints) float64 {
 	default:
 		return preferred
 	}
+}
+
+// credentialShaped reports whether an attribute name reads as a secret.
+//
+// Substring matching on the usual suspects. Over-matching is the safe direction: a
+// skipped optional attribute is a stated line in the scaffold, while an invented
+// "password" in a committed fixture is a secret-scanner finding on every wave.
+func credentialShaped(name string) bool {
+	for _, marker := range []string{"password", "secret", "token", "credential", "api_key", "apikey"} {
+		if strings.Contains(name, marker) {
+			return true
+		}
+	}
+	return false
 }

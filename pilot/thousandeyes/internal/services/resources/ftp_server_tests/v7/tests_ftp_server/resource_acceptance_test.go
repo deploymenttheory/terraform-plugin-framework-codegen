@@ -83,7 +83,6 @@ func TestAccResourceTestsFTPServer_01_Lifecycle(t *testing.T) {
 					check.That(address).Key("mtu_measurements").HasValue("true"),
 					check.That(address).Key("network_measurements").HasValue("true"),
 					check.That(address).Key("num_path_traces").HasValue("1"),
-					check.That(address).Key("password").HasValue("tfacc-password"),
 					check.That(address).Key("path_trace_mode").HasValue("classic"),
 					check.That(address).Key("probe_mode").HasValue("auto"),
 					check.That(address).Key("protocol").HasValue("tcp"),
