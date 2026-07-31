@@ -209,6 +209,13 @@ func probeMain(args []string) error {
 			probe.ErrRefused, *mode)
 	}
 
+	// Same shape of refusal for -rederive: only replay honours it, and silence would let a
+	// scripted run believe it had rewritten facts.json when nothing was written at all.
+	if *rederive && *mode != modeReplay {
+		return usagef("-rederive needs -mode replay, and this is %s; verify asserts the "+
+			"committed facts reproduce, it must not rewrite them", *mode)
+	}
+
 	plan, err := loadPlan(*planPath)
 	if err != nil {
 		return err
@@ -884,9 +891,13 @@ func readFacts(path string) ([]probe.Fact, error) {
 
 	// Validated on load, because a committed facts document is hand-editable and a fact with
 	// no evidence would otherwise flow into merge and change a schema on the strength of
-	// nothing.
+	// nothing. A Suspected fact is exempt from the strength checks only -- its shape (field,
+	// value, preconditions) is still checked, so a malformed When cannot load unnoticed.
 	for _, f := range out {
 		if f.Confidence == probe.Suspected {
+			if err := f.ValidateShape(); err != nil {
+				return nil, fmt.Errorf("%s: %w", path, err)
+			}
 			continue
 		}
 		if err := f.Validate(); err != nil {

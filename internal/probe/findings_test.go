@@ -119,6 +119,38 @@ func TestUnit_Probe_RetractRemovesADisprovedFact(t *testing.T) {
 	}
 }
 
+// TestUnit_Probe_AConditionalFactDoesNotSettleAnUnconditionalQuestion.
+//
+// A caller of Settled is asking an unconditional question -- "is this field writable" so I
+// may create objects on the answer. `writable=true when type is dynamic` would authorise a
+// protocol against every branch on evidence about one, which is exactly the half-truth the
+// precondition exists to prevent.
+func TestUnit_Probe_AConditionalFactDoesNotSettleAnUnconditionalQuestion(t *testing.T) {
+	t.Parallel()
+
+	conditional := boolFact("value", FactWritable, true, Corroborated)
+	conditional.When = []Condition{{JSONPath: "type", Equals: "dynamic"}}
+
+	f := NewFindings([]Fact{conditional})
+
+	if _, ok := f.Settled("value", FactWritable, Inferred); ok {
+		t.Error("a conditional fact must not settle an unconditional question")
+	}
+	if f.True("value", FactWritable, Inferred) {
+		t.Error("True answered an unconditional question from a conditional fact")
+	}
+
+	// Retract still removes every variant: a disproof of the path's claim disproves each
+	// branch, and a surviving branch would hand merge a fact whose foundation is gone.
+	other := boolFact("value", FactWritable, true, Corroborated)
+	other.When = []Condition{{JSONPath: "type", Equals: "static"}}
+	f.Add(other)
+
+	if got := f.Retract("value", FactWritable); got != 2 {
+		t.Errorf("Retract removed %d fact(s), want both branch variants", got)
+	}
+}
+
 // TestUnit_Probe_FindingsIsTheRunnersToWrite.
 //
 // A probe adds facts by returning them, so the runner stays the only writer. Otherwise two probes

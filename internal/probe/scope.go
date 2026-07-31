@@ -194,6 +194,10 @@ func (sc Scope) Fixtures() []Fixture { return sc.Plan.Fixtures }
 // Copied because a probe mutates the body it sends -- omitting a key, substituting a value -- and
 // a probe that mutated the plan's own map would silently change what every later probe sends. The
 // resulting facts would be about a body nobody declared.
+//
+// The copy is deep. A fixture body may nest -- a dynamic tag carries a `filters` list of maps --
+// and a top-level copy would share every nested map with the plan, so a probe reaching one level
+// down would corrupt the plan just as surely as one mutating the top.
 func (sc Scope) Fixture(i int) (Fixture, bool) {
 	if i < 0 || i >= len(sc.Plan.Fixtures) {
 		return Fixture{}, false
@@ -201,12 +205,31 @@ func (sc Scope) Fixture(i int) (Fixture, bool) {
 
 	src := sc.Plan.Fixtures[i]
 
-	body := make(map[string]any, len(src.Body))
-	for k, v := range src.Body {
-		body[k] = v
-	}
+	body, _ := deepCopyValue(src.Body).(map[string]any)
 
 	return Fixture{Name: src.Name, Body: body}, true
+}
+
+// deepCopyValue copies the JSON-shaped value graph a fixture body decodes to: maps, slices and
+// scalars. Scalars are immutable and returned as-is; anything else JSON cannot produce is not in
+// a fixture body, because fixtures arrive by json.Unmarshal.
+func deepCopyValue(v any) any {
+	switch tv := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(tv))
+		for k, elem := range tv {
+			out[k] = deepCopyValue(elem)
+		}
+		return out
+	case []any:
+		out := make([]any, len(tv))
+		for i, elem := range tv {
+			out[i] = deepCopyValue(elem)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 // Omittable is the fixture keys the requiredness protocol may leave out.

@@ -539,6 +539,14 @@ func VerifyFacts(derived, committed []Fact) error {
 			return fmt.Errorf("%w: fact %d is %s, expected %s",
 				ErrReplayMismatch, i, factKey(got), factKey(want))
 		}
+		if got.whenKey() != want.whenKey() {
+			// Two facts differing only in precondition are two different claims; letting
+			// them verify as one would make a conditional derivation unreproducible
+			// without anything noticing.
+			return fmt.Errorf("%w: %s holds %s, the cassette was committed with %s",
+				ErrReplayMismatch, factKey(got),
+				orUnconditionally(got), orUnconditionally(want))
+		}
 		if got.Value.String() != want.Value.String() {
 			return fmt.Errorf("%w: %s = %s, the cassette was committed with %s",
 				ErrReplayMismatch, factKey(got), got.Value, want.Value)
@@ -557,6 +565,15 @@ func factKey(f Fact) string {
 		return fmt.Sprintf("%s.%s", f.Resource, f.Field)
 	}
 	return fmt.Sprintf("%s.%s.%s", f.Resource, f.JSONPath, f.Field)
+}
+
+// orUnconditionally names a fact's precondition for a mismatch message, so the report
+// reads "holds when type is "dynamic"" rather than exposing the internal key format.
+func orUnconditionally(f Fact) string {
+	if because := f.Because(); because != "" {
+		return because
+	}
+	return "unconditionally"
 }
 
 // RecordingMetadata builds the cassette metadata for a run.

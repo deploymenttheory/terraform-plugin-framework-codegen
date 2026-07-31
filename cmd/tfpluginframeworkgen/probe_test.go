@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -275,6 +276,14 @@ func TestUnit_CLI_Probe_RejectsBadUsage(t *testing.T) {
 		{"unknown resource", []string{"-blueprint", blueprintDir(), "-resource", "octopus", "-list"}},
 		{"unknown probe", []string{"-blueprint", blueprintDir(), "-list", "-only", "read.telepathy"}},
 		{"bad flag", []string{"-nonsense"}},
+		// Only replay honours -rederive; silence on the other modes would let a scripted
+		// run believe it had rewritten facts.json when nothing was written at all.
+		{"rederive outside replay", []string{
+			"-blueprint", blueprintDir(), "-resource", "tag", "-mode", "verify", "-rederive",
+		}},
+		{"rederive with sweep", []string{
+			"-blueprint", blueprintDir(), "-resource", "tag", "-mode", "sweep", "-rederive",
+		}},
 	}
 
 	for _, tc := range tests {
@@ -288,6 +297,44 @@ func TestUnit_CLI_Probe_RejectsBadUsage(t *testing.T) {
 				t.Errorf("error = %v, want a usageError so the exit code is %d", err, exitInvalidInput)
 			}
 		})
+	}
+}
+
+// TestUnit_CLI_Probe_SuspectedFactsAreShapeCheckedOnLoad.
+//
+// A Suspected fact is exempt from the strength checks -- it may lack evidence -- but its
+// shape is not: a malformed precondition on one would otherwise load unchecked and sit in
+// the store as a claim nothing downstream can interpret.
+func TestUnit_CLI_Probe_SuspectedFactsAreShapeCheckedOnLoad(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "facts.json")
+
+	malformed := `[{
+		"resource": "tag", "jsonPath": "matchType", "field": "returnedOnRead",
+		"value": {"bool": false}, "confidence": "suspected", "probe": "test",
+		"when": [{"jsonPath": "type", "equals": ""}]
+	}]`
+	if err := os.WriteFile(path, []byte(malformed), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := readFacts(path); err == nil ||
+		!strings.Contains(err.Error(), "no value") {
+		t.Errorf("a suspected fact with a malformed condition must be refused: %v", err)
+	}
+
+	// The exemption itself still holds: no evidence is fine at suspected confidence.
+	unevidenced := `[{
+		"resource": "tag", "jsonPath": "matchType", "field": "returnedOnRead",
+		"value": {"bool": false}, "confidence": "suspected", "probe": "test"
+	}]`
+	if err := os.WriteFile(path, []byte(unevidenced), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := readFacts(path); err != nil {
+		t.Errorf("a suspected fact may lack evidence: %v", err)
 	}
 }
 

@@ -223,9 +223,9 @@ type Fact struct {
 // Condition is one precondition: a field held this value while the fact was observed.
 //
 // Equals is a string rather than a Value because a gate has to be *enumerable* to be crossed
-// -- a probe can only vary a field across values somebody listed -- and Plan.Gates declares
-// those as strings. A field with no enumerable value set cannot be a gate, so a condition can
-// only ever name one of those strings.
+// -- a probe can only vary a field across values somebody listed -- and the plan declares
+// gates as strings, via Plan.DefaultInfluencers. A field with no enumerable value set cannot
+// be a gate, so a condition can only ever name one of those strings.
 type Condition struct {
 	// JSONPath is the gate field, in the same vocabulary as Fact.JSONPath.
 	JSONPath string `json:"jsonPath"`
@@ -238,6 +238,26 @@ func (c Condition) String() string { return fmt.Sprintf("%s is %q", c.JSONPath, 
 
 // Conditional reports whether this fact holds only under a precondition.
 func (f Fact) Conditional() bool { return len(f.When) > 0 }
+
+// whenKey renders the preconditions as one canonical string, empty when unconditional.
+//
+// This is the identity of a fact's condition set: two facts about the same path and field
+// are the same claim only if this agrees too. Sorted by path -- validateConditions already
+// guarantees each path appears once -- so the key does not depend on the order a probe
+// happened to append conditions in.
+func (f Fact) whenKey() string {
+	if len(f.When) == 0 {
+		return ""
+	}
+
+	parts := make([]string, 0, len(f.When))
+	for _, c := range f.When {
+		parts = append(parts, c.JSONPath+"="+c.Equals)
+	}
+	sort.Strings(parts)
+
+	return strings.Join(parts, ";")
+}
 
 // Because renders a fact's preconditions as one prose clause, empty when unconditional.
 //
@@ -262,6 +282,33 @@ func (f Fact) Because() string {
 // hand-editable and a fact with no evidence or an unrecognised field would otherwise
 // flow into merge and change a schema on the strength of nothing.
 func (f Fact) Validate() error {
+	if err := f.ValidateShape(); err != nil {
+		return err
+	}
+
+	switch {
+	case len(f.Evidence) == 0:
+		return fmt.Errorf("%w: %s.%s: a fact with no evidence; every claim must name the "+
+			"cassette interactions that support it", ErrInvalidFacts, f.Resource, f.Field)
+	case f.Rationale == "":
+		return fmt.Errorf(
+			"%w: %s.%s: a fact with no rationale",
+			ErrInvalidFacts,
+			f.Resource,
+			f.Field,
+		)
+	default:
+		return nil
+	}
+}
+
+// ValidateShape checks the parts of a fact that must hold whatever its confidence.
+//
+// A Suspected fact is exempt from the strength checks -- it may lack evidence, because it
+// is a prompt for a human rather than a conclusion -- but a malformed precondition or an
+// unknown field is malformed at any confidence, and letting one load would put a fact
+// downstream code cannot interpret into the store.
+func (f Fact) ValidateShape() error {
 	switch {
 	case f.Resource == "":
 		return fmt.Errorf("%w: a fact with no resource", ErrInvalidFacts)
@@ -274,16 +321,6 @@ func (f Fact) Validate() error {
 	case !knownConfidence[f.Confidence]:
 		return fmt.Errorf("%w: %s.%s: unknown confidence %q",
 			ErrInvalidFacts, f.Resource, f.Field, f.Confidence)
-	case len(f.Evidence) == 0:
-		return fmt.Errorf("%w: %s.%s: a fact with no evidence; every claim must name the "+
-			"cassette interactions that support it", ErrInvalidFacts, f.Resource, f.Field)
-	case f.Rationale == "":
-		return fmt.Errorf(
-			"%w: %s.%s: a fact with no rationale",
-			ErrInvalidFacts,
-			f.Resource,
-			f.Field,
-		)
 	default:
 		return f.validateConditions()
 	}
@@ -350,9 +387,11 @@ var knownConfidence = map[Confidence]bool{
 
 // SortFacts orders facts so a committed document is byte-stable.
 //
-// By resource, then JSON path, then field. Not by discovery order: the order probes run
-// in is an implementation detail, and letting it into a committed artefact would make
-// the file churn whenever the catalogue is reordered.
+// By resource, then JSON path, then field, then precondition. Not by discovery order: the
+// order probes run in is an implementation detail, and letting it into a committed artefact
+// would make the file churn whenever the catalogue is reordered. The precondition tiebreak
+// matters the moment one path carries a fact per branch -- without it two branch facts have
+// no defined relative order, and the committed document churns between identical runs.
 func SortFacts(facts []Fact) {
 	sort.SliceStable(facts, func(i, j int) bool {
 		a, b := facts[i], facts[j]
@@ -362,6 +401,9 @@ func SortFacts(facts []Fact) {
 		if a.JSONPath != b.JSONPath {
 			return a.JSONPath < b.JSONPath
 		}
-		return a.Field < b.Field
+		if a.Field != b.Field {
+			return a.Field < b.Field
+		}
+		return a.whenKey() < b.whenKey()
 	})
 }

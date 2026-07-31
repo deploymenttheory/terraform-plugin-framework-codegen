@@ -4,10 +4,13 @@ A toolkit that programmatically generates [terraform-plugin-framework][framework
 providers from an API specification **plus recorded API behaviour**, so that
 state mapping is compile-checked generated code instead of runtime reflection.
 
-> **Status: Phase 1b of 7.** Generation works end to end: a blueprint produces a
-> provider that compiles, tests and plans. The stages that *infer* a blueprint —
-> OpenAPI ingestion and live API probing — are registered and documented but not
-> yet built, so blueprints are hand-authored today. See [Roadmap](#roadmap).
+> **Status: Phase 6 of 7.** The pipeline works end to end: `ingest` infers a
+> blueprint from a pinned OpenAPI snapshot, `probe` has recorded a live mutating
+> run against a real sandbox, `merge` folds the facts in, and the emitted pilot
+> compiles, tests and plans. What remains is breadth — more resources, docs,
+> and a second API to prove nothing is pilot-shaped. The one unbuilt stage is
+> `specs` (fetching a snapshot; committed snapshots verify and load fine). See
+> [Roadmap](#roadmap).
 
 ## Why
 
@@ -37,8 +40,8 @@ CI, and they feed the generator alongside the specification.
 ```
 OpenAPI snapshot ──ingest──┐
                             ├──merge──► blueprint.json ──emit──► provider Go tree
-live API ────────probe──────┤                                    + tests, mocks,
-                            │                                      fixtures, docs
+live API ────────probe──────┤                                    + acceptance tests
+                            │                                      and fixtures
 human overrides ────────────┘
 ```
 
@@ -53,8 +56,8 @@ blueprint field to edit.
 
 ## Quick start
 
-Steps 0 to 2 are not built yet, so a blueprint is hand-authored today. Everything
-from step 5 onward works — that is the pilot's actual build.
+Every step below works except step 0, which is a stub: snapshots are pinned by
+hand today, and the committed one verifies by checksum on every load.
 
 ```bash
 # 0. pin an upstream spec snapshot
@@ -101,13 +104,13 @@ provider. It is enforced four ways: a per-file header, the emission manifest,
 
 | Path | Owner | Change it by |
 |---|---|---|
-| `internal/services/**/{resource,model,construct,state,crud}.go` | toolkit | editing the blueprint, then `emit` |
-| `internal/services/**/{modify_plan,validate}.go` | **you** | editing them; `emit` never touches them again |
-| `internal/services/**/mocks/`, `tests/` | toolkit | re-probing, then `emit` |
-| `internal/provider/{resources,datasources,provider}.go` marked regions | toolkit | `emit -register` |
-| `internal/provider/configure_clients.go`, `internal/client/` | **you** | editing them — auth is always bespoke |
-| `internal/services/common/convert/` | toolkit | editing the templates |
-| `internal/services/common/{crud,errors,schema}/` | **you** | editing them |
+| `internal/services/**/{resource,model,construct,state,crud,list_resource}.go` | toolkit | editing the blueprint, then `emit` |
+| `internal/services/**/{modify_plan,predicate,state_upgrade}.go` | **you** | editing them; scaffolded once, `emit` never touches them again |
+| `internal/services/**/{resource_acceptance_test,test_helper_test}.go`, `testdata/minimal.tf` | toolkit | re-probing, then `emit` |
+| `internal/services/**/testdata/maximal.tf` | **you** | editing it; scaffolded once |
+| `internal/provider/{resources,datasources,list_resources,actions}.go` | toolkit | `emit` |
+| `internal/provider/{provider,interfaces}.go`, `internal/client/` | **you** | editing them — auth is always bespoke |
+| `internal/services/common/{convert,crud,errors,schema}/` | **you** | editing them |
 
 Generated files carry exactly this header, and nothing else may:
 
