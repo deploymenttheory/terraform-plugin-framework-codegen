@@ -90,6 +90,112 @@ func validResource() Resource {
 	}
 }
 
+func validEphemeral() Ephemeral {
+	return Ephemeral{
+		Key:            "credential",
+		Name:           "credential",
+		GoPackage:      "credential",
+		GoPackageAlias: "v7Credential",
+		GoTypeName:     "CredentialEphemeral",
+		ModelTypeName:  "CredentialEphemeralModel",
+		Schema: Schema{
+			Attributes: []Attribute{
+				{
+					Name:                     "id",
+					GoField:                  "ID",
+					Type:                     AttrType{Kind: KindString},
+					ComputedOptionalRequired: Required,
+					Wire: WireBinding{
+						JSONPath: "id", SDKField: "ID", SDKGoType: "*string",
+						SkipFlatten: true,
+					},
+				},
+				{
+					Name:                     "value",
+					GoField:                  "Value",
+					Type:                     AttrType{Kind: KindString},
+					ComputedOptionalRequired: Computed,
+					Sensitive:                true,
+					Wire: WireBinding{
+						JSONPath: "value", SDKField: "Value", SDKGoType: "*string",
+						Flatten: &ConvertCall{Func: "convert.PtrStringToFramework"},
+					},
+				},
+			},
+		},
+		Binding: EphemeralBinding{
+			Service: ServiceRef{
+				ImportPath: "example.com/sdk/credentials",
+				TypeName:   "Credentials",
+				Accessor:   "e.client.Credentials",
+			},
+			Open: &Operation{
+				Style: CallStyleMethod, Method: "GetCredential",
+				Return: ReturnResultTransportError, ResultType: "credentials.Credential",
+			},
+			Response: ResponseModel{
+				Type:        "credentials.Credential",
+				AccessStyle: AccessStructField,
+			},
+		},
+	}
+}
+
+// addListFacet gives the fixture resource an identity and a minimal valid list facet, so
+// a test can break exactly one thing on top of them.
+func addListFacet(r *Resource) {
+	r.Identity = &ResourceIdentity{
+		GoTypeName: "TagResourceIdentity",
+		Attributes: []IdentityAttribute{{
+			Name: "id", GoField: "ID", Kind: KindString,
+			RequiredForImport: true, FromAttribute: "id",
+		}},
+	}
+	r.List = &ListFacet{
+		GoTypeName: "TagListResource",
+		Service:    ServiceRef{ImportPath: "p", TypeName: "Tags", Accessor: "l.client.Tags"},
+		Read: &Operation{
+			Style: CallStyleMethod, Method: "GetTags",
+			Return: ReturnResultTransportError, ResultType: "tags.ResourceTags",
+		},
+		Response:    ResponseModel{Type: "tags.ResourceTags", AccessStyle: AccessStructField},
+		ElementType: "tags.Tag",
+		IdentityFrom: []ListIdentityMapping{
+			{GoField: "ID", FromSDKField: "ID", IsPointer: true},
+		},
+	}
+}
+
+func validDataSourceWithSeed(seedKey string) DataSource {
+	return DataSource{
+		Key: "tag", Name: "tag", GoPackage: "tag", GoPackageAlias: "dsV7Tag",
+		GoTypeName: "TagDataSource", ModelTypeName: "TagDataSourceModel",
+		Schema: Schema{Attributes: []Attribute{{
+			Name: "id", GoField: "ID", Type: AttrType{Kind: KindString},
+			ComputedOptionalRequired: Required,
+			Wire: WireBinding{
+				JSONPath: "id", SDKField: "ID", SDKGoType: "*string",
+				Flatten: &ConvertCall{Func: "convert.PtrStringToFramework"},
+			},
+		}}},
+		Binding: DataSourceBinding{
+			Service: ServiceRef{
+				ImportPath: "example.com/sdk/tags", TypeName: "Tags",
+				Accessor: "d.client.Tags",
+			},
+			Read: &Operation{
+				Style: CallStyleMethod, Method: "GetTag",
+				Return: ReturnResultTransportError, ResultType: "tags.Tag",
+			},
+			Response: ResponseModel{Type: "tags.Tag", AccessStyle: AccessStructField},
+		},
+		AccTest: &AccSeed{
+			SeedResourceKey: seedKey,
+			Args:            []SeedArg{{Attr: "id", FromSeedAttr: "id"}},
+		},
+	}
+}
+
 func validBlueprint() Blueprint {
 	return Blueprint{
 		FormatVersion: FormatVersion,
@@ -432,6 +538,86 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 			},
 			wantPath: "not a wire path",
 		},
+		{
+			// Opening the value is the one thing an ephemeral does.
+			name: "ephemeral with no open operation",
+			mutate: func(b *Blueprint) {
+				e := validEphemeral()
+				e.Binding.Open = nil
+				b.Ephemerals = []Ephemeral{e}
+			},
+			wantPath: "binding.open",
+		},
+		{
+			// Modelled so a blueprint written today needs no reshaping; refused so
+			// nothing claims support the emitter does not have.
+			name: "ephemeral declaring renew before it renders",
+			mutate: func(b *Blueprint) {
+				e := validEphemeral()
+				e.Binding.Renew = &Operation{
+					Style: CallStyleMethod, Method: "RenewCredential",
+					Return: ReturnResultTransportError, ResultType: "credentials.Credential",
+				}
+				b.Ephemerals = []Ephemeral{e}
+			},
+			wantPath: "binding.renew",
+		},
+		{
+			// BlockEphemeral has no Default field, so emitting one would not compile.
+			name: "ephemeral attribute carrying a default",
+			mutate: func(b *Blueprint) {
+				e := validEphemeral()
+				e.Schema.Attributes[1].Default = &Default{
+					Static: &Literal{Kind: KindString, Raw: `"x"`},
+				}
+				b.Ephemerals = []Ephemeral{e}
+			},
+			wantPath: "default",
+		},
+		{
+			// BlockList refuses Computed: there is nowhere to put a result, which is
+			// the structural reason the schema is filter-only.
+			name: "list filter attribute that is computed",
+			mutate: func(b *Blueprint) {
+				addListFacet(&b.Resources[0])
+				b.Resources[0].List.Schema = &Schema{Attributes: []Attribute{{
+					Name: "state", GoField: "State",
+					Type:                     AttrType{Kind: KindString},
+					ComputedOptionalRequired: Computed,
+					Wire:                     WireBinding{JSONPath: "state", SkipFlatten: true},
+				}}}
+			},
+			wantPath: "computedOptionalRequired",
+		},
+		{
+			// An ArgConfigField naming a model field no filter attribute has would
+			// generate a read that does not compile.
+			name: "list read arg naming an undeclared filter field",
+			mutate: func(b *Blueprint) {
+				addListFacet(&b.Resources[0])
+				b.Resources[0].List.Read.Args = []Argument{
+					{Kind: ArgContext},
+					{Kind: ArgConfigField, Field: "Missing"},
+				}
+			},
+			wantPath: "read.args[1].field",
+		},
+		{
+			name: "acceptance seed naming an unknown resource",
+			mutate: func(b *Blueprint) {
+				b.DataSources = []DataSource{validDataSourceWithSeed("octopus")}
+			},
+			wantPath: "accTest.seedResourceKey",
+		},
+		{
+			name: "acceptance seed arg naming an attribute the seed lacks",
+			mutate: func(b *Blueprint) {
+				ds := validDataSourceWithSeed("tag")
+				ds.AccTest.Args = []SeedArg{{Attr: "id", FromSeedAttr: "nonexistent"}}
+				b.DataSources = []DataSource{ds}
+			},
+			wantPath: "fromSeedAttr",
+		},
 	}
 
 	for _, tc := range tests {
@@ -452,6 +638,33 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 				t.Errorf("error does not mention %q:\n%v", tc.wantPath, err)
 			}
 		})
+	}
+}
+
+// TestUnit_Blueprint_Validate_AcceptsTheNewKinds is the control for the refusal cases
+// above: a well-formed ephemeral, list filter schema and acceptance seeds all validate,
+// or every refusal could be passing for the wrong reason.
+func TestUnit_Blueprint_Validate_AcceptsTheNewKinds(t *testing.T) {
+	t.Parallel()
+
+	b := validBlueprint()
+	b.Ephemerals = []Ephemeral{validEphemeral()}
+	b.DataSources = []DataSource{validDataSourceWithSeed("tag")}
+
+	addListFacet(&b.Resources[0])
+	b.Resources[0].List.Schema = &Schema{Attributes: []Attribute{{
+		Name: "state", GoField: "State",
+		Type:                     AttrType{Kind: KindString},
+		ComputedOptionalRequired: Optional,
+		Wire:                     WireBinding{JSONPath: "state", SkipFlatten: true},
+	}}}
+	b.Resources[0].List.Read.Args = []Argument{
+		{Kind: ArgContext},
+		{Kind: ArgConfigField, Field: "State"},
+	}
+
+	if err := b.Validate(); err != nil {
+		t.Fatalf("a well-formed document with the new kinds must validate: %v", err)
 	}
 }
 

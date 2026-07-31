@@ -35,7 +35,10 @@ import (
 
 // FormatVersion is the blueprint format version. It is deliberately unrelated to
 // the Provider Code Specification's version, which this format does not track.
-const FormatVersion = "3"
+//
+// Version 4 added ephemerals, behaviour variants, list filter schemas and acceptance
+// seeds in one step, so the committed pilot re-serialized once rather than four times.
+const FormatVersion = "4"
 
 // Blueprint is one provider.
 type Blueprint struct {
@@ -49,6 +52,7 @@ type Blueprint struct {
 	Resources   []Resource   `json:"resources,omitempty"`
 	Actions     []Action     `json:"actions,omitempty"`
 	DataSources []DataSource `json:"dataSources,omitempty"`
+	Ephemerals  []Ephemeral  `json:"ephemerals,omitempty"`
 
 	Source SourceInfo `json:"source,omitzero"`
 }
@@ -125,7 +129,10 @@ type Conventions struct {
 	ResourceRoot   string `json:"resourceRoot,omitempty"`
 	DataSourceRoot string `json:"dataSourceRoot,omitempty"`
 	// ActionRoot is where action packages live. Defaults to internal/services/actions.
-	ActionRoot     string `json:"actionRoot,omitempty"`
+	ActionRoot string `json:"actionRoot,omitempty"`
+	// EphemeralRoot is where ephemeral packages live. Defaults to
+	// internal/services/ephemerals.
+	EphemeralRoot  string `json:"ephemeralRoot,omitempty"`
 	ProviderPkgDir string `json:"providerPkgDir,omitempty"`
 
 	DefaultTimeouts Timeouts `json:"defaultTimeouts,omitzero"`
@@ -255,7 +262,70 @@ type DataSource struct {
 	// modelled separately, so that Conventions.DefaultTimeouts stays one type.
 	Timeouts Timeouts `json:"timeouts,omitzero"`
 
+	// AccTest seeds the generated acceptance test. A data source reads an object it does
+	// not create, so which resource creates one is judgement declared here, not inferred;
+	// absence is a stated refusal to generate the test, never a broken one.
+	AccTest *AccSeed `json:"accTest,omitempty"`
+
 	Drop bool `json:"drop,omitempty"`
+}
+
+// Ephemeral is one ephemeral resource: a value opened for the duration of a plan or
+// apply and never persisted to state.
+//
+// The natural case is a secret -- a credential's decrypted value handed to another
+// provider's configuration -- which is why the kind exists in the framework at all.
+// Structurally it is a data source whose result lives outside state: config attributes
+// reach the API as call arguments, result attributes are flattened from the response,
+// and BlockEphemeral already refuses Default and plan modifiers on both.
+type Ephemeral struct {
+	Key            string `json:"key"`
+	Name           string `json:"name"`
+	GoPackage      string `json:"goPackage"`
+	GoPackageAlias string `json:"goPackageAlias"`
+	GoTypeName     string `json:"goTypeName"`
+	// ModelTypeName is the struct the ephemeral decodes its configuration into and
+	// populates its result from.
+	ModelTypeName string `json:"modelTypeName"`
+
+	ServiceGroup  string `json:"serviceGroup,omitempty"`
+	APIVersionDir string `json:"apiVersionDir,omitempty"`
+
+	DocRefURL string `json:"docRefUrl,omitempty"`
+
+	Schema Schema `json:"schema"`
+
+	Binding EphemeralBinding `json:"binding"`
+
+	// Timeouts carries only a read deadline that is ever used; Open is a read.
+	Timeouts Timeouts `json:"timeouts,omitzero"`
+
+	// AccTest seeds the generated acceptance test, exactly as a data source's does.
+	AccTest *AccSeed `json:"accTest,omitempty"`
+
+	Drop bool `json:"drop,omitempty"`
+}
+
+// AccSeed links a read-only block's generated acceptance test to the resource that
+// creates the object it reads.
+//
+// The linkage is declared rather than inferred because it is judgement: nothing in a
+// schema says which resource's minimal fixture produces an object this block can find.
+type AccSeed struct {
+	// SeedResourceKey names a Resource in the same blueprint whose minimal fixture
+	// creates the object.
+	SeedResourceKey string `json:"seedResourceKey"`
+	// Args maps this block's config attributes onto the seed resource's attributes,
+	// rendered in the fixture as HCL references: id = thousandeyes_tag.test.id.
+	Args []SeedArg `json:"args,omitempty"`
+}
+
+// SeedArg is one config attribute filled from one seed resource attribute.
+type SeedArg struct {
+	// Attr is the attribute on this block.
+	Attr string `json:"attr"`
+	// FromSeedAttr is the attribute on the seed resource it references.
+	FromSeedAttr string `json:"fromSeedAttr"`
 }
 
 // Action is one Terraform action: an imperative operation with no state.
@@ -292,7 +362,32 @@ type Action struct {
 	// shape; CreateSeconds is the field it uses, since an invoke is a write.
 	Timeouts Timeouts `json:"timeouts,omitzero"`
 
+	// AccTest configures the generated acceptance test. An action's subject frequently
+	// cannot be created by Terraform -- disabling an endpoint agent needs an enrolled
+	// agent -- so its identifier arrives from the environment and cleanup is an explicit
+	// SDK call. Absence is a stated refusal to generate the test.
+	AccTest *ActionAccTest `json:"accTest,omitempty"`
+
 	Drop bool `json:"drop,omitempty"`
+}
+
+// ActionAccTest seeds an action's generated acceptance test.
+type ActionAccTest struct {
+	// EnvArgs fills config attributes from environment variables at test run time. The
+	// generated test skips, with the variable named, when one is unset -- an action whose
+	// subject cannot be created must not fail the run for a missing fixture.
+	EnvArgs []EnvArg `json:"envArgs,omitempty"`
+	// Cleanup is the SDK call that reverses the action after the test -- re-enabling what
+	// was disabled. Nil means the action is not reversed, and the generated test says so.
+	Cleanup *Operation `json:"cleanup,omitempty"`
+}
+
+// EnvArg fills one action config attribute from one environment variable.
+type EnvArg struct {
+	// Attr is the attribute on the action's schema.
+	Attr string `json:"attr"`
+	// EnvVar names the variable the test reads.
+	EnvVar string `json:"envVar"`
 }
 
 // ActionBinding is the single SDK call an action makes.
@@ -542,6 +637,13 @@ type ListFacet struct {
 	// DisplayNameIsPointer records whether that field needs dereferencing, which generated
 	// SDKs make the common case for a string.
 	DisplayNameIsPointer bool `json:"displayNameIsPointer,omitempty"`
+
+	// Schema is the list resource's filter config schema. Optional: a facet with no
+	// filters lists everything, and its config schema is empty. Validated against
+	// BlockList, whose refusal of Computed is the structural reason the schema is
+	// filter-only -- there is nowhere to put a result. Filter values reach the read call
+	// as arguments, so each of Read's ArgConfigField args must name an attribute here.
+	Schema *Schema `json:"schema,omitempty"`
 }
 
 // ListIdentityMapping fills one identity field from one element field.

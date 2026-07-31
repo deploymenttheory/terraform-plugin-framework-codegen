@@ -101,6 +101,14 @@ type Options struct {
 
 // Build renders every file the blueprint produces, without writing anything.
 func (g *Generator) Build(bp blueprint.Blueprint, opts Options) (Plan, error) {
+	// Refused rather than skipped, per the failure-behaviour rule: an ephemeral the
+	// blueprint declares and the emitter silently omitted would leave a provider that
+	// looks complete and cannot open the value.
+	if len(bp.Ephemerals) > 0 {
+		return Plan{}, fmt.Errorf("the blueprint declares %d ephemeral(s), which this emitter "+
+			"does not yet render; drop them or wait for ephemeral support", len(bp.Ephemerals))
+	}
+
 	digest := blueprintDigest(bp)
 
 	ropts := render.Options{

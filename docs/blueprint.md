@@ -74,8 +74,10 @@ cascades down from it — the same organising principle the framework itself use
 kind is a `Name`, a `Schema`, and then the operations that kind supports.
 
 `resource`, `datasource`, `action` and `list` (a facet of a resource) are built and in
-the pilot. `ephemeral` has its kind declared in `internal/blueprint/blockkind.go` — so
-attribute validation already knows its rules — but cannot yet be declared or emitted.
+the pilot. `ephemeral` is declarable — `Blueprint.Ephemerals`, with an `open` binding
+that is required and `renew`/`close` modelled but refused until they render — and the
+emitter does not yet produce it; `emit` refuses a blueprint that declares one rather
+than silently skipping it.
 
 **An attribute's legal fields depend on the kind rendering it.** Every kind has its own
 schema package — `resource/schema`, `datasource/schema` and so on — and those packages
