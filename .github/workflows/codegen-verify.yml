@@ -531,6 +531,23 @@ jobs:
           failed=0
 
           while IFS= read -r fixture; do
+            # Two fixture shapes cannot be validated this way, each for a stated
+            # structural reason rather than convenience:
+            #
+            # query.tf holds a `list` block, which is input to `terraform query` --
+            # `terraform validate` rejects the block type outright, on every
+            # Terraform version. Its generated acceptance test is what exercises it.
+            #
+            # ephemeral.tf hands the opened value to the echo provider, which exists
+            # only in-process via the acceptance harness's ProtoV6ProviderFactories;
+            # there is nothing on any registry for validate to resolve it against.
+            case "$(basename "$fixture")" in
+              query.tf|ephemeral.tf)
+                echo "⏭️  $fixture (not a configuration terraform validate can check)"
+                continue
+                ;;
+            esac
+
             scratch="${RUNNER_TEMP}/fixture"
             rm -rf "$scratch"
             mkdir -p "$scratch"
