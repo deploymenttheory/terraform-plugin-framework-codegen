@@ -93,7 +93,7 @@ func TestUnit_CLI_CommittedBlueprintMatchesTheSpecItWasInferredFrom(t *testing.T
 					path, want.allowed, inferred.allowed,
 				)
 			}
-			if want.constraints != inferred.constraints {
+			if !reflect.DeepEqual(want.constraints, inferred.constraints) {
 				t.Errorf(
 					"%s: constraints are %+v in the blueprint and %+v in the pinned "+
 						"specification.\nRe-run ingest and fold the change in.",

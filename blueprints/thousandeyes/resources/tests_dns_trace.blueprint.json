@@ -1,0 +1,1106 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "tests_dns_trace",
+      "name": "tests_dns_trace",
+      "goPackage": "tests_dns_trace",
+      "goPackageAlias": "v7TestsDNSTrace",
+      "goTypeName": "TestsDNSTraceResource",
+      "modelTypeName": "TestsDNSTraceResourceModel",
+      "serviceGroup": "dns_trace_tests",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alert_rules",
+            "goField": "AlertRules",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsDNSTraceAlertRuleModel",
+                "sdkType": "dns_trace_tests.AlertRule",
+                "attrTypesVar": "testsDNSTraceAlertRuleAttrTypes",
+                "objectTypeVar": "testsDNSTraceAlertRuleObjectType",
+                "expandFunc": "expandTestsDNSTraceAlertRules",
+                "flattenFunc": "flattenTestsDNSTraceAlertRules",
+                "attributes": [
+                  {
+                    "name": "alert_type",
+                    "goField": "AlertType",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "page-load",
+                        "http-server",
+                        "end-to-end-server",
+                        "end-to-end-agent",
+                        "voice",
+                        "dns-server",
+                        "dns-trace",
+                        "dnssec",
+                        "bgp",
+                        "path-trace",
+                        "ftp",
+                        "sip-server",
+                        "transactions",
+                        "web-transactions",
+                        "agent",
+                        "network-outage",
+                        "application-outage",
+                        "device-device",
+                        "device-interface",
+                        "endpoint-network-server",
+                        "endpoint-http-server",
+                        "endpoint-path-trace",
+                        "endpoint-browser-sessions-agent",
+                        "endpoint-browser-sessions-application",
+                        "api",
+                        "web-transaction",
+                        "unknown"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Type of alert being triggered. In multi-layered tests, this value represents the layer the alert relates to. See [Alert Details](https://developer.cisco.com/docs/thousandeyes/retrieve-alert-details/) documentation for a list of possible values",
+                    "wire": {
+                      "jsonPath": "alertType",
+                      "sdkField": "AlertType",
+                      "sdkGoType": "dns_trace_tests.AlertType",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "dns_trace_tests.AlertType"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "direction",
+                    "goField": "Direction",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "to-target",
+                        "from-target",
+                        "bidirectional"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Direction for applicable alert types (eg. path trace, End-to-End (Agent) etc.)",
+                    "wire": {
+                      "jsonPath": "direction",
+                      "sdkField": "Direction",
+                      "sdkGoType": "dns_trace_tests.AlertDirection",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "dns_trace_tests.AlertDirection"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "expression",
+                    "goField": "Expression",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "String expression of alert rule",
+                    "wire": {
+                      "jsonPath": "expression",
+                      "sdkField": "Expression",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "is_default",
+                    "goField": "IsDefault",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Alert rules allow up to 1 alert rule to be selected as a default for each type. By checking the default option, this alert rule will be automatically included on subsequently created tests that test a metric used in alerting here",
+                    "wire": {
+                      "jsonPath": "isDefault",
+                      "sdkField": "IsDefault",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "minimum_sources",
+                    "goField": "MinimumSources",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The minimum number of agents or monitors that must meet the specified criteria in order to trigger the alert",
+                    "wire": {
+                      "jsonPath": "minimumSources",
+                      "sdkField": "MinimumSources",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "minimum_sources_pct",
+                    "goField": "MinimumSourcesPct",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "the minimum percentage of all assigned agents or monitors that must meet the specified criteria in order to trigger the alert",
+                    "wire": {
+                      "jsonPath": "minimumSourcesPct",
+                      "sdkField": "MinimumSourcesPct",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rounds_violating_mode",
+                    "goField": "RoundsViolatingMode",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "exact",
+                        "any",
+                        "auto"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "`exact` requires the same agents to meet the threshold in consecutive rounds. `auto` is only enabled for CEA and Endpoint Scheduled test rules. The default is `any`.",
+                    "wire": {
+                      "jsonPath": "roundsViolatingMode",
+                      "sdkField": "RoundsViolatingMode",
+                      "sdkGoType": "dns_trace_tests.AlertRoundsViolationMode",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rounds_violating_out_of",
+                    "goField": "RoundsViolatingOutOf",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
+                    "wire": {
+                      "jsonPath": "roundsViolatingOutOf",
+                      "sdkField": "RoundsViolatingOutOf",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rounds_violating_required",
+                    "goField": "RoundsViolatingRequired",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
+                    "wire": {
+                      "jsonPath": "roundsViolatingRequired",
+                      "sdkField": "RoundsViolatingRequired",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rule_id",
+                    "goField": "RuleID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Unique ID of the rule.",
+                    "wire": {
+                      "jsonPath": "ruleId",
+                      "sdkField": "RuleID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rule_name",
+                    "goField": "RuleName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Name of the alert rule",
+                    "wire": {
+                      "jsonPath": "ruleName",
+                      "sdkField": "RuleName",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "sensitivity_level",
+                    "goField": "SensitivityLevel",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "high",
+                        "medium",
+                        "low"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Used when `roundsViolatingMode` is set to `auto`. The default is `medium`. Higher sensitivity increases the likelihood of triggering alerts.",
+                    "wire": {
+                      "jsonPath": "sensitivityLevel",
+                      "sdkField": "SensitivityLevel",
+                      "sdkGoType": "dns_trace_tests.SensitivityLevel",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "severity",
+                    "goField": "Severity",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "info",
+                        "major",
+                        "minor",
+                        "critical",
+                        "unknown"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The severity of the alert.",
+                    "wire": {
+                      "jsonPath": "severity",
+                      "sdkField": "Severity",
+                      "sdkGoType": "dns_trace_tests.Severity",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "dns_trace_tests.Severity"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Contains list of enabled alert rule objects.",
+            "wire": {
+              "jsonPath": "alertRules",
+              "sdkField": "AlertRules",
+              "sdkGoType": "[]dns_trace_tests.AlertRule",
+              "expand": {
+                "func": "expandTestsDNSTraceAlertRules",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenTestsDNSTraceAlertRules",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            },
+            "drop": true
+          },
+          {
+            "name": "alerts_enabled",
+            "goField": "AlertsEnabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Indicates if alerts are enabled.",
+            "wire": {
+              "jsonPath": "alertsEnabled",
+              "sdkField": "AlertsEnabled",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "created_by",
+            "goField": "CreatedBy",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "User that created the test.",
+            "wire": {
+              "jsonPath": "createdBy",
+              "sdkField": "CreatedBy",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "created_date",
+            "goField": "CreatedDate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "UTC created date (ISO date-time format).",
+            "wire": {
+              "jsonPath": "createdDate",
+              "sdkField": "CreatedDate",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "description",
+            "goField": "Description",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "A description of the test.",
+            "wire": {
+              "jsonPath": "description",
+              "sdkField": "Description",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "dns_query_class",
+            "goField": "DNSQueryClass",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "in",
+                "ch"
+              ]
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.",
+            "wire": {
+              "jsonPath": "dnsQueryClass",
+              "sdkField": "DnsQueryClass",
+              "sdkGoType": "dns_trace_tests.DnsQueryClass",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "dns_trace_tests.DnsQueryClass"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "dns_transport_protocol",
+            "goField": "DNSTransportProtocol",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "udp",
+                "tcp"
+              ]
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Transport protocol used for DNS requests.",
+            "wire": {
+              "jsonPath": "dnsTransportProtocol",
+              "sdkField": "DnsTransportProtocol",
+              "sdkGoType": "dns_trace_tests.TestDnsTransportProtocol",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "dns_trace_tests.TestDnsTransportProtocol"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "domain",
+            "goField": "Domain",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.",
+            "wire": {
+              "jsonPath": "domain",
+              "sdkField": "Domain",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "dns_trace_tests.TestDomain"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "enabled",
+            "goField": "Enabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Test is enabled.",
+            "wire": {
+              "jsonPath": "enabled",
+              "sdkField": "Enabled",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "dns_trace_tests.Enabled"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "interval",
+            "goField": "Interval",
+            "type": {
+              "kind": "int64",
+              "allowedValues": [
+                "60",
+                "120",
+                "300",
+                "600",
+                "900",
+                "1800",
+                "3600"
+              ]
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.",
+            "wire": {
+              "jsonPath": "interval",
+              "sdkField": "Interval",
+              "sdkGoType": "dns_trace_tests.TestInterval",
+              "expand": {
+                "func": "convert.FrameworkToIntEnum",
+                "typeArgs": [
+                  "dns_trace_tests.TestInterval"
+                ]
+              },
+              "flatten": {
+                "func": "convert.IntEnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "labels",
+            "goField": "Labels",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsDNSTraceTestLabelsModel",
+                "sdkType": "dns_trace_tests.TestLabels",
+                "attrTypesVar": "testsDNSTraceTestLabelsAttrTypes",
+                "objectTypeVar": "testsDNSTraceTestLabelsObjectType",
+                "expandFunc": "expandTestsDNSTraceTestLabelses",
+                "flattenFunc": "flattenTestsDNSTraceTestLabelses",
+                "attributes": [
+                  {
+                    "name": "is_builtin",
+                    "goField": "IsBuiltin",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Value indicating if the label in question is BuiltIn (Account Admin, Organization Admin, Regular User).",
+                    "wire": {
+                      "jsonPath": "isBuiltin",
+                      "sdkField": "IsBuiltin",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "label_id",
+                    "goField": "LabelID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Label ID.",
+                    "wire": {
+                      "jsonPath": "labelId",
+                      "sdkField": "LabelID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Name of the label.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Labels to which the test is assigned. This field is not returned for Instant Tests.",
+            "wire": {
+              "jsonPath": "labels",
+              "sdkField": "Labels",
+              "sdkGoType": "[]dns_trace_tests.TestLabels",
+              "flatten": {
+                "func": "flattenTestsDNSTraceTestLabelses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          },
+          {
+            "name": "live_share",
+            "goField": "LiveShare",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Indicates if the test is shared with the account group.",
+            "wire": {
+              "jsonPath": "liveShare",
+              "sdkField": "LiveShare",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "modified_by",
+            "goField": "ModifiedBy",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "User that modified the test.",
+            "wire": {
+              "jsonPath": "modifiedBy",
+              "sdkField": "ModifiedBy",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "modified_date",
+            "goField": "ModifiedDate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "UTC last modification date (ISO date-time format).",
+            "wire": {
+              "jsonPath": "modifiedDate",
+              "sdkField": "ModifiedDate",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "goField": "RandomizedStartTime",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.",
+            "wire": {
+              "jsonPath": "randomizedStartTime",
+              "sdkField": "RandomizedStartTime",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "dns_trace_tests.TestRandomizedStartTime"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "saved_event",
+            "goField": "SavedEvent",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.",
+            "wire": {
+              "jsonPath": "savedEvent",
+              "sdkField": "SavedEvent",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "shared_with_accounts",
+            "goField": "SharedWithAccounts",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsDNSTraceTestSharedAccountsModel",
+                "sdkType": "dns_trace_tests.TestSharedAccounts",
+                "attrTypesVar": "testsDNSTraceTestSharedAccountsAttrTypes",
+                "objectTypeVar": "testsDNSTraceTestSharedAccountsObjectType",
+                "expandFunc": "expandTestsDNSTraceTestSharedAccountses",
+                "flattenFunc": "flattenTestsDNSTraceTestSharedAccountses",
+                "attributes": [
+                  {
+                    "name": "aid",
+                    "goField": "AID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Account group ID.",
+                    "wire": {
+                      "jsonPath": "aid",
+                      "sdkField": "AID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Account group name.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Contains list of account group IDs. Test is shared with the listed account groups (get `aid` from `/account-groups` endpoint)",
+            "wire": {
+              "jsonPath": "sharedWithAccounts",
+              "sdkField": "SharedWithAccounts",
+              "sdkGoType": "[]dns_trace_tests.TestSharedAccounts",
+              "flatten": {
+                "func": "flattenTestsDNSTraceTestSharedAccountses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          },
+          {
+            "name": "tags",
+            "goField": "Tags",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsDNSTraceTestTagsModel",
+                "sdkType": "dns_trace_tests.TestTags",
+                "attrTypesVar": "testsDNSTraceTestTagsAttrTypes",
+                "objectTypeVar": "testsDNSTraceTestTagsObjectType",
+                "expandFunc": "expandTestsDNSTraceTestTagses",
+                "flattenFunc": "flattenTestsDNSTraceTestTagses",
+                "attributes": [
+                  {
+                    "name": "id",
+                    "goField": "ID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Unique tag ID.",
+                    "wire": {
+                      "jsonPath": "id",
+                      "sdkField": "ID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "key",
+                    "goField": "Key",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Tag key. For example, \"Location\" or \"Department\".",
+                    "wire": {
+                      "jsonPath": "key",
+                      "sdkField": "Key",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "goField": "Value",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Tag value. For example, \"San Francisco\" or \"Engineering\".",
+                    "wire": {
+                      "jsonPath": "value",
+                      "sdkField": "Value",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Tags assigned to the test. Returned only when `expand=tag` is specified. This field is not returned for Instant Tests. For more information, see `/tags`.",
+            "wire": {
+              "jsonPath": "tags",
+              "sdkField": "Tags",
+              "sdkGoType": "[]dns_trace_tests.TestTags",
+              "flatten": {
+                "func": "flattenTestsDNSTraceTestTagses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          },
+          {
+            "name": "test_id",
+            "goField": "TestID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints.",
+            "wire": {
+              "jsonPath": "testId",
+              "sdkField": "TestID",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "test_name",
+            "goField": "TestName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "The name of the test. Test name must be unique.",
+            "wire": {
+              "jsonPath": "testName",
+              "sdkField": "TestName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "type",
+            "goField": "Type",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "type",
+              "sdkField": "Type",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "agents",
+            "goField": "Agents",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "DnsTraceAgentModel",
+                "sdkType": "dns_trace_tests.TestAgentRequest",
+                "attrTypesVar": "dnsTraceAgentAttrTypes",
+                "objectTypeVar": "dnsTraceAgentObjectType",
+                "expandFunc": "expandDnsTraceAgents",
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "goField": "AgentID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "markdownDescription": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values.",
+                    "wire": {
+                      "jsonPath": "agentId",
+                      "sdkField": "AgentID",
+                      "sdkGoType": "string",
+                      "expand": {
+                        "func": "convert.FrameworkToString"
+                      },
+                      "skipFlatten": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.",
+            "wire": {
+              "jsonPath": "agents",
+              "sdkField": "Agents",
+              "sdkGoType": "[]dns_trace_tests.TestAgentRequest",
+              "skipFlatten": true,
+              "expand": {
+                "func": "expandDnsTraceAgents",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Get DNS Trace test."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api/dns_trace_tests",
+          "typeName": "DNSTraceTests",
+          "accessor": "r.client.API.DNSTraceTests"
+        },
+        "create": {
+          "style": "method",
+          "method": "CreateDnsTraceTest",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "dns_trace_tests.DnsTraceTestResponse",
+          "httpMethod": "POST",
+          "pathTemplate": "/tests/dns-trace"
+        },
+        "read": {
+          "style": "method",
+          "method": "GetDnsTraceTest",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "TestID"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "dns_trace_tests.DnsTraceTestResponse",
+          "httpMethod": "GET",
+          "pathTemplate": "/tests/dns-trace/{testId}"
+        },
+        "update": {
+          "style": "method",
+          "method": "UpdateDnsTraceTest",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "TestID"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "dns_trace_tests.DnsTraceTestResponse",
+          "httpMethod": "PUT",
+          "pathTemplate": "/tests/dns-trace/{testId}"
+        },
+        "delete": {
+          "style": "method",
+          "method": "DeleteDnsTraceTest",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "TestID"
+            }
+          ],
+          "return": "transportError",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/tests/dns-trace/{testId}"
+        },
+        "id": {
+          "attribute": "test_id",
+          "goField": "TestID",
+          "fromCreate": "created.TestID",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "dns_trace_tests.DnsTraceTestRequest",
+          "responseType": "dns_trace_tests.DnsTraceTestResponse",
+          "constructorExpr": "&dns_trace_tests.DnsTraceTestRequest{}",
+          "accessStyle": "structField"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "test_id"
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "agents",
+            "hcl": "[{ agent_id = \"3\" }]"
+          }
+        ]
+      },
+      "sweep": {
+        "nameField": "testName"
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "testName": "tfpfgen-probe-fixture",
+        "interval": 3600,
+        "domain": "example.com",
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ]
+      }
+    }
+  ],
+  "candidates": {},
+  "deny": [
+    "dnsQueryClass",
+    "dnsTransportProtocol",
+    "interval"
+  ],
+  "budget": {
+    "maxRequests": 240,
+    "maxCreates": 80
+  }
+}

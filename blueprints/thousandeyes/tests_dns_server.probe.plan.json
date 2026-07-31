@@ -1,0 +1,38 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "testName": "tfpfgen-probe-fixture",
+        "interval": 3600,
+        "domain": "example.com",
+        "dnsServers": [
+          "8.8.8.8"
+        ],
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ]
+      }
+    }
+  ],
+  "candidates": {
+    "protocol": [
+      "icmp",
+      "udp"
+    ]
+  },
+  "deny": [
+    "dnsQueryClass",
+    "dnsTransportProtocol",
+    "interval",
+    "ipv6Policy",
+    "pathTraceMode",
+    "probeMode"
+  ],
+  "budget": {
+    "maxRequests": 240,
+    "maxCreates": 80
+  }
+}

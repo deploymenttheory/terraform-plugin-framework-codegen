@@ -1,0 +1,54 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "description": "CURATE_ME",
+        "targetAgentId": "CURATE_ME"
+      }
+    }
+  ],
+  "candidates": {
+    "direction": [
+      "from-target",
+      "bidirectional"
+    ],
+    "dscpId": [
+      "8",
+      "16",
+      "24",
+      "32",
+      "40",
+      "48",
+      "56",
+      "10",
+      "12",
+      "14",
+      "18",
+      "20",
+      "22",
+      "26",
+      "28",
+      "30",
+      "34",
+      "36",
+      "38",
+      "46",
+      "44"
+    ],
+    "interval": [
+      "120",
+      "300",
+      "600",
+      "900",
+      "1800",
+      "3600"
+    ],
+    "pathTraceMode": [
+      "in-session"
+    ],
+    "protocol": [
+      "udp"
+    ]
+  }
+}

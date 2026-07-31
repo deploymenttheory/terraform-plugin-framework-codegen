@@ -24,6 +24,7 @@ import (
 	"go/types"
 	"sort"
 	"strings"
+	"sync"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -42,7 +43,11 @@ var (
 // does. That also guarantees the version checked is the version the provider will
 // compile against, rather than whatever happens to be in a local checkout.
 type Loader struct {
-	dir   string
+	dir string
+
+	// mu guards cache: a shared loader is the difference between one go/packages
+	// invocation per run and one per test, and sharing means concurrent lookups.
+	mu    sync.Mutex
 	cache map[string]*packages.Package
 }
 
@@ -51,8 +56,55 @@ func NewLoader(moduleDir string) *Loader {
 	return &Loader{dir: moduleDir, cache: map[string]*packages.Package{}}
 }
 
+// Preload type-checks every given package in one go/packages invocation.
+//
+// Each packages.Load call spawns the go list machinery, which costs seconds
+// regardless of how many patterns it is given -- so loading eighteen SDK packages
+// one call at a time costs eighteen spawns where one would do. Verify calls this
+// with everything the blueprint names; load stays as the fallback for a path
+// nothing predicted.
+func (l *Loader) Preload(importPaths []string) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	missing := make([]string, 0, len(importPaths))
+	for _, ip := range importPaths {
+		if _, ok := l.cache[ip]; !ok && ip != "" {
+			missing = append(missing, ip)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+
+	cfg := &packages.Config{
+		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo |
+			packages.NeedSyntax | packages.NeedImports | packages.NeedDeps,
+		Dir: l.dir,
+	}
+
+	pkgs, err := packages.Load(cfg, missing...)
+	if err != nil {
+		return fmt.Errorf("%w %v from %s: %w", ErrLoad, missing, l.dir, err)
+	}
+
+	for _, pkg := range pkgs {
+		// A package that failed to load is left out of the cache, so the per-path
+		// fallback reports it with the message shape callers already handle.
+		if len(pkg.Errors) != 0 || pkg.Types == nil || pkg.Types.Scope() == nil {
+			continue
+		}
+		l.cache[pkg.PkgPath] = pkg
+	}
+
+	return nil
+}
+
 // load type-checks one package.
 func (l *Loader) load(importPath string) (*packages.Package, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	if p, ok := l.cache[importPath]; ok {
 		return p, nil
 	}
