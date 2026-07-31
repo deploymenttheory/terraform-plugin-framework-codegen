@@ -893,3 +893,166 @@ func TestUnit_Merge_ResultRendering(t *testing.T) {
 		t.Error("an empty result has no error and no changes")
 	}
 }
+
+// conditional returns a fact that holds only when gate equals value.
+func conditional(f probe.Fact, gate, value string) probe.Fact {
+	f.When = []probe.Condition{{JSONPath: gate, Equals: value}}
+	return f
+}
+
+// TestUnit_Merge_AConditionalFactIsRecordedAndNotApplied is the fix for the class of bug that
+// prompted the whole phase.
+//
+// Behaviour is unconditional: one Writable, one ReturnedOnRead, one RejectedValues per attribute.
+// Writing a fact that holds only under a precondition into one of those makes it a claim about
+// every case. That is exactly how the pilot came to suppress matchType's read-back for every tag
+// on the strength of an observation about static ones, and how endpoint-agent came to sit in
+// objectType's rejected set.
+//
+// Both halves matter. Applying it is the bug; dropping it silently would lose evidence somebody
+// paid a live run for. So it goes into the description, with the condition first.
+func TestUnit_Merge_AConditionalFactIsRecordedAndNotApplied(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+
+	// Strong enough to apply, and withheld anyway. The confidence is deliberately Corroborated so
+	// the test cannot pass because the fact was too weak.
+	returned := conditional(
+		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.Corroborated),
+		"objectType", "static",
+	)
+
+	res, err := Apply(&bp, []probe.Fact{returned}, Options{SnapshotID: "snap-1"})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	attr := bp.Resources[0].Schema.Attributes[0]
+
+	// The claim must not reach Behaviour, where nothing could tell it was conditional.
+	if attr.Behaviour.ReturnedOnRead != nil {
+		t.Errorf("a conditional fact must not be applied to Behaviour: %v",
+			*attr.Behaviour.ReturnedOnRead)
+	}
+
+	// And it must not be lost either.
+	if !strings.Contains(attr.MarkdownDescription, "Conditionally") {
+		t.Errorf("the fact should be recorded in the description:\n%s", attr.MarkdownDescription)
+	}
+	if !strings.Contains(attr.MarkdownDescription, `objectType is "static"`) {
+		t.Errorf("the condition should be stated:\n%s", attr.MarkdownDescription)
+	}
+
+	// Counted separately from Ignored, which would be the wrong word: this was strong enough to
+	// act on and was withheld because the schema cannot express the condition.
+	if res.Conditional != 1 {
+		t.Errorf("Conditional = %d, want 1", res.Conditional)
+	}
+	if res.Ignored != 0 {
+		t.Errorf("Ignored = %d, want 0 -- the fact was not too weak", res.Ignored)
+	}
+}
+
+// TestUnit_Merge_TheSameFactWithoutAConditionIsApplied.
+//
+// The control. Without it the test above would pass if merge had simply stopped applying
+// returnedOnRead altogether, which would be a different bug wearing the same green tick.
+func TestUnit_Merge_TheSameFactWithoutAConditionIsApplied(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+
+	unconditional := fact(
+		"colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.Corroborated,
+	)
+
+	res, err := Apply(&bp, []probe.Fact{unconditional}, Options{SnapshotID: "snap-1"})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	attr := bp.Resources[0].Schema.Attributes[0]
+
+	if attr.Behaviour.ReturnedOnRead == nil {
+		t.Fatal("an unconditional fact should reach Behaviour")
+	}
+	if *attr.Behaviour.ReturnedOnRead {
+		t.Error("returnedOnRead should be false, as observed")
+	}
+	if res.Conditional != 0 {
+		t.Errorf("Conditional = %d, want 0", res.Conditional)
+	}
+}
+
+// TestUnit_Merge_ConditionalFactsFromBothBranchesAreBothRecorded.
+//
+// Two branches of one gate produce two facts that disagree, which is the whole point of measuring
+// them separately. Neither may win, and neither may be dropped -- an attribute whose description
+// records only one branch reads as though that branch were the whole truth, which is where this
+// started.
+func TestUnit_Merge_ConditionalFactsFromBothBranchesAreBothRecorded(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+
+	facts := []probe.Fact{
+		conditional(
+			fact("colour", probe.FactRequiredByAPI, probe.BoolValue(true), probe.Observed),
+			"objectType", "dynamic",
+		),
+		conditional(
+			fact("colour", probe.FactRequiredByAPI, probe.BoolValue(false), probe.Observed),
+			"objectType", "static",
+		),
+	}
+
+	res, err := Apply(&bp, facts, Options{SnapshotID: "snap-1"})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	attr := bp.Resources[0].Schema.Attributes[0]
+
+	if attr.Behaviour.RequiredByAPI != nil {
+		t.Errorf("neither branch may win: %v", *attr.Behaviour.RequiredByAPI)
+	}
+	for _, want := range []string{`objectType is "dynamic"`, `objectType is "static"`} {
+		if !strings.Contains(attr.MarkdownDescription, want) {
+			t.Errorf("both branches should be recorded, missing %s:\n%s",
+				want, attr.MarkdownDescription)
+		}
+	}
+	if res.Conditional != 2 {
+		t.Errorf("Conditional = %d, want 2", res.Conditional)
+	}
+}
+
+// TestUnit_Merge_AConditionalFactStaysOutOfTheSchemaOnASecondMerge.
+//
+// Idempotence, which merge -check depends on. A conditional fact writes prose and nothing else, so
+// merging the same facts twice must report no further change -- otherwise CI would fail on every
+// run against unchanged evidence.
+func TestUnit_Merge_AConditionalFactStaysOutOfTheSchemaOnASecondMerge(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+
+	facts := []probe.Fact{conditional(
+		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.Corroborated),
+		"objectType", "static",
+	)}
+
+	if _, err := Apply(&bp, facts, Options{SnapshotID: "snap-1"}); err != nil {
+		t.Fatalf("first Apply: %v", err)
+	}
+
+	second, err := Apply(&bp, facts, Options{SnapshotID: "snap-1"})
+	if err != nil {
+		t.Fatalf("second Apply: %v", err)
+	}
+
+	if len(second.Changes) != 0 {
+		t.Errorf("a second merge over the same facts should change nothing: %+v", second.Changes)
+	}
+}
