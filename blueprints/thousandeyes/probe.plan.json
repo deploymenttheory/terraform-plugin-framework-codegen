@@ -58,7 +58,8 @@
     ]
   },
   "defaultInfluencers": [
-    "objectType"
+    "objectType",
+    "type"
   ],
   "expansions": [
     "expand=assignments"
@@ -69,8 +70,8 @@
     "assignments.type"
   ],
   "budget": {
-    "maxRequests": 200,
-    "maxCreates": 60,
+    "maxRequests": 240,
+    "maxCreates": 80,
     "maxWallClockSeconds": 600,
     "maxSweepSeconds": 120
   }

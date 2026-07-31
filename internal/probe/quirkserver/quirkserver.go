@@ -156,6 +156,16 @@ type Quirks struct {
 
 	// ClosedEnum rejects values outside the listed set, per field.
 	ClosedEnum map[string][]string
+	// RejectsValueUnless refuses one field's value except while another field holds a
+	// given value, keyed "field=value" to a Conditional whose Then is unused.
+	//
+	// The endpoint-agent case as ground truth: a documented objectType that is refused
+	// while creating a static tag and perfectly good for a dynamic one. A probe that
+	// injects candidates into one arbitrary body records the combination's refusal as a
+	// fact about the value; escalation into the other declared fixtures is what
+	// corrects it.
+	RejectsValueUnless map[string]Conditional
+
 	// RejectsDocumentedValue refuses a value the specification documents, per field.
 	//
 	// The valuable enum result: the specification is stale, and a spec-derived validator
@@ -689,6 +699,21 @@ func (s *Server) rejectedEnumValue(body map[string]any) (string, any) {
 	// A documented value the API refuses: the specification is stale.
 	for field, refused := range s.quirks.RejectsDocumentedValue {
 		if v, ok := body[field]; ok && fmt.Sprint(v) == refused {
+			return field, v
+		}
+	}
+
+	// A value legal only on one branch: refused unless the gate holds its value.
+	for key, cond := range s.quirks.RejectsValueUnless {
+		field, want, found := strings.Cut(key, "=")
+		if !found {
+			continue
+		}
+		v, ok := body[field]
+		if !ok || fmt.Sprint(v) != want {
+			continue
+		}
+		if fmt.Sprint(body[cond.WhenField]) != fmt.Sprint(cond.WhenValue) {
 			return field, v
 		}
 	}

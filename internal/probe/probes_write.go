@@ -185,6 +185,11 @@ func (p writableAndReturned) bodyFor(
 	body := fixture.Body
 	sent := map[string]any{}
 
+	influencer := map[string]bool{}
+	for _, f := range sc.Influencers() {
+		influencer[f.JSONPath] = true
+	}
+
 	for _, f := range sc.Sendable() {
 		// Only top-level keys can be set independently; a nested path is carried by whatever
 		// its parent holds, and overwriting the parent would discard the fixture's own shape.
@@ -200,6 +205,17 @@ func (p writableAndReturned) bodyFor(
 			// its shape, and the probe would then record a fact about validation.
 			if _, ok := body[f.JSONPath]; !ok {
 				continue
+			}
+		case influencer[f.JSONPath]:
+			// A declared gate keeps the value its fixture paired the other fields with.
+			// Rotating it -- which the AllowedValues branch of sentinelFor would do --
+			// manufactures cross-branch bodies the operator never declared: the
+			// endpoint-agent fixture's filters make sense *because* its objectType is
+			// endpoint-agent, and a rotated gate would send them under a branch that
+			// refuses them. A gate the fixture leaves unset still gets a sentinel, so
+			// omitting one is an experiment the operator can run deliberately.
+			if _, ok := body[f.JSONPath]; !ok {
+				body[f.JSONPath] = sentinelFor(sc, f, round+1)
 			}
 		default:
 			body[f.JSONPath] = sentinelFor(sc, f, round+1)
@@ -604,8 +620,7 @@ func (p updateStyle) Exercise(
 		return out, nil
 	}
 
-	fixture, ok := sc.Fixture(0)
-	if !ok {
+	if len(sc.Fixtures()) == 0 {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, Probe: p.Name(),
 			Message: "no fixture was supplied, so there is no valid body to update",
@@ -614,36 +629,78 @@ func (p updateStyle) Exercise(
 		return out, nil
 	}
 
-	// The omitted field. Anything sendable, top-level and not the name field -- the name has to
-	// stay in every request, for a reason worth stating: on an API that clears omitted fields,
-	// an update without the name would clear the stamped prefix, and the sweeper would then be
-	// unable to find the object it had just orphaned.
-	victim, found := p.victim(sc, fixture)
-	if !found {
+	// The style is resource-level, so any one fixture that creates will do -- and a refused
+	// baseline create used to lose the whole probe, which is how a live run once produced no
+	// update-style observation at all. Fixtures are tried in order until one creates; the
+	// switch is stated, because a fact measured under the dynamic branch's body should say so.
+	var (
+		victim Field
+		id     string
+		made   bool
+		sawAny bool
+	)
+
+	for i := range sc.Fixtures() {
+		fx, _ := sc.Fixture(i)
+
+		// The omitted field. Anything sendable, top-level and not the name field -- the name
+		// has to stay in every request, for a reason worth stating: on an API that clears
+		// omitted fields, an update without the name would clear the stamped prefix, and the
+		// sweeper would then be unable to find the object it had just orphaned.
+		v, found := p.victim(sc, fx)
+		if !found {
+			continue
+		}
+		sawAny = true
+
+		body := fx.Body
+		body[sc.Subject.NameField] = s.NameValue(p.Name(), i+1)
+		body[v.JSONPath] = sentinelFor(sc, v, 1)
+
+		r, createdID, err := s.Create(ctx, p.Name(), body)
+		out.Requests++
+
+		if err != nil {
+			return out, err
+		}
+		if r.Status >= 400 {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, Probe: p.Name(),
+				Message: fmt.Sprintf("fixture %s was refused with %d; trying the next",
+					fx.Name, r.Status),
+			})
+
+			continue
+		}
+
+		if i > 0 {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, Probe: p.Name(),
+				Message: fmt.Sprintf("measured against fixture %s after earlier fixtures "+
+					"were refused", fx.Name),
+			})
+		}
+
+		victim, id = v, createdID
+		made = true
+
+		break
+	}
+
+	switch {
+	case !sawAny:
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, Probe: p.Name(),
-			Message: "the fixture sets no field that can safely be omitted from an update; the " +
+			Message: "no fixture sets a field that can safely be omitted from an update; the " +
 				"name field must stay in every request or a cleared name would strand the object",
 		})
 
 		return out, nil
-	}
-
-	body := fixture.Body
-	body[sc.Subject.NameField] = s.NameValue(p.Name(), 1)
-	body[victim.JSONPath] = sentinelFor(sc, victim, 1)
-
-	resp, id, err := s.Create(ctx, p.Name(), body)
-	out.Requests++
-
-	if err != nil {
-		return out, err
-	}
-	if resp.Status >= 400 {
+	case !made:
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, Probe: p.Name(),
-			Message: fmt.Sprintf("the create was refused with %d, so nothing was observed "+
-				"about update style", resp.Status),
+			Message: "every fixture's create was refused, so nothing was observed about " +
+				"update style",
 		})
 
 		return out, nil
@@ -2171,7 +2228,9 @@ func (p immutability) updateBody(
 	value any,
 	seq int,
 ) map[string]any {
-	fixture, _ := sc.Fixture(0)
+	// The field's own host fixture, so a field only the dynamic branch declares is
+	// updated inside a body that branch accepts.
+	fixture, _ := sc.HostFixture(f.JSONPath)
 
 	body := fixture.Body
 	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
@@ -2189,7 +2248,7 @@ func (p immutability) createWith(
 	value any,
 	seq int,
 ) (created, error) {
-	fixture, _ := sc.Fixture(0)
+	fixture, _ := sc.HostFixture(f.JSONPath)
 
 	// Name first, field under test last, for the reason given on updateBody: whichever field is
 	// being probed, the object leaves here findable by prefix.
@@ -2223,7 +2282,7 @@ func (p immutability) originalValue(s *MutatingSession, sc Scope, f Field, seq i
 		return s.NameValue(p.Name(), seq)
 	}
 
-	fixture, _ := sc.Fixture(0)
+	fixture, _ := sc.HostFixture(f.JSONPath)
 
 	if v, ok := fixture.Body[f.JSONPath]; ok {
 		return v
@@ -2331,10 +2390,16 @@ func (p enumBoundary) probeEnum(
 		documented[v] = true
 	}
 
+	// Conditional acceptances, keyed by canonical condition: a candidate one branch takes
+	// and another refuses is a fact per branch, exactly as a conditional requirement is.
+	branchWhen := map[string][]Condition{}
+	branchAccepted := map[string][]string{}
+	branchRejected := map[string][]string{}
+
 	for _, candidate := range EnumCandidates(f) {
 		*seq++
 
-		resp, err := p.send(ctx, s, sc, f, candidate, *seq)
+		resp, hostGates, hostName, err := p.send(ctx, s, sc, f, candidate, *seq)
 		out.Requests++
 
 		if err != nil {
@@ -2380,11 +2445,115 @@ func (p enumBoundary) probeEnum(
 			continue
 		}
 
-		if documented[candidate] {
-			rejected = append(rejected, candidate)
-		} else {
+		if !documented[candidate] {
 			negatives = append(negatives, candidate)
 			refusedNegatives++
+
+			continue
+		}
+
+		// A documented candidate the host fixture refused is retried in every other
+		// declared fixture before it is called rejected. Injecting one candidate into one
+		// arbitrary body is how endpoint-agent -- a perfectly good object type, for a
+		// dynamic tag -- landed in the pilot's rejected set: the refusal was about the
+		// combination, and the probe recorded it as a fact about the value. Every retry
+		// is a complete operator-declared body with only the probed field substituted, so
+		// no cross-gate body is ever manufactured.
+		attempts := []gatedOutcome{{gates: hostGates, pass: false}}
+		acceptedSomewhere := false
+
+		for i := range sc.Fixtures() {
+			fx, _ := sc.Fixture(i)
+			if fx.Name == hostName {
+				continue
+			}
+
+			*seq++
+			retry, retryGates, _, rErr := p.sendInto(ctx, s, sc, fx, f, candidate, *seq)
+			out.Requests++
+
+			if rErr != nil {
+				return rErr
+			}
+			evidence = appendUnique(evidence, retry.Interaction)
+
+			pass := retry.Status < 400
+			if !pass && !retry.Error().Names(f.JSONPath) {
+				// Refused over something else; evidence about nothing here.
+				continue
+			}
+
+			attempts = append(attempts, gatedOutcome{gates: retryGates, pass: pass})
+			if pass {
+				acceptedSomewhere = true
+			}
+		}
+
+		switch {
+		case !acceptedSomewhere:
+			// Refused by every fixture that produced an attributable answer.
+			rejected = append(rejected, candidate)
+
+		default:
+			// The disagreement is real: one branch takes the value, another refuses it.
+			// Attributed to a single declared gate when the observations allow it; when
+			// they do not, the value is counted accepted -- the same direction every
+			// validator decision errs in, because blocking a configuration the API takes
+			// is the harm nobody can work around -- and the ambiguity is said out loud.
+			if sep, branches, ok := attributeToGate(attempts); ok {
+				for _, br := range branches {
+					cond := []Condition{{JSONPath: sep, Equals: br.value}}
+					key := Fact{When: cond}.whenKey()
+					branchWhen[key] = cond
+					if br.pass {
+						branchAccepted[key] = append(branchAccepted[key], candidate)
+					} else {
+						branchRejected[key] = append(branchRejected[key], candidate)
+					}
+				}
+			} else {
+				accepted = append(accepted, candidate)
+				out.Notes = append(out.Notes, Note{
+					Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+					Message: fmt.Sprintf("%s was refused by fixture %s and accepted by "+
+						"another; no single declared gate separates the outcomes, so it is "+
+						"counted accepted and the branch is left for a human",
+						describeCandidate(f.AllowedValues, candidate), hostName),
+				})
+			}
+		}
+	}
+
+	// Each branch's facts, sorted so the committed document is byte-stable.
+	branchKeys := make([]string, 0, len(branchWhen))
+	for key := range branchWhen {
+		branchKeys = append(branchKeys, key)
+	}
+	sort.Strings(branchKeys)
+
+	for _, key := range branchKeys {
+		if values := branchAccepted[key]; len(values) > 0 {
+			fact := Fact{
+				Resource: sc.Subject.Resource, JSONPath: f.JSONPath,
+				Field: FactAcceptedValues, Value: ListValue(values),
+				Confidence: Observed, Probe: p.Name(), Evidence: evidence,
+				When: branchWhen[key],
+			}
+			fact.Rationale = fmt.Sprintf(
+				"the API accepted %s, %s", strings.Join(values, ", "), fact.Because())
+			out.Facts = append(out.Facts, fact)
+		}
+		if values := branchRejected[key]; len(values) > 0 {
+			fact := Fact{
+				Resource: sc.Subject.Resource, JSONPath: f.JSONPath,
+				Field: FactRejectedValues, Value: ListValue(values),
+				Confidence: Observed, Probe: p.Name(), Evidence: evidence,
+				When: branchWhen[key],
+			}
+			fact.Rationale = fmt.Sprintf(
+				"the API refused %s naming this field, %s",
+				strings.Join(values, ", "), fact.Because())
+			out.Facts = append(out.Facts, fact)
 		}
 	}
 
@@ -2436,19 +2605,36 @@ func (p enumBoundary) send(
 	f Field,
 	candidate string,
 	seq int,
-) (*Response, error) {
-	fixture, _ := sc.Fixture(0)
+) (*Response, []Condition, string, error) {
+	// The field's host fixture: probing an enum only the dynamic branch declares
+	// inside a static body would record the body's refusal as a fact about the value.
+	fixture, _ := sc.HostFixture(f.JSONPath)
 
+	return p.sendInto(ctx, s, sc, fixture, f, candidate, seq)
+}
+
+// sendInto creates with the candidate substituted into one particular fixture, reporting
+// the gate values the body actually carried -- recorded, never reconstructed, so a
+// conclusion about a branch cites the state that was really measured.
+func (p enumBoundary) sendInto(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	fixture Fixture,
+	f Field,
+	candidate string,
+	seq int,
+) (*Response, []Condition, string, error) {
 	body := fixture.Body
 	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
 	body[f.JSONPath] = candidate
 
 	resp, _, err := s.Create(ctx, p.Name(), body)
 	if err != nil && !errors.Is(err, ErrNoIdentifier) {
-		return nil, err
+		return nil, nil, "", err
 	}
 
-	return resp, nil
+	return resp, gateConditions(sc, body), fixture.Name, nil
 }
 
 // concludeEnum records what the sweep established.
@@ -2565,7 +2751,7 @@ func (p enumBoundary) probeCase(
 		return nil
 	}
 
-	resp, err := p.send(ctx, s, sc, f, variant, seq)
+	resp, _, _, err := p.send(ctx, s, sc, f, variant, seq)
 	out.Requests++
 
 	if err != nil {
@@ -2963,7 +3149,7 @@ func (p writeSideEffect) createAndRead(
 	seq int,
 	out *Result,
 ) (*Response, map[string]any, error) {
-	fixture, _ := sc.Fixture(0)
+	fixture, _ := sc.HostFixture(trigger.JSONPath)
 
 	body := fixture.Body
 	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)

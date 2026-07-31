@@ -232,6 +232,28 @@ func deepCopyValue(v any) any {
 	}
 }
 
+// HostFixture returns the first fixture whose body sets the given path, falling back to
+// fixture 0, with the body deep-copied exactly as Fixture's is.
+//
+// This is how a per-field probe reaches the branch its field lives on. Every such probe
+// used to inject into fixture 0 unconditionally, so a field only the dynamic fixture sets
+// -- matchType, filters -- was probed inside a static body: the API's refusal was then
+// recorded as a fact about the field when it was a fact about the combination. First
+// match rather than best match, deterministically: a cassette records exact bodies.
+func (sc Scope) HostFixture(jsonPath string) (Fixture, bool) {
+	// A nested path is carried by its top-level parent, so that is the key a fixture
+	// body declares.
+	head, _, _ := strings.Cut(jsonPath, ".")
+
+	for i, f := range sc.Plan.Fixtures {
+		if _, ok := f.Body[head]; ok {
+			return sc.Fixture(i)
+		}
+	}
+
+	return sc.Fixture(0)
+}
+
 // Omittable is the fixture keys the requiredness protocol may leave out.
 //
 // Every key the fixture sets except the name field. Omitting the name field is not an experiment

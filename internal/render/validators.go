@@ -325,21 +325,48 @@ func oneOfValidator(a blueprint.Attribute, imports *importSet) (blueprint.Custom
 // rather than permanent -- but somebody reading the schema should meet the evidence that
 // the specification is stale rather than have to go looking for it.
 func validatorNote(a blueprint.Attribute) string {
-	rejected := a.Behaviour.RejectedValues
-	if len(rejected) == 0 || len(a.Type.AllowedValues) == 0 {
+	if len(a.Type.AllowedValues) == 0 {
 		return ""
 	}
 
-	quoted := make([]string, 0, len(rejected))
-	for _, v := range rejected {
-		quoted = append(quoted, goStringLit(v))
+	var parts []string
+
+	if rejected := a.Behaviour.RejectedValues; len(rejected) > 0 {
+		quoted := make([]string, 0, len(rejected))
+		for _, v := range rejected {
+			quoted = append(quoted, goStringLit(v))
+		}
+		parts = append(parts, fmt.Sprintf(
+			"The API refused %s from the documented set when probed. Still permitted here: a "+
+				"value one tenant rejects may be licence-gated rather than nonexistent.",
+			strings.Join(quoted, ", ")))
 	}
 
-	return wrapComment(fmt.Sprintf(
-		"The API refused %s from the documented set when probed. Still permitted here: a value "+
-			"one tenant rejects may be licence-gated rather than nonexistent.",
-		strings.Join(quoted, ", "),
-	))
+	// Branch observations sit beside the unconditional ones: a value rejected only while a
+	// gate holds is still permitted -- the validator cannot see the gate -- so the comment
+	// is the one place the reader meets the condition.
+	for _, variant := range a.Behaviour.Conditional {
+		if len(variant.Behaviour.RejectedValues) == 0 {
+			continue
+		}
+		quoted := make([]string, 0, len(variant.Behaviour.RejectedValues))
+		for _, v := range variant.Behaviour.RejectedValues {
+			quoted = append(quoted, goStringLit(v))
+		}
+		conds := make([]string, 0, len(variant.When))
+		for _, c := range variant.When {
+			conds = append(conds, c.String())
+		}
+		parts = append(parts, fmt.Sprintf(
+			"When %s, the API also refused %s.",
+			strings.Join(conds, " and "), strings.Join(quoted, ", ")))
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	return wrapComment(strings.Join(parts, " "))
 }
 
 // commentWidth is where a generated comment wraps, including the "// ".

@@ -431,14 +431,57 @@ type enumBoundary struct{}
 func (enumBoundary) Name() string { return "write.enum" }
 func (enumBoundary) Kind() Kind   { return KindMutating }
 
-// Cost is a create and a delete per value tried: every documented value, two generated negatives,
-// and one case variant per enum field.
-func (enumBoundary) Cost(sc Scope) int { return 2 * (enumValueCount(sc) + len(sc.Enums())) }
+// Cost is a create and a delete per value tried -- every documented value, two generated
+// negatives, and one case variant per enum field -- plus the escalation worst case: a
+// documented value the host fixture refuses is retried in every other declared fixture
+// before it is called rejected, so each documented candidate may cost one extra create
+// per additional fixture.
+func (enumBoundary) Cost(sc Scope) int {
+	return 2*(enumValueCount(sc)+len(sc.Enums())) +
+		escalationAttempts(sc) + escalationCreates(sc)
+}
 
-// Creates is one per value tried. A rejected value creates nothing, so this is the worst case in
-// which the API accepts everything -- which is exactly the case that produces the interesting
-// fact, that the enum is not closed.
-func (enumBoundary) Creates(sc Scope) int { return enumValueCount(sc) + len(sc.Enums()) }
+// Creates is one per value tried, plus the escalation surplus. A rejected value creates
+// nothing, so the base is the worst case in which the API accepts everything -- and the
+// escalation surplus is its mirror: the host refused (creating nothing, already counted)
+// and every *other* fixture accepted, of which the first merely replaces the create the
+// base already counted, so only the ones beyond it are extra.
+func (enumBoundary) Creates(sc Scope) int {
+	return enumValueCount(sc) + len(sc.Enums()) + escalationCreates(sc)
+}
+
+// escalationAttempts is the worst-case number of extra create *requests* the refusal
+// escalation can issue: every documented candidate refused by its host, retried in each
+// other declared fixture.
+func escalationAttempts(sc Scope) int {
+	extra := len(sc.Fixtures()) - 1
+	if extra <= 0 {
+		return 0
+	}
+
+	return documentedEnumValues(sc) * extra
+}
+
+// escalationCreates is the worst-case number of extra objects those retries can leave to
+// delete: one per retry beyond the first, since the first accepted retry replaces the
+// create the base worst case already counted for the candidate.
+func escalationCreates(sc Scope) int {
+	extra := len(sc.Fixtures()) - 2
+	if extra <= 0 {
+		return 0
+	}
+
+	return documentedEnumValues(sc) * extra
+}
+
+func documentedEnumValues(sc Scope) int {
+	n := 0
+	for _, f := range sc.Enums() {
+		n += len(f.AllowedValues)
+	}
+
+	return n
+}
 
 // writeSideEffect looks for a field the server set that was never sent, then perturbs the
 // suspected trigger and re-reads to confirm the coupling.
