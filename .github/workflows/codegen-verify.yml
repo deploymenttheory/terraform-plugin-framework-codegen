@@ -468,7 +468,13 @@ jobs:
       # validator -- OneOf, RegexMatches, Length*, Size*, and the cross-attribute rules --
       # is exercised against real committed HCL.
       #
-      # Examples are complete configurations and validate where they sit.
+      # Each example is copied into a scratch directory first. Registry examples
+      # conventionally carry no terraform block -- tfplugindocs embeds the file verbatim,
+      # and a required_providers stanza on every docs page is noise -- but without one,
+      # `thousandeyes_tag` resolves to hashicorp/thousandeyes and validation fails looking
+      # for a provider that does not exist. The requirement is injected only where the
+      # example does not already declare it, so the provider example's own block stays
+      # the one exercised.
       - name: Terraform validates every example
         env:
           TF_CLI_CONFIG_FILE: ${{ runner.temp }}/dev.tfrc
@@ -476,8 +482,25 @@ jobs:
           failed=0
 
           while IFS= read -r dir; do
+            scratch="${RUNNER_TEMP}/example"
+            rm -rf "$scratch"
+            mkdir -p "$scratch"
+            cp "$dir"/*.tf "$scratch/"
+
+            if ! grep -rq "required_providers" "$scratch"; then
+              cat > "$scratch/versions.tf" <<'EOF'
+          terraform {
+            required_providers {
+              thousandeyes = {
+                source = "deploymenttheory/thousandeyes"
+              }
+            }
+          }
+          EOF
+            fi
+
             echo "::group::🌍 terraform validate $dir"
-            if terraform -chdir="$dir" validate; then
+            if terraform -chdir="$scratch" validate; then
               echo "✅ $dir"
             else
               echo "::error file=$dir::terraform validate rejected this configuration"
