@@ -487,6 +487,15 @@
           "type": "tags.Tag",
           "accessStyle": "structField"
         }
+      },
+      "accTest": {
+        "seedResourceKey": "tag",
+        "args": [
+          {
+            "attr": "id",
+            "fromSeedAttr": "id"
+          }
+        ]
       }
     }
   ]

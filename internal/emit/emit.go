@@ -401,6 +401,48 @@ func (g *Generator) dataSourceFiles(
 		out = append(out, File{Path: filepath.Join(dir, w.name), Content: content})
 	}
 
+	// The acceptance test, when the blueprint declares a seed for it. A refusal is a
+	// stated one -- no seed, no test -- surfaced by `emit -v`, and the data source is
+	// still emitted; see acceptanceFiles for the reasoning.
+	acc, fixture, accErr := render.DataSourceAccTest(bp, d, ropts)
+	switch {
+	case accErr == nil:
+		body, rErr := g.renderFile("datasource_acceptance_test.go.tmpl", acc)
+		if rErr != nil {
+			return nil, fmt.Errorf("datasource_acceptance_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "datasource_acceptance_test.go"),
+			Content: body,
+		})
+
+		fx, rErr := g.renderFile("fixture_datasource.tf.tmpl", fixture)
+		if rErr != nil {
+			return nil, fmt.Errorf("datasource.tf: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "testdata", "datasource.tf"),
+			Content: fx,
+		})
+
+		// The seed's existence helper, re-emitted into this package: the seed's own
+		// copy is a _test.go file no other package can import.
+		helper, hErr := render.SeedHelper(bp, d, ropts)
+		if hErr != nil {
+			return nil, fmt.Errorf("seed helper: %w", hErr)
+		}
+		hBody, rErr := g.renderFile("test_helper_test.go.tmpl", helper)
+		if rErr != nil {
+			return nil, fmt.Errorf("seed_helper_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "seed_helper_test.go"),
+			Content: hBody,
+		})
+	case !unsupported(accErr):
+		return nil, fmt.Errorf("acceptance test: %w", accErr)
+	}
+
 	return out, nil
 }
 
@@ -434,6 +476,32 @@ func (g *Generator) actionFiles(
 			return nil, fmt.Errorf("%s: %w", w.name, err)
 		}
 		out = append(out, File{Path: filepath.Join(dir, w.name), Content: content})
+	}
+
+	// The acceptance test, when the blueprint declares how to run one. No accTest is a
+	// stated refusal, surfaced by `emit -v`, and the action is still emitted.
+	acc, fixture, accErr := render.ActionAccTest(bp, a, ropts)
+	switch {
+	case accErr == nil:
+		body, rErr := g.renderFile("action_acceptance_test.go.tmpl", acc)
+		if rErr != nil {
+			return nil, fmt.Errorf("action_acceptance_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "action_acceptance_test.go"),
+			Content: body,
+		})
+
+		fx, rErr := g.renderFile("fixture_action.tf.tmpl", fixture)
+		if rErr != nil {
+			return nil, fmt.Errorf("action.tf: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "testdata", "action.tf"),
+			Content: fx,
+		})
+	case !unsupported(accErr):
+		return nil, fmt.Errorf("acceptance test: %w", accErr)
 	}
 
 	return out, nil

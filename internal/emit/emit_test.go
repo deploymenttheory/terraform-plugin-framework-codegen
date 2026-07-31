@@ -441,12 +441,12 @@ func TestUnit_Emit_APurelyComputedAttributeGetsNoValidator(t *testing.T) {
 	}
 }
 
-// TestUnit_Emit_DataSourceProducesFourFiles pins the per-data-source file split.
+// TestUnit_Emit_DataSourceProducesItsFileSet pins the per-data-source file split.
 //
 // Four rather than the resource's five: a data source sends no request body, so there is
 // nothing for a construct.go to expand into one. The names match the reference provider's,
 // where read lives in read.go rather than a crud.go that would be three-quarters empty.
-func TestUnit_Emit_DataSourceProducesFourFiles(t *testing.T) {
+func TestUnit_Emit_DataSourceProducesItsFileSet(t *testing.T) {
 	t.Parallel()
 
 	g, err := New()
@@ -478,7 +478,13 @@ func TestUnit_Emit_DataSourceProducesFourFiles(t *testing.T) {
 			}
 		}
 
-		want := []string{"datasource.go", "model.go", "read.go", "state.go"}
+		// Six once a seed is declared: the four code files, the acceptance test and
+		// the seed's re-emitted existence helper. testdata/datasource.tf lives one
+		// directory down and is not in this listing.
+		want := []string{
+			"datasource.go", "datasource_acceptance_test.go", "model.go",
+			"read.go", "seed_helper_test.go", "state.go",
+		}
 		if len(got) != len(want) {
 			t.Errorf("data source %q emitted %v, want %v", d.Key, got, want)
 			continue

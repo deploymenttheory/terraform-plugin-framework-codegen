@@ -56,6 +56,29 @@
             200
           ]
         }
+      },
+      "accTest": {
+        "envArgs": [
+          {
+            "attr": "agent_id",
+            "envVar": "THOUSANDEYES_TEST_ENDPOINT_AGENT_ID"
+          }
+        ],
+        "cleanup": {
+          "style": "method",
+          "method": "EnableEndpointAgent",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "configField",
+              "field": "AgentID"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "endpoint_agents.EndpointAgent"
+        }
       }
     }
   ]

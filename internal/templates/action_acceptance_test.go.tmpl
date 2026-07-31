@@ -1,0 +1,72 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports }}
+)
+
+// {{ .TestName }} invokes the action against a live tenant.
+//
+// The assertion is the apply itself: an invoke error fails the step, and that exercises
+// the whole generated path -- config decode, argument passing, timeout, error mapping.
+// The subject cannot be created by Terraform, so its identifier arrives from the
+// environment and the test skips, naming the variable, when it is absent.
+func {{ .TestName }}(t *testing.T) {
+{{- range .EnvArgs }}
+	{{ .GoVar }} := os.Getenv("{{ .EnvVar }}")
+	if {{ .GoVar }} == "" {
+		t.Skipf("set {{ .EnvVar }} to run this test; the action needs an existing subject")
+	}
+{{- end }}
+{{- if .HasCleanup }}
+
+	// Reverse the action whatever the outcome: a subject left disabled is debris the
+	// next run trips over. Direct SDK call, on the acceptance harness's client.
+	t.Cleanup(func() {
+		ctx := context.Background()
+
+		client, err := exists.Client()
+		if err != nil {
+			t.Errorf("cleanup client: %v", err)
+			return
+		}
+
+		{{ .CleanupAssign }} {{ .CleanupCall }}
+		if err != nil {
+			t.Errorf("reversing the action: %v", err)
+		}
+	})
+{{- end }}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acceptance.PreCheck(t) },
+		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,
+		// Action triggers need a modern CLI; skipping is stated, not silent.
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_14_0),
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: config(t, "action.tf"),
+				ConfigVariables: tfconfig.Variables{
+{{- range .EnvArgs }}
+					"{{ .Attr }}": tfconfig.StringVariable({{ .GoVar }}),
+{{- end }}
+				},
+			},
+		},
+	})
+}
+
+// config reads the committed fixture; see the resource acceptance test for why testdata.
+func config(t *testing.T, name string) string {
+	t.Helper()
+
+	body, err := os.ReadFile(filepath.Join("testdata", name))
+	if err != nil {
+		t.Fatalf("reading fixture %s: %v", name, err)
+	}
+
+	return string(body)
+}

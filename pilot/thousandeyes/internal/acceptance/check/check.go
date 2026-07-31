@@ -10,6 +10,7 @@ package check
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -101,6 +102,25 @@ func (a Attribute) IsNotEmpty() resource.TestCheckFunc {
 	return resource.TestCheckResourceAttrWith(a.address, a.key, func(value string) error {
 		if value == "" {
 			return fmt.Errorf("is set but empty")
+		}
+
+		return nil
+	})
+}
+
+// CountAtLeast asserts a collection's count key holds at least n elements.
+//
+// Used on a `.#` key. IsNotEmpty cannot serve here: Terraform records an empty
+// collection's count as the string "0", which is set and non-empty while carrying
+// exactly the information the assertion exists to refuse.
+func (a Attribute) CountAtLeast(n int) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(a.address, a.key, func(value string) error {
+		count, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("%q is not a count; is this a collection's # key?", value)
+		}
+		if count < n {
+			return fmt.Errorf("holds %d element(s), want at least %d", count, n)
 		}
 
 		return nil
