@@ -242,7 +242,7 @@ func TestUnit_SDKBind_AcceptsAValidSplitUpdateBody(t *testing.T) {
 		t.Fatalf("baseline: %v", err)
 	}
 
-	// tags.Tag re-declares every TagInfo field at identical types -- exactly the
+	// tags.Tag declares anew every TagInfo field at identical types -- exactly the
 	// clone shape the split-update SDKs produce.
 	res(&bp, "tag").Binding.Body.UpdateRequestType = "tags.Tag"
 	res(&bp, "tag").Binding.Body.UpdateConstructorExpr = "&tags.Tag{}"

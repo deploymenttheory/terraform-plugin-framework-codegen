@@ -598,7 +598,7 @@ func verifyWireFields(l *Loader, res blueprint.Resource, ok bodyTypesOK, r *Repo
 // declare the same Go type on each.
 //
 // Existence on both is not enough: the shared assignment list writes one converted
-// value into both types, so a field the update clone re-declares with its own nested
+// value into both types, so a field the update clone declares anew with its own nested
 // type would compile on create and fail on update -- in generated code, where the
 // error names nothing a blueprint author recognises. Reported here instead, with the
 // two types side by side, which is also the signal to model the attribute as
