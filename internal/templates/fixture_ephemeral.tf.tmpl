@@ -5,6 +5,9 @@
 # above it. The echo provider is HashiCorp's test fixture for exactly this: an ephemeral
 # value never reaches state, so a test needs somewhere else to read it from.
 
+{{- range .Seed.DataBlocks }}
+{{ . }}
+{{ end }}
 resource "{{ .Seed.TerraformType }}" "{{ .Seed.Label }}" {
 {{- range .Seed.Values }}
   {{ .Name }}{{ .Padding }} = {{ .HCL }}

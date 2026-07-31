@@ -44,6 +44,46 @@ func TestUnit_Render_AnAttributeTheAPINeverReturnsIsNotAsserted(t *testing.T) {
 	}
 }
 
+// TestUnit_Render_ACuratedValueIsAssertedAsPresenceNotEquality.
+//
+// A curated fixture value may be a reference whose value exists only at apply time, so
+// asserting equality against its HCL text would compare state to source code. Presence
+// is the honest claim: the step configured it, and a state that lost it is wrong
+// whatever the value was.
+func TestUnit_Render_ACuratedValueIsAssertedAsPresenceNotEquality(t *testing.T) {
+	t.Parallel()
+
+	bp, r := fixtureResource(
+		attr("key", blueprint.KindString, blueprint.Required),
+		attr("target_id", blueprint.KindString, blueprint.Required),
+	)
+	r.AccFixture = &blueprint.AccFixture{
+		DataBlocks: []string{`data "te_agents" "test" {}`},
+		Values: []blueprint.FixtureHint{{
+			Attr: "target_id",
+			HCL:  "data.te_agents.test.agents[0].agent_id",
+		}},
+	}
+
+	f, err := fixtureView(bp, r, "", true, "")
+	if err != nil {
+		t.Fatalf("fixtureView: %v", err)
+	}
+
+	checks := joined(checksFor(r, f, newPatternVars()))
+
+	if !strings.Contains(checks, `Key("target_id").Exists()`) {
+		t.Errorf("a curated value should be asserted as present:\n%s", checks)
+	}
+	if strings.Contains(checks, `Key("target_id").HasValue`) {
+		t.Errorf("a curated value must not be asserted for equality against its own source text:\n%s", checks)
+	}
+	// The derived neighbour keeps its exact assertion.
+	if !strings.Contains(checks, `Key("key").HasValue("tfacc-key")`) {
+		t.Errorf("a derived value should still be asserted exactly:\n%s", checks)
+	}
+}
+
 // TestUnit_Render_ImportVerificationSkipsWhatTheAPIWillNotReturn.
 //
 // ImportStateVerify re-imports and compares every attribute against the state the apply produced.

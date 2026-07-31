@@ -27,6 +27,11 @@ type fixtureValue struct {
 	// Skipped means no value could be derived. Reason says why.
 	Skipped bool
 	Reason  string
+	// Curated means the value came from the blueprint's accFixture, verbatim. It is
+	// what routes the acceptance assertion to "is set" rather than an equality the
+	// generator cannot know: a curated expression may be a reference whose value
+	// exists only at apply time.
+	Curated bool
 }
 
 // FixtureView is what an HCL fixture template needs.
@@ -50,6 +55,9 @@ type FixtureView struct {
 	// Skipped are the attributes that could not be derived, named so a practitioner
 	// knows what to add rather than discovering it from an API error.
 	Skipped []fixtureValue
+	// DataBlocks are curated HCL blocks emitted verbatim above the resource block --
+	// the declared dependencies of curated values that reference live tenant data.
+	DataBlocks []string
 }
 
 // The label every fixture uses. Fixed rather than configurable: the generated acceptance
@@ -110,6 +118,10 @@ func fixtureView(
 		Label:         fixtureLabel,
 	}
 
+	if r.AccFixture != nil {
+		v.DataBlocks = append(v.DataBlocks, r.AccFixture.DataBlocks...)
+	}
+
 	for _, a := range r.Schema.Attributes {
 		if a.Drop || !fixtureWants(a, minimal) {
 			continue
@@ -128,6 +140,25 @@ func fixtureView(
 					"force replacement, so it belongs in the create configuration or nowhere",
 					"  #"),
 			})
+
+			continue
+		}
+
+		// A curated value beats derivation and is emitted exactly as written -- never
+		// salted, because salting exists to de-collide synthesised strings and this one
+		// was stated by a person. It is what carries an attribute the generator refuses
+		// to synthesise (a nested object of live identifiers) past the required-attribute
+		// refusal below.
+		if hcl, ok := r.AccFixture.Hint(a.Name); ok {
+			fv := fixtureValue{
+				Name:    a.Name,
+				HCL:     hcl,
+				Note:    "curated in the blueprint's accFixture; the generator cannot derive it",
+				Curated: true,
+			}
+			fv.Comment = wrapCommentPrefix(fv.Name+": "+fv.Note, "  #")
+			v.Values = append(v.Values, fv)
+			v.Notes = append(v.Notes, fv)
 
 			continue
 		}

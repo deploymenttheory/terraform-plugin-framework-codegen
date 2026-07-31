@@ -233,10 +233,57 @@ type Resource struct {
 	// violated rather than validated after the fact.
 	List *ListFacet `json:"list,omitempty"`
 
+	// AccFixture curates fixture values the generator cannot derive.
+	//
+	// The generator refuses to synthesise a nested object's members -- they are
+	// frequently identifiers of objects that must already exist -- and a required
+	// attribute it cannot fill makes the whole fixture refused. Both refusals are
+	// right, and this is the declared way past them: a human states the HCL, the
+	// generator emits it verbatim, and the provenance is a blueprint diff rather
+	// than an edit to a generated file.
+	AccFixture *AccFixture `json:"accFixture,omitempty"`
+
 	// Drop excludes the resource from emission. Only a hand-authored override
 	// layer may set it, so that a probe run against a tenant which can see
 	// nothing cannot quietly delete half a provider.
 	Drop bool `json:"drop,omitempty"`
+}
+
+// AccFixture is the curated part of a generated acceptance fixture.
+type AccFixture struct {
+	// DataBlocks are HCL blocks emitted verbatim above the resource block, in
+	// every fixture and in every seed embedding. They exist so a hinted value can
+	// reference live tenant data -- `data "thousandeyes_agents" "test" {}` under a
+	// hint of `data.thousandeyes_agents.test.agents[0].agent_id` -- instead of a
+	// literal that goes stale.
+	DataBlocks []string `json:"dataBlocks,omitempty"`
+
+	// Values map attributes to curated HCL expressions, emitted exactly as
+	// written and never salted: salting exists to de-collide synthesised strings,
+	// and a curated expression is not one.
+	Values []FixtureHint `json:"values,omitempty"`
+}
+
+// FixtureHint is one curated fixture value.
+type FixtureHint struct {
+	// Attr is the Terraform attribute name the value is for.
+	Attr string `json:"attr"`
+	// HCL is the right-hand side, verbatim -- a literal, a reference into a
+	// declared data block, an object expression.
+	HCL string `json:"hcl"`
+}
+
+// Hint returns the curated HCL for an attribute, if any.
+func (f *AccFixture) Hint(attr string) (string, bool) {
+	if f == nil {
+		return "", false
+	}
+	for _, h := range f.Values {
+		if h.Attr == attr {
+			return h.HCL, true
+		}
+	}
+	return "", false
 }
 
 // DataSource is one Terraform data source. Phase 1 does not emit these; the type
