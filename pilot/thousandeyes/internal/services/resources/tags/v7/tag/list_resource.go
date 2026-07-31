@@ -6,10 +6,13 @@ package tag
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/list"
-	listschema "github.com/hashicorp/terraform-plugin-framework/list/schema"
+	"github.com/hashicorp/terraform-plugin-framework/list/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	thousandeyes "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes"
@@ -60,21 +63,20 @@ func (l *TagListResource) Configure(ctx context.Context, req resource.ConfigureR
 // ListResourceConfigSchema returns the schema for a query block.
 //
 // Filter-only, and structurally so: a list attribute cannot be Computed, because there is
-// nowhere in a query to put a result. Nothing is declared here yet -- the pilot's API takes
-// no filter arguments on its collection read -- so a query lists everything visible to the
-// configured credentials.
+// nowhere in a query to put a result.
+// Nothing is declared -- this facet's collection read takes no filter arguments -- so a
+// query lists everything visible to the configured credentials.
 func (l *TagListResource) ListResourceConfigSchema(_ context.Context, _ list.ListResourceSchemaRequest, resp *list.ListResourceSchemaResponse) {
-	resp.Schema = listschema.Schema{
-		Attributes: map[string]listschema.Attribute{},
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{},
 	}
 }
 
 // List streams one result per thousandeyes_tag the API returns.
 //
-// Only Identity and DisplayName are populated, never Resource. That is not an omission: the
-// workflow is `terraform plan -generate-config-out`, which builds configuration from the
-// identity, so reading whole objects here would cost a request per element for data the
-// query does not use.
+// Resource is populated only when the query asks for it, and from the element the
+// collection read already returned -- the element is the same SDK type the resource's own
+// read yields, so serving --include-resource costs no request per element.
 func (l *TagListResource) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
 	tflog.Debug(ctx, "listing resources", map[string]any{"resource": ResourceName})
 
@@ -98,6 +100,17 @@ func (l *TagListResource) List(ctx context.Context, req list.ListRequest, stream
 
 			result.Diagnostics.Append(result.Identity.Set(ctx, identity)...)
 			result.DisplayName = convert.Deref(item.Key)
+
+			if req.IncludeResource {
+				var state TagResourceModel
+				result.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &state, &item)...)
+
+				// The mapper never touches timeouts, and a zero value carries no
+				// attribute types to serialise with.
+				state.Timeouts = timeouts.Value{Object: types.ObjectNull(map[string]attr.Type{"create": types.StringType, "read": types.StringType, "update": types.StringType, "delete": types.StringType})}
+
+				result.Diagnostics.Append(result.Resource.Set(ctx, &state)...)
+			}
 
 			if !push(result) {
 				return

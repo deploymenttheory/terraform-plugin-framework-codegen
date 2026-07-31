@@ -302,6 +302,33 @@ func (g *Generator) acceptanceFiles(
 			Path:    filepath.Join(dir, "resource_acceptance_test.go"),
 			Content: body,
 		})
+
+		// The list facet's query test leans on the resource test's declarations --
+		// address, testResource, config() -- so it exists exactly when that file does.
+		if r.List != nil {
+			listAcc, query, lErr := render.ListAccTest(bp, r, ropts)
+			if lErr != nil {
+				return nil, fmt.Errorf("list acceptance test: %w", lErr)
+			}
+
+			lBody, rErr := g.renderFile("list_acceptance_test.go.tmpl", listAcc)
+			if rErr != nil {
+				return nil, fmt.Errorf("list_acceptance_test.go: %w", rErr)
+			}
+			out = append(out, File{
+				Path:    filepath.Join(dir, "list_acceptance_test.go"),
+				Content: lBody,
+			})
+
+			qBody, rErr := g.renderFile("fixture_query.tf.tmpl", query)
+			if rErr != nil {
+				return nil, fmt.Errorf("query.tf: %w", rErr)
+			}
+			out = append(out, File{
+				Path:    filepath.Join(dir, "testdata", "query.tf"),
+				Content: qBody,
+			})
+		}
 	case !unsupported(err):
 		return nil, fmt.Errorf("acceptance test: %w", err)
 	}

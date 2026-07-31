@@ -128,8 +128,13 @@
       "blueprint": "blueprints/thousandeyes"
     },
     {
+      "path": "internal/services/resources/tags/v7/tag/list_acceptance_test.go",
+      "sha256": "80fa4a77199032bed1dc1259c0f728b282bc12ebdb65a426e7de6b2a95dccaa3",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
       "path": "internal/services/resources/tags/v7/tag/list_resource.go",
-      "sha256": "0ed9c1cf6920abd2bc84cbcf770343fec3fc17482a7b9aa9dd800284282cdc03",
+      "sha256": "c4426fbb7a14e1e210714e5eb6cb0cb83fd1a5f2daf0cfc1fcb4abdd57f3eb03",
       "blueprint": "blueprints/thousandeyes"
     },
     {
@@ -160,6 +165,11 @@
     {
       "path": "internal/services/resources/tags/v7/tag/testdata/minimal.tf",
       "sha256": "aefc22515d128d55c002a66c1e184b368273bf8cb4763bede4ed816935caa247",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/testdata/query.tf",
+      "sha256": "66f44cf13b92e6208150eb64f63747424e5702ad8652e4e7d4146a7968c16ccd",
       "blueprint": "blueprints/thousandeyes"
     },
     {
