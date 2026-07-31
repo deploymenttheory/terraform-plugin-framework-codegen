@@ -26,6 +26,10 @@ type ListAccTestView struct {
 
 	DestroyTimeout string
 	DestroyReason  string
+
+	// SkipUnlessEnv is inherited from the resource's own gate: the list test seeds
+	// the same minimal fixture, so it needs the same privilege. Empty means no gate.
+	SkipUnlessEnv string
 }
 
 // ListQueryFixtureView drives testdata/query.tf: a provider block and the list block.
@@ -63,6 +67,7 @@ func ListAccTest(
 
 	v.DestroyTimeout, v.DestroyReason = destroyWait(r)
 	v.DestroyReason = wrapCommentPrefix("The wait is "+v.DestroyReason, "\t\t//")
+	v.SkipUnlessEnv = skipUnlessEnvFor(r, "")
 
 	fixture := ListQueryFixtureView{
 		Header:        GeneratedHeaderHCL(opts.BlueprintPath, opts.BlueprintSHA256),
@@ -77,6 +82,9 @@ func ListAccTest(
 	imports.add(pkgTFTestResource, "")
 	imports.add("github.com/hashicorp/terraform-plugin-testing/querycheck", "")
 	imports.add("github.com/hashicorp/terraform-plugin-testing/tfversion", "")
+	if v.SkipUnlessEnv != "" {
+		imports.add("os", "")
+	}
 
 	org := bp.Provider.GoModule
 	imports.add(org+"/"+accSubdir, "")

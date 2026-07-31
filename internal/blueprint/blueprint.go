@@ -233,10 +233,25 @@ type Resource struct {
 	// violated rather than validated after the fact.
 	List *ListFacet `json:"list,omitempty"`
 
+	// AccTest tunes the resource's generated acceptance test. Absent means the
+	// defaults: the test runs whenever TF_ACC and the credential allow it.
+	AccTest *ResourceAccTest `json:"accTest,omitempty"`
+
 	// Drop excludes the resource from emission. Only a hand-authored override
 	// layer may set it, so that a probe run against a tenant which can see
 	// nothing cannot quietly delete half a provider.
 	Drop bool `json:"drop,omitempty"`
+}
+
+// ResourceAccTest is the curated part of a resource's generated acceptance test.
+type ResourceAccTest struct {
+	// SkipUnlessEnv names an environment variable the test requires: unset, the
+	// test skips naming it, before PreCheck ever runs. It exists for resources a
+	// regular token cannot exercise -- users, roles and account groups need an
+	// org-admin token -- so a run against a lesser credential skips them stated
+	// rather than failing them red. The resource's list test skips with it, since
+	// the list test seeds the same fixture.
+	SkipUnlessEnv string `json:"skipUnlessEnv,omitempty"`
 }
 
 // DataSource is one Terraform data source. Phase 1 does not emit these; the type
@@ -318,6 +333,14 @@ type AccSeed struct {
 	// Args maps this block's config attributes onto the seed resource's attributes,
 	// rendered in the fixture as HCL references: id = thousandeyes_tag.test.id.
 	Args []SeedArg `json:"args,omitempty"`
+
+	// SkipUnlessEnv names an environment variable the generated test requires,
+	// exactly as ResourceAccTest.SkipUnlessEnv does. Rarely set by hand: a block
+	// seeded by a gated resource inherits the seed's variable automatically,
+	// because a test whose seed cannot be created has already failed for the
+	// seed's reason. Set it only when the read itself needs more privilege than
+	// the seed's create.
+	SkipUnlessEnv string `json:"skipUnlessEnv,omitempty"`
 }
 
 // SeedArg is one config attribute filled from one seed resource attribute.

@@ -402,6 +402,74 @@ func TestUnit_Emit_AllowedValuesBecomeAValidator(t *testing.T) {
 	}
 }
 
+// TestUnit_Emit_AGatedResourceSkipsItsTestsByName.
+//
+// The gate rides three tests without being declared three times: the resource's own
+// lifecycle, its list query (same fixture, same privilege), and any test seeded from it
+// (a test whose seed cannot be created has already failed for the seed's reason). Each
+// skip names the variable, so a run against a lesser token reads as gated, not broken.
+func TestUnit_Emit_AGatedResourceSkipsItsTestsByName(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+	for i := range bp.Resources {
+		if bp.Resources[i].Key == "tag" {
+			bp.Resources[i].AccTest = &blueprint.ResourceAccTest{SkipUnlessEnv: "TFPFGEN_ACC_ADMIN"}
+		}
+	}
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	plan, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	// The pilot's tags datasources seed from tag, so their tests inherit the gate; the
+	// credential ephemeral seeds from credential, which is ungated, and must stay clean.
+	wantGated := []string{
+		"resources/tags/v7/tag/resource_acceptance_test.go",
+		"resources/tags/v7/tag/list_acceptance_test.go",
+		"datasources/tags/v7/tag/datasource_acceptance_test.go",
+	}
+	wantClean := []string{
+		"ephemerals/credentials/v7/credential/ephemeral_acceptance_test.go",
+	}
+
+	content := map[string]string{}
+	for _, f := range plan.Files {
+		content[f.Path] = string(f.Content)
+	}
+
+	for _, suffix := range wantGated {
+		found := false
+		for path, body := range content {
+			if !strings.HasSuffix(path, suffix) {
+				continue
+			}
+			found = true
+			if !strings.Contains(body, `os.Getenv("TFPFGEN_ACC_ADMIN")`) ||
+				!strings.Contains(body, "t.Skipf") {
+				t.Errorf("%s should skip by naming the gate variable", path)
+			}
+		}
+		if !found {
+			t.Errorf("no emitted file matches %s", suffix)
+		}
+	}
+
+	for _, suffix := range wantClean {
+		for path, body := range content {
+			if strings.HasSuffix(path, suffix) && strings.Contains(body, "TFPFGEN_ACC_ADMIN") {
+				t.Errorf("%s seeds from an ungated resource and must not inherit the gate", path)
+			}
+		}
+	}
+}
+
 // TestUnit_Emit_APurelyComputedAttributeGetsNoValidator.
 //
 // A validator runs against configuration. The pilot's `type` attribute documents two values

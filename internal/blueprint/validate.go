@@ -235,6 +235,25 @@ func (b EphemeralBinding) validate(at string, p *problems) {
 // Checked at the blueprint level because a seed's whole job is to reference *another*
 // block: a data source's test creates the seed resource's object and reads it back, so
 // both ends of every mapping must exist or the generated test cannot compile.
+// checkEnvName refuses a gate variable that could never be set.
+//
+// The generated skip is `os.Getenv(name) == ""`, so a name with a space or an equals
+// sign is a test that skips forever while looking gated on purpose. Uppercase with
+// underscores is the only shape worth accepting; anything else is a typo.
+func checkEnvName(p *problems, at, name string) {
+	if name == "" {
+		return
+	}
+
+	for i, r := range name {
+		ok := r == '_' || (r >= 'A' && r <= 'Z') || (i > 0 && r >= '0' && r <= '9')
+		if !ok {
+			p.add(at, "%q is not an environment variable name (UPPER_SNAKE_CASE)", name)
+			return
+		}
+	}
+}
+
 func (b Blueprint) validateAccSeeds(p *problems) {
 	resources := map[string]Resource{}
 	for _, r := range b.Resources {
@@ -247,6 +266,8 @@ func (b Blueprint) validateAccSeeds(p *problems) {
 		if seed == nil {
 			return
 		}
+
+		checkEnvName(p, at+".skipUnlessEnv", seed.SkipUnlessEnv)
 
 		required(p, at+".seedResourceKey", seed.SeedResourceKey)
 
@@ -493,6 +514,10 @@ func (r Resource) validate(at string, p *problems) {
 	r.validatePolicy(at, hasWritable, p)
 	r.validateImport(at, seenNames, p)
 	r.validateConditionGates(at, p)
+
+	if r.AccTest != nil {
+		checkEnvName(p, at+".accTest.skipUnlessEnv", r.AccTest.SkipUnlessEnv)
+	}
 }
 
 // validateConditionGates checks that every behaviour variant's condition names a wire path

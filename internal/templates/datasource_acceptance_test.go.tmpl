@@ -24,6 +24,13 @@ var seedResource = {{ .SeedTestResourceType }}{}
 // that drops or mangles a field on either path shows up here as a mismatch, which no
 // amount of compiling can see.
 func {{ .TestName }}(t *testing.T) {
+{{- if .SkipUnlessEnv }}
+	// Gated: the seed or the read needs more privilege than the ordinary credential
+	// carries, so a run against a lesser token skips this by name rather than failing red.
+	if os.Getenv("{{ .SkipUnlessEnv }}") == "" {
+		t.Skipf("set {{ .SkipUnlessEnv }} to run this test; it needs a more privileged credential")
+	}
+{{- end }}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acceptance.PreCheck(t) },
 		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,

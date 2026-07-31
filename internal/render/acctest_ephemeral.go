@@ -30,6 +30,10 @@ type EphemeralAccTestView struct {
 	// ephemeral value never reaches state, so the echo provider is the one place a
 	// check can read it -- which is exactly what it exists for.
 	Checks []string
+
+	// SkipUnlessEnv names an environment variable the test requires: its own
+	// declared gate, or the seed resource's. Empty means no gate.
+	SkipUnlessEnv string
 }
 
 // EphemeralFixtureView drives testdata/ephemeral.tf.
@@ -94,6 +98,7 @@ func EphemeralAccTest(
 
 	v.DestroyTimeout, v.DestroyReason = destroyWait(seed)
 	v.DestroyReason = wrapCommentPrefix("The wait is "+v.DestroyReason, "\t\t//")
+	v.SkipUnlessEnv = skipUnlessEnvFor(seed, e.AccTest.SkipUnlessEnv)
 
 	v.Checks = ephemeralChecks(e, seed, seedFixture)
 

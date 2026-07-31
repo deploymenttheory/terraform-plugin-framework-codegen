@@ -14,6 +14,13 @@ import (
 // more. address, testResource and config() are the resource acceptance test's own
 // declarations; both files share a package by design.
 func {{ .TestName }}(t *testing.T) {
+{{- if .SkipUnlessEnv }}
+	// Gated exactly as the resource's own lifecycle test is: this query seeds the same
+	// minimal fixture, so it needs the same privilege.
+	if os.Getenv("{{ .SkipUnlessEnv }}") == "" {
+		t.Skipf("set {{ .SkipUnlessEnv }} to run this test; it needs a more privileged credential")
+	}
+{{- end }}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acceptance.PreCheck(t) },
 		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,

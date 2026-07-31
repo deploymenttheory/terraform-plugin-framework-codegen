@@ -24,6 +24,14 @@ var testResource = {{ .TestResourceType }}{}
 // attribute the provider stores differently from how the API reports it shows up here as a diff on
 // a resource nobody touched, and no amount of compiling or schema checking can see it.
 func {{ .TestName }}(t *testing.T) {
+{{- if .SkipUnlessEnv }}
+	// This resource needs more privilege than the ordinary credential carries, so the
+	// gate is its own variable: a run against a lesser token skips it by name here,
+	// stated, instead of failing red for a reason that is about the token.
+	if os.Getenv("{{ .SkipUnlessEnv }}") == "" {
+		t.Skipf("set {{ .SkipUnlessEnv }} to run this test; it needs a more privileged credential")
+	}
+{{- end }}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acceptance.PreCheck(t) },
 		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,

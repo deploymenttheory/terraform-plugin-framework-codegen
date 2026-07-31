@@ -668,6 +668,40 @@ func TestUnit_Blueprint_Validate_AcceptsTheNewKinds(t *testing.T) {
 	}
 }
 
+// TestUnit_Blueprint_Validate_SkipUnlessEnvMustBeAnEnvName: the generated skip is
+// os.Getenv(name) == "", so a malformed name is a test that skips forever while
+// looking gated on purpose.
+func TestUnit_Blueprint_Validate_SkipUnlessEnvMustBeAnEnvName(t *testing.T) {
+	t.Parallel()
+
+	valid := validBlueprint()
+	valid.Resources[0].AccTest = &ResourceAccTest{SkipUnlessEnv: "TFPFGEN_ACC_ADMIN"}
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("a well-formed gate must validate: %v", err)
+	}
+
+	for _, bad := range []string{"tfpfgen_admin", "ADMIN TOKEN", "1ADMIN", "A=B"} {
+		b := validBlueprint()
+		b.Resources[0].AccTest = &ResourceAccTest{SkipUnlessEnv: bad}
+
+		err := b.Validate()
+		if err == nil || !strings.Contains(err.Error(), "environment variable name") {
+			t.Errorf("%q should be refused as a gate name, got: %v", bad, err)
+		}
+	}
+
+	// The seed-side field is held to the same shape.
+	b := validBlueprint()
+	ds := validDataSourceWithSeed("tag")
+	ds.AccTest.SkipUnlessEnv = "not an env"
+	b.DataSources = []DataSource{ds}
+
+	if err := b.Validate(); err == nil ||
+		!strings.Contains(err.Error(), "skipUnlessEnv") {
+		t.Errorf("a seed gate should be validated too, got: %v", err)
+	}
+}
+
 // TestUnit_Blueprint_Validate_ReportsEveryProblem matters because fixing a
 // blueprint one error per run is miserable, and collecting them costs nothing.
 func TestUnit_Blueprint_Validate_ReportsEveryProblem(t *testing.T) {
