@@ -218,9 +218,10 @@ func TestUnit_CLI_Probe_ADirtyLedgerRefusesARecordRun(t *testing.T) {
 
 // TestUnit_CLI_Probe_ReplayNeedsACommittedCassette.
 //
-// The pilot has no committed evidence yet, so replay has nothing to work from. It must say so
-// rather than silently succeeding with no facts: "no cassette" and "a cassette that produced
-// nothing" are very different states and a CI gate has to tell them apart.
+// A resource with no evidence is noted and skipped -- authoring first and recording second
+// is the pipeline's order -- but a run in which *nothing* had evidence must still fail:
+// "no cassette anywhere" and "a cassette that produced nothing" are very different states,
+// and a CI gate that verified nothing must not report success.
 func TestUnit_CLI_Probe_ReplayNeedsACommittedCassette(t *testing.T) {
 	t.Parallel()
 
@@ -229,10 +230,10 @@ func TestUnit_CLI_Probe_ReplayNeedsACommittedCassette(t *testing.T) {
 		"-mode", "replay", "-evidence", filepath.Join(t.TempDir(), "absent"),
 	})
 	if err == nil {
-		t.Fatal("replay with no committed cassette must fail")
+		t.Fatal("a replay that verified nothing must fail")
 	}
-	if !errors.Is(err, cassette.ErrNoSnapshot) {
-		t.Errorf("error = %v, want ErrNoSnapshot", err)
+	if !errors.Is(err, errNothingToDo) {
+		t.Errorf("error = %v, want errNothingToDo", err)
 	}
 }
 
@@ -415,6 +416,15 @@ func TestUnit_CLI_ThePilotPlanMatchesTheCommittedBlueprint(t *testing.T) {
 
 	for _, res := range bp.Resources {
 		if res.Drop {
+			continue
+		}
+
+		// The committed plan is the tag's: its fixtures, candidates and deny list speak
+		// that schema's wire vocabulary. Validating it against every other resource would
+		// demand one plan fit all schemas, which no plan can. A per-resource plan story
+		// is the re-record PR's work; until then a record run scopes itself with
+		// -resource, exactly as the runbook says.
+		if res.Key != "tag" {
 			continue
 		}
 
