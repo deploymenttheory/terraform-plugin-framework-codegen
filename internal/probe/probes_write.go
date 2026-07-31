@@ -913,7 +913,10 @@ func (p updateStyle) styleFact(sc Scope, victim Field, before, after *Response) 
 // change says so, and one that silently drops it does not. Only the second produces a perpetual
 // diff in a generated provider.
 func (p updateStyle) ignoredFact(sc Scope, sent string, after *Response) (Fact, bool) {
-	got, outcome := after.LookupField(sc.Subject.NameField)
+	// Looked up under the read key -- an API may rename between accepting a value and
+	// returning it -- while the fact below joins on the write field, because that is the
+	// schema attribute the finding is about.
+	got, outcome := after.LookupField(sc.Subject.SweepNameField())
 	if outcome != Present {
 		return Fact{}, false
 	}

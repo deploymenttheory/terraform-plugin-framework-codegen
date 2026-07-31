@@ -493,7 +493,67 @@ func (r Resource) validate(at string, p *problems) {
 	r.validatePolicy(at, hasWritable, p)
 	r.validateImport(at, seenNames, p)
 	r.validateConditionGates(at, p)
+	r.validateSweep(at, p)
 	r.validateAccFixture(at, p)
+}
+
+// validateSweep holds a sweep-naming override to the rules inference follows.
+//
+// The name field is where a probe run's prefix is stamped, and the sweeper's only way of
+// finding a stranded object is reading that prefix back. An override naming a field that is
+// nested, unwritable or not a string would pass here and fail live -- as a create the API
+// rejects, or worse, a sweep that matches nothing while orphans accumulate. So the write
+// field is checked against the schema. The read field is not: an API that renames on read
+// often returns the value under a key the schema never models, which is the very case the
+// field exists for. All that can be demanded of it is that it is a top-level key.
+func (r Resource) validateSweep(at string, p *problems) {
+	if r.Sweep == nil {
+		return
+	}
+
+	at += ".sweep"
+
+	if r.Sweep.NameField == "" {
+		p.add(at+".nameField", "a sweep override must name the field the prefix is written into")
+		return
+	}
+
+	if strings.Contains(r.Sweep.NameField, ".") {
+		p.add(at+".nameField",
+			"%q is nested; the prefix must live in a top-level field the sweeper can read "+
+				"back from a list response", r.Sweep.NameField)
+		return
+	}
+
+	found := false
+	for _, a := range r.Schema.Attributes {
+		if a.Drop || a.Wire.JSONPath != r.Sweep.NameField {
+			continue
+		}
+
+		found = true
+
+		if a.Wire.SkipExpand || a.ComputedOptionalRequired == Computed {
+			p.add(at+".nameField",
+				"%q is not writable, so a create could never carry the prefix there",
+				r.Sweep.NameField)
+		}
+		if a.Type.Kind != KindString {
+			p.add(at+".nameField",
+				"%q is %s, not a string; a name prefix cannot be stamped into it",
+				r.Sweep.NameField, a.Type.Kind)
+		}
+	}
+
+	if !found {
+		p.add(at+".nameField", "no attribute has the wire path %q", r.Sweep.NameField)
+	}
+
+	if strings.Contains(r.Sweep.ReadNameField, ".") {
+		p.add(at+".readNameField",
+			"%q is nested; the sweeper reads the name from each top-level list item",
+			r.Sweep.ReadNameField)
+	}
 }
 
 // validateAccFixture holds curated fixture values to the schema they claim to serve.

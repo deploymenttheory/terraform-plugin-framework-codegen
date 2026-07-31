@@ -200,7 +200,9 @@ func runMutatingTier(
 	summary, sweepErr := Sweep(sweepCtx, SweepOptions{
 		Session:    ms,
 		NamePrefix: opts.Grant.NamePrefix(),
-		NameField:  opts.Subject.NameField,
+		// The read field, not the write field: the prefix pass matches against what
+		// the list response actually says, and an API may rename on the way out.
+		NameField:  opts.Subject.SweepNameField(),
 		PageParams: opts.SweepPageParams,
 		MaxSeconds: opts.Plan.Budget.MaxSweepSeconds,
 	})
