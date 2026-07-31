@@ -203,6 +203,14 @@ type Resource struct {
 	Import   ImportPolicy    `json:"import,omitzero"`
 	Timeouts Timeouts        `json:"timeouts,omitzero"`
 
+	// Sweep overrides the prober's name-field inference for this resource.
+	//
+	// On the resource rather than the probe plan, because `probe -mode sweep` builds its
+	// subject from the blueprint alone -- a sweep is exactly the situation where no plan
+	// may be to hand, and the field that finds stranded objects cannot depend on one.
+	// Absent means the prober infers the field itself.
+	Sweep *SweepNaming `json:"sweep,omitempty"`
+
 	// Identity is the resource identity schema, which makes the generated resource satisfy
 	// ResourceWithIdentity. Absent means the resource declares no identity.
 	//
@@ -237,6 +245,27 @@ type Resource struct {
 	// layer may set it, so that a probe run against a tenant which can see
 	// nothing cannot quietly delete half a provider.
 	Drop bool `json:"drop,omitempty"`
+}
+
+// SweepNaming names the wire field a probe run's name prefix travels through.
+//
+// The prober infers this field when it can (a field literally called "name", or one
+// ending in it), but inference has limits a real API exceeds: an API may carry the
+// name in a field inference ranks below another candidate, and one may even return
+// the value under a different key than it accepted it -- ThousandEyes dashboard
+// snapshots take displayName and answer with snapshotName. The override exists for
+// exactly those resources, and validation holds it to the same rules inference
+// follows.
+type SweepNaming struct {
+	// NameField is the JSON key the stamped prefix is written into on create. It must
+	// be a top-level writable string attribute -- the same bar inference applies.
+	NameField string `json:"nameField"`
+
+	// ReadNameField is the key the same value comes back under on a list read, when
+	// the API renames it. Empty means NameField round-trips unchanged. The sweeper's
+	// prefix pass matches against this key, so getting it wrong is the difference
+	// between finding a stranded object and reporting an orphan.
+	ReadNameField string `json:"readNameField,omitempty"`
 }
 
 // DataSource is one Terraform data source. Phase 1 does not emit these; the type
