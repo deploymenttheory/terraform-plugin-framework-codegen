@@ -534,6 +534,41 @@ a `returnedOnRead: false` changes which assertions the generated acceptance test
 makes. Every field is a pointer, for the reason in *Absence is representable*
 above.
 
+### Conditional variants
+
+`behaviour.conditional` holds the observations that are true only on one branch of
+the API's own dispatch:
+
+```json
+"behaviour": {
+  "conditional": [
+    { "when": [{ "jsonPath": "type", "equals": "dynamic" }],
+      "behaviour": { "requiredByApi": true, "returnedOnRead": true } },
+    { "when": [{ "jsonPath": "type", "equals": "static" }],
+      "behaviour": { "returnedOnRead": false } }
+  ]
+}
+```
+
+The semantics are a contract between merge (which writes variants) and emission
+(which acts on them):
+
+- A base behaviour field holds unconditionally. A variant's non-zero fields
+  override it only while every one of its `when` conditions holds; conditions are
+  conjunctive, and there is no disjunction — two branches are two variants.
+- When variants disagree about a dimension, the base field for that dimension
+  stays null: "unknown unconditionally". Nothing may treat that absence as
+  evidence.
+- `jsonPath` speaks the wire vocabulary, not Terraform attribute names, because
+  the precondition was observed on the wire; validation refuses a path the schema
+  does not have. Variants are sorted by their canonical condition key and unique
+  under it, so the committed file is byte-stable.
+- Merge writes a variant only for dimensions a conditional *derivation* exists
+  for (`requiredByApi`, `returnedOnRead`, `writable`, and the observed value
+  sets). A conditional fact about anything else is held back in the description
+  with its condition stated — applying it unconditionally is the bug this
+  structure exists to prevent.
+
 ## Validation
 
 `Validate` reports **every** problem, not the first. Fixing a blueprint one error

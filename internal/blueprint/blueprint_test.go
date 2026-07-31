@@ -12,6 +12,8 @@ import (
 // validResource returns a minimal resource that passes validation. Tests mutate
 // a copy of it, so each case states exactly one deviation from valid and the
 // reason it fails is unambiguous.
+func ptrBool(b bool) *bool { return &b }
+
 func validResource() Resource {
 	return Resource{
 		Key:            "tag",
@@ -329,6 +331,106 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 				b.Resources[0].Binding.Body.AccessStyle = "telepathy"
 			},
 			wantPath: "access style",
+		},
+		{
+			// A variant with no precondition is the unconditional Behaviour wearing a
+			// costume: it would read as conditional while applying always.
+			name: "behaviour variant with no precondition",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Schema.Attributes[1].Behaviour.Conditional = []BehaviourVariant{
+					{Behaviour: Behaviour{RequiredByAPI: ptrBool(true)}},
+				}
+			},
+			wantPath: "conditional[0].when",
+		},
+		{
+			// Absence of a gate value is a different observation from the gate holding
+			// the empty string, and nothing distinguishes them once written.
+			name: "condition with no value",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Schema.Attributes[1].Behaviour.Conditional = []BehaviourVariant{
+					{
+						When:      []Condition{{JSONPath: "id", Equals: ""}},
+						Behaviour: Behaviour{RequiredByAPI: ptrBool(true)},
+					},
+				}
+			},
+			wantPath: "when[0].equals",
+		},
+		{
+			name: "condition naming one path twice",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Schema.Attributes[1].Behaviour.Conditional = []BehaviourVariant{
+					{
+						When: []Condition{
+							{JSONPath: "id", Equals: "a"},
+							{JSONPath: "id", Equals: "b"},
+						},
+						Behaviour: Behaviour{RequiredByAPI: ptrBool(true)},
+					},
+				}
+			},
+			wantPath: "appears twice",
+		},
+		{
+			name: "variant observing nothing",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Schema.Attributes[1].Behaviour.Conditional = []BehaviourVariant{
+					{When: []Condition{{JSONPath: "id", Equals: "x"}}},
+				}
+			},
+			wantPath: "observes nothing",
+		},
+		{
+			// Conditions are conjunctive, so nesting expresses nothing a flat when
+			// cannot -- it could only introduce ambiguity about which level wins.
+			name: "variant nesting a variant",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Schema.Attributes[1].Behaviour.Conditional = []BehaviourVariant{
+					{
+						When: []Condition{{JSONPath: "id", Equals: "x"}},
+						Behaviour: Behaviour{Conditional: []BehaviourVariant{
+							{
+								When:      []Condition{{JSONPath: "id", Equals: "y"}},
+								Behaviour: Behaviour{RequiredByAPI: ptrBool(true)},
+							},
+						}},
+					},
+				}
+			},
+			wantPath: "must not nest",
+		},
+		{
+			// Two variants for one branch would race: which one a consumer honours
+			// would depend on iteration order.
+			name: "two variants for one branch",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Schema.Attributes[1].Behaviour.Conditional = []BehaviourVariant{
+					{
+						When:      []Condition{{JSONPath: "id", Equals: "x"}},
+						Behaviour: Behaviour{RequiredByAPI: ptrBool(true)},
+					},
+					{
+						When:      []Condition{{JSONPath: "id", Equals: "x"}},
+						Behaviour: Behaviour{ReturnedOnRead: ptrBool(false)},
+					},
+				}
+			},
+			wantPath: "duplicates another variant",
+		},
+		{
+			// A condition on a path nothing has would never hold and never fail: the
+			// variant would sit in the committed file constraining nothing.
+			name: "condition gated on a path the schema lacks",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Schema.Attributes[1].Behaviour.Conditional = []BehaviourVariant{
+					{
+						When:      []Condition{{JSONPath: "objectType", Equals: "static"}},
+						Behaviour: Behaviour{RequiredByAPI: ptrBool(true)},
+					},
+				}
+			},
+			wantPath: "not a wire path",
 		},
 	}
 

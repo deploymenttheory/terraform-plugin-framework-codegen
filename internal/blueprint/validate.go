@@ -319,6 +319,57 @@ func (r Resource) validate(at string, p *problems) {
 	r.validateIDBinding(at, seenNames, seenFields, p)
 	r.validatePolicy(at, hasWritable, p)
 	r.validateImport(at, seenNames, p)
+	r.validateConditionGates(at, p)
+}
+
+// validateConditionGates checks that every behaviour variant's condition names a wire path
+// this schema actually has.
+//
+// Checked here rather than on the attribute, because the gate is nearly always a *different*
+// attribute -- matchType's variant is gated on type -- so the whole schema's wire paths have
+// to be in view. A condition on a path nothing has would never hold and never fail: the
+// variant would sit in the committed file looking meaningful and constraining nothing.
+func (r Resource) validateConditionGates(at string, p *problems) {
+	known := map[string]bool{}
+	var collect func(attrs []Attribute, prefix string)
+	collect = func(attrs []Attribute, prefix string) {
+		for _, a := range attrs {
+			path := a.Wire.JSONPath
+			if path == "" {
+				path = a.Name
+			}
+			if prefix != "" {
+				path = prefix + "." + path
+			}
+			known[path] = true
+			if a.Type.NestedObject != nil {
+				collect(a.Type.NestedObject.Attributes, path)
+			}
+		}
+	}
+	collect(r.Schema.Attributes, "")
+
+	var check func(attrs []Attribute, prefix string)
+	check = func(attrs []Attribute, prefix string) {
+		for _, a := range attrs {
+			aat := fmt.Sprintf("%s.schema.attributes[%s]", at, a.Name)
+			if prefix != "" {
+				aat = fmt.Sprintf("%s.schema.attributes[%s.%s]", at, prefix, a.Name)
+			}
+			for i, v := range a.Behaviour.Conditional {
+				for j, c := range v.When {
+					if c.JSONPath != "" && !known[c.JSONPath] {
+						p.add(fmt.Sprintf("%s.behaviour.conditional[%d].when[%d].jsonPath", aat, i, j),
+							"%q is not a wire path in this schema", c.JSONPath)
+					}
+				}
+			}
+			if a.Type.NestedObject != nil {
+				check(a.Type.NestedObject.Attributes, a.Name)
+			}
+		}
+	}
+	check(r.Schema.Attributes, "")
 }
 
 // validateSchemaVersion refuses a schema version bump with nothing to migrate old state.
@@ -520,8 +571,63 @@ func (a Attribute) validate(at string, p *problems) {
 		}
 	}
 
+	a.validateConditionalBehaviour(at, p)
+
 	// The wire directions are checked by validateForKind, because which of them an
 	// attribute needs depends on whether its block kind sends anything to the API.
+}
+
+// validateConditionalBehaviour checks a variant's own shape.
+//
+// Whether each condition's jsonPath names a field the schema actually has is checked at the
+// resource level, where the whole schema's wire paths are in view; everything self-contained
+// is refused here, so a hand-edited variant fails close to the text that is wrong.
+func (a Attribute) validateConditionalBehaviour(at string, p *problems) {
+	seenWhen := map[string]bool{}
+
+	for i, v := range a.Behaviour.Conditional {
+		vat := fmt.Sprintf("%s.behaviour.conditional[%d]", at, i)
+
+		if len(v.When) == 0 {
+			// A variant with no precondition is the unconditional Behaviour wearing a
+			// costume: it would read as conditional while applying always.
+			p.add(vat+".when", "is required; an unconditional observation belongs in behaviour itself")
+		}
+
+		seenPath := map[string]bool{}
+		for j, c := range v.When {
+			cat := fmt.Sprintf("%s.when[%d]", vat, j)
+			switch {
+			case c.JSONPath == "":
+				p.add(cat+".jsonPath", "is required")
+			case c.Equals == "":
+				// Absence of a gate value is a different observation from the gate holding
+				// the empty string, and nothing distinguishes them once written.
+				p.add(cat+".equals", "is required")
+			case seenPath[c.JSONPath]:
+				p.add(cat+".jsonPath", "%q appears twice in one precondition, which cannot both hold",
+					c.JSONPath)
+			}
+			seenPath[c.JSONPath] = true
+		}
+
+		if v.Behaviour.IsZero() {
+			p.add(vat+".behaviour", "observes nothing; a variant must say what held under its condition")
+		}
+		if len(v.Behaviour.Conditional) > 0 {
+			p.add(vat+".behaviour.conditional",
+				"a variant must not nest variants; conditions are conjunctive, so state them in one when")
+		}
+
+		if key := v.WhenKey(); key != "" {
+			if seenWhen[key] {
+				// Two variants for one branch would race: which one a consumer honours would
+				// depend on iteration order.
+				p.add(vat+".when", "duplicates another variant's precondition; fold the observations into one variant")
+			}
+			seenWhen[key] = true
+		}
+	}
 }
 
 func (t AttrType) validate(at string, p *problems) {

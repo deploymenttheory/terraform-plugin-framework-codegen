@@ -25,7 +25,13 @@
 // input changing would make the drift check useless.
 package blueprint
 
-import "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
+import (
+	"fmt"
+	"sort"
+	"strings"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
+)
 
 // FormatVersion is the blueprint format version. It is deliberately unrelated to
 // the Provider Code Specification's version, which this format does not track.
@@ -746,6 +752,68 @@ type Behaviour struct {
 	// on it, which is why merge must carry it per attribute rather than discarding it as
 	// resource-level information.
 	ValuesClosed *bool `json:"valuesClosed,omitempty"`
+
+	// Conditional is the observed behaviour that holds only under a precondition.
+	//
+	// The unconditional fields above answer "what does the API do with this field"; a variant
+	// answers the same question for one branch of the API's own dispatch -- matchType is
+	// returned on read when type is "dynamic" and discarded when it is "static", and writing
+	// either answer into ReturnedOnRead above would make it a claim about every tag. That is
+	// exactly how the pilot came to suppress an attribute's read-back and import verification
+	// for every tag on the strength of an observation about static ones.
+	//
+	// Semantics, which merge enforces and emission must honour:
+	//   - A base field above holds unconditionally. A variant's non-zero fields override it
+	//     only while every one of the variant's conditions holds; conditions are conjunctive.
+	//   - When variants disagree about a dimension, the base field for that dimension stays
+	//     nil -- "unknown unconditionally" -- and anything consuming the base must not treat
+	//     the absence as evidence.
+	//   - Variants are sorted by their canonical WhenKey and unique under it, so the committed
+	//     document is byte-stable. A variant's Behaviour never nests Conditional; validation
+	//     refuses the recursion.
+	Conditional []BehaviourVariant `json:"conditional,omitempty"`
+}
+
+// Condition is one precondition on a behaviour variant: a wire field held this value.
+//
+// JSONPath speaks the schema's wire vocabulary -- the same dotted paths merge uses to
+// address attributes -- not Terraform attribute names, because the precondition was
+// observed on the wire and the prober never learns Terraform naming. Equals is a string
+// because a gate has to be enumerable to be crossed, and the probe plan declares gate
+// values as strings.
+type Condition struct {
+	// JSONPath is the gate field.
+	JSONPath string `json:"jsonPath"`
+	// Equals is the value it held.
+	Equals string `json:"equals"`
+}
+
+// String renders a condition for a report and for an attribute's description.
+func (c Condition) String() string { return fmt.Sprintf("%s is %q", c.JSONPath, c.Equals) }
+
+// BehaviourVariant is Behaviour under a precondition.
+type BehaviourVariant struct {
+	// When is the precondition, conjunctive and never empty.
+	When []Condition `json:"when"`
+	// Behaviour is what was observed while the precondition held. Only its non-zero
+	// fields say anything; it never nests Conditional.
+	Behaviour Behaviour `json:"behaviour"`
+}
+
+// WhenKey renders the precondition as one canonical string.
+//
+// This is the identity of a variant: two variants with equal keys are the same branch, and
+// merge folds facts into the existing one rather than appending a duplicate. Sorted by path
+// so the key does not depend on the order conditions were appended in; validation refuses a
+// repeated path, so sorting by path alone is total.
+func (v BehaviourVariant) WhenKey() string {
+	parts := make([]string, 0, len(v.When))
+	for _, c := range v.When {
+		parts = append(parts, c.JSONPath+"="+c.Equals)
+	}
+	sort.Strings(parts)
+
+	return strings.Join(parts, ";")
 }
 
 // IsZero reports whether nothing has been observed about an attribute.
@@ -763,7 +831,8 @@ func (b Behaviour) IsZero() bool {
 		b.Normalises == "" &&
 		len(b.AcceptedValues) == 0 &&
 		len(b.RejectedValues) == 0 &&
-		b.ValuesClosed == nil
+		b.ValuesClosed == nil &&
+		len(b.Conditional) == 0
 }
 
 // UpdateStyle is how the API's update operation treats fields the request omits.
