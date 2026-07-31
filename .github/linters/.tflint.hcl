@@ -27,7 +27,18 @@ rule "terraform_required_providers" {
   # these examples testable at all: a filesystem `dev_overrides` block, which
   # ignores version constraints and warns when it finds them.
   #
-  # `terraform_required_version` is deliberately left enabled: a minimum Terraform
-  # version is real, checkable information, and the examples now state one.
+  # `terraform_required_version` is disabled below for a narrower reason.
+  enabled = false
+}
+
+rule "terraform_required_version" {
+  # The examples state a minimum Terraform version by convention, and that is
+  # real, checkable information. But tflint walks the whole tree, and the tree
+  # also holds generated acceptance *fixtures* under testdata/ -- fragments by
+  # design, with no terraform block at all, because the acceptance harness
+  # supplies the provider through ProtoV6ProviderFactories and gates Terraform
+  # versions with tfversion checks in the test itself. A version stanza in a
+  # fixture would be dead text the harness ignores, and the rule cannot be
+  # scoped per path, so it goes.
   enabled = false
 }
