@@ -161,6 +161,67 @@ func inferWidget(t *testing.T) (blueprint.Resource, []Note) {
 	return res, notes
 }
 
+// TestUnit_Infer_ASplitUpdateBodyIsInferred: an update whose request schema is its own
+// named type must land in the blueprint as updateRequestType, so curation starts from
+// the truth instead of discovering the split as a bindings failure.
+func TestUnit_Infer_ASplitUpdateBodyIsInferred(t *testing.T) {
+	t.Parallel()
+
+	// The fixture's PUT gains its own named request schema -- the
+	// agent-to-server/bgp shape -- and the schema itself rides the components
+	// block's indentation.
+	spec := strings.Replace(inferSpec,
+		`    put:
+      operationId: updateWidget
+      tags: [Widgets]`,
+		`    put:
+      operationId: updateWidget
+      tags: [Widgets]
+      requestBody:
+        content:
+          application/hal+json:
+            schema:
+              $ref: '#/components/schemas/Widgets_API_WidgetUpdate'`,
+		1)
+	spec += `    Widgets_API_WidgetUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+`
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "api.yaml")
+	if err := os.WriteFile(path, []byte(spec), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	doc, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	res, _, err := doc.Infer(find(t, doc.Discover(), "widget"), inferOptions())
+	if err != nil {
+		t.Fatalf("Infer: %v", err)
+	}
+
+	if got := res.Binding.Body.UpdateRequestType; got != "widgets.WidgetUpdate" {
+		t.Errorf("UpdateRequestType = %q, want widgets.WidgetUpdate", got)
+	}
+	if got := res.Binding.Body.UpdateConstructorExpr; got != "&widgets.WidgetUpdate{}" {
+		t.Errorf("UpdateConstructorExpr = %q", got)
+	}
+
+	// And the common shape stays silent: the unmodified fixture's update carries no
+	// request body, which must not be recorded as a split.
+	plain, _ := inferWidget(t)
+	if plain.Binding.Body.UpdateRequestType != "" {
+		t.Errorf("an update with no body of its own inferred a split: %q",
+			plain.Binding.Body.UpdateRequestType)
+	}
+}
+
 func attrByName(t *testing.T, r blueprint.Resource, name string) blueprint.Attribute {
 	t.Helper()
 	for _, a := range r.Schema.Attributes {

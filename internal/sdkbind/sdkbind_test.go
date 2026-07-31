@@ -167,6 +167,29 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 			wantDetail: `has no field "Shade"`,
 		},
 		{
+			name: "update body type that does not exist",
+			mutate: func(b *blueprint.Blueprint) {
+				res(b, "tag").Binding.Body.UpdateRequestType = "tags.TagUpdate"
+				res(b, "tag").Binding.Body.UpdateConstructorExpr = "&tags.TagUpdate{}"
+			},
+			wantPath:   "binding.body.updateRequestType",
+			wantDetail: "no exported type TagUpdate",
+		},
+		{
+			// The check that makes reusing one assignment list against a split
+			// update body safe: a field on create's type and absent from update's
+			// must fail as a named problem, not as a compile error in generated code.
+			name: "wire field missing from a split update body",
+			mutate: func(b *blueprint.Blueprint) {
+				// TagFilter is real and resolves, and carries none of the tag's
+				// expanded fields but Key -- the shape of a genuinely divergent clone.
+				res(b, "tag").Binding.Body.UpdateRequestType = "tags.TagFilter"
+				res(b, "tag").Binding.Body.UpdateConstructorExpr = "&tags.TagFilter{}"
+			},
+			wantPath:   "wire.sdkField",
+			wantDetail: "expand (update body)",
+		},
+		{
 			name: "accessor that is not rooted in the receiver",
 			mutate: func(b *blueprint.Blueprint) {
 				res(b, "tag").Binding.Service.Accessor = "someGlobal.Tags"
@@ -204,6 +227,33 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 				t.Errorf("message should contain %q:\n%v", tc.wantDetail, msg)
 			}
 		})
+	}
+}
+
+// TestUnit_SDKBind_AcceptsAValidSplitUpdateBody: a split whose clone carries every
+// expanded field at the same type verifies cleanly, and the extra checks are counted
+// so a pass is demonstrably a pass rather than a skip.
+func TestUnit_SDKBind_AcceptsAValidSplitUpdateBody(t *testing.T) {
+	t.Parallel()
+
+	bp, l := loadPilot(t)
+	baseline := Verify(l, bp)
+	if err := baseline.Err(); err != nil {
+		t.Fatalf("baseline: %v", err)
+	}
+
+	// tags.Tag re-declares every TagInfo field at identical types -- exactly the
+	// clone shape the split-update SDKs produce.
+	res(&bp, "tag").Binding.Body.UpdateRequestType = "tags.Tag"
+	res(&bp, "tag").Binding.Body.UpdateConstructorExpr = "&tags.Tag{}"
+
+	report := Verify(l, bp)
+	if err := report.Err(); err != nil {
+		t.Fatalf("a field-compatible split must verify: %v", err)
+	}
+	if report.Checked <= baseline.Checked {
+		t.Errorf("the split added no checks (%d -> %d), so nothing was proven",
+			baseline.Checked, report.Checked)
 	}
 }
 
