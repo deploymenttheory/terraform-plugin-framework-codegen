@@ -7,8 +7,8 @@
 # value never reaches state, so a test needs somewhere else to read it from.
 
 resource "thousandeyes_credential" "test" {
-  name  = "tfacc-name"
-  value = "tfacc-value"
+  name  = "tfacc-eph-credential-name"
+  value = "tfacc-eph-credential-value"
 }
 
 ephemeral "thousandeyes_credential" "test" {

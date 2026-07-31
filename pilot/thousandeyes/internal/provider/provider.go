@@ -99,8 +99,7 @@ func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest,
 	// A test-supplied client short-circuits configuration entirely, so unit
 	// tests need no credentials and cannot reach the network by accident.
 	if p.client != nil {
-		resp.ResourceData = p.client
-		resp.DataSourceData = p.client
+		configureAllKinds(resp, p.client)
 		return
 	}
 
@@ -137,8 +136,21 @@ func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest,
 		"custom_endpoint":      resolved.APIEndpoint != "",
 	})
 
+	configureAllKinds(resp, client)
+}
+
+// configureAllKinds hands the client to every block kind the provider serves.
+//
+// The framework carries one field per kind, and setting only some of them is the bug the
+// first live acceptance run found: actions, ephemerals and list resources received a nil
+// client and crashed on first use. One function, so a kind added later is added here or
+// visibly nowhere.
+func configureAllKinds(resp *provider.ConfigureResponse, client any) {
 	resp.ResourceData = client
 	resp.DataSourceData = client
+	resp.ActionData = client
+	resp.EphemeralResourceData = client
+	resp.ListResourceData = client
 }
 
 // firstNonEmpty prefers the configured value, then the environment variable.

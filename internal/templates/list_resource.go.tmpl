@@ -88,6 +88,22 @@ type {{ .List.FilterModelType }} struct {
 {{- end }}
 func (l *{{ $.List.GoTypeName }}) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
 	tflog.Debug(ctx, "listing resources", map[string]any{"resource": ResourceName})
+
+	// A nil client is a provider bug -- Configure must populate ListResourceData -- and
+	// the failure mode without this guard is a segfault that kills the whole provider
+	// process. A diagnostic names the bug; a crash names nothing.
+	if l.client == nil {
+		var diags diag.Diagnostics
+		diags.AddError(
+			"Provider not configured",
+			"The provider did not hand this list resource a client. This is a bug in "+
+				"the provider; please report it.",
+		)
+
+		stream.Results = list.ListResultsStreamDiagnostics(diags)
+
+		return
+	}
 {{- if $.List.HasFilters }}
 
 	var data {{ $.List.FilterModelType }}

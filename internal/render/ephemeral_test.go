@@ -159,8 +159,10 @@ func TestUnit_Render_TheEphemeralTestEchoesTheOpenedValue(t *testing.T) {
 		t.Fatalf("EphemeralAccTest: %v", err)
 	}
 
+	// The seed's synthesised values carry the ephemeral's salt, so this test's seed is
+	// its own object in a shared tenant -- the first live run's 409s are why.
 	if len(v.Checks) != 1 ||
-		!strings.Contains(v.Checks[0], `Key("data.value").HasValue("tfacc-value")`) {
+		!strings.Contains(v.Checks[0], `Key("data.value").HasValue("tfacc-eph-credential-value")`) {
 		t.Errorf("checks = %v", v.Checks)
 	}
 

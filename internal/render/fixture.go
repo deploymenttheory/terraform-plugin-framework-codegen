@@ -75,7 +75,25 @@ func Fixture(
 		header = GeneratedHeaderHCL(opts.BlueprintPath, opts.BlueprintSHA256)
 	}
 
-	return fixtureView(bp, r, header, minimal)
+	return fixtureView(bp, r, header, minimal, "")
+}
+
+// SeedFixture is a resource's minimal fixture with the consumer's key salted into every
+// synthesised string value.
+//
+// The first live acceptance run is why this exists: four generated tests seeded the same
+// resource with byte-identical synthesised values, the packages ran concurrently against
+// one tenant, and three of the four creates answered 409 Duplicate. The salt is the
+// consuming block's, deterministic, so each test's seed is its own object and the exact-
+// value assertions still hold; values the API itself vouched for -- enums, server
+// defaults -- are never salted, because uniqueness is not worth an invalid body.
+func SeedFixture(
+	bp blueprint.Blueprint,
+	r blueprint.Resource,
+	opts Options,
+	salt string,
+) (FixtureView, error) {
+	return fixtureView(bp, r, "", true, salt)
 }
 
 // fixtureView builds a fixture for one resource.
@@ -84,6 +102,7 @@ func fixtureView(
 	r blueprint.Resource,
 	header string,
 	minimal bool,
+	salt string,
 ) (FixtureView, error) {
 	v := FixtureView{
 		Header:        header,
@@ -113,7 +132,7 @@ func fixtureView(
 			continue
 		}
 
-		fv := fixtureValueFor(a)
+		fv := fixtureValueFor(a, salt)
 
 		switch {
 		case !fv.Skipped:
@@ -335,7 +354,7 @@ func secondValue(a blueprint.Attribute, current string) (string, bool) {
 // The pilot proves both halves matter: `access_type` documents "system" and the probe watched the
 // API refuse it, and `object_type` documents "endpoint-agent" and the probe watched that refused
 // too. A fixture built from the documented set would have picked a rejected value for one of them.
-func fixtureValueFor(a blueprint.Attribute) fixtureValue {
+func fixtureValueFor(a blueprint.Attribute, salt string) fixtureValue {
 	fv := fixtureValue{Name: a.Name}
 
 	if v, note, ok := enumValue(a); ok {
@@ -372,7 +391,7 @@ func fixtureValueFor(a blueprint.Attribute) fixtureValue {
 
 	switch a.Type.Kind {
 	case blueprint.KindString:
-		return stringValue(a)
+		return stringValue(a, salt)
 
 	case blueprint.KindBool:
 		fv.HCL = "true"
@@ -454,7 +473,7 @@ func enumValue(a blueprint.Attribute) (value, note string, ok bool) {
 }
 
 // stringValue derives a string, which is where the honest limits are.
-func stringValue(a blueprint.Attribute) fixtureValue {
+func stringValue(a blueprint.Attribute, salt string) fixtureValue {
 	fv := fixtureValue{Name: a.Name}
 	c := a.Type.Constraints
 
@@ -476,6 +495,9 @@ func stringValue(a blueprint.Attribute) fixtureValue {
 	// and suffixed with the attribute name so two attributes of one resource differ -- an
 	// API that silently deduplicates would otherwise be invisible.
 	value := "tfacc-" + strings.ReplaceAll(a.Name, "_", "-")
+	if salt != "" {
+		value = "tfacc-" + salt + "-" + strings.ReplaceAll(a.Name, "_", "-")
+	}
 
 	if c.MaxLength != nil && int64(len(value)) > *c.MaxLength {
 		if *c.MaxLength <= 0 {
@@ -513,7 +535,7 @@ func collectionValue(a blueprint.Attribute, open, close string) fixtureValue {
 		Name:                     a.Name + "_element",
 		ComputedOptionalRequired: blueprint.Optional,
 		Type:                     *a.Type.ElementType,
-	})
+	}, "")
 	if elem.Skipped {
 		fv.Skipped = true
 		fv.Reason = "its elements have no derivable value: " + elem.Reason
@@ -541,7 +563,7 @@ func elementMapValue(a blueprint.Attribute) fixtureValue {
 		Name:                     a.Name + "_value",
 		ComputedOptionalRequired: blueprint.Optional,
 		Type:                     *a.Type.ElementType,
-	})
+	}, "")
 	if elem.Skipped {
 		fv.Skipped = true
 		fv.Reason = "its values have no derivable value: " + elem.Reason

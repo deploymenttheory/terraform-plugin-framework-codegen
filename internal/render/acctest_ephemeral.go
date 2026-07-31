@@ -71,7 +71,9 @@ func EphemeralAccTest(
 		}
 	}
 
-	seedFixture, err := Fixture(bp, seed, opts, true)
+	// Salted with this ephemeral's key, for the reason the data source test's seed is:
+	// each test's seed must be its own object in the shared tenant.
+	seedFixture, err := SeedFixture(bp, seed, opts, "eph-"+e.Key)
 	if err != nil {
 		return EphemeralAccTestView{}, EphemeralFixtureView{}, err
 	}

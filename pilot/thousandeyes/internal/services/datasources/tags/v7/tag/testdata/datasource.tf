@@ -5,8 +5,8 @@
 # because the reference below only resolves against the resource above it.
 
 resource "thousandeyes_tag" "test" {
-  key         = "tfacc-key"
-  value       = "tfacc-value"
+  key         = "tfacc-ds-tag-key"
+  value       = "tfacc-ds-tag-value"
   object_type = "test"
   access_type = "all"
 }

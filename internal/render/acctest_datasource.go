@@ -78,7 +78,10 @@ func DataSourceAccTest(
 		}
 	}
 
-	seedFixture, err := Fixture(bp, seed, opts, true)
+	// Salted with this data source's key: the seed must be this test's own object, or
+	// concurrent packages seeding byte-identical values collide in the tenant -- the
+	// first live run's 409s.
+	seedFixture, err := SeedFixture(bp, seed, opts, "ds-"+d.Key)
 	if err != nil {
 		return DataSourceAccTestView{}, DataSourceFixtureView{}, err
 	}

@@ -28,7 +28,7 @@ func TestUnit_Render_AnAttributeTheAPINeverReturnsIsNotAsserted(t *testing.T) {
 		a,
 	)
 
-	f, err := fixtureView(bp, r, "", false)
+	f, err := fixtureView(bp, r, "", false, "")
 	if err != nil {
 		t.Fatalf("fixtureView: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestUnit_Render_ANormalisedAttributeIsNotAssertedForEquality(t *testing.T) 
 
 	bp, r := fixtureResource(a)
 
-	f, err := fixtureView(bp, r, "", true)
+	f, err := fixtureView(bp, r, "", true, "")
 	if err != nil {
 		t.Fatalf("fixtureView: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestUnit_Render_AnOmittedServerDefaultIsAsserted(t *testing.T) {
 		withDefault,
 	)
 
-	minimal, err := fixtureView(bp, r, "", true)
+	minimal, err := fixtureView(bp, r, "", true, "")
 	if err != nil {
 		t.Fatalf("fixtureView: %v", err)
 	}

@@ -28,6 +28,19 @@ func (e *CredentialEphemeral) Open(ctx context.Context, req ephemeral.OpenReques
 
 	tflog.Debug(ctx, "opening ephemeral resource", map[string]any{"ephemeral": EphemeralName})
 
+	// A nil client is a provider bug -- Configure must populate EphemeralResourceData --
+	// and the first live run proved the failure mode is a segfault that kills the whole
+	// provider process. A diagnostic names the bug; a crash names nothing.
+	if e.client == nil {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider did not hand this ephemeral resource a client. This is a bug "+
+				"in the provider; please report it.",
+		)
+
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, OpenTimeout*time.Second)
 	defer cancel()
 
