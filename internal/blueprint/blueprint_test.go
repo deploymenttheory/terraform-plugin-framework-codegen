@@ -732,6 +732,67 @@ func TestUnit_Blueprint_Validate_SweepNaming(t *testing.T) {
 	}
 }
 
+// TestUnit_Blueprint_Validate_SplitUpdateBody: the pair travels together, and a split
+// with no update operation constrains nothing -- refused rather than left looking
+// meaningful in a committed file.
+func TestUnit_Blueprint_Validate_SplitUpdateBody(t *testing.T) {
+	t.Parallel()
+
+	valid := validBlueprint()
+	valid.Resources[0].Binding.Body.UpdateRequestType = "tags.TagUpdate"
+	valid.Resources[0].Binding.Body.UpdateConstructorExpr = "&tags.TagUpdate{}"
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("a complete split on a resource with an update must validate: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		mutate   func(*Blueprint)
+		wantPath string
+	}{
+		{
+			name: "type without constructor",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Binding.Body.UpdateRequestType = "tags.TagUpdate"
+			},
+			wantPath: "body.updateConstructorExpr",
+		},
+		{
+			name: "constructor without type",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Binding.Body.UpdateConstructorExpr = "&tags.TagUpdate{}"
+			},
+			wantPath: "body.updateRequestType",
+		},
+		{
+			name: "split with no update operation",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Binding.Body.UpdateRequestType = "tags.TagUpdate"
+				b.Resources[0].Binding.Body.UpdateConstructorExpr = "&tags.TagUpdate{}"
+				b.Resources[0].Binding.Update = nil
+			},
+			wantPath: "no update operation",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := validBlueprint()
+			tc.mutate(&b)
+
+			err := b.Validate()
+			if err == nil {
+				t.Fatal("expected an error")
+			}
+			if !strings.Contains(err.Error(), tc.wantPath) {
+				t.Errorf("error omits %q:\n%v", tc.wantPath, err)
+			}
+		})
+	}
+}
+
 // TestUnit_Blueprint_Validate_AccFixtureHints: a hint is emitted verbatim into
 // generated HCL, so the refusals are the mistakes that would emit a fixture that
 // cannot apply or a value nothing consumes.

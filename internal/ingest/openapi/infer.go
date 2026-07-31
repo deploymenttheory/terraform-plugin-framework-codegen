@@ -109,18 +109,30 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 	requestType, responseType := d.bodyTypeNames(c)
 	sdkPkg := naming.SnakeDirName(c.Tag)
 
+	body := blueprint.BodyModels{
+		RequestType:     sdkPkg + "." + requestType,
+		ResponseType:    sdkPkg + "." + responseType,
+		ConstructorExpr: "&" + sdkPkg + "." + requestType + "{}",
+		AccessStyle:     blueprint.AccessStructField,
+	}
+
+	// An update whose request schema is its own named type is a split body, and
+	// pretending update sends the create type would fail the bindings check on the
+	// first divergent field. Inferred here so curation starts from the truth; the
+	// emitter reuses one assignment list against both types, which sdkbind proves
+	// safe field by field.
+	if updateType := d.updateBodyTypeName(c); updateType != "" && updateType != requestType {
+		body.UpdateRequestType = sdkPkg + "." + updateType
+		body.UpdateConstructorExpr = "&" + sdkPkg + "." + updateType + "{}"
+	}
+
 	r.Binding = blueprint.ResourceBinding{
 		Service: blueprint.ServiceRef{
 			ImportPath: strings.TrimRight(opts.SDKServiceRoot, "/") + "/" + sdkPkg,
 			TypeName:   service,
 			Accessor:   strings.TrimRight(opts.SDKAccessorPrefix, ".") + "." + service,
 		},
-		Body: blueprint.BodyModels{
-			RequestType:     sdkPkg + "." + requestType,
-			ResponseType:    sdkPkg + "." + responseType,
-			ConstructorExpr: "&" + sdkPkg + "." + requestType + "{}",
-			AccessStyle:     blueprint.AccessStructField,
-		},
+		Body: body,
 		ID: blueprint.IDBinding{
 			Attribute: "id", GoField: "ID",
 			FromCreate: "created.ID", FromCreateIsPointer: true,
@@ -553,7 +565,22 @@ func (d *Document) bodyTypeNames(c Candidate) (request, response string) {
 }
 
 func (d *Document) requestBodyProxy(c Candidate) *base.SchemaProxy {
-	op := d.operation(c.Create)
+	return d.operationBodyProxy(c.Create)
+}
+
+// updateBodyTypeName names the update operation's own request schema, or "" when the
+// update body is anonymous or absent. The caller compares it against create's: only a
+// *different* named type is a split worth recording.
+func (d *Document) updateBodyTypeName(c Candidate) string {
+	name := schemaNameOf(d.operationBodyProxy(c.Update))
+	if name == "" {
+		return ""
+	}
+	return namingOpts.GoTypeName(name)
+}
+
+func (d *Document) operationBodyProxy(o *Operation) *base.SchemaProxy {
+	op := d.operation(o)
 	if op == nil || op.RequestBody == nil || op.RequestBody.Content == nil {
 		return nil
 	}

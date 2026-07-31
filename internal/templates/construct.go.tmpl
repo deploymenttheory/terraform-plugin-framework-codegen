@@ -31,6 +31,36 @@ func constructResource(ctx context.Context, data *{{ .ModelTypeName }}) *{{ .Con
 	return body
 {{- end }}
 }
+{{- if .Construct.Update }}
+
+// constructResourceUpdate builds the update request body.
+//
+// A separate function because this SDK gives update its own request type. The
+// assignment list is identical to constructResource's -- the two types are
+// field-name clones, and the bindings check has proven every assigned field
+// exists on both -- so the only thing that differs is the type being filled.
+{{- if .Construct.NeedsDiagnostics }}
+func constructResourceUpdate(ctx context.Context, data *{{ .ModelTypeName }}) (*{{ .Construct.Update.RequestType }}, diag.Diagnostics) {
+	var (
+		diags diag.Diagnostics
+		d     diag.Diagnostics
+	)
+{{- else }}
+func constructResourceUpdate(ctx context.Context, data *{{ .ModelTypeName }}) *{{ .Construct.Update.RequestType }} {
+{{- end }}
+	tflog.Debug(ctx, "constructing update request body", map[string]any{"resource": ResourceName})
+
+	body := {{ .Construct.Update.ConstructorExpr }}
+{{ range .Construct.Assignments }}
+	{{ . }}
+{{- end }}
+{{ if .Construct.NeedsDiagnostics }}
+	return body, diags
+{{- else }}
+	return body
+{{- end }}
+}
+{{- end }}
 {{ range .Construct.NestedObject }}
 // {{ .FuncName }} converts the configured {{ .ModelType }} values into SDK structs.
 {{- if .IsCollection }}
