@@ -22,30 +22,30 @@ var ErrNotProbeable = errors.New("resource cannot be probed")
 // accidentally reporting a fact against the wrong field.
 type Subject struct {
 	// Resource is the blueprint key, used to address facts and notes.
-	Resource string
+	Resource string `json:"resource"`
 
 	// CollectionTemplate and ItemTemplate are the blueprint's PathTemplate values,
 	// e.g. "/v7/tags" and "/v7/tags/{id}".
-	CollectionTemplate string
-	ItemTemplate       string
+	CollectionTemplate string `json:"collectionTemplate"`
+	ItemTemplate       string `json:"itemTemplate"`
 
 	// Create, Read, Update and Delete are the HTTP methods and success codes the
 	// blueprint records, or nil where the API has no such operation. A resource with
 	// no read cannot be probed at all; one with no update simply has fewer probes
 	// that apply to it.
-	Create *Op
-	Read   *Op
-	Update *Op
-	Delete *Op
+	Create *Op `json:"create,omitempty"`
+	Read   *Op `json:"read,omitempty"`
+	Update *Op `json:"update,omitempty"`
+	Delete *Op `json:"delete,omitempty"`
 
 	// Fields is every attribute flattened to a JSON path, ordered so a report reads
 	// the same way twice.
-	Fields []Field
+	Fields []Field `json:"fields"`
 
 	// Policy is what the blueprint currently claims. The prober does not trust it --
 	// settling it is the job - but it is carried so a probe can report agreement or
 	// disagreement rather than just an observation.
-	Policy blueprint.ResourcePolicy
+	Policy blueprint.ResourcePolicy `json:"policy,omitzero"`
 
 	// IDField is the JSON key a created object's identifier arrives under.
 	//
@@ -55,7 +55,7 @@ type Subject struct {
 	//
 	// Without it neither pass of the sweeper can build a DELETE URL, which is why CanMutate
 	// refuses when it is empty.
-	IDField string
+	IDField string `json:"idField"`
 
 	// NameField is the writable string field a created object's name prefix goes in.
 	//
@@ -63,14 +63,14 @@ type Subject struct {
 	// mutating probes refuse it: no name means no prefix sweep means no way to
 	// guarantee cleanup, and creating objects that cannot be found again is not a
 	// trade worth making.
-	NameField string
+	NameField string `json:"nameField"`
 }
 
 // Op is one HTTP operation, as much as a probe needs of it.
 type Op struct {
-	Method       string
-	PathTemplate string
-	SuccessCodes []int
+	Method       string `json:"method"`
+	PathTemplate string `json:"pathTemplate"`
+	SuccessCodes []int  `json:"successCodes,omitempty"`
 }
 
 // Succeeded reports whether a status is one this operation declares as success.
@@ -97,29 +97,29 @@ func (o *Op) Succeeded(status int) bool {
 type Field struct {
 	// JSONPath is the API's name, dotted for a field inside a nested object, e.g.
 	// "assignments.type". This is the fact join key.
-	JSONPath string
+	JSONPath string `json:"jsonPath"`
 	// Attribute is the Terraform name, carried only so a report can be read by
 	// somebody looking at the schema. No probe logic keys on it.
-	Attribute string
+	Attribute string `json:"attribute"`
 
-	Kind                     blueprint.TypeKind
-	ComputedOptionalRequired blueprint.ComputedOptionalRequired
+	Kind                     blueprint.TypeKind                 `json:"kind"`
+	ComputedOptionalRequired blueprint.ComputedOptionalRequired `json:"computedOptionalRequired,omitempty"`
 
 	// Writable is false for an attribute the blueprint already knows is read-only,
 	// either because it is Computed or because SkipExpand is set. Those are excluded
 	// from the probes that send values, which is both a correctness matter and the
 	// single biggest saving in request count.
-	Writable bool
+	Writable bool `json:"writable"`
 
 	// AllowedValues holds the values the specification documents, if any.
 	//
 	// The prober's job is to check them, not to trust them: it sends each one and records
 	// which the API took. What is done with the answer afterwards belongs to render.
-	AllowedValues []string
+	AllowedValues []string `json:"allowedValues,omitempty"`
 
 	// Behaviour is what is already recorded. A probe may skip a field whose fact it
 	// would only be re-deriving, and merge needs to know what it is overwriting.
-	Behaviour blueprint.Behaviour
+	Behaviour blueprint.Behaviour `json:"behaviour,omitzero"`
 }
 
 // pathParam matches a path parameter, e.g. "{id}".

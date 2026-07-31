@@ -524,3 +524,40 @@ func TestUnit_CLI_ThePilotBlueprintCarriesSpecEnumValues(t *testing.T) {
 		}
 	}
 }
+
+// TestUnit_CLI_ReplayUsesTheFrozenSubject: request synthesis reads the subject, and the
+// working tree's subject moves with every curation pass -- starting with the merge of
+// the recording's own facts. The committed failure this pins: the re-record's merge made
+// `type` writable, and every full-body probe then replayed with one more key than the
+// transcript held, reporting seven phantom orphans.
+func TestUnit_CLI_ReplayUsesTheFrozenSubject(t *testing.T) {
+	t.Parallel()
+
+	root := filepath.Join(repoRoot, "probe-evidence", "thousandeyes", "tag")
+	snap, err := cassette.Latest(root)
+	if err != nil {
+		t.Fatalf("Latest: %v", err)
+	}
+
+	current := probe.Subject{Resource: "tag"}
+
+	frozen, err := frozenSubject(snap, current)
+	if err != nil {
+		t.Fatalf("frozenSubject: %v", err)
+	}
+	if len(frozen.Fields) == 0 {
+		t.Fatal("the committed snapshot should carry a frozen subject with fields")
+	}
+
+	// The frozen subject is the record-time truth: `type` was computed-only when the
+	// cassette was recorded, whatever the working tree says today.
+	if f, ok := frozen.Field("type"); !ok || f.Writable {
+		t.Error("the frozen subject should hold type as it was recorded: present and not writable")
+	}
+
+	// A snapshot in the wrong evidence directory must be refused, not replayed under
+	// another resource's key.
+	if _, err := frozenSubject(snap, probe.Subject{Resource: "credential"}); err == nil {
+		t.Error("a frozen subject for another resource should be refused")
+	}
+}
