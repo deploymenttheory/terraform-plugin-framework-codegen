@@ -198,8 +198,10 @@ func TestUnit_Emit_RefusesToOverwriteHandWrittenFiles(t *testing.T) {
 
 	root := t.TempDir()
 
-	// Put a hand-written file exactly where the emitter wants to write.
-	target := filepath.Join(root, plan.Files[0].Path)
+	// Put a hand-written file exactly where the emitter wants to write. The first
+	// *generated* file, deliberately: examples/ sorts ahead of it and is a scaffold,
+	// whose write-once semantics skip an existing file rather than refusing it.
+	target := filepath.Join(root, firstGenerated(t, plan).Path)
 	if mkErr := os.MkdirAll(filepath.Dir(target), 0o750); mkErr != nil {
 		t.Fatalf("MkdirAll: %v", mkErr)
 	}
@@ -541,4 +543,20 @@ func TestUnit_Emit_DataSourcesRegisterInTheProvider(t *testing.T) {
 			t.Errorf("datasources.go does not register %q:\n%s", want, registry)
 		}
 	}
+}
+
+// firstGenerated returns the plan's first non-scaffold file. examples/ sorts ahead of
+// the generated tree and is entirely scaffolds, whose write-once semantics make them the
+// wrong subject for overwrite and inspection tests.
+func firstGenerated(t *testing.T, plan Plan) File {
+	t.Helper()
+
+	for _, f := range plan.Files {
+		if !f.Scaffold {
+			return f
+		}
+	}
+
+	t.Fatal("the plan holds no generated files, so this test has no subject")
+	return File{}
 }

@@ -419,6 +419,20 @@ jobs:
         with:
           terraform_wrapper: false
 
+      # The committed registry documentation must match the schema it documents. The
+      # examples are emit scaffolds a human may enrich; the docs are rendered from
+      # schema + examples, so a schema change without a docs regeneration is drift.
+      - name: Registry docs match the schema
+        working-directory: pilot/thousandeyes
+        run: |
+          echo "::group::📚 tfplugindocs"
+          go generate .
+          git diff --exit-code -- docs/ || {
+            echo "::error::docs/ is stale; run 'go generate .' in pilot/thousandeyes and commit"
+            exit 1
+          }
+          echo "::endgroup::"
+
       # Committed HCL must already be in the shape terraform fmt leaves it, for the same
       # reason emitted Go must be a gofumpt fixed point: a file the canonical formatter
       # rewrites shows up as drift with no source change. The generated fixtures are

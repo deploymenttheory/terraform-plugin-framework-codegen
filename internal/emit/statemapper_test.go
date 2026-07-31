@@ -387,6 +387,13 @@ func TestUnit_Emit_AScaffoldCarriesNoGeneratedMarker(t *testing.T) {
 		if bytes.Contains(f.Content, []byte(generatedMarker)) {
 			t.Errorf("%s is a scaffold and must not carry the generated marker", f.Path)
 		}
+		if strings.HasPrefix(f.Path, "examples/") {
+			// Documentation payload: tfplugindocs copies these verbatim into the
+			// rendered pages, so an ownership note here would leak into every
+			// Example Usage block. The write-once behaviour still holds; the note
+			// lives on the mechanism instead of in the user-facing file.
+			continue
+		}
 		if !bytes.Contains(f.Content, []byte("This file is yours")) {
 			t.Errorf("%s should say plainly that it is not regenerated", f.Path)
 		}

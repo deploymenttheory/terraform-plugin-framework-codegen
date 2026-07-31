@@ -158,6 +158,17 @@ func (g *Generator) Build(bp blueprint.Blueprint, opts Options) (Plan, error) {
 		plan.Files = append(plan.Files, files...)
 	}
 
+	// Documentation examples, in the tfplugindocs layout. Scaffolds all: written when
+	// absent, then owned -- a human's richer example must never be flattened back to a
+	// generated minimum by the next emit.
+	if opts.Only == "" {
+		examples, err := g.exampleFiles(bp, ropts)
+		if err != nil {
+			return Plan{}, err
+		}
+		plan.Files = append(plan.Files, examples...)
+	}
+
 	// Registration files are rendered from the whole blueprint even under -only,
 	// because a registration listing a subset would not compile against a tree
 	// containing the rest.
@@ -614,6 +625,89 @@ func (g *Generator) ephemeralFiles(
 		})
 	case !unsupported(accErr):
 		return nil, fmt.Errorf("acceptance test: %w", accErr)
+	}
+
+	return out, nil
+}
+
+// exampleFiles renders the examples/ tree tfplugindocs copies into registry docs.
+func (g *Generator) exampleFiles(
+	bp blueprint.Blueprint,
+	ropts render.Options,
+) ([]File, error) {
+	var out []File
+
+	scaffold := func(path, tmpl string, view any) error {
+		content, err := g.renderFile(tmpl, view)
+		if err != nil {
+			return fmt.Errorf("%s: %w", path, err)
+		}
+		out = append(out, File{Path: path, Content: content, Scaffold: true})
+
+		return nil
+	}
+
+	if err := scaffold(
+		"examples/provider/provider.tf", "example_provider.tf.tmpl",
+		render.ProviderExample(bp),
+	); err != nil {
+		return nil, err
+	}
+
+	for _, r := range bp.Resources {
+		if r.Drop {
+			continue
+		}
+
+		view, err := render.ResourceExample(bp, r)
+		if err != nil {
+			if unsupported(err) {
+				continue
+			}
+
+			return nil, err
+		}
+
+		dir := filepath.Join("examples", "resources", view.TerraformType)
+		if err := scaffold(
+			filepath.Join(dir, "resource.tf"), "example_resource.tf.tmpl", view,
+		); err != nil {
+			return nil, err
+		}
+
+		if imp, ok := render.ImportExample(r); ok {
+			if err := scaffold(
+				filepath.Join(dir, "import.sh"), "example_import.sh.tmpl", imp,
+			); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	for _, d := range bp.DataSources {
+		if d.Drop {
+			continue
+		}
+		view := render.DataSourceExample(bp, d)
+		if err := scaffold(
+			filepath.Join("examples", "data-sources", view.TerraformType, "data-source.tf"),
+			"example_datasource.tf.tmpl", view,
+		); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, e := range bp.Ephemerals {
+		if e.Drop {
+			continue
+		}
+		view := render.EphemeralExample(bp, e)
+		if err := scaffold(
+			filepath.Join("examples", "ephemeral-resources", view.TerraformType, "ephemeral-resource.tf"),
+			"example_ephemeral.tf.tmpl", view,
+		); err != nil {
+			return nil, err
+		}
 	}
 
 	return out, nil

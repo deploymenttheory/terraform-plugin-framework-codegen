@@ -1,0 +1,10 @@
+ephemeral "{{ .TerraformType }}" "example" {
+{{- range .Args }}
+  {{ .Name }}{{ .Padding }} = {{ .HCL }}
+{{- end }}
+}
+
+# An ephemeral value lives for the run and never reaches state. Reference it from
+# another provider's configuration, e.g.:
+#
+#   ephemeral.{{ .TerraformType }}.example.value
