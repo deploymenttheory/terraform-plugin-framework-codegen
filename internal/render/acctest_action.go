@@ -141,6 +141,7 @@ func ActionAccTest(
 	org := bp.Provider.GoModule
 	imports.add(org+"/"+accSubdir, "")
 	if v.HasCleanup {
+		imports.add(pkgTime, "")
 		imports.add(org+"/"+accSubdir+"/exists", "")
 	}
 

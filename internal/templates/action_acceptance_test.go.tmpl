@@ -21,8 +21,15 @@ func {{ .TestName }}(t *testing.T) {
 {{- end }}
 {{- if .HasCleanup }}
 
-	// Reverse the action whatever the outcome: a subject left disabled is debris the
-	// next run trips over. Direct SDK call, on the acceptance harness's client.
+	// Reverse the action whatever the outcome: a subject left in the acted-on state is
+	// debris the next run trips over. Direct SDK call, on the acceptance harness's client.
+	//
+	// Re-asserted across spaced attempts, not called once. A live run proved the single
+	// call insufficient: the reversal raced the invoke it was reversing -- the API said
+	// 200 to the re-enable while the just-delivered disable was still settling, and the
+	// subject ended reversed the wrong way. Nothing here can verify the outcome (an
+	// action declares no read), so the last word is given to the reversal by repeating
+	// it after the invoke has had time to settle.
 	t.Cleanup(func() {
 		ctx := context.Background()
 
@@ -32,9 +39,22 @@ func {{ .TestName }}(t *testing.T) {
 			return
 		}
 
-		{{ .CleanupAssign }} {{ .CleanupCall }}
-		if err != nil {
-			t.Errorf("reversing the action: %v", err)
+		const (
+			cleanupAttempts = 3
+			cleanupInterval = 10 * time.Second
+		)
+
+		for attempt := 1; ; attempt++ {
+			{{ .CleanupAssign }} {{ .CleanupCall }}
+			if err != nil {
+				t.Errorf("reversing the action (attempt %d): %v", attempt, err)
+				return
+			}
+			if attempt == cleanupAttempts {
+				return
+			}
+
+			time.Sleep(cleanupInterval)
 		}
 	})
 {{- end }}
