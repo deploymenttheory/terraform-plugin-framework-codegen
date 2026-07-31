@@ -34,7 +34,7 @@
     },
     {
       "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/action_acceptance_test.go",
-      "sha256": "4b6eb0ee64a3cd1fae8bfdd94c754e3cbca8e9db1e5171e2ee6bc4e058c74408",
+      "sha256": "39c9e548486c87818928e3ee289f67804f0236c2f98edc60d850b7f45e59208e",
       "blueprint": "blueprints/thousandeyes"
     },
     {

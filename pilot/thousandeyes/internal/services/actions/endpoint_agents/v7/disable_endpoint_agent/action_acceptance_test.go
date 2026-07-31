@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	tfconfig "github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -29,8 +30,15 @@ func TestAccActionDisableEndpointAgent_01_Invoke(t *testing.T) {
 		t.Skipf("set THOUSANDEYES_TEST_ENDPOINT_AGENT_ID to run this test; the action needs an existing subject")
 	}
 
-	// Reverse the action whatever the outcome: a subject left disabled is debris the
-	// next run trips over. Direct SDK call, on the acceptance harness's client.
+	// Reverse the action whatever the outcome: a subject left in the acted-on state is
+	// debris the next run trips over. Direct SDK call, on the acceptance harness's client.
+	//
+	// Re-asserted across spaced attempts, not called once. A live run proved the single
+	// call insufficient: the reversal raced the invoke it was reversing -- the API said
+	// 200 to the re-enable while the just-delivered disable was still settling, and the
+	// subject ended reversed the wrong way. Nothing here can verify the outcome (an
+	// action declares no read), so the last word is given to the reversal by repeating
+	// it after the invoke has had time to settle.
 	t.Cleanup(func() {
 		ctx := context.Background()
 
@@ -40,9 +48,22 @@ func TestAccActionDisableEndpointAgent_01_Invoke(t *testing.T) {
 			return
 		}
 
-		_, _, err = client.API.EndpointAgents.EnableEndpointAgent(ctx, agentID)
-		if err != nil {
-			t.Errorf("reversing the action: %v", err)
+		const (
+			cleanupAttempts = 3
+			cleanupInterval = 10 * time.Second
+		)
+
+		for attempt := 1; ; attempt++ {
+			_, _, err = client.API.EndpointAgents.EnableEndpointAgent(ctx, agentID)
+			if err != nil {
+				t.Errorf("reversing the action (attempt %d): %v", attempt, err)
+				return
+			}
+			if attempt == cleanupAttempts {
+				return
+			}
+
+			time.Sleep(cleanupInterval)
 		}
 	})
 
