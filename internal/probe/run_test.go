@@ -589,6 +589,33 @@ func TestUnit_Probe_VerifyFactsDetectsDrift(t *testing.T) {
 	}
 }
 
+// TestUnit_Probe_VerifyFactsDetectsAPreconditionMismatch.
+//
+// Two facts differing only in precondition are two different claims. Letting them verify as
+// one would make a conditional derivation unreproducible without anything noticing -- the
+// purity test would pass while the committed document said something else.
+func TestUnit_Probe_VerifyFactsDetectsAPreconditionMismatch(t *testing.T) {
+	t.Parallel()
+
+	committed := []Fact{{
+		Resource: "tag", JSONPath: "matchType", Field: FactReturnedOnRead,
+		Value: BoolValue(false), Confidence: Observed,
+	}}
+	derived := []Fact{{
+		Resource: "tag", JSONPath: "matchType", Field: FactReturnedOnRead,
+		Value: BoolValue(false), Confidence: Observed,
+		When: []Condition{{JSONPath: "type", Equals: "static"}},
+	}}
+
+	err := VerifyFacts(derived, committed)
+	if !errors.Is(err, ErrReplayMismatch) {
+		t.Fatalf("error = %v, want ErrReplayMismatch", err)
+	}
+	if !strings.Contains(err.Error(), `type is "static"`) {
+		t.Errorf("the mismatch should name the condition: %v", err)
+	}
+}
+
 func TestUnit_Probe_HostOf(t *testing.T) {
 	t.Parallel()
 

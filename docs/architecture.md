@@ -22,7 +22,7 @@ Every stage is built, and each is a subcommand of the one binary.
 
 | Stage | Package | State |
 |---|---|---|
-| `specs` — fetch and pin an OpenAPI snapshot | `internal/specstore` | **built** |
+| `specs` — fetch and pin an OpenAPI snapshot | `internal/specstore` | **half-built** — read, list and checksum-verify work; the fetch is a stub, so snapshots are pinned by hand |
 | `ingest` — OpenAPI → blueprint | `internal/ingest/openapi` | **built** |
 | `probe` — live API → behaviour facts | `internal/probe` | **built** (record and replay) |
 | `merge` — fold facts into a blueprint | `internal/blueprint/merge` | **built** |

@@ -540,6 +540,44 @@ func TestUnit_Merge_UpdateStyleIsNotOverwritten(t *testing.T) {
 	}
 }
 
+// TestUnit_Merge_AConditionalResourceLevelFactIsNotApplied.
+//
+// Policy is unconditional -- one update style, one delete semantics per resource -- so a fact
+// that holds only under a precondition must not be written into it. The same guard the
+// attribute path has, because the bug class is identical: an observation about one branch
+// silently applied to every branch.
+func TestUnit_Merge_AConditionalResourceLevelFactIsNotApplied(t *testing.T) {
+	t.Parallel()
+
+	conditional := probe.Fact{
+		Resource: "thing", Field: probe.FactUpdateStyle, Confidence: probe.Observed, Probe: "test",
+		Value:     probe.TextValue(string(blueprint.UpdateMergePatch)),
+		Evidence:  []string{"005-put-things-1"},
+		Rationale: "a field omitted from an update survived",
+		When:      []probe.Condition{{JSONPath: "type", Equals: "dynamic"}},
+	}
+
+	bp := testBlueprint()
+
+	result, err := Apply(&bp, []probe.Fact{conditional}, Options{})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	if bp.Resources[0].Policy.UpdateStyle != "" {
+		t.Errorf("updateStyle = %q, a conditional fact must not set policy",
+			bp.Resources[0].Policy.UpdateStyle)
+	}
+	if result.Conditional != 1 {
+		t.Errorf("Conditional = %d, want the held-back fact counted", result.Conditional)
+	}
+	if len(result.Recommendations) != 1 ||
+		!strings.Contains(result.Recommendations[0], `type is "dynamic"`) {
+		t.Errorf("the held-back fact should surface as a recommendation naming its "+
+			"condition: %v", result.Recommendations)
+	}
+}
+
 // TestUnit_Merge_NestedFieldsAreReached: a fact about a field inside an object has to land on
 // the right attribute, addressed by its dotted JSON path.
 func TestUnit_Merge_NestedFieldsAreReached(t *testing.T) {

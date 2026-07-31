@@ -14,15 +14,15 @@ global flag namespace for two subcommands to collide in, and `tfpluginframeworkg
 | Command | Purpose | State |
 |---|---|---|
 | `specs` | fetch and snapshot an upstream OpenAPI document | planned |
-| `ingest` | infer a provider blueprint from an OpenAPI snapshot | planned |
-| `blueprint` | validate, diff or list blueprints | planned |
-| `probe` | exercise a resource's lifecycle; record, replay, verify or sweep | **built** *(read-only tier; mutating probes land in 4.7)* |
-| `merge` | fold probe facts into a blueprint | planned |
+| `ingest` | infer a provider blueprint from an OpenAPI snapshot | **built** *(resources only; data sources, actions and the provider block are hand-authored)* |
+| `blueprint` | validate, diff or list blueprints | planned *(validation itself is built and runs on every load)* |
+| `probe` | exercise a resource's lifecycle; record, replay, verify or sweep | **built** *(both tiers; a mutating run needs `--allow-mutations` and a sandbox profile)* |
+| `merge` | fold probe facts into a blueprint | **built** |
 | `emit` | render a provider from blueprints | **built** |
 | `verify` | fail if the committed provider has drifted | **built** |
 | `bindings` | check blueprint SDK bindings against the pinned SDK | **built** |
-| `scaffold` | write a blank resource from the archetype | planned |
-| `interop` | export or import codegen-spec v0.1 JSON | **built** |
+| `scaffold` | write a blank resource from the archetype | planned *(the archetype exists; `emit` scaffolds it via `hooks`)* |
+| `interop` | export or import codegen-spec v0.1 JSON | **built** *(import is resources-only and writes drafts)* |
 | `version` | print the version | **built** |
 
 A planned command is registered and documented but not implemented: running one

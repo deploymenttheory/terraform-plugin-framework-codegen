@@ -73,8 +73,9 @@ The top level is the **Terraform block kind**, not the Terraform type, and every
 cascades down from it — the same organising principle the framework itself uses. Each
 kind is a `Name`, a `Schema`, and then the operations that kind supports.
 
-`resource` and `datasource` are built. `list`, `ephemeral` and `action` have their
-kinds declared in `internal/blueprint/blockkind.go` and arrive in later phases.
+`resource`, `datasource`, `action` and `list` (a facet of a resource) are built and in
+the pilot. `ephemeral` has its kind declared in `internal/blueprint/blockkind.go` — so
+attribute validation already knows its rules — but cannot yet be declared or emitted.
 
 **An attribute's legal fields depend on the kind rendering it.** Every kind has its own
 schema package — `resource/schema`, `datasource/schema` and so on — and those packages
@@ -524,13 +525,14 @@ mentioned. The ThousandEyes tag endpoint is `PUT`.
 ## Behaviour
 
 What the API actually does, as opposed to what its document claims: `writable`,
-`immutable`, `serverDefault`, `returnedOnRead`, `volatile`, `requiredByApi`.
+`immutable`, `serverDefault`, `returnedOnRead`, `volatile`, `requiredByApi`, and
+the observed value sets (`acceptedValues`, `rejectedValues`, `valuesClosed`).
 
-Populated by the prober in Phase 4. Every field is a pointer, for the reason in
-*Absence is representable* above.
-
-The fields exist now and are unused, so that a blueprint written today does not
-need reshaping when probing lands.
+Populated by `merge` from probe facts — the pilot's tag blueprint carries values
+recorded from a live run — and consumed by `render`: an observed normalisation or
+a `returnedOnRead: false` changes which assertions the generated acceptance test
+makes. Every field is a pointer, for the reason in *Absence is representable*
+above.
 
 ## Validation
 

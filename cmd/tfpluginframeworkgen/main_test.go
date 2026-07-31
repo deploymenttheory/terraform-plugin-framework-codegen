@@ -74,19 +74,16 @@ var builtCommands = map[string]bool{
 	"emit":     true,
 	"verify":   true,
 	"bindings": true,
-	// ingest is partially built: -list discovers candidates from a pinned
-	// snapshot, while blueprint inference is not written yet. It counts as built
-	// because invoking it does real work and fails for real reasons, rather than
-	// reporting that it does not exist.
+	// ingest infers resource blueprints from a pinned snapshot. Data sources,
+	// actions and the provider block are still hand-authored, and every skip is
+	// printed as a note rather than being silent.
 	"ingest": true,
-	// interop has its export verb; import is not written yet. Same reasoning as
-	// ingest: `interop` with no verb reports that it needs one, which is a real
-	// answer rather than a claim that the subcommand does not exist.
+	// interop exports, and imports resources-only drafts. `interop` with no verb
+	// reports that it needs one, which is a real answer rather than a claim that
+	// the subcommand does not exist.
 	"interop": true,
-	// probe has its catalogue and -list; the transports and the gate are not written
-	// yet. It counts as built because it loads a real blueprint, flattens it and
-	// reports real costs -- and because an unbuilt *mode* returns errNotImplemented
-	// rather than exiting zero, which is asserted separately.
+	// probe records, replays, verifies and sweeps; the mutating tier ran live
+	// against a sandbox and its evidence is committed under probe-evidence/.
 	"probe": true,
 	// merge folds facts into a blueprint and reports what it refused.
 	"merge": true,

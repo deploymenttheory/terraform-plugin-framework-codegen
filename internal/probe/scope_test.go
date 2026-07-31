@@ -230,6 +230,47 @@ func TestUnit_Probe_ScopeFixtureBodiesAreCopied(t *testing.T) {
 	}
 }
 
+// TestUnit_Probe_ScopeFixtureBodiesAreCopiedDeeply.
+//
+// A fixture body may nest -- a dynamic tag carries a `filters` list of maps -- and a top-level
+// copy shares every nested map with the plan. A probe reaching one level down would corrupt
+// what every later probe sends, exactly the failure the copy exists to prevent, one level down.
+func TestUnit_Probe_ScopeFixtureBodiesAreCopiedDeeply(t *testing.T) {
+	t.Parallel()
+
+	// A subject whose schema has a list-of-objects field, the shape the dynamic-branch
+	// fixture actually has: filters is a list of maps.
+	subj := scopeSubject()
+	subj.Fields = append(subj.Fields, Field{
+		JSONPath: "filters", Attribute: "filters",
+		Kind: blueprint.KindListNested, ComputedOptionalRequired: blueprint.Optional,
+		Writable: true,
+	})
+
+	plan := scopePlan()
+	plan.Fixtures[0].Body["filters"] = []any{map[string]any{"inner": "declared"}}
+
+	sc, err := NewScope(subj, plan)
+	if err != nil {
+		t.Fatalf("NewScope: %v", err)
+	}
+
+	got, ok := sc.Fixture(0)
+	if !ok {
+		t.Fatal("fixture 0 should exist")
+	}
+
+	got.Body["filters"].([]any)[0].(map[string]any)["inner"] = "mutated"
+
+	again, _ := sc.Fixture(0)
+	if again.Body["filters"].([]any)[0].(map[string]any)["inner"] != "declared" {
+		t.Error("mutating a map inside a slice changed the plan's own copy")
+	}
+	if plan.Fixtures[0].Body["filters"].([]any)[0].(map[string]any)["inner"] != "declared" {
+		t.Error("the caller's plan was mutated through a nested map")
+	}
+}
+
 // TestUnit_Probe_TheNameFieldIsNotOmittable.
 //
 // Omitting the name field is not an experiment this tool can run: an object created without the

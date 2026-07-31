@@ -190,6 +190,13 @@ func printMergeResult(result merge.Result) {
 		// enough to act on".
 		fmt.Fprintf(os.Stderr, ", %d fact(s) too weak to act on", result.Ignored)
 	}
+	if result.Conditional > 0 {
+		// Held-back evidence somebody paid a live run for must not be invisible: a
+		// conditional fact goes into the description rather than the schema, and this is
+		// the only place the operator learns that happened.
+		fmt.Fprintf(os.Stderr, ", %d conditional fact(s) recorded but not applied",
+			result.Conditional)
+	}
 	fmt.Fprintln(os.Stderr)
 
 	if len(result.Changes) > 0 {
@@ -253,6 +260,12 @@ func appendMergeSummary(path string, result merge.Result) error {
 	b = append(b, "### Probe facts merged\n\n"...)
 	b = append(b, fmt.Sprintf("%d change(s), %d conflict(s).\n\n",
 		len(result.Changes), len(result.Conflicts))...)
+
+	if result.Conditional > 0 {
+		b = append(b, fmt.Sprintf(
+			"%d conditional fact(s) recorded in descriptions, not applied to the schema.\n\n",
+			result.Conditional)...)
+	}
 
 	if len(result.Conflicts) > 0 {
 		b = append(b, "<details><summary>Conflicts (not applied)</summary>\n\n```\n"...)

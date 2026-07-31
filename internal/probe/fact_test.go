@@ -171,6 +171,77 @@ func TestUnit_Probe_SortFactsIsStable(t *testing.T) {
 	}
 }
 
+// TestUnit_Probe_SortFactsOrdersBranchFactsByPrecondition.
+//
+// The moment one path carries a fact per branch, resource+path+field no longer identifies a
+// fact. Without the precondition tiebreak two branch facts have no defined relative order,
+// and the committed document would churn between identical runs.
+func TestUnit_Probe_SortFactsOrdersBranchFactsByPrecondition(t *testing.T) {
+	t.Parallel()
+
+	unconditional := validFact()
+	unconditional.Field = FactReturnedOnRead
+
+	static := unconditional
+	static.When = []Condition{{JSONPath: "type", Equals: "static"}}
+
+	dynamic := unconditional
+	dynamic.When = []Condition{{JSONPath: "type", Equals: "dynamic"}}
+
+	oneOrder := []Fact{static, dynamic, unconditional}
+	otherOrder := []Fact{dynamic, unconditional, static}
+
+	SortFacts(oneOrder)
+	SortFacts(otherOrder)
+
+	for i := range oneOrder {
+		if oneOrder[i].whenKey() != otherOrder[i].whenKey() {
+			t.Fatalf("arrival order leaked into the sorted order: %v vs %v",
+				oneOrder[i], otherOrder[i])
+		}
+	}
+
+	if oneOrder[0].Conditional() {
+		t.Errorf("the unconditional fact sorts first, got %v", oneOrder[0])
+	}
+
+	// The key must not depend on the order a probe appended conditions in.
+	a := validFact()
+	a.When = []Condition{{JSONPath: "type", Equals: "dynamic"}, {JSONPath: "scope", Equals: "custom"}}
+	b := validFact()
+	b.When = []Condition{{JSONPath: "scope", Equals: "custom"}, {JSONPath: "type", Equals: "dynamic"}}
+
+	if a.whenKey() != b.whenKey() {
+		t.Errorf("condition order changed the key: %q vs %q", a.whenKey(), b.whenKey())
+	}
+}
+
+// TestUnit_Probe_ValidateShapeChecksPreconditionsAtAnyConfidence.
+//
+// A Suspected fact is exempt from the strength checks -- it is a prompt for a human, and may
+// lack evidence -- but its shape is not negotiable: a malformed precondition on one would
+// load unchecked and sit in the store as a claim nothing downstream can interpret.
+func TestUnit_Probe_ValidateShapeChecksPreconditionsAtAnyConfidence(t *testing.T) {
+	t.Parallel()
+
+	f := validFact()
+	f.Confidence = Suspected
+	f.Evidence = nil
+	f.Rationale = ""
+
+	if err := f.ValidateShape(); err != nil {
+		t.Fatalf("a suspected fact may lack evidence and rationale: %v", err)
+	}
+	if err := f.Validate(); err == nil {
+		t.Fatal("the full Validate must still demand evidence")
+	}
+
+	f.When = []Condition{{JSONPath: "type", Equals: ""}}
+	if err := f.ValidateShape(); err == nil || !strings.Contains(err.Error(), "no value") {
+		t.Errorf("a condition with no value must be refused by shape validation: %v", err)
+	}
+}
+
 func TestUnit_Probe_FactString(t *testing.T) {
 	t.Parallel()
 

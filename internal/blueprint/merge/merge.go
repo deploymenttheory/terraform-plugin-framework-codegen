@@ -529,6 +529,21 @@ func applyResourceLevel(res *blueprint.Resource, facts []probe.Fact, result *Res
 			continue
 		}
 
+		// The same guard applyAttributeFacts has, for the same reason. Policy is
+		// unconditional -- one update style, one delete semantics per resource -- so a fact
+		// that holds only under a precondition must not be written into it. No probe emits a
+		// conditional resource-level fact today; when one does, this keeps it out of the
+		// blueprint instead of silently applying it to every branch. A resource-level fact
+		// has no description to carry the condition, so a recommendation is its visible home.
+		if f.Conditional() {
+			result.Conditional++
+			result.Recommendations = append(result.Recommendations, fmt.Sprintf(
+				"%s: %s = %s holds only %s; policy has no way to say so, so it was not applied",
+				res.Key, f.Field, f.Value, f.Because()))
+
+			continue
+		}
+
 		switch f.Field {
 		case probe.FactNotFoundIsSuccess:
 			// Error handling rather than schema, and a wrong answer is recoverable, so this

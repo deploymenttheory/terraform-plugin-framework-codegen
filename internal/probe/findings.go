@@ -51,6 +51,13 @@ func (f *Findings) Settled(jsonPath string, claim FactField, floor Confidence) (
 		if fact.JSONPath != jsonPath || fact.Field != claim {
 			continue
 		}
+		// A conditional fact holds only while its gate does, and a caller of Settled is
+		// asking an unconditional question -- "is this field writable" so I may create
+		// objects on the answer. Letting `writable=true when type is dynamic` answer it
+		// would authorise a protocol against every other branch on evidence about one.
+		if fact.Conditional() {
+			continue
+		}
 		if !fact.Confidence.AtLeast(floor) {
 			continue
 		}
@@ -86,6 +93,10 @@ func (f *Findings) True(jsonPath string, claim FactField, floor Confidence) bool
 //
 // Retracting rather than overwriting keeps the runner the only writer, and keeps the retraction
 // visible: the probe that retracts is expected to say so in a note.
+//
+// Retraction removes every variant of the claim, conditional ones included: a disproof of the
+// path's claim disproves each branch of it, and keeping a branch alive after its parent claim
+// fell would leave merge a fact whose foundation is gone.
 func (f *Findings) Retract(jsonPath string, claim FactField) int {
 	kept := make([]Fact, 0, len(f.facts))
 	removed := 0
