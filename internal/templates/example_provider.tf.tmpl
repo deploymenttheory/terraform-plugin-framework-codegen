@@ -1,0 +1,11 @@
+terraform {
+  required_providers {
+    {{ .Name }} = {
+      source = "{{ .Source }}"
+    }
+  }
+}
+
+provider "{{ .Name }}" {
+  # Credentials are read from the environment when not set here.
+}

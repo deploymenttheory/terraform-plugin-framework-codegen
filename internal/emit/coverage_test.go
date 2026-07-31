@@ -46,8 +46,9 @@ func TestUnit_Emit_WriteReportsUnreadableTargets(t *testing.T) {
 	root := t.TempDir()
 
 	// A directory where a file should be: reading it fails with something other
-	// than "not found".
-	target := filepath.Join(root, plan.Files[0].Path)
+	// than "not found". The first *generated* file -- a scaffold's existence check
+	// takes a different path.
+	target := filepath.Join(root, firstGenerated(t, plan).Path)
 	if err := os.MkdirAll(target, 0o750); err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
