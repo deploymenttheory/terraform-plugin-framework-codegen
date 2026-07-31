@@ -71,8 +71,11 @@ tfpluginframeworkgen ingest -only Tags -out blueprints/thousandeyes
 
 # 3. probe a sandbox, recording evidence. Every guard is required.
 #    The token comes from TFPFGEN_PROBE_TOKEN and never from a flag or the profile.
+#    Plans resolve per resource by convention: blueprints/PROVIDER/KEY.probe.plan.json.
+#    Scope with -resource, or omit it to record every planned resource in one wave --
+#    a resource with no plan file is skipped with a stated note.
 tfpluginframeworkgen probe -blueprint blueprints/thousandeyes -resource tag \
-  -mode record --allow-mutations -plan blueprints/thousandeyes/probe.plan.json \
+  -mode record --allow-mutations \
   -profile .tfpluginframeworkgen/sandbox/thousandeyes.json
 
 # 3b. re-derive the same facts from the committed transcript, with no network at all

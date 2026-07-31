@@ -668,6 +668,70 @@ func TestUnit_Blueprint_Validate_AcceptsTheNewKinds(t *testing.T) {
 	}
 }
 
+// TestUnit_Blueprint_Validate_SweepNaming holds an override to the same rules the
+// prober's own inference follows: a field that could not carry the prefix live must be
+// refused here, where the message names the blueprint node to fix.
+func TestUnit_Blueprint_Validate_SweepNaming(t *testing.T) {
+	t.Parallel()
+
+	valid := validBlueprint()
+	valid.Resources[0].Sweep = &SweepNaming{NameField: "key", ReadNameField: "keyName"}
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("a well-formed sweep override must validate: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		sweep    *SweepNaming
+		wantPath string
+	}{
+		{
+			name:     "empty name field",
+			sweep:    &SweepNaming{},
+			wantPath: "sweep.nameField",
+		},
+		{
+			name:     "nested name field",
+			sweep:    &SweepNaming{NameField: "meta.name"},
+			wantPath: "nested",
+		},
+		{
+			name:     "unknown wire path",
+			sweep:    &SweepNaming{NameField: "nope"},
+			wantPath: "no attribute has the wire path",
+		},
+		{
+			// id is Computed with SkipExpand in the fixture: a create could
+			// never carry the prefix there.
+			name:     "unwritable name field",
+			sweep:    &SweepNaming{NameField: "id"},
+			wantPath: "not writable",
+		},
+		{
+			name:     "nested read field",
+			sweep:    &SweepNaming{NameField: "key", ReadNameField: "meta.name"},
+			wantPath: "sweep.readNameField",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := validBlueprint()
+			b.Resources[0].Sweep = tc.sweep
+
+			err := b.Validate()
+			if err == nil {
+				t.Fatal("expected an error")
+			}
+			if !strings.Contains(err.Error(), tc.wantPath) {
+				t.Errorf("error omits %q:\n%v", tc.wantPath, err)
+			}
+		})
+	}
+}
+
 // TestUnit_Blueprint_Validate_SplitUpdateBody: the pair travels together, and a split
 // with no update operation constrains nothing -- refused rather than left looking
 // meaningful in a committed file.
