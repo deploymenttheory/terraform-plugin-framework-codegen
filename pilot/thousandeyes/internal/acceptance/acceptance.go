@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-testing/echoprovider"
 
 	tfprovider "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/provider"
 )
@@ -27,10 +28,13 @@ const TestVersion = "acc"
 
 // ProtoV6ProviderFactories is what a resource.TestCase needs to serve the provider in process.
 //
-// One entry, named as the provider is named in HCL, so a generated `.tf` fixture needs no
-// provider block of its own.
+// The provider under test is named as it is in HCL, so a generated `.tf` fixture needs no
+// provider block of its own. The echo provider rides beside it for ephemeral tests only:
+// it is HashiCorp's fixture for observing an ephemeral value, which by design never
+// reaches state where an ordinary check could read it.
 var ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
 	"thousandeyes": providerserver.NewProtocol6WithError(tfprovider.New(TestVersion)()),
+	"echo":         echoprovider.NewProviderServer(),
 }
 
 // PreCheck skips or fails a test that cannot possibly pass.

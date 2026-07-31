@@ -1,0 +1,48 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.Open }}
+)
+
+{{ with .Open }}
+// Open fetches the {{ $.EphemeralName }} value from the API.
+//
+// The result is pre-populated from configuration, so the flatten below only fills the
+// attributes the response carries; nothing here reaches state, which is the kind's whole
+// contract.
+func (e *{{ $.GoTypeName }}) Open(ctx context.Context, req ephemeral.OpenRequest, resp *ephemeral.OpenResponse) {
+	var data {{ $.ModelTypeName }}
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	tflog.Debug(ctx, "opening ephemeral resource", map[string]any{"ephemeral": EphemeralName})
+
+	ctx, cancel := context.WithTimeout(ctx, OpenTimeout*time.Second)
+	defer cancel()
+
+	{{ .Assign }} {{ .Call }}
+	if err != nil {
+		// A missing object is an error rather than an empty result: the practitioner
+		// named something that is not there, and whatever was going to consume the value
+		// would fail further on with no indication of why.
+		errors.Handle(&resp.Diagnostics, EphemeralName, {{ .ErrorOp }}, err)
+		return
+	}
+
+{{- if $.State.NeedsDiagnostics }}
+	resp.Diagnostics.Append(mapRemoteToResult(ctx, &data, {{ .ResultVar }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- else }}
+	mapRemoteToResult(ctx, &data, {{ .ResultVar }})
+{{- end }}
+
+	resp.Diagnostics.Append(resp.Result.Set(ctx, &data)...)
+}
+{{ end }}

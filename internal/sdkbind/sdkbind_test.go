@@ -12,6 +12,17 @@ import (
 // pilotModule is the module whose go.mod pins the SDK these tests check against.
 const pilotModule = "../../pilot/thousandeyes"
 
+// res finds a resource by key. The committed blueprint's resources are sorted by key,
+// so positional access broke the day a second resource sorted ahead of the first.
+func res(b *blueprint.Blueprint, key string) *blueprint.Resource {
+	for i := range b.Resources {
+		if b.Resources[i].Key == key {
+			return &b.Resources[i]
+		}
+	}
+	panic("no resource " + key + " in the committed blueprint")
+}
+
 func loadPilot(t *testing.T) (blueprint.Blueprint, *Loader) {
 	t.Helper()
 
@@ -53,7 +64,7 @@ func TestUnit_SDKBind_CatchesTheAccessorMistakeThatHappened(t *testing.T) {
 	t.Parallel()
 
 	bp, l := loadPilot(t)
-	bp.Resources[0].Binding.Service.Accessor = "r.client.Tags"
+	res(&bp, "tag").Binding.Service.Accessor = "r.client.Tags"
 
 	report := Verify(l, bp)
 
@@ -90,7 +101,7 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 		{
 			name: "method that does not exist",
 			mutate: func(b *blueprint.Blueprint) {
-				b.Resources[0].Binding.Read.Method = "FetchTag"
+				res(b, "tag").Binding.Read.Method = "FetchTag"
 			},
 			wantPath:   "binding.read.method",
 			wantDetail: "has no method FetchTag",
@@ -100,8 +111,8 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 			// wrong arity generates an assignment that does not compile.
 			name: "return arity that does not match the method",
 			mutate: func(b *blueprint.Blueprint) {
-				b.Resources[0].Binding.Delete.Return = blueprint.ReturnResultTransportError
-				b.Resources[0].Binding.Delete.ResultType = "tags.Tag"
+				res(b, "tag").Binding.Delete.Return = blueprint.ReturnResultTransportError
+				res(b, "tag").Binding.Delete.ResultType = "tags.Tag"
 			},
 			wantPath:   "binding.delete.return",
 			wantDetail: "returns 2",
@@ -109,7 +120,7 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 		{
 			name: "result type that does not match the method",
 			mutate: func(b *blueprint.Blueprint) {
-				b.Resources[0].Binding.Read.ResultType = "tags.TagInfo"
+				res(b, "tag").Binding.Read.ResultType = "tags.TagInfo"
 			},
 			wantPath:   "binding.read.resultType",
 			wantDetail: "returns *tags.Tag",
@@ -117,7 +128,7 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 		{
 			name: "service type that does not exist",
 			mutate: func(b *blueprint.Blueprint) {
-				b.Resources[0].Binding.Service.TypeName = "TagsService"
+				res(b, "tag").Binding.Service.TypeName = "TagsService"
 			},
 			wantPath:   "binding.service.typeName",
 			wantDetail: "no exported type TagsService",
@@ -128,7 +139,7 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 			// methods rather than pass because the name resolved.
 			name: "service type that exists but is the wrong type",
 			mutate: func(b *blueprint.Blueprint) {
-				b.Resources[0].Binding.Service.TypeName = "Tag"
+				res(b, "tag").Binding.Service.TypeName = "Tag"
 			},
 			wantPath:   "binding.read.method",
 			wantDetail: "tags.Tag has no method GetTag",
@@ -136,7 +147,7 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 		{
 			name: "request body type that does not exist",
 			mutate: func(b *blueprint.Blueprint) {
-				b.Resources[0].Binding.Body.RequestType = "tags.TagRequest"
+				res(b, "tag").Binding.Body.RequestType = "tags.TagRequest"
 			},
 			wantPath:   "binding.body.requestType",
 			wantDetail: "no exported type TagRequest",
@@ -150,7 +161,7 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 				// Plausible and absent, which is the shape of the mistake. "Colour" would not
 				// do: the SDK type really has one, so the binding would be valid and the case
 				// would silently stop testing anything.
-				b.Resources[0].Schema.Attributes[3].Wire.SDKField = "Shade"
+				res(b, "tag").Schema.Attributes[3].Wire.SDKField = "Shade"
 			},
 			wantPath:   "wire.sdkField",
 			wantDetail: `has no field "Shade"`,
@@ -158,7 +169,7 @@ func TestUnit_SDKBind_CatchesBindingMistakes(t *testing.T) {
 		{
 			name: "accessor that is not rooted in the receiver",
 			mutate: func(b *blueprint.Blueprint) {
-				b.Resources[0].Binding.Service.Accessor = "someGlobal.Tags"
+				res(b, "tag").Binding.Service.Accessor = "someGlobal.Tags"
 			},
 			wantPath:   "binding.service.accessor",
 			wantDetail: "cannot be verified",
@@ -203,8 +214,8 @@ func TestUnit_SDKBind_ReportsEveryProblem(t *testing.T) {
 	t.Parallel()
 
 	bp, l := loadPilot(t)
-	bp.Resources[0].Binding.Read.Method = "FetchTag"
-	bp.Resources[0].Binding.Delete.Method = "RemoveTag"
+	res(&bp, "tag").Binding.Read.Method = "FetchTag"
+	res(&bp, "tag").Binding.Delete.Method = "RemoveTag"
 
 	report := Verify(l, bp)
 	if len(report.Problems) < 2 {
@@ -219,8 +230,8 @@ func TestUnit_SDKBind_DoesNotCascadeOnABadBodyType(t *testing.T) {
 	t.Parallel()
 
 	bp, l := loadPilot(t)
-	attributeCount := len(bp.Resources[0].Schema.Attributes)
-	bp.Resources[0].Binding.Body.ResponseType = "tags.TagResponse"
+	attributeCount := len(res(&bp, "tag").Schema.Attributes)
+	res(&bp, "tag").Binding.Body.ResponseType = "tags.TagResponse"
 
 	report := Verify(l, bp)
 
@@ -239,8 +250,8 @@ func TestUnit_SDKBind_DroppedResourcesAreSkipped(t *testing.T) {
 	t.Parallel()
 
 	bp, l := loadPilot(t)
-	bp.Resources[0].Binding.Service.Accessor = "r.client.Nonexistent"
-	bp.Resources[0].Drop = true
+	res(&bp, "tag").Binding.Service.Accessor = "r.client.Nonexistent"
+	res(&bp, "tag").Drop = true
 
 	if err := Verify(l, bp).Err(); err != nil {
 		t.Errorf("a dropped resource must not be verified: %v", err)

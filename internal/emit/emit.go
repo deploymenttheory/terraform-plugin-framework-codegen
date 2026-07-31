@@ -101,14 +101,6 @@ type Options struct {
 
 // Build renders every file the blueprint produces, without writing anything.
 func (g *Generator) Build(bp blueprint.Blueprint, opts Options) (Plan, error) {
-	// Refused rather than skipped, per the failure-behaviour rule: an ephemeral the
-	// blueprint declares and the emitter silently omitted would leave a provider that
-	// looks complete and cannot open the value.
-	if len(bp.Ephemerals) > 0 {
-		return Plan{}, fmt.Errorf("the blueprint declares %d ephemeral(s), which this emitter "+
-			"does not yet render; drop them or wait for ephemeral support", len(bp.Ephemerals))
-	}
-
 	digest := blueprintDigest(bp)
 
 	ropts := render.Options{
@@ -150,6 +142,18 @@ func (g *Generator) Build(bp blueprint.Blueprint, opts Options) (Plan, error) {
 		files, err := g.actionFiles(bp, a, ropts)
 		if err != nil {
 			return Plan{}, fmt.Errorf("action %q: %w", a.Key, err)
+		}
+		plan.Files = append(plan.Files, files...)
+	}
+
+	for _, e := range bp.Ephemerals {
+		if e.Drop || (opts.Only != "" && e.Key != opts.Only) {
+			continue
+		}
+
+		files, err := g.ephemeralFiles(bp, e, ropts)
+		if err != nil {
+			return Plan{}, fmt.Errorf("ephemeral %q: %w", e.Key, err)
 		}
 		plan.Files = append(plan.Files, files...)
 	}
@@ -534,6 +538,87 @@ func (g *Generator) actionFiles(
 	return out, nil
 }
 
+// ephemeralFiles renders the four files that make up one ephemeral resource.
+//
+// Four, like a data source's: one operation, no request body, so there is no
+// construct.go. The result mapper is named ephemeral_state at the template level and
+// state.go on disk for symmetry with the other kinds' packages.
+func (g *Generator) ephemeralFiles(
+	bp blueprint.Blueprint,
+	e blueprint.Ephemeral,
+	ropts render.Options,
+) ([]File, error) {
+	view, err := render.Ephemeral(bp, e, ropts)
+	if err != nil {
+		return nil, fmt.Errorf("building the render view: %w", err)
+	}
+
+	dir := render.EphemeralDir(bp, e)
+
+	wanted := []struct {
+		name, tmpl string
+		skip       bool
+	}{
+		{"ephemeral.go", "ephemeral.go.tmpl", false},
+		{"model.go", "ephemeral_model.go.tmpl", false},
+		{"open.go", "ephemeral_open.go.tmpl", false},
+		{"state.go", "ephemeral_state.go.tmpl", len(view.State.Assignments) == 0},
+	}
+
+	out := make([]File, 0, len(wanted))
+	for _, w := range wanted {
+		if w.skip {
+			continue
+		}
+		content, err := g.renderFile(w.tmpl, view)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", w.name, err)
+		}
+		out = append(out, File{Path: filepath.Join(dir, w.name), Content: content})
+	}
+
+	// The acceptance test, when the blueprint declares a seed for it; a stated refusal
+	// otherwise, and the ephemeral is still emitted.
+	acc, fixture, accErr := render.EphemeralAccTest(bp, e, ropts)
+	switch {
+	case accErr == nil:
+		body, rErr := g.renderFile("ephemeral_acceptance_test.go.tmpl", acc)
+		if rErr != nil {
+			return nil, fmt.Errorf("ephemeral_acceptance_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "ephemeral_acceptance_test.go"),
+			Content: body,
+		})
+
+		fx, rErr := g.renderFile("fixture_ephemeral.tf.tmpl", fixture)
+		if rErr != nil {
+			return nil, fmt.Errorf("ephemeral.tf: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "testdata", "ephemeral.tf"),
+			Content: fx,
+		})
+
+		helper, hErr := render.EphemeralSeedHelper(bp, e, ropts)
+		if hErr != nil {
+			return nil, fmt.Errorf("seed helper: %w", hErr)
+		}
+		hBody, rErr := g.renderFile("test_helper_test.go.tmpl", helper)
+		if rErr != nil {
+			return nil, fmt.Errorf("seed_helper_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "seed_helper_test.go"),
+			Content: hBody,
+		})
+	case !unsupported(accErr):
+		return nil, fmt.Errorf("acceptance test: %w", accErr)
+	}
+
+	return out, nil
+}
+
 func (g *Generator) registrationFiles(
 	bp blueprint.Blueprint,
 	ropts render.Options,
@@ -548,6 +633,7 @@ func (g *Generator) registrationFiles(
 		{"datasources.go", "provider_datasources.go.tmpl", render.KindDataSources},
 		{"list_resources.go", "provider_list_resources.go.tmpl", render.KindListResources},
 		{"actions.go", "provider_actions.go.tmpl", render.KindActions},
+		{"ephemerals.go", "provider_ephemerals.go.tmpl", render.KindEphemerals},
 	}
 
 	out := make([]File, 0, len(specs))

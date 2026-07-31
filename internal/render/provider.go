@@ -69,6 +69,17 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 				ctor:       "New" + a.GoTypeName,
 			})
 		}
+	case KindEphemerals:
+		for _, e := range bp.Ephemerals {
+			if e.Drop {
+				continue
+			}
+			entries = append(entries, entry{
+				alias:      e.GoPackageAlias,
+				importPath: ephemeralPackagePath(bp, e),
+				ctor:       "New" + e.GoTypeName,
+			})
+		}
 	case KindListResources:
 		// From the resources, not from a list of their own: a list resource is a facet, and
 		// it is registered because the resource it lists declares one. The import is the
@@ -107,6 +118,7 @@ const (
 	KindDataSources   Kind = "dataSources"
 	KindListResources Kind = "listResources"
 	KindActions       Kind = "actions"
+	KindEphemerals    Kind = "ephemerals"
 )
 
 // providerPackage is the Go package name of the provider directory.
@@ -140,6 +152,13 @@ func ActionDir(bp blueprint.Blueprint, a blueprint.Action) string {
 			nonEmpty(a.ServiceGroup, a.APIVersionDir, a.GoPackage)...)...)
 }
 
+// EphemeralDir returns the repo-relative directory an ephemeral is emitted into.
+func EphemeralDir(bp blueprint.Blueprint, e blueprint.Ephemeral) string {
+	return path.Join(
+		append([]string{root(bp.Provider.Conventions.EphemeralRoot, "internal/services/ephemerals")},
+			nonEmpty(e.ServiceGroup, e.APIVersionDir, e.GoPackage)...)...)
+}
+
 // ProviderDir returns the repo-relative provider package directory.
 func ProviderDir(bp blueprint.Blueprint) string {
 	return root(bp.Provider.Conventions.ProviderPkgDir, "internal/provider")
@@ -155,6 +174,10 @@ func dataSourcePackagePath(bp blueprint.Blueprint, d blueprint.DataSource) strin
 
 func actionPackagePath(bp blueprint.Blueprint, a blueprint.Action) string {
 	return path.Join(bp.Provider.GoModule, ActionDir(bp, a))
+}
+
+func ephemeralPackagePath(bp blueprint.Blueprint, e blueprint.Ephemeral) string {
+	return path.Join(bp.Provider.GoModule, EphemeralDir(bp, e))
 }
 
 func root(configured, def string) string {

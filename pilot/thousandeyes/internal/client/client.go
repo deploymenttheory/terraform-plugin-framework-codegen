@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
 	te "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes"
@@ -104,6 +105,25 @@ func ForDataSource(_ context.Context, req datasource.ConfigureRequest, resp *dat
 			"Unexpected provider data",
 			fmt.Sprintf("%s expected a *thousandeyes.Client but got %T. This is a bug in the provider.",
 				resourceType, req.ProviderData),
+		)
+		return nil
+	}
+
+	return client
+}
+
+// ForEphemeral is the ephemeral resource counterpart of ForResource.
+func ForEphemeral(_ context.Context, req ephemeral.ConfigureRequest, resp *ephemeral.ConfigureResponse, ephemeralType string) *te.Client {
+	if req.ProviderData == nil {
+		return nil
+	}
+
+	client, ok := req.ProviderData.(*te.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected provider data",
+			fmt.Sprintf("%s expected a *thousandeyes.Client but got %T. This is a bug in the provider.",
+				ephemeralType, req.ProviderData),
 		)
 		return nil
 	}

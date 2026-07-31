@@ -1,0 +1,45 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports.State }}
+)
+
+// mapRemoteToResult maps the API's response onto the ephemeral result.
+//
+// Named for where the values go: an ephemeral has no state, and calling this a state
+// mapper would claim a persistence the kind exists to avoid.
+{{- if .State.NeedsDiagnostics }}
+func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) diag.Diagnostics {
+	var (
+		diags diag.Diagnostics
+		d     diag.Diagnostics
+	)
+
+	if remote == nil {
+		tflog.Debug(ctx, "remote object is nil, leaving the result untouched", map[string]any{
+			"ephemeral": EphemeralName,
+		})
+		return diags
+	}
+{{- else }}
+func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) {
+	if remote == nil {
+		tflog.Debug(ctx, "remote object is nil, leaving the result untouched", map[string]any{
+			"ephemeral": EphemeralName,
+		})
+		return
+	}
+{{- end }}
+{{ range .State.Assignments }}
+	{{ . }}
+{{- end }}
+
+	tflog.Debug(ctx, "mapped remote result", map[string]any{"ephemeral": EphemeralName})
+{{- if .State.NeedsDiagnostics }}
+
+	return diags
+{{- end }}
+}
+{{ template "nestedFlattenHelpers" .State }}
