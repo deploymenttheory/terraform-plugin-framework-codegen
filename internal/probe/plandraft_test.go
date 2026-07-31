@@ -16,26 +16,40 @@ func TestUnit_Probe_DraftPlanScaffoldsAWorksheet(t *testing.T) {
 		Resource:  "test_http",
 		NameField: "testName",
 		Fields: []Field{
-			{JSONPath: "testName", Kind: blueprint.KindString, Writable: true,
-				ComputedOptionalRequired: blueprint.Required},
-			{JSONPath: "url", Kind: blueprint.KindString, Writable: true,
-				ComputedOptionalRequired: blueprint.Required},
-			{JSONPath: "interval", Kind: blueprint.KindInt64, Writable: true,
-				ComputedOptionalRequired: blueprint.Required},
+			{
+				JSONPath: "testName", Kind: blueprint.KindString, Writable: true,
+				ComputedOptionalRequired: blueprint.Required,
+			},
+			{
+				JSONPath: "url", Kind: blueprint.KindString, Writable: true,
+				ComputedOptionalRequired: blueprint.Required,
+			},
+			{
+				JSONPath: "interval", Kind: blueprint.KindInt64, Writable: true,
+				ComputedOptionalRequired: blueprint.Required,
+			},
 			// The classic-test shape the scaffold exists for: a required nested
 			// collection whose members are live identifiers nothing can invent.
-			{JSONPath: "agents", Kind: blueprint.KindListNested, Writable: true,
-				ComputedOptionalRequired: blueprint.Required},
-			{JSONPath: "agents.agentId", Kind: blueprint.KindString, Writable: true,
-				ComputedOptionalRequired: blueprint.Required},
+			{
+				JSONPath: "agents", Kind: blueprint.KindListNested, Writable: true,
+				ComputedOptionalRequired: blueprint.Required,
+			},
+			{
+				JSONPath: "agents.agentId", Kind: blueprint.KindString, Writable: true,
+				ComputedOptionalRequired: blueprint.Required,
+			},
 			// Optional with documented values: not in the fixture, but its
 			// alternatives fuel the enum and immutability protocols.
-			{JSONPath: "protocol", Kind: blueprint.KindString, Writable: true,
+			{
+				JSONPath: "protocol", Kind: blueprint.KindString, Writable: true,
 				ComputedOptionalRequired: blueprint.Optional,
-				AllowedValues:            []string{"TCP", "ICMP", "UDP"}},
+				AllowedValues:            []string{"TCP", "ICMP", "UDP"},
+			},
 			// Computed never reaches a request body.
-			{JSONPath: "createdDate", Kind: blueprint.KindString, Writable: false,
-				ComputedOptionalRequired: blueprint.Computed},
+			{
+				JSONPath: "createdDate", Kind: blueprint.KindString, Writable: false,
+				ComputedOptionalRequired: blueprint.Computed,
+			},
 		},
 	}
 
