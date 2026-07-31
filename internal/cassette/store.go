@@ -44,6 +44,9 @@ const (
 	// PlanFileName holds the probe plan the recording was made with. Absent for a read-only
 	// recording, which needs no plan.
 	PlanFileName = "plan.json"
+	// SubjectFileName holds the flattened subject the recording was made with. Absent
+	// only for snapshots that predate freezing.
+	SubjectFileName = "subject.json"
 )
 
 // ErrNoSnapshot is returned when a directory holds no cassette.
@@ -137,6 +140,16 @@ func (s Snapshot) ReportPath() string { return filepath.Join(s.Dir, ReportFileNa
 // would then make replay fail with a body mismatch that looks exactly like a probe regression and
 // is nothing of the kind.
 func (s Snapshot) PlanPath() string { return filepath.Join(s.Dir, PlanFileName) }
+
+// SubjectPath is the frozen copy of the flattened subject the recording was made with.
+//
+// Frozen for the same reason the plan is, and its absence caused a real failure. Body
+// synthesis reads the subject -- which fields are writable, their documented values,
+// their recorded behaviour -- so replay building its subject from the working tree
+// diverges the moment curation moves the blueprint. The committed case: the re-record's
+// own merge made `type` writable, and every full-body probe then replayed with one more
+// key than the transcript held, reporting seven phantom orphans.
+func (s Snapshot) SubjectPath() string { return filepath.Join(s.Dir, SubjectFileName) }
 
 // List returns every snapshot under root, oldest first.
 func List(root string) ([]Snapshot, error) {
