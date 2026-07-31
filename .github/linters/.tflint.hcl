@@ -42,3 +42,12 @@ rule "terraform_required_version" {
   # scoped per path, so it goes.
   enabled = false
 }
+
+rule "terraform_unused_declarations" {
+  # The datasource acceptance fixtures declare a data block nothing else in the
+  # file references -- by design. The generated test applies the fixture and
+  # asserts against Terraform *state*, so the data block's job is to exist and
+  # be readable, not to feed another expression. The rule reads that as unused;
+  # per-path scoping is not available, so it goes the way of the other two.
+  enabled = false
+}
