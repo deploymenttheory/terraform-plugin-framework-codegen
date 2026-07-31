@@ -17,7 +17,7 @@ arrived yet.
 | [`cli.md`](cli.md) | command reference, flags and exit codes | **written** |
 | [`blueprint.md`](blueprint.md) | the IR: every field, and what it exists to express | **written** |
 | [`generated-boundary.md`](generated-boundary.md) | how generated and hand-written code stay apart, and the escape hatch | **written** |
-| `onboarding-a-new-api.md` | numbered runbook for taking on a new API end to end | **outstanding** |
+| [`onboarding-a-new-api.md`](onboarding-a-new-api.md) | numbered runbook for taking on a new API end to end | **written** |
 | [`interop.md`](interop.md) | reading and writing Provider Code Specification v0.1, and what it cannot carry | **written** |
 | [`probing.md`](probing.md) | the probe catalogue, confidence levels, safety model and cleanup guarantees | **written** |
 | `pilot-thousandeyes.md` | the pilot: what was generated, and the before/after against the existing provider | Phase 6 |
