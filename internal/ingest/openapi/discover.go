@@ -63,6 +63,23 @@ func Load(path string) (*Document, error) {
 	return out, nil
 }
 
+// Stats reports the document's path and operation counts, for snapshot metadata: the
+// scale of a refresh is visible in a two-line diff instead of 1.6 MB of YAML.
+func (d *Document) Stats() (paths, operations int) {
+	if d.model == nil || d.model.Paths == nil {
+		return 0, 0
+	}
+
+	for pair := d.model.Paths.PathItems.First(); pair != nil; pair = pair.Next() {
+		paths++
+		if ops := pair.Value().GetOperations(); ops != nil {
+			operations += ops.Len()
+		}
+	}
+
+	return paths, operations
+}
+
 // Operation is one HTTP operation in the document.
 type Operation struct {
 	Method      string

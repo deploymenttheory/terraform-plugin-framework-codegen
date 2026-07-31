@@ -26,8 +26,8 @@ var commands = []command{
 	{
 		name:    "specs",
 		summary: "fetch and snapshot an upstream OpenAPI document",
-		usage:   "specs [-output-dir DIR] [-dry-run]",
-		run:     notImplemented("specs"),
+		usage:   usageSpecs,
+		run:     runSpecs,
 	},
 	{
 		name:    "ingest",

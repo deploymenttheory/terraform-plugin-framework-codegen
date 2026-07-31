@@ -71,6 +71,9 @@ func TestUnit_CLI_Dispatch_ExitCodes(t *testing.T) {
 // directions so the list cannot quietly go stale.
 var builtCommands = map[string]bool{
 	"version":  true,
+	// specs fetches and pins; with -url omitted it re-fetches from the latest
+	// snapshot's own recorded source, which is the weekly-refresh loop.
+	"specs":    true,
 	"emit":     true,
 	"verify":   true,
 	"bindings": true,

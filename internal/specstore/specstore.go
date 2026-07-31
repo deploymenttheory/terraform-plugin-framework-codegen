@@ -238,3 +238,54 @@ func short(sha string) string {
 	}
 	return sha[:12]
 }
+
+// Pin writes a new snapshot: the document plus its self-describing metadata.
+//
+// It refuses to overwrite. A snapshot is immutable by design -- Verify exists to catch
+// in-place edits -- so the only way to take a new one is a new directory, and a collision
+// on the millisecond timestamp is an error rather than a shrug.
+func Pin(root string, doc []byte, meta Metadata) (Snapshot, error) {
+	if meta.SHA256 == "" {
+		sum := sha256.Sum256(doc)
+		meta.SHA256 = hex.EncodeToString(sum[:])
+	}
+
+	dir := filepath.Join(root, DirName(meta.Version, meta.FetchedAt))
+	if _, err := os.Stat(dir); err == nil {
+		return Snapshot{}, fmt.Errorf("snapshot %s already exists; a snapshot is immutable "+
+			"and is refreshed by pinning a new one", dir)
+	}
+
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return Snapshot{}, fmt.Errorf("creating %s: %w", dir, err)
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, SpecFileName), doc, 0o600); err != nil {
+		return Snapshot{}, fmt.Errorf("writing the document: %w", err)
+	}
+
+	encoded, err := json.MarshalIndent(meta, "", "  ")
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("encoding metadata: %w", err)
+	}
+	encoded = append(encoded, '\n')
+
+	if err := os.WriteFile(filepath.Join(dir, MetadataFileName), encoded, 0o600); err != nil {
+		return Snapshot{}, fmt.Errorf("writing metadata: %w", err)
+	}
+
+	snap := Snapshot{
+		Dir:       dir,
+		Name:      filepath.Base(dir),
+		Version:   meta.Version,
+		Timestamp: meta.FetchedAt,
+	}
+
+	// Read back through the same gate every consumer uses, so a Pin that wrote
+	// something Verify would refuse cannot return success.
+	if err := snap.Verify(); err != nil {
+		return Snapshot{}, fmt.Errorf("verifying the snapshot just written: %w", err)
+	}
+
+	return snap, nil
+}
