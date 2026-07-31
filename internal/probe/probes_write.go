@@ -55,8 +55,14 @@ func sentinelFor(sc Scope, f Field, round int) any {
 	// field, both fixture rounds came back 400, and the probe observed nothing whatsoever about
 	// writability for any field. Rounds take different documented values where the set has more
 	// than one, which preserves the two-distinct-values property the writability conclusion needs.
-	if len(f.AllowedValues) > 0 {
-		return f.AllowedValues[(round-1)%len(f.AllowedValues)]
+	//
+	// The pool prefers what this API was *observed* to accept and never contains what it was
+	// observed to refuse -- the same asymmetry a generated fixture uses, for the same reason. A
+	// second live run made THAT concrete: rotating accessType into the documented "system", which
+	// the committed evidence already recorded as refused, cost two of three fixture rounds and
+	// with them every observation those bodies would have made.
+	if pool := safeEnumPool(f); len(pool) > 0 {
+		return pool[(round-1)%len(pool)]
 	}
 
 	switch f.Kind {
@@ -69,6 +75,37 @@ func sentinelFor(sc Scope, f Field, round int) any {
 	default:
 		return fmt.Sprintf("probe-%s-%d", strings.ReplaceAll(f.JSONPath, ".", "-"), round)
 	}
+}
+
+// safeEnumPool is the documented values worth sending: observed-accepted first, then the
+// documented remainder minus anything observed refused. Empty when the field documents no
+// set at all.
+func safeEnumPool(f Field) []string {
+	if len(f.AllowedValues) == 0 {
+		return nil
+	}
+
+	rejected := map[string]bool{}
+	for _, v := range f.Behaviour.RejectedValues {
+		rejected[v] = true
+	}
+	seen := map[string]bool{}
+
+	pool := make([]string, 0, len(f.AllowedValues))
+	for _, v := range f.Behaviour.AcceptedValues {
+		if !rejected[v] && !seen[v] {
+			pool = append(pool, v)
+			seen[v] = true
+		}
+	}
+	for _, v := range f.AllowedValues {
+		if !rejected[v] && !seen[v] {
+			pool = append(pool, v)
+			seen[v] = true
+		}
+	}
+
+	return pool
 }
 
 // observation is what one create-and-read-back round saw about one field.
@@ -350,7 +387,8 @@ func (p writableAndReturned) conclude(sc Scope, seen map[string][]observation, o
 			})
 
 		case allAbsent(rounds):
-			out.Facts = append(out.Facts, p.absentFact(sc, path, rounds))
+			out.Facts = append(out.Facts, scopeToMeasuredBranch(
+				p.absentFact(sc, path, rounds), sc, rounds))
 
 			// Deliberately no writability fact. From outside, "accepted and discarded" and
 			// "stored and never returned" are the same observation, and merge would act on the
@@ -373,10 +411,11 @@ func (p writableAndReturned) conclude(sc Scope, seen map[string][]observation, o
 			p.concludeMixed(sc, path, rounds, out)
 
 		default:
-			out.Facts = append(out.Facts, p.returnedFact(sc, path, rounds))
+			out.Facts = append(out.Facts, scopeToMeasuredBranch(
+				p.returnedFact(sc, path, rounds), sc, rounds))
 
 			if fact, ok := p.writableFact(sc, path, rounds); ok {
-				out.Facts = append(out.Facts, fact)
+				out.Facts = append(out.Facts, scopeToMeasuredBranch(fact, sc, rounds))
 			} else {
 				out.Notes = append(out.Notes, Note{
 					Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
@@ -467,6 +506,29 @@ func (p writableAndReturned) concludeMixed(
 			})
 		}
 	}
+}
+
+// scopeToMeasuredBranch attaches the shared gate conditions to a fact whose rounds did
+// not span every fixture, for the reason concludeRequired's uniform path does: a field
+// only one branch carries was only measured there, and "returned, unconditionally" from
+// the dynamic fixture alone is the same half-truth this phase set out to kill -- worn the
+// other way round. A fact measured in every fixture keeps its unconditional reading.
+func scopeToMeasuredBranch(fact Fact, sc Scope, rounds []observation) Fact {
+	if len(rounds) >= len(sc.Fixtures()) {
+		return fact
+	}
+
+	lists := make([][]Condition, len(rounds))
+	for i, o := range rounds {
+		lists[i] = o.gates
+	}
+
+	if common := commonConditions(lists); len(common) > 0 {
+		fact.When = common
+		fact.Rationale += ", " + fact.Because()
+	}
+
+	return fact
 }
 
 // absentFact records a field that was sent and never came back.
@@ -1323,8 +1385,69 @@ func (p requiredByAPI) concludeRequired(sc Scope, attempts map[string][]omission
 			continue
 		}
 
-		out.Facts = append(out.Facts, p.requiredFact(sc, path, rounds, accepted > 0))
+		fact := p.requiredFact(sc, path, rounds, accepted > 0)
+
+		// A field only some fixtures declare was only measured under those fixtures'
+		// branches, and a uniform answer from one branch is not an unconditional fact --
+		// matchType's omission is refused by a dynamic tag and meaningless to a static
+		// one, and recording "required, unconditionally" from the dynamic fixture alone
+		// would put matchType into every generated minimal configuration, breaking the
+		// static create it was derived to protect. The gates every attempt shared are
+		// the honest scope; a field every fixture carried keeps its unconditional
+		// reading, because the branches were measured and agreed.
+		if len(rounds) < len(sc.Fixtures()) {
+			if common := commonGates(rounds); len(common) > 0 {
+				fact.When = common
+				fact.Rationale += ", " + fact.Because()
+			}
+		}
+
+		out.Facts = append(out.Facts, fact)
 	}
+}
+
+// commonGates is the gate conditions every attempt held with the same value, sorted for a
+// stable committed order. Empty when the attempts' gates disagree -- the field was
+// measured across branches, so no single branch scopes it.
+func commonGates(rounds []omission) []Condition {
+	lists := make([][]Condition, len(rounds))
+	for i, a := range rounds {
+		lists[i] = a.gates
+	}
+
+	return commonConditions(lists)
+}
+
+// commonConditions intersects gate-condition lists by path and value.
+func commonConditions(lists [][]Condition) []Condition {
+	if len(lists) == 0 {
+		return nil
+	}
+
+	common := map[string]string{}
+	for _, c := range lists[0] {
+		common[c.JSONPath] = c.Equals
+	}
+
+	for _, gates := range lists[1:] {
+		held := map[string]string{}
+		for _, c := range gates {
+			held[c.JSONPath] = c.Equals
+		}
+		for path, value := range common {
+			if held[path] != value {
+				delete(common, path)
+			}
+		}
+	}
+
+	out := make([]Condition, 0, len(common))
+	for path, value := range common {
+		out = append(out, Condition{JSONPath: path, Equals: value})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].JSONPath < out[j].JSONPath })
+
+	return out
 }
 
 // conditionalRequiredFacts attributes a requiredness disagreement to one gate field.

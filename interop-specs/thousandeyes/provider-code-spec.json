@@ -413,7 +413,7 @@
             "name": "value",
             "string": {
               "computed_optional_required": "required",
-              "description": "The value of the credential, stored encrypted. Sensitive: it is a secret, and the matching ephemeral resource exists so other providers can consume it without it ever reaching their state.",
+              "description": "The value of the credential, stored encrypted. Sensitive: it is a secret, and the matching ephemeral resource exists so other providers can consume it without it ever reaching their state.\n\n<!-- probed:7.0.97-t1785500668022 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
               "sensitive": true
             }
           }
@@ -443,14 +443,14 @@
             "name": "value",
             "string": {
               "computed_optional_required": "optional",
-              "description": "The tag's value.\n\n<!-- probed:7.0.97-t1785295713598 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The tag's value.\n\n<!-- probed:7.0.97-t1785500655892 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "color",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->"
+              "description": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785500655892 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -464,35 +464,35 @@
             "name": "icon",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "The tag's icon.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->"
+              "description": "The tag's icon.\n\n<!-- probed:7.0.97-t1785500655892 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "object_type",
             "string": {
               "computed_optional_required": "required",
-              "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:7.0.97-t1785500655892 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "access_type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785500655892 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "match_type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->"
+              "description": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785500655892 -->\nValues accepted here: `and`, `or`.\nConditionally, when objectType is \"endpoint-agent\" and type is \"dynamic\": a create omitting this field was refused with 400 and the error named the field, when objectType is \"endpoint-agent\" and type is \"dynamic\". Applied as a behaviour variant.\nConditionally, when objectType is \"endpoint-agent\": the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\". Applied as a behaviour variant.\nConditionally, when objectType is \"test\": the field was sent on 1 create(s) and appeared in no read response, including every expansion the plan declares, when objectType is \"test\". Applied as a behaviour variant.\n<!-- /probed -->"
             }
           },
           {
             "name": "type",
             "string": {
-              "computed_optional_required": "computed",
-              "description": "The tag's type, assigned by the API."
+              "computed_optional_required": "computed_optional",
+              "description": "The tag's type, assigned by the API.\n\n<!-- probed:7.0.97-t1785500655892 -->\nConditionally, when objectType is \"endpoint-agent\": a create omitting this field was refused with 400 and the error named the field, when objectType is \"endpoint-agent\". Applied as a behaviour variant.\n<!-- /probed -->"
             }
           },
           {
@@ -533,7 +533,7 @@
           {
             "name": "assignments",
             "set_nested": {
-              "computed_optional_required": "computed_optional",
+              "computed_optional_required": "computed",
               "nested_object": {
                 "associated_external_type": {
                   "type": "tags.Assignment"
@@ -571,21 +571,21 @@
                     "name": "key",
                     "string": {
                       "computed_optional_required": "required",
-                      "description": "The filter key used for matching."
+                      "description": "The filter key used for matching.\n\n<!-- probed:7.0.97-t1785500655892 -->\nConditionally, when objectType is \"endpoint-agent\" and type is \"dynamic\": the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\". Applied as a behaviour variant.\n<!-- /probed -->"
                     }
                   },
                   {
                     "name": "mode",
                     "string": {
                       "computed_optional_required": "computed_optional",
-                      "description": "How the filter values are matched."
+                      "description": "How the filter values are matched.\n\n<!-- probed:7.0.97-t1785500655892 -->\nConditionally, when objectType is \"endpoint-agent\" and type is \"dynamic\": the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\". Applied as a behaviour variant.\n<!-- /probed -->"
                     }
                   },
                   {
                     "name": "scope",
                     "string": {
                       "computed_optional_required": "computed_optional",
-                      "description": "The scope the filter applies within."
+                      "description": "The scope the filter applies within.\n\n<!-- probed:7.0.97-t1785500655892 -->\nConditionally, when objectType is \"endpoint-agent\" and type is \"dynamic\": the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\". Applied as a behaviour variant.\n<!-- /probed -->"
                     }
                   },
                   {
@@ -595,12 +595,12 @@
                       "element_type": {
                         "string": {}
                       },
-                      "description": "The values the filter matches against."
+                      "description": "The values the filter matches against.\n\n<!-- probed:7.0.97-t1785500655892 -->\nConditionally, when objectType is \"endpoint-agent\" and type is \"dynamic\": the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\". Applied as a behaviour variant.\n<!-- /probed -->"
                     }
                   }
                 ]
               },
-              "description": "Filters that dynamically assign this tag to endpoint agents."
+              "description": "Filters that dynamically assign this tag to endpoint agents.\n\n<!-- probed:7.0.97-t1785500655892 -->\nConditionally, when objectType is \"endpoint-agent\" and type is \"dynamic\": a create omitting this field was refused with 400 and the error named the field, when objectType is \"endpoint-agent\" and type is \"dynamic\". Applied as a behaviour variant.\nConditionally, when objectType is \"endpoint-agent\" and type is \"dynamic\": the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\". Applied as a behaviour variant.\n<!-- /probed -->"
             }
           }
         ],

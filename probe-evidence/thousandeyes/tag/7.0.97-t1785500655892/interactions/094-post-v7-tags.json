@@ -1,0 +1,46 @@
+{
+  "id": "094-post-v7-tags",
+  "seq": 94,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tags",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "all",
+      "filters": [
+        {
+          "key": "probe-filter-key",
+          "mode": "in",
+          "scope": "custom",
+          "values": [
+            "probe-filter-value"
+          ]
+        }
+      ],
+      "key": "tfpfgen-probe-write-enum-13",
+      "matchType": "AND",
+      "objectType": "endpoint-agent",
+      "type": "dynamic",
+      "value": "probe-three"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "JSON parse error: Cannot construct instance of `com.thousandeyes.tags.models.entity.FilterMatchType`, problem: Unexpected value 'AND'",
+      "error": "Bad Request",
+      "path": "/v7/tags",
+      "status": 400,
+      "timestamp": 1785500643863,
+      "title": "Request validation failed. There are invalid or missing fields"
+    },
+    "droppedHeaders": 14
+  }
+}

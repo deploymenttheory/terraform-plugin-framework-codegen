@@ -1,0 +1,18 @@
+{
+  "id": "119-delete-v7-tags-19318e58-bcce-4934-8357-6a60dd43bc5f",
+  "seq": 119,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/tags/19318e58-bcce-4934-8357-6a60dd43bc5f",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

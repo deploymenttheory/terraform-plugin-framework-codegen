@@ -1,0 +1,70 @@
+{
+  "id": "022-post-v7-tags",
+  "seq": 22,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tags",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "all",
+      "filters": [
+        {
+          "key": "probe-filter-key",
+          "mode": "in",
+          "scope": "custom",
+          "values": [
+            "probe-filter-value"
+          ]
+        }
+      ],
+      "key": "tfpfgen-probe-write-required-9",
+      "matchType": "and",
+      "objectType": "endpoint-agent",
+      "type": "dynamic",
+      "value": "probe-three"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tags/9c0b36e4-57ef-4ca5-b008-872f8588f1a5"
+        }
+      },
+      "accessType": "all",
+      "aid": 281474976742769,
+      "builtIn": false,
+      "color": "#A7EB10",
+      "createDate": "2026-07-31T12:23:38Z",
+      "description": null,
+      "filters": [
+        {
+          "key": "probe-filter-key",
+          "mode": "in",
+          "scope": "custom",
+          "values": [
+            "probe-filter-value"
+          ]
+        }
+      ],
+      "icon": "LABEL",
+      "id": "9c0b36e4-57ef-4ca5-b008-872f8588f1a5",
+      "key": "tfpfgen-probe-write-required-9",
+      "legacyId": 422212465108106,
+      "matchType": "and",
+      "modifiedDate": null,
+      "objectType": "endpoint-agent",
+      "type": "dynamic",
+      "value": "probe-three"
+    },
+    "droppedHeaders": 14
+  }
+}

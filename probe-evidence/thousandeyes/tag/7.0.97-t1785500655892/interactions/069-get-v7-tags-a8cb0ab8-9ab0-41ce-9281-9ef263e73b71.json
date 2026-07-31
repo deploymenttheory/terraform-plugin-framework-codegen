@@ -1,0 +1,46 @@
+{
+  "id": "069-get-v7-tags-a8cb0ab8-9ab0-41ce-9281-9ef263e73b71",
+  "seq": 69,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tags/a8cb0ab8-9ab0-41ce-9281-9ef263e73b71",
+    "query": {
+      "expand": [
+        "assignments"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tags/a8cb0ab8-9ab0-41ce-9281-9ef263e73b71"
+        }
+      },
+      "accessType": "all",
+      "aid": 281474976742769,
+      "assignments": [],
+      "builtIn": false,
+      "color": "#A7EB10",
+      "createDate": "2026-07-31T12:23:54Z",
+      "description": null,
+      "icon": "LABEL",
+      "id": "a8cb0ab8-9ab0-41ce-9281-9ef263e73b71",
+      "key": "tfpfgen-probe-write-immutability-5",
+      "legacyId": null,
+      "modifiedDate": null,
+      "objectType": "test",
+      "type": "static",
+      "value": "probe"
+    },
+    "droppedHeaders": 14
+  }
+}

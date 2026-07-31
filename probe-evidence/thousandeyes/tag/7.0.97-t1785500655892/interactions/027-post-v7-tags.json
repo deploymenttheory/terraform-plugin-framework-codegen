@@ -1,0 +1,45 @@
+{
+  "id": "027-post-v7-tags",
+  "seq": 27,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tags",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "all",
+      "filters": [
+        {
+          "key": "probe-filter-key",
+          "mode": "in",
+          "scope": "custom",
+          "values": [
+            "probe-filter-value"
+          ]
+        }
+      ],
+      "key": "tfpfgen-probe-write-required-14",
+      "matchType": "and",
+      "objectType": "endpoint-agent",
+      "value": "probe-three"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "type: Static tags are not supported for the provided object type",
+      "error": "Bad Request",
+      "path": "/v7/tags",
+      "status": 400,
+      "timestamp": 1785500619702,
+      "title": "Request validation failed. There are invalid or missing fields"
+    },
+    "droppedHeaders": 14
+  }
+}
