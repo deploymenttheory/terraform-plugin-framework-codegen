@@ -1,0 +1,41 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports }}
+)
+
+// {{ .TestName }} seeds one {{ .TerraformType }} and asserts `terraform query` finds it.
+//
+// The identity stream is the workflow under test -- query results feed `terraform plan
+// -generate-config-out` -- and the seeded object is the one element known to exist, so
+// the assertion is a floor rather than an exact count: the tenant may legitimately hold
+// more. address, testResource and config() are the resource acceptance test's own
+// declarations; both files share a package by design.
+func {{ .TestName }}(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acceptance.PreCheck(t) },
+		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,
+		// Query needs a modern CLI; skipping is stated, not silent.
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_14_0),
+		},
+		//
+{{ .DestroyReason }}
+		CheckDestroy: destroy.CheckDestroyed(testResource, "{{ .TerraformType }}", {{ .DestroyTimeout }}),
+		Steps: []resource.TestStep{
+			// Seed: the query below must have at least this object to find.
+			{
+				Config: config(t, "minimal.tf"),
+			},
+			{
+				Query:  true,
+				Config: config(t, "query.tf"),
+				QueryResultChecks: []querycheck.QueryResultCheck{
+					querycheck.ExpectLengthAtLeast("{{ .QueryAddress }}", 1),
+				},
+			},
+		},
+	})
+}

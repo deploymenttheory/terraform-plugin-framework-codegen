@@ -1,9 +1,17 @@
 # Runs the generated acceptance tests against a live ThousandEyes tenant.
 #
-# Hand-triggered only, and that is a security decision rather than a cost one. The token is a
-# long-lived credential that the ThousandEyes API cannot revoke -- one that leaks stays valid
-# until somebody deletes it by hand in the UI -- so it must never be reachable from a workflow
-# that an untrusted branch can cause to run. `pull_request` would do exactly that.
+# Hand-triggered or scheduled, never `pull_request`, and that is a security decision rather
+# than a cost one. The token is a long-lived credential that the ThousandEyes API cannot
+# revoke -- one that leaks stays valid until somebody deletes it by hand in the UI -- so it
+# must never be reachable from a workflow an untrusted branch can cause to run. A schedule
+# is safe under that rule: scheduled workflows only ever run the default branch.
+#
+# The schedule is what makes API drift a finding instead of a surprise: a provider that
+# passed in March and breaks in June broke because the API moved, and a weekly run puts a
+# date on when. If the acceptance environment has required reviewers, a scheduled run
+# notifies and *waits* for approval rather than running unattended -- the correct semantic
+# for an unrevokable token, and the weekly click is the accepted cost of it. A pending run
+# is waiting, not stuck.
 #
 # It is also the only gate in this repository that creates real objects. Everything else compiles
 # code, compares it against blueprints, or replays a recorded cassette.
@@ -23,6 +31,10 @@ name: go | Acceptance tests
 # suppression plus env-passing -- not an input added quietly.
 on:
   workflow_dispatch:
+  schedule:
+    # Weekly, Monday 06:00 UTC: early enough that a failure is in the inbox at the start
+    # of the week, rare enough that the live tenant is not churning daily.
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
@@ -65,6 +77,10 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
         with:
+          # Pinned: the query, action-trigger and replace steps all need a modern CLI, and
+          # "latest" would make a scheduled failure ambiguous between API drift and CLI
+          # drift -- the two things this workflow exists to tell apart.
+          terraform_version: "1.14.*"
           terraform_wrapper: false
 
       - name: Refuse to run without a credential
@@ -88,6 +104,9 @@ jobs:
           TF_ACC: "1"
           THOUSANDEYES_BEARER_TOKEN: ${{ secrets.THOUSANDEYES_BEARER_TOKEN }}
           THOUSANDEYES_ACCOUNT_GROUP_ID: ${{ secrets.THOUSANDEYES_ACCOUNT_GROUP_ID }}
+          # A repository variable rather than a secret: it is an identifier, not a
+          # credential, and the action test skips with the variable named when unset.
+          THOUSANDEYES_TEST_ENDPOINT_AGENT_ID: ${{ vars.THOUSANDEYES_TEST_ENDPOINT_AGENT_ID }}
         run: |
           echo "::group::📦 Download"
           go mod download

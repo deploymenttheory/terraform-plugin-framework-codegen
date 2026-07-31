@@ -50,8 +50,9 @@ func runBindings(args []string) error {
 
 	log.Printf(
 		"verifying bindings against the SDK pinned by %s: "+
-			"%d resource(s), %d data source(s), %d list facet(s), %d action(s)",
+			"%d resource(s), %d data source(s), %d list facet(s), %d action(s), %d ephemeral(s)",
 		*module, len(bp.Resources), len(bp.DataSources), lists, len(bp.Actions),
+		len(bp.Ephemerals),
 	)
 
 	report := sdkbind.Verify(sdkbind.NewLoader(*module), bp)

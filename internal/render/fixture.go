@@ -96,6 +96,23 @@ func fixtureView(
 			continue
 		}
 
+		// An optional immutable attribute stays out of the maximal fixture. The maximal
+		// configuration drives the update step, and introducing an immutable value there
+		// would force a replacement in the middle of a test asserting in-place update --
+		// the step would pass while silently testing something else. Skipped with the
+		// reason stated, so the scaffold's owner can move it into the create configuration
+		// deliberately.
+		if !minimal && attrImmutable(a) && !fixtureWants(a, true) {
+			v.Skipped = append(v.Skipped, fixtureValue{
+				Name: a.Name,
+				Comment: wrapCommentPrefix(a.Name+": immutable; setting it at update would "+
+					"force replacement, so it belongs in the create configuration or nowhere",
+					"  #"),
+			})
+
+			continue
+		}
+
 		fv := fixtureValueFor(a)
 
 		switch {
@@ -189,6 +206,119 @@ func fixtureWants(a blueprint.Attribute, minimal bool) bool {
 // requiredByAPI reports whether the prober watched the API reject a request omitting this field.
 func requiredByAPI(a blueprint.Attribute) bool {
 	return a.Behaviour.RequiredByAPI != nil && *a.Behaviour.RequiredByAPI
+}
+
+// attrImmutable reports whether the prober corroborated that the API refuses in-place
+// changes to this field.
+func attrImmutable(a blueprint.Attribute) bool {
+	return a.Behaviour.Immutable != nil && *a.Behaviour.Immutable
+}
+
+// ReplaceFixture builds the configuration for the acceptance step that proves the
+// generated RequiresReplace live. Ok is false, with no error, when nothing can be
+// flipped -- see replaceFixture.
+func ReplaceFixture(
+	bp blueprint.Blueprint,
+	r blueprint.Resource,
+	opts Options,
+) (FixtureView, bool, error) {
+	minimal, err := Fixture(bp, r, opts, true)
+	if err != nil {
+		return FixtureView{}, false, err
+	}
+
+	v, _, ok := replaceFixture(r, minimal)
+	if !ok {
+		return FixtureView{}, false, nil
+	}
+
+	// Generated and policed like the minimal fixture: the flipped value is derived from
+	// evidence, so a human editing it should edit the blueprint instead.
+	v.Header = GeneratedHeaderHCL(opts.BlueprintPath, opts.BlueprintSHA256)
+
+	return v, true, nil
+}
+
+// replaceFixture is the minimal fixture with one immutable attribute flipped to a second
+// value the API takes, for the acceptance step that proves the generated RequiresReplace
+// live: the plan must say "forces replacement" and the apply must succeed by replacing.
+//
+// Not ok when no immutable attribute in the fixture has a second usable value -- a set of
+// one can be created but never changed, so there is nothing to flip and no step to run.
+// Strings only: the candidate pools are value sets, which the IR records for strings.
+func replaceFixture(
+	r blueprint.Resource,
+	minimal FixtureView,
+) (FixtureView, string, bool) {
+	inFixture := map[string]int{}
+	for i, fv := range minimal.Values {
+		inFixture[fv.Name] = i
+	}
+
+	for _, a := range r.Schema.Attributes {
+		idx, present := inFixture[a.Name]
+		if a.Drop || !present || !attrImmutable(a) || a.Type.Kind != blueprint.KindString {
+			continue
+		}
+
+		current := minimal.Values[idx].HCL
+		next, ok := secondValue(a, current)
+		if !ok {
+			continue
+		}
+
+		replaced := minimal
+		replaced.Header = "" // a distinct file, headered by its own emit entry
+		replaced.Values = append([]fixtureValue(nil), minimal.Values...)
+		replaced.Values[idx].HCL = next
+		replaced.Values[idx].Note = "flipped from the create configuration; the API refuses " +
+			"in-place changes here, so this must plan as a replacement"
+		replaced.Values[idx].Comment = wrapCommentPrefix(
+			replaced.Values[idx].Name+": "+replaced.Values[idx].Note, "  #")
+
+		// The notes block is copied, not shared: the minimal fixture's own view must not
+		// see the flip, and the flip must be stated where the other provenance notes are.
+		replaced.Notes = append([]fixtureValue(nil), minimal.Notes...)
+		replaced.Notes = replaceNote(replaced.Notes, replaced.Values[idx])
+
+		return replaced, a.Name, true
+	}
+
+	return FixtureView{}, "", false
+}
+
+// replaceNote swaps the flipped attribute's provenance note in, appending when the
+// minimal fixture carried none for it.
+func replaceNote(notes []fixtureValue, flipped fixtureValue) []fixtureValue {
+	for i, n := range notes {
+		if n.Name == flipped.Name {
+			notes[i] = flipped
+			return notes
+		}
+	}
+	return append(notes, flipped)
+}
+
+// secondValue picks a different value the API takes for an attribute, preferring what was
+// observed to work over what is merely documented -- the same asymmetry the fixture's own
+// value derivation uses, for the same reason: this value has one job, to apply.
+func secondValue(a blueprint.Attribute, current string) (string, bool) {
+	rejected := map[string]bool{}
+	for _, v := range a.Behaviour.RejectedValues {
+		rejected[v] = true
+	}
+
+	pools := [][]string{a.Behaviour.AcceptedValues, a.Type.AllowedValues}
+	for _, pool := range pools {
+		for _, candidate := range pool {
+			quoted := strconv.Quote(candidate)
+			if quoted != current && !rejected[candidate] {
+				return quoted, true
+			}
+		}
+	}
+
+	return "", false
 }
 
 // fixtureValueFor derives one attribute's test value.

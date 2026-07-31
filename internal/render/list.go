@@ -43,6 +43,25 @@ type ListView struct {
 
 	// DisplayName is the finished expression for ListResult.DisplayName, or empty.
 	DisplayName string
+
+	// HasFilters, ConfigAttributes, FilterModelType and FilterModelFields render the
+	// facet's filter schema: the query block's attributes, and the model List decodes
+	// them into. Empty when the facet declares no filters, in which case a query lists
+	// everything visible to the configured credentials.
+	HasFilters        bool
+	ConfigAttributes  []string
+	FilterModelType   string
+	FilterModelFields []string
+
+	// IncludeResource is true when the collection element is the same SDK type the
+	// resource's read returns, so `terraform query --include-resource` can be served
+	// from the element already fetched -- never a request per element, which is the
+	// template's own stated non-goal.
+	IncludeResource bool
+	// TimeoutsNull is the finished expression for a null timeouts value matching the
+	// resource schema's block, needed because the state mapper does not touch the
+	// timeouts field and a zero value carries no attribute types to serialise with.
+	TimeoutsNull string
 }
 
 // listView builds the view for a resource's list facet.
@@ -121,11 +140,50 @@ func listView(
 		v.DisplayName = expr
 	}
 
+	if lf.Schema != nil {
+		lsc := schemaScope{
+			kind:     blueprint.BlockList,
+			what:     fmt.Sprintf("list facet of resource %q", r.Key),
+			patterns: newPatternVars(),
+		}
+
+		attrs, fields, err := attributes(lsc, *lf.Schema, imports)
+		if err != nil {
+			return nil, err
+		}
+
+		v.HasFilters = true
+		v.ConfigAttributes = attrs
+		v.FilterModelType = lf.GoTypeName + "Filters"
+		v.FilterModelFields = fields
+		imports.add(pkgTypes, "")
+	}
+
+	// Structural, decided here rather than at query time: when the collection element is
+	// the resource's own read type, the state mapper can serve --include-resource from
+	// the element in hand. A mismatched element type means the mapper would not compile
+	// against it, so the branch is simply not generated and the template's doc comment
+	// keeps stating why.
+	if lf.ElementType != "" && lf.ElementType == r.Binding.Body.ResponseType {
+		v.IncludeResource = true
+		// Mirrors commonschema.ResourceTimeouts: all four operations, string attributes.
+		// The mapper never touches the timeouts field, and a zero timeouts.Value carries
+		// no attribute types to serialise with.
+		v.TimeoutsNull = `timeouts.Value{Object: types.ObjectNull(map[string]attr.Type{` +
+			`"create": types.StringType, "read": types.StringType, ` +
+			`"update": types.StringType, "delete": types.StringType})}`
+		imports.add(pkgTypes, "")
+		imports.add(frameworkRoot+"attr", "")
+		imports.add("github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts", "")
+	}
+
 	sup := bp.Provider.Support
 
 	imports.add(pkgContext, "")
 	imports.add(pkgList, "")
-	imports.add(pkgListSchema, "listschema")
+	// Unaliased: the framework package is named schema, and attribute declarations are
+	// rendered with the plain selector, exactly as every other block kind's are.
+	imports.add(pkgListSchema, "")
 	imports.add(pkgResource, "")
 	imports.add(pkgTflog, "")
 	// diag for the failure path: a list resource reports errors by streaming a result that

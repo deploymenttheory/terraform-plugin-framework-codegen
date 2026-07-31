@@ -267,6 +267,12 @@ var taxonomy = map[string]Note{
 			"data sources and a provider -- so every action in this blueprint is absent from " +
 			"the exported document",
 	},
+	"ephemeralKind": {
+		SeverityDropped, "ephemerals",
+		"the specification has no representation for an ephemeral resource -- it models " +
+			"resources, data sources and a provider -- so every ephemeral in this blueprint is " +
+			"absent from the exported document",
+	},
 	"list": {
 		SeverityDropped, "list",
 		"the list facet has no counterpart: the specification models resources, data sources " +

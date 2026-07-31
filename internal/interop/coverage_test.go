@@ -424,7 +424,8 @@ func TestUnit_Interop_Severities(t *testing.T) {
 		"list":     SeverityDropped,
 		// An entire block kind with no counterpart, so it is reported once for the kind
 		// rather than per action.
-		"actionKind": SeverityDropped,
+		"actionKind":    SeverityDropped,
+		"ephemeralKind": SeverityDropped,
 
 		// The escape hatches, dropped for two different reasons. A cross-attribute rule has
 		// no coarser form to degrade to, because the format's validators are per-attribute

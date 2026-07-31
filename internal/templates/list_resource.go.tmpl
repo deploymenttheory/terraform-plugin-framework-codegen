@@ -49,24 +49,54 @@ func (l *{{ .List.GoTypeName }}) Configure(ctx context.Context, req resource.Con
 // ListResourceConfigSchema returns the schema for a query block.
 //
 // Filter-only, and structurally so: a list attribute cannot be Computed, because there is
-// nowhere in a query to put a result. Nothing is declared here yet -- the pilot's API takes
-// no filter arguments on its collection read -- so a query lists everything visible to the
-// configured credentials.
+// nowhere in a query to put a result.
+{{- if not .List.HasFilters }}
+// Nothing is declared -- this facet's collection read takes no filter arguments -- so a
+// query lists everything visible to the configured credentials.
+{{- end }}
 func (l *{{ .List.GoTypeName }}) ListResourceConfigSchema(_ context.Context, _ list.ListResourceSchemaRequest, resp *list.ListResourceSchemaResponse) {
-	resp.Schema = listschema.Schema{
-		Attributes: map[string]listschema.Attribute{},
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+{{- range .List.ConfigAttributes }}
+			{{ . }},
+{{- end }}
+		},
 	}
 }
 
+{{ if .List.HasFilters }}
+// {{ .List.FilterModelType }} is the query block's filter configuration.
+type {{ .List.FilterModelType }} struct {
+{{- range .List.FilterModelFields }}
+	{{ . }}
+{{- end }}
+}
+{{ end }}
+
 {{ with .List.Read }}
 // List streams one result per {{ $.ResourceName }} the API returns.
+{{- if $.List.IncludeResource }}
+//
+// Resource is populated only when the query asks for it, and from the element the
+// collection read already returned -- the element is the same SDK type the resource's own
+// read yields, so serving --include-resource costs no request per element.
+{{- else }}
 //
 // Only Identity and DisplayName are populated, never Resource. That is not an omission: the
-// workflow is `terraform plan -generate-config-out`, which builds configuration from the
-// identity, so reading whole objects here would cost a request per element for data the
-// query does not use.
+// collection element is not the resource's read type, so populating it would cost a request
+// per element for data the query may not use.
+{{- end }}
 func (l *{{ $.List.GoTypeName }}) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
 	tflog.Debug(ctx, "listing resources", map[string]any{"resource": ResourceName})
+{{- if $.List.HasFilters }}
+
+	var data {{ $.List.FilterModelType }}
+	if diags := req.Config.Get(ctx, &data); diags.HasError() {
+		stream.Results = list.ListResultsStreamDiagnostics(diags)
+
+		return
+	}
+{{- end }}
 
 	{{ .Assign }} {{ .Call }}
 	if err != nil {
@@ -90,6 +120,19 @@ func (l *{{ $.List.GoTypeName }}) List(ctx context.Context, req list.ListRequest
 			result.Diagnostics.Append(result.Identity.Set(ctx, identity)...)
 {{- if $.List.DisplayName }}
 			result.DisplayName = {{ $.List.DisplayName }}
+{{- end }}
+{{- if $.List.IncludeResource }}
+
+			if req.IncludeResource {
+				var state {{ $.ModelTypeName }}
+				result.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &state, &item)...)
+
+				// The mapper never touches timeouts, and a zero value carries no
+				// attribute types to serialise with.
+				state.Timeouts = {{ $.List.TimeoutsNull }}
+
+				result.Diagnostics.Append(result.Resource.Set(ctx, &state)...)
+			}
 {{- end }}
 
 			if !push(result) {

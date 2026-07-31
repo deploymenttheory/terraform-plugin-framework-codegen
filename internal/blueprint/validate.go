@@ -130,7 +130,180 @@ func (b Blueprint) Validate() error {
 		dup(&p, seenAliases, a.GoPackageAlias, at+".goPackageAlias", "import alias")
 	}
 
+	seenEphemeralKeys := map[string]bool{}
+	seenEphemeralTypes := map[string]bool{}
+
+	for i, e := range b.Ephemerals {
+		at := fmt.Sprintf("ephemerals[%d]", i)
+		if e.Key != "" {
+			at = fmt.Sprintf("ephemerals[%s]", e.Key)
+		}
+
+		if e.Drop {
+			continue
+		}
+
+		e.validate(at, &p)
+
+		dup(&p, seenEphemeralKeys, e.Key, at+".key", "ephemeral key")
+		dup(&p, seenEphemeralTypes, e.Name, at+".name", "ephemeral name")
+		dup(&p, seenAliases, e.GoPackageAlias, at+".goPackageAlias", "import alias")
+	}
+
+	b.validateAccSeeds(&p)
+
 	return p.err()
+}
+
+// validate checks one ephemeral resource.
+//
+// Structurally a data source whose result lives outside state, so this mirrors
+// DataSource.validate; the differences are the binding's lifecycle operations and the
+// attribute rules BlockEphemeral already encodes.
+func (e Ephemeral) validate(at string, p *problems) {
+	required(p, at+".key", e.Key)
+	required(p, at+".name", e.Name)
+	required(p, at+".goPackage", e.GoPackage)
+	required(p, at+".goPackageAlias", e.GoPackageAlias)
+	required(p, at+".goTypeName", e.GoTypeName)
+	required(p, at+".modelTypeName", e.ModelTypeName)
+
+	if len(e.Schema.Attributes) == 0 {
+		p.add(at+".schema.attributes", "an ephemeral with no attributes cannot be emitted")
+	}
+
+	e.Binding.validate(at+".binding", p)
+
+	seenNames := map[string]bool{}
+	seenFields := map[string]bool{}
+
+	for i, a := range e.Schema.Attributes {
+		aat := fmt.Sprintf("%s.schema.attributes[%d]", at, i)
+		if a.Name != "" {
+			aat = fmt.Sprintf("%s.schema.attributes[%s]", at, a.Name)
+		}
+
+		if a.Drop {
+			continue
+		}
+
+		a.validate(aat, p)
+		a.validateForKind(BlockEphemeral, aat, p)
+
+		dup(p, seenNames, a.Name, aat+".name", "attribute name")
+		dup(p, seenFields, a.GoField, aat+".goField", "model field")
+	}
+}
+
+func (b EphemeralBinding) validate(at string, p *problems) {
+	required(p, at+".service.importPath", b.Service.ImportPath)
+	required(p, at+".service.typeName", b.Service.TypeName)
+	required(p, at+".service.accessor", b.Service.Accessor)
+
+	required(p, at+".response.type", b.Response.Type)
+
+	switch b.Response.AccessStyle {
+	case AccessStructField:
+	case AccessMethod:
+		p.add(
+			at+".response.accessStyle",
+			"%q is reserved but not yet implemented by the emitter",
+			b.Response.AccessStyle,
+		)
+	default:
+		p.add(at+".response.accessStyle", "%q is not a known access style", b.Response.AccessStyle)
+	}
+
+	if b.Open == nil {
+		p.add(at+".open", "is required: opening the value is the one thing an ephemeral does")
+	} else {
+		b.Open.validate(at+".open", p)
+	}
+
+	// Modelled so a blueprint written today needs no reshaping, refused so nothing claims
+	// support the emitter does not have. The message names the field to remove.
+	if b.Renew != nil {
+		p.add(at+".renew", "is modelled but not yet rendered; remove it until the emitter supports renew")
+	}
+	if b.Close != nil {
+		p.add(at+".close", "is modelled but not yet rendered; remove it until the emitter supports close")
+	}
+}
+
+// validateAccSeeds checks the acceptance-seed declarations against the whole document.
+//
+// Checked at the blueprint level because a seed's whole job is to reference *another*
+// block: a data source's test creates the seed resource's object and reads it back, so
+// both ends of every mapping must exist or the generated test cannot compile.
+func (b Blueprint) validateAccSeeds(p *problems) {
+	resources := map[string]Resource{}
+	for _, r := range b.Resources {
+		if !r.Drop {
+			resources[r.Key] = r
+		}
+	}
+
+	checkSeed := func(at string, seed *AccSeed, attrs []Attribute) {
+		if seed == nil {
+			return
+		}
+
+		required(p, at+".seedResourceKey", seed.SeedResourceKey)
+
+		seedRes, ok := resources[seed.SeedResourceKey]
+		if seed.SeedResourceKey != "" && !ok {
+			p.add(at+".seedResourceKey",
+				"names resource %q, which this blueprint does not declare", seed.SeedResourceKey)
+		}
+
+		for i, arg := range seed.Args {
+			aat := fmt.Sprintf("%s.args[%d]", at, i)
+
+			required(p, aat+".attr", arg.Attr)
+			required(p, aat+".fromSeedAttr", arg.FromSeedAttr)
+
+			if arg.Attr != "" && !hasAttributeNamed(attrs, arg.Attr) {
+				p.add(aat+".attr", "names attribute %q, which this block does not declare", arg.Attr)
+			}
+			if ok && arg.FromSeedAttr != "" &&
+				!hasAttributeNamed(seedRes.Schema.Attributes, arg.FromSeedAttr) {
+				p.add(aat+".fromSeedAttr",
+					"names attribute %q, which resource %q does not declare",
+					arg.FromSeedAttr, seed.SeedResourceKey)
+			}
+		}
+	}
+
+	for _, d := range b.DataSources {
+		if !d.Drop {
+			checkSeed(fmt.Sprintf("dataSources[%s].accTest", d.Key), d.AccTest, d.Schema.Attributes)
+		}
+	}
+	for _, e := range b.Ephemerals {
+		if !e.Drop {
+			checkSeed(fmt.Sprintf("ephemerals[%s].accTest", e.Key), e.AccTest, e.Schema.Attributes)
+		}
+	}
+
+	for _, a := range b.Actions {
+		if a.Drop || a.AccTest == nil {
+			continue
+		}
+		at := fmt.Sprintf("actions[%s].accTest", a.Key)
+
+		for i, env := range a.AccTest.EnvArgs {
+			aat := fmt.Sprintf("%s.envArgs[%d]", at, i)
+			required(p, aat+".attr", env.Attr)
+			required(p, aat+".envVar", env.EnvVar)
+			if env.Attr != "" && !hasAttributeNamed(a.Schema.Attributes, env.Attr) {
+				p.add(aat+".attr", "names attribute %q, which this action does not declare", env.Attr)
+			}
+		}
+
+		if a.AccTest.Cleanup != nil {
+			a.AccTest.Cleanup.validate(at+".cleanup", p)
+		}
+	}
 }
 
 // validate checks one action.
@@ -319,6 +492,57 @@ func (r Resource) validate(at string, p *problems) {
 	r.validateIDBinding(at, seenNames, seenFields, p)
 	r.validatePolicy(at, hasWritable, p)
 	r.validateImport(at, seenNames, p)
+	r.validateConditionGates(at, p)
+}
+
+// validateConditionGates checks that every behaviour variant's condition names a wire path
+// this schema actually has.
+//
+// Checked here rather than on the attribute, because the gate is nearly always a *different*
+// attribute -- matchType's variant is gated on type -- so the whole schema's wire paths have
+// to be in view. A condition on a path nothing has would never hold and never fail: the
+// variant would sit in the committed file looking meaningful and constraining nothing.
+func (r Resource) validateConditionGates(at string, p *problems) {
+	known := map[string]bool{}
+	var collect func(attrs []Attribute, prefix string)
+	collect = func(attrs []Attribute, prefix string) {
+		for _, a := range attrs {
+			path := a.Wire.JSONPath
+			if path == "" {
+				path = a.Name
+			}
+			if prefix != "" {
+				path = prefix + "." + path
+			}
+			known[path] = true
+			if a.Type.NestedObject != nil {
+				collect(a.Type.NestedObject.Attributes, path)
+			}
+		}
+	}
+	collect(r.Schema.Attributes, "")
+
+	var check func(attrs []Attribute, prefix string)
+	check = func(attrs []Attribute, prefix string) {
+		for _, a := range attrs {
+			aat := fmt.Sprintf("%s.schema.attributes[%s]", at, a.Name)
+			if prefix != "" {
+				aat = fmt.Sprintf("%s.schema.attributes[%s.%s]", at, prefix, a.Name)
+			}
+			for i, v := range a.Behaviour.Conditional {
+				for j, c := range v.When {
+					if c.JSONPath != "" && !known[c.JSONPath] {
+						p.add(fmt.Sprintf("%s.behaviour.conditional[%d].when[%d].jsonPath", aat, i, j),
+							"%q is not a wire path in this schema", c.JSONPath)
+					}
+				}
+			}
+			if a.Type.NestedObject != nil {
+				check(a.Type.NestedObject.Attributes, a.Name)
+			}
+		}
+	}
+	check(r.Schema.Attributes, "")
 }
 
 // validateSchemaVersion refuses a schema version bump with nothing to migrate old state.
@@ -520,8 +744,63 @@ func (a Attribute) validate(at string, p *problems) {
 		}
 	}
 
+	a.validateConditionalBehaviour(at, p)
+
 	// The wire directions are checked by validateForKind, because which of them an
 	// attribute needs depends on whether its block kind sends anything to the API.
+}
+
+// validateConditionalBehaviour checks a variant's own shape.
+//
+// Whether each condition's jsonPath names a field the schema actually has is checked at the
+// resource level, where the whole schema's wire paths are in view; everything self-contained
+// is refused here, so a hand-edited variant fails close to the text that is wrong.
+func (a Attribute) validateConditionalBehaviour(at string, p *problems) {
+	seenWhen := map[string]bool{}
+
+	for i, v := range a.Behaviour.Conditional {
+		vat := fmt.Sprintf("%s.behaviour.conditional[%d]", at, i)
+
+		if len(v.When) == 0 {
+			// A variant with no precondition is the unconditional Behaviour wearing a
+			// costume: it would read as conditional while applying always.
+			p.add(vat+".when", "is required; an unconditional observation belongs in behaviour itself")
+		}
+
+		seenPath := map[string]bool{}
+		for j, c := range v.When {
+			cat := fmt.Sprintf("%s.when[%d]", vat, j)
+			switch {
+			case c.JSONPath == "":
+				p.add(cat+".jsonPath", "is required")
+			case c.Equals == "":
+				// Absence of a gate value is a different observation from the gate holding
+				// the empty string, and nothing distinguishes them once written.
+				p.add(cat+".equals", "is required")
+			case seenPath[c.JSONPath]:
+				p.add(cat+".jsonPath", "%q appears twice in one precondition, which cannot both hold",
+					c.JSONPath)
+			}
+			seenPath[c.JSONPath] = true
+		}
+
+		if v.Behaviour.IsZero() {
+			p.add(vat+".behaviour", "observes nothing; a variant must say what held under its condition")
+		}
+		if len(v.Behaviour.Conditional) > 0 {
+			p.add(vat+".behaviour.conditional",
+				"a variant must not nest variants; conditions are conjunctive, so state them in one when")
+		}
+
+		if key := v.WhenKey(); key != "" {
+			if seenWhen[key] {
+				// Two variants for one branch would race: which one a consumer honours would
+				// depend on iteration order.
+				p.add(vat+".when", "duplicates another variant's precondition; fold the observations into one variant")
+			}
+			seenWhen[key] = true
+		}
+	}
 }
 
 func (t AttrType) validate(at string, p *problems) {
@@ -818,6 +1097,61 @@ func (lf ListFacet) validate(r Resource, at string, p *problems) {
 			p.add(at+".identityFrom",
 				"does not fill identity field %q; a partly-filled identity records an address "+
 					"that does not resolve", ia.GoField)
+		}
+	}
+
+	lf.validateFilterSchema(at, p)
+}
+
+// validateFilterSchema checks a list facet's filter config schema.
+//
+// BlockList's refusal of Computed is what keeps this filter-only structurally. The
+// cross-check on the read call's arguments is the part a per-attribute walk cannot see:
+// an ArgConfigField naming a model field no filter attribute has would generate a read
+// that does not compile.
+func (lf ListFacet) validateFilterSchema(at string, p *problems) {
+	filterFields := map[string]bool{}
+
+	if lf.Schema != nil {
+		if len(lf.Schema.Attributes) == 0 {
+			p.add(at+".schema.attributes",
+				"is declared and empty; a facet with no filters should omit the schema entirely")
+		}
+
+		seenNames := map[string]bool{}
+		seenFields := map[string]bool{}
+
+		for i, a := range lf.Schema.Attributes {
+			aat := fmt.Sprintf("%s.schema.attributes[%d]", at, i)
+			if a.Name != "" {
+				aat = fmt.Sprintf("%s.schema.attributes[%s]", at, a.Name)
+			}
+
+			if a.Drop {
+				continue
+			}
+
+			a.validate(aat, p)
+			a.validateForKind(BlockList, aat, p)
+
+			dup(p, seenNames, a.Name, aat+".name", "filter attribute name")
+			dup(p, seenFields, a.GoField, aat+".goField", "filter model field")
+
+			filterFields[a.GoField] = true
+		}
+	}
+
+	if lf.Read == nil {
+		return
+	}
+
+	for i, arg := range lf.Read.Args {
+		if arg.Kind != ArgConfigField || arg.Field == "" {
+			continue
+		}
+		if !filterFields[arg.Field] {
+			p.add(fmt.Sprintf("%s.read.args[%d].field", at, i),
+				"names model field %q, which no filter attribute declares", arg.Field)
 		}
 	}
 }

@@ -392,6 +392,36 @@
   },
   "resources": [
     {
+      "name": "credential",
+      "schema": {
+        "attributes": [
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Unique ID of the credential."
+            }
+          },
+          {
+            "name": "name",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "The name of the credential."
+            }
+          },
+          {
+            "name": "value",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "The value of the credential, stored encrypted. Sensitive: it is a secret, and the matching ephemeral resource exists so other providers can consume it without it ever reaching their state.",
+              "sensitive": true
+            }
+          }
+        ],
+        "markdown_description": "Manages a ThousandEyes credential: a named secret whose value is stored encrypted and used by browser synthetics transaction tests. The create and update responses deliberately omit the value; state is populated by the read that follows, which returns it decrypted."
+      }
+    },
+    {
       "name": "tag",
       "schema": {
         "attributes": [

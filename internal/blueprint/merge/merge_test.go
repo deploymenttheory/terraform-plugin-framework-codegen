@@ -578,6 +578,45 @@ func TestUnit_Merge_AConditionalResourceLevelFactIsNotApplied(t *testing.T) {
 	}
 }
 
+// TestUnit_Merge_AnIntegralFactIsARecommendationOnly.
+//
+// Changing an attribute's type breaks state compatibility, which is a human decision, like
+// RequiresReplace -- and the fact is capped at Inferred anyway, because JSON cannot
+// distinguish 5 from 5.0. So the blueprint must not move, and the evidence must not vanish.
+func TestUnit_Merge_AnIntegralFactIsARecommendationOnly(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+	before, err := blueprint.Marshal(bp)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+
+	integral := fact("colour", probe.FactIntegral, probe.BoolValue(true), probe.Inferred)
+
+	res, err := Apply(&bp, []probe.Fact{integral}, Options{SnapshotID: "snap-1"})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	after, err := blueprint.Marshal(bp)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if string(before) != string(after) {
+		t.Error("an integral fact must not change the blueprint")
+	}
+
+	if len(res.Recommendations) != 1 ||
+		!strings.Contains(res.Recommendations[0], "whole number") {
+		t.Errorf("the evidence should surface as a recommendation: %v", res.Recommendations)
+	}
+	if len(res.Conflicts) != 0 {
+		t.Errorf("a recognised fact must not fall into the unknown-field conflict: %+v",
+			res.Conflicts)
+	}
+}
+
 // TestUnit_Merge_NestedFieldsAreReached: a fact about a field inside an object has to land on
 // the right attribute, addressed by its dotted JSON path.
 func TestUnit_Merge_NestedFieldsAreReached(t *testing.T) {
@@ -938,24 +977,20 @@ func conditional(f probe.Fact, gate, value string) probe.Fact {
 	return f
 }
 
-// TestUnit_Merge_AConditionalFactIsRecordedAndNotApplied is the fix for the class of bug that
-// prompted the whole phase.
+// TestUnit_Merge_AConditionalFactBecomesABehaviourVariant is step two of the fix for the
+// class of bug that prompted the whole phase.
 //
-// Behaviour is unconditional: one Writable, one ReturnedOnRead, one RejectedValues per attribute.
-// Writing a fact that holds only under a precondition into one of those makes it a claim about
-// every case. That is exactly how the pilot came to suppress matchType's read-back for every tag
-// on the strength of an observation about static ones, and how endpoint-agent came to sit in
-// objectType's rejected set.
-//
-// Both halves matter. Applying it is the bug; dropping it silently would lose evidence somebody
-// paid a live run for. So it goes into the description, with the condition first.
-func TestUnit_Merge_AConditionalFactIsRecordedAndNotApplied(t *testing.T) {
+// Behaviour's own fields are unconditional: one Writable, one ReturnedOnRead per attribute.
+// Writing a fact that holds only under a precondition into one of those makes it a claim
+// about every case -- which is exactly how the pilot came to suppress matchType's read-back
+// for every tag on the strength of an observation about static ones. Step one held the fact
+// back as description prose; now it lands as a variant, structure emission can act on, and
+// the unconditional field still must not move.
+func TestUnit_Merge_AConditionalFactBecomesABehaviourVariant(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()
 
-	// Strong enough to apply, and withheld anyway. The confidence is deliberately Corroborated so
-	// the test cannot pass because the fact was too weak.
 	returned := conditional(
 		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.Corroborated),
 		"objectType", "static",
@@ -968,27 +1003,193 @@ func TestUnit_Merge_AConditionalFactIsRecordedAndNotApplied(t *testing.T) {
 
 	attr := bp.Resources[0].Schema.Attributes[0]
 
-	// The claim must not reach Behaviour, where nothing could tell it was conditional.
+	// The claim must not reach the unconditional field, where nothing could tell it was
+	// conditional.
 	if attr.Behaviour.ReturnedOnRead != nil {
-		t.Errorf("a conditional fact must not be applied to Behaviour: %v",
+		t.Errorf("a conditional fact must not touch the unconditional field: %v",
 			*attr.Behaviour.ReturnedOnRead)
 	}
 
-	// And it must not be lost either.
-	if !strings.Contains(attr.MarkdownDescription, "Conditionally") {
-		t.Errorf("the fact should be recorded in the description:\n%s", attr.MarkdownDescription)
+	// It lands as a variant instead.
+	if len(attr.Behaviour.Conditional) != 1 {
+		t.Fatalf("variants = %+v, want exactly one", attr.Behaviour.Conditional)
 	}
+	v := attr.Behaviour.Conditional[0]
+	if v.WhenKey() != "objectType=static" {
+		t.Errorf("WhenKey = %q, want objectType=static", v.WhenKey())
+	}
+	if v.Behaviour.ReturnedOnRead == nil || *v.Behaviour.ReturnedOnRead {
+		t.Errorf("the variant should observe returnedOnRead=false: %+v", v.Behaviour)
+	}
+
+	// Visible in the report as a change naming the branch. The description rewrite adds
+	// its own change beside it, so this looks for the variant's rather than counting.
+	var named bool
+	for _, c := range res.Changes {
+		if strings.Contains(c.What, "conditional[objectType=static].returnedOnRead") {
+			named = true
+		}
+	}
+	if !named {
+		t.Errorf("a change should name the variant dimension: %+v", res.Changes)
+	}
+
+	// ...and in the description, condition first, so a reader meets the branch before the
+	// claim.
 	if !strings.Contains(attr.MarkdownDescription, `objectType is "static"`) {
 		t.Errorf("the condition should be stated:\n%s", attr.MarkdownDescription)
 	}
+	if !strings.Contains(attr.MarkdownDescription, "behaviour variant") {
+		t.Errorf("the description should say the fact was applied:\n%s", attr.MarkdownDescription)
+	}
 
-	// Counted separately from Ignored, which would be the wrong word: this was strong enough to
-	// act on and was withheld because the schema cannot express the condition.
-	if res.Conditional != 1 {
-		t.Errorf("Conditional = %d, want 1", res.Conditional)
+	// Nothing was held back and nothing was too weak.
+	if res.Conditional != 0 {
+		t.Errorf("Conditional = %d, want 0 -- the fact found a structural home", res.Conditional)
 	}
 	if res.Ignored != 0 {
-		t.Errorf("Ignored = %d, want 0 -- the fact was not too weak", res.Ignored)
+		t.Errorf("Ignored = %d, want 0", res.Ignored)
+	}
+}
+
+// TestUnit_Merge_AConditionalFactWithNoVariantHomeIsHeldBackAsProse.
+//
+// The variant only has fields for the dimensions a conditional derivation exists for. A
+// conditional fact about any other dimension keeps step one's behaviour: the condition is
+// stated in the description, counted, and nothing is generated from it -- because applying
+// it is the bug, and dropping it silently loses evidence somebody paid a live run for.
+func TestUnit_Merge_AConditionalFactWithNoVariantHomeIsHeldBackAsProse(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+
+	volatile := conditional(
+		fact("colour", probe.FactVolatile, probe.BoolValue(true), probe.Corroborated),
+		"objectType", "static",
+	)
+
+	res, err := Apply(&bp, []probe.Fact{volatile}, Options{SnapshotID: "snap-1"})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	attr := bp.Resources[0].Schema.Attributes[0]
+
+	if attr.Behaviour.Volatile != nil {
+		t.Errorf("a conditional fact must not be applied unconditionally: %v",
+			*attr.Behaviour.Volatile)
+	}
+	if len(attr.Behaviour.Conditional) != 0 {
+		t.Errorf("volatile has no variant home yet: %+v", attr.Behaviour.Conditional)
+	}
+	if !strings.Contains(attr.MarkdownDescription, "Conditionally") ||
+		!strings.Contains(attr.MarkdownDescription, "Not applied") {
+		t.Errorf("the fact should be held back in the description:\n%s", attr.MarkdownDescription)
+	}
+	if res.Conditional != 1 {
+		t.Errorf("Conditional = %d, want the held-back fact counted", res.Conditional)
+	}
+}
+
+// TestUnit_Merge_AConditionalFactContradictingTheBaseConflicts.
+//
+// The set base is nearly always a stale unconditional half-truth -- returnedOnRead false,
+// measured on a static tag before the probe learned to attribute branches. The re-record
+// replaces it; until then the disagreement must be visible rather than resolved by whichever
+// fact merged last.
+func TestUnit_Merge_AConditionalFactContradictingTheBaseConflicts(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+	staleFalse := false
+	bp.Resources[0].Schema.Attributes[0].Behaviour.ReturnedOnRead = &staleFalse
+
+	branchTrue := conditional(
+		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(true), probe.Corroborated),
+		"objectType", "dynamic",
+	)
+
+	res, err := Apply(&bp, []probe.Fact{branchTrue}, Options{SnapshotID: "snap-1"})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	attr := bp.Resources[0].Schema.Attributes[0]
+
+	if len(attr.Behaviour.Conditional) != 0 {
+		t.Errorf("a contradicted branch fact must not be written: %+v", attr.Behaviour.Conditional)
+	}
+	if attr.Behaviour.ReturnedOnRead == nil || *attr.Behaviour.ReturnedOnRead {
+		t.Error("the base must not move either; the conflict is the output")
+	}
+	if len(res.Conflicts) != 1 || !strings.Contains(res.Conflicts[0].Fix, "re-record") {
+		t.Errorf("the disagreement should conflict with the fix named: %+v", res.Conflicts)
+	}
+}
+
+// TestUnit_Merge_AConditionalWritableFalseStillNeedsCorroboration.
+//
+// The corroboration floor does not soften because the claim is scoped to a branch: a branch
+// observation still turns an attribute a practitioner can set into one they cannot.
+func TestUnit_Merge_AConditionalWritableFalseStillNeedsCorroboration(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+
+	weak := conditional(
+		fact("colour", probe.FactWritable, probe.BoolValue(false), probe.Observed),
+		"objectType", "static",
+	)
+
+	res, err := Apply(&bp, []probe.Fact{weak}, Options{SnapshotID: "snap-1"})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	if len(bp.Resources[0].Schema.Attributes[0].Behaviour.Conditional) != 0 {
+		t.Error("an uncorroborated writable=false must not reach a variant")
+	}
+	if len(res.Conflicts) != 1 || !strings.Contains(res.Conflicts[0].Why, "corroboration") {
+		t.Errorf("the refusal should be a conflict naming the missing corroboration: %+v",
+			res.Conflicts)
+	}
+}
+
+// TestUnit_Merge_VariantOrderDoesNotDependOnFactOrder.
+//
+// The committed blueprint is diffed, so two merges over the same facts in any arrival order
+// must produce byte-identical variants.
+func TestUnit_Merge_VariantOrderDoesNotDependOnFactOrder(t *testing.T) {
+	t.Parallel()
+
+	forward := []probe.Fact{
+		conditional(fact("colour", probe.FactRequiredByAPI, probe.BoolValue(true), probe.Observed),
+			"objectType", "dynamic"),
+		conditional(fact("colour", probe.FactRequiredByAPI, probe.BoolValue(false), probe.Observed),
+			"objectType", "static"),
+	}
+	backward := []probe.Fact{forward[1], forward[0]}
+
+	one := testBlueprint()
+	if _, err := Apply(&one, forward, Options{SnapshotID: "snap-1"}); err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	other := testBlueprint()
+	if _, err := Apply(&other, backward, Options{SnapshotID: "snap-1"}); err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	a, err := blueprint.Marshal(one)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	b, err := blueprint.Marshal(other)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+
+	if string(a) != string(b) {
+		t.Error("fact arrival order leaked into the committed bytes")
 	}
 }
 
@@ -1023,13 +1224,13 @@ func TestUnit_Merge_TheSameFactWithoutAConditionIsApplied(t *testing.T) {
 	}
 }
 
-// TestUnit_Merge_ConditionalFactsFromBothBranchesAreBothRecorded.
+// TestUnit_Merge_ConditionalFactsFromBothBranchesBecomeSeparateVariants.
 //
-// Two branches of one gate produce two facts that disagree, which is the whole point of measuring
-// them separately. Neither may win, and neither may be dropped -- an attribute whose description
-// records only one branch reads as though that branch were the whole truth, which is where this
-// started.
-func TestUnit_Merge_ConditionalFactsFromBothBranchesAreBothRecorded(t *testing.T) {
+// Two branches of one gate produce two facts that disagree, which is the whole point of
+// measuring them separately. Neither may win the unconditional field, neither may be
+// dropped, and each lands in its own variant -- an attribute recording only one branch
+// reads as though that branch were the whole truth, which is where this started.
+func TestUnit_Merge_ConditionalFactsFromBothBranchesBecomeSeparateVariants(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()
@@ -1053,25 +1254,44 @@ func TestUnit_Merge_ConditionalFactsFromBothBranchesAreBothRecorded(t *testing.T
 	attr := bp.Resources[0].Schema.Attributes[0]
 
 	if attr.Behaviour.RequiredByAPI != nil {
-		t.Errorf("neither branch may win: %v", *attr.Behaviour.RequiredByAPI)
+		t.Errorf("neither branch may win the unconditional field: %v",
+			*attr.Behaviour.RequiredByAPI)
 	}
+
+	if len(attr.Behaviour.Conditional) != 2 {
+		t.Fatalf("variants = %+v, want one per branch", attr.Behaviour.Conditional)
+	}
+	// Sorted by canonical key, not arrival order.
+	if attr.Behaviour.Conditional[0].WhenKey() != "objectType=dynamic" ||
+		attr.Behaviour.Conditional[1].WhenKey() != "objectType=static" {
+		t.Errorf("variants should sort by canonical key: %q, %q",
+			attr.Behaviour.Conditional[0].WhenKey(), attr.Behaviour.Conditional[1].WhenKey())
+	}
+
+	dynamic := attr.Behaviour.Conditional[0].Behaviour.RequiredByAPI
+	static := attr.Behaviour.Conditional[1].Behaviour.RequiredByAPI
+	if dynamic == nil || !*dynamic || static == nil || *static {
+		t.Errorf("each branch should carry its own observation: dynamic=%v static=%v",
+			dynamic, static)
+	}
+
 	for _, want := range []string{`objectType is "dynamic"`, `objectType is "static"`} {
 		if !strings.Contains(attr.MarkdownDescription, want) {
 			t.Errorf("both branches should be recorded, missing %s:\n%s",
 				want, attr.MarkdownDescription)
 		}
 	}
-	if res.Conditional != 2 {
-		t.Errorf("Conditional = %d, want 2", res.Conditional)
+	if res.Conditional != 0 {
+		t.Errorf("Conditional = %d, want 0 -- both facts found a structural home", res.Conditional)
 	}
 }
 
-// TestUnit_Merge_AConditionalFactStaysOutOfTheSchemaOnASecondMerge.
+// TestUnit_Merge_AConditionalFactIsIdempotentOnASecondMerge.
 //
-// Idempotence, which merge -check depends on. A conditional fact writes prose and nothing else, so
-// merging the same facts twice must report no further change -- otherwise CI would fail on every
-// run against unchanged evidence.
-func TestUnit_Merge_AConditionalFactStaysOutOfTheSchemaOnASecondMerge(t *testing.T) {
+// Idempotence, which merge -check depends on. A second merge over the same facts must find
+// the existing variant, see the same value, and report no further change -- otherwise CI
+// would fail on every run against unchanged evidence.
+func TestUnit_Merge_AConditionalFactIsIdempotentOnASecondMerge(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()

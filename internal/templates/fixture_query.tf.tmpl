@@ -1,0 +1,11 @@
+{{ .Header }}
+
+# The query configuration: one list block over the whole collection. The provider block
+# is explicit because the list block references it by symbol, unlike a resource step
+# where the test factories inject it.
+
+provider "{{ .ProviderName }}" {}
+
+list "{{ .TerraformType }}" "{{ .Label }}" {
+  provider = {{ .ProviderName }}
+}

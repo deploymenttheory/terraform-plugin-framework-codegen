@@ -527,6 +527,31 @@
   },
   {
     "resource": "tag",
+    "jsonPath": "legacyId",
+    "field": "integral",
+    "value": {
+      "bool": true
+    },
+    "confidence": "inferred",
+    "probe": "read.list-shape",
+    "evidence": [
+      "001-get-v7-tags",
+      "003-get-v7-tags",
+      "004-get-v7-tags",
+      "008-get-v7-tags",
+      "009-get-v7-tags",
+      "010-get-v7-tags",
+      "011-get-v7-tags",
+      "012-get-v7-tags",
+      "113-get-v7-tags"
+    ],
+    "rationale": "every observed value of this number-typed field was a whole number (13 observation(s))",
+    "alternatives": [
+      "JSON cannot distinguish 5 from 5.0, so a genuinely fractional field may simply have held whole values while observed"
+    ]
+  },
+  {
+    "resource": "tag",
     "jsonPath": "matchType",
     "field": "acceptedValues",
     "value": {

@@ -146,6 +146,18 @@ func (g *Generator) Build(bp blueprint.Blueprint, opts Options) (Plan, error) {
 		plan.Files = append(plan.Files, files...)
 	}
 
+	for _, e := range bp.Ephemerals {
+		if e.Drop || (opts.Only != "" && e.Key != opts.Only) {
+			continue
+		}
+
+		files, err := g.ephemeralFiles(bp, e, ropts)
+		if err != nil {
+			return Plan{}, fmt.Errorf("ephemeral %q: %w", e.Key, err)
+		}
+		plan.Files = append(plan.Files, files...)
+	}
+
 	// Registration files are rendered from the whole blueprint even under -only,
 	// because a registration listing a subset would not compile against a tree
 	// containing the rest.
@@ -229,6 +241,19 @@ func (g *Generator) resourceFiles(
 		})
 	}
 
+	// The requiredWhen support type, emitted exactly when resource.go references it --
+	// both derive from the same rule set, so they cannot disagree.
+	if cv, ok := render.ConditionalValidatorFile(r, ropts); ok {
+		content, err := g.renderFile("conditional_validators.go.tmpl", cv)
+		if err != nil {
+			return nil, fmt.Errorf("conditional_validators.go: %w", err)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "conditional_validators.go"),
+			Content: content,
+		})
+	}
+
 	acc, err := g.acceptanceFiles(bp, r, ropts, dir)
 	if err != nil {
 		return nil, err
@@ -281,6 +306,33 @@ func (g *Generator) acceptanceFiles(
 			Path:    filepath.Join(dir, "resource_acceptance_test.go"),
 			Content: body,
 		})
+
+		// The list facet's query test leans on the resource test's declarations --
+		// address, testResource, config() -- so it exists exactly when that file does.
+		if r.List != nil {
+			listAcc, query, lErr := render.ListAccTest(bp, r, ropts)
+			if lErr != nil {
+				return nil, fmt.Errorf("list acceptance test: %w", lErr)
+			}
+
+			lBody, rErr := g.renderFile("list_acceptance_test.go.tmpl", listAcc)
+			if rErr != nil {
+				return nil, fmt.Errorf("list_acceptance_test.go: %w", rErr)
+			}
+			out = append(out, File{
+				Path:    filepath.Join(dir, "list_acceptance_test.go"),
+				Content: lBody,
+			})
+
+			qBody, rErr := g.renderFile("fixture_query.tf.tmpl", query)
+			if rErr != nil {
+				return nil, fmt.Errorf("query.tf: %w", rErr)
+			}
+			out = append(out, File{
+				Path:    filepath.Join(dir, "testdata", "query.tf"),
+				Content: qBody,
+			})
+		}
 	case !unsupported(err):
 		return nil, fmt.Errorf("acceptance test: %w", err)
 	}
@@ -315,6 +367,20 @@ func (g *Generator) acceptanceFiles(
 			Content:  body,
 			Scaffold: f.scaffold,
 		})
+	}
+
+	// The replace fixture exists exactly when the acceptance test has a replace step;
+	// both derive from the same candidate, so they cannot disagree about whether to run.
+	replace, ok, rErr := render.ReplaceFixture(bp, r, ropts)
+	switch {
+	case rErr != nil && !unsupported(rErr):
+		return nil, fmt.Errorf("replace.tf: %w", rErr)
+	case rErr == nil && ok:
+		body, tErr := g.renderFile("fixture_minimal.tf.tmpl", replace)
+		if tErr != nil {
+			return nil, fmt.Errorf("replace.tf: %w", tErr)
+		}
+		out = append(out, File{Path: filepath.Join(dir, "testdata", "replace.tf"), Content: body})
 	}
 
 	return out, nil
@@ -366,6 +432,48 @@ func (g *Generator) dataSourceFiles(
 		out = append(out, File{Path: filepath.Join(dir, w.name), Content: content})
 	}
 
+	// The acceptance test, when the blueprint declares a seed for it. A refusal is a
+	// stated one -- no seed, no test -- surfaced by `emit -v`, and the data source is
+	// still emitted; see acceptanceFiles for the reasoning.
+	acc, fixture, accErr := render.DataSourceAccTest(bp, d, ropts)
+	switch {
+	case accErr == nil:
+		body, rErr := g.renderFile("datasource_acceptance_test.go.tmpl", acc)
+		if rErr != nil {
+			return nil, fmt.Errorf("datasource_acceptance_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "datasource_acceptance_test.go"),
+			Content: body,
+		})
+
+		fx, rErr := g.renderFile("fixture_datasource.tf.tmpl", fixture)
+		if rErr != nil {
+			return nil, fmt.Errorf("datasource.tf: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "testdata", "datasource.tf"),
+			Content: fx,
+		})
+
+		// The seed's existence helper, re-emitted into this package: the seed's own
+		// copy is a _test.go file no other package can import.
+		helper, hErr := render.SeedHelper(bp, d, ropts)
+		if hErr != nil {
+			return nil, fmt.Errorf("seed helper: %w", hErr)
+		}
+		hBody, rErr := g.renderFile("test_helper_test.go.tmpl", helper)
+		if rErr != nil {
+			return nil, fmt.Errorf("seed_helper_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "seed_helper_test.go"),
+			Content: hBody,
+		})
+	case !unsupported(accErr):
+		return nil, fmt.Errorf("acceptance test: %w", accErr)
+	}
+
 	return out, nil
 }
 
@@ -401,6 +509,113 @@ func (g *Generator) actionFiles(
 		out = append(out, File{Path: filepath.Join(dir, w.name), Content: content})
 	}
 
+	// The acceptance test, when the blueprint declares how to run one. No accTest is a
+	// stated refusal, surfaced by `emit -v`, and the action is still emitted.
+	acc, fixture, accErr := render.ActionAccTest(bp, a, ropts)
+	switch {
+	case accErr == nil:
+		body, rErr := g.renderFile("action_acceptance_test.go.tmpl", acc)
+		if rErr != nil {
+			return nil, fmt.Errorf("action_acceptance_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "action_acceptance_test.go"),
+			Content: body,
+		})
+
+		fx, rErr := g.renderFile("fixture_action.tf.tmpl", fixture)
+		if rErr != nil {
+			return nil, fmt.Errorf("action.tf: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "testdata", "action.tf"),
+			Content: fx,
+		})
+	case !unsupported(accErr):
+		return nil, fmt.Errorf("acceptance test: %w", accErr)
+	}
+
+	return out, nil
+}
+
+// ephemeralFiles renders the four files that make up one ephemeral resource.
+//
+// Four, like a data source's: one operation, no request body, so there is no
+// construct.go. The result mapper is named ephemeral_state at the template level and
+// state.go on disk for symmetry with the other kinds' packages.
+func (g *Generator) ephemeralFiles(
+	bp blueprint.Blueprint,
+	e blueprint.Ephemeral,
+	ropts render.Options,
+) ([]File, error) {
+	view, err := render.Ephemeral(bp, e, ropts)
+	if err != nil {
+		return nil, fmt.Errorf("building the render view: %w", err)
+	}
+
+	dir := render.EphemeralDir(bp, e)
+
+	wanted := []struct {
+		name, tmpl string
+		skip       bool
+	}{
+		{"ephemeral.go", "ephemeral.go.tmpl", false},
+		{"model.go", "ephemeral_model.go.tmpl", false},
+		{"open.go", "ephemeral_open.go.tmpl", false},
+		{"state.go", "ephemeral_state.go.tmpl", len(view.State.Assignments) == 0},
+	}
+
+	out := make([]File, 0, len(wanted))
+	for _, w := range wanted {
+		if w.skip {
+			continue
+		}
+		content, err := g.renderFile(w.tmpl, view)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", w.name, err)
+		}
+		out = append(out, File{Path: filepath.Join(dir, w.name), Content: content})
+	}
+
+	// The acceptance test, when the blueprint declares a seed for it; a stated refusal
+	// otherwise, and the ephemeral is still emitted.
+	acc, fixture, accErr := render.EphemeralAccTest(bp, e, ropts)
+	switch {
+	case accErr == nil:
+		body, rErr := g.renderFile("ephemeral_acceptance_test.go.tmpl", acc)
+		if rErr != nil {
+			return nil, fmt.Errorf("ephemeral_acceptance_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "ephemeral_acceptance_test.go"),
+			Content: body,
+		})
+
+		fx, rErr := g.renderFile("fixture_ephemeral.tf.tmpl", fixture)
+		if rErr != nil {
+			return nil, fmt.Errorf("ephemeral.tf: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "testdata", "ephemeral.tf"),
+			Content: fx,
+		})
+
+		helper, hErr := render.EphemeralSeedHelper(bp, e, ropts)
+		if hErr != nil {
+			return nil, fmt.Errorf("seed helper: %w", hErr)
+		}
+		hBody, rErr := g.renderFile("test_helper_test.go.tmpl", helper)
+		if rErr != nil {
+			return nil, fmt.Errorf("seed_helper_test.go: %w", rErr)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "seed_helper_test.go"),
+			Content: hBody,
+		})
+	case !unsupported(accErr):
+		return nil, fmt.Errorf("acceptance test: %w", accErr)
+	}
+
 	return out, nil
 }
 
@@ -418,6 +633,7 @@ func (g *Generator) registrationFiles(
 		{"datasources.go", "provider_datasources.go.tmpl", render.KindDataSources},
 		{"list_resources.go", "provider_list_resources.go.tmpl", render.KindListResources},
 		{"actions.go", "provider_actions.go.tmpl", render.KindActions},
+		{"ephemerals.go", "provider_ephemerals.go.tmpl", render.KindEphemerals},
 	}
 
 	out := make([]File, 0, len(specs))

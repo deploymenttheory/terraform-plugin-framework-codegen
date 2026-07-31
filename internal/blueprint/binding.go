@@ -41,6 +41,27 @@ type DataSourceBinding struct {
 	Response ResponseModel `json:"response"`
 }
 
+// EphemeralBinding wires an ephemeral resource to the SDK.
+//
+// Open is the one operation this toolkit renders: it runs when Terraform needs the value,
+// and its response populates the result. Renew and Close are modelled now so a blueprint
+// written today needs no reshaping when they are rendered -- the same reasoning as
+// DataSourceBinding's pointer operations -- but render refuses them until a pilot needs
+// one, because shipping lifecycle codegen with no live acceptance run behind it would
+// claim support nothing has proven.
+type EphemeralBinding struct {
+	Service ServiceRef `json:"service"`
+
+	// Open is required; Validate enforces it.
+	Open *Operation `json:"open,omitempty"`
+	// Renew re-obtains a value that expires. Accepted, not yet rendered.
+	Renew *Operation `json:"renew,omitempty"`
+	// Close releases the value at the end of the run. Accepted, not yet rendered.
+	Close *Operation `json:"close,omitempty"`
+
+	Response ResponseModel `json:"response"`
+}
+
 // ResponseModel is the SDK type a data source reads back, and how its fields are reached.
 //
 // The resource equivalent is BodyModels, which also carries a request type and a

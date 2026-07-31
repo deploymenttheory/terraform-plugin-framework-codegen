@@ -88,16 +88,23 @@ func TestUnit_CLI_Interop_TheCommittedSpecIsValid(t *testing.T) {
 	if doc.Provider == nil || doc.Provider.Name != "thousandeyes" {
 		t.Errorf("provider = %+v, want a name-only block for thousandeyes", doc.Provider)
 	}
-	if len(doc.Resources) != 1 || doc.Resources[0].Name != "tag" {
-		t.Fatalf("resources = %+v, want exactly one named tag", doc.Resources)
+	// Sorted by name in the export, so credential precedes tag.
+	if len(doc.Resources) != 2 || doc.Resources[0].Name != "credential" ||
+		doc.Resources[1].Name != "tag" {
+		t.Fatalf("resources = %+v, want credential and tag", doc.Resources)
 	}
-	if got := len(doc.Resources[0].Schema.Attributes); got != 17 {
+	if got := len(doc.Resources[1].Schema.Attributes); got != 17 {
 		t.Errorf("tag has %d attributes, want 17", got)
+	}
+	if got := len(doc.Resources[0].Schema.Attributes); got != 3 {
+		t.Errorf("credential has %d attributes, want 3", got)
 	}
 	// Blocks are never written: the nested-attributes choice is deliberate and
 	// permanent for a published provider.
-	if got := len(doc.Resources[0].Schema.Blocks); got != 0 {
-		t.Errorf("the export must not contain blocks, got %d", got)
+	for _, r := range doc.Resources {
+		if got := len(r.Schema.Blocks); got != 0 {
+			t.Errorf("the export must not contain blocks, got %d on %s", got, r.Name)
+		}
 	}
 }
 
@@ -238,8 +245,8 @@ func TestUnit_CLI_Interop_ImportWritesInvisibleDrafts(t *testing.T) {
 		t.Fatalf("walking the output: %v", err)
 	}
 
-	if len(found) != 2 {
-		t.Errorf("wrote %v, want a provider draft and one resource draft", found)
+	if len(found) != 3 {
+		t.Errorf("wrote %v, want a provider draft and one draft per resource", found)
 	}
 
 	// The load path itself must not see them. This is the assertion that would fail

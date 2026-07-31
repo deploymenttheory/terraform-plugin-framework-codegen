@@ -12,6 +12,7 @@ import (
 // The packages a generated acceptance test needs.
 const (
 	pkgTFTestResource = "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	pkgTFPlancheck    = "github.com/hashicorp/terraform-plugin-testing/plancheck"
 	pkgTesting        = "testing"
 )
 
@@ -41,6 +42,15 @@ type AccTestView struct {
 	// HasMaximal is false when no maximal fixture could be produced, in which case the
 	// update step is omitted rather than repeating the create.
 	HasMaximal bool
+
+	// HasReplace is true when an immutable attribute in the minimal fixture has a second
+	// value the API was observed or documented to take, so a step can flip it and assert
+	// the plan forces replacement -- the generated RequiresReplace working, proven live.
+	HasReplace bool
+	// ReplaceAttr names the flipped attribute, for the step's comment.
+	ReplaceAttr string
+	// ReplaceChecks are the assertions after the replacement applied.
+	ReplaceChecks []string
 
 	// ImportIgnore lists attributes import verification must skip, as Go string literals.
 	ImportIgnore []string
@@ -108,6 +118,12 @@ func AccTest(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (AccTes
 		v.MaximalChecks = checksFor(r, maximal, patterns)
 	}
 
+	if replace, attr, ok := replaceFixture(r, minimal); ok {
+		v.HasReplace = true
+		v.ReplaceAttr = attr
+		v.ReplaceChecks = checksFor(r, replace, patterns)
+	}
+
 	v.ImportIgnore, v.ImportIgnoreReasons = importIgnores(r)
 	v.PatternVars = patterns.Decls()
 
@@ -117,6 +133,9 @@ func AccTest(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (AccTes
 	imports.add("os", "")
 	imports.add("path/filepath", "")
 	imports.add(pkgTFTestResource, "")
+	if v.HasReplace {
+		imports.add(pkgTFPlancheck, "")
+	}
 	if len(v.PatternVars) > 0 {
 		imports.add(pkgRegexp, "")
 	}

@@ -36,6 +36,7 @@ package merge
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -181,6 +182,13 @@ func Apply(bp *blueprint.Blueprint, facts []probe.Fact, opts Options) (Result, e
 		opts.Strategy = StrategyAnnotate
 	}
 
+	// Sorted before anything reads them, so the blueprint merge writes -- variant order,
+	// description observation order -- cannot depend on the order facts arrived in. The
+	// committed facts document is sorted already; this makes the property merge's own
+	// rather than an assumption about the caller.
+	facts = append([]probe.Fact(nil), facts...)
+	probe.SortFacts(facts)
+
 	byResource := map[string][]probe.Fact{}
 	for _, f := range facts {
 		byResource[f.Resource] = append(byResource[f.Resource], f)
@@ -311,6 +319,150 @@ func conditionalObservation(f probe.Fact) string {
 		f.Because(), f.Rationale)
 }
 
+// applyConditionalFact folds a conditional fact into the attribute's behaviour variant for
+// its branch, and reports whether the fact's dimension has a variant home at all.
+//
+// False means the caller keeps the older hold-back -- the condition stated in the
+// description, nothing generated from it. The set of dimensions with a home is deliberately
+// the set a conditional *derivation* exists for; a fact kind no probe can attribute to a
+// gate arriving here conditionally would be hand-authored, and hand-authored behaviour
+// belongs in the blueprint directly, not smuggled through a facts document.
+func applyConditionalFact(
+	res *blueprint.Resource,
+	attr *blueprint.Attribute,
+	path string,
+	f probe.Fact,
+	observations *[]string,
+	result *Result,
+) bool {
+	switch f.Field {
+	case probe.FactWritable, probe.FactRequiredByAPI, probe.FactReturnedOnRead,
+		probe.FactAcceptedValues, probe.FactRejectedValues:
+	default:
+		return false
+	}
+
+	// The same corroboration floor the unconditional path has, for the same reason: a branch
+	// observation still turns an attribute a practitioner can set into one they cannot.
+	if f.Field == probe.FactWritable {
+		if v := f.Value.Bool; v != nil && !*v && !f.Confidence.AtLeast(probe.Corroborated) {
+			result.Conflicts = append(result.Conflicts, needsCorroboration(res, path, f,
+				"writable=false "+f.Because()))
+			return true
+		}
+	}
+
+	// A conditional bool contradicting a *set* unconditional base is a conflict, not a
+	// write. The base is nearly always a stale unconditional half-truth -- returnedOnRead
+	// false, measured on a static tag -- and the re-record that produced this branch fact
+	// replaces it; until then the disagreement must be visible rather than resolved by
+	// whichever fact merged last.
+	if base := baseFor(attr, f.Field); base != nil && f.Value.Bool != nil && *base != *f.Value.Bool {
+		result.Conflicts = append(result.Conflicts, Conflict{
+			Resource: res.Key, JSONPath: path,
+			Curated:  fmt.Sprintf("behaviour.%s is %t unconditionally", behaviourName(f.Field), *base),
+			Observed: fmt.Sprintf("%t %s", *f.Value.Bool, f.Because()),
+			Why: "an unconditional claim and a branch observation disagree; one of them is a " +
+				"half-truth, and merge has no basis for choosing which",
+			Evidence: f.Evidence,
+			Fix: "re-record so the unconditional fact is re-derived per branch, then merge " +
+				"again",
+		})
+		return true
+	}
+
+	variant := variantFor(attr, f.When)
+	what := fmt.Sprintf("behaviour.conditional[%s].%s", variant.WhenKey(), behaviourName(f.Field))
+
+	switch f.Field {
+	case probe.FactWritable:
+		setBool(&variant.Behaviour.Writable, f, res, path, what, result)
+	case probe.FactRequiredByAPI:
+		setBool(&variant.Behaviour.RequiredByAPI, f, res, path, what, result)
+	case probe.FactReturnedOnRead:
+		setBool(&variant.Behaviour.ReturnedOnRead, f, res, path, what, result)
+	case probe.FactAcceptedValues:
+		variant.Behaviour.AcceptedValues = append([]string(nil), f.Value.List...)
+	case probe.FactRejectedValues:
+		variant.Behaviour.RejectedValues = append([]string(nil), f.Value.List...)
+	}
+
+	*observations = appendUniqueString(*observations, fmt.Sprintf(
+		"Conditionally, %s: %s. Applied as a behaviour variant.", f.Because(), f.Rationale))
+
+	sortVariants(attr.Behaviour.Conditional)
+
+	return true
+}
+
+// variantFor finds the attribute's variant for this precondition, appending one if no
+// branch matches. Matching is by canonical key, so the order a probe appended conditions
+// in cannot mint a duplicate branch.
+func variantFor(attr *blueprint.Attribute, when []probe.Condition) *blueprint.BehaviourVariant {
+	probe := blueprint.BehaviourVariant{When: append([]blueprint.Condition(nil), when...)}
+	key := probe.WhenKey()
+
+	for i := range attr.Behaviour.Conditional {
+		if attr.Behaviour.Conditional[i].WhenKey() == key {
+			return &attr.Behaviour.Conditional[i]
+		}
+	}
+
+	attr.Behaviour.Conditional = append(attr.Behaviour.Conditional, probe)
+
+	return &attr.Behaviour.Conditional[len(attr.Behaviour.Conditional)-1]
+}
+
+// baseFor is the attribute's unconditional value for a boolean dimension, nil when unset or
+// not boolean.
+func baseFor(attr *blueprint.Attribute, field probe.FactField) *bool {
+	switch field {
+	case probe.FactWritable:
+		return attr.Behaviour.Writable
+	case probe.FactRequiredByAPI:
+		return attr.Behaviour.RequiredByAPI
+	case probe.FactReturnedOnRead:
+		return attr.Behaviour.ReturnedOnRead
+	default:
+		return nil
+	}
+}
+
+// behaviourName is the Behaviour field a fact writes to, for report labels.
+func behaviourName(field probe.FactField) string {
+	switch field {
+	case probe.FactWritable:
+		return "writable"
+	case probe.FactRequiredByAPI:
+		return "requiredByApi"
+	case probe.FactReturnedOnRead:
+		return "returnedOnRead"
+	case probe.FactAcceptedValues:
+		return "acceptedValues"
+	case probe.FactRejectedValues:
+		return "rejectedValues"
+	default:
+		return string(field)
+	}
+}
+
+// sortVariants keeps the committed order canonical, so two merges over the same facts in
+// any order produce byte-identical variants.
+func sortVariants(variants []blueprint.BehaviourVariant) {
+	sort.SliceStable(variants, func(i, j int) bool {
+		return variants[i].WhenKey() < variants[j].WhenKey()
+	})
+}
+
+// appendUniqueString adds a description observation once, which is what keeps a second
+// merge over the same facts from stuttering the marker block.
+func appendUniqueString(dst []string, s string) []string {
+	if slices.Contains(dst, s) {
+		return dst
+	}
+	return append(dst, s)
+}
+
 // applyAttributeFacts is one case per fact field, deliberately.
 //
 // The complexity is the arity of the fact vocabulary, not tangled control flow: every branch is
@@ -343,19 +495,23 @@ func applyAttributeFacts(
 			continue
 		}
 
-		// A conditional fact is recorded and not applied, and this is the guard that fixes the
-		// class of bug the phase exists for.
+		// A conditional fact must never reach the unconditional fields below: writing one
+		// there makes it a claim about every case, which is exactly how the pilot came to
+		// suppress matchType's read-back for every tag on the strength of an observation
+		// about static ones, and how endpoint-agent came to sit in objectType's rejected
+		// set.
 		//
-		// Behaviour is unconditional: one Writable, one ReturnedOnRead, one RejectedValues per
-		// attribute. Writing a fact that holds only under a precondition into one of those
-		// fields makes it a claim about every case -- which is exactly how the pilot came to
-		// suppress matchType's read-back for every tag on the strength of an observation about
-		// static ones, and how endpoint-agent came to sit in objectType's rejected set.
-		//
-		// So it goes into the description with its condition stated, where a person reads it and
-		// nothing generates from it. That is strictly better than both alternatives: applying it
-		// is the bug, and dropping it silently loses evidence somebody paid a live run for.
+		// The dimensions a conditional derivation exists for go into a Behaviour variant --
+		// structure emission can act on. Everything else keeps the older hold-back: the
+		// condition is stated in the description, where a person reads it and nothing
+		// generates from it. That is strictly better than both alternatives -- applying it
+		// unconditionally is the bug, and dropping it silently loses evidence somebody paid
+		// a live run for.
 		if f.Conditional() {
+			if applyConditionalFact(res, attr, path, f, &observations, result) {
+				continue
+			}
+
 			observations = append(observations, conditionalObservation(f))
 			result.Conditional++
 
@@ -382,15 +538,17 @@ func applyAttributeFacts(
 			}
 			setBool(&attr.Behaviour.Immutable, f, res, path, "behaviour.immutable", result)
 
-			// Never a plan modifier, whatever the confidence. Whether Terraform should destroy
-			// and recreate is a decision about somebody's infrastructure; the toolkit's job is
-			// to put the evidence in front of the person making it.
+			// Merge itself writes no plan modifier; render consumes behaviour.immutable
+			// from the *committed* blueprint. That committed diff is the human gate: the
+			// emitted RequiresReplace destroys and recreates real infrastructure, so the
+			// decision lives in review of this change, and the recommendation says
+			// exactly what accepting it will do.
 			if v := f.Value.Bool; v != nil && *v {
 				result.Recommendations = append(result.Recommendations, fmt.Sprintf(
-					"%s.%s: the API refuses in-place changes, so RequiresReplace is now "+
-						"warranted. Add it by hand: it destroys and recreates real "+
-						"infrastructure, which is not a decision this tool makes.",
-					res.Key, path))
+					"%s.%s: the API refuses in-place changes. Committing this behaviour "+
+						"change makes the generated schema carry RequiresReplace, which "+
+						"destroys and recreates real infrastructure on any change to it "+
+						"-- review it as that decision.", res.Key, path))
 			}
 
 		case probe.FactRequiredByAPI:
@@ -496,6 +654,18 @@ func applyAttributeFacts(
 		case probe.FactSideEffect:
 			observations = append(observations,
 				"Writing this also changes "+f.Value.Text+".")
+
+		case probe.FactIntegral:
+			// A recommendation and nothing else, deliberately: changing an attribute's
+			// type breaks state compatibility, which is a human decision, like
+			// RequiresReplace -- and the fact is capped at Inferred anyway, because JSON
+			// cannot distinguish 5 from 5.0.
+			if v := f.Value.Bool; v != nil && *v {
+				result.Recommendations = append(result.Recommendations, fmt.Sprintf(
+					"%s.%s: every observed value was a whole number. If the API's own type "+
+						"is an integer, consider int64 -- a type change breaks state "+
+						"compatibility, so it is not made automatically.", res.Key, path))
+			}
 
 		case probe.FactErrorEnvelope, probe.FactUnknownParamTolerated,
 			probe.FactUpdateStyle, probe.FactReadBack, probe.FactNotFoundIsSuccess:

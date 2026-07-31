@@ -25,11 +25,20 @@
 // input changing would make the drift check useless.
 package blueprint
 
-import "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
+import (
+	"fmt"
+	"sort"
+	"strings"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
+)
 
 // FormatVersion is the blueprint format version. It is deliberately unrelated to
 // the Provider Code Specification's version, which this format does not track.
-const FormatVersion = "3"
+//
+// Version 4 added ephemerals, behaviour variants, list filter schemas and acceptance
+// seeds in one step, so the committed pilot re-serialized once rather than four times.
+const FormatVersion = "4"
 
 // Blueprint is one provider.
 type Blueprint struct {
@@ -43,6 +52,7 @@ type Blueprint struct {
 	Resources   []Resource   `json:"resources,omitempty"`
 	Actions     []Action     `json:"actions,omitempty"`
 	DataSources []DataSource `json:"dataSources,omitempty"`
+	Ephemerals  []Ephemeral  `json:"ephemerals,omitempty"`
 
 	Source SourceInfo `json:"source,omitzero"`
 }
@@ -119,7 +129,10 @@ type Conventions struct {
 	ResourceRoot   string `json:"resourceRoot,omitempty"`
 	DataSourceRoot string `json:"dataSourceRoot,omitempty"`
 	// ActionRoot is where action packages live. Defaults to internal/services/actions.
-	ActionRoot     string `json:"actionRoot,omitempty"`
+	ActionRoot string `json:"actionRoot,omitempty"`
+	// EphemeralRoot is where ephemeral packages live. Defaults to
+	// internal/services/ephemerals.
+	EphemeralRoot  string `json:"ephemeralRoot,omitempty"`
 	ProviderPkgDir string `json:"providerPkgDir,omitempty"`
 
 	DefaultTimeouts Timeouts `json:"defaultTimeouts,omitzero"`
@@ -249,7 +262,70 @@ type DataSource struct {
 	// modelled separately, so that Conventions.DefaultTimeouts stays one type.
 	Timeouts Timeouts `json:"timeouts,omitzero"`
 
+	// AccTest seeds the generated acceptance test. A data source reads an object it does
+	// not create, so which resource creates one is judgement declared here, not inferred;
+	// absence is a stated refusal to generate the test, never a broken one.
+	AccTest *AccSeed `json:"accTest,omitempty"`
+
 	Drop bool `json:"drop,omitempty"`
+}
+
+// Ephemeral is one ephemeral resource: a value opened for the duration of a plan or
+// apply and never persisted to state.
+//
+// The natural case is a secret -- a credential's decrypted value handed to another
+// provider's configuration -- which is why the kind exists in the framework at all.
+// Structurally it is a data source whose result lives outside state: config attributes
+// reach the API as call arguments, result attributes are flattened from the response,
+// and BlockEphemeral already refuses Default and plan modifiers on both.
+type Ephemeral struct {
+	Key            string `json:"key"`
+	Name           string `json:"name"`
+	GoPackage      string `json:"goPackage"`
+	GoPackageAlias string `json:"goPackageAlias"`
+	GoTypeName     string `json:"goTypeName"`
+	// ModelTypeName is the struct the ephemeral decodes its configuration into and
+	// populates its result from.
+	ModelTypeName string `json:"modelTypeName"`
+
+	ServiceGroup  string `json:"serviceGroup,omitempty"`
+	APIVersionDir string `json:"apiVersionDir,omitempty"`
+
+	DocRefURL string `json:"docRefUrl,omitempty"`
+
+	Schema Schema `json:"schema"`
+
+	Binding EphemeralBinding `json:"binding"`
+
+	// Timeouts carries only a read deadline that is ever used; Open is a read.
+	Timeouts Timeouts `json:"timeouts,omitzero"`
+
+	// AccTest seeds the generated acceptance test, exactly as a data source's does.
+	AccTest *AccSeed `json:"accTest,omitempty"`
+
+	Drop bool `json:"drop,omitempty"`
+}
+
+// AccSeed links a read-only block's generated acceptance test to the resource that
+// creates the object it reads.
+//
+// The linkage is declared rather than inferred because it is judgement: nothing in a
+// schema says which resource's minimal fixture produces an object this block can find.
+type AccSeed struct {
+	// SeedResourceKey names a Resource in the same blueprint whose minimal fixture
+	// creates the object.
+	SeedResourceKey string `json:"seedResourceKey"`
+	// Args maps this block's config attributes onto the seed resource's attributes,
+	// rendered in the fixture as HCL references: id = thousandeyes_tag.test.id.
+	Args []SeedArg `json:"args,omitempty"`
+}
+
+// SeedArg is one config attribute filled from one seed resource attribute.
+type SeedArg struct {
+	// Attr is the attribute on this block.
+	Attr string `json:"attr"`
+	// FromSeedAttr is the attribute on the seed resource it references.
+	FromSeedAttr string `json:"fromSeedAttr"`
 }
 
 // Action is one Terraform action: an imperative operation with no state.
@@ -286,7 +362,32 @@ type Action struct {
 	// shape; CreateSeconds is the field it uses, since an invoke is a write.
 	Timeouts Timeouts `json:"timeouts,omitzero"`
 
+	// AccTest configures the generated acceptance test. An action's subject frequently
+	// cannot be created by Terraform -- disabling an endpoint agent needs an enrolled
+	// agent -- so its identifier arrives from the environment and cleanup is an explicit
+	// SDK call. Absence is a stated refusal to generate the test.
+	AccTest *ActionAccTest `json:"accTest,omitempty"`
+
 	Drop bool `json:"drop,omitempty"`
+}
+
+// ActionAccTest seeds an action's generated acceptance test.
+type ActionAccTest struct {
+	// EnvArgs fills config attributes from environment variables at test run time. The
+	// generated test skips, with the variable named, when one is unset -- an action whose
+	// subject cannot be created must not fail the run for a missing fixture.
+	EnvArgs []EnvArg `json:"envArgs,omitempty"`
+	// Cleanup is the SDK call that reverses the action after the test -- re-enabling what
+	// was disabled. Nil means the action is not reversed, and the generated test says so.
+	Cleanup *Operation `json:"cleanup,omitempty"`
+}
+
+// EnvArg fills one action config attribute from one environment variable.
+type EnvArg struct {
+	// Attr is the attribute on the action's schema.
+	Attr string `json:"attr"`
+	// EnvVar names the variable the test reads.
+	EnvVar string `json:"envVar"`
 }
 
 // ActionBinding is the single SDK call an action makes.
@@ -536,6 +637,13 @@ type ListFacet struct {
 	// DisplayNameIsPointer records whether that field needs dereferencing, which generated
 	// SDKs make the common case for a string.
 	DisplayNameIsPointer bool `json:"displayNameIsPointer,omitempty"`
+
+	// Schema is the list resource's filter config schema. Optional: a facet with no
+	// filters lists everything, and its config schema is empty. Validated against
+	// BlockList, whose refusal of Computed is the structural reason the schema is
+	// filter-only -- there is nowhere to put a result. Filter values reach the read call
+	// as arguments, so each of Read's ArgConfigField args must name an attribute here.
+	Schema *Schema `json:"schema,omitempty"`
 }
 
 // ListIdentityMapping fills one identity field from one element field.
@@ -746,6 +854,68 @@ type Behaviour struct {
 	// on it, which is why merge must carry it per attribute rather than discarding it as
 	// resource-level information.
 	ValuesClosed *bool `json:"valuesClosed,omitempty"`
+
+	// Conditional is the observed behaviour that holds only under a precondition.
+	//
+	// The unconditional fields above answer "what does the API do with this field"; a variant
+	// answers the same question for one branch of the API's own dispatch -- matchType is
+	// returned on read when type is "dynamic" and discarded when it is "static", and writing
+	// either answer into ReturnedOnRead above would make it a claim about every tag. That is
+	// exactly how the pilot came to suppress an attribute's read-back and import verification
+	// for every tag on the strength of an observation about static ones.
+	//
+	// Semantics, which merge enforces and emission must honour:
+	//   - A base field above holds unconditionally. A variant's non-zero fields override it
+	//     only while every one of the variant's conditions holds; conditions are conjunctive.
+	//   - When variants disagree about a dimension, the base field for that dimension stays
+	//     nil -- "unknown unconditionally" -- and anything consuming the base must not treat
+	//     the absence as evidence.
+	//   - Variants are sorted by their canonical WhenKey and unique under it, so the committed
+	//     document is byte-stable. A variant's Behaviour never nests Conditional; validation
+	//     refuses the recursion.
+	Conditional []BehaviourVariant `json:"conditional,omitempty"`
+}
+
+// Condition is one precondition on a behaviour variant: a wire field held this value.
+//
+// JSONPath speaks the schema's wire vocabulary -- the same dotted paths merge uses to
+// address attributes -- not Terraform attribute names, because the precondition was
+// observed on the wire and the prober never learns Terraform naming. Equals is a string
+// because a gate has to be enumerable to be crossed, and the probe plan declares gate
+// values as strings.
+type Condition struct {
+	// JSONPath is the gate field.
+	JSONPath string `json:"jsonPath"`
+	// Equals is the value it held.
+	Equals string `json:"equals"`
+}
+
+// String renders a condition for a report and for an attribute's description.
+func (c Condition) String() string { return fmt.Sprintf("%s is %q", c.JSONPath, c.Equals) }
+
+// BehaviourVariant is Behaviour under a precondition.
+type BehaviourVariant struct {
+	// When is the precondition, conjunctive and never empty.
+	When []Condition `json:"when"`
+	// Behaviour is what was observed while the precondition held. Only its non-zero
+	// fields say anything; it never nests Conditional.
+	Behaviour Behaviour `json:"behaviour"`
+}
+
+// WhenKey renders the precondition as one canonical string.
+//
+// This is the identity of a variant: two variants with equal keys are the same branch, and
+// merge folds facts into the existing one rather than appending a duplicate. Sorted by path
+// so the key does not depend on the order conditions were appended in; validation refuses a
+// repeated path, so sorting by path alone is total.
+func (v BehaviourVariant) WhenKey() string {
+	parts := make([]string, 0, len(v.When))
+	for _, c := range v.When {
+		parts = append(parts, c.JSONPath+"="+c.Equals)
+	}
+	sort.Strings(parts)
+
+	return strings.Join(parts, ";")
 }
 
 // IsZero reports whether nothing has been observed about an attribute.
@@ -763,7 +933,8 @@ func (b Behaviour) IsZero() bool {
 		b.Normalises == "" &&
 		len(b.AcceptedValues) == 0 &&
 		len(b.RejectedValues) == 0 &&
-		b.ValuesClosed == nil
+		b.ValuesClosed == nil &&
+		len(b.Conditional) == 0
 }
 
 // UpdateStyle is how the API's update operation treats fields the request omits.

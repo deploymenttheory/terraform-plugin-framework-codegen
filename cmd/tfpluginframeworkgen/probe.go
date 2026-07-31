@@ -345,6 +345,7 @@ func checkLedger(mode, provider, resource string) error {
 // runProbeMode records, replays or verifies.
 func runProbeMode(opts probeRun) error {
 	failures := 0
+	verified := 0
 
 	for _, subj := range opts.subjects {
 		root := filepath.Join(opts.evidenceRoot, opts.provider, subj.Resource)
@@ -368,14 +369,34 @@ func runProbeMode(opts probeRun) error {
 					failures++
 					continue
 				}
+				if errors.Is(err, cassette.ErrNoSnapshot) {
+					// A resource with no committed evidence is a resource nobody has
+					// recorded yet, which is the normal state of one just added to the
+					// blueprint -- the pipeline authors the blueprint first and records
+					// second. Failing the whole run here would block adding any resource
+					// before a live run, so it is a stated note; the run still fails when
+					// *nothing* had evidence, because that verify proved nothing.
+					fmt.Fprintf(os.Stderr,
+						"  note  %s: no committed evidence; record a snapshot to bring it "+
+							"under the replay gate\n", subj.Resource)
+					continue
+				}
 				return err
 			}
+			verified++
 		}
 	}
 
 	if failures > 0 {
 		return fmt.Errorf("%w: %d resource(s) did not reproduce their committed facts",
 			probe.ErrReplayMismatch, failures)
+	}
+
+	// A replay or verify that touched no evidence at all proved nothing, and letting it
+	// exit zero would let the CI gate go green on an empty evidence tree.
+	if opts.mode != modeRecord && verified == 0 {
+		return fmt.Errorf("%w: no resource has committed evidence to %s against",
+			errNothingToDo, opts.mode)
 	}
 
 	return nil

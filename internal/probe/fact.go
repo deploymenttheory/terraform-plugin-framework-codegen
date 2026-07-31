@@ -115,6 +115,14 @@ const (
 	// of the schema meets the staleness rather than having to go looking for it.
 	FactRejectedValues FactField = "rejectedValues"
 
+	// FactIntegral: every observed value of a number-typed field was a whole number.
+	//
+	// Capped at Inferred by design: JSON cannot distinguish 5 from 5.0, so integral
+	// observations are consistent with a genuinely fractional field that happened to hold
+	// whole values. Merge turns it into a recommendation only -- changing an attribute's
+	// type breaks state compatibility, which is a human decision, like RequiresReplace.
+	FactIntegral FactField = "integral"
+
 	// FactErrorEnvelope: which error shape the API returns for which status.
 	FactErrorEnvelope FactField = "errorEnvelope"
 	// FactUnknownParamTolerated: the API ignores query parameters it does not know,
@@ -222,19 +230,14 @@ type Fact struct {
 
 // Condition is one precondition: a field held this value while the fact was observed.
 //
-// Equals is a string rather than a Value because a gate has to be *enumerable* to be crossed
-// -- a probe can only vary a field across values somebody listed -- and the plan declares
-// gates as strings, via Plan.DefaultInfluencers. A field with no enumerable value set cannot
-// be a gate, so a condition can only ever name one of those strings.
-type Condition struct {
-	// JSONPath is the gate field, in the same vocabulary as Fact.JSONPath.
-	JSONPath string `json:"jsonPath"`
-	// Equals is the value it held.
-	Equals string `json:"equals"`
-}
-
-// String renders a condition for a report and for an attribute's description.
-func (c Condition) String() string { return fmt.Sprintf("%s is %q", c.JSONPath, c.Equals) }
+// An alias for the blueprint's type rather than a mirror of it, for the same reason Value
+// embeds blueprint.Literal: merge copies a fact's conditions into a behaviour variant
+// verbatim, and two structurally identical types would add a conversion whose only failure
+// mode is drifting apart. The JSONPath is in the same vocabulary as Fact.JSONPath, and
+// Equals is a string because a gate has to be *enumerable* to be crossed -- a probe can only
+// vary a field across values somebody listed, and the plan declares gate values as strings,
+// via Plan.DefaultInfluencers.
+type Condition = blueprint.Condition
 
 // Conditional reports whether this fact holds only under a precondition.
 func (f Fact) Conditional() bool { return len(f.When) > 0 }
@@ -378,6 +381,7 @@ var knownFactFields = map[FactField]bool{
 	FactDefaultIsDerived: true, FactSilentlyIgnoredOnUpdate: true,
 	FactNormalisation: true, FactSideEffect: true,
 	FactValuesClosed: true, FactAcceptedValues: true, FactRejectedValues: true,
+	FactIntegral:      true,
 	FactErrorEnvelope: true, FactUnknownParamTolerated: true,
 }
 

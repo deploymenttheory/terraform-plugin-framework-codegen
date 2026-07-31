@@ -1,5 +1,5 @@
 {
-  "formatVersion": "3",
+  "formatVersion": "4",
   "dataSources": [
     {
       "key": "tags",
@@ -512,6 +512,9 @@
           "type": "tags.ResourceTags",
           "accessStyle": "structField"
         }
+      },
+      "accTest": {
+        "seedResourceKey": "tag"
       }
     }
   ]

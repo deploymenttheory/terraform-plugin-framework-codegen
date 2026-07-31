@@ -77,7 +77,11 @@ func TestUnit_Emit_TheStateMapperHasOneCallSite(t *testing.T) {
 
 	// Per generated package: each resource and data source declares its own mapper, so the
 	// property is one call site within a package rather than across the provider.
-	byPackage := map[string][]string{}
+	type packageSites struct {
+		lifecycle []string
+		list      []string
+	}
+	byPackage := map[string]*packageSites{}
 
 	for _, f := range plan.Files {
 		if !strings.HasSuffix(f.Path, ".go") {
@@ -85,22 +89,41 @@ func TestUnit_Emit_TheStateMapperHasOneCallSite(t *testing.T) {
 		}
 
 		dir := filepath.Dir(f.Path)
-		byPackage[dir] = append(byPackage[dir], callsTo(t, f.Path, f.Content, stateMapperName)...)
+		if byPackage[dir] == nil {
+			byPackage[dir] = &packageSites{}
+		}
+		sites := callsTo(t, f.Path, f.Content, stateMapperName)
+		if filepath.Base(f.Path) == "list_resource.go" {
+			byPackage[dir].list = append(byPackage[dir].list, sites...)
+		} else {
+			byPackage[dir].lifecycle = append(byPackage[dir].lifecycle, sites...)
+		}
 	}
 
 	var checked int
 
 	for dir, sites := range byPackage {
-		if len(sites) == 0 {
+		if len(sites.lifecycle) == 0 && len(sites.list) == 0 {
 			// A package with no mapper at all: the provider registry files.
 			continue
 		}
 
 		checked++
 
-		if len(sites) != 1 {
-			t.Errorf("%s calls %s %d times, want exactly one:\n  %s",
-				dir, stateMapperName, len(sites), strings.Join(sites, "\n  "))
+		if len(sites.lifecycle) != 1 {
+			t.Errorf("%s calls %s %d times in its lifecycle, want exactly one:\n  %s",
+				dir, stateMapperName, len(sites.lifecycle),
+				strings.Join(sites.lifecycle, "\n  "))
+		}
+
+		// The one sanctioned second caller: a list facet serving --include-resource maps
+		// the element the collection read already returned. It cannot delegate through
+		// readAfterWrite -- that would cost a request per element, the template's own
+		// stated non-goal -- and it maps the same read response shape the lifecycle does,
+		// so the property the single site exists for still holds.
+		if len(sites.list) > 1 {
+			t.Errorf("%s calls %s %d times in list_resource.go, want at most one:\n  %s",
+				dir, stateMapperName, len(sites.list), strings.Join(sites.list, "\n  "))
 		}
 	}
 

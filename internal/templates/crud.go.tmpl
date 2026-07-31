@@ -281,6 +281,21 @@ func (r *{{ $.GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequ
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 {{ end }}
+{{ if .CRUD.ReplaceOnly }}
+// Update satisfies the resource interface for an API that has no update operation.
+//
+// Every writable attribute carries RequiresReplace, so Terraform plans a replacement for
+// any change and this method is never invoked. Reaching it means a writable attribute is
+// missing the modifier, which is a generator bug rather than a runtime condition, and it
+// says so instead of guessing at an update the API cannot perform.
+func (r *{{ .GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	resp.Diagnostics.AddError(
+		"Update is not supported by the API",
+		"Every change to {{ .ResourceName }} forces replacement, so Terraform should never "+
+			"have called Update. This is a bug in the provider; please report it.",
+	)
+}
+{{ end }}
 {{ with .CRUD.Delete }}
 // Delete removes a {{ $.ResourceName }}.
 func (r *{{ $.GoTypeName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

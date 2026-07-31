@@ -72,6 +72,25 @@ func {{ .TestName }}(t *testing.T) {
 				),
 			},
 {{- end }}
+{{- if .HasReplace }}
+			// Flip {{ .ReplaceAttr }}, which the API refuses to change in place. The plan
+			// must say so before anything is destroyed -- this is the generated
+			// RequiresReplace proven live, and without the plan check the step would pass
+			// by replacing whether or not the modifier exists.
+			{
+				Config: config(t, "replace.tf"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(address, plancheck.ResourceActionReplace),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+{{- range .ReplaceChecks }}
+					{{ . }},
+{{- end }}
+				),
+			},
+{{- end }}
 		},
 	})
 }
