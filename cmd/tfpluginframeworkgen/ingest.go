@@ -81,7 +81,11 @@ func inferAll(doc *openapi.Document, candidates []openapi.Candidate, opts openap
 	)
 
 	for _, c := range candidates {
-		if kind, _ := c.Classify(); kind != openapi.KindResource {
+		if kind, why := c.Classify(); kind != openapi.KindResource {
+			// Said out loud rather than silently skipped: silence reads as agreement,
+			// and a data source or action the spec offers deserves at least a line
+			// saying inference does not reach it yet.
+			log.Printf("skipped   %s: %s inference is not implemented (%s)", c.Key, kind, why)
 			skipped++
 			continue
 		}

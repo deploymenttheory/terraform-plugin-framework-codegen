@@ -142,3 +142,31 @@ belong with the re-record rather than before it.
 - `assignments`: must become `computed`. It is read-only in the document and discarded in practice.
 - `match_type`: `returnedOnRead` is conditional and currently applied unconditionally.
 - `object_type`: `endpoint-agent` is in `rejectedValues` and should not be.
+
+## Status: settled by the re-record
+
+Recorded here so the document reads as history rather than as an open problem. The
+re-record under the corrected derivations (`7.0.97-t1785500655892`) produced ten
+conditional facts, and each finding above now lives in the blueprint as structure:
+
+1. **`objectType` decides `type`** — `type` is `computed_optional` and writable, with
+   `requiredByApi = true when objectType is "endpoint-agent"` carried as a behaviour
+   variant and enforced by a generated `requiredWhen` config validator.
+2. **A dynamic tag requires `matchType` and `filters`** — both carry
+   `requiredByApi = true when objectType is "endpoint-agent" and type is "dynamic"`;
+   the shared precondition *is* the co-requirement group. Conjunctive preconditions
+   have no single gate for a validator to read, so these two stay description-only.
+3. **`matchType` is silently discarded on a static tag** — the unconditional
+   `returnedOnRead: false` is gone; the truth is one variant per branch
+   (`false when objectType is "test"`, `true when objectType is "endpoint-agent"`).
+   Fixtures, assertions, import verification and the state carry-through all treat
+   "any branch discards it" conservatively until state mapping can dispatch on the
+   branch at runtime.
+4. **`filters.scope` decides `filters.key`** — still open, deliberately: it needs
+   nested-path enum probing and a relative-path condition vocabulary.
+5. **`assignments` is read-only** — now `computed`.
+
+`endpoint-agent` no longer appears in `objectType.rejectedValues`: its refusal blames
+`type`, and the error-attribution guard now declines to count it, while a documented
+value refused by its host fixture is retried in every other declared fixture before it
+is called rejected at all.

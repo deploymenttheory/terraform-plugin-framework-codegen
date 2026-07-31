@@ -1,0 +1,34 @@
+{
+  "id": "087-post-v7-tags",
+  "seq": 87,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tags",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "qqqqqq",
+      "key": "tfpfgen-probe-write-enum-6",
+      "objectType": "test",
+      "value": "probe"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "JSON parse error: Invalid Access Type: qqqqqq",
+      "error": "Bad Request",
+      "path": "/v7/tags",
+      "status": 400,
+      "timestamp": 1785500640703,
+      "title": "Request validation failed. There are invalid or missing fields"
+    },
+    "droppedHeaders": 14
+  }
+}

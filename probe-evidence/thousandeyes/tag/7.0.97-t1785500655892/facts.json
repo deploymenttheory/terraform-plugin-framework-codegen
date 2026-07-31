@@ -1,0 +1,1053 @@
+[
+  {
+    "resource": "tag",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "404=problem"
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-tags-999999999"
+    ],
+    "rationale": "a 404 response used the problem error shape"
+  },
+  {
+    "resource": "tag",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "listEnvelopeKey=tags"
+    },
+    "confidence": "observed",
+    "probe": "read.list-shape",
+    "evidence": [
+      "001-get-v7-tags",
+      "003-get-v7-tags",
+      "004-get-v7-tags",
+      "008-get-v7-tags",
+      "009-get-v7-tags",
+      "010-get-v7-tags",
+      "011-get-v7-tags",
+      "012-get-v7-tags",
+      "127-get-v7-tags"
+    ],
+    "rationale": "the list response wraps its items under \"tags\""
+  },
+  {
+    "resource": "tag",
+    "field": "policy.delete.notFoundIsSuccess",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-tags-999999999"
+    ],
+    "rationale": "reading an absent object answered 404 with a problem error body",
+    "alternatives": [
+      "the API may answer differently for an identifier that once existed and was deleted"
+    ]
+  },
+  {
+    "resource": "tag",
+    "field": "policy.readBack",
+    "value": {
+      "readBack": {
+        "reason": "every one of 21 read(s) immediately after a create succeeded on the first attempt"
+      }
+    },
+    "confidence": "inferred",
+    "probe": "write.read-your-writes",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "034-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219",
+      "038-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219",
+      "042-get-v7-tags-adf344f4-02cf-439d-84b7-9dc830a86a26",
+      "046-get-v7-tags-06d73295-69f9-4efe-a656-ff135480d059",
+      "048-get-v7-tags-249951a7-c76e-4789-834f-47b80cdf1409",
+      "050-get-v7-tags-39206999-5104-4091-80e6-150da8420b7b",
+      "055-get-v7-tags-0fae749c-7cb5-418c-9641-7bcd4844eac4",
+      "059-get-v7-tags-0fae749c-7cb5-418c-9641-7bcd4844eac4",
+      "061-get-v7-tags-ded128e9-00ae-43ad-9b39-324c38e41dfe",
+      "065-get-v7-tags-ded128e9-00ae-43ad-9b39-324c38e41dfe",
+      "067-get-v7-tags-ded128e9-00ae-43ad-9b39-324c38e41dfe",
+      "069-get-v7-tags-a8cb0ab8-9ab0-41ce-9281-9ef263e73b71",
+      "073-get-v7-tags-a8cb0ab8-9ab0-41ce-9281-9ef263e73b71",
+      "075-get-v7-tags-a8cb0ab8-9ab0-41ce-9281-9ef263e73b71",
+      "113-get-v7-tags-fe9a8559-f20b-4866-bfca-9a38295b7717",
+      "115-get-v7-tags-19318e58-bcce-4934-8357-6a60dd43bc5f",
+      "117-get-v7-tags-612786db-ddc4-4363-af88-15f0e3aa5952",
+      "122-get-v7-tags-105bb743-1df9-450d-b0c5-08cae8c0ab95",
+      "124-get-v7-tags-bb532b4e-ef82-4d82-b13e-45e03d7a50f9"
+    ],
+    "rationale": "21 object(s) were read immediately after creation and every first read succeeded",
+    "alternatives": [
+      "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+    ]
+  },
+  {
+    "resource": "tag",
+    "field": "policy.updateStyle",
+    "value": {
+      "text": "putFull"
+    },
+    "confidence": "inferred",
+    "probe": "write.update-style",
+    "evidence": [
+      "043-put-v7-tags-adf344f4-02cf-439d-84b7-9dc830a86a26"
+    ],
+    "rationale": "an update carrying only key was refused with 400 (Validation failure), so a generated update must send the whole object",
+    "alternatives": [
+      "the refusal may be about the particular fields omitted rather than about partiality, which only omitting a different subset would separate",
+      "the API may still merge when given a body it accepts, which this refusal leaves untested"
+    ]
+  },
+  {
+    "resource": "tag",
+    "field": "unknownParamTolerated",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.unknown-param",
+    "evidence": [
+      "001-get-v7-tags",
+      "003-get-v7-tags",
+      "004-get-v7-tags",
+      "008-get-v7-tags",
+      "009-get-v7-tags",
+      "010-get-v7-tags",
+      "011-get-v7-tags",
+      "012-get-v7-tags",
+      "127-get-v7-tags"
+    ],
+    "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+    "alternatives": [
+      "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "accessType",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "all"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "082-post-v7-tags",
+      "083-post-v7-tags",
+      "084-post-v7-tags",
+      "085-post-v7-tags",
+      "086-post-v7-tags",
+      "087-post-v7-tags",
+      "088-post-v7-tags"
+    ],
+    "rationale": "1 of the 3 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "accessType",
+    "field": "rejectedValues",
+    "value": {
+      "list": [
+        "system"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "082-post-v7-tags",
+      "083-post-v7-tags",
+      "084-post-v7-tags",
+      "085-post-v7-tags",
+      "086-post-v7-tags",
+      "087-post-v7-tags",
+      "088-post-v7-tags"
+    ],
+    "rationale": "the specification documents all, partner, system but this API refused system",
+    "alternatives": [
+      "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "accessType",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.required",
+    "evidence": [
+      "015-post-v7-tags",
+      "019-post-v7-tags",
+      "023-post-v7-tags"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "accessType",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 2 create(s)"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "accessType",
+    "field": "valuesClosed",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "082-post-v7-tags",
+      "083-post-v7-tags",
+      "084-post-v7-tags",
+      "085-post-v7-tags",
+      "086-post-v7-tags",
+      "087-post-v7-tags",
+      "088-post-v7-tags"
+    ],
+    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+    "alternatives": [
+      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "assignments",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "suspected",
+    "probe": "read.returned-weak",
+    "evidence": [
+      "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+    ],
+    "rationale": "the field was absent from a read of one existing object",
+    "alternatives": [
+      "the field may be null for this particular object rather than never returned",
+      "the field may be returned only when an expansion parameter is supplied",
+      "the object may predate the field"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "assignments.id",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "suspected",
+    "probe": "read.returned-weak",
+    "evidence": [
+      "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+    ],
+    "rationale": "the field was absent from a read of one existing object",
+    "alternatives": [
+      "the field may be null for this particular object rather than never returned",
+      "the field may be returned only when an expansion parameter is supplied",
+      "the object may predate the field"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "assignments.type",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "suspected",
+    "probe": "read.returned-weak",
+    "evidence": [
+      "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+    ],
+    "rationale": "the field was absent from a read of one existing object",
+    "alternatives": [
+      "the field may be null for this particular object rather than never returned",
+      "the field may be returned only when an expansion parameter is supplied",
+      "the object may predate the field"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "color",
+    "field": "immutable",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.immutability",
+    "evidence": [
+      "059-get-v7-tags-0fae749c-7cb5-418c-9641-7bcd4844eac4"
+    ],
+    "rationale": "an update changed this field from #A1B2C3 to #A1B2C3 and the read confirmed it"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "color",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 2 create(s)"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "color",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "\"#A7EB10\""
+      }
+    },
+    "confidence": "corroborated",
+    "probe": "write.server-default",
+    "evidence": [
+      "046-get-v7-tags-06d73295-69f9-4efe-a656-ff135480d059",
+      "048-get-v7-tags-249951a7-c76e-4789-834f-47b80cdf1409",
+      "050-get-v7-tags-39206999-5104-4091-80e6-150da8420b7b"
+    ],
+    "rationale": "the field was omitted from 3 create(s) and came back as #A7EB10 every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "description",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 2 create(s)"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "description",
+    "field": "writable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "two creates sent distinct values and each read back the value it sent"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "024-post-v7-tags"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field, when objectType is \"endpoint-agent\" and type is \"dynamic\"",
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "endpoint-agent"
+      },
+      {
+        "jsonPath": "type",
+        "equals": "dynamic"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "suspected",
+    "probe": "read.returned-weak",
+    "evidence": [
+      "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+    ],
+    "rationale": "the field was absent from a read of one existing object",
+    "alternatives": [
+      "the field may be null for this particular object rather than never returned",
+      "the field may be returned only when an expansion parameter is supplied",
+      "the object may predate the field"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\"",
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "endpoint-agent"
+      },
+      {
+        "jsonPath": "type",
+        "equals": "dynamic"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters.key",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "suspected",
+    "probe": "read.returned-weak",
+    "evidence": [
+      "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+    ],
+    "rationale": "the field was absent from a read of one existing object",
+    "alternatives": [
+      "the field may be null for this particular object rather than never returned",
+      "the field may be returned only when an expansion parameter is supplied",
+      "the object may predate the field"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters.key",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\"",
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "endpoint-agent"
+      },
+      {
+        "jsonPath": "type",
+        "equals": "dynamic"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters.mode",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "suspected",
+    "probe": "read.returned-weak",
+    "evidence": [
+      "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+    ],
+    "rationale": "the field was absent from a read of one existing object",
+    "alternatives": [
+      "the field may be null for this particular object rather than never returned",
+      "the field may be returned only when an expansion parameter is supplied",
+      "the object may predate the field"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters.mode",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\"",
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "endpoint-agent"
+      },
+      {
+        "jsonPath": "type",
+        "equals": "dynamic"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters.scope",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "suspected",
+    "probe": "read.returned-weak",
+    "evidence": [
+      "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+    ],
+    "rationale": "the field was absent from a read of one existing object",
+    "alternatives": [
+      "the field may be null for this particular object rather than never returned",
+      "the field may be returned only when an expansion parameter is supplied",
+      "the object may predate the field"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters.scope",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\"",
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "endpoint-agent"
+      },
+      {
+        "jsonPath": "type",
+        "equals": "dynamic"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters.values",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "suspected",
+    "probe": "read.returned-weak",
+    "evidence": [
+      "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+    ],
+    "rationale": "the field was absent from a read of one existing object",
+    "alternatives": [
+      "the field may be null for this particular object rather than never returned",
+      "the field may be returned only when an expansion parameter is supplied",
+      "the object may predate the field"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "filters.values",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\" and type is \"dynamic\"",
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "endpoint-agent"
+      },
+      {
+        "jsonPath": "type",
+        "equals": "dynamic"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "icon",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 2 create(s)"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "icon",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "\"LABEL\""
+      }
+    },
+    "confidence": "corroborated",
+    "probe": "write.server-default",
+    "evidence": [
+      "046-get-v7-tags-06d73295-69f9-4efe-a656-ff135480d059",
+      "048-get-v7-tags-249951a7-c76e-4789-834f-47b80cdf1409",
+      "050-get-v7-tags-39206999-5104-4091-80e6-150da8420b7b"
+    ],
+    "rationale": "the field was omitted from 3 create(s) and came back as LABEL every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "key",
+    "field": "immutable",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.immutability",
+    "evidence": [
+      "067-get-v7-tags-ded128e9-00ae-43ad-9b39-324c38e41dfe"
+    ],
+    "rationale": "an update to tfpfgen-probe-write-immutability-alt-2 was refused but an update to tfpfgen-probe-write-immutability-alt-102 succeeded, so the field can be changed and the first value was the problem"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "key",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 2 create(s)"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "key",
+    "field": "writable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "two creates sent distinct values and each read back the value it sent"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "legacyId",
+    "field": "integral",
+    "value": {
+      "bool": true
+    },
+    "confidence": "inferred",
+    "probe": "read.list-shape",
+    "evidence": [
+      "001-get-v7-tags",
+      "003-get-v7-tags",
+      "004-get-v7-tags",
+      "008-get-v7-tags",
+      "009-get-v7-tags",
+      "010-get-v7-tags",
+      "011-get-v7-tags",
+      "012-get-v7-tags",
+      "127-get-v7-tags"
+    ],
+    "rationale": "every observed value of this number-typed field was a whole number (13 observation(s))",
+    "alternatives": [
+      "JSON cannot distinguish 5 from 5.0, so a genuinely fractional field may simply have held whole values while observed"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "matchType",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "and",
+        "or"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "090-post-v7-tags",
+      "091-post-v7-tags",
+      "092-post-v7-tags",
+      "093-post-v7-tags"
+    ],
+    "rationale": "2 of the 2 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "matchType",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "025-post-v7-tags"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field, when objectType is \"endpoint-agent\" and type is \"dynamic\"",
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "endpoint-agent"
+      },
+      {
+        "jsonPath": "type",
+        "equals": "dynamic"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "matchType",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "suspected",
+    "probe": "read.returned-weak",
+    "evidence": [
+      "005-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "006-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "007-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2",
+      "013-get-v7-tags-a77bf985-e99c-4317-838d-eabfbc81feb2"
+    ],
+    "rationale": "the field was absent from a read of one existing object",
+    "alternatives": [
+      "the field may be null for this particular object rather than never returned",
+      "the field may be returned only when an expansion parameter is supplied",
+      "the object may predate the field"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "matchType",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\"",
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "endpoint-agent"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "matchType",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0"
+    ],
+    "rationale": "the field was sent on 1 create(s) and appeared in no read response, including every expansion the plan declares, when objectType is \"test\"",
+    "alternatives": [
+      "the API may return it only on the collection endpoint rather than the item one",
+      "an expansion parameter this plan does not know about may reveal it"
+    ],
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "test"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "matchType",
+    "field": "valuesClosed",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "090-post-v7-tags",
+      "091-post-v7-tags",
+      "092-post-v7-tags",
+      "093-post-v7-tags"
+    ],
+    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+    "alternatives": [
+      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "objectType",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "test",
+        "dashboard",
+        "endpoint-test",
+        "v-agent",
+        "connected-devices-test"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "095-post-v7-tags",
+      "096-post-v7-tags",
+      "097-post-v7-tags",
+      "098-post-v7-tags",
+      "099-post-v7-tags",
+      "100-post-v7-tags",
+      "101-post-v7-tags",
+      "102-post-v7-tags"
+    ],
+    "rationale": "5 of the 6 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "objectType",
+    "field": "immutable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.immutability",
+    "evidence": [
+      "073-get-v7-tags-a8cb0ab8-9ab0-41ce-9281-9ef263e73b71",
+      "075-get-v7-tags-a8cb0ab8-9ab0-41ce-9281-9ef263e73b71"
+    ],
+    "rationale": "two distinct values were refused on update (409 and 409) after a control update of the unchanged value succeeded, and the first value was proven acceptable on create",
+    "alternatives": [
+      "the field may be immutable only after some state transition this object never made",
+      "both refusals may share a cause other than immutability that the control did not reach"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "objectType",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.required",
+    "evidence": [
+      "016-post-v7-tags",
+      "020-post-v7-tags",
+      "026-post-v7-tags"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "objectType",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 2 create(s)"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "objectType",
+    "field": "valuesClosed",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "095-post-v7-tags",
+      "096-post-v7-tags",
+      "097-post-v7-tags",
+      "098-post-v7-tags",
+      "099-post-v7-tags",
+      "100-post-v7-tags",
+      "101-post-v7-tags",
+      "102-post-v7-tags"
+    ],
+    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+    "alternatives": [
+      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "objectType",
+    "field": "writable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "two creates sent distinct values and each read back the value it sent"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "type",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "027-post-v7-tags"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field, when objectType is \"endpoint-agent\"",
+    "when": [
+      {
+        "jsonPath": "objectType",
+        "equals": "endpoint-agent"
+      }
+    ]
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "value",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.required",
+    "evidence": [
+      "017-post-v7-tags",
+      "021-post-v7-tags",
+      "028-post-v7-tags"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "value",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "the field appeared in the read after 2 create(s)"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "value",
+    "field": "writable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "033-get-v7-tags-cc4876e1-0590-4f92-9cf0-6eeb5b8cd3e0",
+      "037-get-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219"
+    ],
+    "rationale": "two creates sent distinct values and each read back the value it sent"
+  }
+]

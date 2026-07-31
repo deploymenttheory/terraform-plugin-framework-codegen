@@ -691,3 +691,29 @@ func TestUnit_Quirkserver_RejectsMalformedAndUnsupported(t *testing.T) {
 		t.Errorf("status = %d, want 404", status)
 	}
 }
+
+// RejectsValueUnless is exhibited separately from the table above because it needs two
+// requests to show both halves: the same value refused on one branch and taken on the
+// other, which is precisely the half-truth the enum escalation exists to correct.
+func TestUnit_Quirkserver_RejectsValueUnlessIsExhibited(t *testing.T) {
+	t.Parallel()
+
+	s := New(t, Quirks{RejectsValueUnless: map[string]Conditional{
+		"objectType=endpoint-agent": {WhenField: "mode", WhenValue: "dynamic"},
+	}})
+
+	status, body := post(t, s.CollectionURL(),
+		map[string]any{"key": "k", "objectType": "endpoint-agent", "mode": "static"})
+	if status != http.StatusBadRequest {
+		t.Fatalf("the static branch should refuse the value: %d %v", status, body)
+	}
+	if title, _ := body["title"].(string); !strings.Contains(title, "objectType") {
+		t.Errorf("the refusal should name the field: %v", body)
+	}
+
+	status, _ = post(t, s.CollectionURL(),
+		map[string]any{"key": "k2", "objectType": "endpoint-agent", "mode": "dynamic"})
+	if status != http.StatusCreated {
+		t.Fatalf("the dynamic branch should take the value: %d", status)
+	}
+}

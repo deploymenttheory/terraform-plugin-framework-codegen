@@ -1146,7 +1146,7 @@ func stateView(
 		//
 		// So the value is carried through when set and resolved to null when not. Null is the
 		// honest answer: nothing configured it and the API will never say what it holds.
-		if a.Behaviour.ReturnedOnRead != nil && !*a.Behaviour.ReturnedOnRead {
+		if notReturnedSomewhere(a.Behaviour) {
 			null, ok := scalarNullExpr(a.Type.Kind)
 			if !ok {
 				return StateView{}, &ErrUnsupported{

@@ -61,6 +61,27 @@ type AccTestView struct {
 	PatternVars []string
 }
 
+// notReturnedSomewhere reports whether any reading of the behaviour says the API may not
+// return this attribute: the unconditional field, or any branch variant.
+//
+// Deliberately conservative. A variant saying "not returned when objectType is test" is a
+// fact about one branch, but the generated fixtures are single-branch configurations and
+// nothing here resolves which branch they exercise -- so an attribute one branch discards
+// is not asserted and not import-verified on any, the exact stance the old unconditional
+// fact produced, now derived without the half-truth stored in the schema.
+func notReturnedSomewhere(b blueprint.Behaviour) bool {
+	if b.ReturnedOnRead != nil && !*b.ReturnedOnRead {
+		return true
+	}
+	for _, v := range b.Conditional {
+		if v.Behaviour.ReturnedOnRead != nil && !*v.Behaviour.ReturnedOnRead {
+			return true
+		}
+	}
+
+	return false
+}
+
 // isUnsupported reports whether an error is a stated refusal rather than a fault.
 func isUnsupported(err error) bool {
 	var u *ErrUnsupported
@@ -275,7 +296,7 @@ func unassertable(a blueprint.Attribute) string {
 	b := a.Behaviour
 
 	switch {
-	case b.ReturnedOnRead != nil && !*b.ReturnedOnRead:
+	case notReturnedSomewhere(b):
 		return "the API does not return it on read, so state cannot hold the configured value"
 	case b.Normalises != "":
 		return "the API " + b.Normalises + ", so the stored value is not the one sent"
@@ -305,7 +326,7 @@ func importIgnores(r blueprint.Resource) (names, reasons []string) {
 
 		why := ""
 		switch b := a.Behaviour; {
-		case b.ReturnedOnRead != nil && !*b.ReturnedOnRead:
+		case notReturnedSomewhere(b):
 			why = "the API never returns it, so it is absent after an import"
 		case b.Volatile != nil && *b.Volatile:
 			why = "it differs between two identical reads"

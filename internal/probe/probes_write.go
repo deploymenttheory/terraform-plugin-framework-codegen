@@ -55,8 +55,14 @@ func sentinelFor(sc Scope, f Field, round int) any {
 	// field, both fixture rounds came back 400, and the probe observed nothing whatsoever about
 	// writability for any field. Rounds take different documented values where the set has more
 	// than one, which preserves the two-distinct-values property the writability conclusion needs.
-	if len(f.AllowedValues) > 0 {
-		return f.AllowedValues[(round-1)%len(f.AllowedValues)]
+	//
+	// The pool prefers what this API was *observed* to accept and never contains what it was
+	// observed to refuse -- the same asymmetry a generated fixture uses, for the same reason. A
+	// second live run made THAT concrete: rotating accessType into the documented "system", which
+	// the committed evidence already recorded as refused, cost two of three fixture rounds and
+	// with them every observation those bodies would have made.
+	if pool := safeEnumPool(f); len(pool) > 0 {
+		return pool[(round-1)%len(pool)]
 	}
 
 	switch f.Kind {
@@ -69,6 +75,37 @@ func sentinelFor(sc Scope, f Field, round int) any {
 	default:
 		return fmt.Sprintf("probe-%s-%d", strings.ReplaceAll(f.JSONPath, ".", "-"), round)
 	}
+}
+
+// safeEnumPool is the documented values worth sending: observed-accepted first, then the
+// documented remainder minus anything observed refused. Empty when the field documents no
+// set at all.
+func safeEnumPool(f Field) []string {
+	if len(f.AllowedValues) == 0 {
+		return nil
+	}
+
+	rejected := map[string]bool{}
+	for _, v := range f.Behaviour.RejectedValues {
+		rejected[v] = true
+	}
+	seen := map[string]bool{}
+
+	pool := make([]string, 0, len(f.AllowedValues))
+	for _, v := range f.Behaviour.AcceptedValues {
+		if !rejected[v] && !seen[v] {
+			pool = append(pool, v)
+			seen[v] = true
+		}
+	}
+	for _, v := range f.AllowedValues {
+		if !rejected[v] && !seen[v] {
+			pool = append(pool, v)
+			seen[v] = true
+		}
+	}
+
+	return pool
 }
 
 // observation is what one create-and-read-back round saw about one field.
@@ -185,6 +222,11 @@ func (p writableAndReturned) bodyFor(
 	body := fixture.Body
 	sent := map[string]any{}
 
+	influencer := map[string]bool{}
+	for _, f := range sc.Influencers() {
+		influencer[f.JSONPath] = true
+	}
+
 	for _, f := range sc.Sendable() {
 		// Only top-level keys can be set independently; a nested path is carried by whatever
 		// its parent holds, and overwriting the parent would discard the fixture's own shape.
@@ -200,6 +242,17 @@ func (p writableAndReturned) bodyFor(
 			// its shape, and the probe would then record a fact about validation.
 			if _, ok := body[f.JSONPath]; !ok {
 				continue
+			}
+		case influencer[f.JSONPath]:
+			// A declared gate keeps the value its fixture paired the other fields with.
+			// Rotating it -- which the AllowedValues branch of sentinelFor would do --
+			// manufactures cross-branch bodies the operator never declared: the
+			// endpoint-agent fixture's filters make sense *because* its objectType is
+			// endpoint-agent, and a rotated gate would send them under a branch that
+			// refuses them. A gate the fixture leaves unset still gets a sentinel, so
+			// omitting one is an experiment the operator can run deliberately.
+			if _, ok := body[f.JSONPath]; !ok {
+				body[f.JSONPath] = sentinelFor(sc, f, round+1)
 			}
 		default:
 			body[f.JSONPath] = sentinelFor(sc, f, round+1)
@@ -334,7 +387,8 @@ func (p writableAndReturned) conclude(sc Scope, seen map[string][]observation, o
 			})
 
 		case allAbsent(rounds):
-			out.Facts = append(out.Facts, p.absentFact(sc, path, rounds))
+			out.Facts = append(out.Facts, scopeToMeasuredBranch(
+				p.absentFact(sc, path, rounds), sc, rounds))
 
 			// Deliberately no writability fact. From outside, "accepted and discarded" and
 			// "stored and never returned" are the same observation, and merge would act on the
@@ -357,10 +411,11 @@ func (p writableAndReturned) conclude(sc Scope, seen map[string][]observation, o
 			p.concludeMixed(sc, path, rounds, out)
 
 		default:
-			out.Facts = append(out.Facts, p.returnedFact(sc, path, rounds))
+			out.Facts = append(out.Facts, scopeToMeasuredBranch(
+				p.returnedFact(sc, path, rounds), sc, rounds))
 
 			if fact, ok := p.writableFact(sc, path, rounds); ok {
-				out.Facts = append(out.Facts, fact)
+				out.Facts = append(out.Facts, scopeToMeasuredBranch(fact, sc, rounds))
 			} else {
 				out.Notes = append(out.Notes, Note{
 					Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
@@ -451,6 +506,29 @@ func (p writableAndReturned) concludeMixed(
 			})
 		}
 	}
+}
+
+// scopeToMeasuredBranch attaches the shared gate conditions to a fact whose rounds did
+// not span every fixture, for the reason concludeRequired's uniform path does: a field
+// only one branch carries was only measured there, and "returned, unconditionally" from
+// the dynamic fixture alone is the same half-truth this phase set out to kill -- worn the
+// other way round. A fact measured in every fixture keeps its unconditional reading.
+func scopeToMeasuredBranch(fact Fact, sc Scope, rounds []observation) Fact {
+	if len(rounds) >= len(sc.Fixtures()) {
+		return fact
+	}
+
+	lists := make([][]Condition, len(rounds))
+	for i, o := range rounds {
+		lists[i] = o.gates
+	}
+
+	if common := commonConditions(lists); len(common) > 0 {
+		fact.When = common
+		fact.Rationale += ", " + fact.Because()
+	}
+
+	return fact
 }
 
 // absentFact records a field that was sent and never came back.
@@ -604,8 +682,7 @@ func (p updateStyle) Exercise(
 		return out, nil
 	}
 
-	fixture, ok := sc.Fixture(0)
-	if !ok {
+	if len(sc.Fixtures()) == 0 {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, Probe: p.Name(),
 			Message: "no fixture was supplied, so there is no valid body to update",
@@ -614,36 +691,78 @@ func (p updateStyle) Exercise(
 		return out, nil
 	}
 
-	// The omitted field. Anything sendable, top-level and not the name field -- the name has to
-	// stay in every request, for a reason worth stating: on an API that clears omitted fields,
-	// an update without the name would clear the stamped prefix, and the sweeper would then be
-	// unable to find the object it had just orphaned.
-	victim, found := p.victim(sc, fixture)
-	if !found {
+	// The style is resource-level, so any one fixture that creates will do -- and a refused
+	// baseline create used to lose the whole probe, which is how a live run once produced no
+	// update-style observation at all. Fixtures are tried in order until one creates; the
+	// switch is stated, because a fact measured under the dynamic branch's body should say so.
+	var (
+		victim Field
+		id     string
+		made   bool
+		sawAny bool
+	)
+
+	for i := range sc.Fixtures() {
+		fx, _ := sc.Fixture(i)
+
+		// The omitted field. Anything sendable, top-level and not the name field -- the name
+		// has to stay in every request, for a reason worth stating: on an API that clears
+		// omitted fields, an update without the name would clear the stamped prefix, and the
+		// sweeper would then be unable to find the object it had just orphaned.
+		v, found := p.victim(sc, fx)
+		if !found {
+			continue
+		}
+		sawAny = true
+
+		body := fx.Body
+		body[sc.Subject.NameField] = s.NameValue(p.Name(), i+1)
+		body[v.JSONPath] = sentinelFor(sc, v, 1)
+
+		r, createdID, err := s.Create(ctx, p.Name(), body)
+		out.Requests++
+
+		if err != nil {
+			return out, err
+		}
+		if r.Status >= 400 {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, Probe: p.Name(),
+				Message: fmt.Sprintf("fixture %s was refused with %d; trying the next",
+					fx.Name, r.Status),
+			})
+
+			continue
+		}
+
+		if i > 0 {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, Probe: p.Name(),
+				Message: fmt.Sprintf("measured against fixture %s after earlier fixtures "+
+					"were refused", fx.Name),
+			})
+		}
+
+		victim, id = v, createdID
+		made = true
+
+		break
+	}
+
+	switch {
+	case !sawAny:
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, Probe: p.Name(),
-			Message: "the fixture sets no field that can safely be omitted from an update; the " +
+			Message: "no fixture sets a field that can safely be omitted from an update; the " +
 				"name field must stay in every request or a cleared name would strand the object",
 		})
 
 		return out, nil
-	}
-
-	body := fixture.Body
-	body[sc.Subject.NameField] = s.NameValue(p.Name(), 1)
-	body[victim.JSONPath] = sentinelFor(sc, victim, 1)
-
-	resp, id, err := s.Create(ctx, p.Name(), body)
-	out.Requests++
-
-	if err != nil {
-		return out, err
-	}
-	if resp.Status >= 400 {
+	case !made:
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, Probe: p.Name(),
-			Message: fmt.Sprintf("the create was refused with %d, so nothing was observed "+
-				"about update style", resp.Status),
+			Message: "every fixture's create was refused, so nothing was observed about " +
+				"update style",
 		})
 
 		return out, nil
@@ -1266,8 +1385,69 @@ func (p requiredByAPI) concludeRequired(sc Scope, attempts map[string][]omission
 			continue
 		}
 
-		out.Facts = append(out.Facts, p.requiredFact(sc, path, rounds, accepted > 0))
+		fact := p.requiredFact(sc, path, rounds, accepted > 0)
+
+		// A field only some fixtures declare was only measured under those fixtures'
+		// branches, and a uniform answer from one branch is not an unconditional fact --
+		// matchType's omission is refused by a dynamic tag and meaningless to a static
+		// one, and recording "required, unconditionally" from the dynamic fixture alone
+		// would put matchType into every generated minimal configuration, breaking the
+		// static create it was derived to protect. The gates every attempt shared are
+		// the honest scope; a field every fixture carried keeps its unconditional
+		// reading, because the branches were measured and agreed.
+		if len(rounds) < len(sc.Fixtures()) {
+			if common := commonGates(rounds); len(common) > 0 {
+				fact.When = common
+				fact.Rationale += ", " + fact.Because()
+			}
+		}
+
+		out.Facts = append(out.Facts, fact)
 	}
+}
+
+// commonGates is the gate conditions every attempt held with the same value, sorted for a
+// stable committed order. Empty when the attempts' gates disagree -- the field was
+// measured across branches, so no single branch scopes it.
+func commonGates(rounds []omission) []Condition {
+	lists := make([][]Condition, len(rounds))
+	for i, a := range rounds {
+		lists[i] = a.gates
+	}
+
+	return commonConditions(lists)
+}
+
+// commonConditions intersects gate-condition lists by path and value.
+func commonConditions(lists [][]Condition) []Condition {
+	if len(lists) == 0 {
+		return nil
+	}
+
+	common := map[string]string{}
+	for _, c := range lists[0] {
+		common[c.JSONPath] = c.Equals
+	}
+
+	for _, gates := range lists[1:] {
+		held := map[string]string{}
+		for _, c := range gates {
+			held[c.JSONPath] = c.Equals
+		}
+		for path, value := range common {
+			if held[path] != value {
+				delete(common, path)
+			}
+		}
+	}
+
+	out := make([]Condition, 0, len(common))
+	for path, value := range common {
+		out = append(out, Condition{JSONPath: path, Equals: value})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].JSONPath < out[j].JSONPath })
+
+	return out
 }
 
 // conditionalRequiredFacts attributes a requiredness disagreement to one gate field.
@@ -2171,7 +2351,9 @@ func (p immutability) updateBody(
 	value any,
 	seq int,
 ) map[string]any {
-	fixture, _ := sc.Fixture(0)
+	// The field's own host fixture, so a field only the dynamic branch declares is
+	// updated inside a body that branch accepts.
+	fixture, _ := sc.HostFixture(f.JSONPath)
 
 	body := fixture.Body
 	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
@@ -2189,7 +2371,7 @@ func (p immutability) createWith(
 	value any,
 	seq int,
 ) (created, error) {
-	fixture, _ := sc.Fixture(0)
+	fixture, _ := sc.HostFixture(f.JSONPath)
 
 	// Name first, field under test last, for the reason given on updateBody: whichever field is
 	// being probed, the object leaves here findable by prefix.
@@ -2223,7 +2405,7 @@ func (p immutability) originalValue(s *MutatingSession, sc Scope, f Field, seq i
 		return s.NameValue(p.Name(), seq)
 	}
 
-	fixture, _ := sc.Fixture(0)
+	fixture, _ := sc.HostFixture(f.JSONPath)
 
 	if v, ok := fixture.Body[f.JSONPath]; ok {
 		return v
@@ -2331,10 +2513,16 @@ func (p enumBoundary) probeEnum(
 		documented[v] = true
 	}
 
+	// Conditional acceptances, keyed by canonical condition: a candidate one branch takes
+	// and another refuses is a fact per branch, exactly as a conditional requirement is.
+	branchWhen := map[string][]Condition{}
+	branchAccepted := map[string][]string{}
+	branchRejected := map[string][]string{}
+
 	for _, candidate := range EnumCandidates(f) {
 		*seq++
 
-		resp, err := p.send(ctx, s, sc, f, candidate, *seq)
+		resp, hostGates, hostName, err := p.send(ctx, s, sc, f, candidate, *seq)
 		out.Requests++
 
 		if err != nil {
@@ -2380,11 +2568,115 @@ func (p enumBoundary) probeEnum(
 			continue
 		}
 
-		if documented[candidate] {
-			rejected = append(rejected, candidate)
-		} else {
+		if !documented[candidate] {
 			negatives = append(negatives, candidate)
 			refusedNegatives++
+
+			continue
+		}
+
+		// A documented candidate the host fixture refused is retried in every other
+		// declared fixture before it is called rejected. Injecting one candidate into one
+		// arbitrary body is how endpoint-agent -- a perfectly good object type, for a
+		// dynamic tag -- landed in the pilot's rejected set: the refusal was about the
+		// combination, and the probe recorded it as a fact about the value. Every retry
+		// is a complete operator-declared body with only the probed field substituted, so
+		// no cross-gate body is ever manufactured.
+		attempts := []gatedOutcome{{gates: hostGates, pass: false}}
+		acceptedSomewhere := false
+
+		for i := range sc.Fixtures() {
+			fx, _ := sc.Fixture(i)
+			if fx.Name == hostName {
+				continue
+			}
+
+			*seq++
+			retry, retryGates, _, rErr := p.sendInto(ctx, s, sc, fx, f, candidate, *seq)
+			out.Requests++
+
+			if rErr != nil {
+				return rErr
+			}
+			evidence = appendUnique(evidence, retry.Interaction)
+
+			pass := retry.Status < 400
+			if !pass && !retry.Error().Names(f.JSONPath) {
+				// Refused over something else; evidence about nothing here.
+				continue
+			}
+
+			attempts = append(attempts, gatedOutcome{gates: retryGates, pass: pass})
+			if pass {
+				acceptedSomewhere = true
+			}
+		}
+
+		switch {
+		case !acceptedSomewhere:
+			// Refused by every fixture that produced an attributable answer.
+			rejected = append(rejected, candidate)
+
+		default:
+			// The disagreement is real: one branch takes the value, another refuses it.
+			// Attributed to a single declared gate when the observations allow it; when
+			// they do not, the value is counted accepted -- the same direction every
+			// validator decision errs in, because blocking a configuration the API takes
+			// is the harm nobody can work around -- and the ambiguity is said out loud.
+			if sep, branches, ok := attributeToGate(attempts); ok {
+				for _, br := range branches {
+					cond := []Condition{{JSONPath: sep, Equals: br.value}}
+					key := Fact{When: cond}.whenKey()
+					branchWhen[key] = cond
+					if br.pass {
+						branchAccepted[key] = append(branchAccepted[key], candidate)
+					} else {
+						branchRejected[key] = append(branchRejected[key], candidate)
+					}
+				}
+			} else {
+				accepted = append(accepted, candidate)
+				out.Notes = append(out.Notes, Note{
+					Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
+					Message: fmt.Sprintf("%s was refused by fixture %s and accepted by "+
+						"another; no single declared gate separates the outcomes, so it is "+
+						"counted accepted and the branch is left for a human",
+						describeCandidate(f.AllowedValues, candidate), hostName),
+				})
+			}
+		}
+	}
+
+	// Each branch's facts, sorted so the committed document is byte-stable.
+	branchKeys := make([]string, 0, len(branchWhen))
+	for key := range branchWhen {
+		branchKeys = append(branchKeys, key)
+	}
+	sort.Strings(branchKeys)
+
+	for _, key := range branchKeys {
+		if values := branchAccepted[key]; len(values) > 0 {
+			fact := Fact{
+				Resource: sc.Subject.Resource, JSONPath: f.JSONPath,
+				Field: FactAcceptedValues, Value: ListValue(values),
+				Confidence: Observed, Probe: p.Name(), Evidence: evidence,
+				When: branchWhen[key],
+			}
+			fact.Rationale = fmt.Sprintf(
+				"the API accepted %s, %s", strings.Join(values, ", "), fact.Because())
+			out.Facts = append(out.Facts, fact)
+		}
+		if values := branchRejected[key]; len(values) > 0 {
+			fact := Fact{
+				Resource: sc.Subject.Resource, JSONPath: f.JSONPath,
+				Field: FactRejectedValues, Value: ListValue(values),
+				Confidence: Observed, Probe: p.Name(), Evidence: evidence,
+				When: branchWhen[key],
+			}
+			fact.Rationale = fmt.Sprintf(
+				"the API refused %s naming this field, %s",
+				strings.Join(values, ", "), fact.Because())
+			out.Facts = append(out.Facts, fact)
 		}
 	}
 
@@ -2436,19 +2728,36 @@ func (p enumBoundary) send(
 	f Field,
 	candidate string,
 	seq int,
-) (*Response, error) {
-	fixture, _ := sc.Fixture(0)
+) (*Response, []Condition, string, error) {
+	// The field's host fixture: probing an enum only the dynamic branch declares
+	// inside a static body would record the body's refusal as a fact about the value.
+	fixture, _ := sc.HostFixture(f.JSONPath)
 
+	return p.sendInto(ctx, s, sc, fixture, f, candidate, seq)
+}
+
+// sendInto creates with the candidate substituted into one particular fixture, reporting
+// the gate values the body actually carried -- recorded, never reconstructed, so a
+// conclusion about a branch cites the state that was really measured.
+func (p enumBoundary) sendInto(
+	ctx context.Context,
+	s *MutatingSession,
+	sc Scope,
+	fixture Fixture,
+	f Field,
+	candidate string,
+	seq int,
+) (*Response, []Condition, string, error) {
 	body := fixture.Body
 	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)
 	body[f.JSONPath] = candidate
 
 	resp, _, err := s.Create(ctx, p.Name(), body)
 	if err != nil && !errors.Is(err, ErrNoIdentifier) {
-		return nil, err
+		return nil, nil, "", err
 	}
 
-	return resp, nil
+	return resp, gateConditions(sc, body), fixture.Name, nil
 }
 
 // concludeEnum records what the sweep established.
@@ -2565,7 +2874,7 @@ func (p enumBoundary) probeCase(
 		return nil
 	}
 
-	resp, err := p.send(ctx, s, sc, f, variant, seq)
+	resp, _, _, err := p.send(ctx, s, sc, f, variant, seq)
 	out.Requests++
 
 	if err != nil {
@@ -2963,7 +3272,7 @@ func (p writeSideEffect) createAndRead(
 	seq int,
 	out *Result,
 ) (*Response, map[string]any, error) {
-	fixture, _ := sc.Fixture(0)
+	fixture, _ := sc.HostFixture(trigger.JSONPath)
 
 	body := fixture.Body
 	body[sc.Subject.NameField] = s.NameValue(p.Name(), seq)

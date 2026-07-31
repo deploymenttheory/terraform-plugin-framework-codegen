@@ -1,0 +1,18 @@
+{
+  "id": "040-delete-v7-tags-e9d496fa-339f-44ec-a9c4-f1fa0e66d219",
+  "seq": 40,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/tags/e9d496fa-339f-44ec-a9c4-f1fa0e66d219",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

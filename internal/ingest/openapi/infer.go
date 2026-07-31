@@ -31,8 +31,6 @@ var (
 type InferOptions struct {
 	// Provider is the registry name, which prefixes every resource type.
 	Provider string
-	// SDKModulePath is the module generated code will bind against.
-	SDKModulePath string
 	// SDKServiceRoot is the import prefix under which the SDK's service packages
 	// live, e.g. ".../thousandeyes/thousandeyes_api".
 	SDKServiceRoot string

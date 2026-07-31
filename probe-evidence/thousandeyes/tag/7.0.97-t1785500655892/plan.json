@@ -1,0 +1,78 @@
+{
+  "fixtures": [
+    {
+      "name": "test-tag",
+      "body": {
+        "accessType": "all",
+        "key": "placeholder-replaced-with-the-stamped-name",
+        "objectType": "test",
+        "value": "probe"
+      }
+    },
+    {
+      "name": "dashboard-tag",
+      "body": {
+        "accessType": "all",
+        "key": "placeholder-replaced-with-the-stamped-name",
+        "objectType": "dashboard",
+        "value": "probe-two"
+      }
+    },
+    {
+      "name": "endpoint-agent-tag",
+      "body": {
+        "accessType": "all",
+        "filters": [
+          {
+            "key": "probe-filter-key",
+            "mode": "in",
+            "scope": "custom",
+            "values": [
+              "probe-filter-value"
+            ]
+          }
+        ],
+        "key": "placeholder-replaced-with-the-stamped-name",
+        "matchType": "and",
+        "objectType": "endpoint-agent",
+        "type": "dynamic",
+        "value": "probe-three"
+      }
+    }
+  ],
+  "candidates": {
+    "color": [
+      "#A1B2C3",
+      "#D4E5F6"
+    ],
+    "icon": [
+      "LABEL"
+    ],
+    "key": [
+      "candidate-key-one",
+      "candidate-key-two"
+    ],
+    "objectType": [
+      "dashboard",
+      "endpoint-test"
+    ]
+  },
+  "defaultInfluencers": [
+    "objectType",
+    "type"
+  ],
+  "expansions": [
+    "expand=assignments"
+  ],
+  "deny": [
+    "assignments",
+    "assignments.id",
+    "assignments.type"
+  ],
+  "budget": {
+    "maxRequests": 240,
+    "maxCreates": 80,
+    "maxWallClockSeconds": 600,
+    "maxSweepSeconds": 120
+  }
+}

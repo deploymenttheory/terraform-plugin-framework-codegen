@@ -1,0 +1,46 @@
+{
+  "id": "086-post-v7-tags",
+  "seq": 86,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tags",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accessType": "system",
+      "filters": [
+        {
+          "key": "probe-filter-key",
+          "mode": "in",
+          "scope": "custom",
+          "values": [
+            "probe-filter-value"
+          ]
+        }
+      ],
+      "key": "tfpfgen-probe-write-enum-5",
+      "matchType": "and",
+      "objectType": "endpoint-agent",
+      "type": "dynamic",
+      "value": "probe-three"
+    }
+  },
+  "response": {
+    "status": 403,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "You need to provide a valid access type to create or update a tag. Either you did not provide one or the provided one is invalid",
+      "error": "Forbidden",
+      "path": "/v7/tags",
+      "status": 403,
+      "timestamp": 1785500640387,
+      "title": "Please ensure you are using the correct authentication token, and you have the correct role"
+    },
+    "droppedHeaders": 14
+  }
+}

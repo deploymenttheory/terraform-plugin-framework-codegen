@@ -2144,3 +2144,82 @@ func TestUnit_Probe_TheWholeCatalogueRunsAndSweepsClean(t *testing.T) {
 		t.Error("the whole catalogue against a misbehaving fixture established nothing")
 	}
 }
+
+// TestUnit_Probe_ARefusedEnumCandidateEscalatesIntoOtherFixtures.
+//
+// The endpoint-agent case on ground truth: a documented value the host fixture's branch
+// refuses and another declared fixture's branch takes. Injecting candidates into one
+// arbitrary body recorded that combination-refusal as a fact about the value; escalation
+// retries the candidate in every other operator-declared body -- never a manufactured
+// one -- before concluding anything.
+func TestUnit_Probe_ARefusedEnumCandidateEscalatesIntoOtherFixtures(t *testing.T) {
+	t.Parallel()
+
+	srv := quirkserver.New(t, quirkserver.Quirks{
+		RejectsValueUnless: map[string]quirkserver.Conditional{
+			"mode=or": {WhenField: "objectType", WhenValue: "dynamic"},
+		},
+	})
+
+	subj := quirkSubject()
+	subj.Fields = append(subj.Fields,
+		Field{
+			JSONPath: "mode", Attribute: "mode",
+			Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional,
+			Writable: true, AllowedValues: []string{"and", "or"},
+		},
+		Field{
+			JSONPath: "objectType", Attribute: "object_type",
+			Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true,
+			AllowedValues: []string{"static", "dynamic"},
+		},
+	)
+
+	plan := Plan{
+		Fixtures: []Fixture{
+			{Name: "static", Body: map[string]any{
+				"key": "stamped", "value": "a", "objectType": "static", "mode": "and",
+			}},
+			{Name: "dynamic", Body: map[string]any{
+				"key": "stamped", "value": "b", "objectType": "dynamic", "mode": "and",
+			}},
+		},
+		DefaultInfluencers: []string{"objectType"},
+		Budget:             Budget{MaxRequests: 120, MaxCreates: 60},
+	}
+
+	report := runAgainst(t, srv, subj, plan, "write.enum")
+
+	var acceptedFacts []Fact
+	for _, f := range report.Facts {
+		if f.JSONPath == "mode" && f.Field == FactAcceptedValues {
+			acceptedFacts = append(acceptedFacts, f)
+		}
+		if f.JSONPath == "mode" && f.Field == FactRejectedValues {
+			for _, v := range f.Value.List {
+				if v == "or" && !f.Conditional() {
+					t.Errorf("a value another branch takes must not be unconditionally rejected: %v", f)
+				}
+			}
+		}
+	}
+
+	// "or" must surface as accepted -- either unconditionally (unattributable mix errs
+	// toward permitting) or as a conditional fact on the dynamic branch.
+	var orAccepted bool
+	for _, f := range acceptedFacts {
+		for _, v := range f.Value.List {
+			if v == "or" {
+				orAccepted = true
+				if f.Conditional() &&
+					(f.When[0].JSONPath != "objectType" || f.When[0].Equals != "dynamic") {
+					t.Errorf("the branch should be the declared gate's: %v", f.When)
+				}
+			}
+		}
+	}
+	if !orAccepted {
+		t.Errorf("escalation should have found the branch that takes the value: %+v",
+			report.Facts)
+	}
+}

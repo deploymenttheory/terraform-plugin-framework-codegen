@@ -4,257 +4,262 @@
   "files": [
     {
       "path": "internal/provider/actions.go",
-      "sha256": "7c88c2e684c7092dec9dd2d8ef44203975472147dc2d6a750d1d54c1b165369b",
+      "sha256": "f77c056d2f66b71354df5b0cf4514259181120124fb18b5ca9a2b310af31d384",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/provider/datasources.go",
-      "sha256": "5086c24fee80d0e2c989f9d9e5ae409ccca7b7ba7428a1143fcb71055ad3e389",
+      "sha256": "3cf3badbead21431de53a6fc3e90ff76fcbe4f7e5bf4b619d3cab2ca356a1c79",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/provider/ephemerals.go",
-      "sha256": "e0213664a62b27ea963e4bc5d576ef8af3676e47bf892a05bf851dbab535b93e",
+      "sha256": "5a0034faeb34de22e532414490fef48f22b6bdbaf83a353caf3555455a5c7758",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/provider/list_resources.go",
-      "sha256": "5e6d29836328ba9943786f9ac78f98c5d89982b60fe51e8dd2551c3b16cfd226",
+      "sha256": "82df91d79d52c12c68a62ccc14c4ad595b1c841e56cc4d8d6bc7f7044f6751be",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/provider/resources.go",
-      "sha256": "d18fdb6189db8c76e16a0dc15fd0f16fa761a94a338e5da8ce913e833cf14022",
+      "sha256": "559defaa92b8a0855dc74769b73751748a6692262155e7ed53c34b8a570d318e",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/action.go",
-      "sha256": "f42973c9aff7049c550b0f9553635334d66ae08b60f63535fbe7ba58eb19f668",
+      "sha256": "9e9dadfb899fa496e08f64d38614833a115e6273079a6cec8aa4dc6d34bcadc5",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/action_acceptance_test.go",
-      "sha256": "bd2a1a126a6bb6715bd0cc2523ab002221437cf6060532019bb8786e717b9a90",
+      "sha256": "4b6eb0ee64a3cd1fae8bfdd94c754e3cbca8e9db1e5171e2ee6bc4e058c74408",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/invoke.go",
-      "sha256": "8343256e342aa52d3a880d7c5f492a20cf198f935be71b83ef781306ef2d5104",
+      "sha256": "c9beb19a1b2aa1b5a1efeb1de61854427a0edfcdd5ac0f9c23cad645d48a4267",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/model.go",
-      "sha256": "9e81db6293b7d44050b7680a3c856a95fde6ed3767c9e0d370c3ddf255497d46",
+      "sha256": "6c5b7221b5ea798ede8e4dc78e50efde5d9d0e3bdbf92b429c3970738a5a4a85",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/testdata/action.tf",
-      "sha256": "3e9d605fa72500f81e2ad9439c536f49413a0400a8060d2b52a62304abf77ce5",
+      "sha256": "6b84636377d6cc8052fd4a882a65369f5b8602275735277c3e4c6ba3ea2a3cb1",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tag/datasource.go",
-      "sha256": "e4a1b58478bb2cd1d0089fad685c810ae28151c2c6d160e743e46ec845b070d7",
+      "sha256": "676372ea33ddd6784f726f3d30a6cf126290e13ccb97469c93557c2ba4127fb0",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tag/datasource_acceptance_test.go",
-      "sha256": "1787bf0a199c5f693938c48d875bffbe44bff85d0d33bb03172bf77c168e18ef",
+      "sha256": "2f32108ea61cceeb64a1086c9fb8910c4378a3588119e6516b81ee1f52a85178",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tag/model.go",
-      "sha256": "9daa9265dfdae9393d4b35bfa11575647d5766f3386e9ba9c42374c1b934ae0c",
+      "sha256": "61cc31cb374afa0edf7b16e903a8e2768fcee8e01d8666bec558770c4d15902e",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tag/read.go",
-      "sha256": "16f6306302b83142a9098a07899aeca97e685b656819c0a23dcbe9ec44db96ac",
+      "sha256": "63052fd9e832e5d834a7ccb26e6d6e19f3e3e545f666a71f1fd51edd0d2aa9dd",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tag/seed_helper_test.go",
-      "sha256": "57bba8550d839e64b91d5b441db27de8e935074619e33fee38290de58cfa1fe7",
+      "sha256": "c25a455ba765f79eedd44572f61c2b37736eebb96902d3d76d5f23c675d7639a",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tag/state.go",
-      "sha256": "32cf566266db83687df5367bf8abbc3ff8f0b9c1af001f0ef64067ae96861ff4",
+      "sha256": "8ce0f9e87b37a573800506aa7a9d9be3442e0573fa295bcb2f0e0685f4e446ab",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tag/testdata/datasource.tf",
-      "sha256": "9bd7b21c1456c84f34b47f415f636dd3926f555d8f1542cdb830c0c918f84ba2",
+      "sha256": "f49fa79b79a319d830c821fdc0fa8b7dfbdb7ba3b6b70bc71e2ad8e788e95ef2",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tags/datasource.go",
-      "sha256": "e9eb4a7a10b7479bef9c5fdce41abe5a8fe13ad04882b00cb202e21d57fd2fce",
+      "sha256": "ff817d1095001178bba84c18225fc040e4052b51ca1afd75a5d66e63e6a66bef",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tags/datasource_acceptance_test.go",
-      "sha256": "5d36327db547194a9cda256dcd0f094c7f1e2fc912c7d1cecafb555262154a03",
+      "sha256": "9a3039da004c0abb0d13757ee25ab4f71cde6d3fd5f196f79fdaf88266260599",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tags/model.go",
-      "sha256": "ccf1d13d0bcb3280460dcc5cb642bea05550abbfc641e08df5e85b665ed9d880",
+      "sha256": "e127ab63988a88928dddd669d33734b1575dcb4030c8849b70787bf18bdbcfa8",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tags/read.go",
-      "sha256": "fe951fdff3a77d423e82fff4f507bea336d7b08418b6eeaaef2b9fa87715b787",
+      "sha256": "45e389e09e2027e38b8ed06261c2aea5be090261922919f7de5df8c7691690f2",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tags/seed_helper_test.go",
-      "sha256": "5291ffd883476014fbdacbf46eb17c2b4390a08f886bef11cc9559c4938adcad",
+      "sha256": "865cc74564465545ffa0a5d295b3f74ccc8b5521da9add7de458adcd10b51fe7",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tags/state.go",
-      "sha256": "b087441972f1bfed7384dab33a4139e3a5ee3ec1b95a27847e0f3b1722f05cf0",
+      "sha256": "90851798b62ffd113093fb4169144a6a7a2c7879fb8041e3a8e65fd9927f844f",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/datasources/tags/v7/tags/testdata/datasource.tf",
-      "sha256": "854da6621d37ac69473218cf54bdd735b534e0ec03daa97a68e083cf15bd6020",
+      "sha256": "dc65b83df70a0691f81bc63fd80111904b932f5ace121f1b253268a54a7ee79c",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/ephemerals/credentials/v7/credential/ephemeral.go",
-      "sha256": "a294552fb7e3f5c1f544fdd47e01118da5ef3d4461c4609c6ba4e7ae95994e17",
+      "sha256": "35ed3a62f3ab2b8757bced7941fed2103a8e616a9f6bb69f0ea0b3cbcc003623",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/ephemerals/credentials/v7/credential/ephemeral_acceptance_test.go",
-      "sha256": "0b3d95452081aa655080f048f15ca4510e6155ad80d8966e4a9fff9841347192",
+      "sha256": "b6e7ebd07536291200a19109079c68bc00671f025a49209150a1ebc9ab11193c",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/ephemerals/credentials/v7/credential/model.go",
-      "sha256": "47076420512a84e0667acb21ea6c3b48d5379dba52042dbf18cafa3139c6867f",
+      "sha256": "714eae37e854e762f71b05072f9df118d5002a43e2bfdcb738a2170af250dfbc",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/ephemerals/credentials/v7/credential/open.go",
-      "sha256": "8666430f8d8c6e9b6b560c717630eb75da35e9845a4068cab3409ae5ffdc0ae5",
+      "sha256": "231763636d3fbcd73592052b8011db9cc63c85201c1a9df9df780c25490d859b",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/ephemerals/credentials/v7/credential/seed_helper_test.go",
-      "sha256": "70a81424e691061d77f05170911f651af20de529c15d6305bbbe61f8df146db5",
+      "sha256": "ead66fbc1e8c322dc4b23e3173cf6681d5f3e998be9db931295bbbe6590a5476",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/ephemerals/credentials/v7/credential/state.go",
-      "sha256": "7194f794d6e2760673f4a99f3faad5ea107494d65c9a048a50f00c36614cb652",
+      "sha256": "c1cf14ccac085aa0a0a52f20da5fe2cded60df3635e5591efad9d99bfc2b382f",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/ephemerals/credentials/v7/credential/testdata/ephemeral.tf",
-      "sha256": "da1def97e20a3e7e5a3910cc26a50fdd17b296753a80ac509ee4cea10846257f",
+      "sha256": "312b628c743503ae278e78c12c47c385f2e1952172b39d23ac16e1690f36d3ae",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/credentials/v7/credential/construct.go",
-      "sha256": "e09f32470eada3efdd0cd576dac186bb89f0e0092c624a87a681acfc44a37b26",
+      "sha256": "a7335ab8c19c444f1b637e4c27923165b76c8bb7d270dd331f5d333e0a1c610a",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/credentials/v7/credential/crud.go",
-      "sha256": "0e4e80018250a941a1113b97b8a3faf677ced81d5b46509ac1ec706a2c701e61",
+      "sha256": "6876264289b58d6f18d695c4b26d3117ad34ace5e04b57a3cf1b3df45e3460c0",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/credentials/v7/credential/model.go",
-      "sha256": "1afc7be65e79ae7b814c32e8b9d3bbbc6eee6173b3262d4449b155ffc450ee93",
+      "sha256": "e084aa56f174c16d89747709eea6c9e30b4a03fc3e070bef95c60f723a7cbf6e",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/credentials/v7/credential/resource.go",
-      "sha256": "98bea0ea9185a3456a9ed8562525f3241b5315374687b7130fc4cfdc5ab0f06b",
+      "sha256": "13ba3775d4c8c4537ddec152a8573ab345fb22b38e9e13fcdc83a91d468a5d2e",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/credentials/v7/credential/resource_acceptance_test.go",
-      "sha256": "71316844697f31f5ffad9f35bdd2d832ffd0892489d96d3af08125f6b8a53bff",
+      "sha256": "7b2a16ae1a16998e21616d76e275a53c7bf24e3dac7f1a2e20f87d3bf19f0218",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/credentials/v7/credential/state.go",
-      "sha256": "af59c875e9cdedb8d61e7ac51963fc51c7fa8906c2ea3526e13080f2d8f104f9",
+      "sha256": "1d09490928bed3449ae469f70782ca9ae6d1cc1b2a5ef9589ee38dd28cb54edb",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/credentials/v7/credential/test_helper_test.go",
-      "sha256": "70a81424e691061d77f05170911f651af20de529c15d6305bbbe61f8df146db5",
+      "sha256": "ead66fbc1e8c322dc4b23e3173cf6681d5f3e998be9db931295bbbe6590a5476",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/credentials/v7/credential/testdata/minimal.tf",
-      "sha256": "ca61d030080ec9459f943f51765547c8113e24298e24ffff2f926aa86055c871",
+      "sha256": "fe93183ab828813e7b65391b31e46a9ce0b1e2a14762f8d50d581341ac17811f",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/conditional_validators.go",
+      "sha256": "036d18ac98d0e3179535582fc1fe4b7e3d39300f664b6e86902865faefab2043",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/construct.go",
-      "sha256": "6a924b9e6f1b822cc053b7fbc34e6fe24596a54d7018d3bd19b302b8554496b2",
+      "sha256": "b1510a19f2d6660bb2a654843927cd846842b6fad64769735aa3b1f9fedd0a34",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/crud.go",
-      "sha256": "5ef76f3de02e0c723f769d5812bafce301b77c95a4b39889870a5ea89071479c",
+      "sha256": "e742810ae7dec3b2892e9386209948522ad38cb1fa91eea977864b271ffdaf4c",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/list_acceptance_test.go",
-      "sha256": "38f254878af24b85aa87e65691a3336e6f406b05678471d8e40d9350dfce38d0",
+      "sha256": "2b53ad738fe45e6ca74f36e74fb3eb5457b2840165d4e835285f8186f33a98b1",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/list_resource.go",
-      "sha256": "a5f0c3bb529081c7368495989290bb43a4cbc3c0b3e178011f1f1be19b69d52a",
+      "sha256": "3cdfd0f163890a9313086e78012d5eff68068c62da0fc3578ea892b7d22d33ff",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/model.go",
-      "sha256": "26bdaea9787b6f0f84526e11d7ba1a2b3a1e3825c954b0882bd9bb2636ff3bf4",
+      "sha256": "42b17c8759ffbfa930a071014098d3021b37c2f5119a8eff94ef67a09bd23beb",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/resource.go",
-      "sha256": "db9442881b0091ee897649cf58f231756f1b4a41e792c5621886e27913962955",
+      "sha256": "c88b34e36c4bec2429e3afa9017aee3f1379b75f5edcf9de4727575b6794a60c",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/resource_acceptance_test.go",
-      "sha256": "70146313cf77cc5919eb769b9593ff35e0f7e0ef4c226d01e15dc9e781e18556",
+      "sha256": "a7938217ef67e77fecd0afd9f09ba27ed3ed21d47584d0708d2c80e6c6193037",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/state.go",
-      "sha256": "ad4845de3e29afa10ff527964694ee1b68ebfd33059864f77d23457c22eed41d",
+      "sha256": "8128f307d1f09f0efed69e180e9de7dd301fc1dca493417b372c47c2d512177c",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/test_helper_test.go",
-      "sha256": "57bba8550d839e64b91d5b441db27de8e935074619e33fee38290de58cfa1fe7",
+      "sha256": "c25a455ba765f79eedd44572f61c2b37736eebb96902d3d76d5f23c675d7639a",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/testdata/minimal.tf",
-      "sha256": "6ffa5f56d8a27501f19f1396a3df1ed51c769a0fe8095b8eaaa6617caa84b087",
+      "sha256": "da0aeef1ff2015ae3fea8125559077ffdd661de8d7cce9bc8bea0685efd4850a",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/testdata/query.tf",
-      "sha256": "46e03be8267ecbf072db6fd96a7385b3b4f91265db6e6d5fd707368f24bde835",
+      "sha256": "8732f669de9483658cfc8d709b66ab45110b44d260fec34cc73851b5a8fb5c14",
       "blueprint": "blueprints/thousandeyes"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/testdata/replace.tf",
-      "sha256": "1b65027fe62388a0c34706f8320aa575e10a0a5908bbeeca982635c45e2e10bc",
+      "sha256": "2c91ce1821a750130a3ab5f91ad34e1bd256667643506bbe3e8a850f7b6e3edb",
       "blueprint": "blueprints/thousandeyes"
     }
   ]
