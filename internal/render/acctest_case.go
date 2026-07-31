@@ -68,7 +68,7 @@ type AccTestView struct {
 // skipUnlessEnvFor resolves the env gate for a seeded block's generated test: its own
 // declared variable wins, else the seed resource's. The inheritance is the point -- a
 // test whose seed cannot be created has already failed for the seed's reason, so a
-// gated resource gates every test that seeds from it without anybody re-declaring it.
+// gated resource gates every test that seeds from it without anybody declaring twice it.
 func skipUnlessEnvFor(seed blueprint.Resource, own string) string {
 	if own != "" {
 		return own
