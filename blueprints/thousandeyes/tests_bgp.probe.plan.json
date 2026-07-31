@@ -1,0 +1,16 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "testName": "tfpfgen-probe-fixture",
+        "prefix": "8.8.8.0/24"
+      }
+    }
+  ],
+  "candidates": {},
+  "budget": {
+    "maxRequests": 240,
+    "maxCreates": 80
+  }
+}

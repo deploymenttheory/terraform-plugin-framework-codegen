@@ -1,0 +1,26 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "testName": "tfpfgen-probe-fixture",
+        "interval": 3600,
+        "domain": "cloudflare.com",
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ]
+      }
+    }
+  ],
+  "candidates": {},
+  "deny": [
+    "dnsQueryClass",
+    "interval"
+  ],
+  "budget": {
+    "maxRequests": 240,
+    "maxCreates": 80
+  }
+}

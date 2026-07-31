@@ -1,0 +1,2472 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "tests_api",
+      "name": "tests_api",
+      "goPackage": "tests_api",
+      "goPackageAlias": "v7TestsAPI",
+      "goTypeName": "TestsAPIResource",
+      "modelTypeName": "TestsAPIResourceModel",
+      "serviceGroup": "api_tests",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alert_rules",
+            "goField": "AlertRules",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsAPIAlertRuleModel",
+                "sdkType": "api_tests.AlertRule",
+                "attrTypesVar": "testsAPIAlertRuleAttrTypes",
+                "objectTypeVar": "testsAPIAlertRuleObjectType",
+                "expandFunc": "expandTestsAPIAlertRules",
+                "flattenFunc": "flattenTestsAPIAlertRules",
+                "attributes": [
+                  {
+                    "name": "alert_type",
+                    "goField": "AlertType",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "page-load",
+                        "http-server",
+                        "end-to-end-server",
+                        "end-to-end-agent",
+                        "voice",
+                        "dns-server",
+                        "dns-trace",
+                        "dnssec",
+                        "bgp",
+                        "path-trace",
+                        "ftp",
+                        "sip-server",
+                        "transactions",
+                        "web-transactions",
+                        "agent",
+                        "network-outage",
+                        "application-outage",
+                        "device-device",
+                        "device-interface",
+                        "endpoint-network-server",
+                        "endpoint-http-server",
+                        "endpoint-path-trace",
+                        "endpoint-browser-sessions-agent",
+                        "endpoint-browser-sessions-application",
+                        "api",
+                        "web-transaction",
+                        "unknown"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Type of alert being triggered. In multi-layered tests, this value represents the layer the alert relates to. See [Alert Details](https://developer.cisco.com/docs/thousandeyes/retrieve-alert-details/) documentation for a list of possible values",
+                    "wire": {
+                      "jsonPath": "alertType",
+                      "sdkField": "AlertType",
+                      "sdkGoType": "api_tests.AlertType",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "api_tests.AlertType"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "direction",
+                    "goField": "Direction",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "to-target",
+                        "from-target",
+                        "bidirectional"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Direction for applicable alert types (eg. path trace, End-to-End (Agent) etc.)",
+                    "wire": {
+                      "jsonPath": "direction",
+                      "sdkField": "Direction",
+                      "sdkGoType": "api_tests.AlertDirection",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "api_tests.AlertDirection"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "expression",
+                    "goField": "Expression",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "String expression of alert rule",
+                    "wire": {
+                      "jsonPath": "expression",
+                      "sdkField": "Expression",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "is_default",
+                    "goField": "IsDefault",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Alert rules allow up to 1 alert rule to be selected as a default for each type. By checking the default option, this alert rule will be automatically included on subsequently created tests that test a metric used in alerting here",
+                    "wire": {
+                      "jsonPath": "isDefault",
+                      "sdkField": "IsDefault",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "minimum_sources",
+                    "goField": "MinimumSources",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The minimum number of agents or monitors that must meet the specified criteria in order to trigger the alert",
+                    "wire": {
+                      "jsonPath": "minimumSources",
+                      "sdkField": "MinimumSources",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "minimum_sources_pct",
+                    "goField": "MinimumSourcesPct",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "the minimum percentage of all assigned agents or monitors that must meet the specified criteria in order to trigger the alert",
+                    "wire": {
+                      "jsonPath": "minimumSourcesPct",
+                      "sdkField": "MinimumSourcesPct",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rounds_violating_mode",
+                    "goField": "RoundsViolatingMode",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "exact",
+                        "any",
+                        "auto"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "`exact` requires the same agents to meet the threshold in consecutive rounds. `auto` is only enabled for CEA and Endpoint Scheduled test rules. The default is `any`.",
+                    "wire": {
+                      "jsonPath": "roundsViolatingMode",
+                      "sdkField": "RoundsViolatingMode",
+                      "sdkGoType": "api_tests.AlertRoundsViolationMode",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rounds_violating_out_of",
+                    "goField": "RoundsViolatingOutOf",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
+                    "wire": {
+                      "jsonPath": "roundsViolatingOutOf",
+                      "sdkField": "RoundsViolatingOutOf",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rounds_violating_required",
+                    "goField": "RoundsViolatingRequired",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
+                    "wire": {
+                      "jsonPath": "roundsViolatingRequired",
+                      "sdkField": "RoundsViolatingRequired",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rule_id",
+                    "goField": "RuleID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Unique ID of the rule.",
+                    "wire": {
+                      "jsonPath": "ruleId",
+                      "sdkField": "RuleID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "rule_name",
+                    "goField": "RuleName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Name of the alert rule",
+                    "wire": {
+                      "jsonPath": "ruleName",
+                      "sdkField": "RuleName",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "sensitivity_level",
+                    "goField": "SensitivityLevel",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "high",
+                        "medium",
+                        "low"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Used when `roundsViolatingMode` is set to `auto`. The default is `medium`. Higher sensitivity increases the likelihood of triggering alerts.",
+                    "wire": {
+                      "jsonPath": "sensitivityLevel",
+                      "sdkField": "SensitivityLevel",
+                      "sdkGoType": "api_tests.SensitivityLevel",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "severity",
+                    "goField": "Severity",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "info",
+                        "major",
+                        "minor",
+                        "critical",
+                        "unknown"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The severity of the alert.",
+                    "wire": {
+                      "jsonPath": "severity",
+                      "sdkField": "Severity",
+                      "sdkGoType": "api_tests.Severity",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "api_tests.Severity"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Contains list of enabled alert rule objects.",
+            "wire": {
+              "jsonPath": "alertRules",
+              "sdkField": "AlertRules",
+              "sdkGoType": "[]api_tests.AlertRule",
+              "expand": {
+                "func": "expandTestsAPIAlertRules",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenTestsAPIAlertRules",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            },
+            "drop": true
+          },
+          {
+            "name": "alerts_enabled",
+            "goField": "AlertsEnabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Indicates if alerts are enabled.",
+            "wire": {
+              "jsonPath": "alertsEnabled",
+              "sdkField": "AlertsEnabled",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "goField": "BGPMeasurements",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Set to `true` to enable bgp measurements.",
+            "wire": {
+              "jsonPath": "bgpMeasurements",
+              "sdkField": "BgpMeasurements",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.TestBgpMeasurements"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "client_cert_domains_allow_list",
+            "goField": "ClientCertDomainsAllowList",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Comma separated list of domains to send the client certificate.",
+            "wire": {
+              "jsonPath": "clientCertDomainsAllowList",
+              "sdkField": "ClientCertDomainsAllowList",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "client_certificate",
+            "goField": "ClientCertificate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.",
+            "wire": {
+              "jsonPath": "clientCertificate",
+              "sdkField": "ClientCertificate",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "api_tests.TestClientCertificate"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "collect_proxy_network_data",
+            "goField": "CollectProxyNetworkData",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Indicates whether network data to the proxy should be collected.",
+            "wire": {
+              "jsonPath": "collectProxyNetworkData",
+              "sdkField": "CollectProxyNetworkData",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.TestCollectProxyNetworkData"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "created_by",
+            "goField": "CreatedBy",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "User that created the test.",
+            "wire": {
+              "jsonPath": "createdBy",
+              "sdkField": "CreatedBy",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "created_date",
+            "goField": "CreatedDate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "UTC created date (ISO date-time format).",
+            "wire": {
+              "jsonPath": "createdDate",
+              "sdkField": "CreatedDate",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "credentials",
+            "goField": "Credentials",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Contains a list of credential IDs (get `credentialId` from `/credentials` endpoint).",
+            "wire": {
+              "jsonPath": "credentials",
+              "sdkField": "Credentials",
+              "sdkGoType": "[]string",
+              "expand": {
+                "func": "convert.FrameworkSetToStringSlice",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "convert.StringSliceToFrameworkSet",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "description",
+            "goField": "Description",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "A description of the test.",
+            "wire": {
+              "jsonPath": "description",
+              "sdkField": "Description",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "distributed_tracing",
+            "goField": "DistributedTracing",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Adds distributed tracing headers to API requests using B3 and W3C standards.",
+            "wire": {
+              "jsonPath": "distributedTracing",
+              "sdkField": "DistributedTracing",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.TestDistributedTracing"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "enabled",
+            "goField": "Enabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Test is enabled.",
+            "wire": {
+              "jsonPath": "enabled",
+              "sdkField": "Enabled",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.Enabled"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "follow_redirects",
+            "goField": "FollowRedirects",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.",
+            "wire": {
+              "jsonPath": "followRedirects",
+              "sdkField": "FollowRedirects",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.TestFollowRedirects"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "interval",
+            "goField": "Interval",
+            "type": {
+              "kind": "int64",
+              "allowedValues": [
+                "60",
+                "120",
+                "300",
+                "600",
+                "900",
+                "1800",
+                "3600"
+              ]
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.",
+            "wire": {
+              "jsonPath": "interval",
+              "sdkField": "Interval",
+              "sdkGoType": "api_tests.TestInterval",
+              "expand": {
+                "func": "convert.FrameworkToIntEnum",
+                "typeArgs": [
+                  "api_tests.TestInterval"
+                ]
+              },
+              "flatten": {
+                "func": "convert.IntEnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "labels",
+            "goField": "Labels",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsAPITestLabelsModel",
+                "sdkType": "api_tests.TestLabels",
+                "attrTypesVar": "testsAPITestLabelsAttrTypes",
+                "objectTypeVar": "testsAPITestLabelsObjectType",
+                "expandFunc": "expandTestsAPITestLabelses",
+                "flattenFunc": "flattenTestsAPITestLabelses",
+                "attributes": [
+                  {
+                    "name": "is_builtin",
+                    "goField": "IsBuiltin",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Value indicating if the label in question is BuiltIn (Account Admin, Organization Admin, Regular User).",
+                    "wire": {
+                      "jsonPath": "isBuiltin",
+                      "sdkField": "IsBuiltin",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "label_id",
+                    "goField": "LabelID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Label ID.",
+                    "wire": {
+                      "jsonPath": "labelId",
+                      "sdkField": "LabelID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Name of the label.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.StringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Labels to which the test is assigned. This field is not returned for Instant Tests.",
+            "wire": {
+              "jsonPath": "labels",
+              "sdkField": "Labels",
+              "sdkGoType": "[]api_tests.TestLabels",
+              "flatten": {
+                "func": "flattenTestsAPITestLabelses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          },
+          {
+            "name": "live_share",
+            "goField": "LiveShare",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Indicates if the test is shared with the account group.",
+            "wire": {
+              "jsonPath": "liveShare",
+              "sdkField": "LiveShare",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "modified_by",
+            "goField": "ModifiedBy",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "User that modified the test.",
+            "wire": {
+              "jsonPath": "modifiedBy",
+              "sdkField": "ModifiedBy",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "modified_date",
+            "goField": "ModifiedDate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "UTC last modification date (ISO date-time format).",
+            "wire": {
+              "jsonPath": "modifiedDate",
+              "sdkField": "ModifiedDate",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "monitors",
+            "goField": "Monitors",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsAPITestBGPMonitorsModel",
+                "sdkType": "api_tests.TestBgpMonitors",
+                "attrTypesVar": "testsAPITestBGPMonitorsAttrTypes",
+                "objectTypeVar": "testsAPITestBGPMonitorsObjectType",
+                "expandFunc": "expandTestsAPITestBGPMonitorses",
+                "flattenFunc": "flattenTestsAPITestBGPMonitorses",
+                "attributes": [
+                  {
+                    "name": "country_id",
+                    "goField": "CountryID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Country ID",
+                    "wire": {
+                      "jsonPath": "countryId",
+                      "sdkField": "CountryID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "ip_address",
+                    "goField": "IPAddress",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "IP address of the BGP monitor",
+                    "wire": {
+                      "jsonPath": "ipAddress",
+                      "sdkField": "IPAddress",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "monitor_id",
+                    "goField": "MonitorID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "BGP monitor ID",
+                    "wire": {
+                      "jsonPath": "monitorId",
+                      "sdkField": "MonitorID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "monitor_name",
+                    "goField": "MonitorName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Display name of the BGP monitor",
+                    "wire": {
+                      "jsonPath": "monitorName",
+                      "sdkField": "MonitorName",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "monitor_type",
+                    "goField": "MonitorType",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "public",
+                        "private"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Type of monitor",
+                    "wire": {
+                      "jsonPath": "monitorType",
+                      "sdkField": "MonitorType",
+                      "sdkGoType": "api_tests.MonitorType",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "network",
+                    "goField": "Network",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Name of the autonomous system in which the monitor is found",
+                    "wire": {
+                      "jsonPath": "network",
+                      "sdkField": "Network",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Contains list of enabled BGP monitors.",
+            "wire": {
+              "jsonPath": "monitors",
+              "sdkField": "Monitors",
+              "sdkGoType": "[]api_tests.TestBgpMonitors",
+              "flatten": {
+                "func": "flattenTestsAPITestBGPMonitorses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          },
+          {
+            "name": "mtu_measurements",
+            "goField": "MTUMeasurements",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.",
+            "wire": {
+              "jsonPath": "mtuMeasurements",
+              "sdkField": "MtuMeasurements",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.TestMtuMeasurements"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "network_measurements",
+            "goField": "NetworkMeasurements",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.",
+            "wire": {
+              "jsonPath": "networkMeasurements",
+              "sdkField": "NetworkMeasurements",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.TestNetworkMeasurements"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "goField": "NumPathTraces",
+            "type": {
+              "kind": "int64",
+              "constraints": {
+                "minimum": 1,
+                "maximum": 10
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Number of path traces executed by the agent.",
+            "wire": {
+              "jsonPath": "numPathTraces",
+              "sdkField": "NumPathTraces",
+              "sdkGoType": "*int64",
+              "expand": {
+                "func": "convert.FrameworkToIntEnum",
+                "typeArgs": [
+                  "api_tests.TestNumPathTraces"
+                ]
+              },
+              "flatten": {
+                "func": "convert.IntEnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "override_agent_proxy",
+            "goField": "OverrideAgentProxy",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.",
+            "wire": {
+              "jsonPath": "overrideAgentProxy",
+              "sdkField": "OverrideAgentProxy",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.TestOverrideAgentProxy"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "override_proxy_id",
+            "goField": "OverrideProxyID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "ID of the proxy to be used if the default proxy is overridden.",
+            "wire": {
+              "jsonPath": "overrideProxyId",
+              "sdkField": "OverrideProxyID",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "api_tests.TestOverrideProxyId"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "goField": "PathTraceMode",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "classic",
+                "in-session"
+              ]
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.",
+            "wire": {
+              "jsonPath": "pathTraceMode",
+              "sdkField": "PathTraceMode",
+              "sdkGoType": "api_tests.TestPathTraceMode",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "api_tests.TestPathTraceMode"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "predefined_variables",
+            "goField": "PredefinedVariables",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsAPIAPIPredefinedVariableModel",
+                "sdkType": "api_tests.ApiPredefinedVariable",
+                "attrTypesVar": "testsApiapiPredefinedVariableAttrTypes",
+                "objectTypeVar": "testsApiapiPredefinedVariableObjectType",
+                "expandFunc": "expandTestsAPIAPIPredefinedVariables",
+                "flattenFunc": "flattenTestsAPIAPIPredefinedVariables",
+                "attributes": [
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Variable name. Must be unique.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "goField": "Value",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Variable value, will be treated as string.",
+                    "wire": {
+                      "jsonPath": "value",
+                      "sdkField": "Value",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "predefinedVariables",
+              "sdkField": "PredefinedVariables",
+              "sdkGoType": "[]api_tests.ApiPredefinedVariable",
+              "expand": {
+                "func": "expandTestsAPIAPIPredefinedVariables",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenTestsAPIAPIPredefinedVariables",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "probe_mode",
+            "goField": "ProbeMode",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "auto",
+                "sack",
+                "syn"
+              ]
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.",
+            "wire": {
+              "jsonPath": "probeMode",
+              "sdkField": "ProbeMode",
+              "sdkGoType": "api_tests.TestProbeMode",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "api_tests.TestProbeMode"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "protocol",
+            "goField": "Protocol",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "tcp",
+                "icmp",
+                "udp"
+              ]
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).",
+            "wire": {
+              "jsonPath": "protocol",
+              "sdkField": "Protocol",
+              "sdkGoType": "api_tests.TestProtocol",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "api_tests.TestProtocol"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "goField": "RandomizedStartTime",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.",
+            "wire": {
+              "jsonPath": "randomizedStartTime",
+              "sdkField": "RandomizedStartTime",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.TestRandomizedStartTime"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "requests",
+            "goField": "Requests",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsAPIAPIRequestModel",
+                "sdkType": "api_tests.ApiRequest",
+                "attrTypesVar": "testsApiapiRequestAttrTypes",
+                "objectTypeVar": "testsApiapiRequestObjectType",
+                "expandFunc": "expandTestsAPIAPIRequests",
+                "flattenFunc": "flattenTestsAPIAPIRequests",
+                "attributes": [
+                  {
+                    "name": "assertions",
+                    "goField": "Assertions",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "TestsAPIAPIRequestAssertionModel",
+                        "sdkType": "api_tests.ApiRequestAssertion",
+                        "attrTypesVar": "testsApiapiRequestAssertionAttrTypes",
+                        "objectTypeVar": "testsApiapiRequestAssertionObjectType",
+                        "expandFunc": "expandTestsAPIAPIRequestAssertions",
+                        "flattenFunc": "flattenTestsAPIAPIRequestAssertions",
+                        "attributes": [
+                          {
+                            "name": "name",
+                            "goField": "Name",
+                            "type": {
+                              "kind": "string",
+                              "allowedValues": [
+                                "status-code",
+                                "response-body"
+                              ]
+                            },
+                            "computedOptionalRequired": "optional",
+                            "markdownDescription": "Set to `status-code` to assert the response status code. Set to `response-body` to assert data is present in the response body. Use `ApiRequestAssertion` to set the value for the assertion.",
+                            "wire": {
+                              "jsonPath": "name",
+                              "sdkField": "Name",
+                              "sdkGoType": "api_tests.ApiRequestAssertionName",
+                              "expand": {
+                                "func": "convert.FrameworkToEnum",
+                                "typeArgs": [
+                                  "api_tests.ApiRequestAssertionName"
+                                ]
+                              },
+                              "flatten": {
+                                "func": "convert.EnumToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "operator",
+                            "goField": "Operator",
+                            "type": {
+                              "kind": "string",
+                              "allowedValues": [
+                                "is",
+                                "is-not",
+                                "includes",
+                                "not-includes",
+                                "matches",
+                                "not-matches"
+                              ]
+                            },
+                            "computedOptionalRequired": "optional",
+                            "markdownDescription": "If `name = status-code``, accepted values are [is, is-not]. If `name = response-body``, accepted values are [includes, not-includes, matches, not-matches]`.",
+                            "wire": {
+                              "jsonPath": "operator",
+                              "sdkField": "Operator",
+                              "sdkGoType": "api_tests.ApiRequestAssertionOperator",
+                              "expand": {
+                                "func": "convert.FrameworkToEnum",
+                                "typeArgs": [
+                                  "api_tests.ApiRequestAssertionOperator"
+                                ]
+                              },
+                              "flatten": {
+                                "func": "convert.EnumToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "value",
+                            "goField": "Value",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "optional",
+                            "markdownDescription": "The value of the assertion. If name = `status-code`, the status code to assert. If name = `response-body`, the lookup value to assert.",
+                            "wire": {
+                              "jsonPath": "value",
+                              "sdkField": "Value",
+                              "sdkGoType": "*string",
+                              "expand": {
+                                "func": "convert.FrameworkToPtrString"
+                              },
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "List of assertion objects.",
+                    "wire": {
+                      "jsonPath": "assertions",
+                      "sdkField": "Assertions",
+                      "sdkGoType": "[]api_tests.ApiRequestAssertion",
+                      "expand": {
+                        "func": "expandTestsAPIAPIRequestAssertions",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "flattenTestsAPIAPIRequestAssertions",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "auth_type",
+                    "goField": "AuthType",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "none",
+                        "basic",
+                        "bearer-token",
+                        "oauth2"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Will override the Authorization request header.",
+                    "wire": {
+                      "jsonPath": "authType",
+                      "sdkField": "AuthType",
+                      "sdkGoType": "api_tests.ApiRequestAuthType",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "api_tests.ApiRequestAuthType"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "bearer_token",
+                    "goField": "BearerToken",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The bearer token if `authType = bearer-token`.",
+                    "wire": {
+                      "jsonPath": "bearerToken",
+                      "sdkField": "BearerToken",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "body",
+                    "goField": "Body",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "POST/PUT request body. Must be in JSON format.",
+                    "wire": {
+                      "jsonPath": "body",
+                      "sdkField": "Body",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "client_authentication",
+                    "goField": "ClientAuthentication",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "basic-auth-header",
+                        "in-body"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The OAuth2 client authentication location type.",
+                    "wire": {
+                      "jsonPath": "clientAuthentication",
+                      "sdkField": "ClientAuthentication",
+                      "sdkGoType": "api_tests.ApiClientAuthentication",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "api_tests.ApiClientAuthentication"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "client_id",
+                    "goField": "ClientID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The application ID used when `authType` is set to \"oauth2\".",
+                    "wire": {
+                      "jsonPath": "clientId",
+                      "sdkField": "ClientID",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "client_secret",
+                    "goField": "ClientSecret",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The private client secret used when `authType` is set to \"oauth2\".",
+                    "wire": {
+                      "jsonPath": "clientSecret",
+                      "sdkField": "ClientSecret",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "collect_api_response",
+                    "goField": "CollectAPIResponse",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Set to `true` if API response body should be collected and saved. Set to `false` if API response body should not be saved.",
+                    "wire": {
+                      "jsonPath": "collectApiResponse",
+                      "sdkField": "CollectApiResponse",
+                      "sdkGoType": "*bool",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrBool"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "goField": "Headers",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "TestsAPIAPIRequestHeaderModel",
+                        "sdkType": "api_tests.ApiRequestHeader",
+                        "attrTypesVar": "testsApiapiRequestHeaderAttrTypes",
+                        "objectTypeVar": "testsApiapiRequestHeaderObjectType",
+                        "expandFunc": "expandTestsAPIAPIRequestHeaders",
+                        "flattenFunc": "flattenTestsAPIAPIRequestHeaders",
+                        "attributes": [
+                          {
+                            "name": "key",
+                            "goField": "Key",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "optional",
+                            "markdownDescription": "Request header key.",
+                            "wire": {
+                              "jsonPath": "key",
+                              "sdkField": "Key",
+                              "sdkGoType": "*string",
+                              "expand": {
+                                "func": "convert.FrameworkToPtrString"
+                              },
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "value",
+                            "goField": "Value",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "optional",
+                            "markdownDescription": "Request header value. Supports variables `{{variableName}}`.",
+                            "wire": {
+                              "jsonPath": "value",
+                              "sdkField": "Value",
+                              "sdkGoType": "*string",
+                              "expand": {
+                                "func": "convert.FrameworkToPtrString"
+                              },
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Array of API Request Header objects.",
+                    "wire": {
+                      "jsonPath": "headers",
+                      "sdkField": "Headers",
+                      "sdkGoType": "[]api_tests.ApiRequestHeader",
+                      "expand": {
+                        "func": "expandTestsAPIAPIRequestHeaders",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "flattenTestsAPIAPIRequestHeaders",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "method",
+                    "goField": "Method",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "get",
+                        "post",
+                        "put",
+                        "delete",
+                        "patch"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "HTTP request method.",
+                    "wire": {
+                      "jsonPath": "method",
+                      "sdkField": "Method",
+                      "sdkGoType": "api_tests.ApiRequestMethod",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "api_tests.ApiRequestMethod"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "markdownDescription": "API step name, must be unique.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToString"
+                      },
+                      "flatten": {
+                        "func": "convert.StringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "password",
+                    "goField": "Password",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The password if `authType = basic`.",
+                    "wire": {
+                      "jsonPath": "password",
+                      "sdkField": "Password",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "scope",
+                    "goField": "Scope",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Application-specific scope values for the access token when `authType` is \"oauth2\".",
+                    "wire": {
+                      "jsonPath": "scope",
+                      "sdkField": "Scope",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "token_url",
+                    "goField": "TokenURL",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The endpoint used to request the access token when `authType` is \"oauth2\".",
+                    "wire": {
+                      "jsonPath": "tokenUrl",
+                      "sdkField": "TokenURL",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "url",
+                    "goField": "URL",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "markdownDescription": "Request url. Supports variables in the format `{{variableName}}`.",
+                    "wire": {
+                      "jsonPath": "url",
+                      "sdkField": "URL",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToString"
+                      },
+                      "flatten": {
+                        "func": "convert.StringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "username",
+                    "goField": "Username",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The username if `authType = basic`.",
+                    "wire": {
+                      "jsonPath": "username",
+                      "sdkField": "Username",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "variables",
+                    "goField": "Variables",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "TestsAPIAPIRequestVariableModel",
+                        "sdkType": "api_tests.ApiRequestVariable",
+                        "attrTypesVar": "testsApiapiRequestVariableAttrTypes",
+                        "objectTypeVar": "testsApiapiRequestVariableObjectType",
+                        "expandFunc": "expandTestsAPIAPIRequestVariables",
+                        "flattenFunc": "flattenTestsAPIAPIRequestVariables",
+                        "attributes": [
+                          {
+                            "name": "name",
+                            "goField": "Name",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "optional",
+                            "markdownDescription": "Variable name",
+                            "wire": {
+                              "jsonPath": "name",
+                              "sdkField": "Name",
+                              "sdkGoType": "*string",
+                              "expand": {
+                                "func": "convert.FrameworkToPtrString"
+                              },
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "value",
+                            "goField": "Value",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "optional",
+                            "markdownDescription": "The JSON path of data within the Response Body to assign to this variable.",
+                            "wire": {
+                              "jsonPath": "value",
+                              "sdkField": "Value",
+                              "sdkGoType": "*string",
+                              "expand": {
+                                "func": "convert.FrameworkToPtrString"
+                              },
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Array of API post request variable objects.",
+                    "wire": {
+                      "jsonPath": "variables",
+                      "sdkField": "Variables",
+                      "sdkGoType": "[]api_tests.ApiRequestVariable",
+                      "expand": {
+                        "func": "expandTestsAPIAPIRequestVariables",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "flattenTestsAPIAPIRequestVariables",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "verify_certificate",
+                    "goField": "VerifyCertificate",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.",
+                    "wire": {
+                      "jsonPath": "verifyCertificate",
+                      "sdkField": "VerifyCertificate",
+                      "sdkGoType": "*bool",
+                      "expand": {
+                        "func": "convert.FrameworkToNamedBool",
+                        "typeArgs": [
+                          "api_tests.TestVerifyCertificate"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.NamedBoolToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "wait_time_ms",
+                    "goField": "WaitTimeMs",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Post request delay before executing the next API requests, in milliseconds.",
+                    "wire": {
+                      "jsonPath": "waitTimeMs",
+                      "sdkField": "WaitTimeMs",
+                      "sdkGoType": "*int64",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrNamedInt",
+                        "typeArgs": [
+                          "int"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "requests",
+              "sdkField": "Requests",
+              "sdkGoType": "[]api_tests.ApiRequest",
+              "expand": {
+                "func": "expandTestsAPIAPIRequests",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenTestsAPIAPIRequests",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "saved_event",
+            "goField": "SavedEvent",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.",
+            "wire": {
+              "jsonPath": "savedEvent",
+              "sdkField": "SavedEvent",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "shared_with_accounts",
+            "goField": "SharedWithAccounts",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsAPITestSharedAccountsModel",
+                "sdkType": "api_tests.TestSharedAccounts",
+                "attrTypesVar": "testsAPITestSharedAccountsAttrTypes",
+                "objectTypeVar": "testsAPITestSharedAccountsObjectType",
+                "expandFunc": "expandTestsAPITestSharedAccountses",
+                "flattenFunc": "flattenTestsAPITestSharedAccountses",
+                "attributes": [
+                  {
+                    "name": "aid",
+                    "goField": "AID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Account group ID.",
+                    "wire": {
+                      "jsonPath": "aid",
+                      "sdkField": "AID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Account group name.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.StringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Contains list of account group IDs. Test is shared with the listed account groups (get `aid` from `/account-groups` endpoint)",
+            "wire": {
+              "jsonPath": "sharedWithAccounts",
+              "sdkField": "SharedWithAccounts",
+              "sdkGoType": "[]api_tests.TestSharedAccounts",
+              "flatten": {
+                "func": "flattenTestsAPITestSharedAccountses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          },
+          {
+            "name": "ssl_version_id",
+            "goField": "SSLVersionID",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "0",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7"
+              ]
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.",
+            "wire": {
+              "jsonPath": "sslVersionId",
+              "sdkField": "SslVersionID",
+              "sdkGoType": "api_tests.TestSslVersionId",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "api_tests.TestSslVersionId"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "tags",
+            "goField": "Tags",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsAPITestTagsModel",
+                "sdkType": "api_tests.TestTags",
+                "attrTypesVar": "testsAPITestTagsAttrTypes",
+                "objectTypeVar": "testsAPITestTagsObjectType",
+                "expandFunc": "expandTestsAPITestTagses",
+                "flattenFunc": "flattenTestsAPITestTagses",
+                "attributes": [
+                  {
+                    "name": "id",
+                    "goField": "ID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Unique tag ID.",
+                    "wire": {
+                      "jsonPath": "id",
+                      "sdkField": "ID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "key",
+                    "goField": "Key",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Tag key. For example, \"Location\" or \"Department\".",
+                    "wire": {
+                      "jsonPath": "key",
+                      "sdkField": "Key",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "goField": "Value",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Tag value. For example, \"San Francisco\" or \"Engineering\".",
+                    "wire": {
+                      "jsonPath": "value",
+                      "sdkField": "Value",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Tags assigned to the test. Returned only when `expand=tag` is specified. This field is not returned for Instant Tests. For more information, see `/tags`.",
+            "wire": {
+              "jsonPath": "tags",
+              "sdkField": "Tags",
+              "sdkGoType": "[]api_tests.TestTags",
+              "flatten": {
+                "func": "flattenTestsAPITestTagses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          },
+          {
+            "name": "target_time",
+            "goField": "TargetTime",
+            "type": {
+              "kind": "int64",
+              "constraints": {
+                "minimum": 0,
+                "maximum": 60
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Target time for completion metric, defaults to 50% of time limit specified in seconds. (0 means default behavior)",
+            "wire": {
+              "jsonPath": "targetTime",
+              "sdkField": "TargetTime",
+              "sdkGoType": "*int64",
+              "expand": {
+                "func": "convert.FrameworkToPtrNamedInt",
+                "typeArgs": [
+                  "int"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrInt64ToFramework"
+              }
+            }
+          },
+          {
+            "name": "test_id",
+            "goField": "TestID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints.",
+            "wire": {
+              "jsonPath": "testId",
+              "sdkField": "TestID",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "test_name",
+            "goField": "TestName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "The name of the test. Test name must be unique.",
+            "wire": {
+              "jsonPath": "testName",
+              "sdkField": "TestName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "time_limit",
+            "goField": "TimeLimit",
+            "type": {
+              "kind": "int64",
+              "constraints": {
+                "minimum": 5,
+                "maximum": 180
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Time limit for transaction in seconds. Exceeding this limit will result in a Timeout error.",
+            "wire": {
+              "jsonPath": "timeLimit",
+              "sdkField": "TimeLimit",
+              "sdkGoType": "*int64",
+              "expand": {
+                "func": "convert.FrameworkToPtrNamedInt",
+                "typeArgs": [
+                  "int"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrInt64ToFramework"
+              }
+            }
+          },
+          {
+            "name": "type",
+            "goField": "Type",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "This is a read only value, as test type is implicit in the test creation url.",
+            "wire": {
+              "jsonPath": "type",
+              "sdkField": "Type",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "url",
+            "goField": "URL",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "Target for the test.",
+            "wire": {
+              "jsonPath": "url",
+              "sdkField": "URL",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToEnum",
+                "typeArgs": [
+                  "api_tests.TestUrl"
+                ]
+              },
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              }
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "goField": "UsePublicBGP",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.",
+            "wire": {
+              "jsonPath": "usePublicBgp",
+              "sdkField": "UsePublicBGP",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToNamedBool",
+                "typeArgs": [
+                  "api_tests.TestUsePublicBgp"
+                ]
+              },
+              "flatten": {
+                "func": "convert.NamedBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "vault_credentials",
+            "goField": "VaultCredentials",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TestsAPITestVaultCredentialModel",
+                "sdkType": "api_tests.TestVaultCredential",
+                "attrTypesVar": "testsAPITestVaultCredentialAttrTypes",
+                "objectTypeVar": "testsAPITestVaultCredentialObjectType",
+                "expandFunc": "expandTestsAPITestVaultCredentials",
+                "flattenFunc": "flattenTestsAPITestVaultCredentials",
+                "attributes": [
+                  {
+                    "name": "secret_id",
+                    "goField": "SecretID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "UUID of the configured secret.",
+                    "wire": {
+                      "jsonPath": "secretId",
+                      "sdkField": "SecretID",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "target",
+                    "goField": "Target",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "username",
+                        "password",
+                        "script"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "The target setting that the credential should be used for.",
+                    "wire": {
+                      "jsonPath": "target",
+                      "sdkField": "Target",
+                      "sdkGoType": "api_tests.TestVaultCredentialTarget",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "api_tests.TestVaultCredentialTarget"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "List of credential IDs that are stored in an external vault.",
+            "wire": {
+              "jsonPath": "vaultCredentials",
+              "sdkField": "VaultCredentials",
+              "sdkGoType": "[]api_tests.TestVaultCredential",
+              "expand": {
+                "func": "expandTestsAPITestVaultCredentials",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenTestsAPITestVaultCredentials",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "agents",
+            "goField": "Agents",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "ApiAgentModel",
+                "sdkType": "api_tests.TestAgentRequest",
+                "attrTypesVar": "apiAgentAttrTypes",
+                "objectTypeVar": "apiAgentObjectType",
+                "expandFunc": "expandApiAgents",
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "goField": "AgentID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "markdownDescription": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values.",
+                    "wire": {
+                      "jsonPath": "agentId",
+                      "sdkField": "AgentID",
+                      "sdkGoType": "string",
+                      "expand": {
+                        "func": "convert.FrameworkToString"
+                      },
+                      "skipFlatten": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.",
+            "wire": {
+              "jsonPath": "agents",
+              "sdkField": "Agents",
+              "sdkGoType": "[]api_tests.TestAgentRequest",
+              "skipFlatten": true,
+              "expand": {
+                "func": "expandApiAgents",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Get API test."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api/api_tests",
+          "typeName": "APITests",
+          "accessor": "r.client.API.APITests"
+        },
+        "create": {
+          "style": "method",
+          "method": "CreateApiTest",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "api_tests.ApiTestResponse",
+          "httpMethod": "POST",
+          "pathTemplate": "/tests/api"
+        },
+        "read": {
+          "style": "method",
+          "method": "GetApiTest",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "TestID"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "api_tests.ApiTestResponse",
+          "httpMethod": "GET",
+          "pathTemplate": "/tests/api/{testId}"
+        },
+        "update": {
+          "style": "method",
+          "method": "UpdateApiTest",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "TestID"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "api_tests.ApiTestResponse",
+          "httpMethod": "PUT",
+          "pathTemplate": "/tests/api/{testId}"
+        },
+        "delete": {
+          "style": "method",
+          "method": "DeleteApiTest",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "TestID"
+            }
+          ],
+          "return": "transportError",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/tests/api/{testId}"
+        },
+        "id": {
+          "attribute": "test_id",
+          "goField": "TestID",
+          "fromCreate": "created.TestID",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "api_tests.ApiTestRequest",
+          "responseType": "api_tests.ApiTestResponse",
+          "constructorExpr": "&api_tests.ApiTestRequest{}",
+          "accessStyle": "structField"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "test_id"
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "agents",
+            "hcl": "[{ agent_id = \"3\" }]"
+          },
+          {
+            "attr": "requests",
+            "hcl": "[{ name = \"step-1\", url = \"https://api.stripe.com/healthcheck\", method = \"get\" }]"
+          }
+        ]
+      },
+      "sweep": {
+        "nameField": "testName"
+      }
+    }
+  ]
+}

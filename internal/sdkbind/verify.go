@@ -3,6 +3,7 @@ package sdkbind
 import (
 	"fmt"
 	"go/types"
+	"sort"
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
@@ -52,6 +53,18 @@ func (r Report) Err() error {
 // at once, and fixing them one CI run at a time is miserable.
 func Verify(l *Loader, bp blueprint.Blueprint) Report {
 	var r Report
+
+	// One go/packages invocation for everything the blueprint names, instead of
+	// one per package: the spawn dominates the cost, and a fifteen-resource
+	// blueprint names enough packages that per-path loading is minutes of it.
+	if err := l.Preload(importPathsOf(bp)); err != nil {
+		r.Problems = append(r.Problems, Problem{
+			Resource: "provider",
+			Path:     "provider.sdk",
+			Detail:   err.Error(),
+		})
+		return r
+	}
 
 	clientType, err := resolveClientType(l, bp)
 	if err != nil {
@@ -676,4 +689,50 @@ func accessorChain(accessor string) ([]string, bool) {
 func unwrapDetail(err error) string {
 	s := err.Error()
 	return strings.TrimPrefix(s, ErrBindings.Error()+": ")
+}
+
+// importPathsOf collects every SDK package the blueprint's bindings name, plus the
+// client package, deduplicated for Preload.
+func importPathsOf(bp blueprint.Blueprint) []string {
+	seen := map[string]bool{}
+	add := func(p string) {
+		if p != "" {
+			seen[p] = true
+		}
+	}
+
+	add(bp.Provider.SDK.ClientImport.Path)
+
+	for _, r := range bp.Resources {
+		if r.Drop {
+			continue
+		}
+		add(r.Binding.Service.ImportPath)
+		if r.List != nil {
+			add(r.List.Service.ImportPath)
+		}
+	}
+	for _, d := range bp.DataSources {
+		if !d.Drop {
+			add(d.Binding.Service.ImportPath)
+		}
+	}
+	for _, e := range bp.Ephemerals {
+		if !e.Drop {
+			add(e.Binding.Service.ImportPath)
+		}
+	}
+	for _, a := range bp.Actions {
+		if !a.Drop {
+			add(a.Binding.Service.ImportPath)
+		}
+	}
+
+	out := make([]string, 0, len(seen))
+	for p := range seen {
+		out = append(out, p)
+	}
+	sort.Strings(out)
+
+	return out
 }

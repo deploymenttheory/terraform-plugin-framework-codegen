@@ -495,18 +495,22 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	// A nested shape puts attr.Type maps in model.go, whose imports the template
 	// declares itself, and gives the conversion helpers framework values and
 	// diagnostics to carry. It adds nothing to crud.go, which only ever appends to
-	// resp.Diagnostics.
-	if len(shapes) > 0 {
-		for _, s := range []*importSet{impConstruct, impState} {
-			s.add(pkgTypes, "")
-			s.add(pkgDiag, "")
-		}
-		// A single nested object is decoded with basetypes.ObjectAsOptions, which
-		// a collection does not need.
-		for _, sh := range shapes {
+	// resp.Diagnostics. Counted per direction: a write-only shape -- the classic
+	// tests' agents, sent on create and never flattened -- gives state.go nothing
+	// to use either import for, and an unused import does not compile.
+	for _, sh := range shapes {
+		if !sh.attr.Wire.SkipExpand {
+			impConstruct.add(pkgTypes, "")
+			impConstruct.add(pkgDiag, "")
+			// A single nested object is decoded with basetypes.ObjectAsOptions,
+			// which a collection does not need.
 			if sh.attr.Type.Kind == blueprint.KindSingleNested {
 				impConstruct.add(pkgBaseTypes, "")
 			}
+		}
+		if !sh.attr.Wire.SkipFlatten {
+			impState.add(pkgTypes, "")
+			impState.add(pkgDiag, "")
 		}
 	}
 

@@ -88,15 +88,19 @@ func TestUnit_CLI_Interop_TheCommittedSpecIsValid(t *testing.T) {
 	if doc.Provider == nil || doc.Provider.Name != "thousandeyes" {
 		t.Errorf("provider = %+v, want a name-only block for thousandeyes", doc.Provider)
 	}
-	// Sorted by name in the export, so credential precedes tag.
-	if len(doc.Resources) != 2 || doc.Resources[0].Name != "credential" ||
-		doc.Resources[1].Name != "tag" {
-		t.Fatalf("resources = %+v, want credential and tag", doc.Resources)
+	// Sorted by name in the export, so credential precedes the tests_* family and tag.
+	if len(doc.Resources) != 15 || doc.Resources[0].Name != "credential" {
+		t.Fatalf("got %d resources starting %q, want 15 starting with credential",
+			len(doc.Resources), firstName(doc.Resources))
 	}
-	if got := len(doc.Resources[1].Schema.Attributes); got != 17 {
+	byName := map[string]int{}
+	for _, r := range doc.Resources {
+		byName[r.Name] = len(r.Schema.Attributes)
+	}
+	if got := byName["tag"]; got != 17 {
 		t.Errorf("tag has %d attributes, want 17", got)
 	}
-	if got := len(doc.Resources[0].Schema.Attributes); got != 3 {
+	if got := byName["credential"]; got != 3 {
 		t.Errorf("credential has %d attributes, want 3", got)
 	}
 	// Blocks are never written: the nested-attributes choice is deliberate and
@@ -245,8 +249,8 @@ func TestUnit_CLI_Interop_ImportWritesInvisibleDrafts(t *testing.T) {
 		t.Fatalf("walking the output: %v", err)
 	}
 
-	if len(found) != 3 {
-		t.Errorf("wrote %v, want a provider draft and one draft per resource", found)
+	if len(found) != 16 {
+		t.Errorf("wrote %d drafts (%v), want a provider draft and one per resource", len(found), found)
 	}
 
 	// The load path itself must not see them. This is the assertion that would fail
@@ -398,4 +402,19 @@ func TestUnit_CLI_Interop_ExportReportsAnUnwritablePath(t *testing.T) {
 	if err == nil {
 		t.Error("writing the report under a file must fail")
 	}
+}
+
+// firstName names the first resource for a failure message without dumping raw schema bytes.
+func firstName(resources []struct {
+	Name   string `json:"name"`
+	Schema struct {
+		Attributes []map[string]json.RawMessage `json:"attributes"`
+		Blocks     []map[string]json.RawMessage `json:"blocks"`
+	} `json:"schema"`
+},
+) string {
+	if len(resources) == 0 {
+		return "<none>"
+	}
+	return resources[0].Name
 }

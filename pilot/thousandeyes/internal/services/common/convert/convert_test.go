@@ -25,20 +25,20 @@ func ptr[T any](v T) *T { return &v }
 func TestUnit_Convert_NilPointerFlattensToNull(t *testing.T) {
 	t.Parallel()
 
-	if got := PtrStringToFramework(nil); !got.IsNull() {
-		t.Errorf("PtrStringToFramework(nil) = %v, want null", got)
+	if got := PtrStringToFramework[string](nil); !got.IsNull() {
+		t.Errorf("PtrStringToFramework[string](nil) = %v, want null", got)
 	}
-	if got := PtrBoolToFramework(nil); !got.IsNull() {
-		t.Errorf("PtrBoolToFramework(nil) = %v, want null", got)
+	if got := PtrBoolToFramework[bool](nil); !got.IsNull() {
+		t.Errorf("PtrBoolToFramework[bool](nil) = %v, want null", got)
 	}
-	if got := PtrInt64ToFramework(nil); !got.IsNull() {
-		t.Errorf("PtrInt64ToFramework(nil) = %v, want null", got)
+	if got := PtrInt64ToFramework[int64](nil); !got.IsNull() {
+		t.Errorf("PtrInt64ToFramework[int64](nil) = %v, want null", got)
 	}
-	if got := PtrInt32ToFramework(nil); !got.IsNull() {
-		t.Errorf("PtrInt32ToFramework(nil) = %v, want null", got)
+	if got := PtrInt32ToFramework[int32](nil); !got.IsNull() {
+		t.Errorf("PtrInt32ToFramework[int32](nil) = %v, want null", got)
 	}
-	if got := PtrFloat64ToFramework(nil); !got.IsNull() {
-		t.Errorf("PtrFloat64ToFramework(nil) = %v, want null", got)
+	if got := PtrFloat64ToFramework[float64](nil); !got.IsNull() {
+		t.Errorf("PtrFloat64ToFramework[float64](nil) = %v, want null", got)
 	}
 }
 

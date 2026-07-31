@@ -37,43 +37,43 @@ import (
 // -----------------------------------------------------------------------------
 
 // PtrStringToFramework converts an optional string to types.String.
-func PtrStringToFramework(v *string) types.String {
+func PtrStringToFramework[T ~string](v *T) types.String {
 	if v == nil {
 		return types.StringNull()
 	}
-	return types.StringValue(*v)
+	return types.StringValue(string(*v))
 }
 
 // PtrBoolToFramework converts an optional bool to types.Bool.
-func PtrBoolToFramework(v *bool) types.Bool {
+func PtrBoolToFramework[T ~bool](v *T) types.Bool {
 	if v == nil {
 		return types.BoolNull()
 	}
-	return types.BoolValue(*v)
+	return types.BoolValue(bool(*v))
 }
 
 // PtrInt64ToFramework converts an optional int64 to types.Int64.
-func PtrInt64ToFramework(v *int64) types.Int64 {
+func PtrInt64ToFramework[T ~int64 | ~int](v *T) types.Int64 {
 	if v == nil {
 		return types.Int64Null()
 	}
-	return types.Int64Value(*v)
+	return types.Int64Value(int64(*v))
 }
 
 // PtrInt32ToFramework converts an optional int32 to types.Int32.
-func PtrInt32ToFramework(v *int32) types.Int32 {
+func PtrInt32ToFramework[T ~int32](v *T) types.Int32 {
 	if v == nil {
 		return types.Int32Null()
 	}
-	return types.Int32Value(*v)
+	return types.Int32Value(int32(*v))
 }
 
 // PtrFloat64ToFramework converts an optional float64 to types.Float64.
-func PtrFloat64ToFramework(v *float64) types.Float64 {
+func PtrFloat64ToFramework[T ~float64](v *T) types.Float64 {
 	if v == nil {
 		return types.Float64Null()
 	}
-	return types.Float64Value(*v)
+	return types.Float64Value(float64(*v))
 }
 
 // EnumToFramework converts a named string enumeration to types.String.
@@ -91,6 +91,40 @@ func EnumToFramework[T ~string](v T) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue(string(v))
+}
+
+// IntEnumToFramework converts a named integer enumeration to types.Int64.
+//
+// The classic tests' interval is the motivating case: the SDK declares
+// `type TestInterval int`, so the string-enum converters cannot carry it. Zero
+// becomes null for the same reason EnumToFramework maps "" to null: these
+// fields are omitempty on the wire, and an absent value decodes to the zero.
+func IntEnumToFramework[T ~int | ~int64](v T) types.Int64 {
+	if v == 0 {
+		return types.Int64Null()
+	}
+	return types.Int64Value(int64(v))
+}
+
+// NamedBoolToFramework converts a value-typed named bool to types.Bool.
+//
+// Always a concrete value, never null: the wire cannot distinguish an absent
+// bool from false once omitempty has had its way, and inventing null here would
+// claim a distinction the transport does not carry.
+func NamedBoolToFramework[T ~bool](v T) types.Bool {
+	return types.BoolValue(bool(v))
+}
+
+// StringToFramework converts a value-typed wire string to types.String.
+//
+// For SDK fields declared as plain `string` rather than `*string` -- the
+// agents member's agentId is the motivating case. An empty value becomes null,
+// matching the pointer converters' treatment of absence.
+func StringToFramework(v string) types.String {
+	if v == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(v)
 }
 
 // StringSliceToFrameworkSet converts a string slice to types.Set.
@@ -178,6 +212,70 @@ func FrameworkToEnum[T ~string](v types.String) T {
 		return T("")
 	}
 	return T(v.ValueString())
+}
+
+// FrameworkToIntEnum converts types.Int64 to a named integer enumeration.
+//
+// Unchecked against the known members for the reason FrameworkToEnum is: the
+// sets are open, and refusing an unrecognised value would turn a routine
+// upstream addition into a provider that cannot express it.
+func FrameworkToIntEnum[T ~int](v types.Int64) T {
+	if v.IsNull() || v.IsUnknown() {
+		return T(0)
+	}
+	return T(v.ValueInt64())
+}
+
+// FrameworkToString converts types.String to a value-typed wire string.
+//
+// Null and unknown become "", which the omitempty wire treatment drops; a
+// required attribute is never null here, so nothing real is lost.
+func FrameworkToString(v types.String) string {
+	if v.IsNull() || v.IsUnknown() {
+		return ""
+	}
+	return v.ValueString()
+}
+
+// FrameworkToNamedBool converts types.Bool to a value-typed named bool.
+//
+// Null and unknown become false, which omitempty then drops from the request --
+// the value-typed field's structural limit, recorded rather than papered over:
+// an explicit false cannot travel either, and the probe is what documents what
+// the API does about that.
+func FrameworkToNamedBool[T ~bool](v types.Bool) T {
+	if v.IsNull() || v.IsUnknown() {
+		return T(false)
+	}
+	return T(v.ValueBool())
+}
+
+// FrameworkToPtrNamed converts types.String to an optional named string.
+func FrameworkToPtrNamed[T ~string](v types.String) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	t := T(v.ValueString())
+	return &t
+}
+
+// FrameworkToPtrNamedBool converts types.Bool to an optional named bool.
+func FrameworkToPtrNamedBool[T ~bool](v types.Bool) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	t := T(v.ValueBool())
+	return &t
+}
+
+// FrameworkToPtrNamedInt converts types.Int64 to an optional named integer,
+// covering both the SDK's plain *int fields and its named integer types.
+func FrameworkToPtrNamedInt[T ~int | ~int64](v types.Int64) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	t := T(v.ValueInt64())
+	return &t
 }
 
 // FrameworkSetToStringSlice converts types.Set to a string slice. Null and

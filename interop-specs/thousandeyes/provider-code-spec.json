@@ -606,6 +606,3812 @@
         ],
         "markdown_description": "Manages a ThousandEyes tag. Tags are key/value labels that can be assigned to tests, agents and dashboards."
       }
+    },
+    {
+      "name": "tests_agent_to_agent",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "direction",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Direction of the test, which affects how results are shown."
+            }
+          },
+          {
+            "name": "dscp",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "DSCP label."
+            }
+          },
+          {
+            "name": "dscp_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)"
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "fixed_packet_rate",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Sets packets rate sent to measure the network in packets per second."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "mss",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Maximum segment size, in bytes."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Select `inSession` to perform the path trace within a TCP session."
+            }
+          },
+          {
+            "name": "port",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Target port."
+            }
+          },
+          {
+            "name": "protocol",
+            "string": {
+              "computed_optional_required": "optional"
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "target_agent_id",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "`agentId` of the target agent for the test."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "throughput_duration",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "The throughput duration."
+            }
+          },
+          {
+            "name": "throughput_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enable or disable throughput measurements. Throughput measurements cannot be enabled when the source or target of the test is a cloud agent."
+            }
+          },
+          {
+            "name": "throughput_rate",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "The throughput rate, only applicable for UDP protocol."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "agent_to_agent_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get Agent to Agent test."
+      }
+    },
+    {
+      "name": "tests_agent_to_server",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "bandwidth_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "continuous_mode",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "To enable continuous monitoring, set this parameter to `true` to. \nWhen continuous monitoring is enabled, the following actions occur:\n* `fixedPacketRate` is enforced\n* `bandwidthMeasurements` are disabled\n* If the `protocol` is set to `tcp`, `probeMode` is set to `syn`."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "dscp",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "DSCP label."
+            }
+          },
+          {
+            "name": "dscp_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)"
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "fixed_packet_rate",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "If continuousMode is `false`, set the fixedPacketRate to a value between 10-100. If `continuousMode` is `true`, set the `fixedPacketRate` to `1`"
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "ipv6_policy",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "mtu_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+            }
+          },
+          {
+            "name": "network_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "View packet loss in 1-second intervals. This is only available for 1-minute interval tests. Set to `true` to enable network measurements."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Select `inSession` to perform the path trace within a TCP session."
+            }
+          },
+          {
+            "name": "ping_payload_size",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Payload size (not total packet size) for the end-to-end metric's probes, ping payload size allows values from 0 to 1400 bytes. When set to null, payload sizes are 0 bytes for ICMP-based tests and 1 byte for TCP-based tests."
+            }
+          },
+          {
+            "name": "port",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Port number to use for the test. The default port is 80."
+            }
+          },
+          {
+            "name": "probe_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP."
+            }
+          },
+          {
+            "name": "protocol",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "server",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "agent_to_server_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get Agent to Server test."
+      }
+    },
+    {
+      "name": "tests_api",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "client_cert_domains_allow_list",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Comma separated list of domains to send the client certificate."
+            }
+          },
+          {
+            "name": "client_certificate",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate."
+            }
+          },
+          {
+            "name": "collect_proxy_network_data",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether network data to the proxy should be collected."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "credentials",
+            "set": {
+              "computed_optional_required": "optional",
+              "element_type": {
+                "string": {}
+              },
+              "description": "Contains a list of credential IDs (get `credentialId` from `/credentials` endpoint)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "distributed_tracing",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "follow_redirects",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "mtu_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+            }
+          },
+          {
+            "name": "network_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "override_agent_proxy",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`."
+            }
+          },
+          {
+            "name": "override_proxy_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "ID of the proxy to be used if the default proxy is overridden."
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Select `inSession` to perform the path trace within a TCP session."
+            }
+          },
+          {
+            "name": "predefined_variables",
+            "set_nested": {
+              "computed_optional_required": "optional",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "api_tests.ApiPredefinedVariable"
+                },
+                "attributes": [
+                  {
+                    "name": "name",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "Variable name. Must be unique."
+                    }
+                  },
+                  {
+                    "name": "value",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "Variable value, will be treated as string."
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "probe_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP."
+            }
+          },
+          {
+            "name": "protocol",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "requests",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "api_tests.ApiRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "assertions",
+                    "set_nested": {
+                      "computed_optional_required": "optional",
+                      "nested_object": {
+                        "associated_external_type": {
+                          "type": "api_tests.ApiRequestAssertion"
+                        },
+                        "attributes": [
+                          {
+                            "name": "name",
+                            "string": {
+                              "computed_optional_required": "optional",
+                              "description": "Set to `status-code` to assert the response status code. Set to `response-body` to assert data is present in the response body. Use `ApiRequestAssertion` to set the value for the assertion."
+                            }
+                          },
+                          {
+                            "name": "operator",
+                            "string": {
+                              "computed_optional_required": "optional",
+                              "description": "If `name = status-code``, accepted values are [is, is-not]. If `name = response-body``, accepted values are [includes, not-includes, matches, not-matches]`."
+                            }
+                          },
+                          {
+                            "name": "value",
+                            "string": {
+                              "computed_optional_required": "optional",
+                              "description": "The value of the assertion. If name = `status-code`, the status code to assert. If name = `response-body`, the lookup value to assert."
+                            }
+                          }
+                        ]
+                      },
+                      "description": "List of assertion objects."
+                    }
+                  },
+                  {
+                    "name": "auth_type",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "Will override the Authorization request header."
+                    }
+                  },
+                  {
+                    "name": "bearer_token",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The bearer token if `authType = bearer-token`."
+                    }
+                  },
+                  {
+                    "name": "body",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "POST/PUT request body. Must be in JSON format."
+                    }
+                  },
+                  {
+                    "name": "client_authentication",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The OAuth2 client authentication location type."
+                    }
+                  },
+                  {
+                    "name": "client_id",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The application ID used when `authType` is set to \"oauth2\"."
+                    }
+                  },
+                  {
+                    "name": "client_secret",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The private client secret used when `authType` is set to \"oauth2\"."
+                    }
+                  },
+                  {
+                    "name": "collect_api_response",
+                    "bool": {
+                      "computed_optional_required": "optional",
+                      "description": "Set to `true` if API response body should be collected and saved. Set to `false` if API response body should not be saved."
+                    }
+                  },
+                  {
+                    "name": "headers",
+                    "set_nested": {
+                      "computed_optional_required": "optional",
+                      "nested_object": {
+                        "associated_external_type": {
+                          "type": "api_tests.ApiRequestHeader"
+                        },
+                        "attributes": [
+                          {
+                            "name": "key",
+                            "string": {
+                              "computed_optional_required": "optional",
+                              "description": "Request header key."
+                            }
+                          },
+                          {
+                            "name": "value",
+                            "string": {
+                              "computed_optional_required": "optional",
+                              "description": "Request header value. Supports variables `{{variableName}}`."
+                            }
+                          }
+                        ]
+                      },
+                      "description": "Array of API Request Header objects."
+                    }
+                  },
+                  {
+                    "name": "method",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "HTTP request method."
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "API step name, must be unique."
+                    }
+                  },
+                  {
+                    "name": "password",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The password if `authType = basic`."
+                    }
+                  },
+                  {
+                    "name": "scope",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "Application-specific scope values for the access token when `authType` is \"oauth2\"."
+                    }
+                  },
+                  {
+                    "name": "token_url",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The endpoint used to request the access token when `authType` is \"oauth2\"."
+                    }
+                  },
+                  {
+                    "name": "url",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "Request url. Supports variables in the format `{{variableName}}`."
+                    }
+                  },
+                  {
+                    "name": "username",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The username if `authType = basic`."
+                    }
+                  },
+                  {
+                    "name": "variables",
+                    "set_nested": {
+                      "computed_optional_required": "optional",
+                      "nested_object": {
+                        "associated_external_type": {
+                          "type": "api_tests.ApiRequestVariable"
+                        },
+                        "attributes": [
+                          {
+                            "name": "name",
+                            "string": {
+                              "computed_optional_required": "optional",
+                              "description": "Variable name"
+                            }
+                          },
+                          {
+                            "name": "value",
+                            "string": {
+                              "computed_optional_required": "optional",
+                              "description": "The JSON path of data within the Response Body to assign to this variable."
+                            }
+                          }
+                        ]
+                      },
+                      "description": "Array of API post request variable objects."
+                    }
+                  },
+                  {
+                    "name": "verify_certificate",
+                    "bool": {
+                      "computed_optional_required": "optional",
+                      "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors."
+                    }
+                  },
+                  {
+                    "name": "wait_time_ms",
+                    "int64": {
+                      "computed_optional_required": "optional",
+                      "description": "Post request delay before executing the next API requests, in milliseconds."
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "ssl_version_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3."
+            }
+          },
+          {
+            "name": "target_time",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Target time for completion metric, defaults to 50% of time limit specified in seconds. (0 means default behavior)"
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "time_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Time limit for transaction in seconds. Exceeding this limit will result in a Timeout error."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "url",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Target for the test."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "vault_credentials",
+            "set_nested": {
+              "computed_optional_required": "optional",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "api_tests.TestVaultCredential"
+                },
+                "attributes": [
+                  {
+                    "name": "secret_id",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "UUID of the configured secret."
+                    }
+                  },
+                  {
+                    "name": "target",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The target setting that the credential should be used for."
+                    }
+                  }
+                ]
+              },
+              "description": "List of credential IDs that are stored in an external vault."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "api_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get API test."
+      }
+    },
+    {
+      "name": "tests_bgp",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "include_covered_prefixes",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if queries for subprefixes detected under this prefix should included."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "prefix",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "a.b.c.d is a network address, with the prefix length defined as e. Prefixes can be any length from 8 to 24."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          }
+        ],
+        "markdown_description": "Get BGP test."
+      }
+    },
+    {
+      "name": "tests_dns_server",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "bandwidth_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "dns_query_class",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos."
+            }
+          },
+          {
+            "name": "dns_servers",
+            "set": {
+              "computed_optional_required": "required",
+              "element_type": {
+                "string": {}
+              },
+              "description": "A list of DNS server FQDN.\n\nSent as a list of server names; the read reports servers as objects, which v1 does not round-trip."
+            }
+          },
+          {
+            "name": "dns_transport_protocol",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Transport protocol used for DNS requests."
+            }
+          },
+          {
+            "name": "domain",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "fixed_packet_rate",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Sets packets rate sent to measure the network in packets per second."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "ipv6_policy",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "mtu_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+            }
+          },
+          {
+            "name": "network_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Select `inSession` to perform the path trace within a TCP session."
+            }
+          },
+          {
+            "name": "probe_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP."
+            }
+          },
+          {
+            "name": "protocol",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "recursive_queries",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set true to run query with RD (recursion desired) flag enabled."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "dns_server_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get DNS Server test."
+      }
+    },
+    {
+      "name": "tests_dns_trace",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "dns_query_class",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos."
+            }
+          },
+          {
+            "name": "dns_transport_protocol",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Transport protocol used for DNS requests."
+            }
+          },
+          {
+            "name": "domain",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "dns_trace_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get DNS Trace test."
+      }
+    },
+    {
+      "name": "tests_dnssec",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "dns_query_class",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos."
+            }
+          },
+          {
+            "name": "domain",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed"
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "dnssec_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get DNSSEC test."
+      }
+    },
+    {
+      "name": "tests_ftp_server",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "bandwidth_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "download_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Specify maximum number of bytes to download from the target object."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "fixed_packet_rate",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Sets packets rate sent to measure the network in packets per second."
+            }
+          },
+          {
+            "name": "ftp_target_time",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Target time for operation completion; specified in milliseconds."
+            }
+          },
+          {
+            "name": "ftp_time_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Set the time limit for the test in seconds."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "ipv6_policy",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "mtu_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+            }
+          },
+          {
+            "name": "network_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "password",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Password for Basic/NTLM authentication."
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Select `inSession` to perform the path trace within a TCP session."
+            }
+          },
+          {
+            "name": "probe_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP."
+            }
+          },
+          {
+            "name": "protocol",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "request_type",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Set the type of activity for the test."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "url",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Target for the test."
+            }
+          },
+          {
+            "name": "use_active_ftp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Explicitly set the flag to use active FTP."
+            }
+          },
+          {
+            "name": "use_explicit_ftps",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Use explicit FTPS (ftp over SSL). By default, tests will autodetect when it is appropriate to use FTPS."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "username",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Username for Basic/NTLM authentication."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "ftp_server_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get FTP Server test."
+      }
+    },
+    {
+      "name": "tests_http_server",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "allow_unsafe_legacy_renegotiation",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation."
+            }
+          },
+          {
+            "name": "auth_type",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "HTTP authentication type."
+            }
+          },
+          {
+            "name": "bandwidth_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "client_certificate",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate."
+            }
+          },
+          {
+            "name": "collect_proxy_network_data",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether network data to the proxy should be collected."
+            }
+          },
+          {
+            "name": "content_regex",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Content regex, this field does not require escaping."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "desired_status_code",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code."
+            }
+          },
+          {
+            "name": "distributed_tracing",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards."
+            }
+          },
+          {
+            "name": "dns_override",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "IP address to use for DNS override."
+            }
+          },
+          {
+            "name": "download_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Specifies maximum number of bytes to download from the target object."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "fixed_packet_rate",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Sets packets rate sent to measure the network in packets per second."
+            }
+          },
+          {
+            "name": "follow_redirects",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`."
+            }
+          },
+          {
+            "name": "headers",
+            "set": {
+              "computed_optional_required": "optional",
+              "element_type": {
+                "string": {}
+              },
+              "description": "HTTP request headers used."
+            }
+          },
+          {
+            "name": "http_target_time",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Target time for HTTP server completion, specified in milliseconds."
+            }
+          },
+          {
+            "name": "http_time_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "HTTP time limit in seconds."
+            }
+          },
+          {
+            "name": "http_version",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1."
+            }
+          },
+          {
+            "name": "include_headers",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to capture response headers for objects loaded by the test."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "ipv6_policy",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "mtu_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+            }
+          },
+          {
+            "name": "network_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "override_agent_proxy",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`."
+            }
+          },
+          {
+            "name": "override_proxy_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "ID of the proxy to be used if the default proxy is overridden."
+            }
+          },
+          {
+            "name": "password",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Password for Basic/NTLM authentication."
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Select `inSession` to perform the path trace within a TCP session."
+            }
+          },
+          {
+            "name": "post_body",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Enter the body for the HTTP POST request in this field. No special escaping is required. If content is provided and `requestMethod` is not specified, `requestMethod` is automatically set to `post`."
+            }
+          },
+          {
+            "name": "probe_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP."
+            }
+          },
+          {
+            "name": "protocol",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "request_method",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "HTTP request method."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "ssl_version",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Reflects the verbose SSL protocol version used by a test."
+            }
+          },
+          {
+            "name": "ssl_version_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "url",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Target for the test."
+            }
+          },
+          {
+            "name": "use_ntlm",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "user_agent",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "User-agent string to be provided during the test."
+            }
+          },
+          {
+            "name": "username",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Username for Basic/NTLM authentication."
+            }
+          },
+          {
+            "name": "vault_credentials",
+            "set_nested": {
+              "computed_optional_required": "optional",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "http_server_tests.TestVaultCredential"
+                },
+                "attributes": [
+                  {
+                    "name": "secret_id",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "UUID of the configured secret."
+                    }
+                  },
+                  {
+                    "name": "target",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The target setting that the credential should be used for."
+                    }
+                  }
+                ]
+              },
+              "description": "List of credential IDs that are stored in an external vault."
+            }
+          },
+          {
+            "name": "verify_certificate",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "http_server_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get HTTP Server test."
+      }
+    },
+    {
+      "name": "tests_page_load",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "allow_geolocation",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set true to use the agent’s geolocation by the web page."
+            }
+          },
+          {
+            "name": "allow_mic_and_camera",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set true allow the use of a fake mic and camera in the browser."
+            }
+          },
+          {
+            "name": "allow_unsafe_legacy_renegotiation",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation."
+            }
+          },
+          {
+            "name": "auth_type",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "HTTP authentication type."
+            }
+          },
+          {
+            "name": "bandwidth_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "block_domains",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests."
+            }
+          },
+          {
+            "name": "browser_language",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Set one of the available browser language that you want to use to configure the browser."
+            }
+          },
+          {
+            "name": "chrome_options",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Command-line options passed to Chrome when running the test."
+            }
+          },
+          {
+            "name": "chrome_policies",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "JSON string of Chrome policy settings to apply."
+            }
+          },
+          {
+            "name": "client_certificate",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate."
+            }
+          },
+          {
+            "name": "collect_proxy_network_data",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether network data to the proxy should be collected."
+            }
+          },
+          {
+            "name": "content_regex",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Content regex, this field does not require escaping."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "desired_status_code",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code."
+            }
+          },
+          {
+            "name": "disable_screenshot",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enables or disables screenshots on error. Set true to not capture"
+            }
+          },
+          {
+            "name": "distributed_tracing",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards."
+            }
+          },
+          {
+            "name": "dns_override",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "IP address to use for DNS override."
+            }
+          },
+          {
+            "name": "download_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Specifies maximum number of bytes to download from the target object."
+            }
+          },
+          {
+            "name": "emulated_device_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "ID of the emulated device, if one was given when the test was created."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "fixed_packet_rate",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Sets packets rate sent to measure the network in packets per second."
+            }
+          },
+          {
+            "name": "follow_redirects",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`."
+            }
+          },
+          {
+            "name": "http_interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "HTTP test run interval. The interval between HTTP test runs in seconds cannot exceed the specified interval value and defaults to the same value as the interval if not set.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "http_target_time",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Target time for HTTP server completion, specified in milliseconds."
+            }
+          },
+          {
+            "name": "http_time_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "HTTP time limit in seconds."
+            }
+          },
+          {
+            "name": "http_version",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1."
+            }
+          },
+          {
+            "name": "identify_agent_traffic_with_user_agent",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy)."
+            }
+          },
+          {
+            "name": "include_headers",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to capture response headers for objects loaded by the test."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "mtu_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+            }
+          },
+          {
+            "name": "network_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "override_agent_proxy",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`."
+            }
+          },
+          {
+            "name": "override_proxy_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "ID of the proxy to be used if the default proxy is overridden."
+            }
+          },
+          {
+            "name": "page_load_target_time",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Target time for page load completion, specified in seconds and cannot exceed the `pageLoadTimeLimit`."
+            }
+          },
+          {
+            "name": "page_load_time_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Page load time limit. Must be larger than the `httpTimeLimit`."
+            }
+          },
+          {
+            "name": "page_loading_strategy",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources."
+            }
+          },
+          {
+            "name": "password",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Password for Basic/NTLM authentication."
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Select `inSession` to perform the path trace within a TCP session."
+            }
+          },
+          {
+            "name": "probe_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP."
+            }
+          },
+          {
+            "name": "protocol",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "ssl_version",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Reflects the verbose SSL protocol version used by a test."
+            }
+          },
+          {
+            "name": "ssl_version_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3."
+            }
+          },
+          {
+            "name": "subinterval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "url",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Target for the test."
+            }
+          },
+          {
+            "name": "use_ntlm",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "user_agent",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "User-agent string to be provided during the test."
+            }
+          },
+          {
+            "name": "username",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Username for Basic/NTLM authentication."
+            }
+          },
+          {
+            "name": "vault_credentials",
+            "set_nested": {
+              "computed_optional_required": "optional",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "page_load_tests.TestVaultCredential"
+                },
+                "attributes": [
+                  {
+                    "name": "secret_id",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "UUID of the configured secret."
+                    }
+                  },
+                  {
+                    "name": "target",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The target setting that the credential should be used for."
+                    }
+                  }
+                ]
+              },
+              "description": "List of credential IDs that are stored in an external vault."
+            }
+          },
+          {
+            "name": "verify_certificate",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "page_load_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get Page Load test."
+      }
+    },
+    {
+      "name": "tests_sip_server",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "auth_user",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Username for authentication with SIP server."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "fixed_packet_rate",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Sets packets rate sent to measure the network in packets per second."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "ipv6_policy",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "mtu_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+            }
+          },
+          {
+            "name": "network_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "options_regex",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Options regex, this field does not require escaping."
+            }
+          },
+          {
+            "name": "password",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Password for Basic/NTLM authentication."
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Select `inSession` to perform the path trace within a TCP session."
+            }
+          },
+          {
+            "name": "port",
+            "int64": {
+              "computed_optional_required": "computed",
+              "description": "Target port."
+            }
+          },
+          {
+            "name": "probe_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP."
+            }
+          },
+          {
+            "name": "protocol",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Transport layer for SIP communication."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "register_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to true to perform SIP registration on the test target with the SIP REGISTER command."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "sip_registrar",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "SIP server to be tested, specified by domain name or IP address."
+            }
+          },
+          {
+            "name": "sip_target_time",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Target time for test completion in milliseconds."
+            }
+          },
+          {
+            "name": "sip_time_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Time limit in milliseconds."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "user",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Username for SIP registration, should be unique within a ThousandEyes account group."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "sip_server_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get SIP Server test."
+      }
+    },
+    {
+      "name": "tests_voice",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "codec",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Codec label"
+            }
+          },
+          {
+            "name": "codec_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Codec identifier for the RTP stream. Valid values:\n\n* `0`: G.711 @ 64 Kbps\n* `1`: G.722.1 @ 24 Kbps (WB)\n* `2`: G.722.1 @ 32 Kbps (WB)\n* `3`: G.726 @ 32 Kbps\n* `4`: G.723.1 @ 6.4 Kbps\n* `5`: G.729a @ 8 Kbps\n* `6`: RTAudio @ 45 Kbps (WB)\n* `7`: RTAudio @ 27.8 Kbps\n* `8`: SILK @ 36 Kbps (WB)\n* `9`: G.722 @ 64 Kbps (WB)"
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "dscp",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "DSCP label."
+            }
+          },
+          {
+            "name": "dscp_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)"
+            }
+          },
+          {
+            "name": "duration",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Duration of the test in seconds."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "jitter_buffer",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "De-jitter buffer size in seconds."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "port",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Port number for the chosen protocol."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "target_agent_id",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Agent ID of the target agent for the test."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "voice_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get Voice test."
+      }
+    },
+    {
+      "name": "tests_web_transaction",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alerts_enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates if alerts are enabled."
+            }
+          },
+          {
+            "name": "allow_geolocation",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set true to use the agent’s geolocation by the web page."
+            }
+          },
+          {
+            "name": "allow_mic_and_camera",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set true allow the use of a fake mic and camera in the browser."
+            }
+          },
+          {
+            "name": "allow_unsafe_legacy_renegotiation",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation."
+            }
+          },
+          {
+            "name": "auth_type",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "HTTP authentication type."
+            }
+          },
+          {
+            "name": "bandwidth_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+            }
+          },
+          {
+            "name": "bgp_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to enable bgp measurements."
+            }
+          },
+          {
+            "name": "block_domains",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests."
+            }
+          },
+          {
+            "name": "browser_language",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Set one of the available browser language that you want to use to configure the browser."
+            }
+          },
+          {
+            "name": "chrome_options",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Command-line options passed to Chrome when running the test."
+            }
+          },
+          {
+            "name": "chrome_policies",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "JSON string of Chrome policy settings to apply."
+            }
+          },
+          {
+            "name": "client_certificate",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate."
+            }
+          },
+          {
+            "name": "collect_proxy_network_data",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether network data to the proxy should be collected."
+            }
+          },
+          {
+            "name": "content_regex",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Content regex, this field does not require escaping."
+            }
+          },
+          {
+            "name": "created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that created the test."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC created date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "credentials",
+            "set": {
+              "computed_optional_required": "optional",
+              "element_type": {
+                "string": {}
+              },
+              "description": "Contains a list of credential IDs (get `credentialId` from `/credentials` endpoint)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the test."
+            }
+          },
+          {
+            "name": "desired_status_code",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code."
+            }
+          },
+          {
+            "name": "disable_screenshot",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enables or disables screenshots on error. Set true to not capture"
+            }
+          },
+          {
+            "name": "distributed_tracing",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards."
+            }
+          },
+          {
+            "name": "dns_override",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "IP address to use for DNS override."
+            }
+          },
+          {
+            "name": "download_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Specifies maximum number of bytes to download from the target object."
+            }
+          },
+          {
+            "name": "emulated_device_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "ID of the emulated device, if specified when the test was created."
+            }
+          },
+          {
+            "name": "enabled",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Test is enabled."
+            }
+          },
+          {
+            "name": "fixed_packet_rate",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Sets packets rate sent to measure the network in packets per second."
+            }
+          },
+          {
+            "name": "follow_redirects",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`."
+            }
+          },
+          {
+            "name": "http_target_time",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Target time for HTTP server completion, specified in milliseconds."
+            }
+          },
+          {
+            "name": "http_time_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "HTTP time limit in seconds."
+            }
+          },
+          {
+            "name": "http_version",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1."
+            }
+          },
+          {
+            "name": "identify_agent_traffic_with_user_agent",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy)."
+            }
+          },
+          {
+            "name": "include_headers",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to `true` to capture response headers for objects loaded by the test."
+            }
+          },
+          {
+            "name": "interval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "live_share",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is shared with the account group."
+            }
+          },
+          {
+            "name": "modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "User that modified the test."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last modification date (ISO date-time format)."
+            }
+          },
+          {
+            "name": "mtu_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+            }
+          },
+          {
+            "name": "network_measurements",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+            }
+          },
+          {
+            "name": "num_path_traces",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Number of path traces executed by the agent."
+            }
+          },
+          {
+            "name": "override_agent_proxy",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`."
+            }
+          },
+          {
+            "name": "override_proxy_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "ID of the proxy to be used if the default proxy is overridden."
+            }
+          },
+          {
+            "name": "page_loading_strategy",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources."
+            }
+          },
+          {
+            "name": "password",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Password for Basic/NTLM authentication."
+            }
+          },
+          {
+            "name": "path_trace_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Select `inSession` to perform the path trace within a TCP session."
+            }
+          },
+          {
+            "name": "probe_mode",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP."
+            }
+          },
+          {
+            "name": "protocol",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+            }
+          },
+          {
+            "name": "randomized_start_time",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicates whether agents should randomize the start time in each test round."
+            }
+          },
+          {
+            "name": "saved_event",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API."
+            }
+          },
+          {
+            "name": "ssl_version",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Reflects the verbose SSL protocol version used by a test."
+            }
+          },
+          {
+            "name": "ssl_version_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3."
+            }
+          },
+          {
+            "name": "subinterval",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`."
+            }
+          },
+          {
+            "name": "target_time",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Target completion time, in seconds. Defaults to 10. Cannot exceed the `timeLimit` value."
+            }
+          },
+          {
+            "name": "test_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
+            }
+          },
+          {
+            "name": "test_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The name of the test. Test name must be unique."
+            }
+          },
+          {
+            "name": "time_limit",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Time limit for transaction in seconds."
+            }
+          },
+          {
+            "name": "transaction_script",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "JavaScript of a web transaction test. Quotes must be escaped (precede \" characters with \\ )."
+            }
+          },
+          {
+            "name": "type",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "This is a read only value, as test type is implicit in the test creation url."
+            }
+          },
+          {
+            "name": "url",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Target for the test."
+            }
+          },
+          {
+            "name": "use_ntlm",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set."
+            }
+          },
+          {
+            "name": "use_public_bgp",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+            }
+          },
+          {
+            "name": "user_agent",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "User-agent string to be provided during the test."
+            }
+          },
+          {
+            "name": "username",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Username for Basic/NTLM authentication."
+            }
+          },
+          {
+            "name": "vault_credentials",
+            "set_nested": {
+              "computed_optional_required": "optional",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "web_transaction_tests.TestVaultCredential"
+                },
+                "attributes": [
+                  {
+                    "name": "secret_id",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "UUID of the configured secret."
+                    }
+                  },
+                  {
+                    "name": "target",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "The target setting that the credential should be used for."
+                    }
+                  }
+                ]
+              },
+              "description": "List of credential IDs that are stored in an external vault."
+            }
+          },
+          {
+            "name": "verify_certificate",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors."
+            }
+          },
+          {
+            "name": "agents",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "web_transaction_tests.TestAgentRequest"
+                },
+                "attributes": [
+                  {
+                    "name": "agent_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "The agent to run the test from. Get identifiers from `/agents`; cloud agent identifiers are stable public values."
+                    }
+                  }
+                ]
+              },
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+            }
+          }
+        ],
+        "markdown_description": "Get Web Transactions test."
+      }
     }
   ],
   "version": "0.1"

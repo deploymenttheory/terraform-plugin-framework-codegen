@@ -23,6 +23,11 @@ func res(b *blueprint.Blueprint, key string) *blueprint.Resource {
 	panic("no resource " + key + " in the committed blueprint")
 }
 
+// sharedLoader is one loader for the whole test package: the cache is what keeps
+// a dozen Verify-based tests from spawning a dozen full go/packages invocations,
+// and the loader's own mutex is what makes sharing it under t.Parallel sound.
+var sharedLoader = NewLoader(pilotModule)
+
 func loadPilot(t *testing.T) (blueprint.Blueprint, *Loader) {
 	t.Helper()
 
@@ -31,7 +36,7 @@ func loadPilot(t *testing.T) (blueprint.Blueprint, *Loader) {
 		t.Fatalf("loading the committed pilot blueprint: %v", err)
 	}
 
-	return bp, NewLoader(pilotModule)
+	return bp, sharedLoader
 }
 
 // TestUnit_SDKBind_CommittedBlueprintMatchesTheSDK is the check that earns this

@@ -156,10 +156,14 @@ func (a Attribute) validateWireForKind(kind BlockKind, at string, p *problems) {
 	}
 
 	if n := a.Type.NestedObject; n != nil {
-		if kind.Flattens() && n.FlattenFunc == "" {
+		// A skipped direction needs no helper: the classic tests' agents attribute is
+		// write-only -- the read reports assignment through its own fields -- and
+		// demanding a flatten function for a direction that never runs would force
+		// declaring a name nothing emits.
+		if kind.Flattens() && n.FlattenFunc == "" && !a.Wire.SkipFlatten {
 			p.add(at+".type.nested.flattenFunc", "is required")
 		}
-		if kind.Expands() && n.ExpandFunc == "" {
+		if kind.Expands() && n.ExpandFunc == "" && !a.Wire.SkipExpand {
 			p.add(
 				at+".type.nested.expandFunc",
 				"is required for a %s, which sends this object to the API",
