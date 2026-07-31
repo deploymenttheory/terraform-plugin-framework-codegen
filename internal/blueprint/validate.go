@@ -997,6 +997,24 @@ func (b ResourceBinding) validate(at string, p *problems) {
 	required(p, at+".body.responseType", b.Body.ResponseType)
 	required(p, at+".body.constructorExpr", b.Body.ConstructorExpr)
 
+	// The split-update pair travels together: a type with no constructor cannot be
+	// instantiated, and a constructor with no type is a leftover from a removed split.
+	// And a split with no update operation constrains nothing -- it would sit in the
+	// committed file looking meaningful, which is worse than being refused.
+	if b.Body.UpdateRequestType != "" && b.Body.UpdateConstructorExpr == "" {
+		p.add(at+".body.updateConstructorExpr",
+			"is required when updateRequestType is set: the emitter cannot instantiate "+
+				"a body it has no constructor expression for")
+	}
+	if b.Body.UpdateConstructorExpr != "" && b.Body.UpdateRequestType == "" {
+		p.add(at+".body.updateRequestType",
+			"is required when updateConstructorExpr is set")
+	}
+	if b.Body.UpdateRequestType != "" && b.Update == nil {
+		p.add(at+".body.updateRequestType",
+			"names an update body type, but the binding has no update operation to send it")
+	}
+
 	switch b.Body.AccessStyle {
 	case AccessStructField:
 	case AccessMethod:

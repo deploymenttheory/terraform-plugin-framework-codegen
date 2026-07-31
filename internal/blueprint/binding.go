@@ -224,8 +224,23 @@ type BodyModels struct {
 	// composite literal; a setter-based SDK uses its constructor function.
 	ConstructorExpr string `json:"constructorExpr"`
 
+	// UpdateRequestType is the Go type of the update request body, for an SDK that
+	// splits it from create's -- ThousandEyes' agent-to-server test creates with
+	// AgentToServerTestRequest and updates with UpdateAgentToServerTestRequest.
+	// Empty means update sends RequestType, which is the overwhelmingly common
+	// shape. The split types are near-identical clones sharing field names, so the
+	// emitter reuses one assignment list against both; sdkbind proves every field
+	// exists on both types, which is what makes the reuse safe rather than hopeful.
+	UpdateRequestType string `json:"updateRequestType,omitempty"`
+	// UpdateConstructorExpr yields an empty update body. Required exactly when
+	// UpdateRequestType is set.
+	UpdateConstructorExpr string `json:"updateConstructorExpr,omitempty"`
+
 	AccessStyle AccessStyle `json:"accessStyle"`
 }
+
+// SplitsUpdateBody reports whether update sends a different Go type than create.
+func (b BodyModels) SplitsUpdateBody() bool { return b.UpdateRequestType != "" }
 
 // AccessStyle is how a field on an SDK model is read and written.
 type AccessStyle string
