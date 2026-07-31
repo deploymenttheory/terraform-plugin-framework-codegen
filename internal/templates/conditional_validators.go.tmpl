@@ -1,0 +1,68 @@
+{{ .Header }}
+
+package {{ .Package }}
+
+import (
+{{ .Imports }}
+)
+
+// requiredWhen enforces a requirement the API applies and the specification does not
+// declare: the target attribute must be set while the gate attribute holds one specific
+// value. Each instance in ConfigValidators was derived from recorded probe evidence --
+// the API refused a request omitting the target on exactly that branch.
+//
+// The framework's stock validators cannot express this: AlsoRequires relates presence to
+// presence, never presence to a value. The type lives in the generated package rather
+// than a shared helper so the resource stays self-contained.
+type requiredWhen struct {
+	gate   path.Path
+	equals string
+	target path.Path
+}
+
+var _ resource.ConfigValidator = requiredWhen{}
+
+func (v requiredWhen) Description(ctx context.Context) string {
+	return v.MarkdownDescription(ctx)
+}
+
+func (v requiredWhen) MarkdownDescription(context.Context) string {
+	return fmt.Sprintf("%s is required when %s is %q", v.target, v.gate, v.equals)
+}
+
+// ValidateResource reports the omission at plan time, where it costs a message, instead
+// of at apply time, where the API's refusal costs a failed run.
+func (v requiredWhen) ValidateResource(
+	ctx context.Context,
+	req resource.ValidateConfigRequest,
+	resp *resource.ValidateConfigResponse,
+) {
+	var gate types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, v.gate, &gate)...)
+	if resp.Diagnostics.HasError() || gate.IsNull() || gate.IsUnknown() {
+		// An unknown gate may resolve to either branch; deciding now would reject
+		// configurations that are about to become valid.
+		return
+	}
+	if gate.ValueString() != v.equals {
+		return
+	}
+
+	var target attr.Value
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, v.target, &target)...)
+	if resp.Diagnostics.HasError() || target == nil || target.IsUnknown() {
+		return
+	}
+
+	if target.IsNull() {
+		resp.Diagnostics.AddAttributeError(
+			v.target,
+			fmt.Sprintf("Missing attribute required when %s is %q", v.gate, v.equals),
+			fmt.Sprintf(
+				"The API requires %s whenever %s is %q, although its specification does "+
+					"not declare it. Set the attribute, or change %s.",
+				v.target, v.gate, v.equals, v.gate,
+			),
+		)
+	}
+}

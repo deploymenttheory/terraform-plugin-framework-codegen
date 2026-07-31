@@ -65,6 +65,9 @@ type schemaScope struct {
 	// none. It is the one attribute UseStateForUnknown can be applied to safely -- see
 	// planModifiersFor.
 	idAttribute string
+	// replaceOnly is true when the resource's API has no update operation, so every
+	// writable attribute must force replacement -- see planModifiersFor.
+	replaceOnly bool
 }
 
 // schemaImport is the framework import path this scope's `schema` selector resolves to.
@@ -80,6 +83,7 @@ func resourceScope(r blueprint.Resource) schemaScope {
 		what:        fmt.Sprintf("resource %q", r.Key),
 		patterns:    newPatternVars(),
 		idAttribute: r.Binding.ID.Attribute,
+		replaceOnly: r.Policy.UpdateStyle == blueprint.UpdateReplaceOnly,
 	}
 }
 
@@ -263,6 +267,12 @@ type CRUDView struct {
 	Update *OpView
 	Delete *OpView
 
+	// ReplaceOnly is true when the API has no update operation. Update above is nil, and
+	// the template emits a stub instead: the framework's interface still demands the
+	// method, but every writable attribute carries RequiresReplace, so Terraform plans a
+	// replacement and never calls it. Reaching the stub is a bug, and it says so.
+	ReplaceOnly bool
+
 	// IDAssign is the finished line that writes the created object's identifier
 	// into the model, e.g. "plan.ID = convert.PtrStringToFramework(created.ID)".
 	IDAssign string
@@ -423,7 +433,11 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	if err != nil {
 		return ResourceView{}, err
 	}
-	v.ConfigValidators = cvs
+
+	// Evidence-derived rules render beside the hand-declared ones: to the framework they
+	// are the same kind of thing, and a reader of ConfigValidators should meet both.
+	conditional, _ := conditionalValidators(r, impResource)
+	v.ConfigValidators = append(cvs, conditional...)
 
 	v.Interfaces = interfaces(r)
 
@@ -608,7 +622,7 @@ func interfaces(r blueprint.Resource) []string {
 			fmt.Sprintf("_ resource.ResourceWithIdentity = (*%s)(nil)", r.GoTypeName),
 		)
 	}
-	if len(r.ConfigValidators) > 0 {
+	if len(r.ConfigValidators) > 0 || len(requiredWhenRules(r)) > 0 {
 		out = append(
 			out,
 			fmt.Sprintf("_ resource.ResourceWithConfigValidators = (*%s)(nil)", r.GoTypeName),
@@ -818,6 +832,24 @@ func attributeDecl(
 // The trade is deliberate. Without the modifier a plan is noisier; with it wrongly applied, every
 // update fails. Noise is recoverable. A blueprint can still declare plan modifiers per attribute
 // where somebody knows the value is stable.
+// RequiresReplace is synthesised from two sources, with different justifications:
+//
+// Structurally, when the resource's update style is replaceOnly: the API has no update
+// operation, so an in-place change has nowhere to go, and a provider without the modifier
+// is simply broken on any change. No evidence is involved -- "there is no update" is a
+// property of the binding.
+//
+// From evidence, when the blueprint says Behaviour.Immutable. The value is triple-gated
+// before it gets here: the prober asserts Immutable=true only at Corroborated confidence
+// under a protocol with a control update, merge surfaces it as a recommendation rather
+// than writing a modifier, and a human commits the blueprint carrying the field -- that
+// committed diff is the opt-in this consumes. The failure asymmetry favours emitting:
+// a wrong RequiresReplace is visible in `plan` output as "forces replacement" before
+// anything is destroyed, while the current alternative -- an in-place update the API
+// refuses -- fails after apply has started, or silently diverges.
+//
+// Hand-declared planModifiers still win outright, in both directions: declaring any
+// modifier set replaces the synthesis entirely, which is the per-attribute escape hatch.
 func planModifiersFor(
 	sc schemaScope,
 	a blueprint.Attribute,
@@ -834,13 +866,44 @@ func planModifiersFor(
 	if len(a.PlanModifiers) > 0 {
 		return a.PlanModifiers
 	}
+
+	var out []blueprint.CustomCode
+
 	if a.ComputedOptionalRequired == blueprint.Computed &&
 		a.Type.Kind == blueprint.KindString &&
 		a.Name != "" && a.Name == sc.idAttribute {
 		imports.add(pkgStringPM, "")
-		return []blueprint.CustomCode{{SchemaDefinition: "stringplanmodifier.UseStateForUnknown()"}}
+		out = append(out,
+			blueprint.CustomCode{SchemaDefinition: "stringplanmodifier.UseStateForUnknown()"})
 	}
-	return nil
+
+	writable := a.ComputedOptionalRequired.IsRequired() || a.ComputedOptionalRequired.IsOptional()
+
+	if writable {
+		switch {
+		case sc.replaceOnly:
+			out = append(out, requiresReplace(a, imports,
+				"// RequiresReplace: the API has no update operation, so every change to a\n"+
+					"// writable attribute must be applied by replacement."))
+		case a.Behaviour.Immutable != nil && *a.Behaviour.Immutable:
+			out = append(out, requiresReplace(a, imports,
+				"// RequiresReplace: the prober corroborated that the API refuses in-place\n"+
+					"// changes to this field."))
+		}
+	}
+
+	return out
+}
+
+// requiresReplace renders the modifier for the attribute's kind, with its provenance
+// stated where a reader of the schema meets it.
+func requiresReplace(a blueprint.Attribute, imports *importSet, comment string) blueprint.CustomCode {
+	kind := strings.ToLower(validatorKind(a.Type.Kind))
+	imports.add(frameworkRoot+"resource/schema/"+kind+"planmodifier", "")
+
+	return blueprint.CustomCode{
+		SchemaDefinition: comment + "\n" + kind + "planmodifier.RequiresReplace()",
+	}
 }
 
 // writeValidators renders the Validators field, preceded by the note about a documented
@@ -1168,6 +1231,18 @@ func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 		ReadBackIntervalMS: pickPositive(
 			r.Policy.ReadBack.IntervalMS, defaultReadBackIntervalMS),
 		DeleteToleratesNotFound: r.Policy.Delete.NotFoundIsSuccess,
+		ReplaceOnly:             r.Policy.UpdateStyle == blueprint.UpdateReplaceOnly,
+	}
+
+	// The two claims contradict: replaceOnly means "the API has no update", and a bound
+	// update operation means it has one. Emitting either reading silently would make the
+	// other a lie, so it is refused with both halves named.
+	if v.ReplaceOnly && r.Binding.Update != nil {
+		return CRUDView{}, &ErrUnsupported{
+			What: fmt.Sprintf("resource %q", r.Key),
+			Why: "policy.updateStyle is replaceOnly and binding.update is set; an API with " +
+				"an update operation cannot be replace-only, so one of the two must go",
+		}
 	}
 
 	ops := []struct {

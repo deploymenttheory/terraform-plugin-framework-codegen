@@ -538,15 +538,17 @@ func applyAttributeFacts(
 			}
 			setBool(&attr.Behaviour.Immutable, f, res, path, "behaviour.immutable", result)
 
-			// Never a plan modifier, whatever the confidence. Whether Terraform should destroy
-			// and recreate is a decision about somebody's infrastructure; the toolkit's job is
-			// to put the evidence in front of the person making it.
+			// Merge itself writes no plan modifier; render consumes behaviour.immutable
+			// from the *committed* blueprint. That committed diff is the human gate: the
+			// emitted RequiresReplace destroys and recreates real infrastructure, so the
+			// decision lives in review of this change, and the recommendation says
+			// exactly what accepting it will do.
 			if v := f.Value.Bool; v != nil && *v {
 				result.Recommendations = append(result.Recommendations, fmt.Sprintf(
-					"%s.%s: the API refuses in-place changes, so RequiresReplace is now "+
-						"warranted. Add it by hand: it destroys and recreates real "+
-						"infrastructure, which is not a decision this tool makes.",
-					res.Key, path))
+					"%s.%s: the API refuses in-place changes. Committing this behaviour "+
+						"change makes the generated schema carry RequiresReplace, which "+
+						"destroys and recreates real infrastructure on any change to it "+
+						"-- review it as that decision.", res.Key, path))
 			}
 
 		case probe.FactRequiredByAPI:

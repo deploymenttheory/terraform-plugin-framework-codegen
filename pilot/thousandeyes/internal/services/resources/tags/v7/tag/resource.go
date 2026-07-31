@@ -135,6 +135,11 @@ func (r *TagResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp
 				Validators: []validator.String{
 					stringvalidator.OneOf("test", "dashboard", "endpoint-test", "v-agent", "connected-devices-test", "endpoint-agent"),
 				},
+				PlanModifiers: []planmodifier.String{
+					// RequiresReplace: the prober corroborated that the API refuses in-place
+					// changes to this field.
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"access_type": schema.StringAttribute{
 				Optional: true,

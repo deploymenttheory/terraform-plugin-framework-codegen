@@ -237,6 +237,19 @@ func (g *Generator) resourceFiles(
 		})
 	}
 
+	// The requiredWhen support type, emitted exactly when resource.go references it --
+	// both derive from the same rule set, so they cannot disagree.
+	if cv, ok := render.ConditionalValidatorFile(r, ropts); ok {
+		content, err := g.renderFile("conditional_validators.go.tmpl", cv)
+		if err != nil {
+			return nil, fmt.Errorf("conditional_validators.go: %w", err)
+		}
+		out = append(out, File{
+			Path:    filepath.Join(dir, "conditional_validators.go"),
+			Content: content,
+		})
+	}
+
 	acc, err := g.acceptanceFiles(bp, r, ropts, dir)
 	if err != nil {
 		return nil, err
@@ -323,6 +336,20 @@ func (g *Generator) acceptanceFiles(
 			Content:  body,
 			Scaffold: f.scaffold,
 		})
+	}
+
+	// The replace fixture exists exactly when the acceptance test has a replace step;
+	// both derive from the same candidate, so they cannot disagree about whether to run.
+	replace, ok, rErr := render.ReplaceFixture(bp, r, ropts)
+	switch {
+	case rErr != nil && !unsupported(rErr):
+		return nil, fmt.Errorf("replace.tf: %w", rErr)
+	case rErr == nil && ok:
+		body, tErr := g.renderFile("fixture_minimal.tf.tmpl", replace)
+		if tErr != nil {
+			return nil, fmt.Errorf("replace.tf: %w", tErr)
+		}
+		out = append(out, File{Path: filepath.Join(dir, "testdata", "replace.tf"), Content: body})
 	}
 
 	return out, nil

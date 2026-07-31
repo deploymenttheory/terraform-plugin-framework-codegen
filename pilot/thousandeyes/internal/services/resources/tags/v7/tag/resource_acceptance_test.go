@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/acceptance"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/acceptance/check"
@@ -83,6 +84,28 @@ func TestAccResourceTag_01_Lifecycle(t *testing.T) {
 					check.That(address).Key("description").HasValue("tfacc-description"),
 					check.That(address).Key("icon").HasValue("LABEL"),
 					check.That(address).Key("object_type").HasValue("test"),
+					check.That(address).Key("access_type").HasValue("all"),
+				),
+			},
+			// Flip object_type, which the API refuses to change in place. The plan
+			// must say so before anything is destroyed -- this is the generated
+			// RequiresReplace proven live, and without the plan check the step would pass
+			// by replacing whether or not the modifier exists.
+			{
+				Config: config(t, "replace.tf"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(address, plancheck.ResourceActionReplace),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					check.That(address).ExistsInAPI(testResource),
+					check.That(address).Key("id").Exists(),
+					check.That(address).Key("key").HasValue("tfacc-key"),
+					check.That(address).Key("value").HasValue("tfacc-value"),
+					check.That(address).Key("color").HasValue("#A7EB10"),
+					check.That(address).Key("icon").HasValue("LABEL"),
+					check.That(address).Key("object_type").HasValue("dashboard"),
 					check.That(address).Key("access_type").HasValue("all"),
 				),
 			},
