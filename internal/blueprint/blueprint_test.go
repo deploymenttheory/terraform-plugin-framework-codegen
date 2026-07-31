@@ -793,6 +793,73 @@ func TestUnit_Blueprint_Validate_SplitUpdateBody(t *testing.T) {
 	}
 }
 
+// TestUnit_Blueprint_Validate_AccFixtureHints: a hint is emitted verbatim into
+// generated HCL, so the refusals are the mistakes that would emit a fixture that
+// cannot apply or a value nothing consumes.
+func TestUnit_Blueprint_Validate_AccFixtureHints(t *testing.T) {
+	t.Parallel()
+
+	valid := validBlueprint()
+	valid.Resources[0].AccFixture = &AccFixture{
+		DataBlocks: []string{`data "te_agents" "test" {}`},
+		Values:     []FixtureHint{{Attr: "key", HCL: `data.te_agents.test.id`}},
+	}
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("a well-formed hint must validate: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		fixture  *AccFixture
+		wantPath string
+	}{
+		{
+			name:     "unknown attribute",
+			fixture:  &AccFixture{Values: []FixtureHint{{Attr: "nope", HCL: "1"}}},
+			wantPath: `no attribute is named "nope"`,
+		},
+		{
+			name:     "computed attribute",
+			fixture:  &AccFixture{Values: []FixtureHint{{Attr: "id", HCL: "1"}}},
+			wantPath: "computed only",
+		},
+		{
+			name:     "empty expression",
+			fixture:  &AccFixture{Values: []FixtureHint{{Attr: "key", HCL: "  "}}},
+			wantPath: "hcl",
+		},
+		{
+			name: "duplicate hint",
+			fixture: &AccFixture{Values: []FixtureHint{
+				{Attr: "key", HCL: "1"}, {Attr: "key", HCL: "2"},
+			}},
+			wantPath: "hinted twice",
+		},
+		{
+			name:     "empty data block",
+			fixture:  &AccFixture{DataBlocks: []string{"   "}},
+			wantPath: "dataBlocks[0]",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := validBlueprint()
+			b.Resources[0].AccFixture = tc.fixture
+
+			err := b.Validate()
+			if err == nil {
+				t.Fatal("expected an error")
+			}
+			if !strings.Contains(err.Error(), tc.wantPath) {
+				t.Errorf("error omits %q:\n%v", tc.wantPath, err)
+			}
+		})
+	}
+}
+
 // TestUnit_Blueprint_Validate_ReportsEveryProblem matters because fixing a
 // blueprint one error per run is miserable, and collecting them costs nothing.
 func TestUnit_Blueprint_Validate_ReportsEveryProblem(t *testing.T) {

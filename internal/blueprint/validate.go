@@ -494,6 +494,7 @@ func (r Resource) validate(at string, p *problems) {
 	r.validateImport(at, seenNames, p)
 	r.validateConditionGates(at, p)
 	r.validateSweep(at, p)
+	r.validateAccFixture(at, p)
 }
 
 // validateSweep holds a sweep-naming override to the rules inference follows.
@@ -552,6 +553,61 @@ func (r Resource) validateSweep(at string, p *problems) {
 		p.add(at+".readNameField",
 			"%q is nested; the sweeper reads the name from each top-level list item",
 			r.Sweep.ReadNameField)
+	}
+}
+
+// validateAccFixture holds curated fixture values to the schema they claim to serve.
+//
+// A hint is emitted verbatim into generated HCL, so the mistakes worth refusing are the
+// ones that would emit a fixture that cannot apply or a value nothing consumes: an
+// attribute that does not exist, one a practitioner could not configure anyway, an
+// empty expression, or two hints fighting over one attribute.
+func (r Resource) validateAccFixture(at string, p *problems) {
+	if r.AccFixture == nil {
+		return
+	}
+
+	at += ".accFixture"
+
+	for i, block := range r.AccFixture.DataBlocks {
+		if strings.TrimSpace(block) == "" {
+			p.add(fmt.Sprintf("%s.dataBlocks[%d]", at, i), "is empty")
+		}
+	}
+
+	seen := map[string]bool{}
+	for i, h := range r.AccFixture.Values {
+		hat := fmt.Sprintf("%s.values[%d]", at, i)
+		if h.Attr != "" {
+			hat = fmt.Sprintf("%s.values[%s]", at, h.Attr)
+		}
+
+		if h.Attr == "" {
+			p.add(hat+".attr", "must name an attribute")
+			continue
+		}
+		if strings.TrimSpace(h.HCL) == "" {
+			p.add(hat+".hcl", "is empty; a hint exists to state the value the generator cannot derive")
+		}
+		if seen[h.Attr] {
+			p.add(hat+".attr", "%q is hinted twice", h.Attr)
+		}
+		seen[h.Attr] = true
+
+		found := false
+		for _, a := range r.Schema.Attributes {
+			if a.Drop || a.Name != h.Attr {
+				continue
+			}
+			found = true
+			if a.ComputedOptionalRequired == Computed {
+				p.add(hat+".attr",
+					"%q is computed only, so a fixture could not configure it", h.Attr)
+			}
+		}
+		if !found {
+			p.add(hat+".attr", "no attribute is named %q", h.Attr)
+		}
 	}
 }
 

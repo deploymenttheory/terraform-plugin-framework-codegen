@@ -193,6 +193,66 @@ func TestUnit_Render_AFixtureRefusesRatherThanEmitAnUnusableRequiredAttribute(t 
 	}
 }
 
+// TestUnit_Render_ACuratedHintCarriesARequiredNestedAttribute.
+//
+// The generator rightly refuses to synthesise a nested object of live identifiers, and a
+// required attribute it cannot fill refuses the whole fixture. The accFixture hint is the
+// declared way past both: verbatim HCL, a data block above the resource, and no salting --
+// the classic-test `agents` shape that motivated it.
+func TestUnit_Render_ACuratedHintCarriesARequiredNestedAttribute(t *testing.T) {
+	t.Parallel()
+
+	bp, r := fixtureResource(
+		attr("name", blueprint.KindString, blueprint.Required),
+		attr("agents", blueprint.KindSetNested, blueprint.Required),
+	)
+	r.AccFixture = &blueprint.AccFixture{
+		DataBlocks: []string{`data "te_agents" "test" {}`},
+		Values: []blueprint.FixtureHint{{
+			Attr: "agents",
+			HCL:  "[{ agent_id = data.te_agents.test.agents[0].agent_id }]",
+		}},
+	}
+
+	// The salt exercises the never-salted rule: a curated expression must come out
+	// byte-identical however the consumer salts its seed.
+	v, err := fixtureView(bp, r, "", true, "ds-consumer")
+	if err != nil {
+		t.Fatalf("a hinted required nested attribute must not refuse the fixture: %v", err)
+	}
+
+	var agents *fixtureValue
+	for i := range v.Values {
+		if v.Values[i].Name == "agents" {
+			agents = &v.Values[i]
+		}
+	}
+	if agents == nil {
+		t.Fatalf("the hinted attribute is missing, got %v", names(v.Values))
+	}
+	if agents.HCL != "[{ agent_id = data.te_agents.test.agents[0].agent_id }]" {
+		t.Errorf("the hint must be emitted verbatim, got %q", agents.HCL)
+	}
+	if !agents.Curated {
+		t.Error("a hinted value must be marked curated, or its assertion will claim equality")
+	}
+
+	if len(v.DataBlocks) != 1 || !strings.Contains(v.DataBlocks[0], "te_agents") {
+		t.Errorf("the declared data block must ride the fixture, got %v", v.DataBlocks)
+	}
+
+	// Provenance is stated where the other notes are.
+	found := false
+	for _, n := range v.Notes {
+		if n.Name == "agents" && strings.Contains(n.Note, "curated") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("a curated value's provenance should be a note")
+	}
+}
+
 // TestUnit_Render_AMinimalFixtureIsRequiredAttributesOnly, and no computed one ever appears.
 //
 // A purely computed attribute cannot be set in configuration, so writing it is invalid HCL rather
