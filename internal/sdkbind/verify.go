@@ -411,8 +411,8 @@ func verifyResource(
 		verifyOperation(l, res.Key, svc, name, *op, r)
 	}
 
-	requestOK, responseOK := verifyBodyModels(l, res, r)
-	verifyWireFields(l, res, requestOK, responseOK, r)
+	ok := verifyBodyModels(l, res, r)
+	verifyWireFields(l, res, ok, r)
 }
 
 func verifyOperation(
@@ -485,13 +485,18 @@ func arityOf(a blueprint.ReturnArity) int {
 	}
 }
 
-// verifyBodyModels checks the request and response types exist, and reports which
-// of them resolved.
+// bodyTypesOK reports which of a resource's body types resolved against the SDK.
+type bodyTypesOK struct {
+	request, response, update bool
+}
+
+// verifyBodyModels checks the request, response and (when split) update body types
+// exist, and reports which of them resolved.
 //
 // The result is used to suppress the per-field checks against a type that does not
 // exist. Without that, one bad type name produces a problem per attribute -- which
 // is exactly the wall of identical errors this package exists to replace.
-func verifyBodyModels(l *Loader, res blueprint.Resource, r *Report) (requestOK, responseOK bool) {
+func verifyBodyModels(l *Loader, res blueprint.Resource, r *Report) bodyTypesOK {
 	svc := res.Binding.Service
 
 	check := func(path, expr string) bool {
@@ -510,12 +515,18 @@ func verifyBodyModels(l *Loader, res blueprint.Resource, r *Report) (requestOK, 
 		return true
 	}
 
-	// Both are checked before returning, so a blueprint with two bad type names
-	// reports both rather than only the first.
-	requestOK = check("binding.body.requestType", res.Binding.Body.RequestType)
-	responseOK = check("binding.body.responseType", res.Binding.Body.ResponseType)
+	// All are checked before returning, so a blueprint with several bad type names
+	// reports each of them rather than only the first.
+	ok := bodyTypesOK{
+		request:  check("binding.body.requestType", res.Binding.Body.RequestType),
+		response: check("binding.body.responseType", res.Binding.Body.ResponseType),
+	}
 
-	return requestOK, responseOK
+	if res.Binding.Body.SplitsUpdateBody() {
+		ok.update = check("binding.body.updateRequestType", res.Binding.Body.UpdateRequestType)
+	}
+
+	return ok
 }
 
 // verifyWireFields checks that every attribute's SDK field exists on the model it
@@ -524,17 +535,20 @@ func verifyBodyModels(l *Loader, res blueprint.Resource, r *Report) (requestOK, 
 // A wrong field name here is the quietest possible failure: if it happens to
 // match another field of the same type the code compiles and the provider maps
 // the wrong value.
-func verifyWireFields(l *Loader, res blueprint.Resource, requestOK, responseOK bool, r *Report) {
+func verifyWireFields(l *Loader, res blueprint.Resource, ok bodyTypesOK, r *Report) {
 	svc := res.Binding.Service
 
 	// A type that did not resolve is already reported once; checking fields
 	// against it would repeat that one cause per attribute.
-	var request, response string
-	if requestOK {
+	var request, response, update string
+	if ok.request {
 		request = typeNameOf(res.Binding.Body.RequestType)
 	}
-	if responseOK {
+	if ok.response {
 		response = typeNameOf(res.Binding.Body.ResponseType)
+	}
+	if ok.update {
+		update = typeNameOf(res.Binding.Body.UpdateRequestType)
 	}
 
 	for _, a := range res.Schema.Attributes {
@@ -543,10 +557,17 @@ func verifyWireFields(l *Loader, res blueprint.Resource, requestOK, responseOK b
 		}
 
 		// An attribute that is written must exist on the request model; one that
-		// is read must exist on the response model. Most exist on both.
+		// is read must exist on the response model. Most exist on both. A split
+		// update body is checked as a second write target: the emitter reuses one
+		// assignment list against both types, and this check is what makes that
+		// reuse safe -- a field present on create's clone and absent from update's
+		// fails here, as a named blueprint problem, instead of failing to compile.
 		checks := map[string]string{}
 		if !a.Wire.SkipExpand && a.Wire.Expand != nil && request != "" {
 			checks[request] = "expand"
+		}
+		if !a.Wire.SkipExpand && a.Wire.Expand != nil && update != "" {
+			checks[update] = "expand (update body)"
 		}
 		if !a.Wire.SkipFlatten && a.Wire.Flatten != nil && response != "" {
 			checks[response] = "flatten"
@@ -568,7 +589,54 @@ func verifyWireFields(l *Loader, res blueprint.Resource, requestOK, responseOK b
 			}
 			r.Checked++
 		}
+
+		verifySplitFieldsAgree(l, svc, res.Key, a, request, update, r)
 	}
+}
+
+// verifySplitFieldsAgree demands a field carried by both create's and update's body
+// declare the same Go type on each.
+//
+// Existence on both is not enough: the shared assignment list writes one converted
+// value into both types, so a field the update clone declares anew with its own nested
+// type would compile on create and fail on update -- in generated code, where the
+// error names nothing a blueprint author recognises. Reported here instead, with the
+// two types side by side, which is also the signal to model the attribute as
+// create-authoritative or to keep the nested shape out of the split body.
+func verifySplitFieldsAgree(
+	l *Loader,
+	svc blueprint.ServiceRef,
+	key string,
+	a blueprint.Attribute,
+	request, update string,
+	r *Report,
+) {
+	if request == "" || update == "" || a.Wire.SkipExpand || a.Wire.Expand == nil {
+		return
+	}
+
+	created, errC := l.LookupField(svc.ImportPath, request, a.Wire.SDKField)
+	updated, errU := l.LookupField(svc.ImportPath, update, a.Wire.SDKField)
+	if errC != nil || errU != nil {
+		// Absence is already reported by the existence checks; repeating it here
+		// would double every miss.
+		return
+	}
+
+	if types.Identical(created, updated) {
+		r.Checked++
+		return
+	}
+
+	r.Problems = append(r.Problems, Problem{
+		Resource: key,
+		Path:     fmt.Sprintf("attributes[%s].wire.sdkField", a.Name),
+		Detail: fmt.Sprintf(
+			"%s is %s on %s but %s on %s; one assignment list cannot fill both, so "+
+				"either skip this attribute on expand or model it create-authoritative",
+			a.Wire.SDKField, created, request, updated, update,
+		),
+	})
 }
 
 // typeNameOf reduces a qualified type expression to its bare name.

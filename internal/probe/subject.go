@@ -64,6 +64,27 @@ type Subject struct {
 	// guarantee cleanup, and creating objects that cannot be found again is not a
 	// trade worth making.
 	NameField string `json:"nameField"`
+
+	// NameReadField is the key the stamped name comes back under on a read.
+	//
+	// Almost always empty, meaning NameField round-trips unchanged. Set only by a
+	// blueprint sweep override for an API that renames on the way out -- a dashboard
+	// snapshot takes displayName and lists snapshotName. Read it through
+	// SweepNameField, which applies the fallback.
+	NameReadField string `json:"nameReadField,omitempty"`
+}
+
+// SweepNameField is the key to find the stamped name under on a read, falling back to
+// the write field when no rename is declared.
+//
+// A method rather than a field populated at construction, because subjects are also
+// built by hand -- in tests and by callers that never saw a blueprint -- and a zero
+// NameReadField on those must mean "same as NameField", not "no name to match".
+func (s Subject) SweepNameField() string {
+	if s.NameReadField != "" {
+		return s.NameReadField
+	}
+	return s.NameField
 }
 
 // Op is one HTTP operation, as much as a probe needs of it.
@@ -169,6 +190,13 @@ func SubjectOf(bp blueprint.Blueprint, res blueprint.Resource) (Subject, error) 
 	subj.NameField = nameFieldOf(subj.Fields)
 	subj.IDField = idFieldOf(res, subj.Fields)
 
+	// A blueprint override beats inference. Validation has already held the field to
+	// the same rules nameFieldOf applies, so this is a substitution, not a loosening.
+	if res.Sweep != nil {
+		subj.NameField = res.Sweep.NameField
+		subj.NameReadField = res.Sweep.ReadNameField
+	}
+
 	return subj, nil
 }
 
@@ -254,6 +282,16 @@ func writable(a blueprint.Attribute) bool {
 // because it is nearly always free-text and writable. Anything else risks putting a
 // marker in a field with semantics -- a URL, a hostname -- where the API would reject
 // it or, worse, accept it and do something.
+//
+// After the exact list, a field whose key ends in a capitalised "Name" -- testName,
+// ruleName, accountGroupName -- is accepted. APIs that prefix every field with the
+// object's own noun are common enough that refusing them made whole families of
+// resources unprobeable, and a field named that way carries name semantics as surely
+// as a bare "name" does. The capital matters: it is what separates a camelCase
+// "<noun>Name" from a compound word -- hostname, filename, username -- whose trailing
+// letters happen to spell "name" while the field means something a stamped prefix
+// would corrupt. The suffix tier ranks below every exact candidate: a schema with
+// both "name" and "displayName" should use the one that says only "name".
 func nameFieldOf(fields []Field) string {
 	preferred := []string{"name", "label", "key", "title", "description"}
 
@@ -272,6 +310,27 @@ func nameFieldOf(fields []Field) string {
 		if _, ok := byPath[want]; ok {
 			return want
 		}
+	}
+
+	// The suffix tier. Deterministic when several qualify -- shortest path first, then
+	// lexical -- so the same schema picks the same field on every run; a cassette is an
+	// ordered transcript and the name field shapes every create in it.
+	var suffixed []string
+	for path := range byPath {
+		if strings.HasSuffix(path, "Name") {
+			suffixed = append(suffixed, path)
+		}
+	}
+
+	sort.Slice(suffixed, func(i, j int) bool {
+		if len(suffixed[i]) != len(suffixed[j]) {
+			return len(suffixed[i]) < len(suffixed[j])
+		}
+		return suffixed[i] < suffixed[j]
+	})
+
+	if len(suffixed) > 0 {
+		return suffixed[0]
 	}
 
 	return ""

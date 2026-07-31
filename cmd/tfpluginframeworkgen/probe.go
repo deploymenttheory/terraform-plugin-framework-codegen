@@ -147,7 +147,9 @@ func probeMain(args []string) error {
 		profilePath = fs.String("profile", "",
 			"sandbox profile for a mutating run; defaults to "+defaultProfileDir+"/PROVIDER.json")
 		planPath = fs.String("plan", "", "probe plan: fixtures and candidates a probe cannot discover")
-		force    = fs.Bool("force", false, "record over evidence that is already committed")
+		planDir  = fs.String("plan-dir", "",
+			"directory of per-resource plans, KEY.probe.plan.json; defaults to the blueprint directory")
+		force = fs.Bool("force", false, "record over evidence that is already committed")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -216,13 +218,18 @@ func probeMain(args []string) error {
 			"committed facts reproduce, it must not rewrite them", *mode)
 	}
 
+	// One plan speaks one schema's wire vocabulary. Applied to every subject of a
+	// multi-resource run it would inject one resource's fixtures into every other's
+	// probes, so the combination is refused rather than quietly wrong.
+	if *planPath != "" && *resource == "" {
+		return usagef("-plan needs -resource: a plan speaks one schema's vocabulary; " +
+			"for a multi-resource run use -plan-dir (or its default, the blueprint " +
+			"directory) with one KEY.probe.plan.json per resource")
+	}
+
 	plan, err := loadPlan(*planPath)
 	if err != nil {
 		return err
-	}
-
-	if *list {
-		return listProbes(subjects, plan, *only)
 	}
 
 	opts := probeRun{
@@ -234,9 +241,15 @@ func probeMain(args []string) error {
 		provider:     *providerName,
 		apiVersion:   bp.Source.SpecVersion,
 		plan:         plan,
+		planExplicit: *planPath != "",
+		planDir:      planDirFor(*planDir, *blueprintPath),
 		profilePath:  profilePathFor(*profilePath, *providerName),
 		allowMutate:  *allowMutations,
 		force:        *force,
+	}
+
+	if *list {
+		return listProbes(opts)
 	}
 
 	if *mode == modeSweep {
@@ -244,6 +257,23 @@ func probeMain(args []string) error {
 	}
 
 	return runProbeMode(opts)
+}
+
+// planDirFor defaults the per-resource plan directory to wherever the blueprint lives.
+//
+// The convention -- blueprints/PROVIDER/KEY.probe.plan.json beside the blueprint files
+// -- is already how the committed plans are laid out, so the default makes the bulk
+// path the zero-flag path.
+func planDirFor(planDir, blueprintPath string) string {
+	if planDir != "" {
+		return planDir
+	}
+
+	if info, err := os.Stat(blueprintPath); err == nil && !info.IsDir() {
+		return filepath.Dir(blueprintPath)
+	}
+
+	return blueprintPath
 }
 
 // probeRun is one invocation's settings, gathered so the mode functions take one argument
@@ -257,10 +287,36 @@ type probeRun struct {
 	provider     string
 	apiVersion   string
 
-	plan        probe.Plan
+	// plan is the -plan flag's plan; meaningful only with planExplicit. Every other
+	// run resolves a plan per subject from planDir, through planFor -- one plan
+	// speaks one schema's vocabulary, so a shared plan across subjects is never right.
+	plan         probe.Plan
+	planExplicit bool
+	planDir      string
+
 	profilePath string
 	allowMutate bool
 	force       bool
+}
+
+// planFor resolves the plan for one subject: the explicit -plan when one was given,
+// else the conventional KEY.probe.plan.json beside the blueprint. found reports whether
+// any plan was actually supplied -- a zero plan and an absent file must not be
+// conflated, because a mutating run skips an unplanned subject with a stated note
+// rather than letting the gate refuse the whole wave.
+func (opts probeRun) planFor(resource string) (plan probe.Plan, found bool, err error) {
+	if opts.planExplicit {
+		return opts.plan, true, nil
+	}
+
+	path := filepath.Join(opts.planDir, resource+".probe.plan.json")
+	if _, statErr := os.Stat(path); errors.Is(statErr, os.ErrNotExist) {
+		return probe.Plan{}, false, nil
+	}
+
+	plan, err = loadPlan(path)
+
+	return plan, err == nil, err
 }
 
 // ledgerRoot is where per-run ledgers live. Gitignored: a ledger records live objects in
@@ -354,9 +410,29 @@ func runProbeMode(opts probeRun) error {
 			return err
 		}
 
+		plan, planFound, err := opts.planFor(subj.Resource)
+		if err != nil {
+			return err
+		}
+
 		switch opts.mode {
 		case modeRecord:
-			if err := recordProbe(opts, subj, root); err != nil {
+			// A mutating wave skips an uncurated subject with a stated note rather
+			// than stopping: the gate would refuse it anyway (no fixture, no valid
+			// body), and one resource nobody has planned yet must not block the
+			// nineteen that are ready.
+			if opts.allowMutate && !planFound {
+				fmt.Fprintf(os.Stderr,
+					"  note  %s: no plan at %s; skipped -- a mutating probe needs a "+
+						"fixture to build on\n",
+					subj.Resource, filepath.Join(opts.planDir, subj.Resource+".probe.plan.json"))
+				continue
+			}
+
+			subjOpts := opts
+			subjOpts.plan = plan
+
+			if err := recordProbe(subjOpts, subj, root); err != nil {
 				return err
 			}
 
@@ -654,12 +730,19 @@ func sweepEverything(opts probeRun) error {
 			continue
 		}
 
+		// The subject's own plan, for its sweep budget; a subject with none sweeps on
+		// the defaults, which is exactly what an unplanned resource should get.
+		plan, _, err := opts.planFor(subj.Resource)
+		if err != nil {
+			return err
+		}
+
 		ledger, err := probe.OpenLedger(probe.LedgerPath(ledgerRoot, opts.provider, subj.Resource))
 		if err != nil {
 			return err
 		}
 
-		ctx, cancel := probe.SweepContext(context.Background(), opts.plan.Budget.MaxSweepSeconds)
+		ctx, cancel := probe.SweepContext(context.Background(), plan.Budget.MaxSweepSeconds)
 
 		summary, sweepErr := probe.RunSweep(ctx, probe.SweepRunOptions{
 			Grant:      grant,
@@ -667,7 +750,7 @@ func sweepEverything(opts probeRun) error {
 			BaseURL:    endpoint,
 			Token:      token,
 			Ledger:     ledger,
-			MaxSeconds: opts.plan.Budget.MaxSweepSeconds,
+			MaxSeconds: plan.Budget.MaxSweepSeconds,
 		})
 
 		cancel()
@@ -1062,8 +1145,15 @@ func subjectsOf(bp blueprint.Blueprint) ([]probe.Subject, []string, error) {
 // This works with no credentials, no cassettes and no network, which is what makes it
 // the first useful thing the prober does: the costs and the mutating/read split are
 // reviewable against a real blueprint before anybody points it at a tenant.
-func listProbes(subjects []probe.Subject, plan probe.Plan, only string) error {
-	for _, subj := range subjects {
+func listProbes(opts probeRun) error {
+	for _, subj := range opts.subjects {
+		// Per subject, so a multi-resource listing costs each resource against its
+		// own plan rather than against whichever plan happened to be passed.
+		plan, _, err := opts.planFor(subj.Resource)
+		if err != nil {
+			return err
+		}
+
 		sc, err := probe.NewScope(subj, plan)
 		if err != nil {
 			return err
@@ -1099,7 +1189,7 @@ func listProbes(subjects []probe.Subject, plan probe.Plan, only string) error {
 		var totalRequests, totalCreates int
 
 		for _, e := range probe.Catalogue(sc) {
-			if only != "" && e.Name != only {
+			if opts.only != "" && e.Name != opts.only {
 				continue
 			}
 

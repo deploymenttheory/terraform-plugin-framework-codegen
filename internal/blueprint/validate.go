@@ -514,9 +514,125 @@ func (r Resource) validate(at string, p *problems) {
 	r.validatePolicy(at, hasWritable, p)
 	r.validateImport(at, seenNames, p)
 	r.validateConditionGates(at, p)
+	r.validateSweep(at, p)
+	r.validateAccFixture(at, p)
 
 	if r.AccTest != nil {
 		checkEnvName(p, at+".accTest.skipUnlessEnv", r.AccTest.SkipUnlessEnv)
+	}
+}
+
+// validateSweep holds a sweep-naming override to the rules inference follows.
+//
+// The name field is where a probe run's prefix is stamped, and the sweeper's only way of
+// finding a stranded object is reading that prefix back. An override naming a field that is
+// nested, unwritable or not a string would pass here and fail live -- as a create the API
+// rejects, or worse, a sweep that matches nothing while orphans accumulate. So the write
+// field is checked against the schema. The read field is not: an API that renames on read
+// often returns the value under a key the schema never models, which is the very case the
+// field exists for. All that can be demanded of it is that it is a top-level key.
+func (r Resource) validateSweep(at string, p *problems) {
+	if r.Sweep == nil {
+		return
+	}
+
+	at += ".sweep"
+
+	if r.Sweep.NameField == "" {
+		p.add(at+".nameField", "a sweep override must name the field the prefix is written into")
+		return
+	}
+
+	if strings.Contains(r.Sweep.NameField, ".") {
+		p.add(at+".nameField",
+			"%q is nested; the prefix must live in a top-level field the sweeper can read "+
+				"back from a list response", r.Sweep.NameField)
+		return
+	}
+
+	found := false
+	for _, a := range r.Schema.Attributes {
+		if a.Drop || a.Wire.JSONPath != r.Sweep.NameField {
+			continue
+		}
+
+		found = true
+
+		if a.Wire.SkipExpand || a.ComputedOptionalRequired == Computed {
+			p.add(at+".nameField",
+				"%q is not writable, so a create could never carry the prefix there",
+				r.Sweep.NameField)
+		}
+		if a.Type.Kind != KindString {
+			p.add(at+".nameField",
+				"%q is %s, not a string; a name prefix cannot be stamped into it",
+				r.Sweep.NameField, a.Type.Kind)
+		}
+	}
+
+	if !found {
+		p.add(at+".nameField", "no attribute has the wire path %q", r.Sweep.NameField)
+	}
+
+	if strings.Contains(r.Sweep.ReadNameField, ".") {
+		p.add(at+".readNameField",
+			"%q is nested; the sweeper reads the name from each top-level list item",
+			r.Sweep.ReadNameField)
+	}
+}
+
+// validateAccFixture holds curated fixture values to the schema they claim to serve.
+//
+// A hint is emitted verbatim into generated HCL, so the mistakes worth refusing are the
+// ones that would emit a fixture that cannot apply or a value nothing consumes: an
+// attribute that does not exist, one a practitioner could not configure anyway, an
+// empty expression, or two hints fighting over one attribute.
+func (r Resource) validateAccFixture(at string, p *problems) {
+	if r.AccFixture == nil {
+		return
+	}
+
+	at += ".accFixture"
+
+	for i, block := range r.AccFixture.DataBlocks {
+		if strings.TrimSpace(block) == "" {
+			p.add(fmt.Sprintf("%s.dataBlocks[%d]", at, i), "is empty")
+		}
+	}
+
+	seen := map[string]bool{}
+	for i, h := range r.AccFixture.Values {
+		hat := fmt.Sprintf("%s.values[%d]", at, i)
+		if h.Attr != "" {
+			hat = fmt.Sprintf("%s.values[%s]", at, h.Attr)
+		}
+
+		if h.Attr == "" {
+			p.add(hat+".attr", "must name an attribute")
+			continue
+		}
+		if strings.TrimSpace(h.HCL) == "" {
+			p.add(hat+".hcl", "is empty; a hint exists to state the value the generator cannot derive")
+		}
+		if seen[h.Attr] {
+			p.add(hat+".attr", "%q is hinted twice", h.Attr)
+		}
+		seen[h.Attr] = true
+
+		found := false
+		for _, a := range r.Schema.Attributes {
+			if a.Drop || a.Name != h.Attr {
+				continue
+			}
+			found = true
+			if a.ComputedOptionalRequired == Computed {
+				p.add(hat+".attr",
+					"%q is computed only, so a fixture could not configure it", h.Attr)
+			}
+		}
+		if !found {
+			p.add(hat+".attr", "no attribute is named %q", h.Attr)
+		}
 	}
 }
 
@@ -961,6 +1077,24 @@ func (b ResourceBinding) validate(at string, p *problems) {
 	required(p, at+".body.requestType", b.Body.RequestType)
 	required(p, at+".body.responseType", b.Body.ResponseType)
 	required(p, at+".body.constructorExpr", b.Body.ConstructorExpr)
+
+	// The split-update pair travels together: a type with no constructor cannot be
+	// instantiated, and a constructor with no type is a leftover from a removed split.
+	// And a split with no update operation constrains nothing -- it would sit in the
+	// committed file looking meaningful, which is worse than being refused.
+	if b.Body.UpdateRequestType != "" && b.Body.UpdateConstructorExpr == "" {
+		p.add(at+".body.updateConstructorExpr",
+			"is required when updateRequestType is set: the emitter cannot instantiate "+
+				"a body it has no constructor expression for")
+	}
+	if b.Body.UpdateConstructorExpr != "" && b.Body.UpdateRequestType == "" {
+		p.add(at+".body.updateRequestType",
+			"is required when updateConstructorExpr is set")
+	}
+	if b.Body.UpdateRequestType != "" && b.Update == nil {
+		p.add(at+".body.updateRequestType",
+			"names an update body type, but the binding has no update operation to send it")
+	}
 
 	switch b.Body.AccessStyle {
 	case AccessStructField:

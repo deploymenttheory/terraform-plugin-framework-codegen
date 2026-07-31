@@ -203,6 +203,14 @@ type Resource struct {
 	Import   ImportPolicy    `json:"import,omitzero"`
 	Timeouts Timeouts        `json:"timeouts,omitzero"`
 
+	// Sweep overrides the prober's name-field inference for this resource.
+	//
+	// On the resource rather than the probe plan, because `probe -mode sweep` builds its
+	// subject from the blueprint alone -- a sweep is exactly the situation where no plan
+	// may be to hand, and the field that finds stranded objects cannot depend on one.
+	// Absent means the prober infers the field itself.
+	Sweep *SweepNaming `json:"sweep,omitempty"`
+
 	// Identity is the resource identity schema, which makes the generated resource satisfy
 	// ResourceWithIdentity. Absent means the resource declares no identity.
 	//
@@ -233,6 +241,16 @@ type Resource struct {
 	// violated rather than validated after the fact.
 	List *ListFacet `json:"list,omitempty"`
 
+	// AccFixture curates fixture values the generator cannot derive.
+	//
+	// The generator refuses to synthesise a nested object's members -- they are
+	// frequently identifiers of objects that must already exist -- and a required
+	// attribute it cannot fill makes the whole fixture refused. Both refusals are
+	// right, and this is the declared way past them: a human states the HCL, the
+	// generator emits it verbatim, and the provenance is a blueprint diff rather
+	// than an edit to a generated file.
+	AccFixture *AccFixture `json:"accFixture,omitempty"`
+
 	// AccTest tunes the resource's generated acceptance test. Absent means the
 	// defaults: the test runs whenever TF_ACC and the credential allow it.
 	AccTest *ResourceAccTest `json:"accTest,omitempty"`
@@ -252,6 +270,64 @@ type ResourceAccTest struct {
 	// rather than failing them red. The resource's list test skips with it, since
 	// the list test seeds the same fixture.
 	SkipUnlessEnv string `json:"skipUnlessEnv,omitempty"`
+}
+
+// SweepNaming names the wire field a probe run's name prefix travels through.
+//
+// The prober infers this field when it can (a field literally called "name", or one
+// ending in it), but inference has limits a real API exceeds: an API may carry the
+// name in a field inference ranks below another candidate, and one may even return
+// the value under a different key than it accepted it -- ThousandEyes dashboard
+// snapshots take displayName and answer with snapshotName. The override exists for
+// exactly those resources, and validation holds it to the same rules inference
+// follows.
+type SweepNaming struct {
+	// NameField is the JSON key the stamped prefix is written into on create. It must
+	// be a top-level writable string attribute -- the same bar inference applies.
+	NameField string `json:"nameField"`
+
+	// ReadNameField is the key the same value comes back under on a list read, when
+	// the API renames it. Empty means NameField round-trips unchanged. The sweeper's
+	// prefix pass matches against this key, so getting it wrong is the difference
+	// between finding a stranded object and reporting an orphan.
+	ReadNameField string `json:"readNameField,omitempty"`
+}
+
+// AccFixture is the curated part of a generated acceptance fixture.
+type AccFixture struct {
+	// DataBlocks are HCL blocks emitted verbatim above the resource block, in
+	// every fixture and in every seed embedding. They exist so a hinted value can
+	// reference live tenant data -- `data "thousandeyes_agents" "test" {}` under a
+	// hint of `data.thousandeyes_agents.test.agents[0].agent_id` -- instead of a
+	// literal that goes stale.
+	DataBlocks []string `json:"dataBlocks,omitempty"`
+
+	// Values map attributes to curated HCL expressions, emitted exactly as
+	// written and never salted: salting exists to de-collide synthesised strings,
+	// and a curated expression is not one.
+	Values []FixtureHint `json:"values,omitempty"`
+}
+
+// FixtureHint is one curated fixture value.
+type FixtureHint struct {
+	// Attr is the Terraform attribute name the value is for.
+	Attr string `json:"attr"`
+	// HCL is the right-hand side, verbatim -- a literal, a reference into a
+	// declared data block, an object expression.
+	HCL string `json:"hcl"`
+}
+
+// Hint returns the curated HCL for an attribute, if any.
+func (f *AccFixture) Hint(attr string) (string, bool) {
+	if f == nil {
+		return "", false
+	}
+	for _, h := range f.Values {
+		if h.Attr == attr {
+			return h.HCL, true
+		}
+	}
+	return "", false
 }
 
 // DataSource is one Terraform data source. Phase 1 does not emit these; the type

@@ -245,9 +245,9 @@ func checksFor(r blueprint.Resource, f FixtureView, patterns *patternVars) []str
 		`check.That(address).Key("id").Exists()`,
 	}
 
-	set := make(map[string]bool, len(f.Values))
+	set := make(map[string]fixtureValue, len(f.Values))
 	for _, v := range f.Values {
-		set[v.Name] = true
+		set[v.Name] = v
 	}
 
 	for _, a := range r.Schema.Attributes {
@@ -255,8 +255,22 @@ func checksFor(r blueprint.Resource, f FixtureView, patterns *patternVars) []str
 			continue
 		}
 
+		fv, configured := set[a.Name]
+
 		switch {
-		case set[a.Name]:
+		case configured && fv.Curated:
+			// A curated value may be a reference -- a data-source attribute, an
+			// expression -- whose value exists only at apply time, so equality is not
+			// the generator's to assert. Presence is: the step configured it, and a
+			// state that lost it is wrong whatever the value was.
+			if why := unassertable(a); why != "" {
+				continue
+			}
+
+			out = append(out, fmt.Sprintf(
+				"check.That(address).Key(%s).Exists()", goStringLit(a.Name)))
+
+		case configured:
 			// Configured by this step, so its value is known and can be asserted exactly --
 			// unless the API's own behaviour makes that assertion wrong.
 			if why := unassertable(a); why != "" {

@@ -402,6 +402,128 @@ func TestUnit_Emit_AllowedValuesBecomeAValidator(t *testing.T) {
 	}
 }
 
+// TestUnit_Emit_ASplitUpdateBodyGetsItsOwnConstructFunction.
+//
+// An SDK that gives update its own request type needs a second construct function over
+// the same assignment list, and the generated update must call it -- calling
+// constructResource there would send create's type to a method that takes update's,
+// which does not compile in someone else's provider.
+func TestUnit_Emit_ASplitUpdateBodyGetsItsOwnConstructFunction(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+	for i := range bp.Resources {
+		if bp.Resources[i].Key != "tag" {
+			continue
+		}
+		bp.Resources[i].Binding.Body.UpdateRequestType = "tags.TagUpdate"
+		bp.Resources[i].Binding.Body.UpdateConstructorExpr = "&tags.TagUpdate{}"
+	}
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	plan, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	var construct, crud string
+	for _, f := range plan.Files {
+		switch {
+		case strings.HasSuffix(f.Path, "resources/tags/v7/tag/construct.go"):
+			construct = string(f.Content)
+		case strings.HasSuffix(f.Path, "resources/tags/v7/tag/crud.go"):
+			crud = string(f.Content)
+		}
+	}
+	if construct == "" || crud == "" {
+		t.Fatal("the construct or crud file was not emitted")
+	}
+
+	if !strings.Contains(construct, "func constructResourceUpdate") {
+		t.Error("a split update body should emit constructResourceUpdate")
+	}
+	if !strings.Contains(construct, "*tags.TagUpdate") {
+		t.Error("the update construct function should build the update type")
+	}
+	if !strings.Contains(crud, "constructResourceUpdate(ctx, &plan)") {
+		t.Error("the generated update should call constructResourceUpdate")
+	}
+	// Create keeps the original body; only update switches.
+	if !strings.Contains(crud, "constructResource(ctx, &plan)") {
+		t.Error("the generated create should still call constructResource")
+	}
+
+	// And without the split, no second function appears -- the common shape stays
+	// exactly as it was.
+	plain, err := gen.Build(pilotBlueprint(t), Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build (plain): %v", err)
+	}
+	for _, f := range plain.Files {
+		if strings.HasSuffix(f.Path, "resources/tags/v7/tag/construct.go") &&
+			strings.Contains(string(f.Content), "constructResourceUpdate") {
+			t.Error("an unsplit body must not grow an update construct function")
+		}
+	}
+}
+
+// TestUnit_Emit_ACuratedFixtureValueRidesWithItsDataBlock.
+//
+// End to end through the templates: a hinted value must land verbatim in the emitted
+// minimal fixture with its declared data block above the resource, or the hint mechanism
+// exists only in the view layer.
+func TestUnit_Emit_ACuratedFixtureValueRidesWithItsDataBlock(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+	for i := range bp.Resources {
+		if bp.Resources[i].Key != "tag" {
+			continue
+		}
+		bp.Resources[i].AccFixture = &blueprint.AccFixture{
+			DataBlocks: []string{`data "thousandeyes_tags" "seed" {}`},
+			Values: []blueprint.FixtureHint{{
+				Attr: "key",
+				HCL:  "data.thousandeyes_tags.seed.tags[0].key",
+			}},
+		}
+	}
+
+	gen, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	plan, err := gen.Build(bp, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+
+	var minimal string
+	for _, f := range plan.Files {
+		if strings.HasSuffix(f.Path, "resources/tags/v7/tag/testdata/minimal.tf") {
+			minimal = string(f.Content)
+		}
+	}
+	if minimal == "" {
+		t.Fatal("no minimal fixture was emitted")
+	}
+
+	if !strings.Contains(minimal, `data "thousandeyes_tags" "seed" {}`) {
+		t.Errorf("the declared data block should precede the resource:\n%s", minimal)
+	}
+	if !strings.Contains(minimal, "data.thousandeyes_tags.seed.tags[0].key") {
+		t.Errorf("the hint should be emitted verbatim:\n%s", minimal)
+	}
+	if strings.Index(minimal, `data "thousandeyes_tags"`) > strings.Index(minimal, `resource "thousandeyes_tag"`) {
+		t.Error("the data block must come before the resource block it feeds")
+	}
+}
+
 // TestUnit_Emit_AGatedResourceSkipsItsTestsByName.
 //
 // The gate rides three tests without being declared three times: the resource's own

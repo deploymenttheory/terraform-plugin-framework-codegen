@@ -3,7 +3,9 @@
 # The seed resource this data source reads back, then the data block itself. One file,
 # because the reference below only resolves against the resource above it.
 
-resource "{{ .Seed.TerraformType }}" "{{ .Seed.Label }}" {
+{{ range .Seed.DataBlocks }}{{ . }}
+
+{{ end }}resource "{{ .Seed.TerraformType }}" "{{ .Seed.Label }}" {
 {{- range .Seed.Values }}
   {{ .Name }}{{ .Padding }} = {{ .HCL }}
 {{- end }}

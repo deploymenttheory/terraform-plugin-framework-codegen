@@ -11,6 +11,7 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/ingest/openapi"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
 )
 
 // repoRoot is where the committed blueprints, snapshot and pilot live.
@@ -374,6 +375,88 @@ func TestUnit_CLI_Ingest_InfersBlueprints(t *testing.T) {
 	written := filepath.Join(out, "resources", "tag.blueprint.json")
 	if _, err := os.Stat(written); err != nil {
 		t.Fatalf("the blueprint should have been written: %v", err)
+	}
+}
+
+// TestUnit_CLI_Ingest_ScaffoldsPlanDraftWorksheets: -plan-drafts writes one
+// KEY.probe.plan.draft.json per inferred resource -- invisible to every loader until
+// the curator renames the .draft away -- and never overwrites a started worksheet.
+func TestUnit_CLI_Ingest_ScaffoldsPlanDraftWorksheets(t *testing.T) {
+	quiet(t)
+
+	out := t.TempDir()
+	drafts := t.TempDir()
+
+	run := func() error {
+		return runIngest([]string{
+			"-spec-root", filepath.Join(repoRoot, "openapi-specs", "thousandeyes"),
+			"-only", "tag", "-out", out, "-plan-drafts", drafts,
+		})
+	}
+	if err := run(); err != nil {
+		t.Fatalf("ingest: %v", err)
+	}
+
+	path := filepath.Join(drafts, "tag.probe.plan.draft.json")
+	data, err := os.ReadFile(path) //nolint:gosec // test-owned path
+	if err != nil {
+		t.Fatalf("the draft should have been written: %v", err)
+	}
+
+	// The draft must be a plan the strict loader would take after curation --
+	// same decoder, same unknown-field refusal.
+	plan, err := loadPlan(path)
+	if err != nil {
+		t.Fatalf("the draft does not round-trip through the plan loader: %v", err)
+	}
+	if len(plan.Fixtures) != 1 || len(plan.Fixtures[0].Body) == 0 {
+		t.Errorf("the draft should scaffold a minimal fixture, got %+v", plan.Fixtures)
+	}
+	// Every gap is a conspicuous line item, and the name field is one of them.
+	if !strings.Contains(string(data), probe.CurateMe) {
+		t.Error("a worksheet with nothing to curate is suspicious; CURATE_ME should appear")
+	}
+	// The tag documents enums, so candidates -- the immutability and enum protocols'
+	// fuel -- must be prefilled from the documented set's alternatives.
+	if len(plan.Candidates) == 0 {
+		t.Error("documented enum alternatives should become candidates")
+	}
+
+	// A worksheet somebody started marking up is theirs.
+	if err := os.WriteFile(path, []byte(`{"fixtures":[{"name":"curated","body":{"key":"x"}}]}`), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := run(); err != nil {
+		t.Fatalf("ingest (second run): %v", err)
+	}
+	kept, err := os.ReadFile(path) //nolint:gosec // test-owned path
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	if !strings.Contains(string(kept), "curated") {
+		t.Error("an existing draft must never be overwritten")
+	}
+}
+
+// TestUnit_CLI_Ingest_OnlyTakesACommaList: selecting a wave means naming several areas
+// at once, and any-of is the only semantics under which that selects anything.
+func TestUnit_CLI_Ingest_OnlyTakesACommaList(t *testing.T) {
+	quiet(t)
+
+	got := captureStdout(t, func() {
+		err := runIngest([]string{
+			"-spec-root", filepath.Join(repoRoot, "openapi-specs", "thousandeyes"),
+			"-only", "tags,credentials", "-list",
+		})
+		if err != nil {
+			t.Errorf("ingest -list: %v", err)
+		}
+	})
+
+	for _, want := range []string{"tag", "credential"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("a comma list should match both areas; listing omits %q:\n%s", want, got)
+		}
 	}
 }
 

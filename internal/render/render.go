@@ -208,6 +208,18 @@ type ConstructView struct {
 	// NeedsDiagnostics is true when any assignment can fail, which decides
 	// whether the generated function returns diagnostics at all.
 	NeedsDiagnostics bool
+
+	// Update is set when the SDK splits the update request type from create's. The
+	// template then emits a second construct function over the *same* assignment
+	// list -- the split types are field-name clones, and sdkbind has proven every
+	// assigned field exists on both -- and the generated update calls it instead.
+	Update *ConstructTarget
+}
+
+// ConstructTarget is the type one construct function builds.
+type ConstructTarget struct {
+	RequestType     string
+	ConstructorExpr string
 }
 
 // StateView is the flatten function.
@@ -1077,6 +1089,13 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 	v := ConstructView{
 		RequestType:     r.Binding.Body.RequestType,
 		ConstructorExpr: r.Binding.Body.ConstructorExpr,
+	}
+
+	if r.Binding.Body.SplitsUpdateBody() {
+		v.Update = &ConstructTarget{
+			RequestType:     r.Binding.Body.UpdateRequestType,
+			ConstructorExpr: r.Binding.Body.UpdateConstructorExpr,
+		}
 	}
 
 	for _, sh := range shapes {

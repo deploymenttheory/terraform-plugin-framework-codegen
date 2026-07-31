@@ -241,6 +241,17 @@ func (r *{{ $.GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequ
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+{{- if $.Construct.Update }}
+{{- if $.Construct.NeedsDiagnostics }}
+	body, constructDiags := constructResourceUpdate(ctx, &plan)
+	resp.Diagnostics.Append(constructDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- else }}
+	body := constructResourceUpdate(ctx, &plan)
+{{- end }}
+{{- else }}
 {{- if $.Construct.NeedsDiagnostics }}
 	body, constructDiags := constructResource(ctx, &plan)
 	resp.Diagnostics.Append(constructDiags...)
@@ -249,6 +260,7 @@ func (r *{{ $.GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequ
 	}
 {{- else }}
 	body := constructResource(ctx, &plan)
+{{- end }}
 {{- end }}
 
 	{{ .Assign }} {{ .Call }}

@@ -176,7 +176,9 @@ func RunSweep(ctx context.Context, opts SweepRunOptions) (SweepSummary, error) {
 	return Sweep(ctx, SweepOptions{
 		Session:    ms,
 		NamePrefix: opts.Grant.NamePrefix(),
-		NameField:  opts.Subject.NameField,
+		// The read field: the prefix pass matches against what the list response
+		// actually says, and an API may rename between accepting a value and listing it.
+		NameField:  opts.Subject.SweepNameField(),
 		PageParams: opts.PageParams,
 		RetryDelay: opts.RetryDelay,
 		MaxSeconds: opts.MaxSeconds,

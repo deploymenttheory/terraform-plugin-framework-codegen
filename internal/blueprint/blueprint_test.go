@@ -668,6 +668,198 @@ func TestUnit_Blueprint_Validate_AcceptsTheNewKinds(t *testing.T) {
 	}
 }
 
+// TestUnit_Blueprint_Validate_SweepNaming holds an override to the same rules the
+// prober's own inference follows: a field that could not carry the prefix live must be
+// refused here, where the message names the blueprint node to fix.
+func TestUnit_Blueprint_Validate_SweepNaming(t *testing.T) {
+	t.Parallel()
+
+	valid := validBlueprint()
+	valid.Resources[0].Sweep = &SweepNaming{NameField: "key", ReadNameField: "keyName"}
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("a well-formed sweep override must validate: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		sweep    *SweepNaming
+		wantPath string
+	}{
+		{
+			name:     "empty name field",
+			sweep:    &SweepNaming{},
+			wantPath: "sweep.nameField",
+		},
+		{
+			name:     "nested name field",
+			sweep:    &SweepNaming{NameField: "meta.name"},
+			wantPath: "nested",
+		},
+		{
+			name:     "unknown wire path",
+			sweep:    &SweepNaming{NameField: "nope"},
+			wantPath: "no attribute has the wire path",
+		},
+		{
+			// id is Computed with SkipExpand in the fixture: a create could
+			// never carry the prefix there.
+			name:     "unwritable name field",
+			sweep:    &SweepNaming{NameField: "id"},
+			wantPath: "not writable",
+		},
+		{
+			name:     "nested read field",
+			sweep:    &SweepNaming{NameField: "key", ReadNameField: "meta.name"},
+			wantPath: "sweep.readNameField",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := validBlueprint()
+			b.Resources[0].Sweep = tc.sweep
+
+			err := b.Validate()
+			if err == nil {
+				t.Fatal("expected an error")
+			}
+			if !strings.Contains(err.Error(), tc.wantPath) {
+				t.Errorf("error omits %q:\n%v", tc.wantPath, err)
+			}
+		})
+	}
+}
+
+// TestUnit_Blueprint_Validate_SplitUpdateBody: the pair travels together, and a split
+// with no update operation constrains nothing -- refused rather than left looking
+// meaningful in a committed file.
+func TestUnit_Blueprint_Validate_SplitUpdateBody(t *testing.T) {
+	t.Parallel()
+
+	valid := validBlueprint()
+	valid.Resources[0].Binding.Body.UpdateRequestType = "tags.TagUpdate"
+	valid.Resources[0].Binding.Body.UpdateConstructorExpr = "&tags.TagUpdate{}"
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("a complete split on a resource with an update must validate: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		mutate   func(*Blueprint)
+		wantPath string
+	}{
+		{
+			name: "type without constructor",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Binding.Body.UpdateRequestType = "tags.TagUpdate"
+			},
+			wantPath: "body.updateConstructorExpr",
+		},
+		{
+			name: "constructor without type",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Binding.Body.UpdateConstructorExpr = "&tags.TagUpdate{}"
+			},
+			wantPath: "body.updateRequestType",
+		},
+		{
+			name: "split with no update operation",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Binding.Body.UpdateRequestType = "tags.TagUpdate"
+				b.Resources[0].Binding.Body.UpdateConstructorExpr = "&tags.TagUpdate{}"
+				b.Resources[0].Binding.Update = nil
+			},
+			wantPath: "no update operation",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := validBlueprint()
+			tc.mutate(&b)
+
+			err := b.Validate()
+			if err == nil {
+				t.Fatal("expected an error")
+			}
+			if !strings.Contains(err.Error(), tc.wantPath) {
+				t.Errorf("error omits %q:\n%v", tc.wantPath, err)
+			}
+		})
+	}
+}
+
+// TestUnit_Blueprint_Validate_AccFixtureHints: a hint is emitted verbatim into
+// generated HCL, so the refusals are the mistakes that would emit a fixture that
+// cannot apply or a value nothing consumes.
+func TestUnit_Blueprint_Validate_AccFixtureHints(t *testing.T) {
+	t.Parallel()
+
+	valid := validBlueprint()
+	valid.Resources[0].AccFixture = &AccFixture{
+		DataBlocks: []string{`data "te_agents" "test" {}`},
+		Values:     []FixtureHint{{Attr: "key", HCL: `data.te_agents.test.id`}},
+	}
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("a well-formed hint must validate: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		fixture  *AccFixture
+		wantPath string
+	}{
+		{
+			name:     "unknown attribute",
+			fixture:  &AccFixture{Values: []FixtureHint{{Attr: "nope", HCL: "1"}}},
+			wantPath: `no attribute is named "nope"`,
+		},
+		{
+			name:     "computed attribute",
+			fixture:  &AccFixture{Values: []FixtureHint{{Attr: "id", HCL: "1"}}},
+			wantPath: "computed only",
+		},
+		{
+			name:     "empty expression",
+			fixture:  &AccFixture{Values: []FixtureHint{{Attr: "key", HCL: "  "}}},
+			wantPath: "hcl",
+		},
+		{
+			name: "duplicate hint",
+			fixture: &AccFixture{Values: []FixtureHint{
+				{Attr: "key", HCL: "1"}, {Attr: "key", HCL: "2"},
+			}},
+			wantPath: "hinted twice",
+		},
+		{
+			name:     "empty data block",
+			fixture:  &AccFixture{DataBlocks: []string{"   "}},
+			wantPath: "dataBlocks[0]",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := validBlueprint()
+			b.Resources[0].AccFixture = tc.fixture
+
+			err := b.Validate()
+			if err == nil {
+				t.Fatal("expected an error")
+			}
+			if !strings.Contains(err.Error(), tc.wantPath) {
+				t.Errorf("error omits %q:\n%v", tc.wantPath, err)
+			}
+		})
+	}
+}
+
 // TestUnit_Blueprint_Validate_SkipUnlessEnvMustBeAnEnvName: the generated skip is
 // os.Getenv(name) == "", so a malformed name is a test that skips forever while
 // looking gated on purpose.

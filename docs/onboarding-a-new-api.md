@@ -86,7 +86,13 @@ all hand-authored, shaped exactly like the pilot's committed examples
   fixtures (complete valid bodies — one per *branch* of the API's dispatch, see step 6),
   candidates for fields whose valid values the spec does not describe, and
   `defaultInfluencers` naming every field whose value decides another field's behaviour.
-  **A gate nobody declares is a branch nobody measures.**
+  **A gate nobody declares is a branch nobody measures.** Don't start from a blank
+  file: `ingest … -plan-drafts blueprints/PROVIDER` scaffolds a
+  `RESOURCE.probe.plan.draft.json` worksheet per resource — required fields filled
+  where the specification can say, `CURATE_ME` everywhere it cannot, documented enum
+  alternatives prefilled as candidates. The `.draft` suffix keeps it invisible to
+  every loader; curate the placeholders, think about influencers (the scaffold
+  deliberately guesses none), and promotion is the rename — a diff a reviewer sees.
 - Validation runs on every load and reports every problem at once. So does `LoadDir`'s
   cross-resource checking (duplicate type names, import aliases).
 
@@ -129,13 +135,17 @@ TFPFGEN_PROBE_TOKEN=$(security find-generic-password -s tfpfgen-probe -w) \
 TFPFGEN_PROBE_ENDPOINT=https://api.PROVIDER.com/v7 \
 tfpluginframeworkgen probe -blueprint blueprints/PROVIDER -resource THING \
   -mode record --allow-mutations \
-  -plan blueprints/PROVIDER/THING.probe.plan.json \
   -profile .tfpluginframeworkgen/sandbox/PROVIDER.json
 ```
 
-One resource per invocation — a plan speaks one schema's wire vocabulary. Check the
-budget first with `-list`; every guard is required and every refusal names all unmet
-conditions at once. What the fixtures decide:
+Plans resolve per resource by convention — `blueprints/PROVIDER/THING.probe.plan.json`
+beside the blueprint (`-plan-dir` overrides the directory, `-plan` a single file, and
+`-plan` demands `-resource`: a plan speaks one schema's wire vocabulary). Scope the run
+with `-resource`, or omit it to record a whole wave: each resource runs against its own
+plan with its own ledger and budget, and one with no plan file is skipped with a stated
+note rather than blocking the rest. Check the budget first with `-list`, which also
+costs each resource against its own plan; every guard is required and every refusal
+names all unmet conditions at once. What the fixtures decide:
 
 - **One fixture per branch.** The dynamic-tag findings exist because a second fixture
   reached a branch the first could not. A field only one fixture declares is probed

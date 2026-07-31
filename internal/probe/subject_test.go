@@ -220,6 +220,24 @@ func TestUnit_Probe_NameFieldPreference(t *testing.T) {
 		{"then key", []string{"description", "key"}, "key"},
 		{"description is the last resort", []string{"description"}, "description"},
 		{"nothing suitable", []string{"hostname", "url"}, ""},
+
+		// The suffix tier: a camelCase "<noun>Name" carries name semantics, which is
+		// what makes whole families -- testName, ruleName, accountGroupName -- probeable.
+		{"a noun-prefixed name qualifies", []string{"testName", "url"}, "testName"},
+		{
+			"every exact candidate outranks a suffixed one",
+			[]string{"testName", "description"},
+			"description",
+		},
+		{
+			"deterministic: shortest, then lexical",
+			[]string{"accountGroupName", "ruleName", "testName"},
+			"ruleName",
+		},
+
+		// A compound word whose trailing letters spell "name" is not a name field:
+		// stamping a prefix into a hostname would corrupt a field with semantics.
+		{"compound words never qualify", []string{"hostname", "username"}, ""},
 	}
 
 	for _, tc := range tests {
@@ -250,6 +268,40 @@ func TestUnit_Probe_NameFieldPreference(t *testing.T) {
 	computed := []Field{{JSONPath: "name", Kind: blueprint.KindString, Writable: false}}
 	if got := nameFieldOf(computed); got != "" {
 		t.Errorf("a non-writable field must not be chosen, got %q", got)
+	}
+}
+
+// TestUnit_Probe_SweepNamingOverride: a blueprint override beats inference, and the read
+// alias is what the sweeper matches list responses against.
+func TestUnit_Probe_SweepNamingOverride(t *testing.T) {
+	t.Parallel()
+
+	res := pilotResource()
+	res.Schema.Attributes = append(res.Schema.Attributes, blueprint.Attribute{
+		Name: "display_name", ComputedOptionalRequired: blueprint.Required,
+		Type: blueprint.AttrType{Kind: blueprint.KindString},
+		Wire: blueprint.WireBinding{JSONPath: "displayName"},
+	})
+	res.Sweep = &blueprint.SweepNaming{NameField: "displayName", ReadNameField: "snapshotName"}
+
+	subj, err := SubjectOf(blueprint.Blueprint{}, res)
+	if err != nil {
+		t.Fatalf("SubjectOf: %v", err)
+	}
+
+	// Inference would have picked "key" from the exact list; the override wins.
+	if subj.NameField != "displayName" {
+		t.Errorf("NameField = %q, want the override's displayName", subj.NameField)
+	}
+	if got := subj.SweepNameField(); got != "snapshotName" {
+		t.Errorf("SweepNameField() = %q, want the declared read alias", got)
+	}
+
+	// Without a declared alias the write field round-trips -- including on a subject
+	// built by hand, where nothing ever populated NameReadField.
+	plain := Subject{NameField: "name"}
+	if got := plain.SweepNameField(); got != "name" {
+		t.Errorf("SweepNameField() = %q, want the write field back", got)
 	}
 }
 
