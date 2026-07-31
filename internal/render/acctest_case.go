@@ -59,6 +59,24 @@ type AccTestView struct {
 
 	// PatternVars are package-level regexp declarations the checks reference.
 	PatternVars []string
+
+	// SkipUnlessEnv names an environment variable the test requires; unset, the
+	// test skips naming it before PreCheck runs. Empty means no gate.
+	SkipUnlessEnv string
+}
+
+// skipUnlessEnvFor resolves the env gate for a seeded block's generated test: its own
+// declared variable wins, else the seed resource's. The inheritance is the point -- a
+// test whose seed cannot be created has already failed for the seed's reason, so a
+// gated resource gates every test that seeds from it without anybody declaring it twice.
+func skipUnlessEnvFor(seed blueprint.Resource, own string) string {
+	if own != "" {
+		return own
+	}
+	if seed.AccTest != nil {
+		return seed.AccTest.SkipUnlessEnv
+	}
+	return ""
 }
 
 // notReturnedSomewhere reports whether any reading of the behaviour says the API may not
@@ -116,6 +134,10 @@ func AccTest(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (AccTes
 		Address:          tfType + "." + fixtureLabel,
 		TerraformType:    tfType,
 		TestResourceType: r.GoPackage + "." + testResourceTypeName(r.GoTypeName),
+	}
+
+	if r.AccTest != nil {
+		v.SkipUnlessEnv = r.AccTest.SkipUnlessEnv
 	}
 
 	v.DestroyTimeout, v.DestroyReason = destroyWait(r)

@@ -34,6 +34,11 @@ type DataSourceAccTestView struct {
 	// Checks are finished check expressions comparing the data source's state against
 	// the seed's, plus collection emptiness assertions.
 	Checks []string
+
+	// SkipUnlessEnv names an environment variable the test requires: its own
+	// declared gate, or the seed resource's -- a test whose seed cannot be created
+	// has already failed for the seed's reason. Empty means no gate.
+	SkipUnlessEnv string
 }
 
 // DataSourceFixtureView drives testdata/datasource.tf: the seed resource's minimal
@@ -102,6 +107,7 @@ func DataSourceAccTest(
 
 	v.DestroyTimeout, v.DestroyReason = destroyWait(seed)
 	v.DestroyReason = wrapCommentPrefix("The wait is "+v.DestroyReason, "\t\t//")
+	v.SkipUnlessEnv = skipUnlessEnvFor(seed, d.AccTest.SkipUnlessEnv)
 
 	v.Checks = dataSourceChecks(d, seed)
 

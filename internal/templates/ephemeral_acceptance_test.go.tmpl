@@ -23,6 +23,13 @@ var seedResource = {{ .SeedTestResourceType }}{}
 // set: the value made a full round trip -- stored encrypted by the create, decrypted by
 // the open -- without ever being persisted to Terraform state.
 func {{ .TestName }}(t *testing.T) {
+{{- if .SkipUnlessEnv }}
+	// Gated: the seed or the open needs more privilege than the ordinary credential
+	// carries, so a run against a lesser token skips this by name rather than failing red.
+	if os.Getenv("{{ .SkipUnlessEnv }}") == "" {
+		t.Skipf("set {{ .SkipUnlessEnv }} to run this test; it needs a more privileged credential")
+	}
+{{- end }}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acceptance.PreCheck(t) },
 		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,
