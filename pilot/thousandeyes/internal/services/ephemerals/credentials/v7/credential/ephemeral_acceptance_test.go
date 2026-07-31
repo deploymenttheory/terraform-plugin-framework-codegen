@@ -51,8 +51,8 @@ func TestAccEphemeralCredential_01_Open(t *testing.T) {
 			{
 				Config: config(t, "ephemeral.tf"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					check.That(echoAddress).Key("data.name").HasValue("tfacc-name"),
-					check.That(echoAddress).Key("data.value").HasValue("tfacc-value"),
+					check.That(echoAddress).Key("data.name").HasValue("tfacc-eph-credential-name"),
+					check.That(echoAddress).Key("data.value").HasValue("tfacc-eph-credential-value"),
 				),
 			},
 		},

@@ -114,9 +114,15 @@ jobs:
 
           # -count=1 defeats the test cache. A cached pass proves nothing about a live API,
           # which is the only thing this workflow exists to find out.
+          #
+          # -p 1 serialises test *packages*. The default runs them concurrently, and the
+          # first live run proved what that does against one shared tenant: four packages
+          # seeded the same resource at once and three creates answered 409 Duplicate.
+          # Fixture values are also salted per consumer, so this is belt and braces.
           go test \
             -v \
             -count=1 \
+            -p 1 \
             -timeout 90m \
             -run 'TestAcc' \
             ./...

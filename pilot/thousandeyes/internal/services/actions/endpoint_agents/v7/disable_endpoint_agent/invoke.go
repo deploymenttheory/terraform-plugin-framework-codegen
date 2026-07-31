@@ -28,6 +28,19 @@ func (a *DisableEndpointAgentAction) Invoke(ctx context.Context, req action.Invo
 
 	tflog.Debug(ctx, "invoking action", map[string]any{"action": ActionName})
 
+	// A nil client is a provider bug -- Configure must populate ActionData -- and the
+	// first live run proved the failure mode is a segfault that kills the whole provider
+	// process. A diagnostic names the bug; a crash names nothing.
+	if a.client == nil {
+		resp.Diagnostics.AddError(
+			"Provider not configured",
+			"The provider did not hand this action a client. This is a bug in the "+
+				"provider; please report it.",
+		)
+
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, InvokeTimeout*time.Second)
 	defer cancel()
 

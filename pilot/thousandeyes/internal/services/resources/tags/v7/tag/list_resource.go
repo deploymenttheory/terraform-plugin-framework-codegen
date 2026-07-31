@@ -80,6 +80,22 @@ func (l *TagListResource) ListResourceConfigSchema(_ context.Context, _ list.Lis
 func (l *TagListResource) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
 	tflog.Debug(ctx, "listing resources", map[string]any{"resource": ResourceName})
 
+	// A nil client is a provider bug -- Configure must populate ListResourceData -- and
+	// the failure mode without this guard is a segfault that kills the whole provider
+	// process. A diagnostic names the bug; a crash names nothing.
+	if l.client == nil {
+		var diags diag.Diagnostics
+		diags.AddError(
+			"Provider not configured",
+			"The provider did not hand this list resource a client. This is a bug in "+
+				"the provider; please report it.",
+		)
+
+		stream.Results = list.ListResultsStreamDiagnostics(diags)
+
+		return
+	}
+
 	remote, _, err := l.client.API.Tags.GetTags(ctx)
 	if err != nil {
 		var diags diag.Diagnostics

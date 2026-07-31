@@ -58,7 +58,7 @@ func TestUnit_Render_AFixtureValuePrefersObservedEvidenceOverDocumentation(t *te
 	a.Behaviour.AcceptedValues = []string{"all"}
 	a.Behaviour.RejectedValues = []string{"system"}
 
-	got := fixtureValueFor(a)
+	got := fixtureValueFor(a, "")
 
 	if got.Skipped {
 		t.Fatalf("should have produced a value: %s", got.Reason)
@@ -75,7 +75,7 @@ func TestUnit_Render_AFixtureValuePrefersObservedEvidenceOverDocumentation(t *te
 	a.Behaviour.AcceptedValues = nil
 	a.Behaviour.RejectedValues = nil
 
-	got = fixtureValueFor(a)
+	got = fixtureValueFor(a, "")
 	if got.HCL != `"system"` {
 		t.Errorf("unprobed, got %s, want the first documented value", got.HCL)
 	}
@@ -96,7 +96,7 @@ func TestUnit_Render_AServerDefaultBeatsASynthesisedString(t *testing.T) {
 	a := attr("color", blueprint.KindString, blueprint.ComputedOptional)
 	a.Behaviour.ServerDefault = &blueprint.Literal{Raw: `"#A7EB10"`}
 
-	got := fixtureValueFor(a)
+	got := fixtureValueFor(a, "")
 	if got.HCL != `"#A7EB10"` {
 		t.Errorf("got %s, want the API's own default", got.HCL)
 	}
@@ -108,7 +108,7 @@ func TestUnit_Render_AServerDefaultBeatsASynthesisedString(t *testing.T) {
 	// a tenant is identifiable as debris.
 	a.Behaviour.ServerDefault = nil
 
-	if got := fixtureValueFor(a); !strings.HasPrefix(got.HCL, `"tfacc-`) {
+	if got := fixtureValueFor(a, ""); !strings.HasPrefix(got.HCL, `"tfacc-`) {
 		t.Errorf("a synthesised string should be recognisable as test debris: %s", got.HCL)
 	}
 }
@@ -124,7 +124,7 @@ func TestUnit_Render_AnUnsatisfiablePatternIsReportedRatherThanGuessed(t *testin
 	a := attr("hostname", blueprint.KindString, blueprint.Optional)
 	a.Type.Constraints.Pattern = `^[a-z]{3}-\d{4}$`
 
-	got := fixtureValueFor(a)
+	got := fixtureValueFor(a, "")
 	if !got.Skipped {
 		t.Fatalf("a patterned string should be skipped, got %s", got.HCL)
 	}
@@ -149,7 +149,7 @@ func TestUnit_Render_ANestedAttributeIsNeverSynthesised(t *testing.T) {
 	for _, kind := range []blueprint.TypeKind{
 		blueprint.KindSingleNested, blueprint.KindListNested, blueprint.KindSetNested,
 	} {
-		got := fixtureValueFor(attr("assignments", kind, blueprint.Optional))
+		got := fixtureValueFor(attr("assignments", kind, blueprint.Optional), "")
 		if !got.Skipped {
 			t.Errorf("%s should be skipped, got %s", kind, got.HCL)
 		}
@@ -173,7 +173,7 @@ func TestUnit_Render_AFixtureRefusesRatherThanEmitAnUnusableRequiredAttribute(t 
 	)
 
 	// Optional and undecidable is reported, not fatal.
-	v, err := fixtureView(bp, r, "", false)
+	v, err := fixtureView(bp, r, "", false, "")
 	if err != nil {
 		t.Fatalf("an optional undecidable attribute should be skipped, not fatal: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestUnit_Render_AFixtureRefusesRatherThanEmitAnUnusableRequiredAttribute(t 
 	// Required and undecidable refuses the whole fixture, by name.
 	r.Schema.Attributes[1].ComputedOptionalRequired = blueprint.Required
 
-	_, err = fixtureView(bp, r, "", false)
+	_, err = fixtureView(bp, r, "", false, "")
 	if err == nil {
 		t.Fatal("a required undecidable attribute should refuse the fixture")
 	}
@@ -206,7 +206,7 @@ func TestUnit_Render_AMinimalFixtureIsRequiredAttributesOnly(t *testing.T) {
 		attr("note", blueprint.KindString, blueprint.Optional),
 	)
 
-	minimal, err := fixtureView(bp, r, "", true)
+	minimal, err := fixtureView(bp, r, "", true, "")
 	if err != nil {
 		t.Fatalf("fixtureView: %v", err)
 	}
@@ -214,7 +214,7 @@ func TestUnit_Render_AMinimalFixtureIsRequiredAttributesOnly(t *testing.T) {
 		t.Errorf("minimal should be the required attribute alone, got %v", got)
 	}
 
-	maximal, err := fixtureView(bp, r, "", false)
+	maximal, err := fixtureView(bp, r, "", false, "")
 	if err != nil {
 		t.Fatalf("fixtureView: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestUnit_Render_FixtureNamesAreAlignedAsTerraformFmtWould(t *testing.T) {
 		attr("object_type", blueprint.KindString, blueprint.Required),
 	)
 
-	v, err := fixtureView(bp, r, "", true)
+	v, err := fixtureView(bp, r, "", true, "")
 	if err != nil {
 		t.Fatalf("fixtureView: %v", err)
 	}
@@ -316,7 +316,7 @@ func TestUnit_Render_AMinimalFixtureIncludesWhatTheAPIRequires(t *testing.T) {
 		attr("description", blueprint.KindString, blueprint.Optional),
 	)
 
-	minimal, err := fixtureView(bp, r, "", true)
+	minimal, err := fixtureView(bp, r, "", true, "")
 	if err != nil {
 		t.Fatalf("fixtureView: %v", err)
 	}
