@@ -48,16 +48,8 @@ resource "thousandeyes_tag" "maximal" {
   access_type = "all"
   match_type  = "or"
 
-  assignments = [
-    {
-      id   = "12345"
-      type = "test"
-    },
-    {
-      id   = "67890"
-      type = "dashboard"
-    },
-  ]
+  # assignments is read-only: the probe watched the API discard it on write, so the
+  # schema records it as computed. Assign objects to a tag from the object's side.
 
   filters = [
     {
