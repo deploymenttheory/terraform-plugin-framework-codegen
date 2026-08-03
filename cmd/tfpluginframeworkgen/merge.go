@@ -30,6 +30,9 @@ func runMerge(args []string) error {
 			"suppress the conflict exit code; conflicts are still reported and still not applied")
 		snapshotID = fs.String("snapshot-id", "",
 			"identifies the evidence in the description marker; defaults to the facts file's directory")
+		promoteDir = fs.String("promote-plans", "",
+			"directory of KEY.probe.plan.json files whose fixture values are promoted into "+
+				"accFixture wire hints, for attributes the generator refuses to derive")
 		summaryPath = fs.String("github-summary", os.Getenv("GITHUB_STEP_SUMMARY"),
 			"append a summary here")
 	)
@@ -86,6 +89,22 @@ func runMerge(args []string) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	if *promoteDir != "" {
+		promoted, err := promotePlans(&bp, *promoteDir)
+		if err != nil {
+			return err
+		}
+		if promoted > 0 {
+			// Recorded as changes so -check treats an unpromoted plan value exactly
+			// like an unfolded fact: drift, not decoration.
+			result.Changes = append(result.Changes, merge.Change{
+				Resource: "accFixture",
+				What:     "plan-fixture values promoted to wire hints",
+				To:       fmt.Sprintf("%d hint(s)", promoted),
+			})
+		}
 	}
 
 	printMergeResult(result)

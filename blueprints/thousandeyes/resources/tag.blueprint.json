@@ -918,6 +918,25 @@
         ],
         "displayNameFrom": "Key",
         "displayNameIsPointer": true
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "filters",
+            "hcl": "[{ key = \"probe-filter-key\", mode = \"in\", scope = \"custom\", values = [\"probe-filter-value\"] }]",
+            "wire": [
+              {
+                "key": "probe-filter-key",
+                "mode": "in",
+                "scope": "custom",
+                "values": [
+                  "probe-filter-value"
+                ]
+              }
+            ],
+            "source": "plan"
+          }
+        ]
       }
     }
   ]

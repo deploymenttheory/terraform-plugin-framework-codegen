@@ -70,19 +70,17 @@ const fixtureLabel = "test"
 //
 // minimal selects the attributes: required only, or every writable one.
 //
-// Only the minimal fixture carries a generated header. The maximal one is a scaffold -- written
-// once and then owned -- and the marker is what the drift check and the overwrite refusal key on,
-// so a file meant to be edited must not carry it.
+// Both fixtures carry the generated marker and are policed by the drift check. The
+// maximal one was a hand-owned scaffold once, and that ownership is what desynced its
+// values from the generated assertions -- the checks derive from the blueprint, so the
+// blueprint is the only place a value can be corrected without the two disagreeing.
 func Fixture(
 	bp blueprint.Blueprint,
 	r blueprint.Resource,
 	opts Options,
 	minimal bool,
 ) (FixtureView, error) {
-	var header string
-	if minimal {
-		header = GeneratedHeaderHCL(opts.BlueprintPath, opts.BlueprintSHA256)
-	}
+	header := GeneratedHeaderHCL(opts.BlueprintPath, opts.BlueprintSHA256)
 
 	return fixtureView(bp, r, header, minimal, "")
 }

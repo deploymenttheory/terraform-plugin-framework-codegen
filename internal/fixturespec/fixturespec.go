@@ -32,6 +32,9 @@ const (
 	Documented Source = "documented"
 	// Synthesised is a value invented to be recognisable test debris.
 	Synthesised Source = "synthesised"
+	// Forced is the value the API substitutes whatever is sent. A fixture must carry
+	// it: any other value plans a change the apply cannot deliver.
+	Forced Source = "forced"
 )
 
 // Entry is one attribute's derived test value in wire-typed form, or the recorded
@@ -112,6 +115,18 @@ func Immutable(a blueprint.Attribute) bool {
 // API refuse it, and `object_type` documents "endpoint-agent" and the probe watched that refused
 // too. A fixture built from the documented set would have picked a rejected value for one of them.
 func Derive(a blueprint.Attribute, salt string) Entry {
+	// A forced value beats everything: the API substitutes it whatever is sent, so a
+	// fixture carrying any other value plans a change the apply cannot deliver -- the
+	// exact inconsistent-result failure the classic-tests wave iterated on live.
+	if fv := a.Behaviour.ForcedValue; fv != nil && fv.Raw != "" {
+		return Entry{
+			Value:    parseLiteral(fv.Raw),
+			Verbatim: fv.Raw,
+			Source:   Forced,
+			Note:     "the API forces this value, so no configured value can take effect",
+		}
+	}
+
 	if e, ok := enumEntry(a); ok {
 		return e
 	}
