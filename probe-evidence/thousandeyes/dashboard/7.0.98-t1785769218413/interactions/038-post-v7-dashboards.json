@@ -1,0 +1,58 @@
+{
+  "id": "038-post-v7-dashboards",
+  "seq": 38,
+  "request": {
+    "method": "POST",
+    "path": "/v7/dashboards",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "description": "tfacc-description",
+      "isGlobalOverride": true,
+      "isPrivate": true,
+      "title": "tfpfgen-probe-write-rehearsal-2"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "http://api.thousandeyes.com:443/v7/dashboards/6a70ad000a9af02cfed90713",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/dashboards/6a70ad000a9af02cfed90713"
+        },
+        "snapshots": {
+          "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=6a70ad000a9af02cfed90713"
+        }
+      },
+      "aid": "281474976742769",
+      "createdBy": "281474976776659",
+      "dashboardId": "6a70ad000a9af02cfed90713",
+      "defaultTimespan": {
+        "duration": 86400,
+        "timespanDuration": 86400
+      },
+      "description": "tfacc-description",
+      "isBuiltIn": false,
+      "isDefaultForAccount": false,
+      "isDefaultForUser": false,
+      "isGlobalOverride": true,
+      "isMigratedReport": false,
+      "isPrivate": true,
+      "layout": {
+        "type": "vertical"
+      },
+      "modifiedDate": "2026-08-03T15:00:16Z",
+      "refreshRate": "off",
+      "title": "tfpfgen-probe-write-rehearsal-2",
+      "widgets": []
+    },
+    "droppedHeaders": 12
+  }
+}

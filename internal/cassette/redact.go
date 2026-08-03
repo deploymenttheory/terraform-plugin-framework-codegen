@@ -201,6 +201,29 @@ var secretShapes = []struct {
 // what base64 of random bytes produces and far above what padding does.
 const minDistinctChars = 16
 
+// base64ishSecret decides whether an unanchored long run is worth refusing a
+// recording over.
+//
+// Slash is in the base64 alphabet, so a URL path is a single long "run" -- the
+// live case was a hypermedia _links.self.href, "v7/dashboards/filters/<24-hex
+// id>", refused as a secret when every piece of it is public addressing. A path
+// is only worrying if some single slash-free segment is itself secret-length and
+// secret-varied; a real base64 credential embedded in a path still trips that,
+// while segments of ordinary words and object ids never reach forty characters.
+func base64ishSecret(s string) bool {
+	if !strings.Contains(s, "/") {
+		return looksHighEntropy(s)
+	}
+
+	for _, segment := range strings.Split(s, "/") {
+		if len(segment) >= 40 && looksHighEntropy(segment) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // looksHighEntropy reports whether a matched run is varied enough to be a credential.
 func looksHighEntropy(s string) bool {
 	seen := map[rune]struct{}{}
@@ -275,7 +298,7 @@ func Scan(interaction string, data []byte, extraSecrets map[string]string) []Fin
 
 		// The unanchored heuristic gets a second condition; the structured patterns -- a
 		// JWT header, a PEM banner, an AKIA prefix -- are specific enough on their own.
-		if shape.name == "long-base64ish" && !looksHighEntropy(text[loc[0]:loc[1]]) {
+		if shape.name == "long-base64ish" && !base64ishSecret(text[loc[0]:loc[1]]) {
 			continue
 		}
 

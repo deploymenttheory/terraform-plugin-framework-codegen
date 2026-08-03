@@ -42,6 +42,20 @@
     "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
   },
   {
+    "resource": "dashboards_filter",
+    "jsonPath": "description",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dashboards_filters.ApiContextFilterRequest.Description json:\"description,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
     "resource": "tag",
     "jsonPath": "accessType",
     "field": "zeroValueUnsendable",

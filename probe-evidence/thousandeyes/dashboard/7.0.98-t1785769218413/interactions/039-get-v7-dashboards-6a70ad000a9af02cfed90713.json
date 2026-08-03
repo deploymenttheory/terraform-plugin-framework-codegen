@@ -1,0 +1,67 @@
+{
+  "id": "039-get-v7-dashboards-6a70ad000a9af02cfed90713",
+  "seq": 39,
+  "request": {
+    "method": "GET",
+    "path": "/v7/dashboards/6a70ad000a9af02cfed90713",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/dashboards/6a70ad000a9af02cfed90713"
+        },
+        "snapshots": {
+          "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=6a70ad000a9af02cfed90713"
+        }
+      },
+      "accountId": 281474976742769,
+      "aid": "281474976742769",
+      "apiLink": [
+        {
+          "self": {
+            "href": "https://api.thousandeyes.com/v7/dashboards/6a70ad000a9af02cfed90713"
+          }
+        },
+        {
+          "snapshots": {
+            "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=6a70ad000a9af02cfed90713"
+          }
+        }
+      ],
+      "createdBy": 281474976776659,
+      "dashboardCreatedBy": "281474976776659",
+      "dashboardId": "6a70ad000a9af02cfed90713",
+      "dashboardModifiedDate": "2026-08-03T15:00:16Z",
+      "defaultTimespan": {
+        "duration": 86400,
+        "timespanDuration": 86400
+      },
+      "description": "tfacc-description",
+      "globalOverride": true,
+      "isBuiltIn": false,
+      "isDefaultForAccount": false,
+      "isDefaultForUser": false,
+      "isGlobalOverride": true,
+      "isMigratedReport": false,
+      "isPrivate": true,
+      "layout": {
+        "type": "vertical"
+      },
+      "migratedReport": false,
+      "modifiedDate": "2026-08-03 15:00:16",
+      "refreshRate": "off",
+      "title": "tfpfgen-probe-write-rehearsal-2",
+      "widgets": []
+    },
+    "droppedHeaders": 9
+  }
+}

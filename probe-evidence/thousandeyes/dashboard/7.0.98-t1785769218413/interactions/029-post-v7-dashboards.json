@@ -1,0 +1,32 @@
+{
+  "id": "029-post-v7-dashboards",
+  "seq": 29,
+  "request": {
+    "method": "POST",
+    "path": "/v7/dashboards",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "description": "  probe-description-1  ",
+      "globalFilterId": "  probe-globalFilterId-1  ",
+      "title": "tfpfgen-probe-write-normalisation-1"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Dashboard filter does not exist",
+      "instance": "/v7/dashboards",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 11
+  }
+}

@@ -1140,16 +1140,18 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 		if a.Wire.Expand.ReturnsError {
 			v.NeedsDiagnostics = true
 
-			// Deref cannot wrap a two-value call, so the pointer lands in a temp
-			// first. The SDK field is a value the helper produces a pointer for --
-			// a suppression window's required Repeat is the live case.
-			if a.Wire.Expand.Deref {
+			// A wrapper cannot take a two-value call, so the result lands in a temp
+			// first: Deref for a value-typed field the helper points at (a
+			// suppression window's required Repeat), Cast for a named slice of what
+			// the helper produces (a dashboard filter's Context).
+			if needsTemp(*a.Wire.Expand) {
 				call := *a.Wire.Expand
-				call.Deref = false
-				tmp := lowerFirst(a.GoField) + "Ptr"
+				call.Deref, call.Cast = false, ""
+				tmp := lowerFirst(a.GoField) + "Raw"
 				v.Assignments = append(v.Assignments, fmt.Sprintf(
-					"%s, d := %s\ndiags.Append(d...)\nbody.%s = convert.Deref(%s)",
-					tmp, convertExpr(call, "data."+a.GoField), a.Wire.SDKField, tmp))
+					"%s, d := %s\ndiags.Append(d...)\nbody.%s = %s",
+					tmp, convertExpr(call, "data."+a.GoField), a.Wire.SDKField,
+					wrapConverted(*a.Wire.Expand, tmp)))
 				continue
 			}
 
@@ -1303,11 +1305,25 @@ func convertExpr(c blueprint.ConvertCall, arg string) string {
 	b.WriteString(arg)
 	b.WriteString(")")
 
-	if c.Deref {
-		return "convert.Deref(" + b.String() + ")"
-	}
+	return wrapConverted(c, b.String())
+}
 
-	return b.String()
+// wrapConverted applies a call's Deref and Cast wrappers to a finished expression.
+// Split from convertExpr because the fallible forms wrap a temp variable instead.
+func wrapConverted(c blueprint.ConvertCall, expr string) string {
+	if c.Deref {
+		expr = "convert.Deref(" + expr + ")"
+	}
+	if c.Cast != "" {
+		expr = c.Cast + "(" + expr + ")"
+	}
+	return expr
+}
+
+// needsTemp reports whether a fallible call's result must land in a temp before
+// its wrappers apply -- a wrapper cannot take a two-value call.
+func needsTemp(c blueprint.ConvertCall) bool {
+	return c.ReturnsError && (c.Deref || c.Cast != "")
 }
 
 func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {

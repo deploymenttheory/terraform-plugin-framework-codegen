@@ -1,0 +1,614 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (6 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "dashboard",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-dashboards-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "dashboard",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-dashboards-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "dashboard",
+      "field": "policy.readBack",
+      "value": {
+        "readBack": {
+          "reason": "every one of 7 read(s) immediately after a create succeeded on the first attempt"
+        }
+      },
+      "confidence": "inferred",
+      "probe": "write.read-your-writes",
+      "evidence": [
+        "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+        "016-get-v7-dashboards-6a70acf423c6477f30b56edf",
+        "032-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+        "034-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+        "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+        "039-get-v7-dashboards-6a70ad000a9af02cfed90713",
+        "041-get-v7-dashboards-6a70ad000a9af02cfed90713"
+      ],
+      "rationale": "7 object(s) were read immediately after creation and every first read succeeded",
+      "alternatives": [
+        "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+      ]
+    },
+    {
+      "resource": "dashboard",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-dashboards",
+        "003-get-v7-dashboards",
+        "004-get-v7-dashboards",
+        "005-get-v7-dashboards",
+        "006-get-v7-dashboards",
+        "007-get-v7-dashboards",
+        "008-get-v7-dashboards",
+        "009-get-v7-dashboards",
+        "043-get-v7-dashboards"
+      ],
+      "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "description",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "033-put-v7-dashboards-6a70acfc0fca20f23552cd0a"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "isGlobalOverride",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "033-put-v7-dashboards-6a70acfc0fca20f23552cd0a"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "isGlobalOverride",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+        "016-get-v7-dashboards-6a70acf423c6477f30b56edf"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "isGlobalOverride",
+      "field": "updateDefault",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "false"
+        }
+      },
+      "confidence": "corroborated",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+        "041-get-v7-dashboards-6a70ad000a9af02cfed90713"
+      ],
+      "rationale": "the constant an omitted-on-update field reverts to; a derived value remains the open alternative until a second downgrade agrees"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "isGlobalOverride",
+      "field": "updateResets",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a"
+      ],
+      "rationale": "held true, was omitted from an update, and read back false rather than the held value"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "isPrivate",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "033-put-v7-dashboards-6a70acfc0fca20f23552cd0a"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "isPrivate",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+        "016-get-v7-dashboards-6a70acf423c6477f30b56edf"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "isPrivate",
+      "field": "updateDefault",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "false"
+        }
+      },
+      "confidence": "corroborated",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+        "041-get-v7-dashboards-6a70ad000a9af02cfed90713"
+      ],
+      "rationale": "the constant an omitted-on-update field reverts to; a derived value remains the open alternative until a second downgrade agrees"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "isPrivate",
+      "field": "updateResets",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a"
+      ],
+      "rationale": "held true, was omitted from an update, and read back false rather than the held value"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout",
+      "field": "serverDefault",
+      "value": {
+        "text": "map[type:vertical]"
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+        "016-get-v7-dashboards-6a70acf423c6477f30b56edf"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as map[type:vertical] every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.type",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "grid",
+          "vertical"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "019-post-v7-dashboards",
+        "020-post-v7-dashboards",
+        "021-post-v7-dashboards",
+        "022-post-v7-dashboards"
+      ],
+      "rationale": "2 of the 2 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.type",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"vertical\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+        "016-get-v7-dashboards-6a70acf423c6477f30b56edf"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as vertical every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.type",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "019-post-v7-dashboards",
+        "020-post-v7-dashboards",
+        "021-post-v7-dashboards",
+        "022-post-v7-dashboards"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    }
+  ],
+  "notes": [
+    {
+      "resource": "dashboard",
+      "probe": "write.writable-returned",
+      "message": "fixture empty-dashboard was refused with 400 (Dashboard filter does not exist), so nothing was observed about writability from it"
+    },
+    {
+      "resource": "dashboard",
+      "probe": "read.error-envelope",
+      "message": "no candidate query parameter (limit, max, offset, page) was validated, so no error shape was observed without mutating anything"
+    },
+    {
+      "resource": "dashboard",
+      "probe": "read.volatile",
+      "message": "no existing object to read repeatedly, so volatility was not observed"
+    },
+    {
+      "resource": "dashboard",
+      "probe": "read.returned-weak",
+      "message": "no existing object to read, so no field presence was observed"
+    },
+    {
+      "resource": "dashboard",
+      "probe": "write.immutability",
+      "message": "no field carries two or more candidate values, so no field can be probed for immutability: the fact requires two distinct values both refused, and one candidate cannot supply that"
+    },
+    {
+      "resource": "dashboard",
+      "probe": "write.update-style",
+      "message": "no fixture sets a field that can safely be omitted from an update; the name field must stay in every request or a cleared name would strand the object"
+    },
+    {
+      "resource": "dashboard",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"letter case is changed\" was refused with 400 (Dashboard filter does not exist), so nothing was observed about that transform"
+    },
+    {
+      "resource": "dashboard",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"surrounding whitespace is stripped\" was refused with 400 (Dashboard filter does not exist), so nothing was observed about that transform"
+    },
+    {
+      "resource": "dashboard",
+      "probe": "write.side-effect",
+      "message": "the plan declares no field whose value might affect another, so there is no suspected trigger to perturb; declare one under defaultInfluencers"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "description",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "globalFilterId",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.details",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.details.widgetPositioning",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.details.widgetPositioning.h",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.details.widgetPositioning.id",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.details.widgetPositioning.w",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.details.widgetPositioning.x",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.details.widgetPositioning.y",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.layoutId",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.type",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "layout.type",
+      "probe": "write.enum",
+      "message": "the API accepted \"GRID\" for a value the specification documents as \"grid\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "title",
+      "probe": "write.normalisation",
+      "message": "\"letter case is changed\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "title",
+      "probe": "write.normalisation",
+      "message": "\"surrounding whitespace is stripped\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "dashboard",
+      "jsonPath": "title",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 5,
+      "facts": 2
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.normalisation",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 2,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.rehearsal",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 12,
+      "facts": 7
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 4
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    }
+  ],
+  "budget": {
+    "requests": 42,
+    "maxRequests": 300,
+    "creates": 13,
+    "maxCreates": 40,
+    "deletes": 10,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  },
+  "rehearsal": [
+    {
+      "minimal": {},
+      "maximal": {
+        "description": "tfacc-description",
+        "isGlobalOverride": false,
+        "isPrivate": false,
+        "title": "tfacc-title"
+      }
+    }
+  ]
+}

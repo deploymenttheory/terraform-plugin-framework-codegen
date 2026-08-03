@@ -1,0 +1,307 @@
+[
+  {
+    "resource": "dashboard",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "404=problem"
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-dashboards-999999999"
+    ],
+    "rationale": "a 404 response used the problem error shape"
+  },
+  {
+    "resource": "dashboard",
+    "field": "policy.delete.notFoundIsSuccess",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-dashboards-999999999"
+    ],
+    "rationale": "reading an absent object answered 404 with a problem error body",
+    "alternatives": [
+      "the API may answer differently for an identifier that once existed and was deleted"
+    ]
+  },
+  {
+    "resource": "dashboard",
+    "field": "policy.readBack",
+    "value": {
+      "readBack": {
+        "reason": "every one of 7 read(s) immediately after a create succeeded on the first attempt"
+      }
+    },
+    "confidence": "inferred",
+    "probe": "write.read-your-writes",
+    "evidence": [
+      "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+      "016-get-v7-dashboards-6a70acf423c6477f30b56edf",
+      "032-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+      "034-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+      "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+      "039-get-v7-dashboards-6a70ad000a9af02cfed90713",
+      "041-get-v7-dashboards-6a70ad000a9af02cfed90713"
+    ],
+    "rationale": "7 object(s) were read immediately after creation and every first read succeeded",
+    "alternatives": [
+      "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+    ]
+  },
+  {
+    "resource": "dashboard",
+    "field": "unknownParamTolerated",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.unknown-param",
+    "evidence": [
+      "001-get-v7-dashboards",
+      "003-get-v7-dashboards",
+      "004-get-v7-dashboards",
+      "005-get-v7-dashboards",
+      "006-get-v7-dashboards",
+      "007-get-v7-dashboards",
+      "008-get-v7-dashboards",
+      "009-get-v7-dashboards",
+      "043-get-v7-dashboards"
+    ],
+    "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+    "alternatives": [
+      "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+    ]
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "description",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "033-put-v7-dashboards-6a70acfc0fca20f23552cd0a"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "isGlobalOverride",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "033-put-v7-dashboards-6a70acfc0fca20f23552cd0a"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "isGlobalOverride",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+      "016-get-v7-dashboards-6a70acf423c6477f30b56edf"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "isGlobalOverride",
+    "field": "updateDefault",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "false"
+      }
+    },
+    "confidence": "corroborated",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+      "041-get-v7-dashboards-6a70ad000a9af02cfed90713"
+    ],
+    "rationale": "the constant an omitted-on-update field reverts to; a derived value remains the open alternative until a second downgrade agrees"
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "isGlobalOverride",
+    "field": "updateResets",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a"
+    ],
+    "rationale": "held true, was omitted from an update, and read back false rather than the held value"
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "isPrivate",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "033-put-v7-dashboards-6a70acfc0fca20f23552cd0a"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "isPrivate",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+      "016-get-v7-dashboards-6a70acf423c6477f30b56edf"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "isPrivate",
+    "field": "updateDefault",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "false"
+      }
+    },
+    "confidence": "corroborated",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a",
+      "041-get-v7-dashboards-6a70ad000a9af02cfed90713"
+    ],
+    "rationale": "the constant an omitted-on-update field reverts to; a derived value remains the open alternative until a second downgrade agrees"
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "isPrivate",
+    "field": "updateResets",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "036-get-v7-dashboards-6a70acfc0fca20f23552cd0a"
+    ],
+    "rationale": "held true, was omitted from an update, and read back false rather than the held value"
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "layout",
+    "field": "serverDefault",
+    "value": {
+      "text": "map[type:vertical]"
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+      "016-get-v7-dashboards-6a70acf423c6477f30b56edf"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as map[type:vertical] every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "layout.type",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "grid",
+        "vertical"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "019-post-v7-dashboards",
+      "020-post-v7-dashboards",
+      "021-post-v7-dashboards",
+      "022-post-v7-dashboards"
+    ],
+    "rationale": "2 of the 2 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "layout.type",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "\"vertical\""
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "014-get-v7-dashboards-6a70acf40a9af02cfed906fd",
+      "016-get-v7-dashboards-6a70acf423c6477f30b56edf"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as vertical every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "dashboard",
+    "jsonPath": "layout.type",
+    "field": "valuesClosed",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "019-post-v7-dashboards",
+      "020-post-v7-dashboards",
+      "021-post-v7-dashboards",
+      "022-post-v7-dashboards"
+    ],
+    "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+  }
+]

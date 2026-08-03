@@ -637,8 +637,14 @@ func TestUnit_Render_RegistrationIsSortedAndComplete(t *testing.T) {
 
 	v := Registration(bp, KindResources, Options{BlueprintPath: "b", BlueprintSHA256: "s"})
 
-	// The committed blueprint's resources plus the one appended above.
-	want := len(bp.Resources)
+	// The committed blueprint's non-dropped resources plus the one appended above
+	// -- a dropped resource (the SDK-gated dashboard) registers nothing.
+	want := 0
+	for _, r := range bp.Resources {
+		if !r.Drop {
+			want++
+		}
+	}
 	if len(v.Entries) != want {
 		t.Fatalf("got %d entries, want %d", len(v.Entries), want)
 	}

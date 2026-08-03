@@ -1,0 +1,27 @@
+{
+  "id": "007-get-v7-dashboards-filters",
+  "seq": 7,
+  "request": {
+    "method": "GET",
+    "path": "/v7/dashboards/filters",
+    "query": {
+      "offset": [
+        "not-a-number"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "dashboardFilters": []
+    },
+    "droppedHeaders": 9
+  }
+}

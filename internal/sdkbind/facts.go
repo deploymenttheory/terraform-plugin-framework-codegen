@@ -3,6 +3,7 @@ package sdkbind
 import (
 	"fmt"
 	"go/types"
+	"sort"
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
@@ -189,4 +190,69 @@ func pkgName(importPath string) string {
 		return importPath[i+1:]
 	}
 	return importPath
+}
+
+// UnsendableStructWarnings names request-body fields the generated provider can
+// never omit: value-typed structs the encoder serialises as empty objects whatever
+// the configuration says.
+//
+// The dashboard case: Layout and DefaultTimespan are value structs on the write
+// body, unmapped or dropped in the blueprint, so every request carried
+// "layout":{"type":""} and "defaultTimespan":{} -- and the API refused both, in a
+// live acceptance run, with an error naming neither. The class is detectable from
+// the pinned SDK's types alone, so it is refused here with names instead.
+func UnsendableStructWarnings(l *Loader, bp blueprint.Blueprint) []string {
+	var out []string
+
+	for _, res := range bp.Resources {
+		if res.Drop {
+			continue
+		}
+
+		mapped := map[string]bool{}
+		for _, a := range res.Schema.Attributes {
+			if !a.Drop && !a.Wire.SkipExpand && a.Wire.Expand != nil {
+				mapped[a.Wire.SDKField] = true
+			}
+		}
+
+		bodyTypes := []string{typeNameOf(res.Binding.Body.RequestType)}
+		if res.Binding.Body.SplitsUpdateBody() {
+			bodyTypes = append(bodyTypes, typeNameOf(res.Binding.Body.UpdateRequestType))
+		}
+
+		for _, typeName := range bodyTypes {
+			named, err := l.LookupType(res.Binding.Service.ImportPath, typeName)
+			if err != nil {
+				continue // bindings problems have their own reporting
+			}
+			st, err := structUnder(named)
+			if err != nil {
+				continue
+			}
+
+			for i := range st.NumFields() {
+				f := st.Field(i)
+				if !f.Exported() || mapped[f.Name()] {
+					continue
+				}
+				if _, isStruct := f.Type().Underlying().(*types.Struct); !isStruct {
+					continue
+				}
+				if _, isPointer := f.Type().(*types.Pointer); isPointer {
+					continue
+				}
+
+				out = append(out, fmt.Sprintf(
+					"%s: %s.%s is a value-typed struct no attribute sets; it will travel "+
+						"as an empty object in every request, which an API may refuse -- "+
+						"the SDK field should be a pointer",
+					res.Key, typeName, f.Name()))
+			}
+		}
+	}
+
+	sort.Strings(out)
+
+	return out
 }

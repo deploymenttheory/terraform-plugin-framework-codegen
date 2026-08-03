@@ -1,0 +1,30 @@
+{
+  "id": "020-put-v7-dashboards-filters-6a70ad09cc53e13602261129",
+  "seq": 20,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/dashboards/filters/6a70ad09cc53e13602261129",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "name": "tfpfgen-probe-write-update-style-2"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Dashboard filter should have at least one data source filter selected",
+      "instance": "/v7/dashboards/filters/6a70ad09cc53e13602261129",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 11
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "fixtures": [
+    {
+      "name": "empty-dashboard",
+      "body": {
+        "title": "CURATE_ME-stamped-by-probe"
+      }
+    }
+  ],
+  "budget": {
+    "maxRequests": 300,
+    "maxCreates": 40
+  }
+}

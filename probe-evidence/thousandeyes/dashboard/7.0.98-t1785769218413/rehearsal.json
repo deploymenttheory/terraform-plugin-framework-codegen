@@ -1,0 +1,11 @@
+[
+  {
+    "minimal": {},
+    "maximal": {
+      "description": "tfacc-description",
+      "isGlobalOverride": false,
+      "isPrivate": false,
+      "title": "tfacc-title"
+    }
+  }
+]
