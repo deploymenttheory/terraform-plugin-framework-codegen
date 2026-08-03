@@ -87,6 +87,13 @@ jobs:
           # The previous VALIDATE_CPD had no effect -- v8 names this validator JSCPD.
           VALIDATE_JSCPD: false
 
+          # Spelling is not linting. The dictionary flags legitimate technical
+          # prose ("re-declares"), upstream specifications' own words carried
+          # verbatim into generated descriptions, and hyphenation choices -- and
+          # every hit is a human rewording a sentence to satisfy a wordlist
+          # rather than a defect found. Removed as noise.
+          VALIDATE_SPELL_CODESPELL: false
+
           # ---------------------------------------------------------------------
           # The pinned specifications are third-party documents committed verbatim
           # for reproducibility. Linting them reports faults we cannot fix without

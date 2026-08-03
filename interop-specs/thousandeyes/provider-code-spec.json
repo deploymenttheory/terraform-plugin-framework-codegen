@@ -810,7 +810,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {
@@ -1056,7 +1056,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {
@@ -1569,7 +1569,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {
@@ -1730,7 +1730,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           }
         ],
@@ -1951,7 +1951,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {
@@ -2498,7 +2498,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {
@@ -2880,7 +2880,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {
@@ -3371,7 +3371,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {
@@ -3673,7 +3673,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {
@@ -3884,7 +3884,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {
@@ -4336,7 +4336,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
             }
           },
           {

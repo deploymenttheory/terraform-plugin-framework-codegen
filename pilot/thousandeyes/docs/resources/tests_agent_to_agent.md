@@ -48,7 +48,7 @@ resource "thousandeyes_tests_agent_to_agent" "example" {
 - `throughput_measurements` (Boolean) Enable or disable throughput measurements. Throughput measurements cannot be enabled when the source or target of the test is a cloud agent.
 - `throughput_rate` (Number) The throughput rate, only applicable for UDP protocol.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
 
 ### Read-Only
 

@@ -46,7 +46,7 @@ resource "thousandeyes_tests_sip_server" "example" {
 - `sip_time_limit` (Number) Time limit in milliseconds.
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
 
 ### Read-Only
 
