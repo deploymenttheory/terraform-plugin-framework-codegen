@@ -1065,6 +1065,11 @@ func (b Behaviour) IsZero() bool {
 		b.RequiredByAPI == nil &&
 		b.ServerDefault == nil &&
 		b.ReturnedOnRead == nil &&
+		b.ReturnedOnCreate == nil &&
+		b.ReturnedOnUpdate == nil &&
+		b.ForcedValue == nil &&
+		b.UpdateDefault == nil &&
+		b.ZeroValueUnsendable == nil &&
 		b.Volatile == nil &&
 		b.Normalises == "" &&
 		len(b.AcceptedValues) == 0 &&

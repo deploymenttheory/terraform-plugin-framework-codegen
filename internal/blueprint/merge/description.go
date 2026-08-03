@@ -17,13 +17,23 @@ import (
 // The snapshot id is inside the opening marker rather than outside it, so re-merging the *same*
 // evidence is a no-op while merging *newer* evidence produces a visible one-line diff. A reader
 // can see at a glance which recording a description came from.
+//
+// There are two channels of evidence, and each owns its own block. Live evidence carries a
+// snapshot id and a newer recording replaces the previous live block -- the id changes, the
+// block does not accumulate. Static evidence (the SDK-type facts) is not tied to any recording,
+// so it writes under the fixed id "static" and replaces only its own block. Before the split,
+// merging the static facts overwrote every live observation an attribute had, and re-merging
+// the snapshot then read as drift -- two sources fighting over one block.
 const (
 	markerPrefix = "<!-- probed:"
 	markerOpen   = markerPrefix + "%s -->"
 	markerClose  = "<!-- /probed -->"
+
+	// StaticSnapshotID is the marker id the static-facts channel writes under.
+	StaticSnapshotID = "static"
 )
 
-// rewriteDescription replaces the probed block in an attribute's description.
+// rewriteDescription replaces one channel's probed block in an attribute's description.
 //
 // Everything outside the markers is left exactly as it was, because that text is curated: a
 // human wrote it, and merge has no business editing prose it did not author.
@@ -46,8 +56,9 @@ func rewriteDescription(
 	}
 
 	block := buildBlock(kept, snapshotID)
+	static := snapshotID == StaticSnapshotID
 
-	existing, hadBlock := extractBlock(attr.MarkdownDescription)
+	existing, hadBlock := channelBlock(attr.MarkdownDescription, static)
 
 	// Byte-identical means nothing to do, which is what makes re-merging the same evidence a
 	// no-op rather than a diff.
@@ -55,7 +66,12 @@ func rewriteDescription(
 		return
 	}
 
-	updated := replaceBlock(attr.MarkdownDescription, block)
+	var updated string
+	if hadBlock {
+		updated = strings.Replace(attr.MarkdownDescription, existing, block, 1)
+	} else {
+		updated = appendBlock(attr.MarkdownDescription, block)
+	}
 
 	what := "markdownDescription (probed block added)"
 	if hadBlock {
@@ -92,30 +108,51 @@ func buildBlock(observations []string, snapshotID string) string {
 	return b.String()
 }
 
-// extractBlock returns the existing probed block, if any.
-func extractBlock(description string) (string, bool) {
-	start := strings.Index(description, markerPrefix)
-	if start < 0 {
-		return "", false
-	}
+// blocks returns every probed block in a description, in order.
+func blocks(description string) []string {
+	var out []string
 
-	end := strings.Index(description[start:], markerClose)
-	if end < 0 {
-		// An opening marker with no close is a hand-edit gone wrong. Treated as absent so the
-		// next merge writes a well-formed block rather than nesting one inside the broken one.
-		return "", false
-	}
+	rest := description
+	for {
+		start := strings.Index(rest, markerPrefix)
+		if start < 0 {
+			return out
+		}
+		end := strings.Index(rest[start:], markerClose)
+		if end < 0 {
+			// An opening marker with no close is a hand-edit gone wrong. Treated as absent
+			// so the next merge writes a well-formed block rather than nesting one inside
+			// the broken one.
+			return out
+		}
 
-	return description[start : start+end+len(markerClose)], true
+		out = append(out, rest[start:start+end+len(markerClose)])
+		rest = rest[start+end+len(markerClose):]
+	}
 }
 
-// replaceBlock swaps the probed block for a new one, or appends it.
-func replaceBlock(description, block string) string {
-	existing, ok := extractBlock(description)
-	if ok {
-		return strings.Replace(description, existing, block, 1)
+// blockID reads the id out of a block's opening marker.
+func blockID(block string) string {
+	id := strings.TrimPrefix(block, markerPrefix)
+	if i := strings.Index(id, " -->"); i >= 0 {
+		return id[:i]
 	}
+	return ""
+}
 
+// channelBlock returns the description's block for one channel: the static block, or
+// the live one, whatever recording it came from.
+func channelBlock(description string, static bool) (string, bool) {
+	for _, b := range blocks(description) {
+		if (blockID(b) == StaticSnapshotID) == static {
+			return b, true
+		}
+	}
+	return "", false
+}
+
+// appendBlock adds a channel's first block after whatever the description already holds.
+func appendBlock(description, block string) string {
 	trimmed := strings.TrimRight(description, " \n")
 	if trimmed == "" {
 		return block
@@ -126,16 +163,16 @@ func replaceBlock(description, block string) string {
 	return trimmed + "\n\n" + block
 }
 
-// StripBlock removes the probed block from a description.
+// StripBlock removes every probed block from a description.
 //
 // Exported because it is what a caller needs to compare two blueprints ignoring probe
 // annotations -- notably `emit`'s drift check, which should not report a difference caused only
 // by newer evidence.
 func StripBlock(description string) string {
-	existing, ok := extractBlock(description)
-	if !ok {
-		return description
+	out := description
+	for _, b := range blocks(out) {
+		out = strings.Replace(out, b, "", 1)
 	}
 
-	return strings.TrimRight(strings.Replace(description, existing, "", 1), " \n")
+	return strings.TrimRight(strings.ReplaceAll(out, "\n\n\n", "\n\n"), " \n")
 }

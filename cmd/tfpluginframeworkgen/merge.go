@@ -6,9 +6,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint/merge"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
 )
 
 const usageMerge = "merge -blueprint DIR -facts FILE [-strategy annotate|apply] [-check] " +
@@ -64,7 +66,14 @@ func runMerge(args []string) error {
 	}
 
 	id := *snapshotID
-	if id == "" {
+	switch {
+	case id != "":
+	case allStatic(facts):
+		// Static facts write their own description channel under a fixed id: they are not
+		// tied to any recording, and letting them default to a directory name made them
+		// overwrite every live block -- after which re-merging the snapshot read as drift.
+		id = merge.StaticSnapshotID
+	default:
 		// The snapshot directory name, which is what cassette.Write produced. Using it means
 		// re-merging the same evidence is a no-op while newer evidence produces a visible
 		// one-line diff.
@@ -281,3 +290,14 @@ func appendMergeSummary(path string, result merge.Result) error {
 
 // errDrift marks a -check run whose blueprint is out of date.
 var errDrift = errors.New("the blueprint has drifted from the recorded facts")
+
+// allStatic reports whether every fact came from a static derivation rather than a
+// recording -- which is what selects the static description channel.
+func allStatic(facts []probe.Fact) bool {
+	for _, f := range facts {
+		if !strings.HasPrefix(f.Probe, "static.") {
+			return false
+		}
+	}
+	return len(facts) > 0
+}

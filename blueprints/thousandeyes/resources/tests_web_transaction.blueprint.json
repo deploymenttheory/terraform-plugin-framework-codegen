@@ -448,7 +448,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set true to use the agent’s geolocation by the web page.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Set true to use the agent’s geolocation by the web page.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "allowGeolocation",
               "sdkField": "AllowGeolocation",
@@ -471,7 +474,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set true allow the use of a fake mic and camera in the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Set true allow the use of a fake mic and camera in the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "allowMicAndCamera",
               "sdkField": "AllowMicAndCamera",
@@ -494,7 +500,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "allowUnsafeLegacyRenegotiation",
               "sdkField": "AllowUnsafeLegacyRenegotiation",
@@ -524,7 +533,10 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "authType",
               "sdkField": "AuthType",
@@ -547,7 +559,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "bandwidthMeasurements",
               "sdkField": "BandwidthMeasurements",
@@ -570,7 +585,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set to `true` to enable bgp measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Set to `true` to enable bgp measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "bgpMeasurements",
               "sdkField": "BgpMeasurements",
@@ -593,7 +611,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "blockDomains",
               "sdkField": "BlockDomains",
@@ -616,7 +637,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set one of the available browser language that you want to use to configure the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Set one of the available browser language that you want to use to configure the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "browserLanguage",
               "sdkField": "BrowserLanguage",
@@ -639,7 +663,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Command-line options passed to Chrome when running the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Command-line options passed to Chrome when running the test.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "chromeOptions",
               "sdkField": "ChromeOptions",
@@ -686,7 +713,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "clientCertificate",
               "sdkField": "ClientCertificate",
@@ -709,7 +739,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicates whether network data to the proxy should be collected.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Indicates whether network data to the proxy should be collected.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "collectProxyNetworkData",
               "sdkField": "CollectProxyNetworkData",
@@ -920,7 +953,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "desiredStatusCode",
               "sdkField": "DesiredStatusCode",
@@ -943,7 +979,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Enables or disables screenshots on error. Set true to not capture\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Enables or disables screenshots on error. Set true to not capture\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "disableScreenshot",
               "sdkField": "DisableScreenshot",
@@ -966,7 +1005,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "distributedTracing",
               "sdkField": "DistributedTracing",
@@ -1054,7 +1096,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Test is enabled.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Test is enabled.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "enabled",
               "sdkField": "Enabled",
@@ -1081,7 +1126,7 @@
               }
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Sets packets rate sent to measure the network in packets per second.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Sets packets rate sent to measure the network in packets per second.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "returnedOnRead": false,
               "zeroValueUnsendable": true
@@ -1106,7 +1151,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "followRedirects",
               "sdkField": "FollowRedirects",
@@ -1133,7 +1181,10 @@
               }
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Target time for HTTP server completion, specified in milliseconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Target time for HTTP server completion, specified in milliseconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "httpTargetTime",
               "sdkField": "HttpTargetTime",
@@ -1160,7 +1211,10 @@
               }
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "HTTP time limit in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "HTTP time limit in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "httpTimeLimit",
               "sdkField": "HttpTimeLimit",
@@ -1187,7 +1241,10 @@
               }
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "httpVersion",
               "sdkField": "HttpVersion",
@@ -1210,7 +1267,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "identifyAgentTrafficWithUserAgent",
               "sdkField": "IdentifyAgentTrafficWithUserAgent",
@@ -1233,7 +1293,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "includeHeaders",
               "sdkField": "IncludeHeaders",
@@ -1573,7 +1636,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "mtuMeasurements",
               "sdkField": "MtuMeasurements",
@@ -1618,7 +1684,10 @@
               }
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Number of path traces executed by the agent.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Number of path traces executed by the agent.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "numPathTraces",
               "sdkField": "NumPathTraces",
@@ -1834,7 +1903,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "overrideAgentProxy",
               "sdkField": "OverrideAgentProxy",
@@ -1857,7 +1929,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "ID of the proxy to be used if the default proxy is overridden.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "ID of the proxy to be used if the default proxy is overridden.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "overrideProxyId",
               "sdkField": "OverrideProxyID",
@@ -1885,7 +1960,10 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "pageLoadingStrategy",
               "sdkField": "PageLoadingStrategy",
@@ -1908,7 +1986,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Password for Basic/NTLM authentication.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Password for Basic/NTLM authentication.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "password",
               "sdkField": "Password",
@@ -1935,7 +2016,10 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "pathTraceMode",
               "sdkField": "PathTraceMode",
@@ -1963,7 +2047,10 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "probeMode",
               "sdkField": "ProbeMode",
@@ -1991,7 +2078,7 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745177323 -->\nThe specification documents `udp`, which the API rejected.\n<!-- /probed -->\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "zeroValueUnsendable": true,
               "rejectedValues": [
@@ -2021,7 +2108,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "randomizedStartTime",
               "sdkField": "RandomizedStartTime",
@@ -2155,7 +2245,10 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "sslVersionId",
               "sdkField": "SslVersionID",
@@ -2188,7 +2281,10 @@
               ]
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "subinterval",
               "sdkField": "Subinterval",
@@ -2365,7 +2461,10 @@
               }
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Time limit for transaction in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Time limit for transaction in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "timeLimit",
               "sdkField": "TimeLimit",
@@ -2467,7 +2566,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "useNtlm",
               "sdkField": "UseNtlm",
@@ -2490,7 +2592,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "usePublicBgp",
               "sdkField": "UsePublicBGP",
@@ -2513,7 +2618,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "User-agent string to be provided during the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "User-agent string to be provided during the test.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "userAgent",
               "sdkField": "UserAgent",
@@ -2536,7 +2644,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Username for Basic/NTLM authentication.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Username for Basic/NTLM authentication.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "username",
               "sdkField": "Username",
@@ -2641,7 +2752,10 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "verifyCertificate",
               "sdkField": "VerifyCertificate",

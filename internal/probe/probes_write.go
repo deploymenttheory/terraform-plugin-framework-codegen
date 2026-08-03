@@ -147,6 +147,7 @@ func (p writableAndReturned) Exercise(
 	// interesting conclusions are cross-round: a field whose read-back does not change when the
 	// sent value does is a field the server is ignoring.
 	seen := map[string][]observation{}
+	echoes := map[string][]createEcho{}
 
 	for round := range sc.Fixtures() {
 		fixture, _ := sc.Fixture(round)
@@ -200,13 +201,104 @@ func (p writableAndReturned) Exercise(
 			o := observe(fixture.Name, field, value, bare, expanded)
 			o.gates = gates
 			seen[path] = append(seen[path], o)
+
+			// The create response was already in hand and its body was being discarded --
+			// which is how "sent on create, never echoed" stayed invisible until an
+			// acceptance run met it. Gated on the evidence revision: an old cassette must
+			// replay exactly the facts it was committed with.
+			if sc.Subject.EvidenceRev >= 1 {
+				echoes[path] = append(echoes[path], observeEcho(resp, path))
+			}
 		}
 	}
 
 	p.conclude(sc, seen, &out)
+	p.concludeCreateEcho(sc, echoes, &out)
 	p.noteDenied(sc, &out)
 
 	return out, nil
+}
+
+// observeEcho records whether one write response carried a sent field.
+//
+// Present-and-null counts as not echoed: an explicit null carries no value, and the
+// pilot's includeHeaders answers exactly that while the specification says otherwise.
+func observeEcho(resp *Response, path string) createEcho {
+	value, outcome := resp.LookupField(path)
+
+	return createEcho{
+		echoed:    outcome == Present && value != nil,
+		ambiguous: outcome == Ambiguous,
+		evidence:  resp.Interaction,
+	}
+}
+
+// createEcho is one round's answer to "did the write response carry this field".
+type createEcho struct {
+	echoed    bool
+	ambiguous bool
+	evidence  string
+}
+
+// concludeCreateEcho turns per-round echo observations into returnedOnCreate facts.
+//
+// Rounds that disagree get a note rather than a fact: presence that varies by fixture
+// is a branch conclusion, and the mixed-presence machinery for read-backs is the model
+// for attributing it -- deliberately not duplicated here until a real API demands it.
+func (p writableAndReturned) concludeCreateEcho(
+	sc Scope,
+	echoes map[string][]createEcho,
+	out *Result,
+) {
+	paths := make([]string, 0, len(echoes))
+	for path := range echoes {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+
+	for _, path := range paths {
+		rounds := echoes[path]
+
+		mixed := false
+		evidence := make([]string, 0, len(rounds))
+		for _, r := range rounds {
+			if r.ambiguous {
+				mixed = true
+				break
+			}
+			evidence = appendUnique(evidence, r.evidence)
+			if r.echoed != rounds[0].echoed {
+				mixed = true
+			}
+		}
+
+		if mixed {
+			out.Notes = append(out.Notes, Note{
+				Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
+				Message: "the create response carried this field under some fixtures and " +
+					"not others, so no unconditional echo fact was recorded",
+			})
+
+			continue
+		}
+
+		rationale := "every create response carried the field it was sent"
+		if !rounds[0].echoed {
+			rationale = "the create response never carried this field although every " +
+				"create sent it"
+		}
+
+		out.Facts = append(out.Facts, Fact{
+			Resource:   sc.Subject.Resource,
+			JSONPath:   path,
+			Field:      FactReturnedOnCreate,
+			Value:      BoolValue(rounds[0].echoed),
+			Confidence: Observed,
+			Probe:      p.Name(),
+			Evidence:   evidence,
+			Rationale:  rationale,
+		})
+	}
 }
 
 // bodyFor builds one round's request body and reports what it sent, by JSON path.

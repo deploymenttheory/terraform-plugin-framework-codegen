@@ -170,6 +170,20 @@ func (sc Scope) Denied(jsonPath string) bool { return sc.denied[jsonPath] }
 // Sendable is every writable field a probe may send a value for.
 func (sc Scope) Sendable() []Field { return sc.sendable }
 
+// Observable is every field a read-back may be inspected for, including denied ones.
+//
+// Deny means "never send", not "never conclude": a denied field still arrives in
+// every response the API sends, and excluding it from observation is how the wave's
+// deny lists silently withheld fields from the server-default evidence. A probe
+// using this set must still consult Denied before *sending* -- the two sets answer
+// different questions, and conflating them was the bug.
+func (sc Scope) Observable() []Field {
+	out := append([]Field(nil), sc.Subject.Fields...)
+	sortFields(out)
+
+	return out
+}
+
 // Omitted is every sendable field no fixture sets, which is what a server default is observed on.
 func (sc Scope) Omitted() []Field { return sc.omitted }
 

@@ -766,7 +766,7 @@ func TestUnit_Merge_DescriptionBlockHandling(t *testing.T) {
 	t.Parallel()
 
 	// Curated prose is preserved and separated from the generated block.
-	got := replaceBlock("Curated prose.", buildBlock([]string{"Observed: x."}, "s1"))
+	got := appendBlock("Curated prose.", buildBlock([]string{"Observed: x."}, "s1"))
 	if !strings.HasPrefix(got, "Curated prose.") {
 		t.Errorf("curated prose should come first: %q", got)
 	}
@@ -774,8 +774,12 @@ func TestUnit_Merge_DescriptionBlockHandling(t *testing.T) {
 		t.Errorf("the block should be a separate paragraph: %q", got)
 	}
 
-	// Replacing swaps only the block.
-	replaced := replaceBlock(got, buildBlock([]string{"Observed: y."}, "s2"))
+	// A newer recording replaces the live block: the id changes, blocks do not accumulate.
+	live, ok := channelBlock(got, false)
+	if !ok {
+		t.Fatalf("the live block should be found: %q", got)
+	}
+	replaced := strings.Replace(got, live, buildBlock([]string{"Observed: y."}, "s2"), 1)
 	if strings.Contains(replaced, "Observed: x.") {
 		t.Errorf("the old block should be gone: %q", replaced)
 	}
@@ -783,11 +787,22 @@ func TestUnit_Merge_DescriptionBlockHandling(t *testing.T) {
 		t.Errorf("curated prose should survive replacement: %q", replaced)
 	}
 	if strings.Count(replaced, "<!-- probed:") != 1 {
-		t.Errorf("there should be exactly one block: %q", replaced)
+		t.Errorf("there should be exactly one live block: %q", replaced)
+	}
+
+	// The static channel owns its own block beside the live one: the SDK-type facts and a
+	// live recording are different evidence, and one overwriting the other is how re-merging
+	// a snapshot came to read as drift.
+	both := appendBlock(replaced, buildBlock([]string{"Static: z."}, StaticSnapshotID))
+	if s, ok := channelBlock(both, true); !ok || !strings.Contains(s, "Static: z.") {
+		t.Errorf("the static block should be found beside the live one: %q", both)
+	}
+	if l, ok := channelBlock(both, false); !ok || !strings.Contains(l, "Observed: y.") {
+		t.Errorf("the live block should survive the static one: %q", both)
 	}
 
 	// An empty description gets the block alone, with no leading blank line.
-	bare := replaceBlock("", buildBlock([]string{"Observed: x."}, "s1"))
+	bare := appendBlock("", buildBlock([]string{"Observed: x."}, "s1"))
 	if strings.HasPrefix(bare, "\n") {
 		t.Errorf("no leading newline on an empty description: %q", bare)
 	}
@@ -795,12 +810,13 @@ func TestUnit_Merge_DescriptionBlockHandling(t *testing.T) {
 	// An unclosed marker is a hand-edit gone wrong. Treated as absent, so the next merge
 	// writes a well-formed block rather than nesting inside the broken one.
 	broken := "Prose.\n\n<!-- probed:s1 -->\nObserved: x."
-	if _, ok := extractBlock(broken); ok {
+	if _, ok := channelBlock(broken, false); ok {
 		t.Error("an unclosed marker must not be treated as a block")
 	}
 
-	// StripBlock is what a drift check needs, so newer evidence alone does not read as a change.
-	if stripped := StripBlock(got); stripped != "Curated prose." {
+	// StripBlock is what a drift check needs, so newer evidence alone does not read as a
+	// change -- and it removes every channel's block, not just the first.
+	if stripped := StripBlock(both); stripped != "Curated prose." {
 		t.Errorf("StripBlock = %q, want the curated prose alone", stripped)
 	}
 	if stripped := StripBlock("no block here"); stripped != "no block here" {
