@@ -1,0 +1,71 @@
+{
+  "id": "025-get-v7-tests-dns-server-281474976976849",
+  "seq": 25,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/dns-server/281474976976849",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dns-server/281474976976849"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976849/dns-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976849/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976849/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976849/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:15:22Z",
+      "dnsQueryClass": "in",
+      "dnsServers": [
+        {
+          "serverId": "281474976711366",
+          "serverName": "8.8.8.8"
+        }
+      ],
+      "dnsTransportProtocol": "udp",
+      "domain": "example.com ANY",
+      "enabled": true,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 1,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "recursiveQueries": false,
+      "savedEvent": false,
+      "testId": "281474976976849",
+      "testName": "tfpfgen-probe-write-server-default-2",
+      "type": "dns-server",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -25,50 +25,50 @@ resource "thousandeyes_tests_api" "example" {
 
 ### Required
 
-- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. (see [below for nested schema](#nestedatt--agents))
-- `requests` (Attributes Set) (see [below for nested schema](#nestedatt--requests))
-- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks.
+- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. <!-- probed:7.0.98-t1785744867250 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> (see [below for nested schema](#nestedatt--agents))
+- `requests` (Attributes Set) <!-- probed:7.0.98-t1785744867250 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> (see [below for nested schema](#nestedatt--requests))
+- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785744867250 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 
 ### Optional
 
-- `alerts_enabled` (Boolean) Indicates if alerts are enabled.
-- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements.
+- `alerts_enabled` (Boolean) Indicates if alerts are enabled. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `client_cert_domains_allow_list` (String) Comma separated list of domains to send the client certificate.
 - `client_certificate` (String) String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.
-- `collect_proxy_network_data` (Boolean) Indicates whether network data to the proxy should be collected.
+- `collect_proxy_network_data` (Boolean) Indicates whether network data to the proxy should be collected. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `credentials` (Set of String) Contains a list of credential IDs (get `credentialId` from `/credentials` endpoint).
 - `description` (String) A description of the test.
-- `distributed_tracing` (Boolean) Adds distributed tracing headers to API requests using B3 and W3C standards.
-- `enabled` (Boolean) Test is enabled.
+- `distributed_tracing` (Boolean) Adds distributed tracing headers to API requests using B3 and W3C standards. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `follow_redirects` (Boolean) To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
-- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
-- `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements.
-- `num_path_traces` (Number) Number of path traces executed by the agent.
-- `override_agent_proxy` (Boolean) Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run). <!-- probed:7.0.98-t1785744867250 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
+- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns 3 when this is omitted. <!-- /probed -->
+- `override_agent_proxy` (Boolean) Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `override_proxy_id` (String) ID of the proxy to be used if the default proxy is overridden.
 - `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
 - `predefined_variables` (Attributes Set) (see [below for nested schema](#nestedatt--predefined_variables))
 - `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
-- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD).
-- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
+- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD). <!-- probed:7.0.98-t1785744867250 --> Values accepted here: `tcp`, `icmp`. The specification documents `udp`, which the API rejected. Observed: the API assigns "tcp" when this is omitted. <!-- /probed -->
+- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `ssl_version_id` (String) SSL version options: * Use '0' for automatic selection. * Use '3' for SSLv3. * Use '4' for TLS v1.0. * Use '5' for TLS v1.1. * Use '6' for TLS v1.2. * Use '7' for TLS v1.3.
-- `target_time` (Number) Target time for completion metric, defaults to 50% of time limit specified in seconds. (0 means default behavior)
+- `target_time` (Number) Target time for completion metric, defaults to 50% of time limit specified in seconds. (0 means default behavior) <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns 6 when this is omitted. <!-- /probed -->
 - `test_name` (String) The name of the test. Test name must be unique.
-- `time_limit` (Number) Time limit for transaction in seconds. Exceeding this limit will result in a Timeout error.
+- `time_limit` (Number) Time limit for transaction in seconds. Exceeding this limit will result in a Timeout error. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns 10 when this is omitted. <!-- /probed -->
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `vault_credentials` (Attributes Set) List of credential IDs that are stored in an external vault. (see [below for nested schema](#nestedatt--vault_credentials))
 
 ### Read-Only
 
 - `created_by` (String) User that created the test.
 - `created_date` (String) UTC created date (ISO date-time format).
+- `id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `live_share` (Boolean) Indicates if the test is shared with the account group.
 - `modified_by` (String) User that modified the test.
 - `modified_date` (String) UTC last modification date (ISO date-time format).
 - `saved_event` (Boolean) Indicates if the test is a saved event. **Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.
-- `test_id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `type` (String) This is a read only value, as test type is implicit in the test creation url.
 
 <a id="nestedatt--agents"></a>
@@ -84,27 +84,27 @@ Required:
 
 Required:
 
-- `name` (String) API step name, must be unique.
-- `url` (String) Request url. Supports variables in the format `{{variableName}}`.
+- `name` (String) API step name, must be unique. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns "step-1" when this is omitted. <!-- /probed -->
+- `url` (String) Request url. Supports variables in the format `{{variableName}}`. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns "https://api.stripe.com/healthcheck" when this is omitted. <!-- /probed -->
 
 Optional:
 
 - `assertions` (Attributes Set) List of assertion objects. (see [below for nested schema](#nestedatt--requests--assertions))
-- `auth_type` (String) Will override the Authorization request header.
+- `auth_type` (String) Will override the Authorization request header. <!-- probed:7.0.98-t1785744867250 --> Values accepted here: `none`, `basic`, `bearer-token`, `oauth2`. Observed: the API assigns "none" when this is omitted. The API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute. <!-- /probed -->
 - `bearer_token` (String) The bearer token if `authType = bearer-token`.
 - `body` (String) POST/PUT request body. Must be in JSON format.
-- `client_authentication` (String) The OAuth2 client authentication location type.
+- `client_authentication` (String) The OAuth2 client authentication location type. <!-- probed:7.0.98-t1785744867250 --> Values accepted here: `basic-auth-header`, `in-body`. The API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute. <!-- /probed -->
 - `client_id` (String) The application ID used when `authType` is set to "oauth2".
 - `client_secret` (String) The private client secret used when `authType` is set to "oauth2".
-- `collect_api_response` (Boolean) Set to `true` if API response body should be collected and saved. Set to `false` if API response body should not be saved.
+- `collect_api_response` (Boolean) Set to `true` if API response body should be collected and saved. Set to `false` if API response body should not be saved. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `headers` (Attributes Set) Array of API Request Header objects. (see [below for nested schema](#nestedatt--requests--headers))
-- `method` (String) HTTP request method.
+- `method` (String) HTTP request method. <!-- probed:7.0.98-t1785744867250 --> Values accepted here: `get`, `post`, `put`, `delete`, `patch`. Observed: the API assigns "get" when this is omitted. The API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute. <!-- /probed -->
 - `password` (String) The password if `authType = basic`.
 - `scope` (String) Application-specific scope values for the access token when `authType` is "oauth2".
 - `token_url` (String) The endpoint used to request the access token when `authType` is "oauth2".
 - `username` (String) The username if `authType = basic`.
 - `variables` (Attributes Set) Array of API post request variable objects. (see [below for nested schema](#nestedatt--requests--variables))
-- `verify_certificate` (Boolean) Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.
+- `verify_certificate` (Boolean) Ignore or acknowledge certificate errors. Set to false to ignore certificate errors. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `wait_time_ms` (Number) Post request delay before executing the next API requests, in milliseconds.
 
 <a id="nestedatt--requests--assertions"></a>
@@ -112,8 +112,8 @@ Optional:
 
 Optional:
 
-- `name` (String) Set to `status-code` to assert the response status code. Set to `response-body` to assert data is present in the response body. Use `ApiRequestAssertion` to set the value for the assertion.
-- `operator` (String) If `name = status-code``, accepted values are [is, is-not]. If `name = response-body``, accepted values are [includes, not-includes, matches, not-matches]`.
+- `name` (String) Set to `status-code` to assert the response status code. Set to `response-body` to assert data is present in the response body. Use `ApiRequestAssertion` to set the value for the assertion. <!-- probed:7.0.98-t1785744867250 --> Values accepted here: `status-code`, `response-body`. The API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute. <!-- /probed -->
+- `operator` (String) If `name = status-code``, accepted values are [is, is-not]. If `name = response-body``, accepted values are [includes, not-includes, matches, not-matches]`. <!-- probed:7.0.98-t1785744867250 --> Values accepted here: `is`, `is-not`, `includes`, `not-includes`, `matches`, `not-matches`. The API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute. <!-- /probed -->
 - `value` (String) The value of the assertion. If name = `status-code`, the status code to assert. If name = `response-body`, the lookup value to assert.
 
 
@@ -162,4 +162,4 @@ Optional:
 Optional:
 
 - `secret_id` (String) UUID of the configured secret.
-- `target` (String) The target setting that the credential should be used for.
+- `target` (String) The target setting that the credential should be used for. <!-- probed:7.0.98-t1785744867250 --> Values accepted here: `username`, `password`, `script`. The API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute. <!-- /probed -->

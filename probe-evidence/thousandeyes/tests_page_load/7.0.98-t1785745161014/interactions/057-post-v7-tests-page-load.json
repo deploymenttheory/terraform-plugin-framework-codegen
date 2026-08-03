@@ -1,0 +1,50 @@
+{
+  "id": "057-post-v7-tests-page-load",
+  "seq": 57,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/page-load",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "blockDomains": "MiXeD-probe-blockDomains-2",
+      "browserLanguage": "MiXeD-probe-browserLanguage-2",
+      "chromeOptions": "MiXeD-probe-chromeOptions-2",
+      "chromePolicies": "MiXeD-probe-chromePolicies-2",
+      "clientCertificate": "MiXeD-probe-clientCertificate-2",
+      "contentRegex": "MiXeD-probe-contentRegex-2",
+      "description": "MiXeD-probe-description-2",
+      "desiredStatusCode": "MiXeD-probe-desiredStatusCode-2",
+      "dnsOverride": "MiXeD-probe-dnsOverride-2",
+      "emulatedDeviceId": "MiXeD-probe-emulatedDeviceId-2",
+      "interval": 3600,
+      "overrideProxyId": "MiXeD-probe-overrideProxyId-2",
+      "password": "MiXeD-probe-password-2",
+      "testName": "tfpfgen-probe-write-normalisation-2",
+      "url": "MiXeD-probe-url-2",
+      "userAgent": "MiXeD-probe-userAgent-2",
+      "username": "MiXeD-probe-username-2"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/page-load",
+      "status": 400,
+      "title": "Bad Request",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

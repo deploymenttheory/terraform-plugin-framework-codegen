@@ -69,7 +69,7 @@ resource "thousandeyes_tests_web_transaction" "example" {
 - `password` (String) Password for Basic/NTLM authentication.
 - `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
 - `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
-- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD).
+- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD). <!-- probed:7.0.98-t1785745177323 --> The specification documents `udp`, which the API rejected. <!-- /probed -->
 - `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
 - `ssl_version_id` (String) SSL version options: * Use '0' for automatic selection. * Use '3' for SSLv3. * Use '4' for TLS v1.0. * Use '5' for TLS v1.1. * Use '6' for TLS v1.2. * Use '7' for TLS v1.3.
 - `subinterval` (Number) Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval. Documented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`.
@@ -89,12 +89,12 @@ resource "thousandeyes_tests_web_transaction" "example" {
 
 - `created_by` (String) User that created the test.
 - `created_date` (String) UTC created date (ISO date-time format).
+- `id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `live_share` (Boolean) Indicates if the test is shared with the account group.
 - `modified_by` (String) User that modified the test.
 - `modified_date` (String) UTC last modification date (ISO date-time format).
 - `saved_event` (Boolean) Indicates if the test is a saved event. **Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.
 - `ssl_version` (String) Reflects the verbose SSL protocol version used by a test.
-- `test_id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `type` (String) This is a read only value, as test type is implicit in the test creation url.
 
 <a id="nestedatt--agents"></a>

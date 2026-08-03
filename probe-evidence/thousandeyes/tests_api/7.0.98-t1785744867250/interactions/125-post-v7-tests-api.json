@@ -1,0 +1,47 @@
+{
+  "id": "125-post-v7-tests-api",
+  "seq": 125,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/api",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "clientCertDomainsAllowList": "  probe-clientCertDomainsAllowList-1  ",
+      "clientCertificate": "  probe-clientCertificate-1  ",
+      "description": "  probe-description-1  ",
+      "interval": 3600,
+      "overrideProxyId": "  probe-overrideProxyId-1  ",
+      "requests": [
+        {
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck"
+        }
+      ],
+      "testName": "tfpfgen-probe-write-normalisation-1",
+      "url": "  probe-url-1  "
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/api",
+      "status": 400,
+      "title": "Bad Request",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

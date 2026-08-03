@@ -1,0 +1,96 @@
+{
+  "id": "048-post-v7-tests-dns-server",
+  "seq": 48,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/dns-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "dnsServers": [
+        "c",
+        "b",
+        "a"
+      ],
+      "domain": "example.com",
+      "interval": 3600,
+      "testName": "tfpfgen-probe-write-normalisation-3"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/dns-server/281474976976856",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dns-server/281474976976856"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976856/dns-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976856/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976856/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976856/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:16:31Z",
+      "dnsQueryClass": "in",
+      "dnsServers": [
+        {
+          "serverId": "281474976792888",
+          "serverName": "c"
+        },
+        {
+          "serverId": "281474976792889",
+          "serverName": "b"
+        },
+        {
+          "serverId": "281474976792890",
+          "serverName": "a"
+        }
+      ],
+      "dnsTransportProtocol": "udp",
+      "domain": "example.com ANY",
+      "enabled": true,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 1,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "recursiveQueries": false,
+      "savedEvent": false,
+      "testId": "281474976976856",
+      "testName": "tfpfgen-probe-write-normalisation-3",
+      "type": "dns-server",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

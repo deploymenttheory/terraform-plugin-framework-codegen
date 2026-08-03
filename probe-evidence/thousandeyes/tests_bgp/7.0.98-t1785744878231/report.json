@@ -1,0 +1,417 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (0 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "tests_bgp",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tests-bgp-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "tests_bgp",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tests-bgp-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "tests_bgp",
+      "field": "policy.readBack",
+      "value": {
+        "readBack": {
+          "reason": "every one of 2 read(s) immediately after a create succeeded on the first attempt"
+        }
+      },
+      "confidence": "inferred",
+      "probe": "write.read-your-writes",
+      "evidence": [
+        "015-get-v7-tests-bgp-281474976976844",
+        "017-get-v7-tests-bgp-281474976976845"
+      ],
+      "rationale": "2 object(s) were read immediately after creation and every first read succeeded",
+      "alternatives": [
+        "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+      ]
+    },
+    {
+      "resource": "tests_bgp",
+      "field": "policy.updateStyle",
+      "value": {
+        "text": "replaceOnly"
+      },
+      "confidence": "inferred",
+      "probe": "write.update-style",
+      "evidence": [],
+      "rationale": "the blueprint records no update operation, so every writable attribute needs replacement rather than an in-place change",
+      "alternatives": [
+        "no cassette interaction could be matched to this observation, so it cannot be re-derived offline"
+      ]
+    },
+    {
+      "resource": "tests_bgp",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-tests-bgp",
+        "003-get-v7-tests-bgp",
+        "004-get-v7-tests-bgp",
+        "005-get-v7-tests-bgp",
+        "006-get-v7-tests-bgp",
+        "007-get-v7-tests-bgp",
+        "008-get-v7-tests-bgp",
+        "009-get-v7-tests-bgp",
+        "022-get-v7-tests-bgp"
+      ],
+      "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "tests_bgp",
+      "jsonPath": "alertsEnabled",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "015-get-v7-tests-bgp-281474976976844",
+        "017-get-v7-tests-bgp-281474976976845"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_bgp",
+      "jsonPath": "enabled",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "015-get-v7-tests-bgp-281474976976844",
+        "017-get-v7-tests-bgp-281474976976845"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_bgp",
+      "jsonPath": "includeCoveredPrefixes",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "015-get-v7-tests-bgp-281474976976844",
+        "017-get-v7-tests-bgp-281474976976845"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_bgp",
+      "jsonPath": "prefix",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "011-post-v7-tests-bgp"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_bgp",
+      "jsonPath": "usePublicBgp",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "015-get-v7-tests-bgp-281474976976844",
+        "017-get-v7-tests-bgp-281474976976845"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "resource": "tests_bgp",
+      "probe": "write.writable-returned",
+      "message": "fixture minimal was refused with 400 (), so nothing was observed about writability from it"
+    },
+    {
+      "resource": "tests_bgp",
+      "probe": "read.error-envelope",
+      "message": "no candidate query parameter (limit, max, offset, page) was validated, so no error shape was observed without mutating anything"
+    },
+    {
+      "resource": "tests_bgp",
+      "probe": "read.volatile",
+      "message": "no existing object to read repeatedly, so volatility was not observed"
+    },
+    {
+      "resource": "tests_bgp",
+      "probe": "read.returned-weak",
+      "message": "no existing object to read, so no field presence was observed"
+    },
+    {
+      "resource": "tests_bgp",
+      "probe": "write.enum",
+      "message": "no sendable field carries documented enum values, so there is no specification claim to check against the API"
+    },
+    {
+      "resource": "tests_bgp",
+      "probe": "read.list-shape",
+      "message": "the collection is empty, so no item shape was observed and later probes have no fixture to draw on"
+    },
+    {
+      "resource": "tests_bgp",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"letter case is changed\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "tests_bgp",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"surrounding whitespace is stripped\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "tests_bgp",
+      "probe": "write.side-effect",
+      "message": "the plan declares no field whose value might affect another, so there is no suspected trigger to perturb; declare one under defaultInfluencers"
+    },
+    {
+      "resource": "tests_bgp",
+      "probe": "write.immutability",
+      "message": "the resource has no update operation, so immutability is not a question about it: write.update-style records replaceOnly instead"
+    },
+    {
+      "resource": "tests_bgp",
+      "jsonPath": "description",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_bgp",
+      "jsonPath": "testName",
+      "probe": "write.normalisation",
+      "message": "\"letter case is changed\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "tests_bgp",
+      "jsonPath": "testName",
+      "probe": "write.normalisation",
+      "message": "\"surrounding whitespace is stripped\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "tests_bgp",
+      "jsonPath": "testName",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.normalisation",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 2,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 2,
+      "facts": 1
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 4
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    }
+  ],
+  "budget": {
+    "requests": 21,
+    "maxRequests": 240,
+    "creates": 7,
+    "maxCreates": 80,
+    "deletes": 3,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  }
+}

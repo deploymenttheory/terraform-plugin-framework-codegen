@@ -1,0 +1,341 @@
+[
+  {
+    "resource": "tests_dns_trace",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "404=problem"
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-tests-dns-trace-999999999"
+    ],
+    "rationale": "a 404 response used the problem error shape"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "field": "policy.delete.notFoundIsSuccess",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-tests-dns-trace-999999999"
+    ],
+    "rationale": "reading an absent object answered 404 with a problem error body",
+    "alternatives": [
+      "the API may answer differently for an identifier that once existed and was deleted"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "field": "policy.readBack",
+    "value": {
+      "readBack": {
+        "reason": "every one of 6 read(s) immediately after a create succeeded on the first attempt"
+      }
+    },
+    "confidence": "inferred",
+    "probe": "write.read-your-writes",
+    "evidence": [
+      "016-get-v7-tests-dns-trace-281474976976858",
+      "019-get-v7-tests-dns-trace-281474976976859",
+      "021-get-v7-tests-dns-trace-281474976976859",
+      "024-get-v7-tests-dns-trace-281474976976860",
+      "026-get-v7-tests-dns-trace-281474976976861",
+      "031-get-v7-tests-dns-trace-281474976976862"
+    ],
+    "rationale": "6 object(s) were read immediately after creation and every first read succeeded",
+    "alternatives": [
+      "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "field": "policy.updateStyle",
+    "value": {
+      "text": "patchMerge"
+    },
+    "confidence": "observed",
+    "probe": "write.update-style",
+    "evidence": [
+      "019-get-v7-tests-dns-trace-281474976976859",
+      "021-get-v7-tests-dns-trace-281474976976859"
+    ],
+    "rationale": "an update omitting domain left it unchanged, so the API merges",
+    "alternatives": [
+      "an API that distinguishes an absent key from an explicit null may treat the two differently, and only the absent case was sent",
+      "the behaviour was observed for domain and is assumed to hold for every other field"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "field": "unknownParamTolerated",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.unknown-param",
+    "evidence": [
+      "001-get-v7-tests-dns-trace",
+      "003-get-v7-tests-dns-trace",
+      "004-get-v7-tests-dns-trace",
+      "005-get-v7-tests-dns-trace",
+      "006-get-v7-tests-dns-trace",
+      "007-get-v7-tests-dns-trace",
+      "008-get-v7-tests-dns-trace",
+      "009-get-v7-tests-dns-trace",
+      "033-get-v7-tests-dns-trace"
+    ],
+    "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+    "alternatives": [
+      "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "agents",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "011-post-v7-tests-dns-trace"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "agents",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "016-get-v7-tests-dns-trace-281474976976858"
+    ],
+    "rationale": "the field was sent on 1 create(s) and appeared in no read response, including every expansion the plan declares",
+    "alternatives": [
+      "the API may return it only on the collection endpoint rather than the item one",
+      "an expansion parameter this plan does not know about may reveal it"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "agents.agentId",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "016-get-v7-tests-dns-trace-281474976976858"
+    ],
+    "rationale": "the field was sent on 1 create(s) and appeared in no read response, including every expansion the plan declares",
+    "alternatives": [
+      "the API may return it only on the collection endpoint rather than the item one",
+      "an expansion parameter this plan does not know about may reveal it"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "alertsEnabled",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "016-get-v7-tests-dns-trace-281474976976858"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "alertsEnabled",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "024-get-v7-tests-dns-trace-281474976976860",
+      "026-get-v7-tests-dns-trace-281474976976861"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "description",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "016-get-v7-tests-dns-trace-281474976976858"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "domain",
+    "field": "normalisation",
+    "value": {
+      "text": "the value came back changed by \"letter case is changed\", in a way this probe could not identify"
+    },
+    "confidence": "suspected",
+    "probe": "write.normalisation",
+    "evidence": [
+      "031-get-v7-tests-dns-trace-281474976976862"
+    ],
+    "rationale": "MiXeD-probe-domain-2 was sent and MiXeD-probe-domain-2 ANY came back",
+    "alternatives": [
+      "the difference may be a server default overwriting the sent value rather than a transformation of it, which write.writable-returned would distinguish"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "domain",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "012-post-v7-tests-dns-trace"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "domain",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "016-get-v7-tests-dns-trace-281474976976858"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "enabled",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "016-get-v7-tests-dns-trace-281474976976858"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "enabled",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "024-get-v7-tests-dns-trace-281474976976860",
+      "026-get-v7-tests-dns-trace-281474976976861"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "interval",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "013-post-v7-tests-dns-trace"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "randomizedStartTime",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "016-get-v7-tests-dns-trace-281474976976858"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "randomizedStartTime",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "024-get-v7-tests-dns-trace-281474976976860",
+      "026-get-v7-tests-dns-trace-281474976976861"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "testName",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "016-get-v7-tests-dns-trace-281474976976858"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  }
+]

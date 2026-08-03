@@ -1,0 +1,31 @@
+{
+  "id": "021-post-v7-tests-bgp",
+  "seq": 21,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/bgp",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "description": "MiXeD-probe-description-2",
+      "prefix": "MiXeD-probe-prefix-2",
+      "testName": "tfpfgen-probe-write-normalisation-2"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/bgp",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Error in field prefix.prefix : Badly formed prefix.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "id": "027-post-v7-tests-agent-to-server",
+  "seq": 27,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/agent-to-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "protocol": "TCP",
+      "server": "www.example.com",
+      "testName": "tfpfgen-probe-write-enum-6"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/agent-to-server/281474976976792",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/agent-to-server/281474976976792"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976792/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976792/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976792/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "continuousMode": false,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:11:49Z",
+      "dscp": "Best Effort (DSCP 0)",
+      "dscpId": "0",
+      "enabled": true,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "server": "www.example.com:80",
+      "testId": "281474976976792",
+      "testName": "tfpfgen-probe-write-enum-6",
+      "type": "agent-to-server",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

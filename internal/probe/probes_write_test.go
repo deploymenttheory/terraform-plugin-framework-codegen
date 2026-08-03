@@ -323,8 +323,14 @@ func TestUnit_Probe_NoUpdateOperationMeansReplaceOnly(t *testing.T) {
 		t.Fatalf("Exercise: %v", err)
 	}
 
-	if len(result.Facts) != 1 || result.Facts[0].Value.Text != "replaceOnly" {
-		t.Fatalf("facts = %v", result.Facts)
+	// A note, never a fact: nothing was sent, so there is no interaction to cite, and
+	// fact validation refuses an evidence-less claim -- which a live wave proved by
+	// producing a committed facts.json the offline gate could not verify.
+	if len(result.Facts) != 0 {
+		t.Fatalf("a structural inference must not become a fact; facts = %v", result.Facts)
+	}
+	if len(result.Notes) != 1 || !strings.Contains(result.Notes[0].Message, "no update operation") {
+		t.Fatalf("the absence should be stated as a note; notes = %v", result.Notes)
 	}
 	if result.Requests != 0 {
 		t.Errorf("%d request(s) issued to learn something the blueprint already says",

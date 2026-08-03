@@ -1,0 +1,27 @@
+{
+  "id": "058-get-v7-tests-page-load",
+  "seq": 58,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/page-load",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/page-load"
+        }
+      },
+      "tests": []
+    },
+    "droppedHeaders": 14
+  }
+}

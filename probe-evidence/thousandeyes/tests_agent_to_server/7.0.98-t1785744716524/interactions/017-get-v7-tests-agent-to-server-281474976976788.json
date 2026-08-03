@@ -1,0 +1,62 @@
+{
+  "id": "017-get-v7-tests-agent-to-server-281474976976788",
+  "seq": 17,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/agent-to-server/281474976976788",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/agent-to-server/281474976976788"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976788/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976788/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976788/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "continuousMode": false,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:11:38Z",
+      "dscp": "Best Effort (DSCP 0)",
+      "dscpId": "0",
+      "enabled": true,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "server": "www.example.com:80",
+      "testId": "281474976976788",
+      "testName": "tfpfgen-probe-write-server-default-1",
+      "type": "agent-to-server",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "id": "010-post-v7-tests-dnssec",
+  "seq": 10,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/dnssec",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "domain": "cloudflare.com",
+      "interval": 3600,
+      "testName": "tfpfgen-probe-write-required-1"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/dnssec/281474976976863",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dnssec/281474976976863"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976863/dnssec"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:17:05Z",
+      "dnsQueryClass": "in",
+      "domain": "cloudflare.com ANY",
+      "enabled": true,
+      "interval": 3600,
+      "liveShare": false,
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "testId": "281474976976863",
+      "testName": "tfpfgen-probe-write-required-1",
+      "type": "dnssec"
+    },
+    "droppedHeaders": 14
+  }
+}

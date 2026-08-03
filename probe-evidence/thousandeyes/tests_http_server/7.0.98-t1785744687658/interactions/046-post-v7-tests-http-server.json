@@ -1,0 +1,46 @@
+{
+  "id": "046-post-v7-tests-http-server",
+  "seq": 46,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/http-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "clientCertificate": "  probe-clientCertificate-1  ",
+      "contentRegex": "  probe-contentRegex-1  ",
+      "description": "  probe-description-1  ",
+      "desiredStatusCode": "  probe-desiredStatusCode-1  ",
+      "dnsOverride": "  probe-dnsOverride-1  ",
+      "interval": 3600,
+      "overrideProxyId": "  probe-overrideProxyId-1  ",
+      "password": "  probe-password-1  ",
+      "postBody": "  probe-postBody-1  ",
+      "testName": "tfpfgen-probe-write-normalisation-1",
+      "url": "  probe-url-1  ",
+      "userAgent": "  probe-userAgent-1  ",
+      "username": "  probe-username-1  "
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/http-server",
+      "status": 400,
+      "title": "Bad Request",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

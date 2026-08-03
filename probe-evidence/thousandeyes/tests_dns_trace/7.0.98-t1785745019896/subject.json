@@ -1,0 +1,187 @@
+{
+  "resource": "tests_dns_trace",
+  "collectionTemplate": "/tests/dns-trace",
+  "itemTemplate": "/tests/dns-trace/{testId}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/tests/dns-trace"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/tests/dns-trace/{testId}"
+  },
+  "update": {
+    "method": "PUT",
+    "pathTemplate": "/tests/dns-trace/{testId}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/tests/dns-trace/{testId}"
+  },
+  "fields": [
+    {
+      "jsonPath": "agents",
+      "attribute": "agents",
+      "kind": "set_nested",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "agents.agentId",
+      "attribute": "agent_id",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "alertsEnabled",
+      "attribute": "alerts_enabled",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "createdBy",
+      "attribute": "created_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "createdDate",
+      "attribute": "created_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "description",
+      "attribute": "description",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "dnsQueryClass",
+      "attribute": "dns_query_class",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "in",
+        "ch"
+      ]
+    },
+    {
+      "jsonPath": "dnsTransportProtocol",
+      "attribute": "dns_transport_protocol",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "udp",
+        "tcp"
+      ]
+    },
+    {
+      "jsonPath": "domain",
+      "attribute": "domain",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true
+      }
+    },
+    {
+      "jsonPath": "enabled",
+      "attribute": "enabled",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "interval",
+      "attribute": "interval",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "60",
+        "120",
+        "300",
+        "600",
+        "900",
+        "1800",
+        "3600"
+      ],
+      "behaviour": {
+        "requiredByApi": true
+      }
+    },
+    {
+      "jsonPath": "liveShare",
+      "attribute": "live_share",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedBy",
+      "attribute": "modified_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedDate",
+      "attribute": "modified_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "randomizedStartTime",
+      "attribute": "randomized_start_time",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "savedEvent",
+      "attribute": "saved_event",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "testId",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "testName",
+      "attribute": "test_name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "type",
+      "attribute": "type",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    }
+  ],
+  "policy": {
+    "updateStyle": "putFull",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "testId",
+  "nameField": "testName"
+}

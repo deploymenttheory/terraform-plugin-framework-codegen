@@ -25,43 +25,43 @@ resource "thousandeyes_tests_dns_server" "example" {
 
 ### Required
 
-- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. (see [below for nested schema](#nestedatt--agents))
-- `dns_servers` (Set of String) A list of DNS server FQDN. Sent as a list of server names; the read reports servers as objects, which v1 does not round-trip. The test's target: the API refuses a create without it, whatever the specification marks.
-- `domain` (String) The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record. The test's target: the API refuses a create without it, whatever the specification marks.
+- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. <!-- probed:7.0.98-t1785744994227 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> (see [below for nested schema](#nestedatt--agents))
+- `dns_servers` (Set of String) A list of DNS server FQDN. Sent as a list of server names; the read reports servers as objects, which v1 does not round-trip. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785744994227 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
+- `domain` (String) The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785744994227 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 
 ### Optional
 
-- `alerts_enabled` (Boolean) Indicates if alerts are enabled.
-- `bandwidth_measurements` (Boolean) Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.
-- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements.
+- `alerts_enabled` (Boolean) Indicates if alerts are enabled. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `bandwidth_measurements` (Boolean) Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `description` (String) A description of the test.
 - `dns_query_class` (String) Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.
 - `dns_transport_protocol` (String) Transport protocol used for DNS requests.
-- `enabled` (Boolean) Test is enabled.
+- `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run). <!-- probed:7.0.98-t1785744994227 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 - `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level.
-- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
-- `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements.
-- `num_path_traces` (Number) Number of path traces executed by the agent.
+- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns 1 when this is omitted. <!-- /probed -->
 - `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
 - `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
-- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD).
-- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
-- `recursive_queries` (Boolean) Set true to run query with RD (recursion desired) flag enabled.
+- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD). <!-- probed:7.0.98-t1785744994227 --> Values accepted here: `tcp`, `icmp`. The specification documents `udp`, which the API rejected. Observed: the API assigns "tcp" when this is omitted. <!-- /probed -->
+- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `recursive_queries` (Boolean) Set true to run query with RD (recursion desired) flag enabled. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 
 ### Read-Only
 
 - `created_by` (String) User that created the test.
 - `created_date` (String) UTC created date (ISO date-time format).
+- `id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `live_share` (Boolean) Indicates if the test is shared with the account group.
 - `modified_by` (String) User that modified the test.
 - `modified_date` (String) UTC last modification date (ISO date-time format).
 - `saved_event` (Boolean) Indicates if the test is a saved event. **Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.
-- `test_id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `type` (String) This is a read only value, as test type is implicit in the test creation url.
 
 <a id="nestedatt--agents"></a>

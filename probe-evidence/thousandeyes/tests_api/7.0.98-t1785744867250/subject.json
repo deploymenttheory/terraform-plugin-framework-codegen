@@ -1,0 +1,585 @@
+{
+  "resource": "tests_api",
+  "collectionTemplate": "/tests/api",
+  "itemTemplate": "/tests/api/{testId}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/tests/api"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/tests/api/{testId}"
+  },
+  "update": {
+    "method": "PUT",
+    "pathTemplate": "/tests/api/{testId}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/tests/api/{testId}"
+  },
+  "fields": [
+    {
+      "jsonPath": "agents",
+      "attribute": "agents",
+      "kind": "set_nested",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "agents.agentId",
+      "attribute": "agent_id",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "alertsEnabled",
+      "attribute": "alerts_enabled",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "bgpMeasurements",
+      "attribute": "bgp_measurements",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "clientCertDomainsAllowList",
+      "attribute": "client_cert_domains_allow_list",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "clientCertificate",
+      "attribute": "client_certificate",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "collectProxyNetworkData",
+      "attribute": "collect_proxy_network_data",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "createdBy",
+      "attribute": "created_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "createdDate",
+      "attribute": "created_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "credentials",
+      "attribute": "credentials",
+      "kind": "set",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "description",
+      "attribute": "description",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "distributedTracing",
+      "attribute": "distributed_tracing",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "enabled",
+      "attribute": "enabled",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "followRedirects",
+      "attribute": "follow_redirects",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "interval",
+      "attribute": "interval",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "60",
+        "120",
+        "300",
+        "600",
+        "900",
+        "1800",
+        "3600"
+      ],
+      "behaviour": {
+        "requiredByApi": true
+      }
+    },
+    {
+      "jsonPath": "liveShare",
+      "attribute": "live_share",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedBy",
+      "attribute": "modified_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedDate",
+      "attribute": "modified_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "mtuMeasurements",
+      "attribute": "mtu_measurements",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "networkMeasurements",
+      "attribute": "network_measurements",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "numPathTraces",
+      "attribute": "num_path_traces",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "overrideAgentProxy",
+      "attribute": "override_agent_proxy",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "overrideProxyId",
+      "attribute": "override_proxy_id",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "pathTraceMode",
+      "attribute": "path_trace_mode",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "classic",
+        "in-session"
+      ]
+    },
+    {
+      "jsonPath": "predefinedVariables",
+      "attribute": "predefined_variables",
+      "kind": "set_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "predefinedVariables.name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "predefinedVariables.value",
+      "attribute": "value",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "probeMode",
+      "attribute": "probe_mode",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "auto",
+        "sack",
+        "syn"
+      ]
+    },
+    {
+      "jsonPath": "protocol",
+      "attribute": "protocol",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "tcp",
+        "icmp",
+        "udp"
+      ]
+    },
+    {
+      "jsonPath": "randomizedStartTime",
+      "attribute": "randomized_start_time",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests",
+      "attribute": "requests",
+      "kind": "set_nested",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.assertions",
+      "attribute": "assertions",
+      "kind": "set_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.assertions.name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "status-code",
+        "response-body"
+      ]
+    },
+    {
+      "jsonPath": "requests.assertions.operator",
+      "attribute": "operator",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "is",
+        "is-not",
+        "includes",
+        "not-includes",
+        "matches",
+        "not-matches"
+      ]
+    },
+    {
+      "jsonPath": "requests.assertions.value",
+      "attribute": "value",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.authType",
+      "attribute": "auth_type",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "none",
+        "basic",
+        "bearer-token",
+        "oauth2"
+      ]
+    },
+    {
+      "jsonPath": "requests.bearerToken",
+      "attribute": "bearer_token",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.body",
+      "attribute": "body",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.clientAuthentication",
+      "attribute": "client_authentication",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "basic-auth-header",
+        "in-body"
+      ]
+    },
+    {
+      "jsonPath": "requests.clientId",
+      "attribute": "client_id",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.clientSecret",
+      "attribute": "client_secret",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.collectApiResponse",
+      "attribute": "collect_api_response",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.headers",
+      "attribute": "headers",
+      "kind": "set_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.headers.key",
+      "attribute": "key",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.headers.value",
+      "attribute": "value",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.method",
+      "attribute": "method",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "get",
+        "post",
+        "put",
+        "delete",
+        "patch"
+      ]
+    },
+    {
+      "jsonPath": "requests.name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.password",
+      "attribute": "password",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.scope",
+      "attribute": "scope",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.tokenUrl",
+      "attribute": "token_url",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.url",
+      "attribute": "url",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.username",
+      "attribute": "username",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.variables",
+      "attribute": "variables",
+      "kind": "set_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.variables.name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.variables.value",
+      "attribute": "value",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.verifyCertificate",
+      "attribute": "verify_certificate",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "requests.waitTimeMs",
+      "attribute": "wait_time_ms",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "savedEvent",
+      "attribute": "saved_event",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "sslVersionId",
+      "attribute": "ssl_version_id",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "0",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ]
+    },
+    {
+      "jsonPath": "targetTime",
+      "attribute": "target_time",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "testId",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "testName",
+      "attribute": "test_name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "timeLimit",
+      "attribute": "time_limit",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "type",
+      "attribute": "type",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "url",
+      "attribute": "url",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true
+      }
+    },
+    {
+      "jsonPath": "usePublicBgp",
+      "attribute": "use_public_bgp",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "vaultCredentials",
+      "attribute": "vault_credentials",
+      "kind": "set_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "vaultCredentials.secretId",
+      "attribute": "secret_id",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "vaultCredentials.target",
+      "attribute": "target",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "username",
+        "password",
+        "script"
+      ]
+    }
+  ],
+  "policy": {
+    "updateStyle": "putFull",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "testId",
+  "nameField": "testName"
+}

@@ -23,27 +23,27 @@ resource "thousandeyes_tests_bgp" "example" {
 
 ### Required
 
-- `prefix` (String) a.b.c.d is a network address, with the prefix length defined as e. Prefixes can be any length from 8 to 24.
+- `prefix` (String) a.b.c.d is a network address, with the prefix length defined as e. Prefixes can be any length from 8 to 24. <!-- probed:7.0.98-t1785744878231 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 
 ### Optional
 
-- `alerts_enabled` (Boolean) Indicates if alerts are enabled.
+- `alerts_enabled` (Boolean) Indicates if alerts are enabled. <!-- probed:7.0.98-t1785744878231 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `description` (String) A description of the test.
-- `enabled` (Boolean) Test is enabled.
-- `include_covered_prefixes` (Boolean) Indicate if queries for subprefixes detected under this prefix should included.
+- `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785744878231 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `include_covered_prefixes` (Boolean) Indicate if queries for subprefixes detected under this prefix should included. <!-- probed:7.0.98-t1785744878231 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:7.0.98-t1785744878231 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 
 ### Read-Only
 
 - `created_by` (String) User that created the test.
 - `created_date` (String) UTC created date (ISO date-time format).
+- `id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `live_share` (Boolean) Indicates if the test is shared with the account group.
 - `modified_by` (String) User that modified the test.
 - `modified_date` (String) UTC last modification date (ISO date-time format).
 - `saved_event` (Boolean) Indicates if the test is a saved event. **Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.
-- `test_id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `type` (String)
 
 <a id="nestedblock--timeouts"></a>

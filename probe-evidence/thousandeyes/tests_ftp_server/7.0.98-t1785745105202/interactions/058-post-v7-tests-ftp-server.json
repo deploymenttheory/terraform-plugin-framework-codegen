@@ -1,0 +1,40 @@
+{
+  "id": "058-post-v7-tests-ftp-server",
+  "seq": 58,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/ftp-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "description": "  probe-description-1  ",
+      "interval": 3600,
+      "password": "  probe-password-1  ",
+      "requestType": "download",
+      "testName": "tfpfgen-probe-write-normalisation-1",
+      "url": "  probe-url-1  ",
+      "username": "  probe-username-1  "
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/ftp-server",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Error in field url.url : Badly formed URL. Error in field url.url : Badly formed URL.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

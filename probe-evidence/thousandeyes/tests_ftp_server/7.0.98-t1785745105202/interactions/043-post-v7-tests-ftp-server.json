@@ -1,0 +1,41 @@
+{
+  "id": "043-post-v7-tests-ftp-server",
+  "seq": 43,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/ftp-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "password": "guest",
+      "protocol": "qqq",
+      "requestType": "download",
+      "testName": "tfpfgen-probe-write-enum-4",
+      "url": "ftp://speedtest.tele2.net",
+      "username": "anonymous"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Invalid value for fields: protocol",
+      "instance": "/v7/tests/ftp-server",
+      "status": 400,
+      "title": "request validation failed. There are invalid or missing fields",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

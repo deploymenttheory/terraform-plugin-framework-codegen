@@ -1,0 +1,32 @@
+{
+  "id": "007-get-v7-tests-web-transactions",
+  "seq": 7,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/web-transactions",
+    "query": {
+      "offset": [
+        "not-a-number"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/web-transactions?offset=not-a-number"
+        }
+      },
+      "tests": []
+    },
+    "droppedHeaders": 14
+  }
+}

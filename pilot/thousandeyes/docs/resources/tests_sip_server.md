@@ -53,6 +53,7 @@ resource "thousandeyes_tests_sip_server" "example" {
 - `auth_user` (String) Username for authentication with SIP server.
 - `created_by` (String) User that created the test.
 - `created_date` (String) UTC created date (ISO date-time format).
+- `id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `live_share` (Boolean) Indicates if the test is shared with the account group.
 - `modified_by` (String) User that modified the test.
 - `modified_date` (String) UTC last modification date (ISO date-time format).
@@ -61,7 +62,6 @@ resource "thousandeyes_tests_sip_server" "example" {
 - `protocol` (String) Transport layer for SIP communication.
 - `saved_event` (Boolean) Indicates if the test is a saved event. **Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.
 - `sip_registrar` (String) SIP server to be tested, specified by domain name or IP address.
-- `test_id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `type` (String) This is a read only value, as test type is implicit in the test creation url.
 - `user` (String) Username for SIP registration, should be unique within a ThousandEyes account group.
 
