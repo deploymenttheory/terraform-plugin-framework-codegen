@@ -506,7 +506,7 @@
               }
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "A list of DNS server FQDN.\n\nSent as a list of server names; the read reports servers as objects, which v1 does not round-trip.",
+            "markdownDescription": "A list of DNS server FQDN.\n\nSent as a list of server names; the read reports servers as objects, which v1 does not round-trip.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.",
             "wire": {
               "jsonPath": "dnsServers",
               "sdkField": "DnsServers",
@@ -517,6 +517,9 @@
                 "needsCtx": true,
                 "returnsError": true
               }
+            },
+            "behaviour": {
+              "requiredByApi": true
             }
           },
           {
@@ -553,7 +556,7 @@
               "kind": "string"
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.",
+            "markdownDescription": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.",
             "wire": {
               "jsonPath": "domain",
               "sdkField": "Domain",
@@ -567,6 +570,9 @@
               "flatten": {
                 "func": "convert.EnumToFramework"
               }
+            },
+            "behaviour": {
+              "requiredByApi": true
             }
           },
           {
@@ -635,7 +641,7 @@
               ]
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.",
+            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).",
             "wire": {
               "jsonPath": "interval",
               "sdkField": "Interval",
@@ -649,6 +655,9 @@
               "flatten": {
                 "func": "convert.IntEnumToFramework"
               }
+            },
+            "behaviour": {
+              "requiredByApi": true
             }
           },
           {
@@ -1563,6 +1572,18 @@
           {
             "attr": "agents",
             "hcl": "[{ agent_id = \"3\" }]"
+          },
+          {
+            "attr": "domain",
+            "hcl": "\"example.com\""
+          },
+          {
+            "attr": "dns_servers",
+            "hcl": "[\"8.8.8.8\"]"
+          },
+          {
+            "attr": "interval",
+            "hcl": "3600"
           }
         ]
       },

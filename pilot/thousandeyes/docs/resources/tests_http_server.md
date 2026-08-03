@@ -48,7 +48,7 @@ resource "thousandeyes_tests_http_server" "example" {
 - `http_time_limit` (Number) HTTP time limit in seconds.
 - `http_version` (Number) HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.
 - `include_headers` (Boolean) Set to `true` to capture response headers for objects loaded by the test.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level.
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
 - `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements.
@@ -65,7 +65,7 @@ resource "thousandeyes_tests_http_server" "example" {
 - `ssl_version_id` (String) SSL version options: * Use '0' for automatic selection. * Use '3' for SSLv3. * Use '4' for TLS v1.0. * Use '5' for TLS v1.1. * Use '6' for TLS v1.2. * Use '7' for TLS v1.3.
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `url` (String) Target for the test.
+- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks.
 - `use_ntlm` (Boolean) Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.
 - `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
 - `user_agent` (String) User-agent string to be provided during the test.

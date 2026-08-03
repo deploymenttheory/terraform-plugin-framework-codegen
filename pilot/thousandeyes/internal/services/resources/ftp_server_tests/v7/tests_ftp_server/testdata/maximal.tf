@@ -10,6 +10,8 @@
 resource "thousandeyes_tests_ftp_server" "test" {
   # Where a value came from.
   #
+  # interval: documented; unprobed
+  #
   # ipv6_policy: documented; unprobed
   #
   # path_trace_mode: documented; unprobed
@@ -21,6 +23,12 @@ resource "thousandeyes_tests_ftp_server" "test" {
   # request_type: documented; unprobed
   #
   # agents: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # Not filled in, because no correct value could be derived. Each of these is optional, so this
+  # configuration is valid as it stands -- but it is testing less than it could.
+  #
+  # password: it is credential-shaped, and a generated fixture must not invent values that read
+  # as secrets; supply one through accFixture if the test needs it
   alerts_enabled         = true
   bandwidth_measurements = true
   bgp_measurements       = true
@@ -30,12 +38,11 @@ resource "thousandeyes_tests_ftp_server" "test" {
   fixed_packet_rate      = 1
   ftp_target_time        = 1000
   ftp_time_limit         = 10
-  interval               = 1
+  interval               = "60"
   ipv6_policy            = "force-ipv4"
   mtu_measurements       = true
   network_measurements   = true
   num_path_traces        = 1
-  password               = "tfacc-password"
   path_trace_mode        = "classic"
   probe_mode             = "auto"
   protocol               = "tcp"

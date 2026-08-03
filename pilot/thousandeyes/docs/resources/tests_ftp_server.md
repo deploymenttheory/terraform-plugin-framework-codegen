@@ -28,7 +28,7 @@ resource "thousandeyes_tests_ftp_server" "example" {
 
 - `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. (see [below for nested schema](#nestedatt--agents))
 - `request_type` (String) Set the type of activity for the test.
-- `url` (String) Target for the test.
+- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks.
 - `username` (String) Username for Basic/NTLM authentication.
 
 ### Optional
@@ -42,7 +42,7 @@ resource "thousandeyes_tests_ftp_server" "example" {
 - `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second.
 - `ftp_target_time` (Number) Target time for operation completion; specified in milliseconds.
 - `ftp_time_limit` (Number) Set the time limit for the test in seconds.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level.
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
 - `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements.

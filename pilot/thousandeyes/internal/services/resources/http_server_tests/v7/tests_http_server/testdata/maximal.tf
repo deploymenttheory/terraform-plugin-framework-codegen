@@ -12,6 +12,8 @@ resource "thousandeyes_tests_http_server" "test" {
   #
   # auth_type: documented; unprobed
   #
+  # interval: documented; unprobed
+  #
   # ipv6_policy: documented; unprobed
   #
   # path_trace_mode: documented; unprobed
@@ -29,11 +31,8 @@ resource "thousandeyes_tests_http_server" "test" {
   # Not filled in, because no correct value could be derived. Each of these is optional, so this
   # configuration is valid as it stands -- but it is testing less than it could.
   #
-  # agent_interfaces: a nested object's members may be identifiers of objects that must already
-  # exist, and nothing in the specification says whether they are
-  #
-  # o_auth: a nested object's members may be identifiers of objects that must already exist, and
-  # nothing in the specification says whether they are
+  # password: it is credential-shaped, and a generated fixture must not invent values that read
+  # as secrets; supply one through accFixture if the test needs it
   #
   # vault_credentials: a nested object's members may be identifiers of objects that must already
   # exist, and nothing in the specification says whether they are
@@ -58,14 +57,13 @@ resource "thousandeyes_tests_http_server" "test" {
   http_time_limit                   = 5
   http_version                      = 1
   include_headers                   = true
-  interval                          = 1
+  interval                          = "60"
   ipv6_policy                       = "force-ipv4"
   mtu_measurements                  = true
   network_measurements              = true
   num_path_traces                   = 1
   override_agent_proxy              = true
   override_proxy_id                 = "tfacc-override-proxy-id"
-  password                          = "tfacc-password"
   path_trace_mode                   = "classic"
   post_body                         = "tfacc-post-body"
   probe_mode                        = "auto"

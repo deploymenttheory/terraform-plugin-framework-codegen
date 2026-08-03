@@ -14,6 +14,8 @@ resource "thousandeyes_tests_page_load" "test" {
   #
   # http_interval: documented; unprobed
   #
+  # interval: documented; unprobed
+  #
   # page_loading_strategy: documented; unprobed
   #
   # path_trace_mode: documented; unprobed
@@ -31,11 +33,8 @@ resource "thousandeyes_tests_page_load" "test" {
   # Not filled in, because no correct value could be derived. Each of these is optional, so this
   # configuration is valid as it stands -- but it is testing less than it could.
   #
-  # agent_interfaces: a nested object's members may be identifiers of objects that must already
-  # exist, and nothing in the specification says whether they are
-  #
-  # o_auth: a nested object's members may be identifiers of objects that must already exist, and
-  # nothing in the specification says whether they are
+  # password: it is credential-shaped, and a generated fixture must not invent values that read
+  # as secrets; supply one through accFixture if the test needs it
   #
   # vault_credentials: a nested object's members may be identifiers of objects that must already
   # exist, and nothing in the specification says whether they are
@@ -69,7 +68,7 @@ resource "thousandeyes_tests_page_load" "test" {
   http_version                           = 1
   identify_agent_traffic_with_user_agent = true
   include_headers                        = true
-  interval                               = 1
+  interval                               = "60"
   mtu_measurements                       = true
   network_measurements                   = true
   num_path_traces                        = 1
@@ -78,7 +77,6 @@ resource "thousandeyes_tests_page_load" "test" {
   page_load_target_time                  = 1
   page_load_time_limit                   = 5
   page_loading_strategy                  = "normal"
-  password                               = "tfacc-password"
   path_trace_mode                        = "classic"
   probe_mode                             = "auto"
   protocol                               = "tcp"

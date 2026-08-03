@@ -35,7 +35,7 @@ resource "thousandeyes_tests_agent_to_server" "example" {
 - `dscp_id` (String) DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)
 - `enabled` (Boolean) Test is enabled.
 - `fixed_packet_rate` (Number) If continuousMode is `false`, set the fixedPacketRate to a value between 10-100. If `continuousMode` is `true`, set the `fixedPacketRate` to `1`
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level.
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
 - `network_measurements` (Boolean) View packet loss in 1-second intervals. This is only available for 1-minute interval tests. Set to `true` to enable network measurements.
@@ -46,7 +46,7 @@ resource "thousandeyes_tests_agent_to_server" "example" {
 - `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
 - `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD).
 - `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
-- `server` (String) The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.
+- `server` (String) The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon. The test's target: the API refuses a create without it, whatever the specification marks.
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
