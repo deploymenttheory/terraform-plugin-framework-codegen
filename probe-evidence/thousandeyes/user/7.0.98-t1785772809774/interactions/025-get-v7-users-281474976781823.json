@@ -1,0 +1,50 @@
+{
+  "id": "025-get-v7-users-281474976781823",
+  "seq": 25,
+  "request": {
+    "method": "GET",
+    "path": "/v7/users/281474976781823",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/users/281474976781823"
+        }
+      },
+      "accountGroupRoles": [
+        {
+          "accountGroup": {
+            "accountGroupName": "Lloyds Banking Group - Dev",
+            "aid": "281474976742769"
+          },
+          "roles": [
+            {
+              "hasManagementPermissions": false,
+              "isBuiltin": true,
+              "name": "Regular User",
+              "roleId": "281474976759598"
+            }
+          ]
+        }
+      ],
+      "dateRegistered": "2026-08-03T16:00:06Z",
+      "email": "dafydd.watkins+tfacc@deploymenttheory.com",
+      "loginAccountGroup": {
+        "accountGroupName": "Lloyds Banking Group - Dev",
+        "aid": "281474976742769"
+      },
+      "name": "tfpfgen-probe-write-rehearsal-1",
+      "uid": "281474976781823"
+    },
+    "droppedHeaders": 14
+  }
+}

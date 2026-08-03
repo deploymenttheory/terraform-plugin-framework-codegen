@@ -1,0 +1,67 @@
+{
+  "resource": "role",
+  "collectionTemplate": "/roles",
+  "itemTemplate": "/roles/{id}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/roles"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/roles/{id}"
+  },
+  "update": {
+    "method": "PUT",
+    "pathTemplate": "/roles/{id}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/roles/{id}"
+  },
+  "fields": [
+    {
+      "jsonPath": "isBuiltin",
+      "attribute": "is_builtin",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true
+      }
+    },
+    {
+      "jsonPath": "permissions",
+      "attribute": "permissions",
+      "kind": "set",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnRead": false
+      }
+    },
+    {
+      "jsonPath": "roleId",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    }
+  ],
+  "policy": {
+    "updateStyle": "putFull",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "roleId",
+  "nameField": "name",
+  "evidenceRev": 1
+}

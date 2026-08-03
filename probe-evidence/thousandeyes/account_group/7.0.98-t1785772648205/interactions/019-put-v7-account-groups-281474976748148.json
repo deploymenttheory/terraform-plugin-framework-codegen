@@ -1,0 +1,29 @@
+{
+  "id": "019-put-v7-account-groups-281474976748148",
+  "seq": 19,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/account-groups/281474976748148",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accountGroupName": "tfpfgen-probe-write-rehearsal-1"
+    }
+  },
+  "response": {
+    "status": 403,
+    "header": {
+      "content-type": "application/problem+json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/account-groups/281474976748148",
+      "status": 403,
+      "title": "403 Forbidden\nPlease ensure you are using the correct authentication token, and you have the correct role.\nYou do not have permissions to update this Account Group",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 14
+  }
+}

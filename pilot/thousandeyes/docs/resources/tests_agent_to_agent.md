@@ -30,25 +30,25 @@ resource "thousandeyes_tests_agent_to_agent" "example" {
 ### Optional
 
 - `alerts_enabled` (Boolean) Indicates if alerts are enabled.
-- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements.
+- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `description` (String) A description of the test.
-- `direction` (String) Direction of the test, which affects how results are shown.
-- `dscp_id` (String) DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)
-- `enabled` (Boolean) Test is enabled.
-- `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second.
+- `direction` (String) Direction of the test, which affects how results are shown. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `dscp_id` (String) DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests) <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `enabled` (Boolean) Test is enabled. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `mss` (Number) Maximum segment size, in bytes.
-- `num_path_traces` (Number) Number of path traces executed by the agent.
-- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
-- `port` (Number) Target port.
-- `protocol` (String)
-- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
+- `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `port` (Number) Target port. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `protocol` (String) <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `test_name` (String) The name of the test. Test name must be unique.
 - `throughput_duration` (Number) The throughput duration.
 - `throughput_measurements` (Boolean) Enable or disable throughput measurements. Throughput measurements cannot be enabled when the source or target of the test is a cloud agent.
 - `throughput_rate` (Number) The throughput rate, only applicable for UDP protocol.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 
 ### Read-Only
 

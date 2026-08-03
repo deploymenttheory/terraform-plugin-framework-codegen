@@ -286,6 +286,37 @@ func (opts SweepOptions) sweepByPrefix(ctx context.Context, summary *SweepSummar
 		// intents outstanding, reporting as orphans the objects this pass just removed.
 		opts.Session.resolveByName(found.name, found.id)
 	}
+
+	// The third resolution: proven absence. An id-less intent is written before the
+	// create is sent, and a create the API refused after that point -- a role create
+	// answering 500 was the live case -- leaves an intent no pass above can touch: no
+	// identifier for the ledger pass, no object for the prefix pass. When this read
+	// demonstrably covered the whole collection, a stamped name that is not in it is an
+	// object that does not exist, and holding the ledger dirty over it blocks every
+	// future record for the sake of phantom debris.
+	if summary.Complete {
+		present := map[string]bool{}
+		for _, item := range items {
+			if obj, ok := item.(map[string]any); ok {
+				if name, ok := obj[opts.NameField].(string); ok {
+					present[name] = true
+				}
+			}
+		}
+
+		for _, o := range Unresolved(opts.Session.cfg.Ledger.Entries()) {
+			if o.ID != "" || present[o.Name] || !strings.HasPrefix(o.Name, opts.NamePrefix) {
+				continue
+			}
+			_ = opts.Session.cfg.Ledger.Resolve(o.Seq, KindRejected, "", 0,
+				"absent from a complete collection read: the create never took effect")
+			summary.Notes = append(summary.Notes, Note{
+				Probe: "sweep.prefix",
+				Message: fmt.Sprintf("intent %q resolved as never created: it has no "+
+					"identifier and a complete collection read does not contain it", o.Name),
+			})
+		}
+	}
 }
 
 // found is one object the prefix pass matched.

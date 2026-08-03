@@ -1,0 +1,553 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "user",
+      "name": "user",
+      "goPackage": "user",
+      "goPackageAlias": "v7User",
+      "goTypeName": "UserResource",
+      "modelTypeName": "UserResourceModel",
+      "serviceGroup": "users",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "account_group_roles",
+            "goField": "AccountGroupRoles",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "UserAccountGroupRoleModel",
+                "sdkType": "users.UserAccountGroupRole",
+                "attrTypesVar": "userAccountGroupRoleAttrTypes",
+                "objectTypeVar": "userAccountGroupRoleObjectType",
+                "expandFunc": "expandUserAccountGroupRoles",
+                "flattenFunc": "flattenUserAccountGroupRoles",
+                "attributes": [
+                  {
+                    "name": "account_group_id",
+                    "goField": "AccountGroupID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Unique ID of the account group.",
+                    "wire": {
+                      "jsonPath": "accountGroupId",
+                      "sdkField": "AccountGroupID",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "skipFlatten": true
+                    }
+                  },
+                  {
+                    "name": "role_ids",
+                    "goField": "RoleIds",
+                    "type": {
+                      "kind": "set",
+                      "elementType": {
+                        "kind": "string"
+                      }
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Unique role IDs to grant in the account group.",
+                    "wire": {
+                      "jsonPath": "roleIds",
+                      "sdkField": "RoleIds",
+                      "sdkGoType": "[]string",
+                      "expand": {
+                        "func": "convert.FrameworkSetToStringSlice",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipFlatten": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Role assignments to write: account group id plus role ids. The response echoes assignments as expanded objects under allAccountGroupRoles, never in this shape, so state carries the configured value.\n\nThe API refuses a user without at least one role (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785772809774 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnRead": false
+            },
+            "wire": {
+              "jsonPath": "accountGroupRoles",
+              "sdkField": "AccountGroupRoles",
+              "sdkGoType": "[]users.UserAccountGroupRole",
+              "expand": {
+                "func": "expandUserAccountGroupRoles",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipFlatten": true
+            }
+          },
+          {
+            "name": "all_account_group_role_ids",
+            "goField": "AllAccountGroupRoleIDs",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Unique IDs representing the roles.\n\nThe response echoes roles as nested objects, never as this flat id list; state carries the configured value.\n\nOmitted from generated fixtures: its members are live role ids, and account_group_roles already carries the assignment the fixtures exercise.",
+            "behaviour": {
+              "returnedOnRead": false
+            },
+            "wire": {
+              "jsonPath": "allAccountGroupRoleIds",
+              "sdkField": "AllAccountGroupRoleIds",
+              "sdkGoType": "[]string",
+              "expand": {
+                "func": "convert.FrameworkSetToStringSlice",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipFlatten": true
+            }
+          },
+          {
+            "name": "all_account_group_roles",
+            "goField": "AllAccountGroupRoles",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "UserRoleModel2",
+                "sdkType": "users.Role",
+                "attrTypesVar": "userRoleAttrTypes2",
+                "objectTypeVar": "userRoleObjectType2",
+                "expandFunc": "expandUserRoles2",
+                "flattenFunc": "flattenUserRoles2",
+                "attributes": [
+                  {
+                    "name": "has_management_permissions",
+                    "goField": "HasManagementPermissions",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Flag indicating whether the user has management permissions.",
+                    "wire": {
+                      "jsonPath": "hasManagementPermissions",
+                      "sdkField": "HasManagementPermissions",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "is_builtin",
+                    "goField": "IsBuiltin",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Flag indicating if the role is built-in (Account Admin, Organization Admin, Regular User).",
+                    "wire": {
+                      "jsonPath": "isBuiltin",
+                      "sdkField": "IsBuiltin",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Name of the role.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "role_id",
+                    "goField": "RoleID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Unique ID representing the role.",
+                    "wire": {
+                      "jsonPath": "roleId",
+                      "sdkField": "RoleID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Dropped in v1: read-only echo of accountGroupRoles in a different shape (expanded objects with value-typed nesting); mirroring it would drift against the writable half.",
+            "wire": {
+              "jsonPath": "allAccountGroupRoles",
+              "sdkField": "AllAccountGroupRoles",
+              "sdkGoType": "[]users.Role",
+              "flatten": {
+                "func": "flattenUserRoles2",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          },
+          {
+            "name": "date_registered",
+            "goField": "DateRegistered",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "UTC date the user registered their account (ISO date-time format).",
+            "wire": {
+              "jsonPath": "dateRegistered",
+              "sdkField": "DateRegistered",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "email",
+            "goField": "Email",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "email"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "User's email address.\n\n<!-- probed:7.0.98-t1785772809774 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true
+            },
+            "wire": {
+              "jsonPath": "email",
+              "sdkField": "Email",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "last_login",
+            "goField": "LastLogin",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "UTC last login of the user (ISO date-time format).",
+            "wire": {
+              "jsonPath": "lastLogin",
+              "sdkField": "LastLogin",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "login_account_group",
+            "goField": "LoginAccountGroup",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "UserAccountGroupModel2",
+                "sdkType": "users.AccountGroup",
+                "attrTypesVar": "userAccountGroupAttrTypes2",
+                "objectTypeVar": "userAccountGroupObjectType2",
+                "expandFunc": "expandUserAccountGroup2",
+                "flattenFunc": "flattenUserAccountGroup2",
+                "attributes": [
+                  {
+                    "name": "account_group_name",
+                    "goField": "AccountGroupName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Account group name",
+                    "wire": {
+                      "jsonPath": "accountGroupName",
+                      "sdkField": "AccountGroupName",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "aid",
+                    "goField": "AID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "A unique identifier associated with your account group. You can retrieve your `AccountGroupId` from the `/account-groups` endpoint.",
+                    "wire": {
+                      "jsonPath": "aid",
+                      "sdkField": "AID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Dropped in v1: read-only echo of loginAccountGroupId as a value-typed nested object.",
+            "wire": {
+              "jsonPath": "loginAccountGroup",
+              "sdkField": "LoginAccountGroup",
+              "sdkGoType": "*users.AccountGroup",
+              "flatten": {
+                "func": "flattenUserAccountGroup2",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          },
+          {
+            "name": "login_account_group_id",
+            "goField": "LoginAccountGroupID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Unique ID of the login account group.\n\nThe response echoes loginAccountGroup as a nested object, never this id; state carries the configured value.\n\nThe API refuses a user without a login account group (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785772809774 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnRead": false
+            },
+            "wire": {
+              "jsonPath": "loginAccountGroupId",
+              "sdkField": "LoginAccountGroupID",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "skipFlatten": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "User's display name.\n\nRequired-by-API by curation: the sweeper's field, unprobeable by omission.",
+            "behaviour": {
+              "requiredByApi": true
+            },
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Unique ID of the user.\n\nNamed `id` per the import convention; the wire field stays uid.",
+            "wire": {
+              "jsonPath": "uid",
+              "sdkField": "Uid",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Retrieve user."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api/users",
+          "typeName": "Users",
+          "accessor": "r.client.API.Users"
+        },
+        "create": {
+          "style": "method",
+          "method": "CreateUser",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "users.CreatedUser",
+          "httpMethod": "POST",
+          "pathTemplate": "/users"
+        },
+        "read": {
+          "style": "method",
+          "method": "GetUser",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "users.UserDetail",
+          "httpMethod": "GET",
+          "pathTemplate": "/users/{id}"
+        },
+        "update": {
+          "style": "method",
+          "method": "UpdateUser",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "users.UserDetail",
+          "httpMethod": "PUT",
+          "pathTemplate": "/users/{id}"
+        },
+        "delete": {
+          "style": "method",
+          "method": "DeleteUser",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            }
+          ],
+          "return": "transportError",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/users/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.Uid",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "users.UserRequest",
+          "responseType": "users.UserDetail",
+          "constructorExpr": "&users.UserRequest{}",
+          "accessStyle": "structField"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "account_group_roles",
+            "hcl": "[{ account_group_id = \"281474976742769\", role_ids = [\"281474976759598\"] }]",
+            "wire": [
+              {
+                "accountGroupId": "281474976742769",
+                "roleIds": [
+                  "281474976759598"
+                ]
+              }
+            ]
+          },
+          {
+            "attr": "all_account_group_role_ids",
+            "omit": true
+          },
+          {
+            "attr": "email",
+            "hcl": "\"dafydd.watkins+tfacc@deploymenttheory.com\"",
+            "wire": "dafydd.watkins+tfacc@deploymenttheory.com"
+          },
+          {
+            "attr": "login_account_group_id",
+            "hcl": "\"281474976742769\"",
+            "wire": "281474976742769"
+          }
+        ]
+      },
+      "accTest": {
+        "skipUnlessEnv": "TFPFGEN_ACC_ADMIN"
+      }
+    }
+  ]
+}

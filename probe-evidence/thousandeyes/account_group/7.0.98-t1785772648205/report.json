@@ -1,0 +1,347 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (1 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "account_group",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-account-groups-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "account_group",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "listEnvelopeKey=accountGroups"
+      },
+      "confidence": "observed",
+      "probe": "read.list-shape",
+      "evidence": [
+        "001-get-v7-account-groups",
+        "003-get-v7-account-groups",
+        "004-get-v7-account-groups",
+        "005-get-v7-account-groups",
+        "006-get-v7-account-groups",
+        "007-get-v7-account-groups",
+        "008-get-v7-account-groups",
+        "009-get-v7-account-groups",
+        "024-get-v7-account-groups"
+      ],
+      "rationale": "the list response wraps its items under \"accountGroups\""
+    },
+    {
+      "resource": "account_group",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-account-groups-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "account_group",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-account-groups",
+        "003-get-v7-account-groups",
+        "004-get-v7-account-groups",
+        "005-get-v7-account-groups",
+        "006-get-v7-account-groups",
+        "007-get-v7-account-groups",
+        "008-get-v7-account-groups",
+        "009-get-v7-account-groups",
+        "024-get-v7-account-groups"
+      ],
+      "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "account_group",
+      "jsonPath": "accountGroupName",
+      "field": "returnedOnCreate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "012-post-v7-account-groups"
+      ],
+      "rationale": "every create response carried the field it was sent"
+    },
+    {
+      "resource": "account_group",
+      "jsonPath": "accountGroupName",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "013-get-v7-account-groups-281474976748147"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    }
+  ],
+  "notes": [
+    {
+      "resource": "account_group",
+      "probe": "read.error-envelope",
+      "message": "no candidate query parameter (limit, max, offset, page) was validated, so no error shape was observed without mutating anything"
+    },
+    {
+      "resource": "account_group",
+      "probe": "read.volatile",
+      "message": "no existing object to read repeatedly, so volatility was not observed"
+    },
+    {
+      "resource": "account_group",
+      "probe": "read.returned-weak",
+      "message": "no existing object to read, so no field presence was observed"
+    },
+    {
+      "resource": "account_group",
+      "probe": "write.immutability",
+      "message": "no field carries two or more candidate values, so no field can be probed for immutability: the fact requires two distinct values both refused, and one candidate cannot supply that"
+    },
+    {
+      "resource": "account_group",
+      "probe": "write.server-default",
+      "message": "no fixture leaves a sendable field unset, so there is no omitted field whose default could be observed"
+    },
+    {
+      "resource": "account_group",
+      "probe": "write.update-style",
+      "message": "no fixture sets a field that can safely be omitted from an update; the name field must stay in every request or a cleared name would strand the object"
+    },
+    {
+      "resource": "account_group",
+      "probe": "write.enum",
+      "message": "no sendable field carries documented enum values, so there is no specification claim to check against the API"
+    },
+    {
+      "resource": "account_group",
+      "probe": "write.side-effect",
+      "message": "the plan declares no field whose value might affect another, so there is no suspected trigger to perturb; declare one under defaultInfluencers"
+    },
+    {
+      "resource": "account_group",
+      "probe": "write.rehearsal",
+      "message": "the run stopped early: a delete failed, so the run stopped creating: deleting 281474976748148 failed (status 400)"
+    },
+    {
+      "resource": "account_group",
+      "jsonPath": "accountGroupName",
+      "probe": "write.normalisation",
+      "message": "\"letter case is changed\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "account_group",
+      "jsonPath": "accountGroupName",
+      "probe": "write.normalisation",
+      "message": "\"surrounding whitespace is stripped\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "account_group",
+      "jsonPath": "accountGroupName",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    },
+    {
+      "resource": "account_group",
+      "jsonPath": "accountGroupName",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.normalisation",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "skipped",
+      "requests": 0,
+      "facts": 0,
+      "reason": "the run stopped earlier: a delete failed, so the run stopped creating: deleting 281474976748148 failed (status 400)"
+    },
+    {
+      "name": "write.rehearsal",
+      "kind": "mutating",
+      "status": "failed",
+      "requests": 6,
+      "facts": 0,
+      "reason": "a delete failed, so the run stopped creating: deleting 281474976748148 failed (status 400)"
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 2,
+      "facts": 2
+    }
+  ],
+  "budget": {
+    "requests": 22,
+    "maxRequests": 260,
+    "creates": 3,
+    "maxCreates": 25,
+    "deletes": 5,
+    "deleteFailures": 2,
+    "sweepRequests": 2
+  },
+  "sweep": {
+    "ledgerDeletes": 1,
+    "prefixDeletes": 0,
+    "complete": true
+  },
+  "rehearsal": [
+    {
+      "minimal": {
+        "accountGroupName": "tfacc-account-group-name"
+      },
+      "maximal": {
+        "accountGroupName": "tfacc-account-group-name"
+      }
+    }
+  ]
+}

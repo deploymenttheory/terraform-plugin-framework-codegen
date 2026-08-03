@@ -1,0 +1,163 @@
+{
+  "resource": "account_group",
+  "collectionTemplate": "/account-groups",
+  "itemTemplate": "/account-groups/{id}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/account-groups"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/account-groups/{id}"
+  },
+  "update": {
+    "method": "PUT",
+    "pathTemplate": "/account-groups/{id}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/account-groups/{id}"
+  },
+  "fields": [
+    {
+      "jsonPath": "accountGroupName",
+      "attribute": "account_group_name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true
+      }
+    },
+    {
+      "jsonPath": "aid",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "isCurrentAccountGroup",
+      "attribute": "is_current_account_group",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "isDefaultAccountGroup",
+      "attribute": "is_default_account_group",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "orgId",
+      "attribute": "org_id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "organizationName",
+      "attribute": "organization_name",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "users",
+      "attribute": "users",
+      "kind": "set_nested",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "users.dateRegistered",
+      "attribute": "date_registered",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false,
+      "constraints": {
+        "format": "date-time"
+      }
+    },
+    {
+      "jsonPath": "users.email",
+      "attribute": "email",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false,
+      "constraints": {
+        "format": "email"
+      }
+    },
+    {
+      "jsonPath": "users.lastLogin",
+      "attribute": "last_login",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false,
+      "constraints": {
+        "format": "date-time"
+      }
+    },
+    {
+      "jsonPath": "users.name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "users.roles",
+      "attribute": "roles",
+      "kind": "set_nested",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "users.roles.hasManagementPermissions",
+      "attribute": "has_management_permissions",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "users.roles.isBuiltin",
+      "attribute": "is_builtin",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "users.roles.name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "users.roles.roleId",
+      "attribute": "role_id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "users.uid",
+      "attribute": "uid",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    }
+  ],
+  "policy": {
+    "updateStyle": "putFull",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "aid",
+  "nameField": "accountGroupName",
+  "evidenceRev": 1
+}

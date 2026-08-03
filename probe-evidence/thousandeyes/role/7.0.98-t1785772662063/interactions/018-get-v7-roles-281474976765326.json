@@ -1,0 +1,43 @@
+{
+  "id": "018-get-v7-roles-281474976765326",
+  "seq": 18,
+  "request": {
+    "method": "GET",
+    "path": "/v7/roles/281474976765326",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/roles/281474976765326"
+        }
+      },
+      "isBuiltin": false,
+      "name": "tfpfgen-probe-write-rehearsal-1",
+      "permissions": [
+        {
+          "isManagementPermission": false,
+          "label": "Assign email address of users to alerts",
+          "permission": "ALERTS_READ_ACCOUNT_USERS",
+          "permissionId": "1"
+        },
+        {
+          "isManagementPermission": false,
+          "label": "Download Endpoint Agents",
+          "permission": "AGENTS_DOWNLOAD_CUSTOM_EYEBROW",
+          "permissionId": "2"
+        }
+      ],
+      "roleId": "281474976765326"
+    },
+    "droppedHeaders": 14
+  }
+}

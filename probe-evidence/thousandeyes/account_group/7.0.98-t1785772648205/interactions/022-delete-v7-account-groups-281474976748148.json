@@ -1,0 +1,18 @@
+{
+  "id": "022-delete-v7-account-groups-281474976748148",
+  "seq": 22,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/account-groups/281474976748148",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

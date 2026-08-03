@@ -31,10 +31,10 @@ resource "thousandeyes_tests_dnssec" "example" {
 
 - `alerts_enabled` (Boolean) Indicates if alerts are enabled. <!-- probed:7.0.98-t1785745046061 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `description` (String) A description of the test.
-- `dns_query_class` (String) Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
-- `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785745046061 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `dns_query_class` (String) Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785745046061 --> Observed: the API assigns true when this is omitted. <!-- /probed --> <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run). <!-- probed:7.0.98-t1785745046061 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
-- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785745046061 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785745046061 --> Observed: the API assigns false when this is omitted. <!-- /probed --> <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `test_name` (String) The name of the test. Test name must be unique. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 

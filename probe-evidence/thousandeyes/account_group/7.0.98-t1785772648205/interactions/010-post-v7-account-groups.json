@@ -1,0 +1,35 @@
+{
+  "id": "010-post-v7-account-groups",
+  "seq": 10,
+  "request": {
+    "method": "POST",
+    "path": "/v7/account-groups",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accountGroupName": "tfpfgen-probe-write-required-1"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "https://api.thousandeyes.com/v7/account-groups/281474976748146",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/account-groups/281474976748146"
+        }
+      },
+      "accountGroupName": "tfpfgen-probe-write-required-1",
+      "aid": "281474976748146",
+      "isCurrentAccountGroup": false,
+      "isDefaultAccountGroup": false
+    },
+    "droppedHeaders": 14
+  }
+}

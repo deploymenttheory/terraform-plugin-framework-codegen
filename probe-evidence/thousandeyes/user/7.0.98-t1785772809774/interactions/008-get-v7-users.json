@@ -1,0 +1,113 @@
+{
+  "id": "008-get-v7-users",
+  "seq": 8,
+  "request": {
+    "method": "GET",
+    "path": "/v7/users",
+    "query": {
+      "page": [
+        "not-a-number"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/users?page=not-a-number"
+        }
+      },
+      "users": [
+        {
+          "dateRegistered": "2026-07-16T10:08:09Z",
+          "email": "Dafydd.Watkins+dev@lloydsbanking.com",
+          "loginAccountGroup": {
+            "accountGroupName": "Lloyds Banking Group - Dev",
+            "aid": "281474976742769"
+          },
+          "name": "Dafydd Watkins",
+          "uid": "281474976776279"
+        },
+        {
+          "dateRegistered": "2026-07-16T10:08:10Z",
+          "email": "Benjamin.Huson+dev@Lloydsbanking.com",
+          "loginAccountGroup": {
+            "accountGroupName": "Lloyds Banking Group - Dev",
+            "aid": "281474976742769"
+          },
+          "name": "Benjamin Huson",
+          "uid": "281474976776280"
+        },
+        {
+          "dateRegistered": "2026-07-16T10:08:10Z",
+          "email": "Graham.Brookfield+dev@lloydsbanking.com",
+          "loginAccountGroup": {
+            "accountGroupName": "Lloyds Banking Group - Dev",
+            "aid": "281474976742769"
+          },
+          "name": "Graham Brookfield",
+          "uid": "281474976776281"
+        },
+        {
+          "dateRegistered": "2026-07-16T10:08:11Z",
+          "email": "Thomas.Chappell+dev@lloydsbanking.com",
+          "loginAccountGroup": {
+            "accountGroupName": "Lloyds Banking Group - Dev",
+            "aid": "281474976742769"
+          },
+          "name": "Thomas Chappell",
+          "uid": "281474976776282"
+        },
+        {
+          "dateRegistered": "2026-07-17T14:01:01Z",
+          "email": "dafydd.watkins@deploymenttheory.com",
+          "lastLogin": "2026-07-31T11:18:19Z",
+          "loginAccountGroup": {
+            "accountGroupName": "Lloyds Banking Group - Dev",
+            "aid": "281474976742769"
+          },
+          "name": "dafyddwatkins",
+          "uid": "281474976776659"
+        },
+        {
+          "dateRegistered": "2026-07-17T14:01:02Z",
+          "email": "benhuson@husondev.co.uk",
+          "lastLogin": "2026-07-28T09:01:58Z",
+          "loginAccountGroup": {
+            "accountGroupName": "Lloyds Banking Group - Dev",
+            "aid": "281474976742769"
+          },
+          "name": "Ben Huson",
+          "uid": "281474976776660"
+        },
+        {
+          "dateRegistered": "2026-07-17T14:01:03Z",
+          "email": "graham.brookfield@husondev.co.uk",
+          "loginAccountGroup": {
+            "accountGroupName": "Lloyds Banking Group - Dev",
+            "aid": "281474976742769"
+          },
+          "uid": "281474976776661"
+        },
+        {
+          "dateRegistered": "2026-07-17T14:01:04Z",
+          "email": "tom@husondev.co.uk",
+          "loginAccountGroup": {
+            "accountGroupName": "Lloyds Banking Group - Dev",
+            "aid": "281474976742769"
+          },
+          "uid": "281474976776662"
+        }
+      ]
+    },
+    "droppedHeaders": 14
+  }
+}

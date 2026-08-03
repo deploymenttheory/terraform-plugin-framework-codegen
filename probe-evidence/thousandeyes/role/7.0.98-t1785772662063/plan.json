@@ -1,0 +1,18 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "name": "CURATE_ME-stamped-by-probe",
+        "permissions": [
+          "1",
+          "2"
+        ]
+      }
+    }
+  ],
+  "budget": {
+    "maxRequests": 260,
+    "maxCreates": 25
+  }
+}

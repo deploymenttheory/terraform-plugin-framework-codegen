@@ -1,0 +1,30 @@
+{
+  "id": "020-get-v7-account-groups-281474976748148",
+  "seq": 20,
+  "request": {
+    "method": "GET",
+    "path": "/v7/account-groups/281474976748148",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/account-groups/281474976748148"
+        }
+      },
+      "accountGroupName": "tfpfgen-probe-write-rehearsal-1",
+      "aid": "281474976748148",
+      "isCurrentAccountGroup": false,
+      "isDefaultAccountGroup": false
+    },
+    "droppedHeaders": 14
+  }
+}

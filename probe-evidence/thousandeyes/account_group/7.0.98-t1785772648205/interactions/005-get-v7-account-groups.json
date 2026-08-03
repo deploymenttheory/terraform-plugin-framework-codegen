@@ -1,0 +1,41 @@
+{
+  "id": "005-get-v7-account-groups",
+  "seq": 5,
+  "request": {
+    "method": "GET",
+    "path": "/v7/account-groups",
+    "query": {
+      "limit": [
+        "not-a-number"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/account-groups?limit=not-a-number"
+        }
+      },
+      "accountGroups": [
+        {
+          "accountGroupName": "Lloyds Banking Group - Dev",
+          "aid": "281474976742769",
+          "isCurrentAccountGroup": true,
+          "isDefaultAccountGroup": true,
+          "orgId": "281474976717041",
+          "organizationName": "Lloyds Banking Group - Dev"
+        }
+      ]
+    },
+    "droppedHeaders": 14
+  }
+}

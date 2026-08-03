@@ -30,20 +30,20 @@ resource "thousandeyes_tests_voice" "example" {
 ### Optional
 
 - `alerts_enabled` (Boolean) Indicates if alerts are enabled.
-- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements.
+- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `codec_id` (String) Codec identifier for the RTP stream. Valid values: * `0`: G.711 @ 64 Kbps * `1`: G.722.1 @ 24 Kbps (WB) * `2`: G.722.1 @ 32 Kbps (WB) * `3`: G.726 @ 32 Kbps * `4`: G.723.1 @ 6.4 Kbps * `5`: G.729a @ 8 Kbps * `6`: RTAudio @ 45 Kbps (WB) * `7`: RTAudio @ 27.8 Kbps * `8`: SILK @ 36 Kbps (WB) * `9`: G.722 @ 64 Kbps (WB)
 - `description` (String) A description of the test.
-- `dscp_id` (String) DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)
+- `dscp_id` (String) DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests) <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `duration` (Number) Duration of the test in seconds.
-- `enabled` (Boolean) Test is enabled.
+- `enabled` (Boolean) Test is enabled. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `jitter_buffer` (Number) De-jitter buffer size in seconds.
-- `num_path_traces` (Number) Number of path traces executed by the agent.
+- `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `port` (Number) Port number for the chosen protocol.
-- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
+- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 
 ### Read-Only
 

@@ -1,0 +1,143 @@
+[
+  {
+    "resource": "user",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "404=problem"
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-users-999999999"
+    ],
+    "rationale": "a 404 response used the problem error shape"
+  },
+  {
+    "resource": "user",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "listEnvelopeKey=users"
+    },
+    "confidence": "observed",
+    "probe": "read.list-shape",
+    "evidence": [
+      "001-get-v7-users",
+      "003-get-v7-users",
+      "004-get-v7-users",
+      "005-get-v7-users",
+      "006-get-v7-users",
+      "007-get-v7-users",
+      "008-get-v7-users",
+      "009-get-v7-users",
+      "029-get-v7-users"
+    ],
+    "rationale": "the list response wraps its items under \"users\""
+  },
+  {
+    "resource": "user",
+    "field": "policy.delete.notFoundIsSuccess",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-users-999999999"
+    ],
+    "rationale": "reading an absent object answered 404 with a problem error body",
+    "alternatives": [
+      "the API may answer differently for an identifier that once existed and was deleted"
+    ]
+  },
+  {
+    "resource": "user",
+    "field": "policy.readBack",
+    "value": {
+      "readBack": {
+        "reason": "every one of 2 read(s) immediately after a create succeeded on the first attempt"
+      }
+    },
+    "confidence": "inferred",
+    "probe": "write.read-your-writes",
+    "evidence": [
+      "018-get-v7-users-281474976781821",
+      "025-get-v7-users-281474976781823"
+    ],
+    "rationale": "2 object(s) were read immediately after creation and every first read succeeded",
+    "alternatives": [
+      "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+    ]
+  },
+  {
+    "resource": "user",
+    "field": "unknownParamTolerated",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.unknown-param",
+    "evidence": [
+      "001-get-v7-users",
+      "003-get-v7-users",
+      "004-get-v7-users",
+      "005-get-v7-users",
+      "006-get-v7-users",
+      "007-get-v7-users",
+      "008-get-v7-users",
+      "009-get-v7-users",
+      "029-get-v7-users"
+    ],
+    "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+    "alternatives": [
+      "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+    ]
+  },
+  {
+    "resource": "user",
+    "jsonPath": "accountGroupRoles",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "inferred",
+    "probe": "write.required",
+    "evidence": [
+      "011-post-v7-users"
+    ],
+    "rationale": "a create omitting this field was refused with 400, but the error body did not name the field, so the refusal may have had another cause",
+    "alternatives": [
+      "the create may have been refused for a reason unrelated to this field, which only an error body naming it would rule out"
+    ]
+  },
+  {
+    "resource": "user",
+    "jsonPath": "email",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "012-post-v7-users"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "user",
+    "jsonPath": "loginAccountGroupId",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "inferred",
+    "probe": "write.required",
+    "evidence": [
+      "013-post-v7-users"
+    ],
+    "rationale": "a create omitting this field was refused with 400, but the error body did not name the field, so the refusal may have had another cause",
+    "alternatives": [
+      "the create may have been refused for a reason unrelated to this field, which only an error body naming it would rule out"
+    ]
+  }
+]
