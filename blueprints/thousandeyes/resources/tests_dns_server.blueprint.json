@@ -207,7 +207,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -225,7 +225,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -497,8 +497,8 @@
                 "ch"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "dnsQueryClass",
               "sdkField": "DnsQueryClass",
@@ -550,8 +550,8 @@
                 "tcp"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Transport protocol used for DNS requests.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Transport protocol used for DNS requests.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "dnsTransportProtocol",
               "sdkField": "DnsTransportProtocol",
@@ -696,8 +696,8 @@
                 "use-agent-policy"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "IP version policy. Overrides the IPv6 policy configured at the agent level.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "ipv6Policy",
               "sdkField": "Ipv6Policy",
@@ -1096,8 +1096,8 @@
                 "in-session"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "pathTraceMode",
               "sdkField": "PathTraceMode",
@@ -1124,8 +1124,8 @@
                 "syn"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "probeMode",
               "sdkField": "ProbeMode",
@@ -1433,8 +1433,8 @@
             "type": {
               "kind": "string"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "The name of the test. Test name must be unique.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "The name of the test. Test name must be unique.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "testName",
               "sdkField": "TestName",

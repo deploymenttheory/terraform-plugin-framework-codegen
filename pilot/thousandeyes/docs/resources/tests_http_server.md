@@ -29,7 +29,7 @@ resource "thousandeyes_tests_http_server" "example" {
 
 - `alerts_enabled` (Boolean) Indicates if alerts are enabled. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `allow_unsafe_legacy_renegotiation` (Boolean) Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
-- `auth_type` (String) HTTP authentication type.
+- `auth_type` (String) HTTP authentication type. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `bandwidth_measurements` (Boolean) Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `client_certificate` (String) String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.
@@ -47,30 +47,30 @@ resource "thousandeyes_tests_http_server" "example" {
 - `http_target_time` (Number) Target time for HTTP server completion, specified in milliseconds. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns 1000 when this is omitted. <!-- /probed -->
 - `http_time_limit` (Number) HTTP time limit in seconds. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns 5 when this is omitted. <!-- /probed -->
 - `http_version` (Number) HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns 2 when this is omitted. <!-- /probed -->
-- `include_headers` (Boolean) Set to `true` to capture response headers for objects loaded by the test.
+- `include_headers` (Boolean) Set to `true` to capture response headers for objects loaded by the test. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run). <!-- probed:7.0.98-t1785744687658 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
-- `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level.
+- `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns 3 when this is omitted. <!-- /probed -->
 - `override_agent_proxy` (Boolean) Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `override_proxy_id` (String) ID of the proxy to be used if the default proxy is overridden.
 - `password` (String) Password for Basic/NTLM authentication.
-- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
+- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `post_body` (String) Enter the body for the HTTP POST request in this field. No special escaping is required. If content is provided and `requestMethod` is not specified, `requestMethod` is automatically set to `post`.
-- `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
+- `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD). <!-- probed:7.0.98-t1785744687658 --> Values accepted here: `tcp`, `icmp`. The specification documents `udp`, which the API rejected. Observed: the API assigns "tcp" when this is omitted. <!-- /probed -->
 - `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
-- `request_method` (String) HTTP request method.
-- `ssl_version_id` (String) SSL version options: * Use '0' for automatic selection. * Use '3' for SSLv3. * Use '4' for TLS v1.0. * Use '5' for TLS v1.1. * Use '6' for TLS v1.2. * Use '7' for TLS v1.3.
-- `test_name` (String) The name of the test. Test name must be unique.
+- `request_method` (String) HTTP request method. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
+- `ssl_version_id` (String) SSL version options: * Use '0' for automatic selection. * Use '3' for SSLv3. * Use '4' for TLS v1.0. * Use '5' for TLS v1.1. * Use '6' for TLS v1.2. * Use '7' for TLS v1.3. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
+- `test_name` (String) The name of the test. Test name must be unique. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785744687658 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 - `use_ntlm` (Boolean) Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `user_agent` (String) User-agent string to be provided during the test.
 - `username` (String) Username for Basic/NTLM authentication.
-- `vault_credentials` (Attributes Set) List of credential IDs that are stored in an external vault. (see [below for nested schema](#nestedatt--vault_credentials))
+- `vault_credentials` (Attributes Set) List of credential IDs that are stored in an external vault. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted. (see [below for nested schema](#nestedatt--vault_credentials))
 - `verify_certificate` (Boolean) Ignore or acknowledge certificate errors. Set to false to ignore certificate errors. <!-- probed:7.0.98-t1785744687658 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 
 ### Read-Only

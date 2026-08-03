@@ -281,7 +281,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -299,7 +299,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -427,8 +427,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Indicates if alerts are enabled.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Indicates if alerts are enabled.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "alertsEnabled",
               "sdkField": "AlertsEnabled",
@@ -447,8 +447,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set true to use the agent’s geolocation by the web page.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set true to use the agent\u2019s geolocation by the web page.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "allowGeolocation",
               "sdkField": "AllowGeolocation",
@@ -470,8 +470,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set true allow the use of a fake mic and camera in the browser.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set true allow the use of a fake mic and camera in the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "allowMicAndCamera",
               "sdkField": "AllowMicAndCamera",
@@ -493,8 +493,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "allowUnsafeLegacyRenegotiation",
               "sdkField": "AllowUnsafeLegacyRenegotiation",
@@ -523,8 +523,8 @@
                 "oauth"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "HTTP authentication type.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "authType",
               "sdkField": "AuthType",
@@ -546,8 +546,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "bandwidthMeasurements",
               "sdkField": "BandwidthMeasurements",
@@ -569,8 +569,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set to `true` to enable bgp measurements.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set to `true` to enable bgp measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "bgpMeasurements",
               "sdkField": "BgpMeasurements",
@@ -615,8 +615,8 @@
             "type": {
               "kind": "string"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set one of the available browser language that you want to use to configure the browser.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set one of the available browser language that you want to use to configure the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "browserLanguage",
               "sdkField": "BrowserLanguage",
@@ -707,8 +707,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Indicates whether network data to the proxy should be collected.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Indicates whether network data to the proxy should be collected.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "collectProxyNetworkData",
               "sdkField": "CollectProxyNetworkData",
@@ -730,8 +730,8 @@
             "type": {
               "kind": "string"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Content regex, this field does not require escaping.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Content regex, this field does not require escaping.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "contentRegex",
               "sdkField": "ContentRegex",
@@ -941,8 +941,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Enables or disables screenshots on error. Set true to not capture",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Enables or disables screenshots on error. Set true to not capture\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "disableScreenshot",
               "sdkField": "DisableScreenshot",
@@ -964,8 +964,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Adds distributed tracing headers to API requests using B3 and W3C standards.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "distributedTracing",
               "sdkField": "DistributedTracing",
@@ -1030,8 +1030,8 @@
             "type": {
               "kind": "string"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "ID of the emulated device, if specified when the test was created.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "ID of the emulated device, if specified when the test was created.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "emulatedDeviceId",
               "sdkField": "EmulatedDeviceID",
@@ -1050,8 +1050,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Test is enabled.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Test is enabled.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "enabled",
               "sdkField": "Enabled",
@@ -1100,8 +1100,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "followRedirects",
               "sdkField": "FollowRedirects",
@@ -1127,8 +1127,8 @@
                 "maximum": 5000
               }
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Target time for HTTP server completion, specified in milliseconds.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Target time for HTTP server completion, specified in milliseconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "httpTargetTime",
               "sdkField": "HttpTargetTime",
@@ -1154,8 +1154,8 @@
                 "maximum": 60
               }
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "HTTP time limit in seconds.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "HTTP time limit in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "httpTimeLimit",
               "sdkField": "HttpTimeLimit",
@@ -1181,8 +1181,8 @@
                 "maximum": 2
               }
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "httpVersion",
               "sdkField": "HttpVersion",
@@ -1204,8 +1204,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "identifyAgentTrafficWithUserAgent",
               "sdkField": "IdentifyAgentTrafficWithUserAgent",
@@ -1227,8 +1227,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set to `true` to capture response headers for objects loaded by the test.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "includeHeaders",
               "sdkField": "IncludeHeaders",
@@ -1567,8 +1567,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "mtuMeasurements",
               "sdkField": "MtuMeasurements",
@@ -1590,8 +1590,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "networkMeasurements",
               "sdkField": "NetworkMeasurements",
@@ -1617,8 +1617,8 @@
                 "maximum": 10
               }
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Number of path traces executed by the agent.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Number of path traces executed by the agent.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "numPathTraces",
               "sdkField": "NumPathTraces",
@@ -1833,8 +1833,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "overrideAgentProxy",
               "sdkField": "OverrideAgentProxy",
@@ -1884,8 +1884,8 @@
                 "none"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "pageLoadingStrategy",
               "sdkField": "PageLoadingStrategy",
@@ -1934,8 +1934,8 @@
                 "in-session"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "pathTraceMode",
               "sdkField": "PathTraceMode",
@@ -1962,8 +1962,8 @@
                 "syn"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "probeMode",
               "sdkField": "ProbeMode",
@@ -1990,8 +1990,8 @@
                 "udp"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745177323 -->\nThe specification documents `udp`, which the API rejected.\n<!-- /probed -->",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745177323 -->\nThe specification documents `udp`, which the API rejected.\n<!-- /probed -->\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "behaviour": {
               "rejectedValues": [
                 "udp"
@@ -2019,8 +2019,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "randomizedStartTime",
               "sdkField": "RandomizedStartTime",
@@ -2153,8 +2153,8 @@
                 "7"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "sslVersionId",
               "sdkField": "SslVersionID",
@@ -2298,8 +2298,8 @@
                 "maximum": 180
               }
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Target completion time, in seconds. Defaults to 10. Cannot exceed the `timeLimit` value.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Target completion time, in seconds. Defaults to 10. Cannot exceed the `timeLimit` value.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "targetTime",
               "sdkField": "TargetTime",
@@ -2339,8 +2339,8 @@
             "type": {
               "kind": "string"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "The name of the test. Test name must be unique.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "The name of the test. Test name must be unique.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "testName",
               "sdkField": "TestName",
@@ -2363,8 +2363,8 @@
                 "maximum": 180
               }
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Time limit for transaction in seconds.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Time limit for transaction in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "timeLimit",
               "sdkField": "TimeLimit",
@@ -2465,8 +2465,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "useNtlm",
               "sdkField": "UseNtlm",
@@ -2488,8 +2488,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "usePublicBgp",
               "sdkField": "UsePublicBGP",
@@ -2615,8 +2615,8 @@
                 ]
               }
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "List of credential IDs that are stored in an external vault.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "List of credential IDs that are stored in an external vault.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "vaultCredentials",
               "sdkField": "VaultCredentials",
@@ -2639,8 +2639,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "verifyCertificate",
               "sdkField": "VerifyCertificate",
