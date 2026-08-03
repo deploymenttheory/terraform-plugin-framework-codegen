@@ -1,0 +1,238 @@
+{
+  "id": "009-get-v7-alerts-rules",
+  "seq": 9,
+  "request": {
+    "method": "GET",
+    "path": "/v7/alerts/rules",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alerts/rules"
+        }
+      },
+      "alertRules": [
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "end-to-end-agent",
+          "direction": "to-target",
+          "expression": "((loss >= 10%))",
+          "isDefault": true,
+          "minimumSources": 2,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354658",
+          "ruleName": "Default Agent to Agent Network Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "api",
+          "expression": "((apiCompletion <= 99%))",
+          "isDefault": true,
+          "minimumSources": 1,
+          "notifyOnClear": false,
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354656",
+          "ruleName": "Default API Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "bgp",
+          "expression": "[(((prefixLengthIPv4 >= 16) && (prefixLengthIPv4 <= 32)) || ((prefixLengthIPv6 >= 32) && (prefixLengthIPv6 <= 128)))]((reachability < 100%))",
+          "isDefault": true,
+          "minimumSourcesPct": 10,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "any",
+          "roundsViolatingOutOf": 1,
+          "roundsViolatingRequired": 1,
+          "ruleId": "281474977354666",
+          "ruleName": "Default BGP Alert Rule",
+          "severity": "info"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "sip-server",
+          "expression": "((sipErrorType != \"None\"))",
+          "isDefault": true,
+          "minimumSources": 2,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354653",
+          "ruleName": "Default Call Setup Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "dns-server",
+          "expression": "((probDetail != \"\"))",
+          "isDefault": true,
+          "minimumSources": 2,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354661",
+          "ruleName": "Default DNS Server Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "dns-trace",
+          "expression": "((probDetail != \"\"))",
+          "isDefault": true,
+          "minimumSources": 1,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354664",
+          "ruleName": "Default DNS Trace Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "dnssec",
+          "expression": "((probDetail != \"\"))",
+          "isDefault": true,
+          "minimumSources": 2,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354665",
+          "ruleName": "Default DNSSEC Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "ftp",
+          "expression": "((ftpErrorType != \"None\"))",
+          "isDefault": true,
+          "minimumSources": 1,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354660",
+          "ruleName": "Default FTP Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "http-server",
+          "expression": "((probDetail != \"\"))",
+          "isDefault": true,
+          "minimumSources": 2,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354654",
+          "ruleName": "Default HTTP Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "end-to-end-server",
+          "expression": "((loss >= 10%))",
+          "isDefault": true,
+          "minimumSources": 2,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354663",
+          "ruleName": "Default Network Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "page-load",
+          "expression": "((pageLoadHasError == true) || (pageLoadTimedOut == true) || (!pageLoaded))",
+          "isDefault": true,
+          "minimumSources": 1,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354652",
+          "ruleName": "Default Page Load Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "http-server",
+          "expression": "((certificateValidity <= 30 day))",
+          "isDefault": true,
+          "minimumSources": 1,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "any",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354655",
+          "ruleName": "Default SSL Certificate Expiry Rule 2.0",
+          "severity": "info"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "voice",
+          "expression": "((mos <= 3))",
+          "isDefault": true,
+          "minimumSources": 2,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354659",
+          "ruleName": "Default Voice Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "transactions",
+          "expression": "((probDetail != \"\"))",
+          "isDefault": true,
+          "minimumSources": 1,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "any",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354657",
+          "ruleName": "Default Web Transaction (Classic) Alert Rule 2.0",
+          "severity": "minor"
+        },
+        {
+          "alertGroupType": "cloud-enterprise",
+          "alertType": "web-transactions",
+          "expression": "((probDetail != \"\"))",
+          "isDefault": true,
+          "minimumSources": 1,
+          "notifyOnClear": false,
+          "roundsViolatingMode": "exact",
+          "roundsViolatingOutOf": 3,
+          "roundsViolatingRequired": 2,
+          "ruleId": "281474977354662",
+          "ruleName": "Default Web Transaction Alert Rule 2.0",
+          "severity": "minor"
+        }
+      ]
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "id": "044-post-v7-alerts-rules",
+  "seq": 44,
+  "request": {
+    "method": "POST",
+    "path": "/v7/alerts/rules",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "alertGroupType": "endpoint",
+      "alertType": "http-server",
+      "description": "probe rule",
+      "expression": "((responseTime >= 1000 ms))",
+      "minimumSources": 1,
+      "notifyOnClear": true,
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleName": "tfpfgen-probe-write-enum-4",
+      "severity": "major"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "https://api.thousandeyes.com/v7/alerts/rules/281474977454664",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alerts/rules/281474977454664"
+        }
+      },
+      "alertGroupType": "endpoint",
+      "alertType": "http-server",
+      "description": "probe rule",
+      "expression": "((responseTime >= 1000 ms))",
+      "minimumSources": 1,
+      "notifyOnClear": true,
+      "roundsViolatingMode": "any",
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleId": "281474977454664",
+      "ruleName": "tfpfgen-probe-write-enum-4",
+      "severity": "major"
+    },
+    "droppedHeaders": 14
+  }
+}

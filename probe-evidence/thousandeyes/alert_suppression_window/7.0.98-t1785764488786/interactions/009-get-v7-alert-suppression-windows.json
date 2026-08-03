@@ -1,0 +1,27 @@
+{
+  "id": "009-get-v7-alert-suppression-windows",
+  "seq": 9,
+  "request": {
+    "method": "GET",
+    "path": "/v7/alert-suppression-windows",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alert-suppression-windows"
+        }
+      },
+      "alertSuppressionWindows": []
+    },
+    "droppedHeaders": 14
+  }
+}

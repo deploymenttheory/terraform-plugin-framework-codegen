@@ -298,6 +298,20 @@ func stringEntry(a blueprint.Attribute, salt string) Entry {
 		}
 	}
 
+	// A declared format beats free-text synthesis: the specification has stated the
+	// shape, and "tfacc-start-date" in a date-time field is refused before anything
+	// else in the body is read -- sometimes, as the live case showed, with an error
+	// naming nothing. Fixed constants rather than anything clock-derived, because a
+	// derivation must replay byte-identical; dates sit far enough ahead to outlive
+	// any fixture that embeds them.
+	if v, ok := formatValue(c.Format); ok {
+		return Entry{
+			Value:  v,
+			Source: Synthesised,
+			Note:   fmt.Sprintf("synthesised for the declared %s format", c.Format),
+		}
+	}
+
 	if c.Pattern != "" {
 		// A value satisfying an arbitrary regular expression cannot be constructed by
 		// working forwards from the pattern. Generating a plausible-looking string and
@@ -421,4 +435,36 @@ func CredentialShaped(name string) bool {
 		}
 	}
 	return false
+}
+
+// formatValue is the fixed valid value for a declared string format.
+//
+// The table covers the formats that appear in real specifications and have one
+// obviously-valid shape. Everything else falls through to ordinary synthesis --
+// an unrecognised format is better exercised with a visible tfacc value that may
+// be refused than silently skipped. Addresses use the RFC 5737/3849 documentation
+// ranges and example.com, so a fixture value can never point at anything real.
+func formatValue(format string) (string, bool) {
+	switch format {
+	case "date-time":
+		return "2027-06-01T00:00:00Z", true
+	case "date":
+		return "2027-06-01", true
+	case "time":
+		return "00:00:00Z", true
+	case "uuid":
+		return "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1", true
+	case "email":
+		return "tfacc@example.com", true
+	case "uri", "url":
+		return "https://www.example.com/tfacc", true
+	case "hostname":
+		return "tfacc.example.com", true
+	case "ipv4":
+		return "192.0.2.1", true
+	case "ipv6":
+		return "2001:db8::1", true
+	default:
+		return "", false
+	}
 }

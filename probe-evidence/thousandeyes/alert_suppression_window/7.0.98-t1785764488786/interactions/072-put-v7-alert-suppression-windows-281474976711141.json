@@ -1,0 +1,49 @@
+{
+  "id": "072-put-v7-alert-suppression-windows-281474976711141",
+  "seq": 72,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/alert-suppression-windows/281474976711141",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "duration": 3601,
+      "isEnabled": false,
+      "name": "tfpfgen-probe-write-rehearsal-1",
+      "repeat": {
+        "type": "none"
+      },
+      "startDate": "2027-06-01T00:00:00Z",
+      "testIds": []
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alert-suppression-windows/281474976711141"
+        }
+      },
+      "alertSuppressionWindowId": "281474976711141",
+      "duration": 3601,
+      "endRepeat": {
+        "type": "never"
+      },
+      "isEnabled": false,
+      "name": "tfpfgen-probe-write-rehearsal-1",
+      "repeat": {
+        "type": "none"
+      },
+      "startDate": "2027-06-01T00:00:00Z",
+      "status": "inactive"
+    },
+    "droppedHeaders": 14
+  }
+}

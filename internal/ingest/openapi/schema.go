@@ -335,6 +335,10 @@ func constraintsOf(s *base.Schema, kind blueprint.TypeKind) (blueprint.Constrain
 	case kind == blueprint.KindString:
 		c.MinLength = s.MinLength
 		c.MaxLength = s.MaxLength
+		// The declared format travels so value synthesis can honour it -- a
+		// date-time field given "tfacc-start-date" is refused before anything else
+		// in the body is even read.
+		c.Format = s.Format
 
 		if s.Pattern != "" {
 			// Compiled here, not merely copied: the generated code will call

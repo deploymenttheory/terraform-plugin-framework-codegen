@@ -611,8 +611,11 @@ func (r Resource) validateAccFixture(at string, p *problems) {
 			p.add(hat+".attr", "must name an attribute")
 			continue
 		}
-		if strings.TrimSpace(h.HCL) == "" {
+		if strings.TrimSpace(h.HCL) == "" && !h.Omit {
 			p.add(hat+".hcl", "is empty; a hint exists to state the value the generator cannot derive")
+		}
+		if h.Omit && strings.TrimSpace(h.HCL) != "" {
+			p.add(hat, "declares both omit and a value; one hint cannot say both")
 		}
 		if seen[h.Attr] {
 			p.add(hat+".attr", "%q is hinted twice", h.Attr)

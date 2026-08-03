@@ -1,0 +1,18 @@
+{
+  "id": "053-delete-v7-alert-suppression-windows-281474976711125",
+  "seq": 53,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/alert-suppression-windows/281474976711125",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

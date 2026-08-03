@@ -17,7 +17,10 @@
             "name": "id",
             "goField": "ID",
             "type": {
-              "kind": "string"
+              "kind": "string",
+              "constraints": {
+                "format": "uuid"
+              }
             },
             "computedOptionalRequired": "computed",
             "markdownDescription": "The tag's unique identifier, assigned by the API.",
@@ -403,7 +406,10 @@
             "name": "create_date",
             "goField": "CreateDate",
             "type": {
-              "kind": "string"
+              "kind": "string",
+              "constraints": {
+                "format": "yyyy-MM-ddTHH:mm[:ss]Z"
+              }
             },
             "computedOptionalRequired": "computed",
             "markdownDescription": "When the tag was created.",
@@ -421,7 +427,10 @@
             "name": "modified_date",
             "goField": "ModifiedDate",
             "type": {
-              "kind": "string"
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
             },
             "computedOptionalRequired": "computed",
             "markdownDescription": "When the tag was last modified.",

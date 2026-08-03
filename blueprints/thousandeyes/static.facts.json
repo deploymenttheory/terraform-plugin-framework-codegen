@@ -1,5 +1,47 @@
 [
   {
+    "resource": "alerts_rule",
+    "jsonPath": "alertGroupType",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:alert_rules.RuleDetailUpdate.AlertGroupType json:\"alertGroupType,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "direction",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:alert_rules.RuleDetailUpdate.Direction json:\"direction,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "severity",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:alert_rules.RuleDetailUpdate.Severity json:\"severity,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
     "resource": "tag",
     "jsonPath": "accessType",
     "field": "zeroValueUnsendable",

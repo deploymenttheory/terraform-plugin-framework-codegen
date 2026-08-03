@@ -1,0 +1,34 @@
+[
+  {
+    "minimal": {
+      "alertType": "http-server",
+      "expression": "((responseTime >= 1000 ms))",
+      "minimumSources": 1,
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleName": "tfacc-rule-name"
+    },
+    "maximal": {
+      "alertType": "http-server",
+      "description": "tfacc-description",
+      "endpointAgentIds": [
+        "tfacc-endpoint-agent-ids-element"
+      ],
+      "endpointLabelIds": [
+        "tfacc-endpoint-label-ids-element"
+      ],
+      "expression": "((responseTime >= 1000 ms))",
+      "includeCoveredPrefixes": true,
+      "isDefault": false,
+      "minimumSources": 1,
+      "notifyOnClear": true,
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleName": "tfacc-rule-name",
+      "severity": "info",
+      "visitedSitesFilter": [
+        "tfacc-visited-sites-filter-element"
+      ]
+    }
+  }
+]

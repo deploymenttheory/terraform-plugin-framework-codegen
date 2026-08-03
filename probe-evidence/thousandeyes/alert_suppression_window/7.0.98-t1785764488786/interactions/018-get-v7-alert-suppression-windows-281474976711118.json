@@ -1,0 +1,38 @@
+{
+  "id": "018-get-v7-alert-suppression-windows-281474976711118",
+  "seq": 18,
+  "request": {
+    "method": "GET",
+    "path": "/v7/alert-suppression-windows/281474976711118",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alert-suppression-windows/281474976711118"
+        }
+      },
+      "alertSuppressionWindowId": "281474976711118",
+      "duration": 1001,
+      "endRepeat": {
+        "type": "never"
+      },
+      "isEnabled": true,
+      "name": "tfpfgen-probe-write-writable-returned-1",
+      "repeat": {
+        "type": "none"
+      },
+      "startDate": "2027-06-01T00:00:00Z",
+      "status": "inactive"
+    },
+    "droppedHeaders": 14
+  }
+}

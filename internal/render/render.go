@@ -525,6 +525,18 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 		impState.add(pkgTypes, "")
 	}
 
+	// diag arrives with fallible conversions, which is what the templates key the
+	// diagnostics-returning signatures on. It used to arrive only via nested
+	// shapes, so the first resource whose fallible conversions were all flat --
+	// alerts_rule, every nested attribute dropped, sets everywhere -- did not
+	// compile.
+	if v.Construct.NeedsDiagnostics {
+		impConstruct.add(pkgDiag, "")
+	}
+	if v.State.NeedsDiagnostics {
+		impState.add(pkgDiag, "")
+	}
+
 	// A fallible conversion anywhere means construct or state returns diagnostics,
 	// which changes the shape of the generated CRUD call sites. crud.go needs no
 	// extra import for that: it appends to resp.Diagnostics.
@@ -534,6 +546,15 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 		return ResourceView{}, err
 	}
 	v.CRUD = crud
+
+	// The identifier assignment can name an SDK type in a generic argument --
+	// alerts_rule's id flattens through EnumToFramework[alert_rules.RuleId] -- and
+	// crud.go otherwise never imports the service package. Gated on actual use:
+	// an unused import does not compile.
+	if svc := serviceSelector(r.Binding.Service); svc != "" &&
+		strings.Contains(crud.IDAssign, svc+".") {
+		impCRUD.add(r.Binding.Service.ImportPath, r.Binding.Service.Alias)
+	}
 
 	org := bp.Provider.GoModule
 	v.Imports = FileImports{
@@ -1118,6 +1139,20 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 		// which is why the enclosing function has to return diagnostics at all.
 		if a.Wire.Expand.ReturnsError {
 			v.NeedsDiagnostics = true
+
+			// Deref cannot wrap a two-value call, so the pointer lands in a temp
+			// first. The SDK field is a value the helper produces a pointer for --
+			// a suppression window's required Repeat is the live case.
+			if a.Wire.Expand.Deref {
+				call := *a.Wire.Expand
+				call.Deref = false
+				tmp := lowerFirst(a.GoField) + "Ptr"
+				v.Assignments = append(v.Assignments, fmt.Sprintf(
+					"%s, d := %s\ndiags.Append(d...)\nbody.%s = convert.Deref(%s)",
+					tmp, convertExpr(call, "data."+a.GoField), a.Wire.SDKField, tmp))
+				continue
+			}
+
 			v.Assignments = append(v.Assignments, fmt.Sprintf(
 				"body.%s, d = %s\ndiags.Append(d...)",
 				a.Wire.SDKField, convertExpr(*a.Wire.Expand, "data."+a.GoField)))
@@ -1253,6 +1288,10 @@ func nullExpr(t blueprint.AttrType) (string, bool) {
 func convertExpr(c blueprint.ConvertCall, arg string) string {
 	var b strings.Builder
 
+	if c.TakesAddress {
+		arg = "&" + arg
+	}
+
 	b.WriteString(c.Func)
 	if len(c.TypeArgs) > 0 {
 		b.WriteString("[" + strings.Join(c.TypeArgs, ", ") + "]")
@@ -1263,6 +1302,10 @@ func convertExpr(c blueprint.ConvertCall, arg string) string {
 	}
 	b.WriteString(arg)
 	b.WriteString(")")
+
+	if c.Deref {
+		return "convert.Deref(" + b.String() + ")"
+	}
 
 	return b.String()
 }
@@ -1568,4 +1611,24 @@ func organisationPrefix(module string) string {
 		return ""
 	}
 	return strings.Join(parts[:2], "/")
+}
+
+// serviceSelector is the identifier the service package is referenced by in
+// generated code: the declared alias, or the import path's last element.
+func serviceSelector(svc blueprint.ServiceRef) string {
+	if svc.Alias != "" {
+		return svc.Alias
+	}
+	if i := strings.LastIndex(svc.ImportPath, "/"); i >= 0 {
+		return svc.ImportPath[i+1:]
+	}
+	return svc.ImportPath
+}
+
+// lowerFirst lowercases an identifier's first rune, for derived local names.
+func lowerFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToLower(s[:1]) + s[1:]
 }

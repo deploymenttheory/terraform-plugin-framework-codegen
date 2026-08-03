@@ -1,0 +1,87 @@
+[
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "duration",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-alert-suppression-windows-281474976711144"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "isEnabled",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-alert-suppression-windows-281474976711144"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-alert-suppression-windows-281474976711144"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "startDate",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-alert-suppression-windows-281474976711144"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "testIds",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "corroborated",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-alert-suppression-windows-281474976711144",
+      "009-get-v7-alert-suppression-windows-281474976711145"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "testIds",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-alert-suppression-windows-281474976711144"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  }
+]

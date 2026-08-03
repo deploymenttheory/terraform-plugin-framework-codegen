@@ -1,0 +1,40 @@
+{
+  "id": "069-post-v7-alert-suppression-windows",
+  "seq": 69,
+  "request": {
+    "method": "POST",
+    "path": "/v7/alert-suppression-windows",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "duration": 3600,
+      "isEnabled": false,
+      "name": "tfpfgen-probe-write-normalisation-3",
+      "repeat": {
+        "type": "none"
+      },
+      "startDate": "2027-06-01T00:00:00Z",
+      "testIds": [
+        "c",
+        "b",
+        "a"
+      ]
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/alert-suppression-windows",
+      "status": 400,
+      "title": "400 Bad Request",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "id": "024-post-v7-alerts-rules",
+  "seq": 24,
+  "request": {
+    "method": "POST",
+    "path": "/v7/alerts/rules",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "alertType": "http-server",
+      "description": "probe-description-1",
+      "expression": "((responseTime >= 1000 ms))",
+      "minimumSources": 1,
+      "notifyOnClear": true,
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleName": "tfpfgen-probe-write-update-style-1",
+      "severity": "major"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "https://api.thousandeyes.com/v7/alerts/rules/281474977454656",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alerts/rules/281474977454656"
+        }
+      },
+      "alertGroupType": "cloud-enterprise",
+      "alertType": "http-server",
+      "description": "probe-description-1",
+      "expression": "((responseTime >= 1000 ms))",
+      "minimumSources": 1,
+      "notifyOnClear": true,
+      "roundsViolatingMode": "any",
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleId": "281474977454656",
+      "ruleName": "tfpfgen-probe-write-update-style-1",
+      "severity": "major"
+    },
+    "droppedHeaders": 14
+  }
+}

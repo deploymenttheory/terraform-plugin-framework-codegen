@@ -1,0 +1,22 @@
+[
+  {
+    "minimal": {
+      "duration": 3600,
+      "name": "tfacc-name",
+      "repeat": {
+        "type": "none"
+      },
+      "startDate": "2027-06-01T00:00:00Z"
+    },
+    "maximal": {
+      "duration": 3600,
+      "isEnabled": true,
+      "name": "tfacc-name",
+      "repeat": {
+        "type": "none"
+      },
+      "startDate": "2027-06-01T00:00:00Z",
+      "testIds": []
+    }
+  }
+]

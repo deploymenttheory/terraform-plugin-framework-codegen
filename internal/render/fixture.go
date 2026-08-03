@@ -143,6 +143,18 @@ func fixtureView(
 			continue
 		}
 
+		// A curated omission keeps a jointly-refused combination out of the fixture:
+		// the value would be valid alone and the body is refused with it present.
+		if r.AccFixture.Omitted(a.Name) {
+			v.Skipped = append(v.Skipped, fixtureValue{
+				Name: a.Name,
+				Comment: wrapCommentPrefix(a.Name+": curated omission; individually valid, "+
+					"refused in combination -- see the attribute's documentation", "  #"),
+			})
+
+			continue
+		}
+
 		// A curated value beats derivation and is emitted exactly as written -- never
 		// salted, because salting exists to de-collide synthesised strings and this one
 		// was stated by a person. It is what carries an attribute the generator refuses

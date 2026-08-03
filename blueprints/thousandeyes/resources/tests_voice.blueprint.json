@@ -453,7 +453,10 @@
             "name": "created_date",
             "goField": "CreatedDate",
             "type": {
-              "kind": "string"
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
             },
             "computedOptionalRequired": "computed",
             "markdownDescription": "UTC created date (ISO date-time format).",
@@ -795,7 +798,10 @@
             "name": "modified_date",
             "goField": "ModifiedDate",
             "type": {
-              "kind": "string"
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
             },
             "computedOptionalRequired": "computed",
             "markdownDescription": "UTC last modification date (ISO date-time format).",

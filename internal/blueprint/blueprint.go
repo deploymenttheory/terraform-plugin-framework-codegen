@@ -325,19 +325,39 @@ type FixtureHint struct {
 	// value promoted from the resource's probe-plan fixture. Promotion refreshes
 	// its own hints on re-merge and never touches hand-written ones.
 	Source string `json:"source,omitempty"`
+
+	// Omit excludes the attribute from generated fixtures and rehearsal bodies
+	// altogether. For values that are individually valid and jointly refused --
+	// a rule takes minimumSources or minimumSourcesPct but never both, and a
+	// direction only alongside the alert types that have one. The attribute stays
+	// configurable; the maximal fixture just cannot carry every combination.
+	Omit bool `json:"omit,omitempty"`
 }
 
-// Hint returns the curated HCL for an attribute, if any.
+// Hint returns the curated HCL for an attribute, if any. An omission is not a value.
 func (f *AccFixture) Hint(attr string) (string, bool) {
 	if f == nil {
 		return "", false
 	}
 	for _, h := range f.Values {
-		if h.Attr == attr {
+		if h.Attr == attr && !h.Omit {
 			return h.HCL, true
 		}
 	}
 	return "", false
+}
+
+// Omitted reports whether an attribute is curated out of generated fixtures.
+func (f *AccFixture) Omitted(attr string) bool {
+	if f == nil {
+		return false
+	}
+	for _, h := range f.Values {
+		if h.Attr == attr && h.Omit {
+			return true
+		}
+	}
+	return false
 }
 
 // DataSource is one Terraform data source. Phase 1 does not emit these; the type
@@ -630,6 +650,14 @@ type Constraints struct {
 	// syntax. Emitted through regexp.MustCompile, so a pattern Go's regexp cannot parse is a
 	// panic at provider start -- which is why ingest refuses one rather than passing it on.
 	Pattern string `json:"pattern,omitempty"`
+
+	// Format is the specification's declared string format -- date-time, date, uuid,
+	// uri and friends. Captured because a synthesised value that ignores it is a
+	// refusal waiting to happen, and one that happened: a suppression window's
+	// startDate declares date-time with an ISO example, the synthesis invented
+	// "tfacc-start-date", and the API answered "Failed to read request" with nothing
+	// naming the field. The format was discovery evidence sitting unread in the spec.
+	Format string `json:"format,omitempty"`
 
 	// MinLength and MaxLength bound a string's length.
 	MinLength *int64 `json:"minLength,omitempty"`
