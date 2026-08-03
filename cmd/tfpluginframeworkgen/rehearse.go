@@ -41,7 +41,25 @@ func rehearsalBodies(
 	plan probe.Plan,
 	facts []probe.Fact,
 ) (probe.RehearsalRound, error) {
-	data, err := blueprint.Marshal(bp)
+	// Narrowed to the one resource before the round-trip: Unmarshal validates, and a
+	// blueprint carrying data sources whose seeds name resources outside this run's
+	// scope is valid as a whole document and invalid as a slice of one.
+	narrow := blueprint.Blueprint{
+		FormatVersion: bp.FormatVersion,
+		Provider:      bp.Provider,
+		Source:        bp.Source,
+	}
+	for _, r := range bp.Resources {
+		if r.Key == key {
+			narrow.Resources = []blueprint.Resource{r}
+			break
+		}
+	}
+	if len(narrow.Resources) == 0 {
+		return probe.RehearsalRound{}, fmt.Errorf("no resource %q in the blueprint", key)
+	}
+
+	data, err := blueprint.Marshal(narrow)
 	if err != nil {
 		return probe.RehearsalRound{}, err
 	}
@@ -103,11 +121,17 @@ func wireBody(res blueprint.Resource, plan probe.Plan, minimal bool) map[string]
 		}
 
 		if v, ok := hintWire(res, a.Name); ok {
+			if unsendableZero(a, v) {
+				continue
+			}
 			body[path] = v
 			continue
 		}
 
 		if e := fixturespec.Derive(a, ""); !e.Skipped {
+			if unsendableZero(a, e.Value) {
+				continue
+			}
 			body[path] = e.Value
 			continue
 		}
@@ -121,6 +145,35 @@ func wireBody(res blueprint.Resource, plan probe.Plan, minimal bool) map[string]
 	}
 
 	return body
+}
+
+// unsendableZero reports whether the generated provider's encoder would drop this
+// value before it travels: a zero on a field the static facts marked omitempty.
+//
+// The rehearsal sends raw JSON, so it *can* send false where the SDK cannot -- and a
+// body that carries what the provider never will rehearses an encoding that does not
+// exist. The live proof: sending networkMeasurements true with bandwidthMeasurements
+// false travels fine raw and passes, while the SDK drops the false and the same
+// update is refused. SDK-faithful omission is what lets the rehearsal meet that
+// refusal before an acceptance run does.
+func unsendableZero(a blueprint.Attribute, v any) bool {
+	z := a.Behaviour.ZeroValueUnsendable
+	if z == nil || !*z {
+		return false
+	}
+
+	switch tv := v.(type) {
+	case bool:
+		return !tv
+	case string:
+		return tv == ""
+	case float64:
+		return tv == 0
+	case int64:
+		return tv == 0
+	default:
+		return false
+	}
 }
 
 // hintWire resolves a curated accFixture hint to a wire value: the declared Wire form

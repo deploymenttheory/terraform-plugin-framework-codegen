@@ -207,7 +207,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -225,7 +225,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -359,7 +359,8 @@
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "alertsEnabled",
@@ -386,6 +387,7 @@
                 "kind": "",
                 "raw": "false"
               },
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -416,6 +418,7 @@
                 "kind": "",
                 "raw": "true"
               },
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -476,7 +479,11 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "A description of the test.",
+            "markdownDescription": "A description of the test.\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->",
+            "behaviour": {
+              "returnedOnRead": false,
+              "returnedOnUpdate": false
+            },
             "wire": {
               "jsonPath": "description",
               "sdkField": "Description",
@@ -496,7 +503,11 @@
               "kind": "int64"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Specify maximum number of bytes to download from the target object.",
+            "markdownDescription": "Specify maximum number of bytes to download from the target object.\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->",
+            "behaviour": {
+              "returnedOnRead": false,
+              "returnedOnUpdate": false
+            },
             "wire": {
               "jsonPath": "downloadLimit",
               "sdkField": "DownloadLimit",
@@ -525,6 +536,7 @@
                 "kind": "",
                 "raw": "true"
               },
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -553,8 +565,10 @@
               }
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->",
             "behaviour": {
+              "returnedOnRead": false,
+              "returnedOnUpdate": false,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -588,7 +602,8 @@
               "serverDefault": {
                 "kind": "",
                 "raw": "1000"
-              }
+              },
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "ftpTargetTime",
@@ -621,7 +636,8 @@
               "serverDefault": {
                 "kind": "",
                 "raw": "5"
-              }
+              },
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "ftpTimeLimit",
@@ -656,7 +672,8 @@
             "computedOptionalRequired": "optional",
             "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "interval",
@@ -688,6 +705,7 @@
             "computedOptionalRequired": "computed_optional",
             "markdownDescription": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -1000,6 +1018,7 @@
                 "kind": "",
                 "raw": "true"
               },
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -1023,28 +1042,24 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\nComputed only on this endpoint: the SDK's value-typed omitempty bool cannot send false, and an update carrying true without an explicit bandwidthMeasurements false is refused for cloud agents (live rehearsal + acceptance, 2026-08-03) -- no configurable value is expressible in both directions.",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
               },
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "networkMeasurements",
               "sdkField": "NetworkMeasurements",
               "sdkGoType": "*bool",
-              "expand": {
-                "func": "convert.FrameworkToNamedBool",
-                "typeArgs": [
-                  "ftp_server_tests.TestNetworkMeasurements"
-                ]
-              },
               "flatten": {
                 "func": "convert.NamedBoolToFramework"
-              }
+              },
+              "skipExpand": true
             }
           },
           {
@@ -1064,6 +1079,7 @@
                 "kind": "",
                 "raw": "3"
               },
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -1089,10 +1105,11 @@
             },
             "computedOptionalRequired": "optional",
             "sensitive": true,
-            "markdownDescription": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nWrite-only: the API never returns it (the 2026-08-03 acceptance run (#13)); state carries the configured value.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "markdownDescription": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->\n\nWrite-only: the API never returns it (the 2026-08-03 acceptance run (#13)); state carries the configured value.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "requiredByApi": true,
               "returnedOnRead": false,
+              "returnedOnUpdate": false,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -1121,6 +1138,7 @@
             "computedOptionalRequired": "computed_optional",
             "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -1152,6 +1170,7 @@
             "computedOptionalRequired": "computed_optional",
             "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -1188,6 +1207,7 @@
                 "kind": "",
                 "raw": "\"tcp\""
               },
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true,
               "acceptedValues": [
                 "tcp",
@@ -1226,6 +1246,7 @@
                 "kind": "",
                 "raw": "false"
               },
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -1258,6 +1279,7 @@
             "markdownDescription": "Set the type of activity for the test.\n\n<!-- probed:7.0.98-t1785745105202 -->\nValues accepted here: `download`, `list`.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
             "behaviour": {
               "requiredByApi": true,
+              "returnedOnUpdate": true,
               "acceptedValues": [
                 "download",
                 "list"
@@ -1530,6 +1552,7 @@
             "markdownDescription": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nThe API normalises this value (appends a trailing slash; the 2026-08-03 acceptance run (#13)); state carries the configured form.",
             "behaviour": {
               "requiredByApi": true,
+              "returnedOnUpdate": true,
               "normalises": "appends a trailing slash"
             },
             "wire": {
@@ -1557,7 +1580,8 @@
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "useActiveFtp",
@@ -1583,7 +1607,8 @@
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "useExplicitFtps",
@@ -1610,6 +1635,7 @@
                 "kind": "",
                 "raw": "true"
               },
+              "returnedOnUpdate": true,
               "zeroValueUnsendable": true
             },
             "wire": {
@@ -1636,7 +1662,8 @@
             "computedOptionalRequired": "required",
             "markdownDescription": "Username for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "username",
@@ -1688,9 +1715,11 @@
               }
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "markdownDescription": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "returnedOnRead": false,
+              "returnedOnUpdate": false
             },
             "wire": {
               "jsonPath": "agents",
@@ -1841,10 +1870,6 @@
           {
             "attr": "ftp_time_limit",
             "hcl": "30"
-          },
-          {
-            "attr": "network_measurements",
-            "hcl": "false"
           }
         ]
       }

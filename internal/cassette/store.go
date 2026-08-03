@@ -104,6 +104,12 @@ type Metadata struct {
 	// ReplayTransport matches request bodies, the stamped name is *in* the body, and a replay
 	// that regenerated the prefix from anything but this would mismatch on every single create.
 	NamePrefix string `json:"namePrefix,omitempty"`
+	// Only is the probe filter the recording ran under, empty for a full run.
+	//
+	// Recorded because replay executes the catalogue: a rehearse-only cassette holds
+	// no read-tier traffic, and a full replay against it mismatches on the first GET
+	// the read tier issues. Replay narrows itself to what was actually recorded.
+	Only string `json:"only,omitempty"`
 	// Interactions counts the files, so a truncated directory is detectable without
 	// reading them all.
 	Interactions int `json:"interactions"`

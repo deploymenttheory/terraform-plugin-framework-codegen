@@ -203,6 +203,31 @@ func (p rehearsal) directionA(
 	if err != nil {
 		return hops, err
 	}
+
+	// A refused contrasted body retries uncontrasted once: the contrast is this
+	// probe's own experiment, and a refusal it manufactured must not silence every
+	// observation the derived body itself would have earned. A refusal of the
+	// *derived* body is the real signal and stands.
+	if upd.Status >= 400 && len(contrasted) > 0 {
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: fmt.Sprintf("the contrasted maximal update was refused with %d (%s); "+
+				"retrying with the derived values alone -- equality writes observe less, "+
+				"but a refusal the contrast manufactured must not silence the round",
+				upd.Status, upd.Error().Detail),
+		})
+
+		maximal = p.sendable(sc, round.Maximal, out)
+		maximal[sc.Subject.NameField] = minimal[sc.Subject.NameField]
+		hops.sentMax, hops.contrasted = maximal, map[string]bool{}
+
+		upd, err = s.Update(ctx, p.Name(), id, maximal)
+		out.Requests++
+		if err != nil {
+			return hops, err
+		}
+	}
+
 	if upd.Status >= 400 {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, Probe: p.Name(),
@@ -321,20 +346,15 @@ func (p rehearsal) directionB(
 	return hops, nil
 }
 
-// sendable filters a derived body down to what this run may send: top-level keys the
-// scope knows, minus the deny list. Denied paths are noted once each -- a silent skip
-// would make the frozen round claim a body nobody sent.
+// sendable copies a derived body for sending. Denied paths stay in: the deny list
+// forbids *probing* a field -- rotating candidates, perturbing values -- not carrying
+// it in a fixture-shaped body, and every fixture-driven probe has always sent them.
+// The wave's plans deny interval, which the API requires: a rehearsal that stripped
+// it could never rehearse anything. What deny does gate here is the experiments --
+// no contrast substitution and no bisection on a denied path.
 func (p rehearsal) sendable(sc Scope, body map[string]any, out *Result) map[string]any {
 	sent := make(map[string]any, len(body))
 	for k, v := range body {
-		if sc.Denied(k) {
-			out.Notes = append(out.Notes, Note{
-				Resource: sc.Subject.Resource, JSONPath: k, Probe: p.Name(),
-				Message: "denied by the plan, so the rehearsal did not send it; the generated " +
-					"fixture will, and nothing here vouches for what happens then",
-			})
-			continue
-		}
 		sent[k] = v
 	}
 	return sent
@@ -353,6 +373,10 @@ func (p rehearsal) contrast(
 	contrasted := map[string]bool{}
 
 	for k, v := range body {
+		if sc.Denied(k) {
+			continue // deny forbids the experiment, not the send
+		}
+
 		held, outcome := current.LookupField(k)
 		if outcome != Present || fmt.Sprint(held) != fmt.Sprint(v) {
 			continue
@@ -372,17 +396,25 @@ func (p rehearsal) contrast(
 	return body, contrasted
 }
 
-// contrastValue picks a different value the API plausibly takes.
+// contrastValue picks a different value the API plausibly takes, inside the
+// declared bounds -- a contrast outside them manufactures a refusal about a value
+// nobody would configure, and it aborts the whole lifecycle it was meant to observe.
 func contrastValue(f Field, v any) (any, bool) {
 	switch tv := v.(type) {
 	case bool:
 		return !tv, true
 	case float64:
-		return tv + 1, true
+		return numericContrast(f, tv)
 	case int:
-		return tv + 1, true
+		if next, ok := numericContrast(f, float64(tv)); ok {
+			return int(next.(float64)), true
+		}
+		return nil, false
 	case int64:
-		return tv + 1, true
+		if next, ok := numericContrast(f, float64(tv)); ok {
+			return int64(next.(float64)), true
+		}
+		return nil, false
 	case string:
 		rejected := map[string]bool{}
 		for _, r := range f.Behaviour.RejectedValues {
@@ -399,6 +431,19 @@ func contrastValue(f Field, v any) (any, bool) {
 	default:
 		return nil, false
 	}
+}
+
+// numericContrast steps a number up when the bounds allow it, down when only down
+// fits, and refuses when the range holds a single value.
+func numericContrast(f Field, v float64) (any, bool) {
+	c := f.Constraints
+	if c.Maximum == nil || v+1 <= *c.Maximum {
+		return v + 1, true
+	}
+	if c.Minimum == nil || v-1 >= *c.Minimum {
+		return v - 1, true
+	}
+	return nil, false
 }
 
 // conclude turns the two directions' hop matrices into facts.
@@ -423,7 +468,50 @@ func (p rehearsal) conclude(sc Scope, round RehearsalRound, a, b *hopSet, out *R
 		p.concludeUpdateEcho(sc, path, sent, a, out)
 		p.concludeForced(sc, path, field, sent, a, b, out)
 		p.concludeDowngrade(sc, round, path, field, a, b, out)
+		p.concludeNeverRead(sc, path, a, b, out)
 	}
+}
+
+// concludeNeverRead emits returnedOnRead=false when a field the maximal write sent
+// reads back null or absent -- null-aware, which the read-tier conclusion is not.
+//
+// The distinction is the includeHeaders class: the API answers an explicit null, the
+// path resolves, and a presence-only observation calls that "returned". Flattening it
+// blanks the configured value on every refresh, so explicit-null-for-a-sent-value is
+// the false that matters. Only false is emitted: an unconditional true from this one
+// context could overwrite branch-scoped knowledge the mixed-presence machinery holds.
+func (p rehearsal) concludeNeverRead(sc Scope, path string, a, b *hopSet, out *Result) {
+	nulled := func(h *hopSet) (bool, string) {
+		if h == nil || h.afterMax == nil {
+			return false, ""
+		}
+		v, outcome := h.afterMax.LookupField(path)
+		return outcome == Absent || (outcome == Present && v == nil), h.afterMax.Interaction
+	}
+
+	nulledA, evA := nulled(a)
+	if !nulledA {
+		return
+	}
+
+	confidence := Observed
+	evidence := []string{evA}
+	if nulledB, evB := nulled(b); nulledB {
+		confidence = Corroborated
+		evidence = appendUnique(evidence, evB)
+	}
+
+	out.Facts = append(out.Facts, Fact{
+		Resource:   sc.Subject.Resource,
+		JSONPath:   path,
+		Field:      FactReturnedOnRead,
+		Value:      BoolValue(false),
+		Confidence: confidence,
+		Probe:      p.Name(),
+		Evidence:   evidence,
+		Rationale: "sent a value and read back null or nothing, so state must carry the " +
+			"configured value rather than flatten an empty read",
+	})
 }
 
 // concludeUpdateEcho reads the maximal PUT's own response for the field it was sent.
@@ -660,7 +748,7 @@ func (p rehearsal) suppressedCandidates(sc Scope, round RehearsalRound, a *hopSe
 	var out []string
 
 	for path := range a.sentMax {
-		if path == sc.Subject.NameField {
+		if path == sc.Subject.NameField || sc.Denied(path) {
 			continue
 		}
 		if _, inMinimal := round.Minimal[path]; inMinimal {

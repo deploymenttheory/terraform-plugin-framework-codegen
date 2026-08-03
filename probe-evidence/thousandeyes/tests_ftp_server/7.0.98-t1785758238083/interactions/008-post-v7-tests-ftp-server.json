@@ -1,0 +1,59 @@
+{
+  "id": "008-post-v7-tests-ftp-server",
+  "seq": 8,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/ftp-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": false,
+      "bandwidthMeasurements": true,
+      "bgpMeasurements": false,
+      "description": "tfacc-description",
+      "downloadLimit": 1,
+      "enabled": false,
+      "fixedPacketRate": 50,
+      "ftpTargetTime": 1001,
+      "ftpTimeLimit": 30,
+      "interval": 3600,
+      "ipv6Policy": "force-ipv4",
+      "mtuMeasurements": false,
+      "networkMeasurements": false,
+      "numPathTraces": 4,
+      "password": "guest",
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "requestType": "list",
+      "testName": "tfpfgen-probe-write-rehearsal-2",
+      "url": "ftp://speedtest.tele2.net",
+      "useActiveFtp": true,
+      "useExplicitFtps": true,
+      "usePublicBgp": false,
+      "username": "anonymous"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/ftp-server",
+      "status": 400,
+      "title": "400 Bad Request\nCannot add a test that is disabled",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

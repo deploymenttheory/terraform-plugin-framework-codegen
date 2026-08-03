@@ -168,6 +168,20 @@ func TestUnit_Probe_RehearsalEchoesFeedReturnedOnUpdate(t *testing.T) {
 	} else if fact.Value.Bool == nil || !*fact.Value.Bool {
 		t.Errorf("an ordinary field is echoed; got %v", fact.Value)
 	}
+
+	// The null-aware read conclusion: the API answers explicit null on every read,
+	// which presence-only observation calls "returned" -- and flattening it is what
+	// blanks the configured value. Both directions saw it, so Corroborated.
+	fact, ok := factFor(t, report, "postBody", FactReturnedOnRead)
+	if !ok {
+		t.Fatalf("no returnedOnRead fact for the nulled field: %v", report.Facts)
+	}
+	if fact.Value.Bool == nil || *fact.Value.Bool {
+		t.Errorf("explicit null for a sent value is not returned; got %v", fact.Value)
+	}
+	if fact.Confidence != Corroborated {
+		t.Errorf("both directions read null; want Corroborated, got %s", fact.Confidence)
+	}
 }
 
 // TestUnit_Probe_RehearsalFixpointStopsWhenTheBodiesStopChanging: the derive closure

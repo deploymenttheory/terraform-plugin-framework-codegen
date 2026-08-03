@@ -1,0 +1,40 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ],
+        "interval": 3600,
+        "password": "guest",
+        "requestType": "download",
+        "testName": "tfpfgen-probe-fixture",
+        "url": "ftp://speedtest.tele2.net",
+        "username": "anonymous"
+      }
+    }
+  ],
+  "candidates": {
+    "protocol": [
+      "icmp",
+      "udp"
+    ],
+    "requestType": [
+      "upload",
+      "list"
+    ]
+  },
+  "deny": [
+    "interval",
+    "ipv6Policy",
+    "pathTraceMode",
+    "probeMode"
+  ],
+  "budget": {
+    "maxRequests": 240,
+    "maxCreates": 80
+  }
+}

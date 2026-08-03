@@ -66,6 +66,15 @@ func rewriteDescription(
 		return
 	}
 
+	// Older evidence never overwrites newer. A resource can hold several live
+	// snapshots at once -- a full recording and a later rehearse-only one -- and the
+	// CI gate re-merges each in turn; without this ordering, whichever merged last
+	// would win and the check could never be idempotent across the set. Snapshot ids
+	// embed a millisecond timestamp, so lexical order is recording order.
+	if hadBlock && !static && blockID(existing) > snapshotID {
+		return
+	}
+
 	var updated string
 	if hadBlock {
 		updated = strings.Replace(attr.MarkdownDescription, existing, block, 1)

@@ -1,0 +1,489 @@
+{
+  "resource": "tests_ftp_server",
+  "collectionTemplate": "/tests/ftp-server",
+  "itemTemplate": "/tests/ftp-server/{testId}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/tests/ftp-server"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/tests/ftp-server/{testId}"
+  },
+  "update": {
+    "method": "PUT",
+    "pathTemplate": "/tests/ftp-server/{testId}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/tests/ftp-server/{testId}"
+  },
+  "fields": [
+    {
+      "jsonPath": "agents",
+      "attribute": "agents",
+      "kind": "set_nested",
+      "computedOptionalRequired": "required",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true
+      }
+    },
+    {
+      "jsonPath": "agents.agentId",
+      "attribute": "agent_id",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "alertsEnabled",
+      "attribute": "alerts_enabled",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "true"
+        }
+      }
+    },
+    {
+      "jsonPath": "bandwidthMeasurements",
+      "attribute": "bandwidth_measurements",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "false"
+        },
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "bgpMeasurements",
+      "attribute": "bgp_measurements",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "true"
+        },
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "createdBy",
+      "attribute": "created_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "createdDate",
+      "attribute": "created_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "description",
+      "attribute": "description",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "downloadLimit",
+      "attribute": "download_limit",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "enabled",
+      "attribute": "enabled",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "true"
+        },
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "fixedPacketRate",
+      "attribute": "fixed_packet_rate",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "constraints": {
+        "minimum": 0,
+        "maximum": 100
+      },
+      "behaviour": {
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "ftpTargetTime",
+      "attribute": "ftp_target_time",
+      "kind": "int64",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "constraints": {
+        "minimum": 1000,
+        "maximum": 6000
+      },
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "1000"
+        }
+      }
+    },
+    {
+      "jsonPath": "ftpTimeLimit",
+      "attribute": "ftp_time_limit",
+      "kind": "int64",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "constraints": {
+        "minimum": 10,
+        "maximum": 60
+      },
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "5"
+        }
+      }
+    },
+    {
+      "jsonPath": "interval",
+      "attribute": "interval",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "60",
+        "120",
+        "300",
+        "600",
+        "900",
+        "1800",
+        "3600"
+      ],
+      "behaviour": {
+        "requiredByApi": true
+      }
+    },
+    {
+      "jsonPath": "ipv6Policy",
+      "attribute": "ipv6_policy",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "force-ipv4",
+        "prefer-ipv6",
+        "force-ipv6",
+        "use-agent-policy"
+      ],
+      "behaviour": {
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "liveShare",
+      "attribute": "live_share",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedBy",
+      "attribute": "modified_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedDate",
+      "attribute": "modified_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "mtuMeasurements",
+      "attribute": "mtu_measurements",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "true"
+        },
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "networkMeasurements",
+      "attribute": "network_measurements",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "true"
+        },
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "numPathTraces",
+      "attribute": "num_path_traces",
+      "kind": "int64",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "constraints": {
+        "minimum": 1,
+        "maximum": 10
+      },
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "3"
+        },
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "password",
+      "attribute": "password",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnRead": false,
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "pathTraceMode",
+      "attribute": "path_trace_mode",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "classic",
+        "in-session"
+      ],
+      "behaviour": {
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "probeMode",
+      "attribute": "probe_mode",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "auto",
+        "sack",
+        "syn"
+      ],
+      "behaviour": {
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "protocol",
+      "attribute": "protocol",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "tcp",
+        "icmp",
+        "udp"
+      ],
+      "behaviour": {
+        "immutable": false,
+        "serverDefault": {
+          "kind": "",
+          "raw": "\"tcp\""
+        },
+        "zeroValueUnsendable": true,
+        "acceptedValues": [
+          "tcp",
+          "icmp"
+        ],
+        "rejectedValues": [
+          "udp"
+        ],
+        "valuesClosed": true
+      }
+    },
+    {
+      "jsonPath": "randomizedStartTime",
+      "attribute": "randomized_start_time",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "false"
+        },
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "requestType",
+      "attribute": "request_type",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true,
+      "allowedValues": [
+        "download",
+        "upload",
+        "list"
+      ],
+      "behaviour": {
+        "requiredByApi": true,
+        "acceptedValues": [
+          "download",
+          "list"
+        ],
+        "valuesClosed": true
+      }
+    },
+    {
+      "jsonPath": "savedEvent",
+      "attribute": "saved_event",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "testId",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "testName",
+      "attribute": "test_name",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "type",
+      "attribute": "type",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false,
+      "allowedValues": [
+        "api",
+        "agent-to-agent",
+        "agent-to-server",
+        "bgp",
+        "http-server",
+        "page-load",
+        "web-transactions",
+        "ftp-server",
+        "dns-trace",
+        "dns-server",
+        "dnssec",
+        "sip-server",
+        "voice"
+      ]
+    },
+    {
+      "jsonPath": "url",
+      "attribute": "url",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true,
+        "normalises": "appends a trailing slash"
+      }
+    },
+    {
+      "jsonPath": "useActiveFtp",
+      "attribute": "use_active_ftp",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "false"
+        }
+      }
+    },
+    {
+      "jsonPath": "useExplicitFtps",
+      "attribute": "use_explicit_ftps",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "false"
+        }
+      }
+    },
+    {
+      "jsonPath": "usePublicBgp",
+      "attribute": "use_public_bgp",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "true"
+        },
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "username",
+      "attribute": "username",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true
+      }
+    }
+  ],
+  "policy": {
+    "updateStyle": "putFull",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "testId",
+  "nameField": "testName",
+  "evidenceRev": 1
+}

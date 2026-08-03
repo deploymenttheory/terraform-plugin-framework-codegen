@@ -1,0 +1,40 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ],
+        "interval": 3600,
+        "requests": [
+          {
+            "method": "get",
+            "name": "step-1",
+            "url": "https://api.stripe.com/healthcheck"
+          }
+        ],
+        "testName": "tfpfgen-probe-fixture",
+        "url": "https://api.stripe.com/healthcheck"
+      }
+    }
+  ],
+  "candidates": {
+    "protocol": [
+      "icmp",
+      "udp"
+    ]
+  },
+  "deny": [
+    "interval",
+    "pathTraceMode",
+    "probeMode",
+    "sslVersionId"
+  ],
+  "budget": {
+    "maxRequests": 240,
+    "maxCreates": 80
+  }
+}

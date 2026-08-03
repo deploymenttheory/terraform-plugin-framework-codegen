@@ -1,0 +1,1087 @@
+[
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "agents",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "agents",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "alertsEnabled",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "alertsEnabled",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent false, the API stored true on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "allowUnsafeLegacyRenegotiation",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "allowUnsafeLegacyRenegotiation",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent false, the API stored true on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "authType",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "bandwidthMeasurements",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "bandwidthMeasurements",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent true, the API stored false on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "bgpMeasurements",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "bgpMeasurements",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent false, the API stored true on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "collectProxyNetworkData",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "collectProxyNetworkData",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent true, the API stored false on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "contentRegex",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "contentRegex",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "string",
+        "raw": "\"\""
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent tfacc-content-regex, the API stored  on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "description",
+    "field": "interactionSuppressed",
+    "value": {
+      "text": "suppressed when useNtlm is present"
+    },
+    "confidence": "suspected",
+    "probe": "write.rehearsal",
+    "evidence": [],
+    "rationale": "round-trips alone, and is stored as null the moment \"useNtlm\" rides along; isolated by bisecting the maximal body's delta",
+    "alternatives": [
+      "no cassette interaction could be matched to this observation, so it cannot be re-derived offline"
+    ],
+    "when": [
+      {
+        "jsonPath": "useNtlm",
+        "equals": "true"
+      }
+    ]
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "description",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "description",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "desiredStatusCode",
+    "field": "interactionSuppressed",
+    "value": {
+      "text": "suppressed when bandwidthMeasurements is present"
+    },
+    "confidence": "suspected",
+    "probe": "write.rehearsal",
+    "evidence": [],
+    "rationale": "round-trips alone, and is stored as null the moment \"bandwidthMeasurements\" rides along; isolated by bisecting the maximal body's delta",
+    "alternatives": [
+      "no cassette interaction could be matched to this observation, so it cannot be re-derived offline"
+    ],
+    "when": [
+      {
+        "jsonPath": "bandwidthMeasurements",
+        "equals": "true"
+      }
+    ]
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "desiredStatusCode",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "desiredStatusCode",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "distributedTracing",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "distributedTracing",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent true, the API stored false on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "dnsOverride",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "dnsOverride",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "downloadLimit",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "downloadLimit",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "enabled",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "fixedPacketRate",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "fixedPacketRate",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "followRedirects",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "followRedirects",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent false, the API stored true on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "headers",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "headers",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "httpTargetTime",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "httpTargetTime",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "int64",
+        "raw": "1000"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent 1001, the API stored 1000 on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "httpTimeLimit",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "httpTimeLimit",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "int64",
+        "raw": "5"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent 6, the API stored 5 on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "httpVersion",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "httpVersion",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "int64",
+        "raw": "2"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent 1, the API stored 2 on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "includeHeaders",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "includeHeaders",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "interval",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "ipv6Policy",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "ipv6Policy",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "string",
+        "raw": "\"use-agent-policy\""
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent force-ipv4, the API stored use-agent-policy on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "mtuMeasurements",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "mtuMeasurements",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent false, the API stored true on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "networkMeasurements",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "networkMeasurements",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent false, the API stored true on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "numPathTraces",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "numPathTraces",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "int64",
+        "raw": "3"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent 4, the API stored 3 on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "overrideAgentProxy",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "overrideAgentProxy",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent true, the API stored false on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "pathTraceMode",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "postBody",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "postBody",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "probeMode",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "protocol",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "protocol",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "string",
+        "raw": "\"tcp\""
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent icmp, the API stored tcp on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "randomizedStartTime",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "randomizedStartTime",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent true, the API stored false on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "requestMethod",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "sslVersionId",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "url",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "useNtlm",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "useNtlm",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent true, the API stored false on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "usePublicBgp",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "usePublicBgp",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent false, the API stored true on the update path"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "userAgent",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "userAgent",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "verifyCertificate",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "verifyCertificate",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-http-server-281474976977121"
+    ],
+    "rationale": "sent false, the API stored true on the update path"
+  }
+]

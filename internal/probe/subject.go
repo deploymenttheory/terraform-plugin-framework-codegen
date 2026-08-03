@@ -155,6 +155,12 @@ type Field struct {
 	// which the API took. What is done with the answer afterwards belongs to render.
 	AllowedValues []string `json:"allowedValues,omitempty"`
 
+	// Constraints carries the declared bounds, so an experiment that varies a value --
+	// the rehearsal's contrast substitution -- can stay inside them rather than
+	// manufacture a refusal about a value nobody would configure. Zero for frozen
+	// subjects that predate it, which only costs those replays the bounds check.
+	Constraints blueprint.Constraints `json:"constraints,omitzero"`
+
 	// Behaviour is what is already recorded. A probe may skip a field whose fact it
 	// would only be re-deriving, and merge needs to know what it is overwriting.
 	Behaviour blueprint.Behaviour `json:"behaviour,omitzero"`
@@ -267,6 +273,7 @@ func fieldsOf(attrs []blueprint.Attribute, prefix string) []Field {
 			ComputedOptionalRequired: a.ComputedOptionalRequired,
 			Writable:                 writable(a),
 			AllowedValues:            a.Type.AllowedValues,
+			Constraints:              a.Type.Constraints,
 			Behaviour:                a.Behaviour,
 		})
 

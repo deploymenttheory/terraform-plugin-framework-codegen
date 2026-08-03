@@ -584,6 +584,9 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	// The prefix every created object carried. Without it a mutating replay cannot reproduce a
 	// single create: ReplayTransport matches request bodies, and the name is in the body.
 	meta.NamePrefix = runOpts.Grant.NamePrefix()
+	// The probe filter, so replay narrows itself to the traffic the cassette holds: a
+	// rehearse-only recording has no read tier for a full replay to mismatch on.
+	meta.Only = opts.only
 
 	snap, err := cassette.Write(root, meta, result.Interactions, map[string]string{"bearer": token}, time.Now())
 	if err != nil {
@@ -957,6 +960,12 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 	}
 
 	grant := grantForReplay(plan, meta)
+
+	// A filtered recording replays filtered: the cassette holds only that probe's
+	// traffic, and the wider catalogue would mismatch on its first request.
+	if only == "" && meta.Only != "" {
+		only = meta.Only
+	}
 
 	// The frozen rehearsal bodies, when the recording made any. Never re-derived from
 	// the working tree: the blueprint moved with the merge of this very recording's

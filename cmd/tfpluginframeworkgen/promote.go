@@ -56,7 +56,13 @@ func promotePlans(bp *blueprint.Blueprint, planDir string) (int, error) {
 				continue
 			}
 
-			v, inPlan := planValue(plan, path)
+			// Fixture 0 only, deliberately. A later fixture is a different branch of
+			// the API's own dispatch -- the tag plan's second fixture carries filters
+			// beside type="dynamic" -- and promoting its value without its influencer
+			// manufactures the cross-branch body HostFixture exists to prevent: the
+			// live proof was filters promoted alone, applied to a static tag, and
+			// rewritten by the API into an inconsistent apply.
+			v, inPlan := plan.Fixtures[0].Body[path]
 			if !inPlan {
 				continue
 			}

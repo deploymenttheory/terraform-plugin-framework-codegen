@@ -1,0 +1,462 @@
+[
+  {
+    "resource": "tests_api",
+    "jsonPath": "agents",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-api-281474976977116"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "agents",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "alertsEnabled",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "bgpMeasurements",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "clientCertDomainsAllowList",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "collectProxyNetworkData",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "description",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "distributedTracing",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "distributedTracing",
+    "field": "updateDefault",
+    "value": {
+      "literal": {
+        "kind": "bool",
+        "raw": "false"
+      }
+    },
+    "confidence": "inferred",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "006-get-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the constant an omitted-on-update field reverts to; a derived value remains the open alternative until a second downgrade agrees"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "distributedTracing",
+    "field": "updateResets",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "006-get-v7-tests-api-281474976977116"
+    ],
+    "rationale": "held true, was omitted from an update, and read back false rather than the held value"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "enabled",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "followRedirects",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-api-281474976977116"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "followRedirects",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "interval",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "mtuMeasurements",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "networkMeasurements",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "numPathTraces",
+    "field": "interactionSuppressed",
+    "value": {
+      "text": "suppressed when networkMeasurements is present"
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "016-put-v7-tests-api-281474976977117"
+    ],
+    "rationale": "round-trips alone, and is stored as null the moment \"networkMeasurements\" rides along; isolated by bisecting the maximal body's delta",
+    "when": [
+      {
+        "jsonPath": "networkMeasurements",
+        "equals": "false"
+      }
+    ]
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "numPathTraces",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-api-281474976977116"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "numPathTraces",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "overrideAgentProxy",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "pathTraceMode",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "probeMode",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "protocol",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "protocol",
+    "field": "serverForced",
+    "value": {
+      "literal": {
+        "kind": "string",
+        "raw": "\"tcp\""
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-api-281474976977116"
+    ],
+    "rationale": "sent icmp, the API stored tcp on the update path"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "randomizedStartTime",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "requests",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "sslVersionId",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "004-get-v7-tests-api-281474976977116"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "sslVersionId",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "targetTime",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "timeLimit",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "url",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "usePublicBgp",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "003-put-v7-tests-api-281474976977116"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  }
+]

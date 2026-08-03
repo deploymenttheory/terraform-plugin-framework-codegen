@@ -1,0 +1,49 @@
+[
+  {
+    "minimal": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "password": "guest",
+      "requestType": "download",
+      "url": "ftp://speedtest.tele2.net",
+      "username": "anonymous"
+    },
+    "maximal": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "description": "tfacc-description",
+      "downloadLimit": 1,
+      "enabled": true,
+      "fixedPacketRate": 50,
+      "ftpTargetTime": 1000,
+      "ftpTimeLimit": 30,
+      "interval": 3600,
+      "ipv6Policy": "force-ipv4",
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "password": "guest",
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requestType": "download",
+      "testName": "tfacc-test-name",
+      "url": "ftp://speedtest.tele2.net",
+      "useActiveFtp": false,
+      "useExplicitFtps": false,
+      "usePublicBgp": true,
+      "username": "anonymous"
+    }
+  }
+]

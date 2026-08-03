@@ -1,0 +1,56 @@
+{
+  "id": "025-put-v7-tests-http-server-281474976977122",
+  "seq": 25,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/http-server/281474976977122",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": false,
+      "allowUnsafeLegacyRenegotiation": false,
+      "authType": "none",
+      "bandwidthMeasurements": true,
+      "bgpMeasurements": false,
+      "collectProxyNetworkData": true,
+      "contentRegex": "tfacc-content-regex",
+      "description": "tfacc-description",
+      "desiredStatusCode": "200",
+      "distributedTracing": true,
+      "dnsOverride": "8.8.8.8",
+      "downloadLimit": 1,
+      "enabled": false,
+      "fixedPacketRate": 50,
+      "followRedirects": false,
+      "headers": [
+        "tfacc-headers-element"
+      ],
+      "httpTargetTime": 1001,
+      "httpTimeLimit": 6,
+      "interval": 3600,
+      "testName": "tfpfgen-probe-write-rehearsal-100",
+      "url": "https://www.example.com"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/http-server/281474976977122",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Malformed HTTP Header: tfacc-headers-element. Cloud Agents are not supported for bandwidth measurements. Please disable bandwidth measurements or perform the bandwidth measurement from an Enterprise Agent.. Invalid collect proxy network data information.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

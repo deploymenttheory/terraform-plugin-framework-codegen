@@ -1,0 +1,18 @@
+{
+  "id": "007-delete-v7-tests-http-server-281474976977121",
+  "seq": 7,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/tests/http-server/281474976977121",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

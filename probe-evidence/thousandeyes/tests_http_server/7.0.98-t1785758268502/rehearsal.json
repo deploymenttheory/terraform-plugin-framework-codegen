@@ -1,0 +1,61 @@
+[
+  {
+    "minimal": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "url": "https://www.example.com"
+    },
+    "maximal": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": true,
+      "allowUnsafeLegacyRenegotiation": true,
+      "authType": "none",
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "collectProxyNetworkData": false,
+      "contentRegex": "tfacc-content-regex",
+      "description": "tfacc-description",
+      "desiredStatusCode": "200",
+      "distributedTracing": false,
+      "dnsOverride": "8.8.8.8",
+      "downloadLimit": 1,
+      "enabled": true,
+      "fixedPacketRate": 50,
+      "followRedirects": true,
+      "headers": [
+        "tfacc-headers-element"
+      ],
+      "httpTargetTime": 1000,
+      "httpTimeLimit": 5,
+      "httpVersion": 2,
+      "includeHeaders": true,
+      "interval": 3600,
+      "ipv6Policy": "force-ipv4",
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "overrideAgentProxy": false,
+      "pathTraceMode": "classic",
+      "postBody": "tfacc-post-body",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requestMethod": "get",
+      "sslVersionId": "0",
+      "testName": "tfacc-test-name",
+      "url": "https://www.example.com",
+      "useNtlm": false,
+      "usePublicBgp": true,
+      "userAgent": "tfacc-user-agent",
+      "verifyCertificate": true
+    }
+  }
+]

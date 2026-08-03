@@ -1,0 +1,109 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (0 < 25)"
+    ]
+  },
+  "notes": [
+    {
+      "resource": "tests_dns_server",
+      "probe": "write.rehearsal",
+      "message": "the contrasted maximal update was refused with 400 (Invalid value for fields: numPathTraces); retrying with the derived values alone -- equality writes observe less, but a refusal the contrast manufactured must not silence the round"
+    },
+    {
+      "resource": "tests_dns_server",
+      "probe": "write.rehearsal",
+      "message": "the derived maximal body was refused as a create with 400 (Invalid value for fields: numPathTraces); a maximal-first acceptance configuration would fail exactly like this"
+    },
+    {
+      "resource": "tests_dns_server",
+      "probe": "write.rehearsal",
+      "message": "the derived maximal update was refused with 400 (Invalid value for fields: numPathTraces); the generated acceptance test's update step would fail exactly like this"
+    }
+  ],
+  "probes": [
+    {
+      "name": "write.rehearsal",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 6,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    }
+  ],
+  "budget": {
+    "requests": 6,
+    "maxRequests": 240,
+    "creates": 2,
+    "maxCreates": 80,
+    "deletes": 1,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  },
+  "rehearsal": [
+    {
+      "minimal": {
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ],
+        "dnsServers": [
+          "tfacc-dns-servers-element"
+        ],
+        "domain": "example.com",
+        "interval": 3600
+      },
+      "maximal": {
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ],
+        "alertsEnabled": true,
+        "bandwidthMeasurements": false,
+        "bgpMeasurements": true,
+        "description": "tfacc-description",
+        "dnsQueryClass": "in",
+        "dnsServers": [
+          "tfacc-dns-servers-element"
+        ],
+        "dnsTransportProtocol": "udp",
+        "domain": "example.com",
+        "enabled": true,
+        "fixedPacketRate": 50,
+        "interval": 3600,
+        "ipv6Policy": "force-ipv4",
+        "mtuMeasurements": true,
+        "networkMeasurements": true,
+        "numPathTraces": true,
+        "pathTraceMode": "classic",
+        "probeMode": "auto",
+        "protocol": "tcp",
+        "randomizedStartTime": false,
+        "recursiveQueries": false,
+        "testName": "tfacc-test-name",
+        "usePublicBgp": true
+      }
+    }
+  ]
+}

@@ -757,20 +757,6 @@
   },
   {
     "resource": "tests_dns_server",
-    "jsonPath": "networkMeasurements",
-    "field": "zeroValueUnsendable",
-    "value": {
-      "bool": true
-    },
-    "confidence": "corroborated",
-    "probe": "static.sdkbind",
-    "evidence": [
-      "static:dns_server_tests.DnsServerTestRequest.NetworkMeasurements json:\"networkMeasurements,omitempty\""
-    ],
-    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
-  },
-  {
-    "resource": "tests_dns_server",
     "jsonPath": "numPathTraces",
     "field": "zeroValueUnsendable",
     "value": {
@@ -1032,20 +1018,6 @@
     "probe": "static.sdkbind",
     "evidence": [
       "static:ftp_server_tests.FtpServerTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
-    ],
-    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
-  },
-  {
-    "resource": "tests_ftp_server",
-    "jsonPath": "networkMeasurements",
-    "field": "zeroValueUnsendable",
-    "value": {
-      "bool": true
-    },
-    "confidence": "corroborated",
-    "probe": "static.sdkbind",
-    "evidence": [
-      "static:ftp_server_tests.FtpServerTestRequest.NetworkMeasurements json:\"networkMeasurements,omitempty\""
     ],
     "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
   },
@@ -1382,20 +1354,6 @@
     "probe": "static.sdkbind",
     "evidence": [
       "static:http_server_tests.HttpServerTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
-    ],
-    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
-  },
-  {
-    "resource": "tests_http_server",
-    "jsonPath": "networkMeasurements",
-    "field": "zeroValueUnsendable",
-    "value": {
-      "bool": true
-    },
-    "confidence": "corroborated",
-    "probe": "static.sdkbind",
-    "evidence": [
-      "static:http_server_tests.HttpServerTestRequest.NetworkMeasurements json:\"networkMeasurements,omitempty\""
     ],
     "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
   },

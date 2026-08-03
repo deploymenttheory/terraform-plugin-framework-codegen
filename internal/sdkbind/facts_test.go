@@ -33,9 +33,12 @@ func TestUnit_SDKBind_StaticFactsFindTheOmitemptyClass(t *testing.T) {
 		t.Fatal("the pinned SDK is full of value-typed omitempty scalars; zero facts proves nothing ran")
 	}
 
-	f := factFor(facts, "tests_dns_server", "networkMeasurements")
+	// tests_api still models networkMeasurements as configurable; the other test
+	// families have since been curated computed for exactly the reason this fact
+	// records, which removes them from the scan's domain.
+	f := factFor(facts, "tests_api", "networkMeasurements")
 	if f == nil {
-		t.Fatal("networkMeasurements on tests_dns_server is the proven live case and must be found")
+		t.Fatal("networkMeasurements on tests_api is the proven live case and must be found")
 	}
 	if f.Confidence != probe.Corroborated {
 		t.Errorf("a mechanical claim about the pinned SDK is Corroborated, got %s", f.Confidence)

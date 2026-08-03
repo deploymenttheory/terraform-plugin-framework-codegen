@@ -1159,7 +1159,7 @@
             "name": "distributed_tracing",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785758194545 -->\nObserved: the API assigns false when this is omitted from an update.\nOmitting this field from an update resets it rather than preserving the stored value.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1173,7 +1173,7 @@
             "name": "follow_redirects",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758194545 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -1222,7 +1222,7 @@
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785758194545 -->\nConditionally, when networkMeasurements is \"false\": round-trips alone, and is stored as null the moment \"networkMeasurements\" rides along; isolated by bisecting the maximal body's delta. Not applied to the schema, because this holds only under that condition and the schema has no way to say so.\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1522,7 +1522,7 @@
             "name": "ssl_version_id",
             "string": {
               "computed_optional_required": "optional",
-              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758194545 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -1620,7 +1620,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785744867250 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785758194545 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           }
         ],
@@ -1875,8 +1875,8 @@
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "computed_optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "computed_optional_required": "computed",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\nComputed only on this endpoint: the SDK's value-typed omitempty bool cannot send false, and an update carrying true without an explicit bandwidthMeasurements false is refused for cloud agents (live rehearsal + acceptance, 2026-08-03) -- no configurable value is expressible in both directions."
             }
           },
           {
@@ -2311,14 +2311,14 @@
             "name": "description",
             "string": {
               "computed_optional_required": "optional",
-              "description": "A description of the test."
+              "description": "A description of the test.\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
             "name": "download_limit",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Specify maximum number of bytes to download from the target object."
+              "description": "Specify maximum number of bytes to download from the target object.\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -2332,7 +2332,7 @@
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -2394,8 +2394,8 @@
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "computed_optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "computed_optional_required": "computed",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\nComputed only on this endpoint: the SDK's value-typed omitempty bool cannot send false, and an update carrying true without an explicit bandwidthMeasurements false is refused for cloud agents (live rehearsal + acceptance, 2026-08-03) -- no configurable value is expressible in both directions."
             }
           },
           {
@@ -2409,7 +2409,7 @@
             "name": "password",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nWrite-only: the API never returns it (the 2026-08-03 acceptance run (#13)); state carries the configured value.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->\n\nWrite-only: the API never returns it (the 2026-08-03 acceptance run (#13)); state carries the configured value.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
               "sensitive": true
             }
           },
@@ -2529,7 +2529,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785758238083 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           }
         ],
@@ -2614,14 +2614,14 @@
             "name": "description",
             "string": {
               "computed_optional_required": "optional",
-              "description": "A description of the test."
+              "description": "A description of the test.\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
             "name": "desired_status_code",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -2635,14 +2635,14 @@
             "name": "dns_override",
             "string": {
               "computed_optional_required": "optional",
-              "description": "IP address to use for DNS override."
+              "description": "IP address to use for DNS override.\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
             "name": "download_limit",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Specifies maximum number of bytes to download from the target object."
+              "description": "Specifies maximum number of bytes to download from the target object.\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -2656,7 +2656,7 @@
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -2673,7 +2673,7 @@
               "element_type": {
                 "string": {}
               },
-              "description": "HTTP request headers used."
+              "description": "HTTP request headers used.\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -2701,7 +2701,7 @@
             "name": "include_headers",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "description": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -2749,8 +2749,8 @@
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "computed_optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "computed_optional_required": "computed",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\nComputed only on this endpoint: the SDK's value-typed omitempty bool cannot send false, and an update carrying true without an explicit bandwidthMeasurements false is refused for cloud agents (live rehearsal + acceptance, 2026-08-03) -- no configurable value is expressible in both directions."
             }
           },
           {
@@ -2792,7 +2792,7 @@
             "name": "post_body",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Enter the body for the HTTP POST request in this field. No special escaping is required. If content is provided and `requestMethod` is not specified, `requestMethod` is automatically set to `post`."
+              "description": "Enter the body for the HTTP POST request in this field. No special escaping is required. If content is provided and `requestMethod` is not specified, `requestMethod` is automatically set to `post`.\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -2890,7 +2890,7 @@
             "name": "user_agent",
             "string": {
               "computed_optional_required": "optional",
-              "description": "User-agent string to be provided during the test.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+              "description": "User-agent string to be provided during the test.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           },
           {
@@ -2953,7 +2953,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785744687658 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785758268502 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
             }
           }
         ],
