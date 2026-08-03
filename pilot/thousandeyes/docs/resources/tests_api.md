@@ -57,7 +57,7 @@ resource "thousandeyes_tests_api" "example" {
 - `test_name` (String) The name of the test. Test name must be unique.
 - `time_limit` (Number) Time limit for transaction in seconds. Exceeding this limit will result in a Timeout error.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
 - `vault_credentials` (Attributes Set) List of credential IDs that are stored in an external vault. (see [below for nested schema](#nestedatt--vault_credentials))
 
 ### Read-Only

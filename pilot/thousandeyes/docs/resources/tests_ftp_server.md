@@ -56,7 +56,7 @@ resource "thousandeyes_tests_ftp_server" "example" {
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `use_active_ftp` (Boolean) Explicitly set the flag to use active FTP.
 - `use_explicit_ftps` (Boolean) Use explicit FTPS (ftp over SSL). By default, tests will autodetect when it is appropriate to use FTPS.
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
 
 ### Read-Only
 

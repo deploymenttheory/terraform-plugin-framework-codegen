@@ -79,7 +79,7 @@ resource "thousandeyes_tests_web_transaction" "example" {
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks.
 - `use_ntlm` (Boolean) Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
 - `user_agent` (String) User-agent string to be provided during the test.
 - `username` (String) Username for Basic/NTLM authentication.
 - `vault_credentials` (Attributes Set) List of credential IDs that are stored in an external vault. (see [below for nested schema](#nestedatt--vault_credentials))

@@ -43,7 +43,7 @@ resource "thousandeyes_tests_voice" "example" {
 - `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
 
 ### Read-Only
 

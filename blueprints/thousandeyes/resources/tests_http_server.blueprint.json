@@ -2220,7 +2220,7 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.",
+            "markdownDescription": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.",
             "wire": {
               "jsonPath": "usePublicBgp",
               "sdkField": "UsePublicBGP",
