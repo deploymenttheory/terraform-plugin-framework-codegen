@@ -207,7 +207,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -225,7 +225,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -444,7 +444,7 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "markdownDescription": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "wire": {
               "jsonPath": "dnsQueryClass",
               "sdkField": "DnsQueryClass",
@@ -471,7 +471,7 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Transport protocol used for DNS requests.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "markdownDescription": "Transport protocol used for DNS requests.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "wire": {
               "jsonPath": "dnsTransportProtocol",
               "sdkField": "DnsTransportProtocol",
@@ -520,13 +520,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Test is enabled.\n\n<!-- probed:7.0.98-t1785745019896 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
               },
-              "returnedOnRead": true
+              "returnedOnRead": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "enabled",
@@ -724,13 +725,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785745019896 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
               },
-              "returnedOnRead": true
+              "returnedOnRead": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "randomizedStartTime",

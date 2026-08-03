@@ -471,28 +471,28 @@
             "name": "object_type",
             "string": {
               "computed_optional_required": "required",
-              "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:7.0.97-t1785500655892 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "access_type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785500655892 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "match_type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785500655892 -->\nValues accepted here: `and`, `or`.\nConditionally, when objectType is \"endpoint-agent\" and type is \"dynamic\": a create omitting this field was refused with 400 and the error named the field, when objectType is \"endpoint-agent\" and type is \"dynamic\". Applied as a behaviour variant.\nConditionally, when objectType is \"endpoint-agent\": the field appeared in the read after 1 create(s), when objectType is \"endpoint-agent\". Applied as a behaviour variant.\nConditionally, when objectType is \"test\": the field was sent on 1 create(s) and appeared in no read response, including every expansion the plan declares, when objectType is \"test\". Applied as a behaviour variant.\n<!-- /probed -->"
+              "description": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "The tag's type, assigned by the API.\n\n<!-- probed:7.0.97-t1785500655892 -->\nConditionally, when objectType is \"endpoint-agent\": a create omitting this field was refused with 400 and the error named the field, when objectType is \"endpoint-agent\". Applied as a behaviour variant.\n<!-- /probed -->"
+              "description": "The tag's type, assigned by the API.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -622,7 +622,7 @@
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bgp measurements."
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -650,7 +650,7 @@
             "name": "direction",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Direction of the test, which affects how results are shown."
+              "description": "Direction of the test, which affects how results are shown.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -664,21 +664,21 @@
             "name": "dscp_id",
             "string": {
               "computed_optional_required": "optional",
-              "description": "DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)"
+              "description": "DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "enabled",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second."
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -720,34 +720,35 @@
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Number of path traces executed by the agent."
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "path_trace_mode",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Select `inSession` to perform the path trace within a TCP session."
+              "description": "Select `inSession` to perform the path trace within a TCP session.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "port",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Target port."
+              "description": "Target port.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "protocol",
             "string": {
-              "computed_optional_required": "optional"
+              "computed_optional_required": "optional",
+              "description": "<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -810,7 +811,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -853,14 +854,14 @@
             "name": "bandwidth_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -902,14 +903,14 @@
             "name": "dscp_id",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -930,7 +931,7 @@
             "name": "ipv6_policy",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -958,7 +959,7 @@
             "name": "mtu_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -972,14 +973,14 @@
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "path_trace_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1000,21 +1001,21 @@
             "name": "probe_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "protocol",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744716524 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1056,7 +1057,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1099,7 +1100,7 @@
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1113,14 +1114,14 @@
             "name": "client_certificate",
             "string": {
               "computed_optional_required": "optional",
-              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate."
+              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "collect_proxy_network_data",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1158,21 +1159,21 @@
             "name": "distributed_tracing",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "follow_redirects",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1207,42 +1208,42 @@
             "name": "mtu_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_agent_proxy",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_proxy_id",
             "string": {
               "computed_optional_required": "optional",
-              "description": "ID of the proxy to be used if the default proxy is overridden."
+              "description": "ID of the proxy to be used if the default proxy is overridden.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "path_trace_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1276,21 +1277,21 @@
             "name": "probe_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "protocol",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1521,7 +1522,7 @@
             "name": "ssl_version_id",
             "string": {
               "computed_optional_required": "optional",
-              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3."
+              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1570,7 +1571,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1662,7 +1663,7 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744878231 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1731,7 +1732,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744878231 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           }
         ],
@@ -1753,14 +1754,14 @@
             "name": "bandwidth_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->\n\nSDK limitation: the wire field is a value-typed bool with omitempty, so an explicit `false` cannot be sent; with `network_measurements = true` the API then treats bandwidth measurement as requested, which cloud agents refuse."
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\nSDK limitation: the wire field is a value-typed bool with omitempty, so an explicit `false` cannot be sent; with `network_measurements = true` the API then treats bandwidth measurement as requested, which cloud agents refuse."
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1788,7 +1789,7 @@
             "name": "dns_query_class",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1805,7 +1806,7 @@
             "name": "dns_transport_protocol",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Transport protocol used for DNS requests.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Transport protocol used for DNS requests.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1819,14 +1820,14 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second."
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1840,7 +1841,7 @@
             "name": "ipv6_policy",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1868,49 +1869,49 @@
             "name": "mtu_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns 1 when this is omitted.\n<!-- /probed -->"
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "path_trace_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "probe_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "protocol",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744994227 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -1952,7 +1953,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2016,14 +2017,14 @@
             "name": "dns_query_class",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "dns_transport_protocol",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Transport protocol used for DNS requests.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Transport protocol used for DNS requests.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2037,7 +2038,7 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785745019896 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2072,7 +2073,7 @@
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785745019896 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2163,7 +2164,7 @@
             "name": "dns_query_class",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2177,7 +2178,7 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785745046061 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2212,7 +2213,7 @@
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785745046061 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2282,14 +2283,14 @@
             "name": "bandwidth_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2324,14 +2325,14 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second."
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2359,7 +2360,7 @@
             "name": "ipv6_policy",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2387,28 +2388,28 @@
             "name": "mtu_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "password",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nWrite-only: the API never returns it (the 2026-08-03 acceptance run (#13)); state carries the configured value.",
+              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\nWrite-only: the API never returns it (the 2026-08-03 acceptance run (#13)); state carries the configured value.",
               "sensitive": true
             }
           },
@@ -2416,28 +2417,28 @@
             "name": "path_trace_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "probe_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "protocol",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745105202 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2500,7 +2501,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2550,42 +2551,42 @@
             "name": "allow_unsafe_legacy_renegotiation",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "auth_type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "bandwidth_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "client_certificate",
             "string": {
               "computed_optional_required": "optional",
-              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate."
+              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "collect_proxy_network_data",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2620,14 +2621,14 @@
             "name": "desired_status_code",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code."
+              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "distributed_tracing",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2648,21 +2649,21 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second."
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "follow_redirects",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2679,28 +2680,28 @@
             "name": "http_target_time",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Target time for HTTP server completion, specified in milliseconds.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns 1000 when this is omitted.\n<!-- /probed -->"
+              "description": "Target time for HTTP server completion, specified in milliseconds.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_time_limit",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP time limit in seconds.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns 5 when this is omitted.\n<!-- /probed -->"
+              "description": "HTTP time limit in seconds.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_version",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns 2 when this is omitted.\n<!-- /probed -->"
+              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "include_headers",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2714,7 +2715,7 @@
             "name": "ipv6_policy",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2742,49 +2743,49 @@
             "name": "mtu_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_agent_proxy",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_proxy_id",
             "string": {
               "computed_optional_required": "optional",
-              "description": "ID of the proxy to be used if the default proxy is overridden."
+              "description": "ID of the proxy to be used if the default proxy is overridden.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "password",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Password for Basic/NTLM authentication."
+              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "path_trace_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2798,28 +2799,28 @@
             "name": "probe_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "protocol",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744687658 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "request_method",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP request method.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "HTTP request method.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2840,7 +2841,7 @@
             "name": "ssl_version_id",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2875,28 +2876,28 @@
             "name": "use_ntlm",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "user_agent",
             "string": {
               "computed_optional_required": "optional",
-              "description": "User-agent string to be provided during the test."
+              "description": "User-agent string to be provided during the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "username",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Username for Basic/NTLM authentication."
+              "description": "Username for Basic/NTLM authentication.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2931,7 +2932,7 @@
             "name": "verify_certificate",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -2974,77 +2975,77 @@
             "name": "allow_geolocation",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set true to use the agent’s geolocation by the web page.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Set true to use the agent’s geolocation by the web page.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "allow_mic_and_camera",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set true allow the use of a fake mic and camera in the browser.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Set true allow the use of a fake mic and camera in the browser.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "allow_unsafe_legacy_renegotiation",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "auth_type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "bandwidth_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "block_domains",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns \"\" when this is omitted.\n<!-- /probed -->"
+              "description": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "browser_language",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Set one of the available browser language that you want to use to configure the browser.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns \"en-US\" when this is omitted.\n<!-- /probed -->"
+              "description": "Set one of the available browser language that you want to use to configure the browser.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "chrome_options",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Command-line options passed to Chrome when running the test."
+              "description": "Command-line options passed to Chrome when running the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "client_certificate",
             "string": {
               "computed_optional_required": "optional",
-              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate."
+              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "collect_proxy_network_data",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether network data to the proxy should be collected.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Indicates whether network data to the proxy should be collected.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3079,21 +3080,21 @@
             "name": "desired_status_code",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code."
+              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "disable_screenshot",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Enables or disables screenshots on error. Set true to not capture\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Enables or disables screenshots on error. Set true to not capture\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "distributed_tracing",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3121,63 +3122,63 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second."
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "follow_redirects",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_interval",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP test run interval. The interval between HTTP test runs in seconds cannot exceed the specified interval value and defaults to the same value as the interval if not set.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "HTTP test run interval. The interval between HTTP test runs in seconds cannot exceed the specified interval value and defaults to the same value as the interval if not set.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_target_time",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Target time for HTTP server completion, specified in milliseconds.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 1000 when this is omitted.\n<!-- /probed -->"
+              "description": "Target time for HTTP server completion, specified in milliseconds.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_time_limit",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP time limit in seconds.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 5 when this is omitted.\n<!-- /probed -->"
+              "description": "HTTP time limit in seconds.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_version",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 2 when this is omitted.\n<!-- /probed -->"
+              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "identify_agent_traffic_with_user_agent",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "include_headers",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to capture response headers for objects loaded by the test.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to capture response headers for objects loaded by the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3212,7 +3213,7 @@
             "name": "mtu_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3226,21 +3227,21 @@
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_agent_proxy",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_proxy_id",
             "string": {
               "computed_optional_required": "optional",
-              "description": "ID of the proxy to be used if the default proxy is overridden."
+              "description": "ID of the proxy to be used if the default proxy is overridden.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3254,49 +3255,49 @@
             "name": "page_load_time_limit",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Page load time limit. Must be larger than the `httpTimeLimit`.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 10 when this is omitted.\n<!-- /probed -->"
+              "description": "Page load time limit. Must be larger than the `httpTimeLimit`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "page_loading_strategy",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "password",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Password for Basic/NTLM authentication."
+              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "path_trace_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "probe_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "protocol",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745161014 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3317,14 +3318,14 @@
             "name": "ssl_version_id",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "subinterval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`."
+              "description": "Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3359,28 +3360,28 @@
             "name": "use_ntlm",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "user_agent",
             "string": {
               "computed_optional_required": "optional",
-              "description": "User-agent string to be provided during the test."
+              "description": "User-agent string to be provided during the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "username",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Username for Basic/NTLM authentication."
+              "description": "Username for Basic/NTLM authentication.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3415,7 +3416,7 @@
             "name": "verify_certificate",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3465,7 +3466,7 @@
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bgp measurements."
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3493,14 +3494,14 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second."
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3514,7 +3515,7 @@
             "name": "ipv6_policy",
             "string": {
               "computed_optional_required": "optional",
-              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level."
+              "description": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3542,21 +3543,21 @@
             "name": "mtu_measurements",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Number of path traces executed by the agent."
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3577,7 +3578,7 @@
             "name": "path_trace_mode",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Select `inSession` to perform the path trace within a TCP session."
+              "description": "Select `inSession` to perform the path trace within a TCP session.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3591,7 +3592,7 @@
             "name": "probe_mode",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Probe mode used by network test, only valid when the protocol is set to TCP."
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3605,7 +3606,7 @@
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3668,7 +3669,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3718,7 +3719,7 @@
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bgp measurements."
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3767,7 +3768,7 @@
             "name": "dscp_id",
             "string": {
               "computed_optional_required": "optional",
-              "description": "DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)"
+              "description": "DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3781,7 +3782,7 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "description": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3823,7 +3824,7 @@
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Number of path traces executed by the agent."
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3837,7 +3838,7 @@
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3879,7 +3880,7 @@
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -3922,77 +3923,77 @@
             "name": "allow_geolocation",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set true to use the agent’s geolocation by the web page.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Set true to use the agent’s geolocation by the web page.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "allow_mic_and_camera",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set true allow the use of a fake mic and camera in the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Set true allow the use of a fake mic and camera in the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "allow_unsafe_legacy_renegotiation",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "auth_type",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "bandwidth_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bgp measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Set to `true` to enable bgp measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "block_domains",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests."
+              "description": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "browser_language",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Set one of the available browser language that you want to use to configure the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Set one of the available browser language that you want to use to configure the browser.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "chrome_options",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Command-line options passed to Chrome when running the test."
+              "description": "Command-line options passed to Chrome when running the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "client_certificate",
             "string": {
               "computed_optional_required": "optional",
-              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate."
+              "description": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "collect_proxy_network_data",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether network data to the proxy should be collected.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Indicates whether network data to the proxy should be collected.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -4037,21 +4038,21 @@
             "name": "desired_status_code",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code."
+              "description": "Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "disable_screenshot",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Enables or disables screenshots on error. Set true to not capture\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Enables or disables screenshots on error. Set true to not capture\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "distributed_tracing",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -4079,56 +4080,56 @@
             "name": "enabled",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Test is enabled.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Test is enabled.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value."
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "follow_redirects",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_target_time",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Target time for HTTP server completion, specified in milliseconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Target time for HTTP server completion, specified in milliseconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_time_limit",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP time limit in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "HTTP time limit in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_version",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "identify_agent_traffic_with_user_agent",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "include_headers",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -4163,7 +4164,7 @@
             "name": "mtu_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -4177,63 +4178,63 @@
             "name": "num_path_traces",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Number of path traces executed by the agent.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Number of path traces executed by the agent.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_agent_proxy",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_proxy_id",
             "string": {
               "computed_optional_required": "optional",
-              "description": "ID of the proxy to be used if the default proxy is overridden."
+              "description": "ID of the proxy to be used if the default proxy is overridden.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "page_loading_strategy",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "* `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. \n* `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the \"interactive\" readiness state, before proceeding to the next action in the test script.\n* `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "password",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Password for Basic/NTLM authentication."
+              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "path_trace_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "probe_mode",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "protocol",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745177323 -->\nThe specification documents `udp`, which the API rejected.\n<!-- /probed -->\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicates whether agents should randomize the start time in each test round.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -4254,14 +4255,14 @@
             "name": "ssl_version_id",
             "string": {
               "computed_optional_required": "computed_optional",
-              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "subinterval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`."
+              "description": "Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval.\n\nDocumented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -4289,7 +4290,7 @@
             "name": "time_limit",
             "int64": {
               "computed_optional_required": "computed_optional",
-              "description": "Time limit for transaction in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Time limit for transaction in seconds.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -4317,28 +4318,28 @@
             "name": "use_ntlm",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_public_bgp",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "user_agent",
             "string": {
               "computed_optional_required": "optional",
-              "description": "User-agent string to be provided during the test."
+              "description": "User-agent string to be provided during the test.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
             "name": "username",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Username for Basic/NTLM authentication."
+              "description": "Username for Basic/NTLM authentication.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {
@@ -4373,7 +4374,7 @@
             "name": "verify_certificate",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
             }
           },
           {

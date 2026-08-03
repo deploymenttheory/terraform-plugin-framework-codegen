@@ -198,7 +198,8 @@ jobs:
           echo "::group::🔗 Bindings"
           go run ./cmd/tfpluginframeworkgen bindings \
             -blueprint blueprints/thousandeyes \
-            -module pilot/thousandeyes
+            -module pilot/thousandeyes \
+            -facts-check blueprints/thousandeyes/static.facts.json
           echo "::endgroup::"
 
   interop:

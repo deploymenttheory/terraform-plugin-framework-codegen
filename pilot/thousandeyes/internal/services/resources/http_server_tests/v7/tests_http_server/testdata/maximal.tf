@@ -23,8 +23,6 @@ resource "thousandeyes_tests_http_server" "test" {
   #
   # collect_proxy_network_data: the API's own default, so a value it is known to accept
   #
-  # content_regex: the API's own default, so a value it is known to accept
-  #
   # desired_status_code: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # distributed_tracing: the API's own default, so a value it is known to accept
@@ -100,7 +98,7 @@ resource "thousandeyes_tests_http_server" "test" {
   bandwidth_measurements            = false
   bgp_measurements                  = true
   collect_proxy_network_data        = false
-  content_regex                     = ""
+  content_regex                     = "tfacc-content-regex"
   description                       = "tfacc-description"
   desired_status_code               = "200"
   distributed_tracing               = false

@@ -14,17 +14,16 @@ resource "thousandeyes_tag" "test" {
   #
   # icon: the API's own default, so a value it is known to accept
   #
-  # object_type: observed accepted; the API refused endpoint-agent
+  # object_type: observed accepted
   #
   # access_type: observed accepted; the API refused system
   #
   # match_type: observed accepted
   #
+  # type: documented; unprobed
+  #
   # Not filled in, because no correct value could be derived. Each of these is optional, so this
   # configuration is valid as it stands -- but it is testing less than it could.
-  #
-  # assignments: a nested object's members may be identifiers of objects that must already
-  # exist, and nothing in the specification says whether they are
   #
   # filters: a nested object's members may be identifiers of objects that must already exist,
   # and nothing in the specification says whether they are
@@ -36,4 +35,5 @@ resource "thousandeyes_tag" "test" {
   object_type = "test"
   access_type = "all"
   match_type  = "and"
+  type        = "static"
 }

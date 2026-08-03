@@ -1,0 +1,2984 @@
+[
+  {
+    "resource": "tag",
+    "jsonPath": "accessType",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:tags.TagInfo.AccessType json:\"accessType,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "matchType",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:tags.TagInfo.MatchType json:\"matchType,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "objectType",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:tags.TagInfo.ObjectType json:\"objectType,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tag",
+    "jsonPath": "type",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:tags.TagInfo.Type json:\"type,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "direction",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.Direction json:\"direction,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "dscpId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.DscpID json:\"dscpId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "fixedPacketRate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.FixedPacketRate json:\"fixedPacketRate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "pathTraceMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.PathTraceMode json:\"pathTraceMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "port",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.Port json:\"port,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "protocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.Protocol json:\"protocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_agent",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_agent_tests.AgentToAgentTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "bandwidthMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.BandwidthMeasurements json:\"bandwidthMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "dscpId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.DscpID json:\"dscpId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "ipv6Policy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.Ipv6Policy json:\"ipv6Policy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "mtuMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "pathTraceMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.PathTraceMode json:\"pathTraceMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "probeMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.ProbeMode json:\"probeMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "protocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.Protocol json:\"protocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_agent_to_server",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:agent_to_server_tests.AgentToServerTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "clientCertificate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.ClientCertificate json:\"clientCertificate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "collectProxyNetworkData",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.CollectProxyNetworkData json:\"collectProxyNetworkData,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "distributedTracing",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.DistributedTracing json:\"distributedTracing,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "followRedirects",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.FollowRedirects json:\"followRedirects,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "mtuMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "networkMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.NetworkMeasurements json:\"networkMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "overrideAgentProxy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.OverrideAgentProxy json:\"overrideAgentProxy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "overrideProxyId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.OverrideProxyID json:\"overrideProxyId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "pathTraceMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.PathTraceMode json:\"pathTraceMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "probeMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.ProbeMode json:\"probeMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "protocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.Protocol json:\"protocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "sslVersionId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.SslVersionID json:\"sslVersionId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_api",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:api_tests.ApiTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_bgp",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:bgp_tests.BgpTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_bgp",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:bgp_tests.BgpTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "bandwidthMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.BandwidthMeasurements json:\"bandwidthMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "dnsQueryClass",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.DnsQueryClass json:\"dnsQueryClass,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "dnsTransportProtocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.DnsTransportProtocol json:\"dnsTransportProtocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "fixedPacketRate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.FixedPacketRate json:\"fixedPacketRate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "ipv6Policy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.Ipv6Policy json:\"ipv6Policy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "mtuMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "networkMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.NetworkMeasurements json:\"networkMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "pathTraceMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.PathTraceMode json:\"pathTraceMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "probeMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.ProbeMode json:\"probeMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "protocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.Protocol json:\"protocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_server",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_server_tests.DnsServerTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "dnsQueryClass",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_trace_tests.DnsTraceTestRequest.DnsQueryClass json:\"dnsQueryClass,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "dnsTransportProtocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_trace_tests.DnsTraceTestRequest.DnsTransportProtocol json:\"dnsTransportProtocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_trace_tests.DnsTraceTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dns_trace",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dns_trace_tests.DnsTraceTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dnssec",
+    "jsonPath": "dnsQueryClass",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dnssec_tests.DnsSecTestRequest.DnsQueryClass json:\"dnsQueryClass,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dnssec",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dnssec_tests.DnsSecTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_dnssec",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:dnssec_tests.DnsSecTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "bandwidthMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.BandwidthMeasurements json:\"bandwidthMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "fixedPacketRate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.FixedPacketRate json:\"fixedPacketRate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "ipv6Policy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.Ipv6Policy json:\"ipv6Policy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "mtuMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "networkMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.NetworkMeasurements json:\"networkMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "password",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.Password json:\"password,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "pathTraceMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.PathTraceMode json:\"pathTraceMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "probeMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.ProbeMode json:\"probeMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "protocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.Protocol json:\"protocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:ftp_server_tests.FtpServerTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "allowUnsafeLegacyRenegotiation",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.AllowUnsafeLegacyRenegotiation json:\"allowUnsafeLegacyRenegotiation,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "authType",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.AuthType json:\"authType,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "bandwidthMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.BandwidthMeasurements json:\"bandwidthMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "clientCertificate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.ClientCertificate json:\"clientCertificate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "collectProxyNetworkData",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.CollectProxyNetworkData json:\"collectProxyNetworkData,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "desiredStatusCode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.DesiredStatusCode json:\"desiredStatusCode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "distributedTracing",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.DistributedTracing json:\"distributedTracing,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "fixedPacketRate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.FixedPacketRate json:\"fixedPacketRate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "followRedirects",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.FollowRedirects json:\"followRedirects,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "httpTargetTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.HttpTargetTime json:\"httpTargetTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "httpTimeLimit",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.HttpTimeLimit json:\"httpTimeLimit,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "httpVersion",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.HttpVersion json:\"httpVersion,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "includeHeaders",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.IncludeHeaders json:\"includeHeaders,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "ipv6Policy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.Ipv6Policy json:\"ipv6Policy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "mtuMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "networkMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.NetworkMeasurements json:\"networkMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "overrideAgentProxy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.OverrideAgentProxy json:\"overrideAgentProxy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "overrideProxyId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.OverrideProxyID json:\"overrideProxyId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "password",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.Password json:\"password,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "pathTraceMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.PathTraceMode json:\"pathTraceMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "probeMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.ProbeMode json:\"probeMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "protocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.Protocol json:\"protocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "requestMethod",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.RequestMethod json:\"requestMethod,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "sslVersionId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.SslVersionID json:\"sslVersionId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "useNtlm",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.UseNtlm json:\"useNtlm,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "userAgent",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.UserAgent json:\"userAgent,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "username",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.Username json:\"username,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_http_server",
+    "jsonPath": "verifyCertificate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:http_server_tests.HttpServerTestRequest.VerifyCertificate json:\"verifyCertificate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "allowGeolocation",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.AllowGeolocation json:\"allowGeolocation,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "allowMicAndCamera",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.AllowMicAndCamera json:\"allowMicAndCamera,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "allowUnsafeLegacyRenegotiation",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.AllowUnsafeLegacyRenegotiation json:\"allowUnsafeLegacyRenegotiation,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "authType",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.AuthType json:\"authType,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "bandwidthMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.BandwidthMeasurements json:\"bandwidthMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "blockDomains",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.BlockDomains json:\"blockDomains,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "browserLanguage",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.BrowserLanguage json:\"browserLanguage,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "chromeOptions",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.ChromeOptions json:\"chromeOptions,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "clientCertificate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.ClientCertificate json:\"clientCertificate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "collectProxyNetworkData",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.CollectProxyNetworkData json:\"collectProxyNetworkData,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "desiredStatusCode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.DesiredStatusCode json:\"desiredStatusCode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "disableScreenshot",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.DisableScreenshot json:\"disableScreenshot,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "distributedTracing",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.DistributedTracing json:\"distributedTracing,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "fixedPacketRate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.FixedPacketRate json:\"fixedPacketRate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "followRedirects",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.FollowRedirects json:\"followRedirects,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "httpInterval",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.HttpInterval json:\"httpInterval,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "httpTargetTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.HttpTargetTime json:\"httpTargetTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "httpTimeLimit",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.HttpTimeLimit json:\"httpTimeLimit,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "httpVersion",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.HttpVersion json:\"httpVersion,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "identifyAgentTrafficWithUserAgent",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.IdentifyAgentTrafficWithUserAgent json:\"identifyAgentTrafficWithUserAgent,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "includeHeaders",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.IncludeHeaders json:\"includeHeaders,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "mtuMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "overrideAgentProxy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.OverrideAgentProxy json:\"overrideAgentProxy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "overrideProxyId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.OverrideProxyID json:\"overrideProxyId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "pageLoadTimeLimit",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.PageLoadTimeLimit json:\"pageLoadTimeLimit,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "pageLoadingStrategy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.PageLoadingStrategy json:\"pageLoadingStrategy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "password",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.Password json:\"password,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "pathTraceMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.PathTraceMode json:\"pathTraceMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "probeMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.ProbeMode json:\"probeMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "protocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.Protocol json:\"protocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "sslVersionId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.SslVersionID json:\"sslVersionId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "subinterval",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.Subinterval json:\"subinterval,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "useNtlm",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.UseNtlm json:\"useNtlm,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "userAgent",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.UserAgent json:\"userAgent,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "username",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.Username json:\"username,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_page_load",
+    "jsonPath": "verifyCertificate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:page_load_tests.PageLoadTestRequest.VerifyCertificate json:\"verifyCertificate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "fixedPacketRate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.FixedPacketRate json:\"fixedPacketRate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "ipv6Policy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.Ipv6Policy json:\"ipv6Policy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "mtuMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "networkMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.NetworkMeasurements json:\"networkMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "pathTraceMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.PathTraceMode json:\"pathTraceMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "probeMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.ProbeMode json:\"probeMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_sip_server",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:sip_server_tests.SipServerTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_voice",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:voice_tests.VoiceTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_voice",
+    "jsonPath": "dscpId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:voice_tests.VoiceTestRequest.DscpID json:\"dscpId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_voice",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:voice_tests.VoiceTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_voice",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:voice_tests.VoiceTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_voice",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:voice_tests.VoiceTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_voice",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:voice_tests.VoiceTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "allowGeolocation",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.AllowGeolocation json:\"allowGeolocation,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "allowMicAndCamera",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.AllowMicAndCamera json:\"allowMicAndCamera,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "allowUnsafeLegacyRenegotiation",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.AllowUnsafeLegacyRenegotiation json:\"allowUnsafeLegacyRenegotiation,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "authType",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.AuthType json:\"authType,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "bandwidthMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.BandwidthMeasurements json:\"bandwidthMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "bgpMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.BgpMeasurements json:\"bgpMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "blockDomains",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.BlockDomains json:\"blockDomains,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "browserLanguage",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.BrowserLanguage json:\"browserLanguage,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "chromeOptions",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.ChromeOptions json:\"chromeOptions,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "clientCertificate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.ClientCertificate json:\"clientCertificate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "collectProxyNetworkData",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.CollectProxyNetworkData json:\"collectProxyNetworkData,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "desiredStatusCode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.DesiredStatusCode json:\"desiredStatusCode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "disableScreenshot",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.DisableScreenshot json:\"disableScreenshot,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "distributedTracing",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.DistributedTracing json:\"distributedTracing,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "enabled",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.Enabled json:\"enabled,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "fixedPacketRate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.FixedPacketRate json:\"fixedPacketRate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "followRedirects",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.FollowRedirects json:\"followRedirects,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "httpTargetTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.HttpTargetTime json:\"httpTargetTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "httpTimeLimit",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.HttpTimeLimit json:\"httpTimeLimit,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "httpVersion",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.HttpVersion json:\"httpVersion,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "identifyAgentTrafficWithUserAgent",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.IdentifyAgentTrafficWithUserAgent json:\"identifyAgentTrafficWithUserAgent,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "includeHeaders",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.IncludeHeaders json:\"includeHeaders,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "mtuMeasurements",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.MtuMeasurements json:\"mtuMeasurements,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "numPathTraces",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.NumPathTraces json:\"numPathTraces,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "overrideAgentProxy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.OverrideAgentProxy json:\"overrideAgentProxy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "overrideProxyId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.OverrideProxyID json:\"overrideProxyId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "pageLoadingStrategy",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.PageLoadingStrategy json:\"pageLoadingStrategy,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "password",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.Password json:\"password,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "pathTraceMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.PathTraceMode json:\"pathTraceMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "probeMode",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.ProbeMode json:\"probeMode,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "protocol",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.Protocol json:\"protocol,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "randomizedStartTime",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.RandomizedStartTime json:\"randomizedStartTime,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "sslVersionId",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.SslVersionID json:\"sslVersionId,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "subinterval",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.Subinterval json:\"subinterval,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "timeLimit",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.TimeLimit json:\"timeLimit,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "useNtlm",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.UseNtlm json:\"useNtlm,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "usePublicBgp",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.UsePublicBGP json:\"usePublicBgp,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "userAgent",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.UserAgent json:\"userAgent,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "username",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.Username json:\"username,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "verifyCertificate",
+    "field": "zeroValueUnsendable",
+    "value": {
+      "bool": true
+    },
+    "confidence": "corroborated",
+    "probe": "static.sdkbind",
+    "evidence": [
+      "static:web_transaction_tests.WebTransactionTestRequest.VerifyCertificate json:\"verifyCertificate,omitempty\""
+    ],
+    "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
+  }
+]

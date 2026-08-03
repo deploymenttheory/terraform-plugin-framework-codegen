@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -15,6 +17,11 @@ func runBindings(args []string) error {
 	var (
 		blueprintPath = fs.String("blueprint", "", "blueprint file or directory (required)")
 		module        = fs.String("module", "", "directory of a module that depends on the SDK (required)")
+		factsOut      = fs.String("facts-out", "",
+			"write statically derived facts (zero-value unsendable) to FILE")
+		factsCheck = fs.String("facts-check", "",
+			"re-derive static facts and fail when FILE differs -- the drift gate for a "+
+				"committed static facts document")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -72,6 +79,50 @@ func runBindings(args []string) error {
 	}
 
 	log.Printf("✅ %d binding(s) match the SDK", report.Checked)
+
+	if *factsOut != "" || *factsCheck != "" {
+		return staticFacts(bp, *module, *factsOut, *factsCheck)
+	}
+
+	return nil
+}
+
+// staticFacts derives the SDK-type facts and writes or checks the committed document.
+//
+// Derivation and drift-check share one code path deliberately: the check is "would a
+// fresh derivation produce these bytes", which is exactly what CI needs to prove the
+// committed document still matches the pinned SDK.
+func staticFacts(bp blueprint.Blueprint, module, out, check string) error {
+	facts, err := sdkbind.StaticFacts(sdkbind.NewLoader(module), bp)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("%d static fact(s) derived from the SDK's types", len(facts))
+
+	if out != "" {
+		if err := writeJSONFile(out, facts); err != nil {
+			return err
+		}
+		log.Printf("✅ static facts written to %s", out)
+	}
+
+	if check != "" {
+		committed, err := readFacts(check)
+		if err != nil {
+			return err
+		}
+
+		fresh, _ := json.Marshal(facts)
+		have, _ := json.Marshal(committed)
+		if !bytes.Equal(fresh, have) {
+			fmt.Fprintf(os.Stderr,
+				"::error::the committed static facts have drifted from the pinned SDK\n")
+			return fmt.Errorf("static facts drift: %s no longer matches a fresh derivation; "+
+				"regenerate with -facts-out and review the diff", check)
+		}
+		log.Printf("✅ static facts match the pinned SDK")
+	}
 
 	return nil
 }

@@ -207,7 +207,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -225,7 +225,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -380,12 +380,13 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Set to `true` to enable bgp measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "bgpMeasurements",
@@ -429,7 +430,7 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.",
+            "markdownDescription": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "wire": {
               "jsonPath": "clientCertificate",
               "sdkField": "ClientCertificate",
@@ -452,12 +453,13 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "collectProxyNetworkData",
@@ -564,12 +566,13 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "distributedTracing",
@@ -593,12 +596,13 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Test is enabled.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "enabled",
@@ -622,7 +626,7 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "markdownDescription": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "wire": {
               "jsonPath": "followRedirects",
               "sdkField": "FollowRedirects",
@@ -962,12 +966,13 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "mtuMeasurements",
@@ -991,12 +996,13 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "networkMeasurements",
@@ -1024,12 +1030,13 @@
               }
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Number of path traces executed by the agent.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "3"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "numPathTraces",
@@ -1053,12 +1060,13 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "overrideAgentProxy",
@@ -1082,7 +1090,7 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "ID of the proxy to be used if the default proxy is overridden.",
+            "markdownDescription": "ID of the proxy to be used if the default proxy is overridden.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "wire": {
               "jsonPath": "overrideProxyId",
               "sdkField": "OverrideProxyID",
@@ -1109,7 +1117,7 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "wire": {
               "jsonPath": "pathTraceMode",
               "sdkField": "PathTraceMode",
@@ -1210,7 +1218,7 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "wire": {
               "jsonPath": "probeMode",
               "sdkField": "ProbeMode",
@@ -1238,12 +1246,13 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "\"tcp\""
               },
+              "zeroValueUnsendable": true,
               "acceptedValues": [
                 "tcp",
                 "icmp"
@@ -1275,12 +1284,13 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "randomizedStartTime",
@@ -2122,7 +2132,7 @@
               ]
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.",
+            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "wire": {
               "jsonPath": "sslVersionId",
               "sdkField": "SslVersionID",
@@ -2378,12 +2388,13 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:thousandeyes -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "usePublicBgp",

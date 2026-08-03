@@ -10,7 +10,13 @@
 resource "thousandeyes_tests_sip_server" "test" {
   # Where a value came from.
   #
+  # fixed_packet_rate: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # interval: curated in the blueprint's accFixture; the generator cannot derive it
+  #
   # ipv6_policy: documented; unprobed
+  #
+  # network_measurements: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # path_trace_mode: documented; unprobed
   #
@@ -21,11 +27,11 @@ resource "thousandeyes_tests_sip_server" "test" {
   bgp_measurements      = true
   description           = "tfacc-description"
   enabled               = true
-  fixed_packet_rate      = 50
-  interval              = 1
+  fixed_packet_rate     = 50
+  interval              = 3600
   ipv6_policy           = "force-ipv4"
   mtu_measurements      = true
-  network_measurements  = true
+  network_measurements  = false
   num_path_traces       = 1
   options_regex         = "tfacc-options-regex"
   path_trace_mode       = "classic"
