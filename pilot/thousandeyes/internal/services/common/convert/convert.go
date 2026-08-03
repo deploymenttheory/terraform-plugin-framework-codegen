@@ -330,3 +330,29 @@ func Deref[T any](p *T) T {
 
 	return *p
 }
+
+// FrameworkSetToEnumSlice converts a set of strings into a named-string slice --
+// a suppression window's daysOfWeek is []DaysOfWeek, not []string.
+func FrameworkSetToEnumSlice[T ~string](ctx context.Context, v types.Set) ([]T, diag.Diagnostics) {
+	raw, diags := FrameworkSetToStringSlice(ctx, v)
+	if raw == nil {
+		return nil, diags
+	}
+	out := make([]T, len(raw))
+	for i, s := range raw {
+		out[i] = T(s)
+	}
+	return out, diags
+}
+
+// EnumSliceToFrameworkSet is the read-side mirror of FrameworkSetToEnumSlice.
+func EnumSliceToFrameworkSet[T ~string](ctx context.Context, v []T) (types.Set, diag.Diagnostics) {
+	if v == nil {
+		return StringSliceToFrameworkSet(ctx, nil)
+	}
+	raw := make([]string, len(v))
+	for i, s := range v {
+		raw[i] = string(s)
+	}
+	return StringSliceToFrameworkSet(ctx, raw)
+}

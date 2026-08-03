@@ -120,6 +120,10 @@ func wireBody(res blueprint.Resource, plan probe.Plan, minimal bool) map[string]
 			continue
 		}
 
+		if res.AccFixture.Omitted(a.Name) {
+			continue // curated out: individually valid, refused in combination
+		}
+
 		if v, ok := hintWire(res, a.Name); ok {
 			if unsendableZero(a, v) {
 				continue

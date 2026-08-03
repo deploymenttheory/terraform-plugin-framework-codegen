@@ -207,7 +207,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -225,7 +225,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -458,7 +458,10 @@
             "name": "created_date",
             "goField": "CreatedDate",
             "type": {
-              "kind": "string"
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
             },
             "computedOptionalRequired": "computed",
             "markdownDescription": "UTC created date (ISO date-time format).",
@@ -848,7 +851,10 @@
             "name": "modified_date",
             "goField": "ModifiedDate",
             "type": {
-              "kind": "string"
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
             },
             "computedOptionalRequired": "computed",
             "markdownDescription": "UTC last modification date (ISO date-time format).",

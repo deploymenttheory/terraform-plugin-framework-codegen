@@ -1,0 +1,567 @@
+[
+  {
+    "resource": "alert_suppression_window",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "404=problem"
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-alert-suppression-windows-999999999"
+    ],
+    "rationale": "a 404 response used the problem error shape"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "field": "policy.delete.notFoundIsSuccess",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-alert-suppression-windows-999999999"
+    ],
+    "rationale": "reading an absent object answered 404 with a problem error body",
+    "alternatives": [
+      "the API may answer differently for an identifier that once existed and was deleted"
+    ]
+  },
+  {
+    "resource": "alert_suppression_window",
+    "field": "policy.readBack",
+    "value": {
+      "readBack": {
+        "reason": "every one of 10 read(s) immediately after a create succeeded on the first attempt"
+      }
+    },
+    "confidence": "inferred",
+    "probe": "write.read-your-writes",
+    "evidence": [
+      "018-get-v7-alert-suppression-windows-281474976711118",
+      "021-get-v7-alert-suppression-windows-281474976711119",
+      "023-get-v7-alert-suppression-windows-281474976711119",
+      "026-get-v7-alert-suppression-windows-281474976711120",
+      "028-get-v7-alert-suppression-windows-281474976711121",
+      "071-get-v7-alert-suppression-windows-281474976711141",
+      "073-get-v7-alert-suppression-windows-281474976711141",
+      "075-get-v7-alert-suppression-windows-281474976711141",
+      "078-get-v7-alert-suppression-windows-281474976711142",
+      "080-get-v7-alert-suppression-windows-281474976711142"
+    ],
+    "rationale": "10 object(s) were read immediately after creation and every first read succeeded",
+    "alternatives": [
+      "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+    ]
+  },
+  {
+    "resource": "alert_suppression_window",
+    "field": "policy.updateStyle",
+    "value": {
+      "text": "patchMerge"
+    },
+    "confidence": "observed",
+    "probe": "write.update-style",
+    "evidence": [
+      "021-get-v7-alert-suppression-windows-281474976711119",
+      "023-get-v7-alert-suppression-windows-281474976711119"
+    ],
+    "rationale": "an update omitting duration left it unchanged, so the API merges",
+    "alternatives": [
+      "an API that distinguishes an absent key from an explicit null may treat the two differently, and only the absent case was sent",
+      "the behaviour was observed for duration and is assumed to hold for every other field"
+    ]
+  },
+  {
+    "resource": "alert_suppression_window",
+    "field": "unknownParamTolerated",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.unknown-param",
+    "evidence": [
+      "001-get-v7-alert-suppression-windows",
+      "003-get-v7-alert-suppression-windows",
+      "004-get-v7-alert-suppression-windows",
+      "005-get-v7-alert-suppression-windows",
+      "006-get-v7-alert-suppression-windows",
+      "007-get-v7-alert-suppression-windows",
+      "008-get-v7-alert-suppression-windows",
+      "009-get-v7-alert-suppression-windows",
+      "082-get-v7-alert-suppression-windows"
+    ],
+    "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+    "alternatives": [
+      "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+    ]
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "duration",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "011-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "duration",
+    "field": "returnedOnCreate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "017-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "every create response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "duration",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "018-get-v7-alert-suppression-windows-281474976711118"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "duration",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "072-put-v7-alert-suppression-windows-281474976711141"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "endRepeat",
+    "field": "serverDefault",
+    "value": {
+      "text": "map[type:never]"
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "026-get-v7-alert-suppression-windows-281474976711120",
+      "028-get-v7-alert-suppression-windows-281474976711121"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as map[type:never] every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "endRepeat.type",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "count",
+        "never",
+        "date"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "031-post-v7-alert-suppression-windows",
+      "032-post-v7-alert-suppression-windows",
+      "033-post-v7-alert-suppression-windows",
+      "034-post-v7-alert-suppression-windows",
+      "035-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "3 of the 3 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "endRepeat.type",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "\"never\""
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "026-get-v7-alert-suppression-windows-281474976711120",
+      "028-get-v7-alert-suppression-windows-281474976711121"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as never every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "endRepeat.type",
+    "field": "valuesClosed",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "031-post-v7-alert-suppression-windows",
+      "032-post-v7-alert-suppression-windows",
+      "033-post-v7-alert-suppression-windows",
+      "034-post-v7-alert-suppression-windows",
+      "035-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "isEnabled",
+    "field": "requiredByApi",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "012-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "a create omitting this field succeeded in 1 fixture(s)"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "isEnabled",
+    "field": "returnedOnCreate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "017-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "every create response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "isEnabled",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "018-get-v7-alert-suppression-windows-281474976711118"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "isEnabled",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "072-put-v7-alert-suppression-windows-281474976711141"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "name",
+    "field": "returnedOnCreate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "017-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "every create response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "name",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "018-get-v7-alert-suppression-windows-281474976711118"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "013-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat",
+    "field": "returnedOnCreate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "017-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "every create response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "018-get-v7-alert-suppression-windows-281474976711118"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "072-put-v7-alert-suppression-windows-281474976711141"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat.intervalType",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "day",
+        "week",
+        "month"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "037-post-v7-alert-suppression-windows",
+      "038-post-v7-alert-suppression-windows",
+      "039-post-v7-alert-suppression-windows",
+      "040-post-v7-alert-suppression-windows",
+      "041-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "3 of the 3 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat.intervalType",
+    "field": "valuesClosed",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "037-post-v7-alert-suppression-windows",
+      "038-post-v7-alert-suppression-windows",
+      "039-post-v7-alert-suppression-windows",
+      "040-post-v7-alert-suppression-windows",
+      "041-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat.type",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "day",
+        "week",
+        "month",
+        "custom"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "043-post-v7-alert-suppression-windows",
+      "044-post-v7-alert-suppression-windows",
+      "045-post-v7-alert-suppression-windows",
+      "046-post-v7-alert-suppression-windows",
+      "047-post-v7-alert-suppression-windows",
+      "048-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "4 of the 4 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat.type",
+    "field": "returnedOnCreate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "017-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "every create response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat.type",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "018-get-v7-alert-suppression-windows-281474976711118"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat.type",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "\"none\""
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "026-get-v7-alert-suppression-windows-281474976711120",
+      "028-get-v7-alert-suppression-windows-281474976711121"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as none every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "repeat.type",
+    "field": "valuesClosed",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "043-post-v7-alert-suppression-windows",
+      "044-post-v7-alert-suppression-windows",
+      "045-post-v7-alert-suppression-windows",
+      "046-post-v7-alert-suppression-windows",
+      "047-post-v7-alert-suppression-windows",
+      "048-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "startDate",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "014-post-v7-alert-suppression-windows"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "startDate",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "072-put-v7-alert-suppression-windows-281474976711141"
+    ],
+    "rationale": "the update response carried the field it was sent"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "testIds",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": false
+    },
+    "confidence": "corroborated",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "073-get-v7-alert-suppression-windows-281474976711141",
+      "078-get-v7-alert-suppression-windows-281474976711142"
+    ],
+    "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+  },
+  {
+    "resource": "alert_suppression_window",
+    "jsonPath": "testIds",
+    "field": "returnedOnUpdate",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.rehearsal",
+    "evidence": [
+      "072-put-v7-alert-suppression-windows-281474976711141"
+    ],
+    "rationale": "the update response did not carry this field although the update sent it"
+  }
+]

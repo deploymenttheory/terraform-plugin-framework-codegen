@@ -1,0 +1,43 @@
+{
+  "id": "025-get-v7-alerts-rules-281474977454656",
+  "seq": 25,
+  "request": {
+    "method": "GET",
+    "path": "/v7/alerts/rules/281474977454656",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alerts/rules/281474977454656"
+        }
+      },
+      "alertGroupType": "cloud-enterprise",
+      "alertType": "http-server",
+      "expression": "((responseTime >= 1000 ms))",
+      "isDefault": false,
+      "minimumSources": 1,
+      "notifications": {
+        "email": {
+          "message": ""
+        }
+      },
+      "notifyOnClear": true,
+      "roundsViolatingMode": "any",
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleId": "281474977454656",
+      "ruleName": "tfpfgen-probe-write-update-style-1",
+      "severity": "major"
+    },
+    "droppedHeaders": 14
+  }
+}

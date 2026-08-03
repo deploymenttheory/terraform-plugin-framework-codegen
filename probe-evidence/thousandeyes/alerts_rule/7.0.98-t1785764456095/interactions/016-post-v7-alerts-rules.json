@@ -1,0 +1,36 @@
+{
+  "id": "016-post-v7-alerts-rules",
+  "seq": 16,
+  "request": {
+    "method": "POST",
+    "path": "/v7/alerts/rules",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "alertType": "http-server",
+      "description": "probe rule",
+      "expression": "((responseTime >= 1000 ms))",
+      "minimumSources": 1,
+      "notifyOnClear": true,
+      "roundsViolatingRequired": 1,
+      "ruleName": "tfpfgen-probe-write-required-7",
+      "severity": "major"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/alerts/rules",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Error in field roundsViolatingOutOf : Rounds Violating Out Of is required for alert rules of type Http with roundsViolatingMode ANY.  : Invalid Alert Rule request.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 14
+  }
+}

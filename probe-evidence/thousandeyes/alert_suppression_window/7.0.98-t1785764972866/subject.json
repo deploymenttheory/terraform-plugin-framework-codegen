@@ -1,0 +1,241 @@
+{
+  "resource": "alert_suppression_window",
+  "collectionTemplate": "/alert-suppression-windows",
+  "itemTemplate": "/alert-suppression-windows/{windowId}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/alert-suppression-windows"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/alert-suppression-windows/{windowId}"
+  },
+  "update": {
+    "method": "PUT",
+    "pathTemplate": "/alert-suppression-windows/{windowId}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/alert-suppression-windows/{windowId}"
+  },
+  "fields": [
+    {
+      "jsonPath": "alertSuppressionWindowId",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "duration",
+      "attribute": "duration",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnRead": true,
+        "returnedOnCreate": true,
+        "returnedOnUpdate": true
+      }
+    },
+    {
+      "jsonPath": "endRepeat",
+      "attribute": "end_repeat",
+      "kind": "single_nested",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "endRepeat.count",
+      "attribute": "count",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "endRepeat.date",
+      "attribute": "date",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "constraints": {
+        "format": "date"
+      }
+    },
+    {
+      "jsonPath": "endRepeat.type",
+      "attribute": "type",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "count",
+        "never",
+        "date"
+      ],
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "\"never\""
+        },
+        "acceptedValues": [
+          "count",
+          "never",
+          "date"
+        ],
+        "valuesClosed": false
+      }
+    },
+    {
+      "jsonPath": "isEnabled",
+      "attribute": "is_enabled",
+      "kind": "bool",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": false,
+        "serverDefault": {
+          "kind": "bool",
+          "raw": "true"
+        },
+        "returnedOnRead": true,
+        "returnedOnCreate": true,
+        "returnedOnUpdate": true
+      }
+    },
+    {
+      "jsonPath": "name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnRead": true,
+        "returnedOnCreate": true
+      }
+    },
+    {
+      "jsonPath": "repeat",
+      "attribute": "repeat",
+      "kind": "single_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnRead": true,
+        "returnedOnCreate": true,
+        "returnedOnUpdate": true
+      }
+    },
+    {
+      "jsonPath": "repeat.daysOfWeek",
+      "attribute": "days_of_week",
+      "kind": "set",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "repeat.intervalLength",
+      "attribute": "interval_length",
+      "kind": "int64",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "repeat.intervalType",
+      "attribute": "interval_type",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "day",
+        "week",
+        "month"
+      ],
+      "behaviour": {
+        "acceptedValues": [
+          "day",
+          "week",
+          "month"
+        ],
+        "valuesClosed": false
+      }
+    },
+    {
+      "jsonPath": "repeat.type",
+      "attribute": "type",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "day",
+        "week",
+        "month",
+        "custom"
+      ],
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "\"none\""
+        },
+        "returnedOnRead": true,
+        "returnedOnCreate": true,
+        "acceptedValues": [
+          "day",
+          "week",
+          "month",
+          "custom"
+        ],
+        "valuesClosed": false
+      }
+    },
+    {
+      "jsonPath": "startDate",
+      "attribute": "start_date",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "constraints": {
+        "format": "date-time"
+      },
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnUpdate": true
+      }
+    },
+    {
+      "jsonPath": "status",
+      "attribute": "status",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false,
+      "allowedValues": [
+        "active",
+        "inactive",
+        "ended"
+      ]
+    },
+    {
+      "jsonPath": "testIds",
+      "attribute": "test_ids",
+      "kind": "set",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "returnedOnRead": false,
+        "returnedOnUpdate": false
+      }
+    }
+  ],
+  "policy": {
+    "updateStyle": "putFull",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "alertSuppressionWindowId",
+  "nameField": "name",
+  "evidenceRev": 1
+}

@@ -1,0 +1,51 @@
+{
+  "id": "074-put-v7-alerts-rules-281474977454671",
+  "seq": 74,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/alerts/rules/281474977454671",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "alertGroupType": "bgp",
+      "alertType": "http-server",
+      "description": "tfacc-description",
+      "direction": "to-target",
+      "endpointAgentIds": [
+        "tfacc-endpoint-agent-ids-element"
+      ],
+      "endpointLabelIds": [
+        "tfacc-endpoint-label-ids-element"
+      ],
+      "expression": "((responseTime >= 1000 ms))",
+      "includeCoveredPrefixes": true,
+      "isDefault": false,
+      "minimumSources": 1,
+      "minimumSourcesPct": 1,
+      "notifyOnClear": true,
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleName": "tfpfgen-probe-write-rehearsal-1",
+      "severity": "info",
+      "visitedSitesFilter": [
+        "tfacc-visited-sites-filter-element"
+      ]
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/alerts/rules/281474977454671",
+      "status": 400,
+      "title": "minimumSources: Exactly 1 field must be defined between minimumSources and minimumSourcesPct\nminimumSourcesPct: Exactly 1 field must be defined between minimumSources and minimumSourcesPct\ndirection: Rule cannot have a direction set for alert type HTTP Server",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 14
+  }
+}

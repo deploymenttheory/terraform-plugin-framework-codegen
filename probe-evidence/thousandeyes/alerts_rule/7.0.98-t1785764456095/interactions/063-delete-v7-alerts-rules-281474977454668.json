@@ -1,0 +1,18 @@
+{
+  "id": "063-delete-v7-alerts-rules-281474977454668",
+  "seq": 63,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/alerts/rules/281474977454668",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "fixtures": [
+    {
+      "name": "one-off-window",
+      "body": {
+        "duration": 3600,
+        "name": "CURATE_ME-stamped-by-probe",
+        "repeat": {
+          "type": "none"
+        },
+        "startDate": "2027-06-01T00:00:00Z"
+      }
+    }
+  ],
+  "deny": [
+    "startDate"
+  ],
+  "budget": {
+    "maxRequests": 300,
+    "maxCreates": 40
+  }
+}

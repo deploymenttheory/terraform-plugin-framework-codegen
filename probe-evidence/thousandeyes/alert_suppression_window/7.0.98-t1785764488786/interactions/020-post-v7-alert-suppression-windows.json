@@ -1,0 +1,49 @@
+{
+  "id": "020-post-v7-alert-suppression-windows",
+  "seq": 20,
+  "request": {
+    "method": "POST",
+    "path": "/v7/alert-suppression-windows",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "duration": 1001,
+      "isEnabled": false,
+      "name": "tfpfgen-probe-write-update-style-1",
+      "repeat": {
+        "type": "none"
+      },
+      "startDate": "2027-06-01T00:00:00Z"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "https://api.thousandeyes.com/v7/alert-suppression-windows/281474976711119",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alert-suppression-windows/281474976711119"
+        }
+      },
+      "alertSuppressionWindowId": "281474976711119",
+      "duration": 1001,
+      "endRepeat": {
+        "type": "never"
+      },
+      "isEnabled": false,
+      "name": "tfpfgen-probe-write-update-style-1",
+      "repeat": {
+        "type": "none"
+      },
+      "startDate": "2027-06-01T00:00:00Z",
+      "status": "inactive"
+    },
+    "droppedHeaders": 14
+  }
+}

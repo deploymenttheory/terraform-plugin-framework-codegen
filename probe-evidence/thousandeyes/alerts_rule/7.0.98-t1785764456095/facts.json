@@ -1,0 +1,344 @@
+[
+  {
+    "resource": "alerts_rule",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "404=problem"
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-alerts-rules-999999999"
+    ],
+    "rationale": "a 404 response used the problem error shape"
+  },
+  {
+    "resource": "alerts_rule",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "listEnvelopeKey=alertRules"
+    },
+    "confidence": "observed",
+    "probe": "read.list-shape",
+    "evidence": [
+      "001-get-v7-alerts-rules",
+      "003-get-v7-alerts-rules",
+      "004-get-v7-alerts-rules",
+      "005-get-v7-alerts-rules",
+      "006-get-v7-alerts-rules",
+      "007-get-v7-alerts-rules",
+      "008-get-v7-alerts-rules",
+      "009-get-v7-alerts-rules",
+      "077-get-v7-alerts-rules"
+    ],
+    "rationale": "the list response wraps its items under \"alertRules\""
+  },
+  {
+    "resource": "alerts_rule",
+    "field": "policy.delete.notFoundIsSuccess",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-alerts-rules-999999999"
+    ],
+    "rationale": "reading an absent object answered 404 with a problem error body",
+    "alternatives": [
+      "the API may answer differently for an identifier that once existed and was deleted"
+    ]
+  },
+  {
+    "resource": "alerts_rule",
+    "field": "policy.readBack",
+    "value": {
+      "readBack": {
+        "reason": "every one of 7 read(s) immediately after a create succeeded on the first attempt"
+      }
+    },
+    "confidence": "inferred",
+    "probe": "write.read-your-writes",
+    "evidence": [
+      "025-get-v7-alerts-rules-281474977454656",
+      "028-get-v7-alerts-rules-281474977454657",
+      "030-get-v7-alerts-rules-281474977454658",
+      "034-get-v7-alerts-rules-281474977454659",
+      "038-get-v7-alerts-rules-281474977454659",
+      "069-get-v7-alerts-rules-281474977454670",
+      "072-get-v7-alerts-rules-281474977454671"
+    ],
+    "rationale": "7 object(s) were read immediately after creation and every first read succeeded",
+    "alternatives": [
+      "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+    ]
+  },
+  {
+    "resource": "alerts_rule",
+    "field": "unknownParamTolerated",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.unknown-param",
+    "evidence": [
+      "001-get-v7-alerts-rules",
+      "003-get-v7-alerts-rules",
+      "004-get-v7-alerts-rules",
+      "005-get-v7-alerts-rules",
+      "006-get-v7-alerts-rules",
+      "007-get-v7-alerts-rules",
+      "008-get-v7-alerts-rules",
+      "009-get-v7-alerts-rules",
+      "077-get-v7-alerts-rules"
+    ],
+    "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+    "alternatives": [
+      "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+    ]
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "alertGroupType",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "bgp",
+        "browser-session",
+        "cloud-enterprise",
+        "endpoint"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "041-post-v7-alerts-rules",
+      "042-post-v7-alerts-rules",
+      "043-post-v7-alerts-rules",
+      "044-post-v7-alerts-rules",
+      "045-post-v7-alerts-rules",
+      "046-post-v7-alerts-rules"
+    ],
+    "rationale": "4 of the 4 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "alertGroupType",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "\"cloud-enterprise\""
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "028-get-v7-alerts-rules-281474977454657",
+      "030-get-v7-alerts-rules-281474977454658"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as cloud-enterprise every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "alertType",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "011-post-v7-alerts-rules"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "description",
+    "field": "requiredByApi",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "012-post-v7-alerts-rules"
+    ],
+    "rationale": "a create omitting this field succeeded in 1 fixture(s)"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "expression",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "013-post-v7-alerts-rules"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "isDefault",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "028-get-v7-alerts-rules-281474977454657",
+      "030-get-v7-alerts-rules-281474977454658"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "minimumSources",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "014-post-v7-alerts-rules"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "notifyOnClear",
+    "field": "requiredByApi",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "015-post-v7-alerts-rules"
+    ],
+    "rationale": "a create omitting this field succeeded in 1 fixture(s)"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "roundsViolatingOutOf",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "016-post-v7-alerts-rules"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "roundsViolatingRequired",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "017-post-v7-alerts-rules"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "severity",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "info",
+        "major",
+        "minor",
+        "critical"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "048-post-v7-alerts-rules",
+      "049-post-v7-alerts-rules",
+      "050-post-v7-alerts-rules",
+      "051-post-v7-alerts-rules",
+      "052-post-v7-alerts-rules",
+      "053-post-v7-alerts-rules",
+      "054-post-v7-alerts-rules"
+    ],
+    "rationale": "4 of the 5 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "severity",
+    "field": "immutable",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.immutability",
+    "evidence": [
+      "038-get-v7-alerts-rules-281474977454659"
+    ],
+    "rationale": "an update changed this field from major to major and the read confirmed it"
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "severity",
+    "field": "rejectedValues",
+    "value": {
+      "list": [
+        "unknown"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "048-post-v7-alerts-rules",
+      "049-post-v7-alerts-rules",
+      "050-post-v7-alerts-rules",
+      "051-post-v7-alerts-rules",
+      "052-post-v7-alerts-rules",
+      "053-post-v7-alerts-rules",
+      "054-post-v7-alerts-rules"
+    ],
+    "rationale": "the specification documents info, major, minor, critical, unknown but this API refused unknown",
+    "alternatives": [
+      "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
+    ]
+  },
+  {
+    "resource": "alerts_rule",
+    "jsonPath": "severity",
+    "field": "requiredByApi",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "018-post-v7-alerts-rules"
+    ],
+    "rationale": "a create omitting this field succeeded in 1 fixture(s)"
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "fixtures": [
+    {
+      "name": "http-response-time",
+      "body": {
+        "alertType": "http-server",
+        "description": "probe rule",
+        "expression": "((responseTime >= 1000 ms))",
+        "minimumSources": 1,
+        "notifyOnClear": true,
+        "roundsViolatingOutOf": 2,
+        "roundsViolatingRequired": 1,
+        "ruleName": "CURATE_ME-stamped-by-probe",
+        "severity": "major"
+      }
+    }
+  ],
+  "candidates": {
+    "severity": [
+      "major",
+      "minor"
+    ]
+  },
+  "defaultInfluencers": [
+    "alertType"
+  ],
+  "deny": [
+    "alertType",
+    "direction",
+    "includeCoveredPrefixes",
+    "visitedSitesFilter"
+  ],
+  "budget": {
+    "maxRequests": 320,
+    "maxCreates": 48
+  }
+}

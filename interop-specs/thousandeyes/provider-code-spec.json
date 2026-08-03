@@ -392,6 +392,308 @@
   },
   "resources": [
     {
+      "name": "alert_suppression_window",
+      "schema": {
+        "attributes": [
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Unique ID of the alert suppression window.\n\nNamed `id` because terraform-plugin-testing populates import state only from an attribute literally called id; the wire field stays alertSuppressionWindowId."
+            }
+          },
+          {
+            "name": "duration",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Duration in seconds the suppression window is active.\n\nThe API refuses a window without a duration (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785764488786 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "end_repeat",
+            "single_nested": {
+              "computed_optional_required": "computed_optional",
+              "attributes": [
+                {
+                  "name": "count",
+                  "int64": {
+                    "computed_optional_required": "optional",
+                    "description": "End repeat after number of occurrences, only valid with count type option."
+                  }
+                },
+                {
+                  "name": "date",
+                  "string": {
+                    "computed_optional_required": "optional",
+                    "description": "End repeat after specific date, only valid with date type option (ISO date format)."
+                  }
+                },
+                {
+                  "name": "type",
+                  "string": {
+                    "computed_optional_required": "computed_optional",
+                    "description": "End repeat options type.\n\n<!-- probed:7.0.98-t1785764488786 -->\nValues accepted here: `count`, `never`, `date`.\nObserved: the API assigns \"never\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
+                  }
+                }
+              ],
+              "associated_external_type": {
+                "type": "alert_suppression_windows.EndRepeat"
+              },
+              "description": "End repeat options.\n\nThe API assigns { type = \"never\" } when omitted (live acceptance, 2026-08-03)."
+            }
+          },
+          {
+            "name": "is_enabled",
+            "bool": {
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `false` for `disabled`, `true` for `enabled`."
+            }
+          },
+          {
+            "name": "name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Name of the alert suppression window.\n\nThe API refuses a window without a name (live acceptance, 2026-08-03); the probe cannot test this itself because name carries the sweeper's prefix."
+            }
+          },
+          {
+            "name": "repeat",
+            "single_nested": {
+              "computed_optional_required": "optional",
+              "attributes": [
+                {
+                  "name": "days_of_week",
+                  "set": {
+                    "computed_optional_required": "optional",
+                    "element_type": {
+                      "string": {}
+                    }
+                  }
+                },
+                {
+                  "name": "interval_length",
+                  "int64": {
+                    "computed_optional_required": "optional",
+                    "description": "Number of `intervalTypes` to wait before reactivating the alert suppression window."
+                  }
+                },
+                {
+                  "name": "interval_type",
+                  "string": {
+                    "computed_optional_required": "optional",
+                    "description": "Repeat options interval type\n\n<!-- probed:7.0.98-t1785764488786 -->\nValues accepted here: `day`, `week`, `month`.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
+                  }
+                },
+                {
+                  "name": "type",
+                  "string": {
+                    "computed_optional_required": "computed_optional",
+                    "description": "Repeat options type.\n\n<!-- probed:7.0.98-t1785764488786 -->\nValues accepted here: `day`, `week`, `month`, `custom`.\nObserved: the API assigns \"none\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
+                  }
+                }
+              ],
+              "associated_external_type": {
+                "type": "alert_suppression_windows.Repeat"
+              },
+              "description": "Repeat options.\n\nThe API requires repeat conditions on every window; a one-off window carries `type = \"none\"` (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785764488786 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "start_date",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The date/time when the alert suppression window starts (ISO date-time format).\n\n<!-- probed:7.0.98-t1785764488786 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "status",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Indicates the current status of the suppression window."
+            }
+          },
+          {
+            "name": "test_ids",
+            "set": {
+              "computed_optional_required": "optional",
+              "element_type": {
+                "string": {}
+              },
+              "description": "List of test IDs to assign to the alert suppression window.\n\nThe response never carries testIds -- it echoes the linked tests as a nested collection instead -- so state carries the configured value.\n\n<!-- probed:7.0.98-t1785764972866 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
+            }
+          }
+        ],
+        "markdown_description": "Retrieve alert suppression window."
+      }
+    },
+    {
+      "name": "alerts_rule",
+      "schema": {
+        "attributes": [
+          {
+            "name": "alert_group_type",
+            "string": {
+              "computed_optional_required": "computed_optional",
+              "description": "Category of alert type based on the application or network layer and source of the test.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785764456095 -->\nValues accepted here: `bgp`, `browser-session`, `cloud-enterprise`, `endpoint`.\nObserved: the API assigns \"cloud-enterprise\" when this is omitted.\n<!-- /probed -->\n\nThe applied group follows the alert type -- an http-server rule stores cloud-enterprise whatever is sent -- so the fixtures leave it to the server."
+            }
+          },
+          {
+            "name": "alert_type",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Type of alert being triggered. In multi-layered tests, this value represents the layer the alert relates to. See [Alert Details](https://developer.cisco.com/docs/thousandeyes/retrieve-alert-details/) documentation for a list of possible values\n\n<!-- probed:7.0.98-t1785764456095 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A description of the alert rule."
+            }
+          },
+          {
+            "name": "direction",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Direction for applicable alert types (eg. path trace, End-to-End (Agent) etc.)\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\nOnly valid for directional alert types (end-to-end agent/server); refused for http-server rules (live acceptance, 2026-08-03)."
+            }
+          },
+          {
+            "name": "endpoint_agent_ids",
+            "set": {
+              "computed_optional_required": "optional",
+              "element_type": {
+                "string": {}
+              },
+              "description": "An array of endpoint agent IDs associated with the rule (get `id` from `/endpoint/agents` API). This is applicable when `alertGroupType` is `browser-session`.\n\n<!-- probed:7.0.98-t1785764967601 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "endpoint_label_ids",
+            "set": {
+              "computed_optional_required": "optional",
+              "element_type": {
+                "string": {}
+              },
+              "description": "An array of label IDs used to assign specific Endpoint Agents to the test (get `id` from `/endpoint/labels`). This is applicable when `alertGroupType` is `browser-session`.\n\n<!-- probed:7.0.98-t1785764967601 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "expression",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "The expression of the alert rule.\n\n<!-- probed:7.0.98-t1785764456095 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "include_covered_prefixes",
+            "bool": {
+              "computed_optional_required": "optional",
+              "description": "Set true to include covered prefixes in the BGP alert rule. Only applicable to BGP alert rules."
+            }
+          },
+          {
+            "name": "is_default",
+            "bool": {
+              "computed_optional_required": "computed_optional",
+              "description": "If set to `true`, this alert rule becomes the default for its test type and is automatically applied to newly created tests with relevant metrics. Only one default alert rule is allowed per test type.\n\n<!-- probed:7.0.98-t1785764967601 -->\nObserved: the API assigns false when this is omitted from an update.\nOmitting this field from an update resets it rather than preserving the stored value.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "minimum_sources",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "The minimum number of agents or monitors that must meet the specified criteria to trigger the alert.\n\nExactly one of minimum_sources and minimum_sources_pct must be set (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785764456095 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "minimum_sources_pct",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "The minimum percentage of all assigned agents or monitors that must meet the specified criteria to trigger the alert.\n\nExactly one of minimum_sources and minimum_sources_pct may be set; the generated fixtures carry minimum_sources."
+            }
+          },
+          {
+            "name": "notify_on_clear",
+            "bool": {
+              "computed_optional_required": "computed_optional",
+              "description": "Send notification when alert clears.\n\n<!-- probed:7.0.98-t1785764967601 -->\nObserved: the API assigns true when this is omitted from an update.\nOmitting this field from an update resets it rather than preserving the stored value.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "rounds_violating_mode",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "`exact` requires the same agents to meet the threshold in consecutive rounds. `auto` is only enabled for CEA and Endpoint Scheduled test rules. The default is `any`."
+            }
+          },
+          {
+            "name": "rounds_violating_out_of",
+            "int64": {
+              "computed_optional_required": "required",
+              "description": "Specifies the divisor (y value) in the “X of Y times” condition.\n\n<!-- probed:7.0.98-t1785764456095 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "rounds_violating_required",
+            "int64": {
+              "computed_optional_required": "optional",
+              "description": "Specifies the numerator (x value) in the “X of Y times” condition.\n\n<!-- probed:7.0.98-t1785764456095 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Unique ID of the rule.\n\nNamed `id` because terraform-plugin-testing populates import state only from an attribute literally called id; the wire field stays ruleId."
+            }
+          },
+          {
+            "name": "rule_name",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "Name of the alert rule."
+            }
+          },
+          {
+            "name": "sensitivity_level",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Used when `roundsViolatingMode` is set to `auto`. The default is `medium`. Higher sensitivity increases the likelihood of triggering alerts."
+            }
+          },
+          {
+            "name": "severity",
+            "string": {
+              "computed_optional_required": "computed_optional",
+              "description": "The severity of the alert.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785764456095 -->\nValues accepted here: `info`, `major`, `minor`, `critical`.\nThe specification documents `unknown`, which the API rejected.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "test_ids",
+            "set": {
+              "computed_optional_required": "computed",
+              "element_type": {
+                "string": {}
+              },
+              "description": "Array of test IDs to link to alert rule (get `testId` from `/tests` endpoint)."
+            }
+          },
+          {
+            "name": "visited_sites_filter",
+            "set": {
+              "computed_optional_required": "optional",
+              "element_type": {
+                "string": {}
+              },
+              "description": "A list of website domains visited during the session. This is applicable when `alertGroupType` is `browser-session`."
+            }
+          }
+        ],
+        "markdown_description": "Retrieve alert rule."
+      }
+    },
+    {
       "name": "credential",
       "schema": {
         "attributes": [

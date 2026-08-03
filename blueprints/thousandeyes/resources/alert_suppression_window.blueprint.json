@@ -1,0 +1,915 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "alert_suppression_window",
+      "name": "alert_suppression_window",
+      "goPackage": "alert_suppression_window",
+      "goPackageAlias": "v7AlertSuppressionWindow",
+      "goTypeName": "AlertSuppressionWindowResource",
+      "modelTypeName": "AlertSuppressionWindowResourceModel",
+      "serviceGroup": "alert_suppression_windows",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Unique ID of the alert suppression window.\n\nNamed `id` because terraform-plugin-testing populates import state only from an attribute literally called id; the wire field stays alertSuppressionWindowId.",
+            "wire": {
+              "jsonPath": "alertSuppressionWindowId",
+              "sdkField": "AlertSuppressionWindowID",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "duration",
+            "goField": "Duration",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Duration in seconds the suppression window is active.\n\nThe API refuses a window without a duration (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785764488786 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "returnedOnCreate": true,
+              "returnedOnUpdate": true
+            },
+            "wire": {
+              "jsonPath": "duration",
+              "sdkField": "Duration",
+              "sdkGoType": "*int",
+              "expand": {
+                "func": "convert.FrameworkToPtrNamedInt",
+                "typeArgs": [
+                  "int"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrInt64ToFramework",
+                "typeArgs": [
+                  "int"
+                ]
+              }
+            }
+          },
+          {
+            "name": "end_repeat",
+            "goField": "EndRepeat",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "AlertSuppressionWindowEndRepeatModel",
+                "sdkType": "alert_suppression_windows.EndRepeat",
+                "attrTypesVar": "alertSuppressionWindowEndRepeatAttrTypes",
+                "objectTypeVar": "alertSuppressionWindowEndRepeatObjectType",
+                "expandFunc": "expandAlertSuppressionWindowEndRepeat",
+                "flattenFunc": "flattenAlertSuppressionWindowEndRepeat",
+                "attributes": [
+                  {
+                    "name": "count",
+                    "goField": "Count",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "End repeat after number of occurrences, only valid with count type option.",
+                    "wire": {
+                      "jsonPath": "count",
+                      "sdkField": "Count",
+                      "sdkGoType": "*int",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrNamedInt",
+                        "typeArgs": [
+                          "int"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework",
+                        "typeArgs": [
+                          "int"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "date",
+                    "goField": "Date",
+                    "type": {
+                      "kind": "string",
+                      "constraints": {
+                        "format": "date"
+                      }
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "End repeat after specific date, only valid with date type option (ISO date format).",
+                    "wire": {
+                      "jsonPath": "date",
+                      "sdkField": "Date",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "goField": "Type",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "count",
+                        "never",
+                        "date"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed_optional",
+                    "markdownDescription": "End repeat options type.\n\n<!-- probed:7.0.98-t1785764488786 -->\nValues accepted here: `count`, `never`, `date`.\nObserved: the API assigns \"never\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->",
+                    "behaviour": {
+                      "serverDefault": {
+                        "kind": "",
+                        "raw": "\"never\""
+                      },
+                      "acceptedValues": [
+                        "count",
+                        "never",
+                        "date"
+                      ],
+                      "valuesClosed": false
+                    },
+                    "wire": {
+                      "jsonPath": "type",
+                      "sdkField": "Type",
+                      "sdkGoType": "alert_suppression_windows.EndRepeatType",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "alert_suppression_windows.EndRepeatType"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "End repeat options.\n\nThe API assigns { type = \"never\" } when omitted (live acceptance, 2026-08-03).",
+            "wire": {
+              "jsonPath": "endRepeat",
+              "sdkField": "EndRepeat",
+              "sdkGoType": "alert_suppression_windows.EndRepeat",
+              "expand": {
+                "func": "expandAlertSuppressionWindowEndRepeat",
+                "needsCtx": true,
+                "returnsError": true,
+                "deref": true
+              },
+              "flatten": {
+                "func": "flattenAlertSuppressionWindowEndRepeat",
+                "needsCtx": true,
+                "returnsError": true,
+                "takesAddress": true
+              }
+            }
+          },
+          {
+            "name": "is_enabled",
+            "goField": "IsEnabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set to `false` for `disabled`, `true` for `enabled`.",
+            "behaviour": {
+              "requiredByApi": false,
+              "serverDefault": {
+                "kind": "bool",
+                "raw": "true"
+              },
+              "returnedOnRead": true,
+              "returnedOnCreate": true,
+              "returnedOnUpdate": true
+            },
+            "wire": {
+              "jsonPath": "isEnabled",
+              "sdkField": "IsEnabled",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Name of the alert suppression window.\n\nThe API refuses a window without a name (live acceptance, 2026-08-03); the probe cannot test this itself because name carries the sweeper's prefix.",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "returnedOnCreate": true
+            },
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "repeat",
+            "goField": "Repeat",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "AlertSuppressionWindowRepeatModel",
+                "sdkType": "alert_suppression_windows.Repeat",
+                "attrTypesVar": "alertSuppressionWindowRepeatAttrTypes",
+                "objectTypeVar": "alertSuppressionWindowRepeatObjectType",
+                "expandFunc": "expandAlertSuppressionWindowRepeat",
+                "flattenFunc": "flattenAlertSuppressionWindowRepeat",
+                "attributes": [
+                  {
+                    "name": "days_of_week",
+                    "goField": "DaysOfWeek",
+                    "type": {
+                      "kind": "set",
+                      "elementType": {
+                        "kind": "string"
+                      }
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "daysOfWeek",
+                      "sdkField": "DaysOfWeek",
+                      "sdkGoType": "[]alert_suppression_windows.DaysOfWeek",
+                      "expand": {
+                        "func": "convert.FrameworkSetToEnumSlice",
+                        "typeArgs": [
+                          "alert_suppression_windows.DaysOfWeek"
+                        ],
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "convert.EnumSliceToFrameworkSet",
+                        "typeArgs": [
+                          "alert_suppression_windows.DaysOfWeek"
+                        ],
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "interval_length",
+                    "goField": "IntervalLength",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Number of `intervalTypes` to wait before reactivating the alert suppression window.",
+                    "wire": {
+                      "jsonPath": "intervalLength",
+                      "sdkField": "IntervalLength",
+                      "sdkGoType": "*int",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrNamedInt",
+                        "typeArgs": [
+                          "int"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework",
+                        "typeArgs": [
+                          "int"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "interval_type",
+                    "goField": "IntervalType",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "day",
+                        "week",
+                        "month"
+                      ]
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Repeat options interval type\n\n<!-- probed:7.0.98-t1785764488786 -->\nValues accepted here: `day`, `week`, `month`.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->",
+                    "behaviour": {
+                      "acceptedValues": [
+                        "day",
+                        "week",
+                        "month"
+                      ],
+                      "valuesClosed": false
+                    },
+                    "wire": {
+                      "jsonPath": "intervalType",
+                      "sdkField": "IntervalType",
+                      "sdkGoType": "alert_suppression_windows.IntervalType",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "alert_suppression_windows.IntervalType"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "goField": "Type",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "day",
+                        "week",
+                        "month",
+                        "custom"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed_optional",
+                    "markdownDescription": "Repeat options type.\n\n<!-- probed:7.0.98-t1785764488786 -->\nValues accepted here: `day`, `week`, `month`, `custom`.\nObserved: the API assigns \"none\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->",
+                    "behaviour": {
+                      "serverDefault": {
+                        "kind": "",
+                        "raw": "\"none\""
+                      },
+                      "returnedOnRead": true,
+                      "returnedOnCreate": true,
+                      "acceptedValues": [
+                        "day",
+                        "week",
+                        "month",
+                        "custom"
+                      ],
+                      "valuesClosed": false
+                    },
+                    "wire": {
+                      "jsonPath": "type",
+                      "sdkField": "Type",
+                      "sdkGoType": "alert_suppression_windows.RepeatType",
+                      "expand": {
+                        "func": "convert.FrameworkToEnum",
+                        "typeArgs": [
+                          "alert_suppression_windows.RepeatType"
+                        ]
+                      },
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Repeat options.\n\nThe API requires repeat conditions on every window; a one-off window carries `type = \"none\"` (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785764488786 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "returnedOnCreate": true,
+              "returnedOnUpdate": true
+            },
+            "wire": {
+              "jsonPath": "repeat",
+              "sdkField": "Repeat",
+              "sdkGoType": "alert_suppression_windows.Repeat",
+              "expand": {
+                "func": "expandAlertSuppressionWindowRepeat",
+                "needsCtx": true,
+                "returnsError": true,
+                "deref": true
+              },
+              "flatten": {
+                "func": "flattenAlertSuppressionWindowRepeat",
+                "needsCtx": true,
+                "returnsError": true,
+                "takesAddress": true
+              }
+            }
+          },
+          {
+            "name": "start_date",
+            "goField": "StartDate",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "The date/time when the alert suppression window starts (ISO date-time format).\n\n<!-- probed:7.0.98-t1785764488786 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnUpdate": true
+            },
+            "wire": {
+              "jsonPath": "startDate",
+              "sdkField": "StartDate",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "goField": "Status",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "active",
+                "inactive",
+                "ended"
+              ]
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Indicates the current status of the suppression window.",
+            "wire": {
+              "jsonPath": "status",
+              "sdkField": "Status",
+              "sdkGoType": "alert_suppression_windows.AlertSuppressionWindowState",
+              "flatten": {
+                "func": "convert.EnumToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "test_ids",
+            "goField": "TestIDs",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "List of test IDs to assign to the alert suppression window.\n\nThe response never carries testIds -- it echoes the linked tests as a nested collection instead -- so state carries the configured value.\n\n<!-- probed:7.0.98-t1785764972866 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->",
+            "behaviour": {
+              "returnedOnRead": false,
+              "returnedOnUpdate": false
+            },
+            "wire": {
+              "jsonPath": "testIds",
+              "sdkField": "TestIds",
+              "sdkGoType": "[]string",
+              "expand": {
+                "func": "convert.FrameworkSetToStringSlice",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipFlatten": true
+            }
+          },
+          {
+            "name": "tests",
+            "goField": "Tests",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "AlertSuppressionWindowSimpleTestModel",
+                "sdkType": "alert_suppression_windows.SimpleTest",
+                "attrTypesVar": "alertSuppressionWindowSimpleTestAttrTypes",
+                "objectTypeVar": "alertSuppressionWindowSimpleTestObjectType",
+                "expandFunc": "expandAlertSuppressionWindowSimpleTests",
+                "flattenFunc": "flattenAlertSuppressionWindowSimpleTests",
+                "attributes": [
+                  {
+                    "name": "alerts_enabled",
+                    "goField": "AlertsEnabled",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Indicates if alerts are enabled.",
+                    "wire": {
+                      "jsonPath": "alertsEnabled",
+                      "sdkField": "AlertsEnabled",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "created_by",
+                    "goField": "CreatedBy",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "User that created the test.",
+                    "wire": {
+                      "jsonPath": "createdBy",
+                      "sdkField": "CreatedBy",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "created_date",
+                    "goField": "CreatedDate",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "UTC created date (ISO date-time format).",
+                    "wire": {
+                      "jsonPath": "createdDate",
+                      "sdkField": "CreatedDate",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "description",
+                    "goField": "Description",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "A description of the test.",
+                    "wire": {
+                      "jsonPath": "description",
+                      "sdkField": "Description",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "enabled",
+                    "goField": "Enabled",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Test is enabled.",
+                    "wire": {
+                      "jsonPath": "enabled",
+                      "sdkField": "Enabled",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "interval",
+                    "goField": "Interval",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "60",
+                        "120",
+                        "300",
+                        "600",
+                        "900",
+                        "1800",
+                        "3600"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Interval between test runs in seconds.",
+                    "wire": {
+                      "jsonPath": "interval",
+                      "sdkField": "Interval",
+                      "sdkGoType": "alert_suppression_windows.TestInterval",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "live_share",
+                    "goField": "LiveShare",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Indicates if the test is shared with the account group.",
+                    "wire": {
+                      "jsonPath": "liveShare",
+                      "sdkField": "LiveShare",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "modified_by",
+                    "goField": "ModifiedBy",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "User that modified the test.",
+                    "wire": {
+                      "jsonPath": "modifiedBy",
+                      "sdkField": "ModifiedBy",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "modified_date",
+                    "goField": "ModifiedDate",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "UTC last modification date (ISO date-time format).",
+                    "wire": {
+                      "jsonPath": "modifiedDate",
+                      "sdkField": "ModifiedDate",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "saved_event",
+                    "goField": "SavedEvent",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Indicates if the test is a saved event.\n\n**Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.",
+                    "wire": {
+                      "jsonPath": "savedEvent",
+                      "sdkField": "SavedEvent",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "test_id",
+                    "goField": "TestID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints.",
+                    "wire": {
+                      "jsonPath": "testId",
+                      "sdkField": "TestID",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "test_name",
+                    "goField": "TestName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The name of the test. Test name must be unique.",
+                    "wire": {
+                      "jsonPath": "testName",
+                      "sdkField": "TestName",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "goField": "Type",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "api",
+                        "agent-to-agent",
+                        "agent-to-server",
+                        "bgp",
+                        "http-server",
+                        "page-load",
+                        "web-transactions",
+                        "ftp-server",
+                        "dns-trace",
+                        "dns-server",
+                        "dnssec",
+                        "sip-server",
+                        "voice"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "This is a read only value, as test type is implicit in the test creation url.",
+                    "wire": {
+                      "jsonPath": "type",
+                      "sdkField": "Type",
+                      "sdkGoType": "alert_suppression_windows.TestType",
+                      "flatten": {
+                        "func": "convert.EnumToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "List of tests assigned to the alert suppression window.\n\nDropped in v1: Read-only echo of the suppressed tests; testIds is the writable half and the echo would drift against it.",
+            "wire": {
+              "jsonPath": "tests",
+              "sdkField": "Tests",
+              "sdkGoType": "[]alert_suppression_windows.SimpleTest",
+              "flatten": {
+                "func": "flattenAlertSuppressionWindowSimpleTests",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            },
+            "drop": true
+          }
+        ],
+        "markdownDescription": "Retrieve alert suppression window."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api/alert_suppression_windows",
+          "typeName": "AlertSuppressionWindows",
+          "accessor": "r.client.API.AlertSuppressionWindows"
+        },
+        "create": {
+          "style": "method",
+          "method": "CreateAlertSuppressionWindow",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "alert_suppression_windows.AlertSuppressionWindowDetail",
+          "httpMethod": "POST",
+          "pathTemplate": "/alert-suppression-windows"
+        },
+        "read": {
+          "style": "method",
+          "method": "GetAlertSuppressionWindow",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "alert_suppression_windows.AlertSuppressionWindowDetail",
+          "httpMethod": "GET",
+          "pathTemplate": "/alert-suppression-windows/{windowId}"
+        },
+        "update": {
+          "style": "method",
+          "method": "UpdateAlertSuppressionWindow",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "alert_suppression_windows.AlertSuppressionWindowDetail",
+          "httpMethod": "PUT",
+          "pathTemplate": "/alert-suppression-windows/{windowId}"
+        },
+        "delete": {
+          "style": "method",
+          "method": "DeleteAlertSuppressionWindow",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            }
+          ],
+          "return": "transportError",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/alert-suppression-windows/{windowId}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.AlertSuppressionWindowID",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "alert_suppression_windows.AlertSuppressionWindowRequest",
+          "responseType": "alert_suppression_windows.AlertSuppressionWindowDetail",
+          "constructorExpr": "&alert_suppression_windows.AlertSuppressionWindowRequest{}",
+          "accessStyle": "structField"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "duration",
+            "hcl": "3600",
+            "wire": 3600
+          },
+          {
+            "attr": "repeat",
+            "hcl": "{ type = \"none\" }",
+            "wire": {
+              "type": "none"
+            }
+          },
+          {
+            "attr": "test_ids",
+            "hcl": "[]",
+            "wire": []
+          }
+        ]
+      }
+    }
+  ]
+}

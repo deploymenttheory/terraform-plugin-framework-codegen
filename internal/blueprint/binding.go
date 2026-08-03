@@ -294,5 +294,14 @@ type ConvertCall struct {
 	// rather than a bare assignment.
 	ReturnsError bool `json:"returnsError,omitempty"`
 
+	// Deref wraps the call in convert.Deref, for an SDK field declared as a value
+	// where the helper produces a pointer. The live case: a suppression window's
+	// Repeat is a value-typed struct the API requires, and the expand helper for a
+	// single nested attribute returns *Repeat.
+	Deref bool `json:"deref,omitempty"`
+	// TakesAddress passes the argument by address, the flatten-side mirror of
+	// Deref: the response holds a value and the helper wants a pointer.
+	TakesAddress bool `json:"takesAddress,omitempty"`
+
 	Imports []Import `json:"imports,omitempty"`
 }

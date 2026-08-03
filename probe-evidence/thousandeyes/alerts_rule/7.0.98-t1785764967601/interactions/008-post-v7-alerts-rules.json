@@ -1,0 +1,67 @@
+{
+  "id": "008-post-v7-alerts-rules",
+  "seq": 8,
+  "request": {
+    "method": "POST",
+    "path": "/v7/alerts/rules",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "alertType": "http-server",
+      "description": "tfacc-description",
+      "endpointAgentIds": [
+        "tfacc-endpoint-agent-ids-element"
+      ],
+      "endpointLabelIds": [
+        "tfacc-endpoint-label-ids-element"
+      ],
+      "expression": "((responseTime >= 1000 ms))",
+      "includeCoveredPrefixes": true,
+      "isDefault": true,
+      "minimumSources": 2,
+      "notifyOnClear": false,
+      "roundsViolatingOutOf": 3,
+      "roundsViolatingRequired": 2,
+      "ruleName": "tfpfgen-probe-write-rehearsal-2",
+      "severity": "major",
+      "visitedSitesFilter": [
+        "tfacc-visited-sites-filter-element"
+      ]
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "https://api.thousandeyes.com/v7/alerts/rules/281474977454696",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alerts/rules/281474977454696"
+        }
+      },
+      "alertGroupType": "cloud-enterprise",
+      "alertType": "http-server",
+      "description": "tfacc-description",
+      "expression": "((responseTime >= 1000 ms))",
+      "includeCoveredPrefixes": true,
+      "isDefault": true,
+      "minimumSources": 2,
+      "notifyOnClear": false,
+      "roundsViolatingMode": "any",
+      "roundsViolatingOutOf": 3,
+      "roundsViolatingRequired": 2,
+      "ruleId": "281474977454696",
+      "ruleName": "tfpfgen-probe-write-rehearsal-2",
+      "severity": "major",
+      "visitedSitesFilter": [
+        "tfacc-visited-sites-filter-element"
+      ]
+    },
+    "droppedHeaders": 14
+  }
+}

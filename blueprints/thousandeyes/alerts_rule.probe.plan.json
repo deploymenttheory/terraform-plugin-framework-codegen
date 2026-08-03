@@ -1,0 +1,34 @@
+{
+  "fixtures": [
+    {
+      "name": "http-response-time",
+      "body": {
+        "ruleName": "CURATE_ME-stamped-by-probe",
+        "alertType": "http-server",
+        "expression": "((responseTime >= 1000 ms))",
+        "roundsViolatingOutOf": 2,
+        "roundsViolatingRequired": 1,
+        "minimumSources": 1
+      }
+    }
+  ],
+  "candidates": {
+    "severity": [
+      "major",
+      "minor"
+    ]
+  },
+  "deny": [
+    "alertType",
+    "direction",
+    "includeCoveredPrefixes",
+    "visitedSitesFilter"
+  ],
+  "defaultInfluencers": [
+    "alertType"
+  ],
+  "budget": {
+    "maxRequests": 320,
+    "maxCreates": 48
+  }
+}

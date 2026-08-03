@@ -1,0 +1,50 @@
+{
+  "id": "018-post-v7-alerts-rules",
+  "seq": 18,
+  "request": {
+    "method": "POST",
+    "path": "/v7/alerts/rules",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "alertType": "http-server",
+      "description": "probe rule",
+      "expression": "((responseTime >= 1000 ms))",
+      "minimumSources": 1,
+      "notifyOnClear": true,
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleName": "tfpfgen-probe-write-required-9"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "https://api.thousandeyes.com/v7/alerts/rules/281474977454655",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/alerts/rules/281474977454655"
+        }
+      },
+      "alertGroupType": "cloud-enterprise",
+      "alertType": "http-server",
+      "description": "probe rule",
+      "expression": "((responseTime >= 1000 ms))",
+      "minimumSources": 1,
+      "notifyOnClear": true,
+      "roundsViolatingMode": "any",
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleId": "281474977454655",
+      "ruleName": "tfpfgen-probe-write-required-9",
+      "severity": "info"
+    },
+    "droppedHeaders": 14
+  }
+}

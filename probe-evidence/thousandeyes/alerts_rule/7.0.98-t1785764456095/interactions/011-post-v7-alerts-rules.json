@@ -1,0 +1,36 @@
+{
+  "id": "011-post-v7-alerts-rules",
+  "seq": 11,
+  "request": {
+    "method": "POST",
+    "path": "/v7/alerts/rules",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "description": "probe rule",
+      "expression": "((responseTime >= 1000 ms))",
+      "minimumSources": 1,
+      "notifyOnClear": true,
+      "roundsViolatingOutOf": 2,
+      "roundsViolatingRequired": 1,
+      "ruleName": "tfpfgen-probe-write-required-2",
+      "severity": "major"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/alerts/rules",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Error in field alertType : Alert Type must not be null or invalid. Error in field roundsViolatingMode : Rounds violating mode is not applicable for null.  : Invalid Alert Rule request.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 14
+  }
+}
