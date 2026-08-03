@@ -1,0 +1,41 @@
+{
+  "id": "040-post-v7-tests-dns-server",
+  "seq": 40,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/dns-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "dnsServers": [
+        "8.8.8.8"
+      ],
+      "domain": "example.com",
+      "interval": 3600,
+      "protocol": "zzz",
+      "testName": "tfpfgen-probe-write-enum-5"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Invalid value for fields: protocol",
+      "instance": "/v7/tests/dns-server",
+      "status": 400,
+      "title": "request validation failed. There are invalid or missing fields",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

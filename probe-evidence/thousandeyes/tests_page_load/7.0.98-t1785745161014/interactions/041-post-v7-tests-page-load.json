@@ -1,0 +1,105 @@
+{
+  "id": "041-post-v7-tests-page-load",
+  "seq": 41,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/page-load",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "testName": "tfpfgen-probe-write-enum-7",
+      "url": "https://www.example.com",
+      "vaultCredentials.target": "username"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/page-load/281474976976892",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/page-load/281474976976892"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976892/http-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976892/page-load"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976892/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976892/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976892/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "allowGeolocation": false,
+      "allowMicAndCamera": false,
+      "allowUnsafeLegacyRenegotiation": true,
+      "authType": "none",
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "blockDomains": "",
+      "browserLanguage": "en-US",
+      "chromiumTrack": "stable",
+      "contentRegex": "",
+      "coreWebVitalsMode": "none",
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:19:04Z",
+      "disableScreenshot": false,
+      "distributedTracing": false,
+      "emulatedDeviceId": "281474976710656",
+      "enabled": true,
+      "followRedirects": true,
+      "httpInterval": 3600,
+      "httpTargetTime": 1000,
+      "httpTimeLimit": 5,
+      "httpVersion": 2,
+      "identifyAgentTrafficWithUserAgent": false,
+      "includeHeaders": true,
+      "interval": 3600,
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "overrideAgentProxy": false,
+      "pageLoadTargetTime": 6,
+      "pageLoadTimeLimit": 10,
+      "pageLoadingStrategy": "normal",
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "sslVersion": "Auto",
+      "sslVersionId": "0",
+      "testId": "281474976976892",
+      "testName": "tfpfgen-probe-write-enum-7",
+      "type": "page-load",
+      "url": "https://www.example.com",
+      "useNtlm": false,
+      "usePublicBgp": true,
+      "vaultCredentials": [],
+      "verifyCertificate": true
+    },
+    "droppedHeaders": 14
+  }
+}

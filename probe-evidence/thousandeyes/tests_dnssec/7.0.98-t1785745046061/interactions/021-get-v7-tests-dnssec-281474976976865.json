@@ -1,0 +1,46 @@
+{
+  "id": "021-get-v7-tests-dnssec-281474976976865",
+  "seq": 21,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/dnssec/281474976976865",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dnssec/281474976976865"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976865/dnssec"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:17:13Z",
+      "dnsQueryClass": "in",
+      "domain": "probe-domain-1 ANY",
+      "enabled": true,
+      "interval": 3600,
+      "liveShare": false,
+      "modifiedBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "modifiedDate": "2026-08-03T08:17:14Z",
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "testId": "281474976976865",
+      "testName": "tfpfgen-probe-write-update-style-2",
+      "type": "dnssec"
+    },
+    "droppedHeaders": 14
+  }
+}

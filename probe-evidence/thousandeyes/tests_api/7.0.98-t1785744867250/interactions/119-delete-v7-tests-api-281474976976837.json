@@ -1,0 +1,18 @@
+{
+  "id": "119-delete-v7-tests-api-281474976976837",
+  "seq": 119,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/tests/api/281474976976837",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

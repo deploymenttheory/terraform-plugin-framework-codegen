@@ -1,0 +1,1313 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (0 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "tests_page_load",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tests-page-load-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "tests_page_load",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tests-page-load-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "field": "policy.readBack",
+      "value": {
+        "readBack": {
+          "reason": "every one of 6 read(s) immediately after a create succeeded on the first attempt"
+        }
+      },
+      "confidence": "inferred",
+      "probe": "write.read-your-writes",
+      "evidence": [
+        "017-get-v7-tests-page-load-281474976976884",
+        "019-get-v7-tests-page-load-281474976976884",
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886",
+        "028-get-v7-tests-page-load-281474976976887",
+        "032-get-v7-tests-page-load-281474976976887"
+      ],
+      "rationale": "6 object(s) were read immediately after creation and every first read succeeded",
+      "alternatives": [
+        "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "field": "policy.updateStyle",
+      "value": {
+        "text": "patchMerge"
+      },
+      "confidence": "observed",
+      "probe": "write.update-style",
+      "evidence": [
+        "017-get-v7-tests-page-load-281474976976884",
+        "019-get-v7-tests-page-load-281474976976884"
+      ],
+      "rationale": "an update omitting url left it unchanged, so the API merges",
+      "alternatives": [
+        "an API that distinguishes an absent key from an explicit null may treat the two differently, and only the absent case was sent",
+        "the behaviour was observed for url and is assumed to hold for every other field"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-tests-page-load",
+        "003-get-v7-tests-page-load",
+        "004-get-v7-tests-page-load",
+        "005-get-v7-tests-page-load",
+        "006-get-v7-tests-page-load",
+        "007-get-v7-tests-page-load",
+        "008-get-v7-tests-page-load",
+        "009-get-v7-tests-page-load",
+        "058-get-v7-tests-page-load"
+      ],
+      "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "agents",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "011-post-v7-tests-page-load"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "alertsEnabled",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "allowGeolocation",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "allowMicAndCamera",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "allowUnsafeLegacyRenegotiation",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "bandwidthMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "bgpMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "blockDomains",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as  every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "browserLanguage",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"en-US\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as en-US every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "contentRegex",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as  every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "disableScreenshot",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "distributedTracing",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "emulatedDeviceId",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"281474976710656\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 281474976710656 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "enabled",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "followRedirects",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "httpTargetTime",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "1000"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 1000 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "httpTimeLimit",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "5"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 5 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "httpVersion",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "2"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 2 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "identifyAgentTrafficWithUserAgent",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "includeHeaders",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "interval",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "012-post-v7-tests-page-load"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "mtuMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "networkMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "numPathTraces",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "3"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 3 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "overrideAgentProxy",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "pageLoadTargetTime",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "6"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 6 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "pageLoadTimeLimit",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "10"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 10 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "protocol",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "tcp",
+          "icmp"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "035-post-v7-tests-page-load",
+        "036-post-v7-tests-page-load",
+        "037-post-v7-tests-page-load",
+        "038-post-v7-tests-page-load",
+        "039-post-v7-tests-page-load"
+      ],
+      "rationale": "2 of the 3 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "protocol",
+      "field": "immutable",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.immutability",
+      "evidence": [
+        "032-get-v7-tests-page-load-281474976976887"
+      ],
+      "rationale": "an update changed this field from icmp to icmp and the read confirmed it"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "protocol",
+      "field": "rejectedValues",
+      "value": {
+        "list": [
+          "udp"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "035-post-v7-tests-page-load",
+        "036-post-v7-tests-page-load",
+        "037-post-v7-tests-page-load",
+        "038-post-v7-tests-page-load",
+        "039-post-v7-tests-page-load"
+      ],
+      "rationale": "the specification documents tcp, icmp, udp but this API refused udp",
+      "alternatives": [
+        "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "protocol",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"tcp\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as tcp every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "protocol",
+      "field": "valuesClosed",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "035-post-v7-tests-page-load",
+        "036-post-v7-tests-page-load",
+        "037-post-v7-tests-page-load",
+        "038-post-v7-tests-page-load",
+        "039-post-v7-tests-page-load"
+      ],
+      "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+      "alternatives": [
+        "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "randomizedStartTime",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "url",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "013-post-v7-tests-page-load"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "useNtlm",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "usePublicBgp",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "vaultCredentials",
+      "field": "serverDefault",
+      "value": {
+        "text": "[]"
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as [] every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "vaultCredentials.target",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "username",
+          "password",
+          "script"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "041-post-v7-tests-page-load",
+        "042-post-v7-tests-page-load",
+        "043-post-v7-tests-page-load",
+        "044-post-v7-tests-page-load",
+        "045-post-v7-tests-page-load"
+      ],
+      "rationale": "3 of the 3 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "vaultCredentials.target",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "041-post-v7-tests-page-load",
+        "042-post-v7-tests-page-load",
+        "043-post-v7-tests-page-load",
+        "044-post-v7-tests-page-load",
+        "045-post-v7-tests-page-load"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "verifyCertificate",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "022-get-v7-tests-page-load-281474976976885",
+        "024-get-v7-tests-page-load-281474976976886"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "resource": "tests_page_load",
+      "probe": "write.writable-returned",
+      "message": "fixture minimal was refused with 400 (Invalid value for fields: httpVersion), so nothing was observed about writability from it"
+    },
+    {
+      "resource": "tests_page_load",
+      "probe": "read.error-envelope",
+      "message": "no candidate query parameter (limit, max, offset, page) was validated, so no error shape was observed without mutating anything"
+    },
+    {
+      "resource": "tests_page_load",
+      "probe": "read.volatile",
+      "message": "no existing object to read repeatedly, so volatility was not observed"
+    },
+    {
+      "resource": "tests_page_load",
+      "probe": "read.returned-weak",
+      "message": "no existing object to read, so no field presence was observed"
+    },
+    {
+      "resource": "tests_page_load",
+      "probe": "read.list-shape",
+      "message": "the collection is empty, so no item shape was observed and later probes have no fixture to draw on"
+    },
+    {
+      "resource": "tests_page_load",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"letter case is changed\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "tests_page_load",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"surrounding whitespace is stripped\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "tests_page_load",
+      "probe": "write.side-effect",
+      "message": "the plan declares no field whose value might affect another, so there is no suspected trigger to perturb; declare one under defaultInfluencers"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "agents.agentId",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "authType",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "chromeOptions",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "chromePolicies",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "clientCertificate",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "collectProxyNetworkData",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "description",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "desiredStatusCode",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "dnsOverride",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "downloadLimit",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "fixedPacketRate",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "httpInterval",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "interval",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "overrideProxyId",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "pageLoadingStrategy",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "password",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "pathTraceMode",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "probeMode",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "protocol",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "protocol",
+      "probe": "write.enum",
+      "message": "the API accepted \"TCP\" for a value the specification documents as \"tcp\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "sslVersionId",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "subinterval",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "testName",
+      "probe": "write.normalisation",
+      "message": "\"letter case is changed\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "testName",
+      "probe": "write.normalisation",
+      "message": "\"surrounding whitespace is stripped\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "testName",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "userAgent",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "username",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "vaultCredentials.secretId",
+      "probe": "write.server-default",
+      "message": "the read crossed a collection holding more than one element, so no default could be attributed to this path"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "vaultCredentials.target",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "vaultCredentials.target",
+      "probe": "write.enum",
+      "message": "the API accepted \"USERNAME\" for a value the specification documents as \"username\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_page_load",
+      "jsonPath": "vaultCredentials.target",
+      "probe": "write.server-default",
+      "message": "the read crossed a collection holding more than one element, so no default could be attributed to this path"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 12,
+      "facts": 5
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 6,
+      "facts": 1
+    },
+    {
+      "name": "write.normalisation",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 2,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 3
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 31
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 1
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    }
+  ],
+  "budget": {
+    "requests": 57,
+    "maxRequests": 240,
+    "creates": 24,
+    "maxCreates": 80,
+    "deletes": 15,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  }
+}

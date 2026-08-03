@@ -1,0 +1,38 @@
+{
+  "id": "018-post-v7-tests-web-transactions",
+  "seq": 18,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/web-transactions",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "protocol": "qqq",
+      "testName": "tfpfgen-probe-write-enum-4",
+      "url": "https://www.example.com"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Invalid value for fields: protocol",
+      "instance": "/v7/tests/web-transactions",
+      "status": 400,
+      "title": "request validation failed. There are invalid or missing fields",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

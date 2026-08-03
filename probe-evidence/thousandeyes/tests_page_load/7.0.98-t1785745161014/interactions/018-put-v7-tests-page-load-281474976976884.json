@@ -1,0 +1,98 @@
+{
+  "id": "018-put-v7-tests-page-load-281474976976884",
+  "seq": 18,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/page-load/281474976976884",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "testName": "tfpfgen-probe-write-update-style-2"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/page-load/281474976976884"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976884/http-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976884/page-load"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976884/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976884/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976884/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "allowGeolocation": false,
+      "allowMicAndCamera": false,
+      "allowUnsafeLegacyRenegotiation": true,
+      "authType": "none",
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "blockDomains": "",
+      "browserLanguage": "en-US",
+      "chromiumTrack": "stable",
+      "contentRegex": "",
+      "coreWebVitalsMode": "none",
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:18:35Z",
+      "disableScreenshot": false,
+      "distributedTracing": false,
+      "emulatedDeviceId": "281474976710656",
+      "enabled": true,
+      "followRedirects": true,
+      "httpInterval": 3600,
+      "httpTargetTime": 1000,
+      "httpTimeLimit": 5,
+      "httpVersion": 2,
+      "identifyAgentTrafficWithUserAgent": false,
+      "includeHeaders": true,
+      "interval": 3600,
+      "liveShare": false,
+      "modifiedBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "modifiedDate": "2026-08-03T08:18:37Z",
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "overrideAgentProxy": false,
+      "pageLoadTargetTime": 6,
+      "pageLoadTimeLimit": 10,
+      "pageLoadingStrategy": "normal",
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "sslVersion": "Auto",
+      "sslVersionId": "0",
+      "testId": "281474976976884",
+      "testName": "tfpfgen-probe-write-update-style-2",
+      "type": "page-load",
+      "url": "https://probe-url-1",
+      "useNtlm": false,
+      "usePublicBgp": true,
+      "vaultCredentials": [],
+      "verifyCertificate": true
+    },
+    "droppedHeaders": 14
+  }
+}

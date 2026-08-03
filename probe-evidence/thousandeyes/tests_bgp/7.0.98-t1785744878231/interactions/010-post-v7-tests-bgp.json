@@ -1,0 +1,49 @@
+{
+  "id": "010-post-v7-tests-bgp",
+  "seq": 10,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/bgp",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "prefix": "8.8.8.0/24",
+      "testName": "tfpfgen-probe-write-required-1"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/bgp/281474976976843",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/bgp/281474976976843"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976843/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:14:31Z",
+      "enabled": true,
+      "includeCoveredPrefixes": false,
+      "liveShare": false,
+      "prefix": "8.8.8.0/24",
+      "savedEvent": false,
+      "testId": "281474976976843",
+      "testName": "tfpfgen-probe-write-required-1",
+      "type": "bgp",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

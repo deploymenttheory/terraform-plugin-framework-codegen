@@ -1,0 +1,32 @@
+{
+  "id": "005-get-v7-tests-http-server",
+  "seq": 5,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/http-server",
+    "query": {
+      "limit": [
+        "not-a-number"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/http-server?limit=not-a-number"
+        }
+      },
+      "tests": []
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "id": "059-post-v7-tests-ftp-server",
+  "seq": 59,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/ftp-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "description": "MiXeD-probe-description-2",
+      "interval": 3600,
+      "password": "MiXeD-probe-password-2",
+      "requestType": "download",
+      "testName": "tfpfgen-probe-write-normalisation-2",
+      "url": "MiXeD-probe-url-2",
+      "username": "MiXeD-probe-username-2"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976976882",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976976882"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976882/ftp-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976882/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976882/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976882/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:18:23Z",
+      "description": "MiXeD-probe-description-2",
+      "enabled": true,
+      "ftpTargetTime": 1000,
+      "ftpTimeLimit": 5,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requestType": "download",
+      "savedEvent": false,
+      "testId": "281474976976882",
+      "testName": "tfpfgen-probe-write-normalisation-2",
+      "type": "ftp-server",
+      "url": "ftp://MiXeD-probe-url-2/",
+      "useActiveFtp": false,
+      "useExplicitFtps": false,
+      "usePublicBgp": true,
+      "username": "MiXeD-probe-username-2"
+    },
+    "droppedHeaders": 14
+  }
+}

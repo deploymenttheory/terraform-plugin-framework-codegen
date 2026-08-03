@@ -1,0 +1,18 @@
+{
+  "id": "026-delete-v7-tests-page-load-281474976976886",
+  "seq": 26,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/tests/page-load/281474976976886",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

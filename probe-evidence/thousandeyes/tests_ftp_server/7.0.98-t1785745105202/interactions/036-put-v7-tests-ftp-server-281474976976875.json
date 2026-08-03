@@ -1,0 +1,39 @@
+{
+  "id": "036-put-v7-tests-ftp-server-281474976976875",
+  "seq": 36,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/ftp-server/281474976976875",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "password": "guest",
+      "requestType": "download",
+      "testName": "tfpfgen-probe-write-immutability-2",
+      "url": "ftp://speedtest.tele2.net",
+      "username": "anonymous"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/ftp-server/281474976976875",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. A test with this name already exists.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

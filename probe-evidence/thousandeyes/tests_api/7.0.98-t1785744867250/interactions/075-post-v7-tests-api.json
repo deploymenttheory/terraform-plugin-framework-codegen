@@ -1,0 +1,96 @@
+{
+  "id": "075-post-v7-tests-api",
+  "seq": 75,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/api",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "requests": [
+        {
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck"
+        }
+      ],
+      "requests.method": "GET",
+      "testName": "tfpfgen-probe-write-enum-40",
+      "url": "https://api.stripe.com/healthcheck"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/api/281474976976836",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/api/281474976976836"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976836/api"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976836/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976836/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976836/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bgpMeasurements": true,
+      "collectProxyNetworkData": false,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:13:48Z",
+      "distributedTracing": false,
+      "enabled": true,
+      "interval": 3600,
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "overrideAgentProxy": false,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requests": [
+        {
+          "authType": "none",
+          "collectApiResponse": false,
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck",
+          "verifyCertificate": false
+        }
+      ],
+      "savedEvent": false,
+      "targetTime": 6,
+      "testId": "281474976976836",
+      "testName": "tfpfgen-probe-write-enum-40",
+      "timeLimit": 10,
+      "type": "api",
+      "url": "https://api.stripe.com/healthcheck",
+      "usePublicBgp": true,
+      "vaultCredentials": []
+    },
+    "droppedHeaders": 14
+  }
+}

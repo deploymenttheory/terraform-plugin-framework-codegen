@@ -1,0 +1,87 @@
+{
+  "id": "031-post-v7-tests-dns-server",
+  "seq": 31,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/dns-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "dnsServers": [
+        "8.8.8.8"
+      ],
+      "domain": "example.com",
+      "interval": 3600,
+      "protocol": "icmp",
+      "testName": "tfpfgen-probe-write-immutability-2"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/dns-server/281474976976851",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dns-server/281474976976851"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976851/dns-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976851/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976851/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976851/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:15:43Z",
+      "dnsQueryClass": "in",
+      "dnsServers": [
+        {
+          "serverId": "281474976711355",
+          "serverName": "8.8.8.8"
+        }
+      ],
+      "dnsTransportProtocol": "udp",
+      "domain": "example.com ANY",
+      "enabled": true,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 1,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": false,
+      "recursiveQueries": false,
+      "savedEvent": false,
+      "testId": "281474976976851",
+      "testName": "tfpfgen-probe-write-immutability-2",
+      "type": "dns-server",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

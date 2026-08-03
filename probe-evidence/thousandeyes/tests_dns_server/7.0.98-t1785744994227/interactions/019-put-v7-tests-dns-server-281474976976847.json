@@ -1,0 +1,77 @@
+{
+  "id": "019-put-v7-tests-dns-server-281474976976847",
+  "seq": 19,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/dns-server/281474976976847",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "testName": "tfpfgen-probe-write-update-style-2"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dns-server/281474976976847"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976847/dns-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976847/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976847/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976847/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:14:59Z",
+      "dnsQueryClass": "in",
+      "dnsServers": [
+        {
+          "serverId": "281474976711366",
+          "serverName": "8.8.8.8"
+        }
+      ],
+      "dnsTransportProtocol": "udp",
+      "domain": "probe-domain-1 ANY",
+      "enabled": true,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "modifiedBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "modifiedDate": "2026-08-03T08:15:01Z",
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 1,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "recursiveQueries": false,
+      "savedEvent": false,
+      "testId": "281474976976847",
+      "testName": "tfpfgen-probe-write-update-style-2",
+      "type": "dns-server",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

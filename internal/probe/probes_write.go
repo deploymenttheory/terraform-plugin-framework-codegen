@@ -667,16 +667,14 @@ func (p updateStyle) Exercise(
 	var out Result
 
 	if sc.Subject.Update == nil {
-		out.Facts = append(out.Facts, Fact{
-			Resource: sc.Subject.Resource,
-			Field:    FactUpdateStyle,
-			Value:    TextValue(string(blueprint.UpdateReplaceOnly)),
-			// Inferred, not Observed. Nothing was sent: this restates what the blueprint already
-			// says, and a fact with no traffic behind it must not outrank one that has some.
-			Confidence: Inferred,
-			Probe:      p.Name(),
-			Rationale: "the blueprint records no update operation, so every writable attribute " +
-				"needs replacement rather than an in-place change",
+		// A note, not a fact. Nothing was sent, so there is no cassette interaction to
+		// cite -- and fact validation rightly refuses an evidence-less claim, which is
+		// exactly what this used to emit. The blueprint already says replaceOnly; a
+		// probe restating it adds no knowledge, only an unverifiable line.
+		out.Notes = append(out.Notes, Note{
+			Resource: sc.Subject.Resource, Probe: p.Name(),
+			Message: "the blueprint records no update operation, so every writable attribute " +
+				"needs replacement rather than an in-place change; nothing was probed",
 		})
 
 		return out, nil

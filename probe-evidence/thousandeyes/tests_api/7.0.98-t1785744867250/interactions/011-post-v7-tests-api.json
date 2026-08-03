@@ -1,0 +1,38 @@
+{
+  "id": "011-post-v7-tests-api",
+  "seq": 11,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/api",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "interval": 3600,
+      "requests": [
+        {
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck"
+        }
+      ],
+      "testName": "tfpfgen-probe-write-required-2",
+      "url": "https://api.stripe.com/healthcheck"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/api",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Error in field agentSet : No agents selected.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

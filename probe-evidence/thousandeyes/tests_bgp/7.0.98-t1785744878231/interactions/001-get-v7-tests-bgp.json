@@ -1,0 +1,32 @@
+{
+  "id": "001-get-v7-tests-bgp",
+  "seq": 1,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/bgp",
+    "query": {
+      "tfpfgen_probe": [
+        "1"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/bgp?tfpfgen_probe=1"
+        }
+      },
+      "tests": []
+    },
+    "droppedHeaders": 14
+  }
+}

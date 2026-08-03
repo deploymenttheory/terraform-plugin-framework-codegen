@@ -1,0 +1,1462 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (0 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "tests_api",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tests-api-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "tests_api",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tests-api-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "field": "policy.readBack",
+      "value": {
+        "readBack": {
+          "reason": "every one of 6 read(s) immediately after a create succeeded on the first attempt"
+        }
+      },
+      "confidence": "inferred",
+      "probe": "write.read-your-writes",
+      "evidence": [
+        "018-get-v7-tests-api-281474976976795",
+        "020-get-v7-tests-api-281474976976795",
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797",
+        "029-get-v7-tests-api-281474976976798",
+        "033-get-v7-tests-api-281474976976798"
+      ],
+      "rationale": "6 object(s) were read immediately after creation and every first read succeeded",
+      "alternatives": [
+        "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "field": "policy.updateStyle",
+      "value": {
+        "text": "patchMerge"
+      },
+      "confidence": "observed",
+      "probe": "write.update-style",
+      "evidence": [
+        "018-get-v7-tests-api-281474976976795",
+        "020-get-v7-tests-api-281474976976795"
+      ],
+      "rationale": "an update omitting url left it unchanged, so the API merges",
+      "alternatives": [
+        "an API that distinguishes an absent key from an explicit null may treat the two differently, and only the absent case was sent",
+        "the behaviour was observed for url and is assumed to hold for every other field"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-tests-api",
+        "003-get-v7-tests-api",
+        "004-get-v7-tests-api",
+        "005-get-v7-tests-api",
+        "006-get-v7-tests-api",
+        "007-get-v7-tests-api",
+        "008-get-v7-tests-api",
+        "009-get-v7-tests-api",
+        "128-get-v7-tests-api"
+      ],
+      "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "agents",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "011-post-v7-tests-api"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "alertsEnabled",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "bgpMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "collectProxyNetworkData",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "distributedTracing",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "enabled",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "interval",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "012-post-v7-tests-api"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "mtuMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "networkMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "numPathTraces",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "3"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 3 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "overrideAgentProxy",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "protocol",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "tcp",
+          "icmp"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "036-post-v7-tests-api",
+        "037-post-v7-tests-api",
+        "038-post-v7-tests-api",
+        "039-post-v7-tests-api",
+        "040-post-v7-tests-api"
+      ],
+      "rationale": "2 of the 3 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "protocol",
+      "field": "rejectedValues",
+      "value": {
+        "list": [
+          "udp"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "036-post-v7-tests-api",
+        "037-post-v7-tests-api",
+        "038-post-v7-tests-api",
+        "039-post-v7-tests-api",
+        "040-post-v7-tests-api"
+      ],
+      "rationale": "the specification documents tcp, icmp, udp but this API refused udp",
+      "alternatives": [
+        "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "protocol",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"tcp\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as tcp every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "protocol",
+      "field": "silentlyIgnoredOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.immutability",
+      "evidence": [
+        "033-get-v7-tests-api-281474976976798"
+      ],
+      "rationale": "an update to icmp answered 200 and the field still read back as tcp, so the change was accepted and not applied",
+      "alternatives": [
+        "the value may have been normalised rather than ignored, which write.normalisation would distinguish"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "protocol",
+      "field": "valuesClosed",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "036-post-v7-tests-api",
+        "037-post-v7-tests-api",
+        "038-post-v7-tests-api",
+        "039-post-v7-tests-api",
+        "040-post-v7-tests-api"
+      ],
+      "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+      "alternatives": [
+        "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "randomizedStartTime",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "inferred",
+      "probe": "write.required",
+      "evidence": [
+        "013-post-v7-tests-api"
+      ],
+      "rationale": "a create omitting this field was refused with 400, but the error body did not name the field, so the refusal may have had another cause",
+      "alternatives": [
+        "the create may have been refused for a reason unrelated to this field, which only an error body naming it would rule out"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.name",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "status-code",
+          "response-body"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "042-post-v7-tests-api",
+        "043-post-v7-tests-api",
+        "044-post-v7-tests-api",
+        "045-post-v7-tests-api"
+      ],
+      "rationale": "2 of the 2 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.name",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "042-post-v7-tests-api",
+        "043-post-v7-tests-api",
+        "044-post-v7-tests-api",
+        "045-post-v7-tests-api"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.operator",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "is",
+          "is-not",
+          "includes",
+          "not-includes",
+          "matches",
+          "not-matches"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "047-post-v7-tests-api",
+        "048-post-v7-tests-api",
+        "049-post-v7-tests-api",
+        "050-post-v7-tests-api",
+        "051-post-v7-tests-api",
+        "052-post-v7-tests-api",
+        "053-post-v7-tests-api",
+        "054-post-v7-tests-api"
+      ],
+      "rationale": "6 of the 6 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.operator",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "047-post-v7-tests-api",
+        "048-post-v7-tests-api",
+        "049-post-v7-tests-api",
+        "050-post-v7-tests-api",
+        "051-post-v7-tests-api",
+        "052-post-v7-tests-api",
+        "053-post-v7-tests-api",
+        "054-post-v7-tests-api"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.authType",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "none",
+          "basic",
+          "bearer-token",
+          "oauth2"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "056-post-v7-tests-api",
+        "057-post-v7-tests-api",
+        "058-post-v7-tests-api",
+        "059-post-v7-tests-api",
+        "060-post-v7-tests-api",
+        "061-post-v7-tests-api"
+      ],
+      "rationale": "4 of the 4 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.authType",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"none\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as none every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.authType",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "056-post-v7-tests-api",
+        "057-post-v7-tests-api",
+        "058-post-v7-tests-api",
+        "059-post-v7-tests-api",
+        "060-post-v7-tests-api",
+        "061-post-v7-tests-api"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.clientAuthentication",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "basic-auth-header",
+          "in-body"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "063-post-v7-tests-api",
+        "064-post-v7-tests-api",
+        "065-post-v7-tests-api",
+        "066-post-v7-tests-api"
+      ],
+      "rationale": "2 of the 2 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.clientAuthentication",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "063-post-v7-tests-api",
+        "064-post-v7-tests-api",
+        "065-post-v7-tests-api",
+        "066-post-v7-tests-api"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.collectApiResponse",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.method",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "get",
+          "post",
+          "put",
+          "delete",
+          "patch"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "068-post-v7-tests-api",
+        "069-post-v7-tests-api",
+        "070-post-v7-tests-api",
+        "071-post-v7-tests-api",
+        "072-post-v7-tests-api",
+        "073-post-v7-tests-api",
+        "074-post-v7-tests-api"
+      ],
+      "rationale": "5 of the 5 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.method",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"get\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as get every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.method",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "068-post-v7-tests-api",
+        "069-post-v7-tests-api",
+        "070-post-v7-tests-api",
+        "071-post-v7-tests-api",
+        "072-post-v7-tests-api",
+        "073-post-v7-tests-api",
+        "074-post-v7-tests-api"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.name",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"step-1\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as step-1 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.url",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"https://api.stripe.com/healthcheck\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as https://api.stripe.com/healthcheck every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.verifyCertificate",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "targetTime",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "6"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 6 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "timeLimit",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "10"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 10 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "url",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "014-post-v7-tests-api"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "usePublicBgp",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "vaultCredentials",
+      "field": "serverDefault",
+      "value": {
+        "text": "[]"
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "023-get-v7-tests-api-281474976976796",
+        "025-get-v7-tests-api-281474976976797"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as [] every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "vaultCredentials.target",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "username",
+          "password",
+          "script"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "076-post-v7-tests-api",
+        "077-post-v7-tests-api",
+        "078-post-v7-tests-api",
+        "079-post-v7-tests-api",
+        "080-post-v7-tests-api"
+      ],
+      "rationale": "3 of the 3 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "vaultCredentials.target",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "076-post-v7-tests-api",
+        "077-post-v7-tests-api",
+        "078-post-v7-tests-api",
+        "079-post-v7-tests-api",
+        "080-post-v7-tests-api"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    }
+  ],
+  "notes": [
+    {
+      "resource": "tests_api",
+      "probe": "write.writable-returned",
+      "message": "fixture minimal was refused with 400 (), so nothing was observed about writability from it"
+    },
+    {
+      "resource": "tests_api",
+      "probe": "read.error-envelope",
+      "message": "no candidate query parameter (limit, max, offset, page) was validated, so no error shape was observed without mutating anything"
+    },
+    {
+      "resource": "tests_api",
+      "probe": "read.volatile",
+      "message": "no existing object to read repeatedly, so volatility was not observed"
+    },
+    {
+      "resource": "tests_api",
+      "probe": "read.returned-weak",
+      "message": "no existing object to read, so no field presence was observed"
+    },
+    {
+      "resource": "tests_api",
+      "probe": "read.list-shape",
+      "message": "the collection is empty, so no item shape was observed and later probes have no fixture to draw on"
+    },
+    {
+      "resource": "tests_api",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"collection order is changed\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "tests_api",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"letter case is changed\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "tests_api",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"surrounding whitespace is stripped\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "tests_api",
+      "probe": "write.side-effect",
+      "message": "the plan declares no field whose value might affect another, so there is no suspected trigger to perturb; declare one under defaultInfluencers"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "agents.agentId",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "clientCertDomainsAllowList",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "clientCertificate",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "credentials",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "description",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "followRedirects",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "interval",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "overrideProxyId",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "pathTraceMode",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "predefinedVariables",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "predefinedVariables.name",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "predefinedVariables.value",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "probeMode",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "protocol",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "protocol",
+      "probe": "write.enum",
+      "message": "the API accepted \"TCP\" for a value the specification documents as \"tcp\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.name",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.name",
+      "probe": "write.enum",
+      "message": "the API accepted \"STATUS-CODE\" for a value the specification documents as \"status-code\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.name",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.operator",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.operator",
+      "probe": "write.enum",
+      "message": "the API accepted \"IS\" for a value the specification documents as \"is\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.operator",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.assertions.value",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.authType",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.authType",
+      "probe": "write.enum",
+      "message": "the API accepted \"NONE\" for a value the specification documents as \"none\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.bearerToken",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.body",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.clientAuthentication",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.clientAuthentication",
+      "probe": "write.enum",
+      "message": "the API accepted \"BASIC-AUTH-HEADER\" for a value the specification documents as \"basic-auth-header\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.clientAuthentication",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.clientId",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.clientSecret",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.headers",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.headers.key",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.headers.value",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.method",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.method",
+      "probe": "write.enum",
+      "message": "the API accepted \"GET\" for a value the specification documents as \"get\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.password",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.scope",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.tokenUrl",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.username",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.variables",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.variables.name",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.variables.value",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "requests.waitTimeMs",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "sslVersionId",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "testName",
+      "probe": "write.normalisation",
+      "message": "\"letter case is changed\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "testName",
+      "probe": "write.normalisation",
+      "message": "\"surrounding whitespace is stripped\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "testName",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "vaultCredentials.secretId",
+      "probe": "write.server-default",
+      "message": "the read crossed a collection holding more than one element, so no default could be attributed to this path"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "vaultCredentials.target",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "vaultCredentials.target",
+      "probe": "write.enum",
+      "message": "the API accepted \"USERNAME\" for a value the specification documents as \"username\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_api",
+      "jsonPath": "vaultCredentials.target",
+      "probe": "write.server-default",
+      "message": "the read crossed a collection holding more than one element, so no default could be attributed to this path"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 46,
+      "facts": 15
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 6,
+      "facts": 1
+    },
+    {
+      "name": "write.normalisation",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 3,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 5,
+      "facts": 4
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 21
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 1
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    }
+  ],
+  "budget": {
+    "requests": 127,
+    "maxRequests": 240,
+    "creates": 60,
+    "maxCreates": 80,
+    "deletes": 49,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  }
+}

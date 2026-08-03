@@ -765,7 +765,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -845,29 +845,29 @@
           {
             "name": "alerts_enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates if alerts are enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "bandwidth_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bgp measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "continuous_mode",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "To enable continuous monitoring, set this parameter to `true` to. \nWhen continuous monitoring is enabled, the following actions occur:\n* `fixedPacketRate` is enforced\n* `bandwidthMeasurements` are disabled\n* If the `protocol` is set to `tcp`, `probeMode` is set to `syn`."
+              "computed_optional_required": "computed_optional",
+              "description": "To enable continuous monitoring, set this parameter to `true` to. \nWhen continuous monitoring is enabled, the following actions occur:\n* `fixedPacketRate` is enforced\n* `bandwidthMeasurements` are disabled\n* If the `protocol` is set to `tcp`, `probeMode` is set to `syn`.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -908,8 +908,8 @@
           {
             "name": "enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -923,7 +923,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -957,22 +957,22 @@
           {
             "name": "mtu_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+              "computed_optional_required": "computed_optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "View packet loss in 1-second intervals. This is only available for 1-minute interval tests. Set to `true` to enable network measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "View packet loss in 1-second intervals. This is only available for 1-minute interval tests. Set to `true` to enable network measurements.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Number of path traces executed by the agent."
+              "computed_optional_required": "computed_optional",
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1006,15 +1006,15 @@
           {
             "name": "protocol",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+              "computed_optional_required": "computed_optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744716524 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1028,11 +1028,11 @@
             "name": "server",
             "string": {
               "computed_optional_required": "optional",
-              "description": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
+              "description": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -1055,8 +1055,8 @@
           {
             "name": "use_public_bgp",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1077,7 +1077,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           }
         ],
@@ -1091,15 +1091,15 @@
           {
             "name": "alerts_enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates if alerts are enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bgp measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1119,8 +1119,8 @@
           {
             "name": "collect_proxy_network_data",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether network data to the proxy should be collected."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1157,15 +1157,15 @@
           {
             "name": "distributed_tracing",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards."
+              "computed_optional_required": "computed_optional",
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1179,7 +1179,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785744867250 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -1206,29 +1206,29 @@
           {
             "name": "mtu_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+              "computed_optional_required": "computed_optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Number of path traces executed by the agent."
+              "computed_optional_required": "computed_optional",
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_agent_proxy",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`."
+              "computed_optional_required": "computed_optional",
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1282,15 +1282,15 @@
           {
             "name": "protocol",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+              "computed_optional_required": "computed_optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1315,14 +1315,14 @@
                             "name": "name",
                             "string": {
                               "computed_optional_required": "optional",
-                              "description": "Set to `status-code` to assert the response status code. Set to `response-body` to assert data is present in the response body. Use `ApiRequestAssertion` to set the value for the assertion."
+                              "description": "Set to `status-code` to assert the response status code. Set to `response-body` to assert data is present in the response body. Use `ApiRequestAssertion` to set the value for the assertion.\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `status-code`, `response-body`.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
                             }
                           },
                           {
                             "name": "operator",
                             "string": {
                               "computed_optional_required": "optional",
-                              "description": "If `name = status-code``, accepted values are [is, is-not]. If `name = response-body``, accepted values are [includes, not-includes, matches, not-matches]`."
+                              "description": "If `name = status-code``, accepted values are [is, is-not]. If `name = response-body``, accepted values are [includes, not-includes, matches, not-matches]`.\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `is`, `is-not`, `includes`, `not-includes`, `matches`, `not-matches`.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
                             }
                           },
                           {
@@ -1340,8 +1340,8 @@
                   {
                     "name": "auth_type",
                     "string": {
-                      "computed_optional_required": "optional",
-                      "description": "Will override the Authorization request header."
+                      "computed_optional_required": "computed_optional",
+                      "description": "Will override the Authorization request header.\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `none`, `basic`, `bearer-token`, `oauth2`.\nObserved: the API assigns \"none\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
                     }
                   },
                   {
@@ -1362,7 +1362,7 @@
                     "name": "client_authentication",
                     "string": {
                       "computed_optional_required": "optional",
-                      "description": "The OAuth2 client authentication location type."
+                      "description": "The OAuth2 client authentication location type.\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `basic-auth-header`, `in-body`.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
                     }
                   },
                   {
@@ -1382,8 +1382,8 @@
                   {
                     "name": "collect_api_response",
                     "bool": {
-                      "computed_optional_required": "optional",
-                      "description": "Set to `true` if API response body should be collected and saved. Set to `false` if API response body should not be saved."
+                      "computed_optional_required": "computed_optional",
+                      "description": "Set to `true` if API response body should be collected and saved. Set to `false` if API response body should not be saved.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
                     }
                   },
                   {
@@ -1417,15 +1417,15 @@
                   {
                     "name": "method",
                     "string": {
-                      "computed_optional_required": "optional",
-                      "description": "HTTP request method."
+                      "computed_optional_required": "computed_optional",
+                      "description": "HTTP request method.\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `get`, `post`, `put`, `delete`, `patch`.\nObserved: the API assigns \"get\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
                     }
                   },
                   {
                     "name": "name",
                     "string": {
                       "computed_optional_required": "required",
-                      "description": "API step name, must be unique."
+                      "description": "API step name, must be unique.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns \"step-1\" when this is omitted.\n<!-- /probed -->"
                     }
                   },
                   {
@@ -1453,7 +1453,7 @@
                     "name": "url",
                     "string": {
                       "computed_optional_required": "required",
-                      "description": "Request url. Supports variables in the format `{{variableName}}`."
+                      "description": "Request url. Supports variables in the format `{{variableName}}`.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns \"https://api.stripe.com/healthcheck\" when this is omitted.\n<!-- /probed -->"
                     }
                   },
                   {
@@ -1494,8 +1494,8 @@
                   {
                     "name": "verify_certificate",
                     "bool": {
-                      "computed_optional_required": "optional",
-                      "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors."
+                      "computed_optional_required": "computed_optional",
+                      "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
                     }
                   },
                   {
@@ -1506,7 +1506,8 @@
                     }
                   }
                 ]
-              }
+              },
+              "description": "<!-- probed:7.0.98-t1785744867250 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -1526,12 +1527,12 @@
           {
             "name": "target_time",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Target time for completion metric, defaults to 50% of time limit specified in seconds. (0 means default behavior)"
+              "computed_optional_required": "computed_optional",
+              "description": "Target time for completion metric, defaults to 50% of time limit specified in seconds. (0 means default behavior)\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns 6 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -1547,8 +1548,8 @@
           {
             "name": "time_limit",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Time limit for transaction in seconds. Exceeding this limit will result in a Timeout error."
+              "computed_optional_required": "computed_optional",
+              "description": "Time limit for transaction in seconds. Exceeding this limit will result in a Timeout error.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns 10 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1562,14 +1563,14 @@
             "name": "url",
             "string": {
               "computed_optional_required": "required",
-              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744867250 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_public_bgp",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1592,7 +1593,7 @@
                     "name": "target",
                     "string": {
                       "computed_optional_required": "optional",
-                      "description": "The target setting that the credential should be used for."
+                      "description": "The target setting that the credential should be used for.\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `username`, `password`, `script`.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
                     }
                   }
                 ]
@@ -1618,7 +1619,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785744867250 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           }
         ],
@@ -1632,8 +1633,8 @@
           {
             "name": "alerts_enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates if alerts are enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785744878231 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1660,15 +1661,15 @@
           {
             "name": "enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744878231 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "include_covered_prefixes",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicate if queries for subprefixes detected under this prefix should included."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicate if queries for subprefixes detected under this prefix should included.\n\n<!-- probed:7.0.98-t1785744878231 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1696,7 +1697,7 @@
             "name": "prefix",
             "string": {
               "computed_optional_required": "required",
-              "description": "a.b.c.d is a network address, with the prefix length defined as e. Prefixes can be any length from 8 to 24."
+              "description": "a.b.c.d is a network address, with the prefix length defined as e. Prefixes can be any length from 8 to 24.\n\n<!-- probed:7.0.98-t1785744878231 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -1707,7 +1708,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -1729,8 +1730,8 @@
           {
             "name": "use_public_bgp",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744878231 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           }
         ],
@@ -1744,22 +1745,22 @@
           {
             "name": "alerts_enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates if alerts are enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "bandwidth_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bgp measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1797,7 +1798,7 @@
               "element_type": {
                 "string": {}
               },
-              "description": "A list of DNS server FQDN.\n\nSent as a list of server names; the read reports servers as objects, which v1 does not round-trip.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
+              "description": "A list of DNS server FQDN.\n\nSent as a list of server names; the read reports servers as objects, which v1 does not round-trip.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744994227 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -1811,14 +1812,14 @@
             "name": "domain",
             "string": {
               "computed_optional_required": "required",
-              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744994227 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1832,7 +1833,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785744994227 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -1866,22 +1867,22 @@
           {
             "name": "mtu_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+              "computed_optional_required": "computed_optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Number of path traces executed by the agent."
+              "computed_optional_required": "computed_optional",
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns 1 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1901,22 +1902,22 @@
           {
             "name": "protocol",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+              "computed_optional_required": "computed_optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744994227 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "recursive_queries",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set true to run query with RD (recursion desired) flag enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Set true to run query with RD (recursion desired) flag enabled.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1927,7 +1928,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -1950,8 +1951,8 @@
           {
             "name": "use_public_bgp",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -1972,7 +1973,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785744994227 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           }
         ],
@@ -1986,8 +1987,8 @@
           {
             "name": "alerts_enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates if alerts are enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785745019896 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2029,21 +2030,21 @@
             "name": "domain",
             "string": {
               "computed_optional_required": "required",
-              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745019896 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785745019896 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785745019896 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -2070,8 +2071,8 @@
           {
             "name": "randomized_start_time",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785745019896 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2082,7 +2083,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -2119,7 +2120,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785745019896 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           }
         ],
@@ -2133,8 +2134,8 @@
           {
             "name": "alerts_enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates if alerts are enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785745046061 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2169,21 +2170,21 @@
             "name": "domain",
             "string": {
               "computed_optional_required": "required",
-              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745046061 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785745046061 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785745046061 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -2210,8 +2211,8 @@
           {
             "name": "randomized_start_time",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785745046061 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2222,7 +2223,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -2259,7 +2260,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785745046061 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           }
         ],
@@ -2273,22 +2274,22 @@
           {
             "name": "alerts_enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates if alerts are enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "bandwidth_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bgp measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2322,8 +2323,8 @@
           {
             "name": "enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2336,22 +2337,22 @@
           {
             "name": "ftp_target_time",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Target time for operation completion; specified in milliseconds."
+              "computed_optional_required": "computed_optional",
+              "description": "Target time for operation completion; specified in milliseconds.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns 1000 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "ftp_time_limit",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Set the time limit for the test in seconds."
+              "computed_optional_required": "computed_optional",
+              "description": "Set the time limit for the test in seconds.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns 5 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -2385,29 +2386,29 @@
           {
             "name": "mtu_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+              "computed_optional_required": "computed_optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Number of path traces executed by the agent."
+              "computed_optional_required": "computed_optional",
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "password",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Password for Basic/NTLM authentication."
+              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -2427,22 +2428,22 @@
           {
             "name": "protocol",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+              "computed_optional_required": "computed_optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745105202 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "request_type",
             "string": {
               "computed_optional_required": "required",
-              "description": "Set the type of activity for the test."
+              "description": "Set the type of activity for the test.\n\n<!-- probed:7.0.98-t1785745105202 -->\nValues accepted here: `download`, `list`.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -2453,7 +2454,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -2477,35 +2478,35 @@
             "name": "url",
             "string": {
               "computed_optional_required": "required",
-              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_active_ftp",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Explicitly set the flag to use active FTP."
+              "computed_optional_required": "computed_optional",
+              "description": "Explicitly set the flag to use active FTP.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_explicit_ftps",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Use explicit FTPS (ftp over SSL). By default, tests will autodetect when it is appropriate to use FTPS."
+              "computed_optional_required": "computed_optional",
+              "description": "Use explicit FTPS (ftp over SSL). By default, tests will autodetect when it is appropriate to use FTPS.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_public_bgp",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785745105202 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "username",
             "string": {
               "computed_optional_required": "required",
-              "description": "Username for Basic/NTLM authentication."
+              "description": "Username for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -2526,7 +2527,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           }
         ],
@@ -2540,15 +2541,15 @@
           {
             "name": "alerts_enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates if alerts are enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "allow_unsafe_legacy_renegotiation",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation."
+              "computed_optional_required": "computed_optional",
+              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2561,15 +2562,15 @@
           {
             "name": "bandwidth_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bgp measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2582,15 +2583,15 @@
           {
             "name": "collect_proxy_network_data",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether network data to the proxy should be collected."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "content_regex",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Content regex, this field does not require escaping."
+              "computed_optional_required": "computed_optional",
+              "description": "Content regex, this field does not require escaping.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns \"\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2624,8 +2625,8 @@
           {
             "name": "distributed_tracing",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards."
+              "computed_optional_required": "computed_optional",
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2645,8 +2646,8 @@
           {
             "name": "enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2659,8 +2660,8 @@
           {
             "name": "follow_redirects",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`."
+              "computed_optional_required": "computed_optional",
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2676,22 +2677,22 @@
           {
             "name": "http_target_time",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Target time for HTTP server completion, specified in milliseconds."
+              "computed_optional_required": "computed_optional",
+              "description": "Target time for HTTP server completion, specified in milliseconds.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns 1000 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_time_limit",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "HTTP time limit in seconds."
+              "computed_optional_required": "computed_optional",
+              "description": "HTTP time limit in seconds.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns 5 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_version",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1."
+              "computed_optional_required": "computed_optional",
+              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns 2 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2705,7 +2706,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785744687658 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -2739,29 +2740,29 @@
           {
             "name": "mtu_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+              "computed_optional_required": "computed_optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Number of path traces executed by the agent."
+              "computed_optional_required": "computed_optional",
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_agent_proxy",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`."
+              "computed_optional_required": "computed_optional",
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2802,15 +2803,15 @@
           {
             "name": "protocol",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+              "computed_optional_required": "computed_optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744687658 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2842,7 +2843,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -2866,21 +2867,21 @@
             "name": "url",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744687658 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_ntlm",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_public_bgp",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2928,8 +2929,8 @@
           {
             "name": "verify_certificate",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors."
+              "computed_optional_required": "computed_optional",
+              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\n<!-- probed:7.0.98-t1785744687658 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2950,7 +2951,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785744687658 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           }
         ],
@@ -2964,29 +2965,29 @@
           {
             "name": "alerts_enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates if alerts are enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "allow_geolocation",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set true to use the agent’s geolocation by the web page."
+              "computed_optional_required": "computed_optional",
+              "description": "Set true to use the agent’s geolocation by the web page.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "allow_mic_and_camera",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set true allow the use of a fake mic and camera in the browser."
+              "computed_optional_required": "computed_optional",
+              "description": "Set true allow the use of a fake mic and camera in the browser.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "allow_unsafe_legacy_renegotiation",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation."
+              "computed_optional_required": "computed_optional",
+              "description": "Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -2999,29 +3000,29 @@
           {
             "name": "bandwidth_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "bgp_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to enable bgp measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "block_domains",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests."
+              "computed_optional_required": "computed_optional",
+              "description": "Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns \"\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "browser_language",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Set one of the available browser language that you want to use to configure the browser."
+              "computed_optional_required": "computed_optional",
+              "description": "Set one of the available browser language that you want to use to configure the browser.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns \"en-US\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3055,8 +3056,8 @@
           {
             "name": "content_regex",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Content regex, this field does not require escaping."
+              "computed_optional_required": "computed_optional",
+              "description": "Content regex, this field does not require escaping.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns \"\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3090,15 +3091,15 @@
           {
             "name": "disable_screenshot",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Enables or disables screenshots on error. Set true to not capture"
+              "computed_optional_required": "computed_optional",
+              "description": "Enables or disables screenshots on error. Set true to not capture\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "distributed_tracing",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards."
+              "computed_optional_required": "computed_optional",
+              "description": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3118,15 +3119,15 @@
           {
             "name": "emulated_device_id",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "ID of the emulated device, if one was given when the test was created."
+              "computed_optional_required": "computed_optional",
+              "description": "ID of the emulated device, if one was given when the test was created.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns \"281474976710656\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "enabled",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Test is enabled."
+              "computed_optional_required": "computed_optional",
+              "description": "Test is enabled.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3139,8 +3140,8 @@
           {
             "name": "follow_redirects",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`."
+              "computed_optional_required": "computed_optional",
+              "description": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3153,43 +3154,43 @@
           {
             "name": "http_target_time",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Target time for HTTP server completion, specified in milliseconds."
+              "computed_optional_required": "computed_optional",
+              "description": "Target time for HTTP server completion, specified in milliseconds.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 1000 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_time_limit",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "HTTP time limit in seconds."
+              "computed_optional_required": "computed_optional",
+              "description": "HTTP time limit in seconds.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 5 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "http_version",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1."
+              "computed_optional_required": "computed_optional",
+              "description": "HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 2 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "identify_agent_traffic_with_user_agent",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy)."
+              "computed_optional_required": "computed_optional",
+              "description": "Determines how agent traffic is identified:\n\n* `false`: Adds the `x-thousandeyes-agent: yes` header.\n* `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header.\n\nFor more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "include_headers",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to `true` to capture response headers for objects loaded by the test."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to `true` to capture response headers for objects loaded by the test.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785745161014 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
@@ -3216,29 +3217,29 @@
           {
             "name": "mtu_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set `true` to measure MTU sizes on network from agents to the target."
+              "computed_optional_required": "computed_optional",
+              "description": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements."
+              "computed_optional_required": "computed_optional",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "num_path_traces",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Number of path traces executed by the agent."
+              "computed_optional_required": "computed_optional",
+              "description": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "override_agent_proxy",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`."
+              "computed_optional_required": "computed_optional",
+              "description": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3251,15 +3252,15 @@
           {
             "name": "page_load_target_time",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Target time for page load completion, specified in seconds and cannot exceed the `pageLoadTimeLimit`."
+              "computed_optional_required": "computed_optional",
+              "description": "Target time for page load completion, specified in seconds and cannot exceed the `pageLoadTimeLimit`.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 6 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "page_load_time_limit",
             "int64": {
-              "computed_optional_required": "optional",
-              "description": "Page load time limit. Must be larger than the `httpTimeLimit`."
+              "computed_optional_required": "computed_optional",
+              "description": "Page load time limit. Must be larger than the `httpTimeLimit`.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns 10 when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3293,15 +3294,15 @@
           {
             "name": "protocol",
             "string": {
-              "computed_optional_required": "optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+              "computed_optional_required": "computed_optional",
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745161014 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "randomized_start_time",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicates whether agents should randomize the start time in each test round."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3333,7 +3334,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -3357,21 +3358,21 @@
             "name": "url",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745161014 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_ntlm",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set."
+              "computed_optional_required": "computed_optional",
+              "description": "Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
             }
           },
           {
             "name": "use_public_bgp",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value."
+              "computed_optional_required": "computed_optional",
+              "description": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3408,7 +3409,7 @@
                     "name": "target",
                     "string": {
                       "computed_optional_required": "optional",
-                      "description": "The target setting that the credential should be used for."
+                      "description": "The target setting that the credential should be used for.\n\n<!-- probed:7.0.98-t1785745161014 -->\nValues accepted here: `username`, `password`, `script`.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
                     }
                   }
                 ]
@@ -3419,8 +3420,8 @@
           {
             "name": "verify_certificate",
             "bool": {
-              "computed_optional_required": "optional",
-              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors."
+              "computed_optional_required": "computed_optional",
+              "description": "Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
             }
           },
           {
@@ -3441,7 +3442,7 @@
                   }
                 ]
               },
-              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state."
+              "description": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785745161014 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
             }
           }
         ],
@@ -3649,7 +3650,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -3860,7 +3861,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."
@@ -4238,7 +4239,7 @@
             "name": "protocol",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD)."
+              "description": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745177323 -->\nThe specification documents `udp`, which the API rejected.\n<!-- /probed -->"
             }
           },
           {
@@ -4284,7 +4285,7 @@
             }
           },
           {
-            "name": "test_id",
+            "name": "id",
             "string": {
               "computed_optional_required": "computed",
               "description": "Each test is assigned an unique ID; this is used to access test information and results from other endpoints."

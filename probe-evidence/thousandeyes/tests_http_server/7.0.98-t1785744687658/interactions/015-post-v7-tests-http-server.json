@@ -1,0 +1,70 @@
+{
+  "id": "015-post-v7-tests-http-server",
+  "seq": 15,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/http-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": true,
+      "allowUnsafeLegacyRenegotiation": true,
+      "bandwidthMeasurements": true,
+      "bgpMeasurements": true,
+      "clientCertificate": "probe-clientCertificate-1",
+      "collectProxyNetworkData": true,
+      "contentRegex": "probe-contentRegex-1",
+      "description": "probe-description-1",
+      "desiredStatusCode": "probe-desiredStatusCode-1",
+      "distributedTracing": true,
+      "dnsOverride": "probe-dnsOverride-1",
+      "downloadLimit": 1001,
+      "enabled": true,
+      "fixedPacketRate": 1001,
+      "followRedirects": true,
+      "httpTargetTime": 1001,
+      "httpTimeLimit": 1001,
+      "httpVersion": 1001,
+      "includeHeaders": true,
+      "interval": 3600,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 1001,
+      "overrideAgentProxy": true,
+      "overrideProxyId": "probe-overrideProxyId-1",
+      "password": "probe-password-1",
+      "postBody": "probe-postBody-1",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "testName": "tfpfgen-probe-write-writable-returned-1",
+      "url": "probe-url-1",
+      "useNtlm": true,
+      "usePublicBgp": true,
+      "userAgent": "probe-userAgent-1",
+      "username": "probe-username-1",
+      "verifyCertificate": true
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Invalid value for fields: httpVersion",
+      "instance": "/v7/tests/http-server",
+      "status": 400,
+      "title": "request validation failed. There are invalid or missing fields",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}
