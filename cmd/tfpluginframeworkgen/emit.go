@@ -122,6 +122,14 @@ func runEmit(args []string) error {
 // the tree correct either way. terraform validate stays a CI job: it needs the
 // provider built into a dev-override, which is workflow plumbing rather than emission.
 func postcheck(out string) error {
+	// A scratch emit -- a test's temp dir, an -only inspection -- has no module
+	// to compile or docs to regenerate, and holding it to the battery would gate
+	// the wrong thing. The pilot and any real provider root carry go.mod.
+	if _, err := os.Stat(filepath.Join(out, "go.mod")); err != nil {
+		log.Printf("postcheck: %s is not a module root; skipped", out)
+		return nil
+	}
+
 	log.Printf("postcheck: go build ./...")
 	build := exec.Command("go", "build", "./...")
 	build.Dir = out
