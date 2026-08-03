@@ -28,25 +28,25 @@ resource "thousandeyes_tests_sip_server" "example" {
 ### Optional
 
 - `alerts_enabled` (Boolean) Indicates if alerts are enabled.
-- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements.
+- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `description` (String) A description of the test.
-- `enabled` (Boolean) Test is enabled.
-- `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second.
+- `enabled` (Boolean) Test is enabled. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
-- `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level.
-- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
-- `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements.
-- `num_path_traces` (Number) Number of path traces executed by the agent.
+- `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `options_regex` (String) Options regex, this field does not require escaping.
-- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
-- `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
-- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
+- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
+- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 - `register_enabled` (Boolean) Set to true to perform SIP registration on the test target with the SIP REGISTER command.
 - `sip_target_time` (Number) Target time for test completion in milliseconds.
 - `sip_time_limit` (Number) Time limit in milliseconds.
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:static --> The SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or "" silently becomes an omission. <!-- /probed -->
 
 ### Read-Only
 

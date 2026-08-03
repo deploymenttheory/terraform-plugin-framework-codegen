@@ -65,6 +65,14 @@ func runMerge(args []string) error {
 	}
 
 	if len(facts) == 0 {
+		// Under -check, an empty facts document is trivially reflected: there is
+		// nothing to fold, so nothing can have drifted. A rehearse-only recording
+		// whose bodies were refused legitimately commits one -- the transcript and
+		// its notes are the evidence, and the gate must not fail over their honesty.
+		if *check {
+			log.Printf("✅ %s holds no facts, which any blueprint reflects", *factsPath)
+			return nil
+		}
 		return fmt.Errorf("%w: %s holds no facts", errNothingToDo, *factsPath)
 	}
 

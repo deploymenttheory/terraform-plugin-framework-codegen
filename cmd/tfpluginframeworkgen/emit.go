@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/emit"
@@ -13,6 +15,7 @@ import (
 )
 
 type emitOptions struct {
+	skipPostcheck bool
 	blueprintPath string
 	out           string
 	only          string
@@ -41,6 +44,9 @@ func parseEmitFlags(args []string) (emitOptions, error) {
 	fs.BoolVar(&o.list, "list", false, "list the files that would be written and exit")
 	fs.BoolVar(&o.force, "force", false, "overwrite files that are not marked as generated")
 	fs.BoolVar(&o.clean, "clean", false, "delete files the blueprints no longer produce")
+	fs.BoolVar(&o.skipPostcheck, "skip-postcheck", false,
+		"skip the post-emit battery (compile, docs regeneration, terraform fmt); for "+
+			"tight inner loops only -- CI and any run before a commit should keep it")
 
 	if err := parse(fs, args); err != nil {
 		return emitOptions{}, err
@@ -89,7 +95,88 @@ func runEmit(args []string) error {
 		return nil
 	}
 
-	return writePlan(plan, o)
+	if err := writePlan(plan, o); err != nil {
+		return err
+	}
+
+	// The battery runs by default, because every one of these was learned as a CI
+	// failure after an emit that looked done: emitted Go that did not compile against
+	// a moved SDK, registry docs stale the moment a description changed, fixtures a
+	// formatter would rewrite. Generation is not finished until the tools that gate
+	// the output have seen it.
+	if o.skipPostcheck {
+		log.Printf("postcheck skipped by flag; run it before committing")
+		return nil
+	}
+
+	return postcheck(o.out)
+}
+
+// postcheck holds emitted output to the tools that gate it.
+//
+// Three checks, in failure-likelihood order. Compile first: nothing else matters if
+// the module does not build. Docs second: tfplugindocs reads the compiled schema, and
+// stale docs/ were this battery's founding failure -- five waves changed descriptions
+// and CI, not emit, noticed. terraform fmt last, advisory-fixing: the emitter aligns
+// what it writes, so a diff here is a bug worth seeing, and fmt writing the fix keeps
+// the tree correct either way. terraform validate stays a CI job: it needs the
+// provider built into a dev-override, which is workflow plumbing rather than emission.
+func postcheck(out string) error {
+	log.Printf("postcheck: go build ./...")
+	build := exec.Command("go", "build", "./...")
+	build.Dir = out
+	if msg, err := build.CombinedOutput(); err != nil {
+		return fmt.Errorf("postcheck: emitted code does not compile:\n%s", msg)
+	}
+
+	if hasGenerateDirective(out) {
+		log.Printf("postcheck: go generate . (registry docs)")
+		docs := exec.Command("go", "generate", ".")
+		docs.Dir = out
+		if msg, err := docs.CombinedOutput(); err != nil {
+			return fmt.Errorf("postcheck: docs generation failed:\n%s", msg)
+		}
+	}
+
+	if _, err := exec.LookPath("terraform"); err != nil {
+		log.Printf("postcheck: terraform not on PATH; fmt check skipped -- CI runs it")
+		return nil
+	}
+
+	log.Printf("postcheck: terraform fmt -recursive")
+	tfmt := exec.Command("terraform", "fmt", "-recursive", "-list=true", ".")
+	tfmt.Dir = out
+	msg, err := tfmt.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("postcheck: terraform fmt failed:\n%s", msg)
+	}
+	if rewritten := strings.TrimSpace(string(msg)); rewritten != "" {
+		// Fixed on disk already; failing anyway, because an emitter whose output a
+		// formatter rewrites is drifting from the canonical form and the diff is
+		// the bug report.
+		return fmt.Errorf("postcheck: terraform fmt rewrote emitted files, which means "+
+			"the emitter's alignment has drifted from canonical form:\n%s", rewritten)
+	}
+
+	return nil
+}
+
+// hasGenerateDirective reports whether the out module regenerates docs.
+func hasGenerateDirective(out string) bool {
+	entries, err := os.ReadDir(out)
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") {
+			continue
+		}
+		src, err := os.ReadFile(filepath.Join(out, e.Name()))
+		if err == nil && strings.Contains(string(src), "//go:generate") {
+			return true
+		}
+	}
+	return false
 }
 
 // printPlan lists what would be written, for -list and -dry-run.
