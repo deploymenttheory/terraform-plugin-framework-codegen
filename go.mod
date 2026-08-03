@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/terraform-plugin-codegen-spec v0.2.0
 	github.com/pb33f/libopenapi v0.38.7
 	golang.org/x/tools v0.48.0
-	mvdan.cc/gofumpt v0.9.1
+	mvdan.cc/gofumpt v0.11.0
 )
 
 require (
