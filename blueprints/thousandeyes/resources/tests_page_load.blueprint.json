@@ -724,7 +724,8 @@
               "flatten": {
                 "func": "convert.EnumToFramework"
               }
-            }
+            },
+            "drop": true
           },
           {
             "name": "client_certificate",
@@ -1027,7 +1028,7 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "IP address to use for DNS override.",
+            "markdownDescription": "IP address to use for DNS override.\n\nWrite-only on this endpoint: the read never reports it (local acceptance run, 2026-08-03); state carries the configured value.",
             "wire": {
               "jsonPath": "dnsOverride",
               "sdkField": "DnsOverride",
@@ -1035,9 +1036,10 @@
               "expand": {
                 "func": "convert.FrameworkToPtrString"
               },
-              "flatten": {
-                "func": "convert.PtrStringToFramework"
-              }
+              "skipFlatten": true
+            },
+            "behaviour": {
+              "returnedOnRead": false
             }
           },
           {
@@ -1047,7 +1049,7 @@
               "kind": "int64"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Specifies maximum number of bytes to download from the target object.",
+            "markdownDescription": "Specifies maximum number of bytes to download from the target object.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value.",
             "wire": {
               "jsonPath": "downloadLimit",
               "sdkField": "DownloadLimit",
@@ -1058,9 +1060,10 @@
                   "int"
                 ]
               },
-              "flatten": {
-                "func": "convert.PtrInt64ToFramework"
-              }
+              "skipFlatten": true
+            },
+            "behaviour": {
+              "returnedOnRead": false
             }
           },
           {
@@ -1715,8 +1718,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\nComputed only on this endpoint: browser tests always network-measure, and the SDK's value-typed omitempty bool cannot express false anyway (local acceptance run, 2026-08-03).",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
@@ -1727,15 +1730,10 @@
               "jsonPath": "networkMeasurements",
               "sdkField": "NetworkMeasurements",
               "sdkGoType": "*bool",
-              "expand": {
-                "func": "convert.FrameworkToNamedBool",
-                "typeArgs": [
-                  "page_load_tests.TestNetworkMeasurements"
-                ]
-              },
               "flatten": {
                 "func": "convert.NamedBoolToFramework"
-              }
+              },
+              "skipExpand": true
             }
           },
           {
@@ -3000,6 +2998,38 @@
           {
             "attr": "interval",
             "hcl": "3600"
+          },
+          {
+            "attr": "fixed_packet_rate",
+            "hcl": "50"
+          },
+          {
+            "attr": "bandwidth_measurements",
+            "hcl": "false"
+          },
+          {
+            "attr": "dns_override",
+            "hcl": "\"8.8.8.8\""
+          },
+          {
+            "attr": "http_interval",
+            "hcl": "3600"
+          },
+          {
+            "attr": "desired_status_code",
+            "hcl": "\"200\""
+          },
+          {
+            "attr": "chrome_options",
+            "hcl": "\"--disable-gpu\""
+          },
+          {
+            "attr": "collect_proxy_network_data",
+            "hcl": "false"
+          },
+          {
+            "attr": "use_ntlm",
+            "hcl": "false"
           }
         ]
       }

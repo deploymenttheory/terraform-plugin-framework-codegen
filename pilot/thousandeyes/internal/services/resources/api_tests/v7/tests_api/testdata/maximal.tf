@@ -24,7 +24,7 @@ resource "thousandeyes_tests_api" "test" {
   #
   # mtu_measurements: the API's own default, so a value it is known to accept
   #
-  # network_measurements: the API's own default, so a value it is known to accept
+  # network_measurements: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # num_path_traces: the API's own default, so a value it is known to accept
   #
@@ -55,9 +55,15 @@ resource "thousandeyes_tests_api" "test" {
   # Not filled in, because no correct value could be derived. Each of these is optional, so this
   # configuration is valid as it stands -- but it is testing less than it could.
   #
+  # client_certificate: it is credential-shaped, and a generated fixture must not invent values
+  # that read as secrets; supply one through accFixture if the test needs it
+  #
   # credentials: its elements have no derivable value: it is credential-shaped, and a generated
   # fixture must not invent values that read as secrets; supply one through accFixture if the
   # test needs it
+  #
+  # override_proxy_id: it references an object that must already exist, which a synthesised
+  # value cannot name; supply one through accFixture if the test has the object
   #
   # predefined_variables: a nested object's members may be identifiers of objects that must
   # already exist, and nothing in the specification says whether they are
@@ -67,7 +73,6 @@ resource "thousandeyes_tests_api" "test" {
   alerts_enabled                 = true
   bgp_measurements               = true
   client_cert_domains_allow_list = "tfacc-client-cert-domains-allow-list"
-  client_certificate             = "tfacc-client-certificate"
   collect_proxy_network_data     = false
   description                    = "tfacc-description"
   distributed_tracing            = false
@@ -75,10 +80,9 @@ resource "thousandeyes_tests_api" "test" {
   follow_redirects               = true
   interval                       = 3600
   mtu_measurements               = true
-  network_measurements           = true
+  network_measurements           = false
   num_path_traces                = 3
   override_agent_proxy           = false
-  override_proxy_id              = "tfacc-override-proxy-id"
   path_trace_mode                = "classic"
   probe_mode                     = "auto"
   protocol                       = "tcp"

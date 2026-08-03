@@ -25,7 +25,7 @@ resource "thousandeyes_tests_agent_to_agent" "test" {
   direction               = "to-target"
   dscp_id                 = "0"
   enabled                 = true
-  fixed_packet_rate       = 1
+  fixed_packet_rate      = 50
   interval                = 1
   mss                     = 20
   num_path_traces         = 1

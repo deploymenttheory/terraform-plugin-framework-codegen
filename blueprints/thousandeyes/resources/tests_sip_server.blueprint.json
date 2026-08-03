@@ -207,7 +207,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -225,7 +225,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -1795,6 +1795,14 @@
           {
             "attr": "interval",
             "hcl": "3600"
+          },
+          {
+            "attr": "fixed_packet_rate",
+            "hcl": "50"
+          },
+          {
+            "attr": "network_measurements",
+            "hcl": "false"
           }
         ]
       },

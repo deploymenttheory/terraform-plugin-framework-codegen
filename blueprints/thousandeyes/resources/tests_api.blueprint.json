@@ -2662,6 +2662,10 @@
           {
             "attr": "interval",
             "hcl": "3600"
+          },
+          {
+            "attr": "network_measurements",
+            "hcl": "false"
           }
         ]
       }

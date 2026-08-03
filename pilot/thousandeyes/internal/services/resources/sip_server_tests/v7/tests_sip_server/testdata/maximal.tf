@@ -21,7 +21,7 @@ resource "thousandeyes_tests_sip_server" "test" {
   bgp_measurements      = true
   description           = "tfacc-description"
   enabled               = true
-  fixed_packet_rate     = 1
+  fixed_packet_rate      = 50
   interval              = 1
   ipv6_policy           = "force-ipv4"
   mtu_measurements      = true

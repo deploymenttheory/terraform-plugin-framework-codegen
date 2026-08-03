@@ -2690,6 +2690,26 @@
           {
             "attr": "interval",
             "hcl": "3600"
+          },
+          {
+            "attr": "fixed_packet_rate",
+            "hcl": "50"
+          },
+          {
+            "attr": "bandwidth_measurements",
+            "hcl": "false"
+          },
+          {
+            "attr": "desired_status_code",
+            "hcl": "\"200\""
+          },
+          {
+            "attr": "dns_override",
+            "hcl": "\"8.8.8.8\""
+          },
+          {
+            "attr": "network_measurements",
+            "hcl": "false"
           }
         ]
       }

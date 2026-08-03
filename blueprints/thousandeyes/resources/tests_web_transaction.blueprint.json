@@ -676,7 +676,8 @@
               "flatten": {
                 "func": "convert.EnumToFramework"
               }
-            }
+            },
+            "drop": true
           },
           {
             "name": "client_certificate",
@@ -988,7 +989,7 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "IP address to use for DNS override.",
+            "markdownDescription": "IP address to use for DNS override.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value.",
             "wire": {
               "jsonPath": "dnsOverride",
               "sdkField": "DnsOverride",
@@ -996,9 +997,10 @@
               "expand": {
                 "func": "convert.FrameworkToPtrString"
               },
-              "flatten": {
-                "func": "convert.PtrStringToFramework"
-              }
+              "skipFlatten": true
+            },
+            "behaviour": {
+              "returnedOnRead": false
             }
           },
           {
@@ -1008,7 +1010,7 @@
               "kind": "int64"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Specifies maximum number of bytes to download from the target object.",
+            "markdownDescription": "Specifies maximum number of bytes to download from the target object.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value.",
             "wire": {
               "jsonPath": "downloadLimit",
               "sdkField": "DownloadLimit",
@@ -1019,9 +1021,10 @@
                   "int"
                 ]
               },
-              "flatten": {
-                "func": "convert.PtrInt64ToFramework"
-              }
+              "skipFlatten": true
+            },
+            "behaviour": {
+              "returnedOnRead": false
             }
           },
           {
@@ -1078,7 +1081,7 @@
               }
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Sets packets rate sent to measure the network in packets per second.",
+            "markdownDescription": "Sets packets rate sent to measure the network in packets per second.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value.",
             "wire": {
               "jsonPath": "fixedPacketRate",
               "sdkField": "FixedPacketRate",
@@ -1089,9 +1092,10 @@
                   "web_transaction_tests.TestFixedPacketRate"
                 ]
               },
-              "flatten": {
-                "func": "convert.IntEnumToFramework"
-              }
+              "skipFlatten": true
+            },
+            "behaviour": {
+              "returnedOnRead": false
             }
           },
           {
@@ -1590,21 +1594,16 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\nComputed only on this endpoint: browser tests always network-measure, and the SDK's value-typed omitempty bool cannot express false anyway (local acceptance run, 2026-08-03).",
             "wire": {
               "jsonPath": "networkMeasurements",
               "sdkField": "NetworkMeasurements",
               "sdkGoType": "*bool",
-              "expand": {
-                "func": "convert.FrameworkToNamedBool",
-                "typeArgs": [
-                  "web_transaction_tests.TestNetworkMeasurements"
-                ]
-              },
               "flatten": {
                 "func": "convert.NamedBoolToFramework"
-              }
+              },
+              "skipExpand": true
             }
           },
           {
@@ -2821,6 +2820,50 @@
           {
             "attr": "interval",
             "hcl": "3600"
+          },
+          {
+            "attr": "fixed_packet_rate",
+            "hcl": "50"
+          },
+          {
+            "attr": "bandwidth_measurements",
+            "hcl": "false"
+          },
+          {
+            "attr": "desired_status_code",
+            "hcl": "\"200\""
+          },
+          {
+            "attr": "dns_override",
+            "hcl": "\"8.8.8.8\""
+          },
+          {
+            "attr": "num_path_traces",
+            "hcl": "3"
+          },
+          {
+            "attr": "browser_language",
+            "hcl": "\"en-US\""
+          },
+          {
+            "attr": "user_agent",
+            "hcl": "\"tfacc (ThousandEyes Agent)\""
+          },
+          {
+            "attr": "randomized_start_time",
+            "hcl": "false"
+          },
+          {
+            "attr": "chrome_options",
+            "hcl": "\"--disable-gpu\""
+          },
+          {
+            "attr": "collect_proxy_network_data",
+            "hcl": "false"
+          },
+          {
+            "attr": "use_ntlm",
+            "hcl": "false"
           }
         ]
       }

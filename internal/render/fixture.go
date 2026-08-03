@@ -471,6 +471,14 @@ func serverDefaultValue(a blueprint.Attribute) (value, note string, ok bool) {
 		return "", "", false
 	}
 
+	// An empty-string default is degenerate: the wire cannot distinguish it from
+	// absence, so configuring it explicitly stores a value the read maps back to
+	// null -- an inconsistent-result failure a live run demonstrated. Nothing is
+	// configured where nothing is distinguishable.
+	if sd.Raw == `""` {
+		return "", "", false
+	}
+
 	// Only a scalar. A default recorded for a collection would need its own HCL shape, and no
 	// probed default has ever been one.
 	if a.Type.Kind.IsNested() || a.Type.Kind == blueprint.KindList ||
@@ -518,6 +526,18 @@ func stringValue(a blueprint.Attribute, salt string) fixtureValue {
 		fv.Skipped = true
 		fv.Reason = "it is credential-shaped, and a generated fixture must not invent " +
 			"values that read as secrets; supply one through accFixture if the test needs it"
+
+		return fv
+	}
+
+	// An _id-suffixed string is a reference to an object that must already exist --
+	// the top-level scalar cousin of the nested-member rule, and a live run proved it:
+	// a synthesised overrideProxyId is a 400 naming nothing. Curate one through
+	// accFixture when a test genuinely has the referenced object.
+	if strings.HasSuffix(a.Name, "_id") {
+		fv.Skipped = true
+		fv.Reason = "it references an object that must already exist, which a synthesised " +
+			"value cannot name; supply one through accFixture if the test has the object"
 
 		return fv
 	}
@@ -655,7 +675,7 @@ func floatWithinBounds(c blueprint.Constraints) float64 {
 // skipped optional attribute is a stated line in the scaffold, while an invented
 // "password" in a committed fixture is a secret-scanner finding on every wave.
 func credentialShaped(name string) bool {
-	for _, marker := range []string{"password", "secret", "token", "credential", "api_key", "apikey"} {
+	for _, marker := range []string{"password", "secret", "token", "credential", "api_key", "apikey", "certificate", "username"} {
 		if strings.Contains(name, marker) {
 			return true
 		}

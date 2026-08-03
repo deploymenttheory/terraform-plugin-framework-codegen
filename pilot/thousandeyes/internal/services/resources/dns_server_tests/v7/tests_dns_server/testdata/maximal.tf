@@ -12,7 +12,8 @@ resource "thousandeyes_tests_dns_server" "test" {
   #
   # alerts_enabled: the API's own default, so a value it is known to accept
   #
-  # bandwidth_measurements: the API's own default, so a value it is known to accept
+  # bandwidth_measurements: curated in the blueprint's accFixture; the generator cannot derive
+  # it
   #
   # bgp_measurements: the API's own default, so a value it is known to accept
   #
@@ -26,13 +27,15 @@ resource "thousandeyes_tests_dns_server" "test" {
   #
   # enabled: the API's own default, so a value it is known to accept
   #
+  # fixed_packet_rate: curated in the blueprint's accFixture; the generator cannot derive it
+  #
   # interval: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # ipv6_policy: documented; unprobed
   #
   # mtu_measurements: the API's own default, so a value it is known to accept
   #
-  # network_measurements: the API's own default, so a value it is known to accept
+  # network_measurements: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # num_path_traces: the API's own default, so a value it is known to accept
   #
@@ -58,11 +61,11 @@ resource "thousandeyes_tests_dns_server" "test" {
   dns_transport_protocol = "udp"
   domain                 = "example.com"
   enabled                = true
-  fixed_packet_rate      = 1
+  fixed_packet_rate      = 50
   interval               = 3600
   ipv6_policy            = "force-ipv4"
   mtu_measurements       = true
-  network_measurements   = true
+  network_measurements   = false
   num_path_traces        = 1
   path_trace_mode        = "classic"
   probe_mode             = "auto"

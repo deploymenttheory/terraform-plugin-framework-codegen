@@ -20,27 +20,35 @@ resource "thousandeyes_tests_page_load" "test" {
   #
   # auth_type: documented; unprobed
   #
-  # bandwidth_measurements: the API's own default, so a value it is known to accept
+  # bandwidth_measurements: curated in the blueprint's accFixture; the generator cannot derive
+  # it
   #
   # bgp_measurements: the API's own default, so a value it is known to accept
   #
-  # block_domains: the API's own default, so a value it is known to accept
-  #
   # browser_language: the API's own default, so a value it is known to accept
   #
-  # content_regex: the API's own default, so a value it is known to accept
+  # chrome_options: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # collect_proxy_network_data: curated in the blueprint's accFixture; the generator cannot
+  # derive it
+  #
+  # desired_status_code: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # disable_screenshot: the API's own default, so a value it is known to accept
   #
   # distributed_tracing: the API's own default, so a value it is known to accept
   #
+  # dns_override: curated in the blueprint's accFixture; the generator cannot derive it
+  #
   # emulated_device_id: the API's own default, so a value it is known to accept
   #
   # enabled: the API's own default, so a value it is known to accept
   #
+  # fixed_packet_rate: curated in the blueprint's accFixture; the generator cannot derive it
+  #
   # follow_redirects: the API's own default, so a value it is known to accept
   #
-  # http_interval: documented; unprobed
+  # http_interval: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # http_target_time: the API's own default, so a value it is known to accept
   #
@@ -56,8 +64,6 @@ resource "thousandeyes_tests_page_load" "test" {
   # interval: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # mtu_measurements: the API's own default, so a value it is known to accept
-  #
-  # network_measurements: the API's own default, so a value it is known to accept
   #
   # num_path_traces: the API's own default, so a value it is known to accept
   #
@@ -83,7 +89,7 @@ resource "thousandeyes_tests_page_load" "test" {
   #
   # url: curated in the blueprint's accFixture; the generator cannot derive it
   #
-  # use_ntlm: the API's own default, so a value it is known to accept
+  # use_ntlm: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # use_public_bgp: the API's own default, so a value it is known to accept
   #
@@ -94,7 +100,16 @@ resource "thousandeyes_tests_page_load" "test" {
   # Not filled in, because no correct value could be derived. Each of these is optional, so this
   # configuration is valid as it stands -- but it is testing less than it could.
   #
+  # client_certificate: it is credential-shaped, and a generated fixture must not invent values
+  # that read as secrets; supply one through accFixture if the test needs it
+  #
+  # override_proxy_id: it references an object that must already exist, which a synthesised
+  # value cannot name; supply one through accFixture if the test has the object
+  #
   # password: it is credential-shaped, and a generated fixture must not invent values that read
+  # as secrets; supply one through accFixture if the test needs it
+  #
+  # username: it is credential-shaped, and a generated fixture must not invent values that read
   # as secrets; supply one through accFixture if the test needs it
   #
   # vault_credentials: a nested object's members may be identifiers of objects that must already
@@ -106,24 +121,22 @@ resource "thousandeyes_tests_page_load" "test" {
   auth_type                              = "none"
   bandwidth_measurements                 = false
   bgp_measurements                       = true
-  block_domains                          = ""
+  block_domains                          = "tfacc-block-domains"
   browser_language                       = "en-US"
-  chrome_options                         = "tfacc-chrome-options"
-  chrome_policies                        = "tfacc-chrome-policies"
-  client_certificate                     = "tfacc-client-certificate"
-  collect_proxy_network_data             = true
-  content_regex                          = ""
+  chrome_options                         = "--disable-gpu"
+  collect_proxy_network_data             = false
+  content_regex                          = "tfacc-content-regex"
   description                            = "tfacc-description"
-  desired_status_code                    = "tfacc-desired-status-code"
+  desired_status_code                    = "200"
   disable_screenshot                     = false
   distributed_tracing                    = false
-  dns_override                           = "tfacc-dns-override"
+  dns_override                           = "8.8.8.8"
   download_limit                         = 1
   emulated_device_id                     = "281474976710656"
   enabled                                = true
-  fixed_packet_rate                      = 1
+  fixed_packet_rate                      = 50
   follow_redirects                       = true
-  http_interval                          = "60"
+  http_interval                          = 3600
   http_target_time                       = 1000
   http_time_limit                        = 5
   http_version                           = 2
@@ -131,10 +144,8 @@ resource "thousandeyes_tests_page_load" "test" {
   include_headers                        = true
   interval                               = 3600
   mtu_measurements                       = true
-  network_measurements                   = true
   num_path_traces                        = 3
   override_agent_proxy                   = false
-  override_proxy_id                      = "tfacc-override-proxy-id"
   page_load_target_time                  = 6
   page_load_time_limit                   = 10
   page_loading_strategy                  = "normal"
@@ -149,7 +160,6 @@ resource "thousandeyes_tests_page_load" "test" {
   use_ntlm                               = false
   use_public_bgp                         = true
   user_agent                             = "tfacc-user-agent"
-  username                               = "tfacc-username"
   verify_certificate                     = true
   agents                                 = [{ agent_id = "3" }]
 }

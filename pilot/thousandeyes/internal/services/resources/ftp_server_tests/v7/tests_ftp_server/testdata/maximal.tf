@@ -12,15 +12,18 @@ resource "thousandeyes_tests_ftp_server" "test" {
   #
   # alerts_enabled: the API's own default, so a value it is known to accept
   #
-  # bandwidth_measurements: the API's own default, so a value it is known to accept
+  # bandwidth_measurements: curated in the blueprint's accFixture; the generator cannot derive
+  # it
   #
   # bgp_measurements: the API's own default, so a value it is known to accept
   #
   # enabled: the API's own default, so a value it is known to accept
   #
+  # fixed_packet_rate: curated in the blueprint's accFixture; the generator cannot derive it
+  #
   # ftp_target_time: the API's own default, so a value it is known to accept
   #
-  # ftp_time_limit: the API's own default, so a value it is known to accept
+  # ftp_time_limit: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # interval: curated in the blueprint's accFixture; the generator cannot derive it
   #
@@ -28,7 +31,7 @@ resource "thousandeyes_tests_ftp_server" "test" {
   #
   # mtu_measurements: the API's own default, so a value it is known to accept
   #
-  # network_measurements: the API's own default, so a value it is known to accept
+  # network_measurements: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # num_path_traces: the API's own default, so a value it is known to accept
   #
@@ -61,13 +64,13 @@ resource "thousandeyes_tests_ftp_server" "test" {
   description            = "tfacc-description"
   download_limit         = 1
   enabled                = true
-  fixed_packet_rate      = 1
+  fixed_packet_rate      = 50
   ftp_target_time        = 1000
-  ftp_time_limit         = 5
+  ftp_time_limit         = 30
   interval               = 3600
   ipv6_policy            = "force-ipv4"
   mtu_measurements       = true
-  network_measurements   = true
+  network_measurements   = false
   num_path_traces        = 3
   password               = "guest"
   path_trace_mode        = "classic"

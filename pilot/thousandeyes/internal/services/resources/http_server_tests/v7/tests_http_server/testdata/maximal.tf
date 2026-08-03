@@ -16,7 +16,8 @@ resource "thousandeyes_tests_http_server" "test" {
   #
   # auth_type: documented; unprobed
   #
-  # bandwidth_measurements: the API's own default, so a value it is known to accept
+  # bandwidth_measurements: curated in the blueprint's accFixture; the generator cannot derive
+  # it
   #
   # bgp_measurements: the API's own default, so a value it is known to accept
   #
@@ -24,9 +25,15 @@ resource "thousandeyes_tests_http_server" "test" {
   #
   # content_regex: the API's own default, so a value it is known to accept
   #
+  # desired_status_code: curated in the blueprint's accFixture; the generator cannot derive it
+  #
   # distributed_tracing: the API's own default, so a value it is known to accept
   #
+  # dns_override: curated in the blueprint's accFixture; the generator cannot derive it
+  #
   # enabled: the API's own default, so a value it is known to accept
+  #
+  # fixed_packet_rate: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # follow_redirects: the API's own default, so a value it is known to accept
   #
@@ -42,7 +49,7 @@ resource "thousandeyes_tests_http_server" "test" {
   #
   # mtu_measurements: the API's own default, so a value it is known to accept
   #
-  # network_measurements: the API's own default, so a value it is known to accept
+  # network_measurements: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # num_path_traces: the API's own default, so a value it is known to accept
   #
@@ -73,7 +80,16 @@ resource "thousandeyes_tests_http_server" "test" {
   # Not filled in, because no correct value could be derived. Each of these is optional, so this
   # configuration is valid as it stands -- but it is testing less than it could.
   #
+  # client_certificate: it is credential-shaped, and a generated fixture must not invent values
+  # that read as secrets; supply one through accFixture if the test needs it
+  #
+  # override_proxy_id: it references an object that must already exist, which a synthesised
+  # value cannot name; supply one through accFixture if the test has the object
+  #
   # password: it is credential-shaped, and a generated fixture must not invent values that read
+  # as secrets; supply one through accFixture if the test needs it
+  #
+  # username: it is credential-shaped, and a generated fixture must not invent values that read
   # as secrets; supply one through accFixture if the test needs it
   #
   # vault_credentials: a nested object's members may be identifiers of objects that must already
@@ -83,16 +99,15 @@ resource "thousandeyes_tests_http_server" "test" {
   auth_type                         = "none"
   bandwidth_measurements            = false
   bgp_measurements                  = true
-  client_certificate                = "tfacc-client-certificate"
   collect_proxy_network_data        = false
   content_regex                     = ""
   description                       = "tfacc-description"
-  desired_status_code               = "tfacc-desired-status-code"
+  desired_status_code               = "200"
   distributed_tracing               = false
-  dns_override                      = "tfacc-dns-override"
+  dns_override                      = "8.8.8.8"
   download_limit                    = 1
   enabled                           = true
-  fixed_packet_rate                 = 1
+  fixed_packet_rate                 = 50
   follow_redirects                  = true
   headers                           = ["tfacc-headers-element"]
   http_target_time                  = 1000
@@ -102,10 +117,9 @@ resource "thousandeyes_tests_http_server" "test" {
   interval                          = 3600
   ipv6_policy                       = "force-ipv4"
   mtu_measurements                  = true
-  network_measurements              = true
+  network_measurements              = false
   num_path_traces                   = 3
   override_agent_proxy              = false
-  override_proxy_id                 = "tfacc-override-proxy-id"
   path_trace_mode                   = "classic"
   post_body                         = "tfacc-post-body"
   probe_mode                        = "auto"
@@ -118,7 +132,6 @@ resource "thousandeyes_tests_http_server" "test" {
   use_ntlm                          = false
   use_public_bgp                    = true
   user_agent                        = "tfacc-user-agent"
-  username                          = "tfacc-username"
   verify_certificate                = true
   agents                            = [{ agent_id = "3" }]
 }

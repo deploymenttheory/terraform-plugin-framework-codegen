@@ -12,7 +12,8 @@ resource "thousandeyes_tests_agent_to_server" "test" {
   #
   # alerts_enabled: the API's own default, so a value it is known to accept
   #
-  # bandwidth_measurements: the API's own default, so a value it is known to accept
+  # bandwidth_measurements: curated in the blueprint's accFixture; the generator cannot derive
+  # it
   #
   # bgp_measurements: the API's own default, so a value it is known to accept
   #
@@ -21,6 +22,8 @@ resource "thousandeyes_tests_agent_to_server" "test" {
   # dscp_id: documented; unprobed
   #
   # enabled: the API's own default, so a value it is known to accept
+  #
+  # fixed_packet_rate: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # interval: curated in the blueprint's accFixture; the generator cannot derive it
   #
@@ -52,7 +55,7 @@ resource "thousandeyes_tests_agent_to_server" "test" {
   description            = "tfacc-description"
   dscp_id                = "0"
   enabled                = true
-  fixed_packet_rate      = 1
+  fixed_packet_rate      = 50
   interval               = 3600
   ipv6_policy            = "force-ipv4"
   mtu_measurements       = true

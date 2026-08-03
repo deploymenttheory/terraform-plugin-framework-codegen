@@ -1667,6 +1667,14 @@
           {
             "attr": "interval",
             "hcl": "3600"
+          },
+          {
+            "attr": "fixed_packet_rate",
+            "hcl": "50"
+          },
+          {
+            "attr": "bandwidth_measurements",
+            "hcl": "false"
           }
         ]
       }
