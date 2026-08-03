@@ -1,0 +1,451 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (3 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "role",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-roles-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "role",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "listEnvelopeKey=roles"
+      },
+      "confidence": "observed",
+      "probe": "read.list-shape",
+      "evidence": [
+        "001-get-v7-roles",
+        "003-get-v7-roles",
+        "004-get-v7-roles",
+        "005-get-v7-roles",
+        "006-get-v7-roles",
+        "007-get-v7-roles",
+        "008-get-v7-roles",
+        "009-get-v7-roles",
+        "029-get-v7-roles"
+      ],
+      "rationale": "the list response wraps its items under \"roles\""
+    },
+    {
+      "resource": "role",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-roles-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "role",
+      "field": "policy.readBack",
+      "value": {
+        "readBack": {
+          "reason": "every one of 6 read(s) immediately after a create succeeded on the first attempt"
+        }
+      },
+      "confidence": "inferred",
+      "probe": "write.read-your-writes",
+      "evidence": [
+        "014-get-v7-roles-281474976765325",
+        "018-get-v7-roles-281474976765326",
+        "020-get-v7-roles-281474976765326",
+        "022-get-v7-roles-281474976765326",
+        "025-get-v7-roles-281474976765327",
+        "027-get-v7-roles-281474976765327"
+      ],
+      "rationale": "6 object(s) were read immediately after creation and every first read succeeded",
+      "alternatives": [
+        "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+      ]
+    },
+    {
+      "resource": "role",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-roles",
+        "003-get-v7-roles",
+        "004-get-v7-roles",
+        "005-get-v7-roles",
+        "006-get-v7-roles",
+        "007-get-v7-roles",
+        "008-get-v7-roles",
+        "009-get-v7-roles",
+        "029-get-v7-roles"
+      ],
+      "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "role",
+      "jsonPath": "name",
+      "field": "returnedOnCreate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "013-post-v7-roles"
+      ],
+      "rationale": "every create response carried the field it was sent"
+    },
+    {
+      "resource": "role",
+      "jsonPath": "name",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "014-get-v7-roles-281474976765325"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    },
+    {
+      "resource": "role",
+      "jsonPath": "permissions",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "inferred",
+      "probe": "write.required",
+      "evidence": [
+        "011-post-v7-roles"
+      ],
+      "rationale": "a create omitting this field was refused with 500, but the error body did not name the field, so the refusal may have had another cause",
+      "alternatives": [
+        "the create may have been refused for a reason unrelated to this field, which only an error body naming it would rule out"
+      ]
+    },
+    {
+      "resource": "role",
+      "jsonPath": "permissions",
+      "field": "returnedOnCreate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "013-post-v7-roles"
+      ],
+      "rationale": "every create response carried the field it was sent"
+    },
+    {
+      "resource": "role",
+      "jsonPath": "permissions",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.writable-returned",
+      "evidence": [
+        "014-get-v7-roles-281474976765325"
+      ],
+      "rationale": "the field appeared in the read after 1 create(s)"
+    },
+    {
+      "resource": "role",
+      "jsonPath": "permissions",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "019-put-v7-roles-281474976765326"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    }
+  ],
+  "notes": [
+    {
+      "resource": "",
+      "probe": "sweep.prefix",
+      "message": "intent \"tfpfgen-probe-write-required-2\" resolved as never created: it has no identifier and a complete collection read does not contain it"
+    },
+    {
+      "resource": "role",
+      "probe": "read.error-envelope",
+      "message": "no candidate query parameter (limit, max, offset, page) was validated, so no error shape was observed without mutating anything"
+    },
+    {
+      "resource": "role",
+      "probe": "read.volatile",
+      "message": "no existing object to read repeatedly, so volatility was not observed"
+    },
+    {
+      "resource": "role",
+      "probe": "read.returned-weak",
+      "message": "no existing object to read, so no field presence was observed"
+    },
+    {
+      "resource": "role",
+      "probe": "write.immutability",
+      "message": "no field carries two or more candidate values, so no field can be probed for immutability: the fact requires two distinct values both refused, and one candidate cannot supply that"
+    },
+    {
+      "resource": "role",
+      "probe": "write.server-default",
+      "message": "no fixture leaves a sendable field unset, so there is no omitted field whose default could be observed"
+    },
+    {
+      "resource": "role",
+      "probe": "write.update-style",
+      "message": "no fixture sets a field that can safely be omitted from an update; the name field must stay in every request or a cleared name would strand the object"
+    },
+    {
+      "resource": "role",
+      "probe": "write.enum",
+      "message": "no sendable field carries documented enum values, so there is no specification claim to check against the API"
+    },
+    {
+      "resource": "role",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"collection order is changed\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "role",
+      "probe": "write.side-effect",
+      "message": "the plan declares no field whose value might affect another, so there is no suspected trigger to perturb; declare one under defaultInfluencers"
+    },
+    {
+      "resource": "role",
+      "jsonPath": "name",
+      "probe": "write.normalisation",
+      "message": "\"letter case is changed\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "role",
+      "jsonPath": "name",
+      "probe": "write.normalisation",
+      "message": "\"surrounding whitespace is stripped\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "role",
+      "jsonPath": "name",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    },
+    {
+      "resource": "role",
+      "jsonPath": "name",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    },
+    {
+      "resource": "role",
+      "jsonPath": "permissions",
+      "probe": "write.writable-returned",
+      "message": "the field was returned, but one round cannot separate \"the server stored what was sent\" from \"the server returned its own value\"; a second fixture sending a different value would settle it"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.normalisation",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.rehearsal",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 12,
+      "facts": 1
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 2,
+      "facts": 1
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 2,
+      "facts": 4
+    }
+  ],
+  "budget": {
+    "requests": 28,
+    "maxRequests": 260,
+    "creates": 6,
+    "maxCreates": 25,
+    "deletes": 4,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true,
+    "notes": [
+      {
+        "resource": "",
+        "probe": "sweep.prefix",
+        "message": "intent \"tfpfgen-probe-write-required-2\" resolved as never created: it has no identifier and a complete collection read does not contain it"
+      }
+    ]
+  },
+  "rehearsal": [
+    {
+      "minimal": {
+        "name": "tfacc-name",
+        "permissions": [
+          "1",
+          "2"
+        ]
+      },
+      "maximal": {
+        "name": "tfacc-name",
+        "permissions": [
+          "1",
+          "2"
+        ]
+      }
+    }
+  ]
+}

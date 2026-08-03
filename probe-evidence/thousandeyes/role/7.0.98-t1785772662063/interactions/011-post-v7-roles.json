@@ -1,0 +1,29 @@
+{
+  "id": "011-post-v7-roles",
+  "seq": 11,
+  "request": {
+    "method": "POST",
+    "path": "/v7/roles",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "name": "tfpfgen-probe-write-required-2"
+    }
+  },
+  "response": {
+    "status": 500,
+    "header": {
+      "content-type": "application/problem+json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/roles",
+      "status": 500,
+      "title": "500 Internal Server Error\nPlease contact support@thousandeyes.com if the problem persists.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 14
+  }
+}

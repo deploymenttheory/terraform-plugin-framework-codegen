@@ -1,0 +1,104 @@
+[
+  {
+    "resource": "account_group",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "404=problem"
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-account-groups-999999999"
+    ],
+    "rationale": "a 404 response used the problem error shape"
+  },
+  {
+    "resource": "account_group",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "listEnvelopeKey=accountGroups"
+    },
+    "confidence": "observed",
+    "probe": "read.list-shape",
+    "evidence": [
+      "001-get-v7-account-groups",
+      "003-get-v7-account-groups",
+      "004-get-v7-account-groups",
+      "005-get-v7-account-groups",
+      "006-get-v7-account-groups",
+      "007-get-v7-account-groups",
+      "008-get-v7-account-groups",
+      "009-get-v7-account-groups",
+      "024-get-v7-account-groups"
+    ],
+    "rationale": "the list response wraps its items under \"accountGroups\""
+  },
+  {
+    "resource": "account_group",
+    "field": "policy.delete.notFoundIsSuccess",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-account-groups-999999999"
+    ],
+    "rationale": "reading an absent object answered 404 with a problem error body",
+    "alternatives": [
+      "the API may answer differently for an identifier that once existed and was deleted"
+    ]
+  },
+  {
+    "resource": "account_group",
+    "field": "unknownParamTolerated",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.unknown-param",
+    "evidence": [
+      "001-get-v7-account-groups",
+      "003-get-v7-account-groups",
+      "004-get-v7-account-groups",
+      "005-get-v7-account-groups",
+      "006-get-v7-account-groups",
+      "007-get-v7-account-groups",
+      "008-get-v7-account-groups",
+      "009-get-v7-account-groups",
+      "024-get-v7-account-groups"
+    ],
+    "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+    "alternatives": [
+      "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+    ]
+  },
+  {
+    "resource": "account_group",
+    "jsonPath": "accountGroupName",
+    "field": "returnedOnCreate",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "012-post-v7-account-groups"
+    ],
+    "rationale": "every create response carried the field it was sent"
+  },
+  {
+    "resource": "account_group",
+    "jsonPath": "accountGroupName",
+    "field": "returnedOnRead",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.writable-returned",
+    "evidence": [
+      "013-get-v7-account-groups-281474976748147"
+    ],
+    "rationale": "the field appeared in the read after 1 create(s)"
+  }
+]

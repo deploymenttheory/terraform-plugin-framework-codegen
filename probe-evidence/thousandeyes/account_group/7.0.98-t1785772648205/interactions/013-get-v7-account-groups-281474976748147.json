@@ -1,0 +1,30 @@
+{
+  "id": "013-get-v7-account-groups-281474976748147",
+  "seq": 13,
+  "request": {
+    "method": "GET",
+    "path": "/v7/account-groups/281474976748147",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/account-groups/281474976748147"
+        }
+      },
+      "accountGroupName": "tfpfgen-probe-write-writable-returned-1",
+      "aid": "281474976748147",
+      "isCurrentAccountGroup": false,
+      "isDefaultAccountGroup": false
+    },
+    "droppedHeaders": 14
+  }
+}

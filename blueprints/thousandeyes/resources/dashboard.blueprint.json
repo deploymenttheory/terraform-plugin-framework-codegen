@@ -693,6 +693,9 @@
             },
             "computedOptionalRequired": "optional",
             "markdownDescription": "Title of a dashboard.\n\nMarked required-by-API by curation: title is the sweeper's field, so the probe cannot test omitting it, and a titleless dashboard is unaddressable in the UI either way.",
+            "behaviour": {
+              "requiredByApi": true
+            },
             "wire": {
               "jsonPath": "title",
               "sdkField": "Title",
@@ -703,9 +706,6 @@
               "flatten": {
                 "func": "convert.PtrStringToFramework"
               }
-            },
-            "behaviour": {
-              "requiredByApi": true
             }
           }
         ],

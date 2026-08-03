@@ -1,0 +1,51 @@
+{
+  "id": "001-get-v7-roles",
+  "seq": 1,
+  "request": {
+    "method": "GET",
+    "path": "/v7/roles",
+    "query": {
+      "tfpfgen_probe": [
+        "1"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/roles?tfpfgen_probe=1"
+        }
+      },
+      "roles": [
+        {
+          "hasManagementPermissions": false,
+          "isBuiltin": true,
+          "name": "Account Admin",
+          "roleId": "281474976759599"
+        },
+        {
+          "hasManagementPermissions": true,
+          "isBuiltin": true,
+          "name": "Organization Admin",
+          "roleId": "281474976759600"
+        },
+        {
+          "hasManagementPermissions": false,
+          "isBuiltin": true,
+          "name": "Regular User",
+          "roleId": "281474976759598"
+        }
+      ]
+    },
+    "droppedHeaders": 14
+  }
+}

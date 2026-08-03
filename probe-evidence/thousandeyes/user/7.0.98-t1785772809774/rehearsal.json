@@ -1,0 +1,33 @@
+[
+  {
+    "minimal": {
+      "accountGroupRoles": [
+        {
+          "accountGroupId": "281474976742769",
+          "roleIds": [
+            "281474976759598"
+          ]
+        }
+      ],
+      "email": "dafydd.watkins+tfacc@deploymenttheory.com",
+      "loginAccountGroupId": "281474976742769",
+      "name": "tfacc-name"
+    },
+    "maximal": {
+      "accountGroupRoles": [
+        {
+          "accountGroupId": "281474976742769",
+          "roleIds": [
+            "281474976759598"
+          ]
+        }
+      ],
+      "allAccountGroupRoleIds": [
+        "tfacc-all-account-group-role-ids-element"
+      ],
+      "email": "dafydd.watkins+tfacc@deploymenttheory.com",
+      "loginAccountGroupId": "281474976742769",
+      "name": "tfacc-name"
+    }
+  }
+]

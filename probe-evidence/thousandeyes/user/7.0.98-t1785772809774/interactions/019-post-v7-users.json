@@ -1,0 +1,39 @@
+{
+  "id": "019-post-v7-users",
+  "seq": 19,
+  "request": {
+    "method": "POST",
+    "path": "/v7/users",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accountGroupRoles": [
+        {
+          "accountGroupId": "281474976742769",
+          "roleIds": [
+            "281474976759598"
+          ]
+        }
+      ],
+      "email": "dafydd.watkins+tfacc@deploymenttheory.com",
+      "loginAccountGroupId": "281474976742769",
+      "name": "tfpfgen-probe-write-server-default-2"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/users",
+      "status": 400,
+      "title": "The user 'dafydd.watkins+tfacc@deploymenttheory.com' already exists!",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 14
+  }
+}

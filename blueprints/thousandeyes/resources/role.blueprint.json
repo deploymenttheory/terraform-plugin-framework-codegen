@@ -1,0 +1,223 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "role",
+      "name": "role",
+      "goPackage": "role",
+      "goPackageAlias": "v7Role",
+      "goTypeName": "RoleResource",
+      "modelTypeName": "RoleResourceModel",
+      "serviceGroup": "roles",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "is_builtin",
+            "goField": "IsBuiltin",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Flag indicating if the role is built-in (Account Admin, Organization Admin, Regular User).",
+            "wire": {
+              "jsonPath": "isBuiltin",
+              "sdkField": "IsBuiltin",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Name of the role.\n\nRequired-by-API by curation: the sweeper's field, unprobeable by omission.",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "returnedOnCreate": true
+            },
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "permissions",
+            "goField": "Permissions",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "List of permission ids to grant (permissionId values from the permissions API). The response echoes permissions as expanded objects, never this id list, so state carries the configured value.\n\nEffectively required: a permission-less role create answers 500 (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785772662063 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "returnedOnCreate": true,
+              "returnedOnUpdate": true
+            },
+            "wire": {
+              "jsonPath": "permissions",
+              "sdkField": "Permissions",
+              "sdkGoType": "[]string",
+              "expand": {
+                "func": "convert.FrameworkSetToStringSlice",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipFlatten": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Unique ID representing the role.\n\nNamed `id` per the import convention; the wire field stays roleId.",
+            "wire": {
+              "jsonPath": "roleId",
+              "sdkField": "RoleID",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Retrieve role."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/go-sdk-thousandeyes/thousandeyes/thousandeyes_api/roles",
+          "typeName": "Roles",
+          "accessor": "r.client.API.Roles"
+        },
+        "create": {
+          "style": "method",
+          "method": "CreateRole",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "roles.RoleDetail",
+          "httpMethod": "POST",
+          "pathTemplate": "/roles"
+        },
+        "read": {
+          "style": "method",
+          "method": "GetRole",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "roles.RoleDetail",
+          "httpMethod": "GET",
+          "pathTemplate": "/roles/{id}"
+        },
+        "update": {
+          "style": "method",
+          "method": "UpdateRole",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            },
+            {
+              "kind": "body"
+            }
+          ],
+          "return": "resultTransportError",
+          "resultType": "roles.RoleDetail",
+          "httpMethod": "PUT",
+          "pathTemplate": "/roles/{id}"
+        },
+        "delete": {
+          "style": "method",
+          "method": "DeleteRole",
+          "args": [
+            {
+              "kind": "ctx"
+            },
+            {
+              "kind": "stateField",
+              "field": "ID"
+            }
+          ],
+          "return": "transportError",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/roles/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.RoleID",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "roles.RoleRequestBody",
+          "responseType": "roles.RoleDetail",
+          "constructorExpr": "&roles.RoleRequestBody{}",
+          "accessStyle": "structField"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "permissions",
+            "hcl": "[\"1\", \"2\"]",
+            "wire": [
+              "1",
+              "2"
+            ]
+          }
+        ]
+      },
+      "accTest": {
+        "skipUnlessEnv": "TFPFGEN_ACC_ADMIN"
+      }
+    }
+  ]
+}

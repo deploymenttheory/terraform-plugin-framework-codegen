@@ -1,0 +1,25 @@
+{
+  "id": "021-delete-v7-account-groups-281474976748148",
+  "seq": 21,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/account-groups/281474976748148",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/account-groups/281474976748148",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. You do not have permissions do delete this account..",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 14
+  }
+}

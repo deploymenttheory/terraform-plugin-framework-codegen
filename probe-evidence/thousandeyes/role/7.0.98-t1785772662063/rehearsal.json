@@ -1,0 +1,18 @@
+[
+  {
+    "minimal": {
+      "name": "tfacc-name",
+      "permissions": [
+        "1",
+        "2"
+      ]
+    },
+    "maximal": {
+      "name": "tfacc-name",
+      "permissions": [
+        "1",
+        "2"
+      ]
+    }
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "id": "026-put-v7-users-281474976781823",
+  "seq": 26,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/users/281474976781823",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "accountGroupRoles": [
+        {
+          "accountGroupId": "281474976742769",
+          "roleIds": [
+            "281474976759598"
+          ]
+        }
+      ],
+      "allAccountGroupRoleIds": [
+        "tfacc-all-account-group-role-ids-element"
+      ],
+      "email": "dafydd.watkins+tfacc@deploymenttheory.com",
+      "loginAccountGroupId": "281474976742769",
+      "name": "tfpfgen-probe-write-rehearsal-1"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/users/281474976781823",
+      "status": 400,
+      "title": "400 Bad Request",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 14
+  }
+}

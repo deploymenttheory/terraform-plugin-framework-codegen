@@ -392,6 +392,145 @@
   },
   "resources": [
     {
+      "name": "account_group",
+      "schema": {
+        "attributes": [
+          {
+            "name": "account_group_name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Account group name\n\nRequired-by-API by curation: the sweeper's field, unprobeable by omission."
+            }
+          },
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "A unique identifier associated with your account group. You can retrieve your `AccountGroupId` from the `/account-groups` endpoint.\n\nNamed `id` per the import convention; the wire field stays aid."
+            }
+          },
+          {
+            "name": "is_current_account_group",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates whether the requested aid is the context of the current account."
+            }
+          },
+          {
+            "name": "is_default_account_group",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates whether the aid is the default one for the requesting user."
+            }
+          },
+          {
+            "name": "org_id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "(Optional) The ID for the organization associated with the account group."
+            }
+          },
+          {
+            "name": "organization_name",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "(Optional) The name of the organization associated with the account group."
+            }
+          },
+          {
+            "name": "users",
+            "set_nested": {
+              "computed_optional_required": "computed",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "account_groups.UserAccountGroup"
+                },
+                "attributes": [
+                  {
+                    "name": "date_registered",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "User's UTC registration date (ISO date-time format)."
+                    }
+                  },
+                  {
+                    "name": "email",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "User's email address."
+                    }
+                  },
+                  {
+                    "name": "last_login",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "User's UTC last login date (ISO date-time format)."
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "User's display name."
+                    }
+                  },
+                  {
+                    "name": "roles",
+                    "set_nested": {
+                      "computed_optional_required": "computed",
+                      "nested_object": {
+                        "associated_external_type": {
+                          "type": "account_groups.Role"
+                        },
+                        "attributes": [
+                          {
+                            "name": "has_management_permissions",
+                            "bool": {
+                              "computed_optional_required": "computed",
+                              "description": "Flag indicating whether the user has management permissions."
+                            }
+                          },
+                          {
+                            "name": "is_builtin",
+                            "bool": {
+                              "computed_optional_required": "computed",
+                              "description": "Flag indicating if the role is built-in (Account Admin, Organization Admin, Regular User)."
+                            }
+                          },
+                          {
+                            "name": "name",
+                            "string": {
+                              "computed_optional_required": "computed",
+                              "description": "Name of the role."
+                            }
+                          },
+                          {
+                            "name": "role_id",
+                            "string": {
+                              "computed_optional_required": "computed",
+                              "description": "Unique ID representing the role."
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "uid",
+                    "string": {
+                      "computed_optional_required": "computed",
+                      "description": "Unique ID representing the user."
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "markdown_description": "Retrieve account group."
+      }
+    },
+    {
       "name": "alert_suppression_window",
       "schema": {
         "attributes": [
@@ -885,6 +1024,45 @@
           }
         ],
         "markdown_description": "Get dashboard filter."
+      }
+    },
+    {
+      "name": "role",
+      "schema": {
+        "attributes": [
+          {
+            "name": "is_builtin",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Flag indicating if the role is built-in (Account Admin, Organization Admin, Regular User)."
+            }
+          },
+          {
+            "name": "name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Name of the role.\n\nRequired-by-API by curation: the sweeper's field, unprobeable by omission."
+            }
+          },
+          {
+            "name": "permissions",
+            "set": {
+              "computed_optional_required": "optional",
+              "element_type": {
+                "string": {}
+              },
+              "description": "List of permission ids to grant (permissionId values from the permissions API). The response echoes permissions as expanded objects, never this id list, so state carries the configured value.\n\nEffectively required: a permission-less role create answers 500 (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785772662063 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Unique ID representing the role.\n\nNamed `id` per the import convention; the wire field stays roleId."
+            }
+          }
+        ],
+        "markdown_description": "Retrieve role."
       }
     },
     {
@@ -4866,6 +5044,97 @@
           }
         ],
         "markdown_description": "Get Web Transactions test."
+      }
+    },
+    {
+      "name": "user",
+      "schema": {
+        "attributes": [
+          {
+            "name": "account_group_roles",
+            "set_nested": {
+              "computed_optional_required": "optional",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "users.UserAccountGroupRole"
+                },
+                "attributes": [
+                  {
+                    "name": "account_group_id",
+                    "string": {
+                      "computed_optional_required": "optional",
+                      "description": "Unique ID of the account group."
+                    }
+                  },
+                  {
+                    "name": "role_ids",
+                    "set": {
+                      "computed_optional_required": "optional",
+                      "element_type": {
+                        "string": {}
+                      },
+                      "description": "Unique role IDs to grant in the account group."
+                    }
+                  }
+                ]
+              },
+              "description": "Role assignments to write: account group id plus role ids. The response echoes assignments as expanded objects under allAccountGroupRoles, never in this shape, so state carries the configured value.\n\nThe API refuses a user without at least one role (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785772809774 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "all_account_group_role_ids",
+            "set": {
+              "computed_optional_required": "optional",
+              "element_type": {
+                "string": {}
+              },
+              "description": "Unique IDs representing the roles.\n\nThe response echoes roles as nested objects, never as this flat id list; state carries the configured value.\n\nOmitted from generated fixtures: its members are live role ids, and account_group_roles already carries the assignment the fixtures exercise."
+            }
+          },
+          {
+            "name": "date_registered",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC date the user registered their account (ISO date-time format)."
+            }
+          },
+          {
+            "name": "email",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "User's email address.\n\n<!-- probed:7.0.98-t1785772809774 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "last_login",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC last login of the user (ISO date-time format)."
+            }
+          },
+          {
+            "name": "login_account_group_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Unique ID of the login account group.\n\nThe response echoes loginAccountGroup as a nested object, never this id; state carries the configured value.\n\nThe API refuses a user without a login account group (live probe, 2026-08-03).\n\n<!-- probed:7.0.98-t1785772809774 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "User's display name.\n\nRequired-by-API by curation: the sweeper's field, unprobeable by omission."
+            }
+          },
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Unique ID of the user.\n\nNamed `id` per the import convention; the wire field stays uid."
+            }
+          }
+        ],
+        "markdown_description": "Retrieve user."
       }
     }
   ],

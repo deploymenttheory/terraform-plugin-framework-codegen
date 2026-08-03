@@ -1,0 +1,24 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "accountGroupRoles": [
+          {
+            "accountGroupId": "281474976742769",
+            "roleIds": [
+              "281474976759598"
+            ]
+          }
+        ],
+        "email": "dafydd.watkins+tfacc@deploymenttheory.com",
+        "loginAccountGroupId": "281474976742769",
+        "name": "CURATE_ME-stamped-by-probe"
+      }
+    }
+  ],
+  "budget": {
+    "maxRequests": 260,
+    "maxCreates": 18
+  }
+}

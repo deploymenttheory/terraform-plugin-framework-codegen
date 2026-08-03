@@ -1,0 +1,52 @@
+{
+  "id": "013-post-v7-roles",
+  "seq": 13,
+  "request": {
+    "method": "POST",
+    "path": "/v7/roles",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "name": "tfpfgen-probe-write-writable-returned-1",
+      "permissions": [
+        "1",
+        "2"
+      ]
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "https://api.thousandeyes.com/v7/roles/281474976765325",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/roles/281474976765325"
+        }
+      },
+      "isBuiltin": false,
+      "name": "tfpfgen-probe-write-writable-returned-1",
+      "permissions": [
+        {
+          "isManagementPermission": false,
+          "label": "Assign email address of users to alerts",
+          "permission": "ALERTS_READ_ACCOUNT_USERS",
+          "permissionId": "1"
+        },
+        {
+          "isManagementPermission": false,
+          "label": "Download Endpoint Agents",
+          "permission": "AGENTS_DOWNLOAD_CUSTOM_EYEBROW",
+          "permissionId": "2"
+        }
+      ],
+      "roleId": "281474976765325"
+    },
+    "droppedHeaders": 14
+  }
+}

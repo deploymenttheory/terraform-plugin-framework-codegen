@@ -90,8 +90,8 @@ func TestUnit_CLI_Interop_TheCommittedSpecIsValid(t *testing.T) {
 	}
 	// Sorted by name in the export, so the alerts pair precedes credential, the
 	// tests_* family and tag.
-	if len(doc.Resources) != 18 || doc.Resources[0].Name != "alert_suppression_window" {
-		t.Fatalf("got %d resources starting %q, want 18 starting with alert_suppression_window",
+	if len(doc.Resources) != 21 || doc.Resources[0].Name != "account_group" {
+		t.Fatalf("got %d resources starting %q, want 21 starting with account_group",
 			len(doc.Resources), firstName(doc.Resources))
 	}
 	byName := map[string]int{}
@@ -250,7 +250,7 @@ func TestUnit_CLI_Interop_ImportWritesInvisibleDrafts(t *testing.T) {
 		t.Fatalf("walking the output: %v", err)
 	}
 
-	if len(found) != 19 {
+	if len(found) != 22 {
 		t.Errorf("wrote %d drafts (%v), want a provider draft and one per resource", len(found), found)
 	}
 

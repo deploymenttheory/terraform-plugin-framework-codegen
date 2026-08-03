@@ -1,0 +1,431 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (8 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "user",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-users-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "user",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "listEnvelopeKey=users"
+      },
+      "confidence": "observed",
+      "probe": "read.list-shape",
+      "evidence": [
+        "001-get-v7-users",
+        "003-get-v7-users",
+        "004-get-v7-users",
+        "005-get-v7-users",
+        "006-get-v7-users",
+        "007-get-v7-users",
+        "008-get-v7-users",
+        "009-get-v7-users",
+        "029-get-v7-users"
+      ],
+      "rationale": "the list response wraps its items under \"users\""
+    },
+    {
+      "resource": "user",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-users-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "user",
+      "field": "policy.readBack",
+      "value": {
+        "readBack": {
+          "reason": "every one of 2 read(s) immediately after a create succeeded on the first attempt"
+        }
+      },
+      "confidence": "inferred",
+      "probe": "write.read-your-writes",
+      "evidence": [
+        "018-get-v7-users-281474976781821",
+        "025-get-v7-users-281474976781823"
+      ],
+      "rationale": "2 object(s) were read immediately after creation and every first read succeeded",
+      "alternatives": [
+        "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+      ]
+    },
+    {
+      "resource": "user",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-users",
+        "003-get-v7-users",
+        "004-get-v7-users",
+        "005-get-v7-users",
+        "006-get-v7-users",
+        "007-get-v7-users",
+        "008-get-v7-users",
+        "009-get-v7-users",
+        "029-get-v7-users"
+      ],
+      "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "user",
+      "jsonPath": "accountGroupRoles",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "inferred",
+      "probe": "write.required",
+      "evidence": [
+        "011-post-v7-users"
+      ],
+      "rationale": "a create omitting this field was refused with 400, but the error body did not name the field, so the refusal may have had another cause",
+      "alternatives": [
+        "the create may have been refused for a reason unrelated to this field, which only an error body naming it would rule out"
+      ]
+    },
+    {
+      "resource": "user",
+      "jsonPath": "email",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "012-post-v7-users"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "user",
+      "jsonPath": "loginAccountGroupId",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "inferred",
+      "probe": "write.required",
+      "evidence": [
+        "013-post-v7-users"
+      ],
+      "rationale": "a create omitting this field was refused with 400, but the error body did not name the field, so the refusal may have had another cause",
+      "alternatives": [
+        "the create may have been refused for a reason unrelated to this field, which only an error body naming it would rule out"
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "resource": "user",
+      "probe": "write.update-style",
+      "message": "every fixture's create was refused, so nothing was observed about update style"
+    },
+    {
+      "resource": "user",
+      "probe": "write.writable-returned",
+      "message": "fixture minimal was refused with 400 (), so nothing was observed about writability from it"
+    },
+    {
+      "resource": "user",
+      "probe": "write.update-style",
+      "message": "fixture minimal was refused with 400; trying the next"
+    },
+    {
+      "resource": "user",
+      "probe": "read.error-envelope",
+      "message": "no candidate query parameter (limit, max, offset, page) was validated, so no error shape was observed without mutating anything"
+    },
+    {
+      "resource": "user",
+      "probe": "read.volatile",
+      "message": "no existing object to read repeatedly, so volatility was not observed"
+    },
+    {
+      "resource": "user",
+      "probe": "read.returned-weak",
+      "message": "no existing object to read, so no field presence was observed"
+    },
+    {
+      "resource": "user",
+      "probe": "write.immutability",
+      "message": "no field carries two or more candidate values, so no field can be probed for immutability: the fact requires two distinct values both refused, and one candidate cannot supply that"
+    },
+    {
+      "resource": "user",
+      "probe": "write.enum",
+      "message": "no sendable field carries documented enum values, so there is no specification claim to check against the API"
+    },
+    {
+      "resource": "user",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"collection order is changed\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "user",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"letter case is changed\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "user",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"surrounding whitespace is stripped\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "user",
+      "probe": "write.rehearsal",
+      "message": "the derived maximal body was refused as a create with 400 (); a maximal-first acceptance configuration would fail exactly like this"
+    },
+    {
+      "resource": "user",
+      "probe": "write.rehearsal",
+      "message": "the derived maximal update was refused with 400 (); the generated acceptance test's update step would fail exactly like this"
+    },
+    {
+      "resource": "user",
+      "probe": "write.side-effect",
+      "message": "the plan declares no field whose value might affect another, so there is no suspected trigger to perturb; declare one under defaultInfluencers"
+    },
+    {
+      "resource": "user",
+      "probe": "write.server-default",
+      "message": "the second, byte-identical to the first create was refused with 400 (), so no default was observed"
+    },
+    {
+      "resource": "user",
+      "jsonPath": "name",
+      "probe": "write.normalisation",
+      "message": "\"letter case is changed\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "user",
+      "jsonPath": "name",
+      "probe": "write.normalisation",
+      "message": "\"surrounding whitespace is stripped\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "user",
+      "jsonPath": "name",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.normalisation",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 3,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.rehearsal",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 5,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 3
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 3,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    }
+  ],
+  "budget": {
+    "requests": 28,
+    "maxRequests": 260,
+    "creates": 13,
+    "maxCreates": 18,
+    "deletes": 3,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  },
+  "rehearsal": [
+    {
+      "minimal": {
+        "accountGroupRoles": [
+          {
+            "accountGroupId": "281474976742769",
+            "roleIds": [
+              "281474976759598"
+            ]
+          }
+        ],
+        "email": "dafydd.watkins+tfacc@deploymenttheory.com",
+        "loginAccountGroupId": "281474976742769",
+        "name": "tfacc-name"
+      },
+      "maximal": {
+        "accountGroupRoles": [
+          {
+            "accountGroupId": "281474976742769",
+            "roleIds": [
+              "281474976759598"
+            ]
+          }
+        ],
+        "allAccountGroupRoleIds": [
+          "tfacc-all-account-group-role-ids-element"
+        ],
+        "email": "dafydd.watkins+tfacc@deploymenttheory.com",
+        "loginAccountGroupId": "281474976742769",
+        "name": "tfacc-name"
+      }
+    }
+  ]
+}

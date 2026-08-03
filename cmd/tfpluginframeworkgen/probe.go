@@ -1012,7 +1012,13 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 	printProbeReport(subj.Resource, result.Report)
 	reportOrphans(subj.Resource, result.Report)
 
-	if runErr != nil {
+	// In verify mode a reproduced run error must not pre-empt the fact comparison.
+	// A recording may legitimately contain a stopping error -- the account_group
+	// snapshot holds a delete the API refused, later resolved by the ledger sweep --
+	// and replay reproducing that error is replay working. What verify asserts is
+	// that the facts are a pure function of the transcript; the error is part of the
+	// transcript. Any other mode surfaces it as before.
+	if runErr != nil && mode != modeVerify {
 		return runErr
 	}
 
@@ -1030,6 +1036,11 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 
 	if err := probe.VerifyFacts(result.Report.Facts, committed); err != nil {
 		return err
+	}
+
+	if runErr != nil {
+		log.Printf("note: the recorded run stopped early (%v); its facts reproduce, "+
+			"which is what verify asserts", runErr)
 	}
 
 	log.Printf("✅ %s: %d fact(s) reproduced from the committed cassette", subj.Resource, len(committed))

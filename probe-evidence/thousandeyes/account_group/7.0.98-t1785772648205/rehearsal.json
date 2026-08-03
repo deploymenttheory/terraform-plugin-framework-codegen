@@ -1,0 +1,10 @@
+[
+  {
+    "minimal": {
+      "accountGroupName": "tfacc-account-group-name"
+    },
+    "maximal": {
+      "accountGroupName": "tfacc-account-group-name"
+    }
+  }
+]

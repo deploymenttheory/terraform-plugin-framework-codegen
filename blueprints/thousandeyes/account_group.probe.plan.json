@@ -1,0 +1,16 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "accountGroupName": "CURATE_ME-stamped-by-probe"
+      }
+    }
+  ],
+  "candidates": {},
+  "deny": [],
+  "budget": {
+    "maxRequests": 260,
+    "maxCreates": 25
+  }
+}
