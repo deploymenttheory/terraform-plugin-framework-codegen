@@ -35,21 +35,21 @@ resource "thousandeyes_tests_dns_server" "example" {
 - `bandwidth_measurements` (Boolean) Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `description` (String) A description of the test.
-- `dns_query_class` (String) Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.
-- `dns_transport_protocol` (String) Transport protocol used for DNS requests.
+- `dns_query_class` (String) Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
+- `dns_transport_protocol` (String) Transport protocol used for DNS requests. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second.
 - `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run). <!-- probed:7.0.98-t1785744994227 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
-- `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level.
+- `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns 1 when this is omitted. <!-- /probed -->
-- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
-- `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
+- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
+- `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD). <!-- probed:7.0.98-t1785744994227 --> Values accepted here: `tcp`, `icmp`. The specification documents `udp`, which the API rejected. Observed: the API assigns "tcp" when this is omitted. <!-- /probed -->
 - `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `recursive_queries` (Boolean) Set true to run query with RD (recursion desired) flag enabled. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
-- `test_name` (String) The name of the test. Test name must be unique.
+- `test_name` (String) The name of the test. Test name must be unique. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:7.0.98-t1785744994227 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 

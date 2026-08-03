@@ -40,25 +40,25 @@ resource "thousandeyes_tests_api" "example" {
 - `description` (String) A description of the test.
 - `distributed_tracing` (Boolean) Adds distributed tracing headers to API requests using B3 and W3C standards. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
-- `follow_redirects` (Boolean) To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.
+- `follow_redirects` (Boolean) To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run). <!-- probed:7.0.98-t1785744867250 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns 3 when this is omitted. <!-- /probed -->
 - `override_agent_proxy` (Boolean) Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `override_proxy_id` (String) ID of the proxy to be used if the default proxy is overridden.
-- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
+- `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `predefined_variables` (Attributes Set) (see [below for nested schema](#nestedatt--predefined_variables))
-- `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
+- `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD). <!-- probed:7.0.98-t1785744867250 --> Values accepted here: `tcp`, `icmp`. The specification documents `udp`, which the API rejected. Observed: the API assigns "tcp" when this is omitted. <!-- /probed -->
 - `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `ssl_version_id` (String) SSL version options: * Use '0' for automatic selection. * Use '3' for SSLv3. * Use '4' for TLS v1.0. * Use '5' for TLS v1.1. * Use '6' for TLS v1.2. * Use '7' for TLS v1.3.
 - `target_time` (Number) Target time for completion metric, defaults to 50% of time limit specified in seconds. (0 means default behavior) <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns 6 when this is omitted. <!-- /probed -->
-- `test_name` (String) The name of the test. Test name must be unique.
+- `test_name` (String) The name of the test. Test name must be unique. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `time_limit` (Number) Time limit for transaction in seconds. Exceeding this limit will result in a Timeout error. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns 10 when this is omitted. <!-- /probed -->
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:7.0.98-t1785744867250 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
-- `vault_credentials` (Attributes Set) List of credential IDs that are stored in an external vault. (see [below for nested schema](#nestedatt--vault_credentials))
+- `vault_credentials` (Attributes Set) List of credential IDs that are stored in an external vault. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted. (see [below for nested schema](#nestedatt--vault_credentials))
 
 ### Read-Only
 

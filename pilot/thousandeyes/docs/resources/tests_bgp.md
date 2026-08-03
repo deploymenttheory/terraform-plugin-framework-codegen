@@ -31,7 +31,7 @@ resource "thousandeyes_tests_bgp" "example" {
 - `description` (String) A description of the test.
 - `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785744878231 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `include_covered_prefixes` (Boolean) Indicate if queries for subprefixes detected under this prefix should included. <!-- probed:7.0.98-t1785744878231 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
-- `test_name` (String) The name of the test. Test name must be unique.
+- `test_name` (String) The name of the test. Test name must be unique. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value. <!-- probed:7.0.98-t1785744878231 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 

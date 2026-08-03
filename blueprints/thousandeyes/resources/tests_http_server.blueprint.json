@@ -281,7 +281,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -299,7 +299,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -489,8 +489,8 @@
                 "oauth"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "HTTP authentication type.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "HTTP authentication type.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "authType",
               "sdkField": "AuthType",
@@ -1095,8 +1095,8 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set to `true` to capture response headers for objects loaded by the test.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set to `true` to capture response headers for objects loaded by the test.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "includeHeaders",
               "sdkField": "IncludeHeaders",
@@ -1159,8 +1159,8 @@
                 "use-agent-policy"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "IP version policy. Overrides the IPv6 policy configured at the agent level.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "IP version policy. Overrides the IPv6 policy configured at the agent level.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "ipv6Policy",
               "sdkField": "Ipv6Policy",
@@ -1827,8 +1827,8 @@
                 "in-session"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "pathTraceMode",
               "sdkField": "PathTraceMode",
@@ -1875,8 +1875,8 @@
                 "syn"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "probeMode",
               "sdkField": "ProbeMode",
@@ -1974,8 +1974,8 @@
                 "post"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "HTTP request method.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "HTTP request method.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "requestMethod",
               "sdkField": "RequestMethod",
@@ -2108,8 +2108,8 @@
                 "7"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "sslVersionId",
               "sdkField": "SslVersionID",
@@ -2234,8 +2234,8 @@
             "type": {
               "kind": "string"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "The name of the test. Test name must be unique.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "The name of the test. Test name must be unique.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "testName",
               "sdkField": "TestName",
@@ -2475,8 +2475,8 @@
                 ]
               }
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "List of credential IDs that are stored in an external vault.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "List of credential IDs that are stored in an external vault.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
             "wire": {
               "jsonPath": "vaultCredentials",
               "sdkField": "VaultCredentials",
