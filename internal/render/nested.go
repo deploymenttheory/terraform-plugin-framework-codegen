@@ -343,6 +343,21 @@ func nestedExpandView(s nestedShape) NestedFuncView {
 		if call.ReturnsError {
 			// A child conversion that can fail makes the whole helper fallible.
 			v.NeedsDiagnostics = true
+
+			// A wrapper cannot take a two-value call; the result lands in a temp
+			// first. Same shape as constructView's, for the same SDK field classes
+			// -- a dashboard layout's value-typed Details is the nested case.
+			if needsTemp(call) {
+				inner := call
+				inner.Deref, inner.Cast = false, ""
+				tmp := lowerFirst(child.GoField) + "Raw"
+				v.Assignments = append(v.Assignments, fmt.Sprintf(
+					"%s, d := %s\ndiags.Append(d...)\nitem.%s = %s",
+					tmp, convertExpr(inner, "m."+child.GoField), child.Wire.SDKField,
+					wrapConverted(call, tmp)))
+				continue
+			}
+
 			v.Assignments = append(v.Assignments, fmt.Sprintf(
 				"item.%s, d = %s\ndiags.Append(d...)",
 				child.Wire.SDKField, convertExpr(call, "m."+child.GoField)))

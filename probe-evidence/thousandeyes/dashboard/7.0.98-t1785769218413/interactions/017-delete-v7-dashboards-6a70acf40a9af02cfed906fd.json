@@ -1,0 +1,18 @@
+{
+  "id": "017-delete-v7-dashboards-6a70acf40a9af02cfed906fd",
+  "seq": 17,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/dashboards/6a70acf40a9af02cfed906fd",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 9
+  }
+}

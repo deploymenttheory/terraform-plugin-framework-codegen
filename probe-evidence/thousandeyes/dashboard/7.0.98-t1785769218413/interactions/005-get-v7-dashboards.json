@@ -1,0 +1,260 @@
+{
+  "id": "005-get-v7-dashboards",
+  "seq": 5,
+  "request": {
+    "method": "GET",
+    "path": "/v7/dashboards",
+    "query": {
+      "limit": [
+        "not-a-number"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": [
+      {
+        "_links": {
+          "self": {
+            "href": "https://api.thousandeyes.com/v7/dashboards/0-281474976742769"
+          },
+          "snapshots": {
+            "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=0-281474976742769"
+          }
+        },
+        "accountId": 281474976742769,
+        "aid": "281474976742769",
+        "apiLink": [
+          {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/dashboards/0-281474976742769"
+            }
+          },
+          {
+            "snapshots": {
+              "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=0-281474976742769"
+            }
+          }
+        ],
+        "dashboardId": "0-281474976742769",
+        "defaultTimespan": {
+          "duration": 86400,
+          "timespanDuration": 86400
+        },
+        "globalOverride": false,
+        "isBuiltIn": true,
+        "isDefaultForAccount": false,
+        "isDefaultForUser": false,
+        "isGlobalOverride": false,
+        "isMigratedReport": false,
+        "isPrivate": false,
+        "migratedReport": false,
+        "refreshRate": "2m",
+        "title": "ThousandEyes Built-in: Agent Alerts"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://api.thousandeyes.com/v7/dashboards/1-281474976742769"
+          },
+          "snapshots": {
+            "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=1-281474976742769"
+          }
+        },
+        "accountId": 281474976742769,
+        "aid": "281474976742769",
+        "apiLink": [
+          {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/dashboards/1-281474976742769"
+            }
+          },
+          {
+            "snapshots": {
+              "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=1-281474976742769"
+            }
+          }
+        ],
+        "dashboardId": "1-281474976742769",
+        "defaultTimespan": {
+          "duration": 86400,
+          "timespanDuration": 86400
+        },
+        "globalOverride": false,
+        "isBuiltIn": true,
+        "isDefaultForAccount": false,
+        "isDefaultForUser": false,
+        "isGlobalOverride": false,
+        "isMigratedReport": false,
+        "isPrivate": false,
+        "migratedReport": false,
+        "refreshRate": "2m",
+        "title": "ThousandEyes Built-in: Network Layer"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://api.thousandeyes.com/v7/dashboards/2-281474976742769"
+          },
+          "snapshots": {
+            "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=2-281474976742769"
+          }
+        },
+        "accountId": 281474976742769,
+        "aid": "281474976742769",
+        "apiLink": [
+          {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/dashboards/2-281474976742769"
+            }
+          },
+          {
+            "snapshots": {
+              "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=2-281474976742769"
+            }
+          }
+        ],
+        "dashboardId": "2-281474976742769",
+        "defaultTimespan": {
+          "duration": 86400,
+          "timespanDuration": 86400
+        },
+        "globalOverride": false,
+        "isBuiltIn": true,
+        "isDefaultForAccount": false,
+        "isDefaultForUser": false,
+        "isGlobalOverride": false,
+        "isMigratedReport": false,
+        "isPrivate": false,
+        "migratedReport": false,
+        "refreshRate": "2m",
+        "title": "ThousandEyes Built-in: HTTP Server"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://api.thousandeyes.com/v7/dashboards/3-281474976742769"
+          },
+          "snapshots": {
+            "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=3-281474976742769"
+          }
+        },
+        "accountId": 281474976742769,
+        "aid": "281474976742769",
+        "apiLink": [
+          {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/dashboards/3-281474976742769"
+            }
+          },
+          {
+            "snapshots": {
+              "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=3-281474976742769"
+            }
+          }
+        ],
+        "dashboardId": "3-281474976742769",
+        "defaultTimespan": {
+          "duration": 86400,
+          "timespanDuration": 86400
+        },
+        "globalOverride": false,
+        "isBuiltIn": true,
+        "isDefaultForAccount": false,
+        "isDefaultForUser": false,
+        "isGlobalOverride": false,
+        "isMigratedReport": false,
+        "isPrivate": false,
+        "migratedReport": false,
+        "refreshRate": "2m",
+        "title": "ThousandEyes Built-in: Page Load"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://api.thousandeyes.com/v7/dashboards/4-281474976742769"
+          },
+          "snapshots": {
+            "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=4-281474976742769"
+          }
+        },
+        "accountId": 281474976742769,
+        "aid": "281474976742769",
+        "apiLink": [
+          {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/dashboards/4-281474976742769"
+            }
+          },
+          {
+            "snapshots": {
+              "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=4-281474976742769"
+            }
+          }
+        ],
+        "dashboardId": "4-281474976742769",
+        "defaultTimespan": {
+          "duration": 86400,
+          "timespanDuration": 86400
+        },
+        "globalOverride": false,
+        "isBuiltIn": true,
+        "isDefaultForAccount": false,
+        "isDefaultForUser": false,
+        "isGlobalOverride": false,
+        "isMigratedReport": false,
+        "isPrivate": false,
+        "migratedReport": false,
+        "refreshRate": "2m",
+        "title": "ThousandEyes Built-in"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://api.thousandeyes.com/v7/dashboards/5-281474976742769"
+          },
+          "snapshots": {
+            "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=5-281474976742769"
+          }
+        },
+        "accountId": 281474976742769,
+        "aid": "281474976742769",
+        "apiLink": [
+          {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/dashboards/5-281474976742769"
+            }
+          },
+          {
+            "snapshots": {
+              "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=5-281474976742769"
+            }
+          }
+        ],
+        "dashboardId": "5-281474976742769",
+        "defaultTimespan": {
+          "duration": 86400,
+          "timespanDuration": 86400
+        },
+        "globalOverride": false,
+        "isBuiltIn": true,
+        "isDefaultForAccount": false,
+        "isDefaultForUser": false,
+        "isGlobalOverride": false,
+        "isMigratedReport": false,
+        "isPrivate": false,
+        "migratedReport": false,
+        "refreshRate": "2m",
+        "title": "Internet Insights Built-in"
+      }
+    ],
+    "droppedHeaders": 9
+  }
+}

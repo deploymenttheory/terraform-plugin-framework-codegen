@@ -1,0 +1,31 @@
+{
+  "fixtures": [
+    {
+      "name": "virtual-agent-test-filter",
+      "body": {
+        "name": "CURATE_ME-stamped-by-probe",
+        "context": [
+          {
+            "dataSourceId": "VIRTUAL_AGENT",
+            "filters": [
+              {
+                "filterId": "TEST",
+                "metricIds": [],
+                "values": [
+                  "281474976977085"
+                ]
+              }
+            ]
+          }
+        ],
+        "description": "probe filter"
+      }
+    }
+  ],
+  "candidates": {},
+  "deny": [],
+  "budget": {
+    "maxRequests": 300,
+    "maxCreates": 40
+  }
+}

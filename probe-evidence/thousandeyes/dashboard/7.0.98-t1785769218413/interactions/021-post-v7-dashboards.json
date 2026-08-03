@@ -1,0 +1,55 @@
+{
+  "id": "021-post-v7-dashboards",
+  "seq": 21,
+  "request": {
+    "method": "POST",
+    "path": "/v7/dashboards",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "layout.type": "qqqqqqqq",
+      "title": "tfpfgen-probe-write-enum-3"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "http://api.thousandeyes.com:443/v7/dashboards/6a70acf80fca20f23552cd01",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/dashboards/6a70acf80fca20f23552cd01"
+        },
+        "snapshots": {
+          "href": "https://api.thousandeyes.com/v7/dashboard-snapshots?dashboardId=6a70acf80fca20f23552cd01"
+        }
+      },
+      "aid": "281474976742769",
+      "createdBy": "281474976776659",
+      "dashboardId": "6a70acf80fca20f23552cd01",
+      "defaultTimespan": {
+        "duration": 86400,
+        "timespanDuration": 86400
+      },
+      "isBuiltIn": false,
+      "isDefaultForAccount": false,
+      "isDefaultForUser": false,
+      "isGlobalOverride": false,
+      "isMigratedReport": false,
+      "isPrivate": false,
+      "layout": {
+        "type": "vertical"
+      },
+      "modifiedDate": "2026-08-03T15:00:08Z",
+      "refreshRate": "off",
+      "title": "tfpfgen-probe-write-enum-3",
+      "widgets": []
+    },
+    "droppedHeaders": 12
+  }
+}

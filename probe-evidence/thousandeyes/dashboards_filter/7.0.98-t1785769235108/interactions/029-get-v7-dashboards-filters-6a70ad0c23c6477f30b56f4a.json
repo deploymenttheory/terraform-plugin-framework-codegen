@@ -1,0 +1,50 @@
+{
+  "id": "029-get-v7-dashboards-filters-6a70ad0c23c6477f30b56f4a",
+  "seq": 29,
+  "request": {
+    "method": "GET",
+    "path": "/v7/dashboards/filters/6a70ad0c23c6477f30b56f4a",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/dashboards/filters/6a70ad0c23c6477f30b56f4a"
+        }
+      },
+      "aid": "281474976742769",
+      "context": [
+        {
+          "dataSourceId": "VIRTUAL_AGENT",
+          "filters": [
+            {
+              "filterId": "TEST",
+              "metricIds": [],
+              "values": [
+                "281474976977085"
+              ]
+            }
+          ]
+        }
+      ],
+      "createdDate": "2026-08-03T15:00:28.885Z",
+      "description": "  probe-description-1  ",
+      "id": "6a70ad0c23c6477f30b56f4a",
+      "modifiedBy": {
+        "name": "dafyddwatkins",
+        "uid": "281474976776659"
+      },
+      "modifiedDate": "2026-08-03T15:00:28.885Z",
+      "name": "tfpfgen-probe-write-normalisation-1"
+    },
+    "droppedHeaders": 9
+  }
+}

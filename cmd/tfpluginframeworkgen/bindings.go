@@ -80,6 +80,13 @@ func runBindings(args []string) error {
 
 	log.Printf("✅ %d binding(s) match the SDK", report.Checked)
 
+	// Named warnings, not failures: a value-typed struct the provider can never
+	// omit is an SDK defect to fix, and the resource may be deliberately gated on
+	// it -- but nobody should meet it first as a live 400 naming nothing.
+	for _, w := range sdkbind.UnsendableStructWarnings(sdkbind.NewLoader(*module), bp) {
+		fmt.Fprintf(os.Stderr, "::warning::%s\n", w)
+	}
+
 	if *factsOut != "" || *factsCheck != "" {
 		return staticFacts(bp, *module, *factsOut, *factsCheck)
 	}

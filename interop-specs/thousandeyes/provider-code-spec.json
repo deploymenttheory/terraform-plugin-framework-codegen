@@ -724,6 +724,170 @@
       }
     },
     {
+      "name": "dashboards_filter",
+      "schema": {
+        "attributes": [
+          {
+            "name": "aid",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Account group ID of the filter."
+            }
+          },
+          {
+            "name": "context",
+            "set_nested": {
+              "computed_optional_required": "required",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "dashboards_filters.ApiDataSourceFilters"
+                },
+                "attributes": [
+                  {
+                    "name": "data_source_id",
+                    "string": {
+                      "computed_optional_required": "required",
+                      "description": "Types of data source.\n\n<!-- probed:7.0.98-t1785769235108 -->\nObserved: the API assigns \"VIRTUAL_AGENT\" when this is omitted.\n<!-- /probed -->"
+                    }
+                  },
+                  {
+                    "name": "filters",
+                    "set_nested": {
+                      "computed_optional_required": "required",
+                      "nested_object": {
+                        "associated_external_type": {
+                          "type": "dashboards_filters.ApiDataSourceFilter"
+                        },
+                        "attributes": [
+                          {
+                            "name": "filter_id",
+                            "string": {
+                              "computed_optional_required": "required",
+                              "description": "Data source property to filter by.\n\n<!-- probed:7.0.98-t1785769235108 -->\nObserved: the API assigns \"TEST\" when this is omitted.\n<!-- /probed -->"
+                            }
+                          },
+                          {
+                            "name": "metric_ids",
+                            "set": {
+                              "computed_optional_required": "required",
+                              "element_type": {
+                                "string": {}
+                              },
+                              "description": "Dashboard metric associated with the filter property."
+                            }
+                          },
+                          {
+                            "name": "values",
+                            "set": {
+                              "computed_optional_required": "required",
+                              "element_type": {
+                                "string": {}
+                              },
+                              "description": "Values to filter by based on the specified `filterId`."
+                            }
+                          }
+                        ]
+                      },
+                      "description": "List of different filter properties."
+                    }
+                  }
+                ]
+              },
+              "description": "List of filters to be applied to a dashboard.\n\n<!-- probed:7.0.98-t1785769235108 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "created_by",
+            "single_nested": {
+              "computed_optional_required": "computed",
+              "attributes": [
+                {
+                  "name": "name",
+                  "string": {
+                    "computed_optional_required": "computed",
+                    "description": "Name of the user."
+                  }
+                },
+                {
+                  "name": "uid",
+                  "string": {
+                    "computed_optional_required": "computed",
+                    "description": "Unique ID of the user."
+                  }
+                }
+              ],
+              "associated_external_type": {
+                "type": "dashboards_filters.ApiDashboardFilterUserDetails"
+              },
+              "description": "Details of user who created or modified the filter."
+            }
+          },
+          {
+            "name": "created_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Timestamp when the filter was created."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "An optional description of the filter.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Unique ID of the dashboard filter."
+            }
+          },
+          {
+            "name": "modified_by",
+            "single_nested": {
+              "computed_optional_required": "computed",
+              "attributes": [
+                {
+                  "name": "name",
+                  "string": {
+                    "computed_optional_required": "computed",
+                    "description": "Name of the user."
+                  }
+                },
+                {
+                  "name": "uid",
+                  "string": {
+                    "computed_optional_required": "computed",
+                    "description": "Unique ID of the user."
+                  }
+                }
+              ],
+              "associated_external_type": {
+                "type": "dashboards_filters.ApiDashboardFilterUserDetails"
+              },
+              "description": "Details of user who created or modified the filter."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Timestamp when the filter was last modified."
+            }
+          },
+          {
+            "name": "name",
+            "string": {
+              "computed_optional_required": "required",
+              "description": "The name of the dashboard filter, this must be unique."
+            }
+          }
+        ],
+        "markdown_description": "Get dashboard filter."
+      }
+    },
+    {
       "name": "tag",
       "schema": {
         "attributes": [

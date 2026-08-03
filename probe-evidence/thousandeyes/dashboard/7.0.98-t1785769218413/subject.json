@@ -1,0 +1,249 @@
+{
+  "resource": "dashboard",
+  "collectionTemplate": "/dashboards",
+  "itemTemplate": "/dashboards/{dashboardId}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/dashboards"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/dashboards/{dashboardId}"
+  },
+  "update": {
+    "method": "PUT",
+    "pathTemplate": "/dashboards/{dashboardId}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/dashboards/{dashboardId}"
+  },
+  "fields": [
+    {
+      "jsonPath": "accountId",
+      "attribute": "account_id",
+      "kind": "int64",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "aid",
+      "attribute": "aid",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "createdBy",
+      "attribute": "created_by",
+      "kind": "int64",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "dashboardCreatedBy",
+      "attribute": "dashboard_created_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "dashboardId",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "dashboardModifiedBy",
+      "attribute": "dashboard_modified_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "dashboardModifiedDate",
+      "attribute": "dashboard_modified_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false,
+      "constraints": {
+        "format": "date-time"
+      }
+    },
+    {
+      "jsonPath": "description",
+      "attribute": "description",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "globalFilterId",
+      "attribute": "global_filter_id",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "globalOverride",
+      "attribute": "global_override",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "isBuiltIn",
+      "attribute": "is_built_in",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "isDefaultForAccount",
+      "attribute": "is_default_for_account",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "isDefaultForUser",
+      "attribute": "is_default_for_user",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "isGlobalOverride",
+      "attribute": "is_global_override",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "isMigratedReport",
+      "attribute": "is_migrated_report",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "isPrivate",
+      "attribute": "is_private",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout",
+      "attribute": "layout",
+      "kind": "single_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout.details",
+      "attribute": "details",
+      "kind": "single_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout.details.widgetPositioning",
+      "attribute": "widget_positioning",
+      "kind": "set_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout.details.widgetPositioning.h",
+      "attribute": "h",
+      "kind": "int64",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout.details.widgetPositioning.id",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout.details.widgetPositioning.w",
+      "attribute": "w",
+      "kind": "int64",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout.details.widgetPositioning.x",
+      "attribute": "x",
+      "kind": "int64",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout.details.widgetPositioning.y",
+      "attribute": "y",
+      "kind": "int64",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout.layoutId",
+      "attribute": "layout_id",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "layout.type",
+      "attribute": "type",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true,
+      "allowedValues": [
+        "grid",
+        "vertical"
+      ]
+    },
+    {
+      "jsonPath": "migratedReport",
+      "attribute": "migrated_report",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedBy",
+      "attribute": "modified_by",
+      "kind": "int64",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedDate",
+      "attribute": "modified_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "title",
+      "attribute": "title",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    }
+  ],
+  "policy": {
+    "updateStyle": "putFull",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "dashboardId",
+  "nameField": "title",
+  "evidenceRev": 1
+}

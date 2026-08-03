@@ -303,5 +303,10 @@ type ConvertCall struct {
 	// Deref: the response holds a value and the helper wants a pointer.
 	TakesAddress bool `json:"takesAddress,omitempty"`
 
+	// Cast wraps the finished call in a Go conversion, for an SDK field whose type
+	// is a named slice or named scalar of what the helper produces -- a dashboard
+	// filter's Context is ApiContextFilters, a named []ApiDataSourceFilters.
+	Cast string `json:"cast,omitempty"`
+
 	Imports []Import `json:"imports,omitempty"`
 }

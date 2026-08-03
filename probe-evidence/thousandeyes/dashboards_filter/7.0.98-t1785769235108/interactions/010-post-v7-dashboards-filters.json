@@ -1,0 +1,70 @@
+{
+  "id": "010-post-v7-dashboards-filters",
+  "seq": 10,
+  "request": {
+    "method": "POST",
+    "path": "/v7/dashboards/filters",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "context": [
+        {
+          "dataSourceId": "VIRTUAL_AGENT",
+          "filters": [
+            {
+              "filterId": "TEST",
+              "metricIds": [],
+              "values": [
+                "281474976977085"
+              ]
+            }
+          ]
+        }
+      ],
+      "description": "probe filter",
+      "name": "tfpfgen-probe-write-required-1"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json;charset=UTF-8",
+      "location": "http://api.thousandeyes.com:443/v7/dashboards/filters/6a70ad060a9af02cfed9071a",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/dashboards/filters/6a70ad060a9af02cfed9071a"
+        }
+      },
+      "aid": "281474976742769",
+      "context": [
+        {
+          "dataSourceId": "VIRTUAL_AGENT",
+          "filters": [
+            {
+              "filterId": "TEST",
+              "metricIds": [],
+              "values": [
+                "281474976977085"
+              ]
+            }
+          ]
+        }
+      ],
+      "createdDate": "2026-08-03T15:00:22.652Z",
+      "description": "probe filter",
+      "id": "6a70ad060a9af02cfed9071a",
+      "modifiedBy": {
+        "name": "dafyddwatkins",
+        "uid": "281474976776659"
+      },
+      "modifiedDate": "2026-08-03T15:00:22.652Z",
+      "name": "tfpfgen-probe-write-required-1"
+    },
+    "droppedHeaders": 12
+  }
+}
