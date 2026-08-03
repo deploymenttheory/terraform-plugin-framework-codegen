@@ -13,14 +13,22 @@ func rehearsalSubject() Subject {
 	subj := quirkSubject()
 	subj.EvidenceRev = CurrentEvidenceRev
 	subj.Fields = append(subj.Fields,
-		Field{JSONPath: "colour", Kind: blueprint.KindString,
-			ComputedOptionalRequired: blueprint.Optional, Writable: true},
-		Field{JSONPath: "enabled", Kind: blueprint.KindBool,
-			ComputedOptionalRequired: blueprint.Optional, Writable: true},
-		Field{JSONPath: "postBody", Kind: blueprint.KindString,
-			ComputedOptionalRequired: blueprint.Optional, Writable: true},
-		Field{JSONPath: "requestMethod", Kind: blueprint.KindString,
-			ComputedOptionalRequired: blueprint.Optional, Writable: true},
+		Field{
+			JSONPath: "colour", Kind: blueprint.KindString,
+			ComputedOptionalRequired: blueprint.Optional, Writable: true,
+		},
+		Field{
+			JSONPath: "enabled", Kind: blueprint.KindBool,
+			ComputedOptionalRequired: blueprint.Optional, Writable: true,
+		},
+		Field{
+			JSONPath: "postBody", Kind: blueprint.KindString,
+			ComputedOptionalRequired: blueprint.Optional, Writable: true,
+		},
+		Field{
+			JSONPath: "requestMethod", Kind: blueprint.KindString,
+			ComputedOptionalRequired: blueprint.Optional, Writable: true,
+		},
 	)
 	return subj
 }

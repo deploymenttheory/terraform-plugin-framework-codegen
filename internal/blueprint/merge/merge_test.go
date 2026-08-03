@@ -1418,8 +1418,7 @@ func TestUnit_Merge_AnUpdateDefaultDisagreeingWithTheCreateDefaultConflicts(t *t
 	t.Parallel()
 
 	bp := testBlueprint()
-	bp.Resources[0].Schema.Attributes[0].Behaviour.ServerDefault =
-		&blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`}
+	bp.Resources[0].Schema.Attributes[0].Behaviour.ServerDefault = &blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`}
 
 	result, err := Apply(&bp, []probe.Fact{
 		fact("colour", probe.FactUpdateDefault,
