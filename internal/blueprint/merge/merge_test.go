@@ -1314,3 +1314,165 @@ func TestUnit_Merge_AConditionalFactIsIdempotentOnASecondMerge(t *testing.T) {
 		t.Errorf("a second merge over the same facts should change nothing: %+v", second.Changes)
 	}
 }
+
+// TestUnit_Merge_RehearsalEchoFactsLandOnTheAttribute covers the per-operation echo
+// observations the rehearsal probe produces: the write response answering null for a
+// field it was sent is a different document from a later GET, and the generator needs
+// both recorded to route assertions and carry-through correctly.
+func TestUnit_Merge_RehearsalEchoFactsLandOnTheAttribute(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+	facts := []probe.Fact{
+		fact("colour", probe.FactReturnedOnCreate, probe.BoolValue(false), probe.Observed),
+		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.Observed),
+		fact("colour", probe.FactReturnedOnUpdate, probe.BoolValue(false), probe.Observed),
+	}
+
+	result, err := Apply(&bp, facts, Options{})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if len(result.Conflicts) != 0 {
+		t.Fatalf("unexpected conflicts: %+v", result.Conflicts)
+	}
+
+	b := bp.Resources[0].Schema.Attributes[0].Behaviour
+	if b.ReturnedOnCreate == nil || *b.ReturnedOnCreate {
+		t.Error("returnedOnCreate=false must land on the attribute")
+	}
+	if b.ReturnedOnUpdate == nil || *b.ReturnedOnUpdate {
+		t.Error("returnedOnUpdate=false must land on the attribute")
+	}
+
+	// All three false together is a write-only field, and the description must say so:
+	// prose is where a schema reader learns why state carries the configured value.
+	desc := bp.Resources[0].Schema.Attributes[0].MarkdownDescription
+	if !strings.Contains(desc, "write-only in practice") {
+		t.Errorf("description should name the write-only conclusion:\n%s", desc)
+	}
+}
+
+// TestUnit_Merge_AForcedValueNeedsCorroboration holds serverForced to the writable=false
+// bar: acting on it tells a practitioner their value can never take effect.
+func TestUnit_Merge_AForcedValueNeedsCorroboration(t *testing.T) {
+	t.Parallel()
+
+	lit := probe.LiteralValue(blueprint.Literal{Kind: blueprint.KindBool, Raw: "true"})
+
+	bp := testBlueprint()
+	result, err := Apply(&bp, []probe.Fact{
+		fact("colour", probe.FactServerForced, lit, probe.Observed),
+	}, Options{})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if len(result.Conflicts) != 1 {
+		t.Fatalf("an Observed forced value must conflict, not apply: %+v", result.Conflicts)
+	}
+	if bp.Resources[0].Schema.Attributes[0].Behaviour.ForcedValue != nil {
+		t.Error("forcedValue must not be written without corroboration")
+	}
+
+	bp = testBlueprint()
+	result, err = Apply(&bp, []probe.Fact{
+		fact("colour", probe.FactServerForced, lit, probe.Corroborated),
+	}, Options{})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if len(result.Conflicts) != 0 {
+		t.Fatalf("unexpected conflicts: %+v", result.Conflicts)
+	}
+
+	fv := bp.Resources[0].Schema.Attributes[0].Behaviour.ForcedValue
+	if fv == nil || fv.Raw != "true" {
+		t.Fatalf("corroborated forced value must be recorded, got %+v", fv)
+	}
+	if len(result.Recommendations) == 0 ||
+		!strings.Contains(result.Recommendations[0], "Computed") {
+		t.Errorf("a forced value should recommend Computed: %v", result.Recommendations)
+	}
+}
+
+// TestUnit_Merge_AnUpdateDefaultDisagreeingWithTheCreateDefaultConflicts is the
+// create-vs-update asymmetry: both defaults are real at once, so both are recorded,
+// and the disagreement is surfaced because a static Default would lie on one path.
+func TestUnit_Merge_AnUpdateDefaultDisagreeingWithTheCreateDefaultConflicts(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+	bp.Resources[0].Schema.Attributes[0].Behaviour.ServerDefault =
+		&blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`}
+
+	result, err := Apply(&bp, []probe.Fact{
+		fact("colour", probe.FactUpdateDefault,
+			probe.LiteralValue(blueprint.Literal{Kind: blueprint.KindString, Raw: `"red"`}),
+			probe.Observed),
+	}, Options{})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	if len(result.Conflicts) != 1 {
+		t.Fatalf("got %d conflicts, want 1: %+v", len(result.Conflicts), result.Conflicts)
+	}
+	if !strings.Contains(result.Conflicts[0].Why, "create and update paths") {
+		t.Errorf("the conflict must explain the asymmetry: %q", result.Conflicts[0].Why)
+	}
+
+	ud := bp.Resources[0].Schema.Attributes[0].Behaviour.UpdateDefault
+	if ud == nil || ud.Raw != `"red"` {
+		t.Fatalf("the update default is a real observation and must still be recorded, got %+v", ud)
+	}
+}
+
+// TestUnit_Merge_UpdateResetsIsARecommendationAndProse: nothing structural changes, but
+// the finding must reach both the description and the recommendations.
+func TestUnit_Merge_UpdateResetsIsARecommendationAndProse(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+	result, err := Apply(&bp, []probe.Fact{
+		fact("colour", probe.FactUpdateResets, probe.BoolValue(true), probe.Observed),
+	}, Options{})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	if len(result.Recommendations) == 0 ||
+		!strings.Contains(result.Recommendations[0], "always send") {
+		t.Errorf("updateResets should recommend always sending the field: %v",
+			result.Recommendations)
+	}
+	if !strings.Contains(bp.Resources[0].Schema.Attributes[0].MarkdownDescription, "resets") {
+		t.Error("the description should record the reset behaviour")
+	}
+}
+
+// TestUnit_Merge_ZeroValueUnsendableIsStaticEvidence: the sdkbind scan's fact lands
+// structurally, because the generator must know an optional bool whose only expressible
+// value is the server default is not genuinely configurable.
+func TestUnit_Merge_ZeroValueUnsendableIsStaticEvidence(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+	f := fact("colour", probe.FactZeroValueUnsendable, probe.BoolValue(true), probe.Corroborated)
+	f.Evidence = []string{"static:things.CreateThingRequest.Colour json:\"colour,omitempty\""}
+
+	result, err := Apply(&bp, []probe.Fact{f}, Options{})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if len(result.Conflicts) != 0 {
+		t.Fatalf("unexpected conflicts: %+v", result.Conflicts)
+	}
+
+	z := bp.Resources[0].Schema.Attributes[0].Behaviour.ZeroValueUnsendable
+	if z == nil || !*z {
+		t.Fatal("zeroValueUnsendable must land on the attribute")
+	}
+	if !strings.Contains(bp.Resources[0].Schema.Attributes[0].MarkdownDescription, "omitempty") {
+		t.Error("the description should explain the encoding limit")
+	}
+}

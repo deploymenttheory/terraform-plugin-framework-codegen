@@ -315,6 +315,16 @@ type FixtureHint struct {
 	// HCL is the right-hand side, verbatim -- a literal, a reference into a
 	// declared data block, an object expression.
 	HCL string `json:"hcl"`
+	// Wire is the same value in wire-typed form, when one exists. A reference into
+	// a data block has no wire form -- its value exists only at apply time -- but a
+	// literal does, and the probe's rehearsal needs it to send the body the fixture
+	// will apply. Promotion from a probe plan fills it mechanically; a hand-written
+	// hint may state it.
+	Wire any `json:"wire,omitempty"`
+	// Source says where the hint came from: empty for hand-written, "plan" for a
+	// value promoted from the resource's probe-plan fixture. Promotion refreshes
+	// its own hints on re-merge and never touches hand-written ones.
+	Source string `json:"source,omitempty"`
 }
 
 // Hint returns the curated HCL for an attribute, if any.
@@ -925,6 +935,33 @@ type Behaviour struct {
 	// ReturnedOnRead is false for a field accepted on write and never read back,
 	// which must not be flattened or state blanks on every read.
 	ReturnedOnRead *bool `json:"returnedOnRead,omitempty"`
+	// ReturnedOnCreate is false for a field sent on create whose create response
+	// answered null or absent. Distinct from ReturnedOnRead because the write
+	// response and a later GET are different documents, and the pilot has fields
+	// present in one and not the other.
+	ReturnedOnCreate *bool `json:"returnedOnCreate,omitempty"`
+	// ReturnedOnUpdate is the same observation for the update response. False here
+	// together with ReturnedOnRead false is a field that is write-only in practice,
+	// whatever the specification claims.
+	ReturnedOnUpdate *bool `json:"returnedOnUpdate,omitempty"`
+	// ForcedValue is the value the API substitutes no matter what is sent -- send x,
+	// store y, for a y independent of x. A configured value here can never take
+	// effect, so the fixture must carry the forced value and the generator should
+	// consider the attribute computed.
+	ForcedValue *Literal `json:"forcedValue,omitempty"`
+	// UpdateDefault is the value the API assigns when the field is omitted from an
+	// update, where that differs from leaving the stored value alone. Recorded
+	// separately from ServerDefault because the pilot's APIs default differently on
+	// the create and update paths, and a static Default derived from either alone
+	// would lie on the other.
+	UpdateDefault *Literal `json:"updateDefault,omitempty"`
+	// ZeroValueUnsendable is true when the SDK's wire encoding cannot express the
+	// type's zero value -- a value-typed scalar tagged omitempty, whose false, 0 or
+	// "" is dropped before it travels. Static evidence from the SDK's own types, not
+	// from traffic: a configured zero here silently becomes an omission, so an
+	// optional attribute whose only expressible value is the server's default is not
+	// genuinely configurable.
+	ZeroValueUnsendable *bool `json:"zeroValueUnsendable,omitempty"`
 	// Volatile marks a field that differs between two identical reads, which
 	// must be Computed or every plan reports drift.
 	Volatile *bool `json:"volatile,omitempty"`
