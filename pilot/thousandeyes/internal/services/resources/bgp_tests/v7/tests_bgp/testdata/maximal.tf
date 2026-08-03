@@ -8,11 +8,22 @@
 # inside the block, and filling those in is the point of the file being yours.
 
 resource "thousandeyes_tests_bgp" "test" {
+  # Where a value came from.
+  #
+  # alerts_enabled: the API's own default, so a value it is known to accept
+  #
+  # enabled: the API's own default, so a value it is known to accept
+  #
+  # include_covered_prefixes: the API's own default, so a value it is known to accept
+  #
+  # prefix: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # use_public_bgp: the API's own default, so a value it is known to accept
   alerts_enabled           = true
   description              = "tfacc-description"
   enabled                  = true
-  include_covered_prefixes = true
-  prefix                   = "tfacc-prefix"
+  include_covered_prefixes = false
+  prefix                   = "8.8.8.0/24"
   test_name                = "tfacc-test-name"
   use_public_bgp           = true
 }

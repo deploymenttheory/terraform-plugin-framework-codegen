@@ -10,21 +10,63 @@
 resource "thousandeyes_tests_http_server" "test" {
   # Where a value came from.
   #
+  # alerts_enabled: the API's own default, so a value it is known to accept
+  #
+  # allow_unsafe_legacy_renegotiation: the API's own default, so a value it is known to accept
+  #
   # auth_type: documented; unprobed
   #
-  # interval: documented; unprobed
+  # bandwidth_measurements: the API's own default, so a value it is known to accept
+  #
+  # bgp_measurements: the API's own default, so a value it is known to accept
+  #
+  # collect_proxy_network_data: the API's own default, so a value it is known to accept
+  #
+  # content_regex: the API's own default, so a value it is known to accept
+  #
+  # distributed_tracing: the API's own default, so a value it is known to accept
+  #
+  # enabled: the API's own default, so a value it is known to accept
+  #
+  # follow_redirects: the API's own default, so a value it is known to accept
+  #
+  # http_target_time: the API's own default, so a value it is known to accept
+  #
+  # http_time_limit: the API's own default, so a value it is known to accept
+  #
+  # http_version: the API's own default, so a value it is known to accept
+  #
+  # interval: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # ipv6_policy: documented; unprobed
+  #
+  # mtu_measurements: the API's own default, so a value it is known to accept
+  #
+  # network_measurements: the API's own default, so a value it is known to accept
+  #
+  # num_path_traces: the API's own default, so a value it is known to accept
+  #
+  # override_agent_proxy: the API's own default, so a value it is known to accept
   #
   # path_trace_mode: documented; unprobed
   #
   # probe_mode: documented; unprobed
   #
-  # protocol: documented; unprobed
+  # protocol: observed accepted; the API refused udp
+  #
+  # randomized_start_time: the API's own default, so a value it is known to accept
   #
   # request_method: documented; unprobed
   #
   # ssl_version_id: documented; unprobed
+  #
+  # url: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # use_ntlm: the API's own default, so a value it is known to accept
+  #
+  # use_public_bgp: the API's own default, so a value it is known to accept
+  #
+  # verify_certificate: the API's own default, so a value it is known to accept
   #
   # agents: curated in the blueprint's accFixture; the generator cannot derive it
   #
@@ -39,41 +81,41 @@ resource "thousandeyes_tests_http_server" "test" {
   alerts_enabled                    = true
   allow_unsafe_legacy_renegotiation = true
   auth_type                         = "none"
-  bandwidth_measurements            = true
+  bandwidth_measurements            = false
   bgp_measurements                  = true
   client_certificate                = "tfacc-client-certificate"
-  collect_proxy_network_data        = true
-  content_regex                     = "tfacc-content-regex"
+  collect_proxy_network_data        = false
+  content_regex                     = ""
   description                       = "tfacc-description"
   desired_status_code               = "tfacc-desired-status-code"
-  distributed_tracing               = true
+  distributed_tracing               = false
   dns_override                      = "tfacc-dns-override"
   download_limit                    = 1
   enabled                           = true
   fixed_packet_rate                 = 1
   follow_redirects                  = true
   headers                           = ["tfacc-headers-element"]
-  http_target_time                  = 100
+  http_target_time                  = 1000
   http_time_limit                   = 5
-  http_version                      = 1
+  http_version                      = 2
   include_headers                   = true
-  interval                          = "60"
+  interval                          = 3600
   ipv6_policy                       = "force-ipv4"
   mtu_measurements                  = true
   network_measurements              = true
-  num_path_traces                   = 1
-  override_agent_proxy              = true
+  num_path_traces                   = 3
+  override_agent_proxy              = false
   override_proxy_id                 = "tfacc-override-proxy-id"
   path_trace_mode                   = "classic"
   post_body                         = "tfacc-post-body"
   probe_mode                        = "auto"
   protocol                          = "tcp"
-  randomized_start_time             = true
+  randomized_start_time             = false
   request_method                    = "get"
   ssl_version_id                    = "0"
   test_name                         = "tfacc-test-name"
-  url                               = "tfacc-url"
-  use_ntlm                          = true
+  url                               = "https://www.example.com"
+  use_ntlm                          = false
   use_public_bgp                    = true
   user_agent                        = "tfacc-user-agent"
   username                          = "tfacc-username"

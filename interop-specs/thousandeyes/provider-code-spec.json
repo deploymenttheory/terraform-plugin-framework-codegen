@@ -1028,7 +1028,7 @@
             "name": "server",
             "string": {
               "computed_optional_required": "optional",
-              "description": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nThe API normalises this value (appends the port, www.example.com becomes www.example.com:80; the 2026-08-03 acceptance run (#13)); state carries the configured form."
             }
           },
           {
@@ -1812,7 +1812,7 @@
             "name": "domain",
             "string": {
               "computed_optional_required": "required",
-              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744994227 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744994227 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nThe API normalises this value (appends the record type, example.com becomes \"example.com ANY\"; the 2026-08-03 acceptance run (#13)); state carries the configured form."
             }
           },
           {
@@ -2030,7 +2030,7 @@
             "name": "domain",
             "string": {
               "computed_optional_required": "required",
-              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745019896 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745019896 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nThe API normalises this value (appends the record type, example.com becomes \"example.com ANY\"; the 2026-08-03 acceptance run (#13)); state carries the configured form."
             }
           },
           {
@@ -2170,7 +2170,7 @@
             "name": "domain",
             "string": {
               "computed_optional_required": "required",
-              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745046061 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745046061 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nThe API normalises this value (appends the record type, cloudflare.com becomes \"cloudflare.com ANY\"; the 2026-08-03 acceptance run (#13)); state carries the configured form."
             }
           },
           {
@@ -2408,7 +2408,8 @@
             "name": "password",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nWrite-only: the API never returns it (the 2026-08-03 acceptance run (#13)); state carries the configured value.",
+              "sensitive": true
             }
           },
           {
@@ -2478,7 +2479,7 @@
             "name": "url",
             "string": {
               "computed_optional_required": "required",
-              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nThe API normalises this value (appends a trailing slash; the 2026-08-03 acceptance run (#13)); state carries the configured form."
             }
           },
           {

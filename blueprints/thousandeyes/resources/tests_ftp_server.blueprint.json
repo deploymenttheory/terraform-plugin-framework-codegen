@@ -1076,9 +1076,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "markdownDescription": "Password for Basic/NTLM authentication.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nWrite-only: the API never returns it (the 2026-08-03 acceptance run (#13)); state carries the configured value.",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "returnedOnRead": false
             },
             "wire": {
               "jsonPath": "password",
@@ -1090,10 +1091,9 @@
                   "ftp_server_tests.TestPassword"
                 ]
               },
-              "flatten": {
-                "func": "convert.EnumToFramework"
-              }
-            }
+              "skipFlatten": true
+            },
+            "sensitive": true
           },
           {
             "name": "path_trace_mode",
@@ -1506,9 +1506,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "markdownDescription": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745105202 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nThe API normalises this value (appends a trailing slash; the 2026-08-03 acceptance run (#13)); state carries the configured form.",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "normalises": "appends a trailing slash"
             },
             "wire": {
               "jsonPath": "url",
@@ -1520,9 +1521,7 @@
                   "ftp_server_tests.TestUrl"
                 ]
               },
-              "flatten": {
-                "func": "convert.EnumToFramework"
-              }
+              "skipFlatten": true
             }
           },
           {

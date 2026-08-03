@@ -28,7 +28,7 @@ resource "thousandeyes_tests_ftp_server" "example" {
 
 - `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. <!-- probed:7.0.98-t1785745105202 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> (see [below for nested schema](#nestedatt--agents))
 - `request_type` (String) Set the type of activity for the test. <!-- probed:7.0.98-t1785745105202 --> Values accepted here: `download`, `list`. The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
-- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785745105202 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
+- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785745105202 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> The API normalises this value (appends a trailing slash; the 2026-08-03 acceptance run (#13)); state carries the configured form.
 - `username` (String) Username for Basic/NTLM authentication. <!-- probed:7.0.98-t1785745105202 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 
 ### Optional
@@ -47,7 +47,7 @@ resource "thousandeyes_tests_ftp_server" "example" {
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target. <!-- probed:7.0.98-t1785745105202 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements. <!-- probed:7.0.98-t1785745105202 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:7.0.98-t1785745105202 --> Observed: the API assigns 3 when this is omitted. <!-- /probed -->
-- `password` (String) Password for Basic/NTLM authentication. <!-- probed:7.0.98-t1785745105202 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
+- `password` (String, Sensitive) Password for Basic/NTLM authentication. <!-- probed:7.0.98-t1785745105202 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> Write-only: the API never returns it (the 2026-08-03 acceptance run (#13)); state carries the configured value.
 - `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP. Computed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.
 - `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD). <!-- probed:7.0.98-t1785745105202 --> Values accepted here: `tcp`, `icmp`. The specification documents `udp`, which the API rejected. Observed: the API assigns "tcp" when this is omitted. <!-- /probed -->

@@ -10,16 +10,26 @@
 resource "thousandeyes_tests_dnssec" "test" {
   # Where a value came from.
   #
+  # alerts_enabled: the API's own default, so a value it is known to accept
+  #
   # dns_query_class: documented; unprobed
+  #
+  # domain: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # enabled: the API's own default, so a value it is known to accept
+  #
+  # interval: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # randomized_start_time: the API's own default, so a value it is known to accept
   #
   # agents: curated in the blueprint's accFixture; the generator cannot derive it
   alerts_enabled        = true
   description           = "tfacc-description"
   dns_query_class       = "in"
-  domain                = "tfacc-domain"
+  domain                = "cloudflare.com"
   enabled               = true
-  interval              = 1
-  randomized_start_time = true
+  interval              = 3600
+  randomized_start_time = false
   test_name             = "tfacc-test-name"
   agents                = [{ agent_id = "3" }]
 }

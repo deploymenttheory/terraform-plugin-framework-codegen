@@ -10,49 +10,76 @@
 resource "thousandeyes_tests_ftp_server" "test" {
   # Where a value came from.
   #
-  # interval: documented; unprobed
+  # alerts_enabled: the API's own default, so a value it is known to accept
+  #
+  # bandwidth_measurements: the API's own default, so a value it is known to accept
+  #
+  # bgp_measurements: the API's own default, so a value it is known to accept
+  #
+  # enabled: the API's own default, so a value it is known to accept
+  #
+  # ftp_target_time: the API's own default, so a value it is known to accept
+  #
+  # ftp_time_limit: the API's own default, so a value it is known to accept
+  #
+  # interval: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # ipv6_policy: documented; unprobed
+  #
+  # mtu_measurements: the API's own default, so a value it is known to accept
+  #
+  # network_measurements: the API's own default, so a value it is known to accept
+  #
+  # num_path_traces: the API's own default, so a value it is known to accept
+  #
+  # password: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # path_trace_mode: documented; unprobed
   #
   # probe_mode: documented; unprobed
   #
-  # protocol: documented; unprobed
+  # protocol: observed accepted; the API refused udp
   #
-  # request_type: documented; unprobed
+  # randomized_start_time: the API's own default, so a value it is known to accept
+  #
+  # request_type: observed accepted
+  #
+  # url: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # use_active_ftp: the API's own default, so a value it is known to accept
+  #
+  # use_explicit_ftps: the API's own default, so a value it is known to accept
+  #
+  # use_public_bgp: the API's own default, so a value it is known to accept
+  #
+  # username: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # agents: curated in the blueprint's accFixture; the generator cannot derive it
-  #
-  # Not filled in, because no correct value could be derived. Each of these is optional, so this
-  # configuration is valid as it stands -- but it is testing less than it could.
-  #
-  # password: it is credential-shaped, and a generated fixture must not invent values that read
-  # as secrets; supply one through accFixture if the test needs it
   alerts_enabled         = true
-  bandwidth_measurements = true
+  bandwidth_measurements = false
   bgp_measurements       = true
   description            = "tfacc-description"
   download_limit         = 1
   enabled                = true
   fixed_packet_rate      = 1
   ftp_target_time        = 1000
-  ftp_time_limit         = 10
-  interval               = "60"
+  ftp_time_limit         = 5
+  interval               = 3600
   ipv6_policy            = "force-ipv4"
   mtu_measurements       = true
   network_measurements   = true
-  num_path_traces        = 1
+  num_path_traces        = 3
+  password               = "guest"
   path_trace_mode        = "classic"
   probe_mode             = "auto"
   protocol               = "tcp"
-  randomized_start_time  = true
+  randomized_start_time  = false
   request_type           = "download"
   test_name              = "tfacc-test-name"
-  url                    = "tfacc-url"
-  use_active_ftp         = true
-  use_explicit_ftps      = true
+  url                    = "ftp://speedtest.tele2.net"
+  use_active_ftp         = false
+  use_explicit_ftps      = false
   use_public_bgp         = true
-  username               = "tfacc-username"
+  username               = "anonymous"
   agents                 = [{ agent_id = "3" }]
 }

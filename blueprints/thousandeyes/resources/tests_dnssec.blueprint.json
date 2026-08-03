@@ -467,10 +467,11 @@
               "kind": "string"
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745046061 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "markdownDescription": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785745046061 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nThe API normalises this value (appends the record type, cloudflare.com becomes \"cloudflare.com ANY\"; the 2026-08-03 acceptance run (#13)); state carries the configured form.",
             "behaviour": {
               "requiredByApi": true,
-              "returnedOnRead": true
+              "returnedOnRead": true,
+              "normalises": "appends the record type, cloudflare.com becomes \"cloudflare.com ANY\""
             },
             "wire": {
               "jsonPath": "domain",
@@ -482,9 +483,7 @@
                   "dnssec_tests.TestDomain"
                 ]
               },
-              "flatten": {
-                "func": "convert.EnumToFramework"
-              }
+              "skipFlatten": true
             }
           },
           {

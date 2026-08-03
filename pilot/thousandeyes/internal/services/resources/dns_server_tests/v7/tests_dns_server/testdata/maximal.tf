@@ -10,30 +10,56 @@
 resource "thousandeyes_tests_dns_server" "test" {
   # Where a value came from.
   #
+  # alerts_enabled: the API's own default, so a value it is known to accept
+  #
+  # bandwidth_measurements: the API's own default, so a value it is known to accept
+  #
+  # bgp_measurements: the API's own default, so a value it is known to accept
+  #
   # dns_query_class: documented; unprobed
+  #
+  # dns_servers: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # dns_transport_protocol: documented; unprobed
   #
+  # domain: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # enabled: the API's own default, so a value it is known to accept
+  #
+  # interval: curated in the blueprint's accFixture; the generator cannot derive it
+  #
   # ipv6_policy: documented; unprobed
+  #
+  # mtu_measurements: the API's own default, so a value it is known to accept
+  #
+  # network_measurements: the API's own default, so a value it is known to accept
+  #
+  # num_path_traces: the API's own default, so a value it is known to accept
   #
   # path_trace_mode: documented; unprobed
   #
   # probe_mode: documented; unprobed
   #
-  # protocol: documented; unprobed
+  # protocol: observed accepted; the API refused udp
+  #
+  # randomized_start_time: the API's own default, so a value it is known to accept
+  #
+  # recursive_queries: the API's own default, so a value it is known to accept
+  #
+  # use_public_bgp: the API's own default, so a value it is known to accept
   #
   # agents: curated in the blueprint's accFixture; the generator cannot derive it
   alerts_enabled         = true
-  bandwidth_measurements = true
+  bandwidth_measurements = false
   bgp_measurements       = true
   description            = "tfacc-description"
   dns_query_class        = "in"
-  dns_servers            = ["tfacc-dns-servers-element"]
+  dns_servers            = ["8.8.8.8"]
   dns_transport_protocol = "udp"
-  domain                 = "tfacc-domain"
+  domain                 = "example.com"
   enabled                = true
   fixed_packet_rate      = 1
-  interval               = 1
+  interval               = 3600
   ipv6_policy            = "force-ipv4"
   mtu_measurements       = true
   network_measurements   = true
@@ -41,8 +67,8 @@ resource "thousandeyes_tests_dns_server" "test" {
   path_trace_mode        = "classic"
   probe_mode             = "auto"
   protocol               = "tcp"
-  randomized_start_time  = true
-  recursive_queries      = true
+  randomized_start_time  = false
+  recursive_queries      = false
   test_name              = "tfacc-test-name"
   use_public_bgp         = true
   agents                 = [{ agent_id = "3" }]

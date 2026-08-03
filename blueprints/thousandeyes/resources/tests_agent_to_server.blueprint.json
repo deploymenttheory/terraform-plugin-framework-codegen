@@ -1267,9 +1267,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "markdownDescription": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->\n\nThe API normalises this value (appends the port, www.example.com becomes www.example.com:80; the 2026-08-03 acceptance run (#13)); state carries the configured form.",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "normalises": "appends the port, www.example.com becomes www.example.com:80"
             },
             "wire": {
               "jsonPath": "server",
@@ -1278,9 +1279,7 @@
               "expand": {
                 "func": "convert.FrameworkToString"
               },
-              "flatten": {
-                "func": "convert.EnumToFramework"
-              }
+              "skipFlatten": true
             }
           },
           {
