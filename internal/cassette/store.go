@@ -47,6 +47,9 @@ const (
 	// SubjectFileName holds the flattened subject the recording was made with. Absent
 	// only for snapshots that predate freezing.
 	SubjectFileName = "subject.json"
+	// RehearsalFileName holds the derived wire bodies the rehearsal probe sent, one
+	// entry per fixpoint round. Absent for recordings that predate the probe.
+	RehearsalFileName = "rehearsal.json"
 )
 
 // ErrNoSnapshot is returned when a directory holds no cassette.
@@ -150,6 +153,14 @@ func (s Snapshot) PlanPath() string { return filepath.Join(s.Dir, PlanFileName) 
 // own merge made `type` writable, and every full-body probe then replayed with one more
 // key than the transcript held, reporting seven phantom orphans.
 func (s Snapshot) SubjectPath() string { return filepath.Join(s.Dir, SubjectFileName) }
+
+// RehearsalPath is the frozen copy of the bodies the rehearsal probe derived and sent.
+//
+// Frozen for the same reason the plan and subject are: the bodies are derived from the
+// blueprint, and the very merge that follows a record run moves the blueprint. Replay
+// re-deriving from the working tree would fail with a body mismatch on the first
+// curation pass after the recording.
+func (s Snapshot) RehearsalPath() string { return filepath.Join(s.Dir, RehearsalFileName) }
 
 // List returns every snapshot under root, oldest first.
 func List(root string) ([]Snapshot, error) {

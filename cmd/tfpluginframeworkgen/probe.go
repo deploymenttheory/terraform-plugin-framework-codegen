@@ -149,7 +149,9 @@ func probeMain(args []string) error {
 		planPath = fs.String("plan", "", "probe plan: fixtures and candidates a probe cannot discover")
 		planDir  = fs.String("plan-dir", "",
 			"directory of per-resource plans, KEY.probe.plan.json; defaults to the blueprint directory")
-		force = fs.Bool("force", false, "record over evidence that is already committed")
+		force      = fs.Bool("force", false, "record over evidence that is already committed")
+		noRehearse = fs.Bool("no-rehearse", false,
+			"skip the rehearsal fixpoint after the standard mutating probes")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -246,6 +248,8 @@ func probeMain(args []string) error {
 		profilePath:  profilePathFor(*profilePath, *providerName),
 		allowMutate:  *allowMutations,
 		force:        *force,
+		noRehearse:   *noRehearse,
+		bp:           bp,
 	}
 
 	if *list {
@@ -297,6 +301,11 @@ type probeRun struct {
 	profilePath string
 	allowMutate bool
 	force       bool
+	noRehearse  bool
+
+	// bp is the loaded blueprint, carried so the record path can derive rehearsal
+	// bodies from the same document the run's subjects came from.
+	bp blueprint.Blueprint
 }
 
 // planFor resolves the plan for one subject: the explicit -plan when one was given,
@@ -545,6 +554,15 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 		AssertionsPassed: assertions,
 	}
 
+	// The rehearsal fixpoint: the probe asks this closure for each round's bodies,
+	// which merges the facts gathered so far into an in-memory blueprint copy and
+	// re-derives -- the same derivation emit's fixtures use, which is the whole point.
+	if opts.allowMutate && !opts.noRehearse {
+		runOpts.Rehearsal = &probe.RehearsalConfig{
+			Derive: rehearsalDerive(opts.bp, subj.Resource, opts.plan),
+		}
+	}
+
 	result, runErr := probe.Run(ctx, runOpts)
 
 	// Everything below happens whatever Run returned. A run that left an orphan or panicked
@@ -595,6 +613,15 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	// replayed with one more key than the transcript held.
 	if err := writeJSONFile(snap.SubjectPath(), subj); err != nil {
 		return err
+	}
+
+	// The rehearsal's derived bodies, frozen like the plan and subject and for the
+	// same reason: the very merge that follows this run moves the blueprint they
+	// were derived from.
+	if len(result.Report.Rehearsal) > 0 {
+		if err := writeJSONFile(snap.RehearsalPath(), result.Report.Rehearsal); err != nil {
+			return err
+		}
 	}
 
 	log.Printf("wrote %s", snap.Dir)
@@ -931,6 +958,14 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 
 	grant := grantForReplay(plan, meta)
 
+	// The frozen rehearsal bodies, when the recording made any. Never re-derived from
+	// the working tree: the blueprint moved with the merge of this very recording's
+	// facts, and a re-derivation would replay bodies the transcript never held.
+	rehearsalCfg, err := frozenRehearsal(snap)
+	if err != nil {
+		return err
+	}
+
 	result, runErr := probe.Run(context.Background(), probe.RunOptions{
 		Mode:    probe.ModeReplay,
 		Subject: subj,
@@ -942,6 +977,7 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 		// a recording made against an endpoint with a prefix needs that prefix back.
 		BaseURL:      replayBaseURL + meta.BasePath,
 		Interactions: interactions,
+		Rehearsal:    rehearsalCfg,
 	})
 
 	if rederive && mode == modeReplay {

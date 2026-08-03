@@ -70,8 +70,8 @@
     "assignments.type"
   ],
   "budget": {
-    "maxRequests": 240,
-    "maxCreates": 80,
+    "maxRequests": 340,
+    "maxCreates": 96,
     "maxWallClockSeconds": 600,
     "maxSweepSeconds": 120
   }

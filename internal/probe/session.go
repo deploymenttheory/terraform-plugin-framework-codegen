@@ -177,6 +177,10 @@ type MutationConfig struct {
 	// same reason. Read-only from a probe's side: the runner adds to it after each probe
 	// returns, so there is exactly one writer.
 	Findings *Findings
+
+	// Rehearsal is write.rehearsal's configuration, carried the same way Findings is
+	// and for the same reason: the session is a probe's window onto the run.
+	Rehearsal *RehearsalConfig
 }
 
 // ErrNoGrant is returned when a mutating session is requested without authorisation.

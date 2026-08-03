@@ -48,6 +48,9 @@ func init() {
 	registerMutating(enumBoundary{})
 	registerMutating(writeSideEffect{})
 	registerMutating(normalisation{})
+	// After every evidence-gathering probe, so the bodies it derives already reflect
+	// this run's facts -- the fixpoint starts one round closer to converged.
+	registerMutating(rehearsal{})
 	// Last, and it has to be. It creates nothing and reports the consistency window the session
 	// measured while the probes above read back the objects *they* created -- so registered
 	// second, as it was when it created its own object, it saw nothing and concluded nothing.
@@ -647,3 +650,56 @@ func enumValueCount(sc Scope) int {
 
 // negativeEnumCandidates is how many values outside the documented set are tried per field.
 const negativeEnumCandidates = 2
+
+// write.rehearsal runs the exact lifecycle the generated acceptance test will run,
+// with the exact bodies the generated fixtures will apply, before emit ever produces
+// them.
+//
+// What it sends: per round, both lifecycle directions. With an update operation:
+// create the minimal body, read, update to the maximal body, read, downgrade back to
+// the minimal body, read, delete; then create the maximal body, read, downgrade to
+// minimal, read, delete. Without one: create each body, read it, delete it.
+//
+// What it infers: per-operation echo (returnedOnUpdate), values the server
+// substitutes for whatever is sent (serverForced), fields an update resets rather
+// than preserves and the constant they revert to (updateResets, updateDefault), and
+// -- by bisecting the maximal-minus-minimal delta -- which sibling's presence
+// suppresses a field that round-trips alone (interactionSuppressed).
+//
+// How it can be wrong: the bodies are derived from the blueprint's current beliefs,
+// so a wrong belief rehearses the wrong body -- which is precisely the point: the
+// divergence surfaces here, as a fact or a named note, instead of in somebody's
+// acceptance run. A field interaction with more than one responsible sibling defeats
+// the single-culprit bisection and is reported as the untested combination it is.
+type rehearsal struct{}
+
+func (rehearsal) Name() string { return "write.rehearsal" }
+func (rehearsal) Kind() Kind   { return KindMutating }
+
+// rehearsalMaxRounds is the fixpoint cap when the config does not set one.
+const rehearsalMaxRounds = 3
+
+// rehearsalBisectBudget caps the requests one round may spend naming interaction
+// culprits, so a wide schema cannot turn the bisection into a run of its own.
+const rehearsalBisectBudget = 16
+
+// Worst case per round: twelve lifecycle requests plus the bisection allowance,
+// times the fixpoint cap. Without an update there is nothing to bisect. Not scaled
+// by the plan: the bodies are derived, so an unplanned listing reports the same
+// worst case a planned run would spend.
+func (p rehearsal) Cost(sc Scope) int {
+	perRound := 12 + rehearsalBisectBudget
+	if sc.Subject.Update == nil {
+		perRound = 6
+	}
+	return perRound * rehearsalMaxRounds
+}
+
+func (p rehearsal) Creates(sc Scope) int {
+	perRound := 2
+	if sc.Subject.Update != nil {
+		// The bisection hosts its experiments on one extra object.
+		perRound = 3
+	}
+	return perRound * rehearsalMaxRounds
+}

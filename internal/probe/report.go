@@ -31,6 +31,11 @@ type Report struct {
 	// Orphans are objects the sweeper could not remove. Non-empty means the run
 	// failed, whatever else it achieved.
 	Orphans []Orphan `json:"orphans,omitempty"`
+
+	// Rehearsal is what write.rehearsal actually sent, per fixpoint round. Written
+	// beside the cassette as rehearsal.json so replay sends the same bodies rather
+	// than re-deriving from a working tree that has moved on.
+	Rehearsal []RehearsalRound `json:"rehearsal,omitempty"`
 }
 
 // ProfileSummary is what may safely be written into a committed artefact.
