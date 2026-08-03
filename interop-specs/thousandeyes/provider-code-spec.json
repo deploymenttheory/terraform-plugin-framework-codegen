@@ -1753,7 +1753,7 @@
             "name": "bandwidth_measurements",
             "bool": {
               "computed_optional_required": "computed_optional",
-              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->"
+              "description": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785744994227 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->\n\nSDK limitation: the wire field is a value-typed bool with omitempty, so an explicit `false` cannot be sent; with `network_measurements = true` the API then treats bandwidth measurement as requested, which cloud agents refuse."
             }
           },
           {
@@ -3034,13 +3034,6 @@
             }
           },
           {
-            "name": "chrome_policies",
-            "string": {
-              "computed_optional_required": "optional",
-              "description": "JSON string of Chrome policy settings to apply."
-            }
-          },
-          {
             "name": "client_certificate",
             "string": {
               "computed_optional_required": "optional",
@@ -3107,14 +3100,14 @@
             "name": "dns_override",
             "string": {
               "computed_optional_required": "optional",
-              "description": "IP address to use for DNS override."
+              "description": "IP address to use for DNS override.\n\nWrite-only on this endpoint: the read never reports it (local acceptance run, 2026-08-03); state carries the configured value."
             }
           },
           {
             "name": "download_limit",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Specifies maximum number of bytes to download from the target object."
+              "description": "Specifies maximum number of bytes to download from the target object.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value."
             }
           },
           {
@@ -3225,8 +3218,8 @@
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "computed_optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->"
+              "computed_optional_required": "computed",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785745161014 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\nComputed only on this endpoint: browser tests always network-measure, and the SDK's value-typed omitempty bool cannot express false anyway (local acceptance run, 2026-08-03)."
             }
           },
           {
@@ -3989,13 +3982,6 @@
             }
           },
           {
-            "name": "chrome_policies",
-            "string": {
-              "computed_optional_required": "optional",
-              "description": "JSON string of Chrome policy settings to apply."
-            }
-          },
-          {
             "name": "client_certificate",
             "string": {
               "computed_optional_required": "optional",
@@ -4072,14 +4058,14 @@
             "name": "dns_override",
             "string": {
               "computed_optional_required": "optional",
-              "description": "IP address to use for DNS override."
+              "description": "IP address to use for DNS override.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value."
             }
           },
           {
             "name": "download_limit",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Specifies maximum number of bytes to download from the target object."
+              "description": "Specifies maximum number of bytes to download from the target object.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value."
             }
           },
           {
@@ -4100,7 +4086,7 @@
             "name": "fixed_packet_rate",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Sets packets rate sent to measure the network in packets per second."
+              "description": "Sets packets rate sent to measure the network in packets per second.\n\nThis endpoint never reports the value back (local acceptance run, 2026-08-03); state carries the configured value."
             }
           },
           {
@@ -4183,8 +4169,8 @@
           {
             "name": "network_measurements",
             "bool": {
-              "computed_optional_required": "computed_optional",
-              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted."
+              "computed_optional_required": "computed",
+              "description": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\nComputed only on this endpoint: browser tests always network-measure, and the SDK's value-typed omitempty bool cannot express false anyway (local acceptance run, 2026-08-03)."
             }
           },
           {
