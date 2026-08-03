@@ -27,7 +27,7 @@ resource "thousandeyes_tests_api" "example" {
 
 - `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. (see [below for nested schema](#nestedatt--agents))
 - `requests` (Attributes Set) (see [below for nested schema](#nestedatt--requests))
-- `url` (String) Target for the test.
+- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks.
 
 ### Optional
 
@@ -41,7 +41,7 @@ resource "thousandeyes_tests_api" "example" {
 - `distributed_tracing` (Boolean) Adds distributed tracing headers to API requests using B3 and W3C standards.
 - `enabled` (Boolean) Test is enabled.
 - `follow_redirects` (Boolean) To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
 - `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements.
 - `num_path_traces` (Number) Number of path traces executed by the agent.

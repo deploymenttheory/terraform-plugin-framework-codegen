@@ -612,7 +612,7 @@
               ]
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.",
+            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).",
             "wire": {
               "jsonPath": "interval",
               "sdkField": "Interval",
@@ -626,6 +626,9 @@
               "flatten": {
                 "func": "convert.IntEnumToFramework"
               }
+            },
+            "behaviour": {
+              "requiredByApi": true
             }
           },
           {
@@ -1417,7 +1420,7 @@
               "kind": "string"
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "Target for the test.",
+            "markdownDescription": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.",
             "wire": {
               "jsonPath": "url",
               "sdkField": "URL",
@@ -1431,6 +1434,9 @@
               "flatten": {
                 "func": "convert.EnumToFramework"
               }
+            },
+            "behaviour": {
+              "requiredByApi": true
             }
           },
           {
@@ -1672,6 +1678,22 @@
           {
             "attr": "agents",
             "hcl": "[{ agent_id = \"3\" }]"
+          },
+          {
+            "attr": "url",
+            "hcl": "\"ftp://speedtest.tele2.net\""
+          },
+          {
+            "attr": "username",
+            "hcl": "\"anonymous\""
+          },
+          {
+            "attr": "password",
+            "hcl": "\"guest\""
+          },
+          {
+            "attr": "interval",
+            "hcl": "3600"
           }
         ]
       },

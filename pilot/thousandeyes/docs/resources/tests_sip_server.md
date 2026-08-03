@@ -32,7 +32,7 @@ resource "thousandeyes_tests_sip_server" "example" {
 - `description` (String) A description of the test.
 - `enabled` (Boolean) Test is enabled.
 - `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level.
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
 - `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements.

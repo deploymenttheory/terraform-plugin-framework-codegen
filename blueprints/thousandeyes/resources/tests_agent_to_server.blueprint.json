@@ -620,7 +620,7 @@
               ]
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.",
+            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).",
             "wire": {
               "jsonPath": "interval",
               "sdkField": "Interval",
@@ -634,6 +634,9 @@
               "flatten": {
                 "func": "convert.IntEnumToFramework"
               }
+            },
+            "behaviour": {
+              "requiredByApi": true
             }
           },
           {
@@ -1196,7 +1199,7 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.",
+            "markdownDescription": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.",
             "wire": {
               "jsonPath": "server",
               "sdkField": "Server",
@@ -1207,6 +1210,9 @@
               "flatten": {
                 "func": "convert.EnumToFramework"
               }
+            },
+            "behaviour": {
+              "requiredByApi": true
             }
           },
           {
@@ -1573,6 +1579,14 @@
           {
             "attr": "agents",
             "hcl": "[{ agent_id = \"3\" }]"
+          },
+          {
+            "attr": "server",
+            "hcl": "\"www.example.com\""
+          },
+          {
+            "attr": "interval",
+            "hcl": "3600"
           }
         ]
       },

@@ -57,7 +57,7 @@ resource "thousandeyes_tests_page_load" "example" {
 - `http_version` (Number) HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.
 - `identify_agent_traffic_with_user_agent` (Boolean) Determines how agent traffic is identified: * `false`: Adds the `x-thousandeyes-agent: yes` header. * `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header. For more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).
 - `include_headers` (Boolean) Set to `true` to capture response headers for objects loaded by the test.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
 - `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements.
 - `num_path_traces` (Number) Number of path traces executed by the agent.
@@ -75,7 +75,7 @@ resource "thousandeyes_tests_page_load" "example" {
 - `subinterval` (Number) Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval. Documented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`.
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `url` (String) Target for the test.
+- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks.
 - `use_ntlm` (Boolean) Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.
 - `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
 - `user_agent` (String) User-agent string to be provided during the test.

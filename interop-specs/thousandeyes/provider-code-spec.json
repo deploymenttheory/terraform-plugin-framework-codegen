@@ -685,7 +685,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -923,7 +923,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -1028,7 +1028,7 @@
             "name": "server",
             "string": {
               "computed_optional_required": "optional",
-              "description": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon."
+              "description": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {
@@ -1179,7 +1179,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -1562,7 +1562,7 @@
             "name": "url",
             "string": {
               "computed_optional_required": "required",
-              "description": "Target for the test."
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {
@@ -1797,7 +1797,7 @@
               "element_type": {
                 "string": {}
               },
-              "description": "A list of DNS server FQDN.\n\nSent as a list of server names; the read reports servers as objects, which v1 does not round-trip."
+              "description": "A list of DNS server FQDN.\n\nSent as a list of server names; the read reports servers as objects, which v1 does not round-trip.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {
@@ -1811,7 +1811,7 @@
             "name": "domain",
             "string": {
               "computed_optional_required": "required",
-              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record."
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {
@@ -1832,7 +1832,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -2029,7 +2029,7 @@
             "name": "domain",
             "string": {
               "computed_optional_required": "required",
-              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record."
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {
@@ -2043,7 +2043,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -2169,7 +2169,7 @@
             "name": "domain",
             "string": {
               "computed_optional_required": "required",
-              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record."
+              "description": "The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {
@@ -2183,7 +2183,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -2351,7 +2351,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -2477,7 +2477,7 @@
             "name": "url",
             "string": {
               "computed_optional_required": "required",
-              "description": "Target for the test."
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {
@@ -2705,7 +2705,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -2866,7 +2866,7 @@
             "name": "url",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Target for the test."
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {
@@ -3189,7 +3189,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -3357,7 +3357,7 @@
             "name": "url",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Target for the test."
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {
@@ -3512,7 +3512,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -3793,7 +3793,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -4147,7 +4147,7 @@
             "name": "interval",
             "int64": {
               "computed_optional_required": "optional",
-              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`."
+              "description": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run)."
             }
           },
           {
@@ -4322,7 +4322,7 @@
             "name": "url",
             "string": {
               "computed_optional_required": "optional",
-              "description": "Target for the test."
+              "description": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks."
             }
           },
           {

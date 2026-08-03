@@ -36,7 +36,7 @@ resource "thousandeyes_tests_voice" "example" {
 - `dscp_id` (String) DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)
 - `duration` (Number) Duration of the test in seconds.
 - `enabled` (Boolean) Test is enabled.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `jitter_buffer` (Number) De-jitter buffer size in seconds.
 - `num_path_traces` (Number) Number of path traces executed by the agent.
 - `port` (Number) Port number for the chosen protocol.

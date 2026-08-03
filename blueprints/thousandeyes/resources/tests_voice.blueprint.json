@@ -615,7 +615,7 @@
               ]
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.",
+            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).",
             "wire": {
               "jsonPath": "interval",
               "sdkField": "Interval",
@@ -629,6 +629,9 @@
               "flatten": {
                 "func": "convert.IntEnumToFramework"
               }
+            },
+            "behaviour": {
+              "requiredByApi": true
             }
           },
           {
@@ -1439,11 +1442,18 @@
           {
             "attr": "agents",
             "hcl": "[{ agent_id = \"3\" }]"
+          },
+          {
+            "attr": "interval",
+            "hcl": "3600"
           }
         ]
       },
       "sweep": {
         "nameField": "testName"
+      },
+      "accTest": {
+        "skipUnlessEnv": "TFPFGEN_ACC_ENTERPRISE"
       }
     }
   ]

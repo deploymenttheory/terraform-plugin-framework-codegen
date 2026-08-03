@@ -36,7 +36,7 @@ resource "thousandeyes_tests_agent_to_agent" "example" {
 - `dscp_id` (String) DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)
 - `enabled` (Boolean) Test is enabled.
 - `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `mss` (Number) Maximum segment size, in bytes.
 - `num_path_traces` (Number) Number of path traces executed by the agent.
 - `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.

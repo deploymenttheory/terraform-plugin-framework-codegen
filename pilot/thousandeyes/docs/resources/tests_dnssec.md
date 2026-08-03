@@ -25,7 +25,7 @@ resource "thousandeyes_tests_dnssec" "example" {
 ### Required
 
 - `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. (see [below for nested schema](#nestedatt--agents))
-- `domain` (String) The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record.
+- `domain` (String) The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record. The test's target: the API refuses a create without it, whatever the specification marks.
 
 ### Optional
 
@@ -33,7 +33,7 @@ resource "thousandeyes_tests_dnssec" "example" {
 - `description` (String) A description of the test.
 - `dns_query_class` (String) Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.
 - `enabled` (Boolean) Test is enabled.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
 - `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))

@@ -1099,6 +1099,14 @@
       },
       "sweep": {
         "nameField": "testName"
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "prefix",
+            "hcl": "\"8.8.8.0/24\""
+          }
+        ]
       }
     }
   ]
