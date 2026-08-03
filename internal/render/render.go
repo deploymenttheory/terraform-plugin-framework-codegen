@@ -1170,15 +1170,14 @@ func stateView(
 		// So the value is carried through when set and resolved to null when not. Null is the
 		// honest answer: nothing configured it and the API will never say what it holds.
 		if notReturnedSomewhere(a.Behaviour) {
-			null, ok := scalarNullExpr(a.Type.Kind)
+			null, ok := nullExpr(a.Type)
 			if !ok {
 				return StateView{}, &ErrUnsupported{
 					What: fmt.Sprintf("attribute %q", a.Name),
 					Why: fmt.Sprintf(
 						"the API never returns it and it is a %s, whose null constructor needs "+
-							"an element or attribute type this does not derive; a collection the "+
-							"API never returns has not been seen and is refused rather than "+
-							"guessed at",
+							"an attribute type this does not derive; a nested object the API "+
+							"never returns is refused rather than guessed at",
 						a.Type.Kind,
 					),
 				}
@@ -1225,6 +1224,29 @@ func scalarNullExpr(kind blueprint.TypeKind) (string, bool) {
 	}
 
 	return modelType + "Null()", true
+}
+
+// nullExpr is scalarNullExpr plus the scalar-element collections, whose null
+// constructors need the element type. A collection the API never returns was
+// hypothetical until the rehearsal watched http_server's headers come back null,
+// so the refusal's premise expired; nested kinds stay refused -- their null needs
+// an attribute-type map this deliberately does not derive.
+func nullExpr(t blueprint.AttrType) (string, bool) {
+	if null, ok := scalarNullExpr(t.Kind); ok {
+		return null, true
+	}
+
+	if (t.Kind == blueprint.KindList || t.Kind == blueprint.KindSet ||
+		t.Kind == blueprint.KindMap) && t.ElementType != nil {
+		elem, ok := frameworkModelType[t.ElementType.Kind]
+		if !ok || t.ElementType.Kind.IsNested() {
+			return "", false
+		}
+
+		return frameworkModelType[t.Kind] + "Null(" + elem + "Type)", true
+	}
+
+	return "", false
 }
 
 // convertExpr renders a call into the provider's convert package.

@@ -1,0 +1,12 @@
+{
+  "provider": "thousandeyes",
+  "resource": "tests_ftp_server",
+  "apiVersion": "7.0.98",
+  "host": "api.thousandeyes.com",
+  "basePath": "/v7",
+  "namePrefix": "tfpfgen-probe",
+  "interactions": 27,
+  "sha256": "829a8d15adb5ebd4db87de6f73b68dde26edf234e59dabc7cd841dc337ed36ac",
+  "probeVersion": "dev",
+  "only": "write.rehearsal"
+}

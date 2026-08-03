@@ -1,0 +1,224 @@
+{
+  "id": "027-get-v7-tests-ftp-server",
+  "seq": 27,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/ftp-server",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/ftp-server"
+        }
+      },
+      "tests": [
+        {
+          "_links": {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976976962"
+            },
+            "testResults": [
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976976962/ftp-server"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976976962/network"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976976962/path-vis"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976976962/bgp"
+              }
+            ]
+          },
+          "alertsEnabled": true,
+          "bandwidthMeasurements": false,
+          "bgpMeasurements": true,
+          "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+          "createdDate": "2026-08-03T09:33:21Z",
+          "enabled": true,
+          "ftpTargetTime": 1000,
+          "ftpTimeLimit": 5,
+          "interval": 3600,
+          "ipv6Policy": "use-agent-policy",
+          "liveShare": false,
+          "mtuMeasurements": true,
+          "networkMeasurements": true,
+          "numPathTraces": 3,
+          "pathTraceMode": "classic",
+          "probeMode": "auto",
+          "protocol": "tcp",
+          "randomizedStartTime": false,
+          "requestType": "download",
+          "savedEvent": false,
+          "testId": "281474976976962",
+          "testName": "ftp://speedtest.tele2.net/",
+          "type": "ftp-server",
+          "url": "ftp://speedtest.tele2.net/",
+          "useActiveFtp": false,
+          "useExplicitFtps": false,
+          "usePublicBgp": true,
+          "username": "anonymous"
+        },
+        {
+          "_links": {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976977014"
+            },
+            "testResults": [
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977014/ftp-server"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977014/network"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977014/path-vis"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977014/bgp"
+              }
+            ]
+          },
+          "alertsEnabled": true,
+          "bandwidthMeasurements": false,
+          "bgpMeasurements": true,
+          "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+          "createdDate": "2026-08-03T09:55:23Z",
+          "enabled": true,
+          "ftpTargetTime": 1000,
+          "ftpTimeLimit": 5,
+          "interval": 3600,
+          "ipv6Policy": "use-agent-policy",
+          "liveShare": false,
+          "mtuMeasurements": true,
+          "networkMeasurements": true,
+          "numPathTraces": 3,
+          "pathTraceMode": "classic",
+          "probeMode": "auto",
+          "protocol": "tcp",
+          "randomizedStartTime": false,
+          "requestType": "download",
+          "savedEvent": false,
+          "testId": "281474976977014",
+          "testName": "ftp://speedtest.tele2.net/ (1)",
+          "type": "ftp-server",
+          "url": "ftp://speedtest.tele2.net/",
+          "useActiveFtp": false,
+          "useExplicitFtps": false,
+          "usePublicBgp": true,
+          "username": "anonymous"
+        },
+        {
+          "_links": {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976977023"
+            },
+            "testResults": [
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977023/ftp-server"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977023/network"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977023/path-vis"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977023/bgp"
+              }
+            ]
+          },
+          "alertsEnabled": true,
+          "bandwidthMeasurements": false,
+          "bgpMeasurements": true,
+          "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+          "createdDate": "2026-08-03T09:57:57Z",
+          "enabled": true,
+          "ftpTargetTime": 1000,
+          "ftpTimeLimit": 5,
+          "interval": 3600,
+          "ipv6Policy": "use-agent-policy",
+          "liveShare": false,
+          "mtuMeasurements": true,
+          "networkMeasurements": true,
+          "numPathTraces": 3,
+          "pathTraceMode": "classic",
+          "probeMode": "auto",
+          "protocol": "tcp",
+          "randomizedStartTime": false,
+          "requestType": "download",
+          "savedEvent": false,
+          "testId": "281474976977023",
+          "testName": "ftp://speedtest.tele2.net/ (2)",
+          "type": "ftp-server",
+          "url": "ftp://speedtest.tele2.net/",
+          "useActiveFtp": false,
+          "useExplicitFtps": false,
+          "usePublicBgp": true,
+          "username": "anonymous"
+        },
+        {
+          "_links": {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976977037"
+            },
+            "testResults": [
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977037/ftp-server"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977037/network"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977037/path-vis"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976977037/bgp"
+              }
+            ]
+          },
+          "alertsEnabled": true,
+          "bandwidthMeasurements": false,
+          "bgpMeasurements": true,
+          "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+          "createdDate": "2026-08-03T10:01:32Z",
+          "enabled": true,
+          "ftpTargetTime": 1000,
+          "ftpTimeLimit": 5,
+          "interval": 3600,
+          "ipv6Policy": "use-agent-policy",
+          "liveShare": false,
+          "mtuMeasurements": true,
+          "networkMeasurements": true,
+          "numPathTraces": 3,
+          "pathTraceMode": "classic",
+          "probeMode": "auto",
+          "protocol": "tcp",
+          "randomizedStartTime": false,
+          "requestType": "download",
+          "savedEvent": false,
+          "testId": "281474976977037",
+          "testName": "ftp://speedtest.tele2.net/ (3)",
+          "type": "ftp-server",
+          "url": "ftp://speedtest.tele2.net/",
+          "useActiveFtp": false,
+          "useExplicitFtps": false,
+          "usePublicBgp": true,
+          "username": "anonymous"
+        }
+      ]
+    },
+    "droppedHeaders": 14
+  }
+}

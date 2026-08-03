@@ -286,6 +286,13 @@ func checksFor(r blueprint.Resource, f FixtureView, patterns *patternVars) []str
 			if why := unassertable(a); why != "" {
 				continue
 			}
+			// An empty-string default is degenerate: the wire cannot distinguish it
+			// from absence, the state mapper stores absence as null, and a live run
+			// proved the assertion fails against an attribute that is not in state
+			// at all. Nothing is claimed where nothing is distinguishable.
+			if unquote(a.Behaviour.ServerDefault.Raw) == "" {
+				continue
+			}
 
 			out = append(out, fmt.Sprintf(
 				"check.That(address).Key(%s).HasValue(%s)",

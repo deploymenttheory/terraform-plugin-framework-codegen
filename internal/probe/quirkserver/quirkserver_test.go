@@ -717,3 +717,117 @@ func TestUnit_Quirkserver_RejectsValueUnlessIsExhibited(t *testing.T) {
 		t.Fatalf("the dynamic branch should take the value: %d", status)
 	}
 }
+
+// The four rehearsal-era quirks, each drawn from a behaviour the classic-tests wave met
+// live at acceptance time. Same contract as every switch above: asserted observable
+// consequence, or the probe tests depending on it pass for the wrong reason.
+func TestUnit_Quirkserver_RehearsalQuirksAreExhibited(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Forces", func(t *testing.T) {
+		t.Parallel()
+
+		s := New(t, Quirks{Forces: map[string]any{"networkMeasurements": true}})
+
+		// Send false, get true -- on the create response, not just a later read.
+		status, created := post(t, s.CollectionURL(),
+			map[string]any{"key": "k", "networkMeasurements": false})
+		if status != http.StatusCreated {
+			t.Fatalf("status = %d, want 201; forcing is silent, never a refusal", status)
+		}
+		if created["networkMeasurements"] != true {
+			t.Errorf("networkMeasurements = %v, want the forced true", created["networkMeasurements"])
+		}
+
+		// The update path forces identically.
+		id, _ := created["id"].(string)
+		status, updated := put(t, s.ItemURL(id),
+			map[string]any{"key": "k", "networkMeasurements": false})
+		if status != http.StatusOK || updated["networkMeasurements"] != true {
+			t.Errorf("update should force too: %d %v", status, updated)
+		}
+	})
+
+	t.Run("NullsInWriteResponse", func(t *testing.T) {
+		t.Parallel()
+
+		s := New(t, Quirks{NullsInWriteResponse: []string{"includeHeaders"}})
+
+		status, created := post(t, s.CollectionURL(),
+			map[string]any{"key": "k", "includeHeaders": true})
+		if status != http.StatusCreated {
+			t.Fatalf("status = %d, want 201", status)
+		}
+
+		// Present and null -- the axis LookupField distinguishes, and the difference
+		// from SilentlyDiscards, which answers absence.
+		v, present := created["includeHeaders"]
+		if !present || v != nil {
+			t.Errorf("includeHeaders = %v (present=%v), want explicit null", v, present)
+		}
+
+		id, _ := created["id"].(string)
+		status, read := get(t, s.ItemURL(id))
+		if status != http.StatusOK {
+			t.Fatalf("read = %d", status)
+		}
+		if v, present := read["includeHeaders"]; !present || v != nil {
+			t.Errorf("the read answers explicit null too, got %v (present=%v)", v, present)
+		}
+	})
+
+	t.Run("SuppressWhenSibling", func(t *testing.T) {
+		t.Parallel()
+
+		s := New(t, Quirks{SuppressWhenSibling: &Conditional{
+			WhenField: "requestMethod", WhenValue: "get", Then: "postBody",
+		}})
+
+		// Alone, the field round-trips -- which is exactly what makes the interaction
+		// invisible to any probe that never sends the maximal body.
+		status, created := post(t, s.CollectionURL(),
+			map[string]any{"key": "k", "postBody": "b"})
+		if status != http.StatusCreated || created["postBody"] != "b" {
+			t.Fatalf("the field alone should round-trip: %d %v", status, created)
+		}
+
+		// With the sibling riding along on an update, it is stripped -- including the
+		// value the create had stored, because a merge carrying it through would hide
+		// the suppression from a PUT probe.
+		id, _ := created["id"].(string)
+		status, updated := put(t, s.ItemURL(id),
+			map[string]any{"key": "k", "postBody": "b", "requestMethod": "get"})
+		if status != http.StatusOK {
+			t.Fatalf("suppression is silent: %d", status)
+		}
+		if _, present := updated["postBody"]; present {
+			t.Errorf("postBody = %v, want it stripped when requestMethod is get", updated["postBody"])
+		}
+	})
+
+	t.Run("UpdateDefaults", func(t *testing.T) {
+		t.Parallel()
+
+		s := New(t, Quirks{UpdateDefaults: map[string]any{"colour": "grey"}})
+
+		_, created := post(t, s.CollectionURL(), map[string]any{"key": "k", "colour": "blue"})
+		id, _ := created["id"].(string)
+
+		// Omitted on update: not preserved, not cleared -- reset to the update-path
+		// constant, which need not be any default create ever applied.
+		status, updated := put(t, s.ItemURL(id), map[string]any{"key": "k"})
+		if status != http.StatusOK {
+			t.Fatalf("update = %d", status)
+		}
+		if updated["colour"] != "grey" {
+			t.Errorf("colour = %v, want the update-path grey rather than the stored blue",
+				updated["colour"])
+		}
+
+		// Sending the field still wins the usual way.
+		status, updated = put(t, s.ItemURL(id), map[string]any{"key": "k", "colour": "red"})
+		if status != http.StatusOK || updated["colour"] != "red" {
+			t.Errorf("a sent value must beat the update default: %d %v", status, updated)
+		}
+	})
+}

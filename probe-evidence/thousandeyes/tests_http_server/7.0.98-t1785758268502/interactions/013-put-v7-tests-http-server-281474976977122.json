@@ -1,0 +1,88 @@
+{
+  "id": "013-put-v7-tests-http-server-281474976977122",
+  "seq": 13,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/http-server/281474976977122",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "description": "tfacc-description",
+      "interval": 3600,
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "requestMethod": "get",
+      "testName": "tfpfgen-probe-write-rehearsal-100",
+      "url": "https://www.example.com"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/http-server/281474976977122"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976977122/http-server"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "allowUnsafeLegacyRenegotiation": true,
+      "authType": "none",
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": false,
+      "collectProxyNetworkData": false,
+      "contentRegex": "",
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T11:57:28Z",
+      "description": "tfacc-description",
+      "distributedTracing": false,
+      "enabled": false,
+      "followRedirects": true,
+      "httpTargetTime": 1000,
+      "httpTimeLimit": 5,
+      "httpVersion": 1,
+      "interval": 3600,
+      "ipv6Policy": "force-ipv4",
+      "liveShare": false,
+      "modifiedBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "modifiedDate": "2026-08-03T11:57:34Z",
+      "mtuMeasurements": false,
+      "networkMeasurements": false,
+      "oAuth": {},
+      "overrideAgentProxy": true,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "requestMethod": "get",
+      "savedEvent": false,
+      "sslVersion": "Auto",
+      "sslVersionId": "0",
+      "testId": "281474976977122",
+      "testName": "tfpfgen-probe-write-rehearsal-100",
+      "type": "http-server",
+      "url": "https://www.example.com",
+      "useNtlm": false,
+      "usePublicBgp": false,
+      "vaultCredentials": [],
+      "verifyCertificate": true
+    },
+    "droppedHeaders": 14
+  }
+}

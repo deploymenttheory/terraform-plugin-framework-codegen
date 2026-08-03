@@ -1,0 +1,841 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (4 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "agents",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "agents",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response did not carry this field although the update sent it"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "alertsEnabled",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "alertsEnabled",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent false, the API stored true on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "bandwidthMeasurements",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "bandwidthMeasurements",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent true, the API stored false on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "bgpMeasurements",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "bgpMeasurements",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent false, the API stored true on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "description",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "description",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response did not carry this field although the update sent it"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "downloadLimit",
+      "field": "interactionSuppressed",
+      "value": {
+        "text": "suppressed when bandwidthMeasurements is present"
+      },
+      "confidence": "suspected",
+      "probe": "write.rehearsal",
+      "evidence": [],
+      "rationale": "round-trips alone, and is stored as null the moment \"bandwidthMeasurements\" rides along; isolated by bisecting the maximal body's delta",
+      "alternatives": [
+        "no cassette interaction could be matched to this observation, so it cannot be re-derived offline"
+      ],
+      "when": [
+        {
+          "jsonPath": "bandwidthMeasurements",
+          "equals": "true"
+        }
+      ]
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "downloadLimit",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "downloadLimit",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response did not carry this field although the update sent it"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "enabled",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "fixedPacketRate",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "fixedPacketRate",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response did not carry this field although the update sent it"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "ftpTargetTime",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "ftpTargetTime",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "int64",
+          "raw": "1000"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent 1001, the API stored 1000 on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "ftpTimeLimit",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "ftpTimeLimit",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "int64",
+          "raw": "5"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent 30, the API stored 5 on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "interval",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "ipv6Policy",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "ipv6Policy",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "string",
+          "raw": "\"use-agent-policy\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent force-ipv4, the API stored use-agent-policy on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "mtuMeasurements",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "mtuMeasurements",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent false, the API stored true on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "networkMeasurements",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "networkMeasurements",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent false, the API stored true on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "numPathTraces",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "numPathTraces",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "int64",
+          "raw": "3"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent 4, the API stored 3 on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "password",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "password",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response did not carry this field although the update sent it"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "pathTraceMode",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "probeMode",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "protocol",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "protocol",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "string",
+          "raw": "\"tcp\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent icmp, the API stored tcp on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "randomizedStartTime",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "randomizedStartTime",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent true, the API stored false on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "requestType",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "requestType",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "string",
+          "raw": "\"download\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent list, the API stored download on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "url",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "url",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "string",
+          "raw": "\"ftp://speedtest.tele2.net/\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent ftp://speedtest.tele2.net, the API stored ftp://speedtest.tele2.net/ on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "useActiveFtp",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "useActiveFtp",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent true, the API stored false on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "useExplicitFtps",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "useExplicitFtps",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent true, the API stored false on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "usePublicBgp",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "usePublicBgp",
+      "field": "serverForced",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "sent false, the API stored true on the update path"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "username",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-tests-ftp-server-281474976977119"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    }
+  ],
+  "notes": [
+    {
+      "resource": "tests_ftp_server",
+      "probe": "write.rehearsal",
+      "message": "the derived maximal body was refused as a create with 400 (); a maximal-first acceptance configuration would fail exactly like this"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "description",
+      "probe": "write.rehearsal",
+      "message": "the bisection converged on \"usePublicBgp\", but the pair alone does not reproduce the suppression; the combination is untested"
+    },
+    {
+      "resource": "tests_ftp_server",
+      "jsonPath": "fixedPacketRate",
+      "probe": "write.rehearsal",
+      "message": "round-trips alone and is suppressed in the maximal body, but no single sibling explains it; the combination is untested"
+    }
+  ],
+  "probes": [
+    {
+      "name": "write.rehearsal",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 26,
+      "facts": 48
+    }
+  ],
+  "budget": {
+    "requests": 26,
+    "maxRequests": 240,
+    "creates": 3,
+    "maxCreates": 80,
+    "deletes": 2,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  },
+  "rehearsal": [
+    {
+      "minimal": {
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ],
+        "interval": 3600,
+        "password": "guest",
+        "requestType": "download",
+        "url": "ftp://speedtest.tele2.net",
+        "username": "anonymous"
+      },
+      "maximal": {
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ],
+        "alertsEnabled": true,
+        "bandwidthMeasurements": false,
+        "bgpMeasurements": true,
+        "description": "tfacc-description",
+        "downloadLimit": 1,
+        "enabled": true,
+        "fixedPacketRate": 50,
+        "ftpTargetTime": 1000,
+        "ftpTimeLimit": 30,
+        "interval": 3600,
+        "ipv6Policy": "force-ipv4",
+        "mtuMeasurements": true,
+        "networkMeasurements": true,
+        "numPathTraces": 3,
+        "password": "guest",
+        "pathTraceMode": "classic",
+        "probeMode": "auto",
+        "protocol": "tcp",
+        "randomizedStartTime": false,
+        "requestType": "download",
+        "testName": "tfacc-test-name",
+        "url": "ftp://speedtest.tele2.net",
+        "useActiveFtp": false,
+        "useExplicitFtps": false,
+        "usePublicBgp": true,
+        "username": "anonymous"
+      }
+    }
+  ]
+}

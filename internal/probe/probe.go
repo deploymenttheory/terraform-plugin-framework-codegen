@@ -171,6 +171,10 @@ type Result struct {
 	Notes []Note
 	// Requests counts what was actually issued, for the budget report.
 	Requests int
+	// Rehearsal is the derived bodies write.rehearsal actually sent, one entry per
+	// executed round, carried out for freezing beside the cassette. Empty for every
+	// other probe.
+	Rehearsal []RehearsalRound
 }
 
 // registry holds every probe this build knows about.

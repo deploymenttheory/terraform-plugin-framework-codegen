@@ -1,0 +1,57 @@
+[
+  {
+    "minimal": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "requests": [
+        {
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck"
+        }
+      ],
+      "url": "https://api.stripe.com/healthcheck"
+    },
+    "maximal": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": true,
+      "bgpMeasurements": true,
+      "clientCertDomainsAllowList": "tfacc-client-cert-domains-allow-list",
+      "collectProxyNetworkData": false,
+      "description": "tfacc-description",
+      "distributedTracing": false,
+      "enabled": true,
+      "followRedirects": true,
+      "interval": 3600,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "overrideAgentProxy": false,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requests": [
+        {
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck"
+        }
+      ],
+      "sslVersionId": "0",
+      "targetTime": 6,
+      "testName": "tfacc-test-name",
+      "timeLimit": 10,
+      "url": "https://api.stripe.com/healthcheck",
+      "usePublicBgp": true
+    }
+  }
+]

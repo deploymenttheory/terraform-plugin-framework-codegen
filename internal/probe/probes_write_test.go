@@ -2229,3 +2229,83 @@ func TestUnit_Probe_ARefusedEnumCandidateEscalatesIntoOtherFixtures(t *testing.T
 			report.Facts)
 	}
 }
+
+// TestUnit_Probe_TheCreateResponseIsEvidenceUnderTheCurrentRevision.
+//
+// The create response was always in hand and its body was always discarded, which is
+// how "sent on create, never echoed" stayed invisible until an acceptance run met it.
+// Under the current evidence revision the echo is a fact; under revision 0 -- every
+// snapshot frozen before the revision existed -- it must not be, because VerifyFacts
+// demands a replay derive exactly the facts the cassette was committed with.
+func TestUnit_Probe_TheCreateResponseIsEvidenceUnderTheCurrentRevision(t *testing.T) {
+	t.Parallel()
+
+	t.Run("an echoed field is a returnedOnCreate=true fact", func(t *testing.T) {
+		t.Parallel()
+
+		srv := quirkserver.New(t, quirkserver.Quirks{})
+
+		subj := quirkSubject()
+		subj.EvidenceRev = CurrentEvidenceRev
+
+		out, err := Run(context.Background(), RunOptions{
+			Mode: ModeRecord, Subject: subj, Plan: writePlan(),
+			Only: "write.writable-returned", BaseURL: srv.BaseURL(),
+			Redactor: testRedactor(t), Grant: &Grant{namePrefix: testPrefix},
+			Ledger: MemoryLedger(),
+		})
+		if err != nil {
+			t.Fatalf("Run: %v", err)
+		}
+
+		fact, ok := factFor(t, out.Report, "value", FactReturnedOnCreate)
+		if !ok {
+			t.Fatalf("no returnedOnCreate fact was recorded: %v", out.Report.Facts)
+		}
+		if fact.Value.Bool == nil || !*fact.Value.Bool {
+			t.Errorf("the quirkless server echoes what it stores; want true, got %v", fact)
+		}
+		if len(fact.Evidence) == 0 {
+			t.Error("the fact must cite the create interactions")
+		}
+	})
+
+	t.Run("a discarded field is a returnedOnCreate=false fact", func(t *testing.T) {
+		t.Parallel()
+
+		srv := quirkserver.New(t, quirkserver.Quirks{SilentlyDiscards: []string{"value"}})
+
+		subj := quirkSubject()
+		subj.EvidenceRev = CurrentEvidenceRev
+
+		out, err := Run(context.Background(), RunOptions{
+			Mode: ModeRecord, Subject: subj, Plan: writePlan(),
+			Only: "write.writable-returned", BaseURL: srv.BaseURL(),
+			Redactor: testRedactor(t), Grant: &Grant{namePrefix: testPrefix},
+			Ledger: MemoryLedger(),
+		})
+		if err != nil {
+			t.Fatalf("Run: %v", err)
+		}
+
+		fact, ok := factFor(t, out.Report, "value", FactReturnedOnCreate)
+		if !ok {
+			t.Fatalf("no returnedOnCreate fact was recorded: %v", out.Report.Facts)
+		}
+		if fact.Value.Bool == nil || *fact.Value.Bool {
+			t.Errorf("a discarded field is not in the create response; want false, got %v", fact)
+		}
+	})
+
+	t.Run("revision 0 derives no echo facts, so old snapshots verify", func(t *testing.T) {
+		t.Parallel()
+
+		srv := quirkserver.New(t, quirkserver.Quirks{})
+
+		report, _ := runWriteProbes(t, srv, writePlan(), "write.writable-returned")
+
+		if fact, ok := factFor(t, report, "value", FactReturnedOnCreate); ok {
+			t.Errorf("a revision-0 subject must replay exactly its committed facts, got %v", fact)
+		}
+	})
+}

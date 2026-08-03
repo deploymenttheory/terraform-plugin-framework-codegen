@@ -207,7 +207,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -225,7 +225,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -359,7 +359,8 @@
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "alertsEnabled",
@@ -380,12 +381,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "bgpMeasurements",
@@ -410,6 +413,9 @@
             },
             "computedOptionalRequired": "optional",
             "markdownDescription": "Comma separated list of domains to send the client certificate.",
+            "behaviour": {
+              "returnedOnUpdate": true
+            },
             "wire": {
               "jsonPath": "clientCertDomainsAllowList",
               "sdkField": "ClientCertDomainsAllowList",
@@ -429,7 +435,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.",
+            "markdownDescription": "String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "clientCertificate",
               "sdkField": "ClientCertificate",
@@ -452,12 +461,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Indicates whether network data to the proxy should be collected.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "collectProxyNetworkData",
@@ -545,6 +556,9 @@
             },
             "computedOptionalRequired": "optional",
             "markdownDescription": "A description of the test.",
+            "behaviour": {
+              "returnedOnUpdate": true
+            },
             "wire": {
               "jsonPath": "description",
               "sdkField": "Description",
@@ -564,12 +578,18 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Adds distributed tracing headers to API requests using B3 and W3C standards.\n\n<!-- probed:7.0.98-t1785758194545 -->\nObserved: the API assigns false when this is omitted from an update.\nOmitting this field from an update resets it rather than preserving the stored value.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "returnedOnUpdate": true,
+              "updateDefault": {
+                "kind": "bool",
+                "raw": "false"
+              },
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "distributedTracing",
@@ -593,12 +613,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "enabled",
@@ -622,7 +644,12 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "markdownDescription": "To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758194545 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->",
+            "behaviour": {
+              "returnedOnRead": false,
+              "returnedOnUpdate": false,
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "followRedirects",
               "sdkField": "FollowRedirects",
@@ -656,7 +683,8 @@
             "computedOptionalRequired": "optional",
             "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785744867250 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "interval",
@@ -962,12 +990,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "mtuMeasurements",
@@ -991,12 +1021,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Enable or disable network measurements. Set to true to enable or false to disable network measurements.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "networkMeasurements",
@@ -1024,12 +1056,15 @@
               }
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785758194545 -->\nConditionally, when networkMeasurements is \"false\": round-trips alone, and is stored as null the moment \"networkMeasurements\" rides along; isolated by bisecting the maximal body's delta. Not applied to the schema, because this holds only under that condition and the schema has no way to say so.\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "3"
-              }
+              },
+              "returnedOnRead": false,
+              "returnedOnUpdate": false,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "numPathTraces",
@@ -1053,12 +1088,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "overrideAgentProxy",
@@ -1082,7 +1119,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "ID of the proxy to be used if the default proxy is overridden.",
+            "markdownDescription": "ID of the proxy to be used if the default proxy is overridden.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "overrideProxyId",
               "sdkField": "OverrideProxyID",
@@ -1109,7 +1149,11 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "markdownDescription": "Select `inSession` to perform the path trace within a TCP session.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "pathTraceMode",
               "sdkField": "PathTraceMode",
@@ -1210,7 +1254,11 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.",
+            "markdownDescription": "Probe mode used by network test, only valid when the protocol is set to TCP.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "probeMode",
               "sdkField": "ProbeMode",
@@ -1238,12 +1286,14 @@
               ]
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744867250 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "\"tcp\""
               },
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true,
               "acceptedValues": [
                 "tcp",
                 "icmp"
@@ -1275,12 +1325,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "false"
-              }
+              },
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "randomizedStartTime",
@@ -2004,7 +2056,8 @@
             "computedOptionalRequired": "required",
             "markdownDescription": "<!-- probed:7.0.98-t1785744867250 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "requests",
@@ -2122,7 +2175,12 @@
               ]
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.",
+            "markdownDescription": "SSL version options:\n\n* Use '0' for automatic selection.\n* Use '3' for SSLv3.\n* Use '4' for TLS v1.0.\n* Use '5' for TLS v1.1.\n* Use '6' for TLS v1.2.\n* Use '7' for TLS v1.3.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->\n\n<!-- probed:7.0.98-t1785758194545 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->",
+            "behaviour": {
+              "returnedOnRead": false,
+              "returnedOnUpdate": false,
+              "zeroValueUnsendable": true
+            },
             "wire": {
               "jsonPath": "sslVersionId",
               "sdkField": "SslVersionID",
@@ -2239,7 +2297,8 @@
               "serverDefault": {
                 "kind": "",
                 "raw": "6"
-              }
+              },
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "targetTime",
@@ -2310,7 +2369,8 @@
               "serverDefault": {
                 "kind": "",
                 "raw": "10"
-              }
+              },
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "timeLimit",
@@ -2354,7 +2414,8 @@
             "computedOptionalRequired": "required",
             "markdownDescription": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744867250 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "returnedOnUpdate": true
             },
             "wire": {
               "jsonPath": "url",
@@ -2378,12 +2439,14 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "computed_optional",
-            "markdownDescription": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "markdownDescription": "Indicate if all available public BGP monitors should be used, when omitted defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744867250 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
               "serverDefault": {
                 "kind": "",
                 "raw": "true"
-              }
+              },
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
             },
             "wire": {
               "jsonPath": "usePublicBgp",
@@ -2525,9 +2588,11 @@
               }
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785744867250 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "markdownDescription": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785758194545 -->\nNeither the update response nor a read returns this field: it is write-only in practice, and state carries the configured value.\n<!-- /probed -->",
             "behaviour": {
-              "requiredByApi": true
+              "requiredByApi": true,
+              "returnedOnRead": false,
+              "returnedOnUpdate": false
             },
             "wire": {
               "jsonPath": "agents",

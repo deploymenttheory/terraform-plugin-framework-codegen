@@ -6,9 +6,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint/merge"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
 )
 
 const usageMerge = "merge -blueprint DIR -facts FILE [-strategy annotate|apply] [-check] " +
@@ -28,6 +30,9 @@ func runMerge(args []string) error {
 			"suppress the conflict exit code; conflicts are still reported and still not applied")
 		snapshotID = fs.String("snapshot-id", "",
 			"identifies the evidence in the description marker; defaults to the facts file's directory")
+		promoteDir = fs.String("promote-plans", "",
+			"directory of KEY.probe.plan.json files whose fixture values are promoted into "+
+				"accFixture wire hints, for attributes the generator refuses to derive")
 		summaryPath = fs.String("github-summary", os.Getenv("GITHUB_STEP_SUMMARY"),
 			"append a summary here")
 	)
@@ -64,7 +69,14 @@ func runMerge(args []string) error {
 	}
 
 	id := *snapshotID
-	if id == "" {
+	switch {
+	case id != "":
+	case allStatic(facts):
+		// Static facts write their own description channel under a fixed id: they are not
+		// tied to any recording, and letting them default to a directory name made them
+		// overwrite every live block -- after which re-merging the snapshot read as drift.
+		id = merge.StaticSnapshotID
+	default:
 		// The snapshot directory name, which is what cassette.Write produced. Using it means
 		// re-merging the same evidence is a no-op while newer evidence produces a visible
 		// one-line diff.
@@ -77,6 +89,22 @@ func runMerge(args []string) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	if *promoteDir != "" {
+		promoted, err := promotePlans(&bp, *promoteDir)
+		if err != nil {
+			return err
+		}
+		if promoted > 0 {
+			// Recorded as changes so -check treats an unpromoted plan value exactly
+			// like an unfolded fact: drift, not decoration.
+			result.Changes = append(result.Changes, merge.Change{
+				Resource: "accFixture",
+				What:     "plan-fixture values promoted to wire hints",
+				To:       fmt.Sprintf("%d hint(s)", promoted),
+			})
+		}
 	}
 
 	printMergeResult(result)
@@ -281,3 +309,14 @@ func appendMergeSummary(path string, result merge.Result) error {
 
 // errDrift marks a -check run whose blueprint is out of date.
 var errDrift = errors.New("the blueprint has drifted from the recorded facts")
+
+// allStatic reports whether every fact came from a static derivation rather than a
+// recording -- which is what selects the static description channel.
+func allStatic(facts []probe.Fact) bool {
+	for _, f := range facts {
+		if !strings.HasPrefix(f.Probe, "static.") {
+			return false
+		}
+	}
+	return len(facts) > 0
+}

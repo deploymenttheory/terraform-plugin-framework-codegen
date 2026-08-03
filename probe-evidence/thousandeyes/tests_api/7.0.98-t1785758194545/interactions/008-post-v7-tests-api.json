@@ -1,0 +1,63 @@
+{
+  "id": "008-post-v7-tests-api",
+  "seq": 8,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/api",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": false,
+      "bgpMeasurements": false,
+      "clientCertDomainsAllowList": "tfacc-client-cert-domains-allow-list",
+      "collectProxyNetworkData": true,
+      "description": "tfacc-description",
+      "distributedTracing": true,
+      "enabled": false,
+      "followRedirects": true,
+      "interval": 3600,
+      "mtuMeasurements": false,
+      "networkMeasurements": false,
+      "numPathTraces": 4,
+      "overrideAgentProxy": true,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "requests": [
+        {
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck"
+        }
+      ],
+      "sslVersionId": "0",
+      "targetTime": 7,
+      "testName": "tfpfgen-probe-write-rehearsal-2",
+      "timeLimit": 11,
+      "url": "https://api.stripe.com/healthcheck",
+      "usePublicBgp": false
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/api",
+      "status": 400,
+      "title": "400 Bad Request\nCannot add a test that is disabled",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

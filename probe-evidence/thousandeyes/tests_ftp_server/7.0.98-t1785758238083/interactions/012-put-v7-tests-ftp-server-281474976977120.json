@@ -1,0 +1,81 @@
+{
+  "id": "012-put-v7-tests-ftp-server-281474976977120",
+  "seq": 12,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/ftp-server/281474976977120",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "description": "tfacc-description",
+      "interval": 3600,
+      "mtuMeasurements": false,
+      "networkMeasurements": false,
+      "numPathTraces": 4,
+      "password": "guest",
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "requestType": "download",
+      "testName": "tfpfgen-probe-write-rehearsal-100",
+      "url": "ftp://speedtest.tele2.net",
+      "username": "anonymous"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976977120"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976977120/ftp-server"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": false,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T11:56:56Z",
+      "description": "tfacc-description",
+      "enabled": false,
+      "ftpTargetTime": 1000,
+      "ftpTimeLimit": 5,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "modifiedBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "modifiedDate": "2026-08-03T11:57:01Z",
+      "mtuMeasurements": false,
+      "networkMeasurements": false,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requestType": "download",
+      "savedEvent": false,
+      "testId": "281474976977120",
+      "testName": "tfpfgen-probe-write-rehearsal-100",
+      "type": "ftp-server",
+      "url": "ftp://speedtest.tele2.net/",
+      "useActiveFtp": false,
+      "useExplicitFtps": false,
+      "usePublicBgp": false,
+      "username": "anonymous"
+    },
+    "droppedHeaders": 14
+  }
+}

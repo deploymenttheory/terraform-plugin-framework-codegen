@@ -319,29 +319,28 @@ func TestUnit_Render_FixtureNamesAreAlignedAsTerraformFmtWould(t *testing.T) {
 // The maximal fixture is a scaffold: written once, then owned. The marker is what the drift check
 // and the overwrite refusal both key on, so a file meant to be edited must not carry it -- or the
 // first edit would be reported as drift and the next emit would refuse to run.
-func TestUnit_Render_OnlyTheMinimalFixtureCarriesAGeneratedMarker(t *testing.T) {
+func TestUnit_Render_BothFixturesCarryTheGeneratedMarker(t *testing.T) {
 	t.Parallel()
 
 	bp, r := fixtureResource(attr("name", blueprint.KindString, blueprint.Required))
 	opts := Options{BlueprintPath: "blueprints/x", BlueprintSHA256: "abc"}
 
-	minimal, err := Fixture(bp, r, opts, true)
-	if err != nil {
-		t.Fatalf("Fixture: %v", err)
-	}
-	if !strings.Contains(minimal.Header, "DO NOT EDIT.") {
-		t.Errorf("the generated fixture should carry the marker: %q", minimal.Header)
-	}
-	if !strings.HasPrefix(minimal.Header, "#") {
-		t.Errorf("an HCL header needs HCL's comment syntax: %q", minimal.Header)
-	}
-
-	maximal, err := Fixture(bp, r, opts, false)
-	if err != nil {
-		t.Fatalf("Fixture: %v", err)
-	}
-	if maximal.Header != "" {
-		t.Errorf("the scaffolded fixture must carry no header: %q", maximal.Header)
+	// The maximal fixture was a hand-owned scaffold once, and hand edits are what
+	// desynced its values from the generated assertions -- so both fixtures are now
+	// generated, policed, and corrected through the blueprint alone.
+	for _, minimal := range []bool{true, false} {
+		v, err := Fixture(bp, r, opts, minimal)
+		if err != nil {
+			t.Fatalf("Fixture(minimal=%v): %v", minimal, err)
+		}
+		if !strings.Contains(v.Header, "DO NOT EDIT.") {
+			t.Errorf("minimal=%v: the generated fixture should carry the marker: %q",
+				minimal, v.Header)
+		}
+		if !strings.HasPrefix(v.Header, "#") {
+			t.Errorf("minimal=%v: an HCL header needs HCL's comment syntax: %q",
+				minimal, v.Header)
+		}
 	}
 }
 

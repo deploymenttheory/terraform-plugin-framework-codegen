@@ -129,6 +129,42 @@ const (
 	// which calibrates every probe that depends on an unknown body field being
 	// ignored rather than rejected.
 	FactUnknownParamTolerated FactField = "unknownParamTolerated"
+
+	// The rehearsal facts. Each one is a divergence the acceptance lifecycle would
+	// otherwise be the first to hit, which is exactly the discovery the rehearsal
+	// probe exists to move before emit.
+
+	// FactReturnedOnCreate: the field was sent on create and the create response
+	// echoed it -- or answered null/absent, which is the finding. Distinct from
+	// FactReturnedOnRead because the write response and a later GET are different
+	// documents.
+	FactReturnedOnCreate FactField = "returnedOnCreate"
+	// FactReturnedOnUpdate: the same observation for the update response. False
+	// here and on read together is a field that is write-only in practice.
+	FactReturnedOnUpdate FactField = "returnedOnUpdate"
+	// FactServerForced: the API substituted its own value for the one sent -- send
+	// x, store y, y independent of x. A practitioner's value here never takes
+	// effect, which is a different claim from normalisation (y a transform of x)
+	// and from writable=false (nothing stored at all).
+	FactServerForced FactField = "serverForced"
+	// FactUpdateResets: a field omitted from an update reverted to a constant
+	// rather than keeping its stored value -- the full-replace footgun, observed
+	// per field rather than assumed from policy.updateStyle.
+	FactUpdateResets FactField = "updateResets"
+	// FactUpdateDefault: the constant an omitted-on-update field reverts to, where
+	// that differs from the create-path default. Both defaults being real at once
+	// is why this is not folded into FactServerDefault.
+	FactUpdateDefault FactField = "updateDefault"
+	// FactInteractionSuppressed: the field round-trips in a small body and comes
+	// back null when a sibling rides along -- postBody stripped when requestMethod
+	// is "get". Capped at Suspected until the bisection names the sibling, because
+	// "something in the big body did it" is a prompt, not a conclusion.
+	FactInteractionSuppressed FactField = "interactionSuppressed"
+	// FactZeroValueUnsendable: the SDK's wire encoding drops the type's zero value
+	// -- a value-typed scalar tagged omitempty. Static evidence read from the
+	// pinned SDK's own types, not from traffic, so its citations name source, not
+	// cassette interactions.
+	FactZeroValueUnsendable FactField = "zeroValueUnsendable"
 )
 
 // Value is a fact's value.
@@ -383,6 +419,9 @@ var knownFactFields = map[FactField]bool{
 	FactValuesClosed: true, FactAcceptedValues: true, FactRejectedValues: true,
 	FactIntegral:      true,
 	FactErrorEnvelope: true, FactUnknownParamTolerated: true,
+	FactReturnedOnCreate: true, FactReturnedOnUpdate: true,
+	FactServerForced: true, FactUpdateResets: true, FactUpdateDefault: true,
+	FactInteractionSuppressed: true, FactZeroValueUnsendable: true,
 }
 
 var knownConfidence = map[Confidence]bool{

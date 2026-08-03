@@ -1,0 +1,44 @@
+{
+  "id": "019-put-v7-tests-ftp-server-281474976977120",
+  "seq": 19,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/ftp-server/281474976977120",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": false,
+      "bandwidthMeasurements": true,
+      "bgpMeasurements": false,
+      "description": "tfacc-description",
+      "downloadLimit": 1,
+      "interval": 3600,
+      "password": "guest",
+      "requestType": "download",
+      "testName": "tfpfgen-probe-write-rehearsal-100",
+      "url": "ftp://speedtest.tele2.net",
+      "username": "anonymous"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/ftp-server/281474976977120",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Cloud Agents are not supported for bandwidth measurements. Please disable bandwidth measurements or perform the bandwidth measurement from an Enterprise Agent..",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

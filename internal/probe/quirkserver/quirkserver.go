@@ -210,6 +210,40 @@ type Quirks struct {
 	// for another tenant's identifier is indistinguishable from one that returns it for
 	// an absent one, and that is itself worth recording.
 	NotFoundStatus int
+
+	// Forces stores this value for a field regardless of what was sent, on create and
+	// update alike, and echoes the forced value back.
+	//
+	// The networkMeasurements case: send false, the API stores true, and the
+	// practitioner's value can never take effect. Distinct from a normalisation (a
+	// transform of the sent value) and from SilentlyDiscards (nothing stored at all).
+	Forces map[string]any
+
+	// NullsInWriteResponse accepts these fields, stores nothing, and answers explicit
+	// null for them in every response -- write responses and reads alike.
+	//
+	// The includeHeaders case, and distinct from SilentlyDiscards on exactly the axis
+	// LookupField distinguishes: present-and-null is a different observation from
+	// absent, and a probe must not conflate them.
+	NullsInWriteResponse []string
+
+	// SuppressWhenSibling drops field Then from storage whenever the same request's
+	// WhenField holds WhenValue, on create and update alike.
+	//
+	// The postBody case: stored and echoed by a small body, stripped the moment
+	// requestMethod:"get" rides along. Distinct from DiscardsWhen, which models the
+	// create-branch variant only -- this is the field interaction a maximal update
+	// meets and a minimal one never does.
+	SuppressWhenSibling *Conditional
+
+	// UpdateDefaults assigns this value when the field is omitted from an update,
+	// overriding whatever the object held. Create is untouched.
+	//
+	// The full-replace footgun as ground truth: an API whose PUT does not preserve an
+	// omitted field but resets it to a constant -- and the constant may differ from
+	// the create-path default, which is why it is its own map rather than a flag on
+	// ConstantDefaults.
+	UpdateDefaults map[string]any
 }
 
 // Server is a running quirk server.
@@ -430,9 +464,23 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 			// Accepted and thrown away. The response says 201 and the object never has it.
 			continue
 		}
+		if contains(s.quirks.NullsInWriteResponse, k) {
+			// Accepted, stored nowhere, and answered as explicit null by project.
+			continue
+		}
 		if dw := s.quirks.DiscardsWhen; dw != nil && k == dw.Then &&
 			fmt.Sprint(body[dw.WhenField]) == fmt.Sprint(dw.WhenValue) {
 			// The conditional variant: dropped on this branch, stored on every other.
+			continue
+		}
+		if sw := s.quirks.SuppressWhenSibling; sw != nil && k == sw.Then &&
+			fmt.Sprint(body[sw.WhenField]) == fmt.Sprint(sw.WhenValue) {
+			// The field interaction: fine alone, stripped when the sibling rides along.
+			continue
+		}
+		if forced, ok := s.quirks.Forces[k]; ok {
+			// Whatever was sent, the server's own value wins.
+			obj[k] = forced
 			continue
 		}
 		obj[k] = s.normalise(k, v)
@@ -521,13 +569,35 @@ func (s *Server) update(w http.ResponseWriter, r *http.Request, path string) {
 		if contains(s.quirks.SilentlyDiscards, k) {
 			continue
 		}
+		if contains(s.quirks.NullsInWriteResponse, k) {
+			continue
+		}
 		// Accepted, answered 2xx, and not applied. Distinct from SilentlyDiscards, which never
 		// stores the field at all: here a create stored it and the update is the thing that
 		// quietly does nothing.
 		if contains(s.quirks.SilentlyDiscardsOnUpdate, k) {
 			continue
 		}
+		if sw := s.quirks.SuppressWhenSibling; sw != nil && k == sw.Then &&
+			fmt.Sprint(body[sw.WhenField]) == fmt.Sprint(sw.WhenValue) {
+			// The interaction holds on update too: a merge would otherwise carry the
+			// create-stored value through and hide the suppression from a PUT probe.
+			delete(updated, k)
+			continue
+		}
+		if forced, ok := s.quirks.Forces[k]; ok {
+			updated[k] = forced
+			continue
+		}
 		updated[k] = s.normalise(k, v)
+	}
+
+	// An omitted field reverts to the update-path constant, whatever the object held --
+	// after the body loop, so sending the field still wins the usual way.
+	for k, v := range s.quirks.UpdateDefaults {
+		if _, sent := body[k]; !sent {
+			updated[k] = v
+		}
 	}
 
 	s.applySideEffects(updated, body)
@@ -591,6 +661,12 @@ func (s *Server) project(id string, r *http.Request) map[string]any {
 	for _, field := range s.quirks.VolatileFields {
 		s.counter++
 		out[field] = fmt.Sprintf("v%d", s.counter)
+	}
+
+	// Explicit null, everywhere the object is rendered: present-and-null is the
+	// observation this quirk exists to produce.
+	for _, field := range s.quirks.NullsInWriteResponse {
+		out[field] = nil
 	}
 
 	return out

@@ -47,6 +47,9 @@ const (
 	// SubjectFileName holds the flattened subject the recording was made with. Absent
 	// only for snapshots that predate freezing.
 	SubjectFileName = "subject.json"
+	// RehearsalFileName holds the derived wire bodies the rehearsal probe sent, one
+	// entry per fixpoint round. Absent for recordings that predate the probe.
+	RehearsalFileName = "rehearsal.json"
 )
 
 // ErrNoSnapshot is returned when a directory holds no cassette.
@@ -101,6 +104,12 @@ type Metadata struct {
 	// ReplayTransport matches request bodies, the stamped name is *in* the body, and a replay
 	// that regenerated the prefix from anything but this would mismatch on every single create.
 	NamePrefix string `json:"namePrefix,omitempty"`
+	// Only is the probe filter the recording ran under, empty for a full run.
+	//
+	// Recorded because replay executes the catalogue: a rehearse-only cassette holds
+	// no read-tier traffic, and a full replay against it mismatches on the first GET
+	// the read tier issues. Replay narrows itself to what was actually recorded.
+	Only string `json:"only,omitempty"`
 	// Interactions counts the files, so a truncated directory is detectable without
 	// reading them all.
 	Interactions int `json:"interactions"`
@@ -150,6 +159,14 @@ func (s Snapshot) PlanPath() string { return filepath.Join(s.Dir, PlanFileName) 
 // own merge made `type` writable, and every full-body probe then replayed with one more
 // key than the transcript held, reporting seven phantom orphans.
 func (s Snapshot) SubjectPath() string { return filepath.Join(s.Dir, SubjectFileName) }
+
+// RehearsalPath is the frozen copy of the bodies the rehearsal probe derived and sent.
+//
+// Frozen for the same reason the plan and subject are: the bodies are derived from the
+// blueprint, and the very merge that follows a record run moves the blueprint. Replay
+// re-deriving from the working tree would fail with a body mismatch on the first
+// curation pass after the recording.
+func (s Snapshot) RehearsalPath() string { return filepath.Join(s.Dir, RehearsalFileName) }
 
 // List returns every snapshot under root, oldest first.
 func List(root string) ([]Snapshot, error) {

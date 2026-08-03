@@ -72,7 +72,24 @@ type Subject struct {
 	// snapshot takes displayName and lists snapshotName. Read it through
 	// SweepNameField, which applies the fallback.
 	NameReadField string `json:"nameReadField,omitempty"`
+
+	// EvidenceRev is the revision of the observation rules this subject was recorded
+	// under, frozen beside the cassette like everything else replay depends on.
+	//
+	// It exists because VerifyFacts demands exact equality: a probe that learns a new
+	// observation would derive new facts from an old cassette and fail verify for
+	// every committed snapshot. New observations therefore gate on the revision --
+	// an old frozen subject reads as revision 0 and replays exactly the facts it was
+	// committed with, while a fresh record carries the current revision and earns the
+	// new conclusions.
+	//
+	// Revision 1: write responses are observed (returnedOnCreate) and denied fields
+	// are concluded about from read-backs they were never sent in.
+	EvidenceRev int `json:"evidenceRev,omitempty"`
 }
+
+// CurrentEvidenceRev is the revision SubjectOf stamps on a freshly built subject.
+const CurrentEvidenceRev = 1
 
 // SweepNameField is the key to find the stamped name under on a read, falling back to
 // the write field when no rename is declared.
@@ -138,6 +155,12 @@ type Field struct {
 	// which the API took. What is done with the answer afterwards belongs to render.
 	AllowedValues []string `json:"allowedValues,omitempty"`
 
+	// Constraints carries the declared bounds, so an experiment that varies a value --
+	// the rehearsal's contrast substitution -- can stay inside them rather than
+	// manufacture a refusal about a value nobody would configure. Zero for frozen
+	// subjects that predate it, which only costs those replays the bounds check.
+	Constraints blueprint.Constraints `json:"constraints,omitzero"`
+
 	// Behaviour is what is already recorded. A probe may skip a field whose fact it
 	// would only be re-deriving, and merge needs to know what it is overwriting.
 	Behaviour blueprint.Behaviour `json:"behaviour,omitzero"`
@@ -173,6 +196,7 @@ func SubjectOf(bp blueprint.Blueprint, res blueprint.Resource) (Subject, error) 
 		Update:       opOf(res.Binding.Update),
 		Delete:       opOf(res.Binding.Delete),
 		Policy:       res.Policy,
+		EvidenceRev:  CurrentEvidenceRev,
 	}
 
 	// The collection is the item path with its trailing parameter removed, or the
@@ -249,6 +273,7 @@ func fieldsOf(attrs []blueprint.Attribute, prefix string) []Field {
 			ComputedOptionalRequired: a.ComputedOptionalRequired,
 			Writable:                 writable(a),
 			AllowedValues:            a.Type.AllowedValues,
+			Constraints:              a.Type.Constraints,
 			Behaviour:                a.Behaviour,
 		})
 

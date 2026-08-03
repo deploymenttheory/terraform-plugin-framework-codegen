@@ -1,0 +1,58 @@
+{
+  "id": "003-put-v7-tests-dns-server-281474976977118",
+  "seq": 3,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/dns-server/281474976977118",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": false,
+      "bandwidthMeasurements": true,
+      "bgpMeasurements": false,
+      "description": "tfacc-description",
+      "dnsQueryClass": "in",
+      "dnsServers": [
+        "tfacc-dns-servers-element"
+      ],
+      "dnsTransportProtocol": "udp",
+      "domain": "example.com",
+      "enabled": false,
+      "fixedPacketRate": 50,
+      "interval": 3600,
+      "ipv6Policy": "force-ipv4",
+      "mtuMeasurements": false,
+      "networkMeasurements": false,
+      "numPathTraces": true,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "recursiveQueries": true,
+      "testName": "tfpfgen-probe-write-rehearsal-1",
+      "usePublicBgp": false
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Invalid value for fields: numPathTraces",
+      "instance": "/v7/tests/dns-server/281474976977118",
+      "status": 400,
+      "title": "request validation failed. There are invalid or missing fields",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

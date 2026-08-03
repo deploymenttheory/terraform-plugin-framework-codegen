@@ -72,6 +72,36 @@ type RunOptions struct {
 	// Carried from the gate rather than re-derived, because a report that stated the claim
 	// instead of the evidence would be the one thing the gate exists to avoid.
 	AssertionsPassed []string
+
+	// Rehearsal configures write.rehearsal. Nil means the probe reports itself skipped --
+	// the bodies it sends are derived outside this package (cmd owns blueprint and merge,
+	// and probe must never import merge), or loaded frozen from a snapshot for replay.
+	Rehearsal *RehearsalConfig
+}
+
+// RehearsalRound is one fixpoint round's derived wire bodies, JSONPath-keyed exactly
+// as the generated acceptance fixtures derive them. Frozen to rehearsal.json beside
+// the plan and subject, so replay never re-derives from the working tree.
+type RehearsalRound struct {
+	Minimal map[string]any `json:"minimal"`
+	Maximal map[string]any `json:"maximal"`
+}
+
+// RehearsalConfig is how write.rehearsal gets its bodies.
+type RehearsalConfig struct {
+	// Rounds are frozen bodies. Replay and verify use these exclusively; a recording
+	// run may also seed them, in which case Derive is only consulted afterwards.
+	Rounds []RehearsalRound
+
+	// Derive builds the next round's bodies from every fact gathered so far -- the
+	// read tier, the mutating tier, and earlier rehearsal rounds. Record mode only.
+	// The closure lives in cmd: it merges the facts into an in-memory blueprint copy
+	// and re-derives, which is the fixpoint that turns ten human acceptance rounds
+	// into machine ones.
+	Derive func(facts []Fact) (RehearsalRound, error)
+
+	// MaxRounds caps the fixpoint loop. Zero means 3.
+	MaxRounds int
 }
 
 // RunResult is what a run produced.
@@ -185,6 +215,7 @@ func runMutatingTier(
 		IDField:      opts.Subject.IDField,
 		UpdateMethod: updateMethodOf(opts.Subject),
 		ReadDelay:    opts.ReadDelay,
+		Rehearsal:    opts.Rehearsal,
 	})
 	if err != nil {
 		return err

@@ -355,7 +355,7 @@ func (g *Generator) acceptanceFiles(
 		scaffold bool
 	}{
 		{"minimal.tf", "fixture_minimal.tf.tmpl", true, false},
-		{"maximal.tf", "fixture_maximal.tf.tmpl", false, true},
+		{"maximal.tf", "fixture_maximal.tf.tmpl", false, false},
 	}
 
 	for _, f := range fixtures {

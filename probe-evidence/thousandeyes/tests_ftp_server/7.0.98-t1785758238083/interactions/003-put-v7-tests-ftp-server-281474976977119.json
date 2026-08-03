@@ -1,0 +1,104 @@
+{
+  "id": "003-put-v7-tests-ftp-server-281474976977119",
+  "seq": 3,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/ftp-server/281474976977119",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": false,
+      "bandwidthMeasurements": true,
+      "bgpMeasurements": false,
+      "description": "tfacc-description",
+      "downloadLimit": 1,
+      "enabled": false,
+      "fixedPacketRate": 50,
+      "ftpTargetTime": 1001,
+      "ftpTimeLimit": 30,
+      "interval": 3600,
+      "ipv6Policy": "force-ipv4",
+      "mtuMeasurements": false,
+      "networkMeasurements": false,
+      "numPathTraces": 4,
+      "password": "guest",
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "requestType": "list",
+      "testName": "tfpfgen-probe-write-rehearsal-1",
+      "url": "ftp://speedtest.tele2.net",
+      "useActiveFtp": true,
+      "useExplicitFtps": true,
+      "usePublicBgp": false,
+      "username": "anonymous"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976977119"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976977119/ftp-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976977119/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976977119/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976977119/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T11:56:48Z",
+      "enabled": false,
+      "ftpTargetTime": 1000,
+      "ftpTimeLimit": 5,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "modifiedBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "modifiedDate": "2026-08-03T11:56:50Z",
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requestType": "download",
+      "savedEvent": false,
+      "testId": "281474976977119",
+      "testName": "tfpfgen-probe-write-rehearsal-1",
+      "type": "ftp-server",
+      "url": "ftp://speedtest.tele2.net/",
+      "useActiveFtp": false,
+      "useExplicitFtps": false,
+      "usePublicBgp": true,
+      "username": "anonymous"
+    },
+    "droppedHeaders": 14
+  }
+}

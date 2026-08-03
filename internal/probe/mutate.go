@@ -149,6 +149,7 @@ func runMutatingProbes(
 		// budget or a delete failure has usually established something honestly first.
 		report.Facts = append(report.Facts, result.Facts...)
 		report.Notes = append(report.Notes, result.Notes...)
+		report.Rehearsal = append(report.Rehearsal, result.Rehearsal...)
 
 		// The runner is the only writer, which is what stops two probes disagreeing about what
 		// the run has established and the last one to finish winning silently.

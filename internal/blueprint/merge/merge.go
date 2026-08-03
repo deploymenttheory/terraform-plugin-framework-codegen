@@ -667,6 +667,73 @@ func applyAttributeFacts(
 						"compatibility, so it is not made automatically.", res.Key, path))
 			}
 
+		case probe.FactReturnedOnCreate:
+			setBool(&attr.Behaviour.ReturnedOnCreate, f, res, path,
+				"behaviour.returnedOnCreate", result)
+			if v := f.Value.Bool; v != nil && !*v {
+				observations = append(observations,
+					"The create response does not echo this field.")
+			}
+
+		case probe.FactReturnedOnUpdate:
+			setBool(&attr.Behaviour.ReturnedOnUpdate, f, res, path,
+				"behaviour.returnedOnUpdate", result)
+			if v := f.Value.Bool; v != nil && !*v {
+				// Together with a read that never returns it, this is a field that is
+				// write-only in practice -- the fact the generator needs to carry the
+				// configured value through instead of flattening a null.
+				if rr := attr.Behaviour.ReturnedOnRead; rr != nil && !*rr {
+					observations = append(observations,
+						"Neither the update response nor a read returns this field: it is "+
+							"write-only in practice, and state carries the configured value.")
+				} else {
+					observations = append(observations,
+						"The update response does not echo this field.")
+				}
+			}
+
+		case probe.FactServerForced:
+			applyForcedValue(res, attr, path, f, result)
+			if f.Value.Literal != nil && f.Confidence.AtLeast(probe.Corroborated) {
+				observations = append(observations, fmt.Sprintf(
+					"The API substitutes %s for whatever is sent here, so a configured "+
+						"value never takes effect.", f.Value.Literal.Raw))
+			}
+
+		case probe.FactUpdateResets:
+			if v := f.Value.Bool; v != nil && *v {
+				observations = append(observations,
+					"Omitting this field from an update resets it rather than preserving "+
+						"the stored value.")
+				result.Recommendations = append(result.Recommendations, fmt.Sprintf(
+					"%s.%s: omitted on update means reset, not preserved -- the generated "+
+						"update must always send this field.", res.Key, path))
+			}
+
+		case probe.FactUpdateDefault:
+			applyUpdateDefault(res, attr, path, f, result)
+			if f.Value.Literal != nil {
+				observations = append(observations, fmt.Sprintf(
+					"Observed: the API assigns %s when this is omitted from an update.",
+					f.Value.Literal.Raw))
+			}
+
+		case probe.FactInteractionSuppressed:
+			// Mostly arrives Suspected -- a prompt to declare an influencer -- and is
+			// filtered above. When the bisection named the responsible sibling, the
+			// observation is real and belongs in the description.
+			observations = append(observations,
+				"Field interaction: "+f.Value.Text+".")
+
+		case probe.FactZeroValueUnsendable:
+			setBool(&attr.Behaviour.ZeroValueUnsendable, f, res, path,
+				"behaviour.zeroValueUnsendable", result)
+			if v := f.Value.Bool; v != nil && *v {
+				observations = append(observations,
+					"The SDK's encoding drops this type's zero value (omitempty), so "+
+						"configuring false, 0 or \"\" silently becomes an omission.")
+			}
+
 		case probe.FactErrorEnvelope, probe.FactUnknownParamTolerated,
 			probe.FactUpdateStyle, probe.FactReadBack, probe.FactNotFoundIsSuccess:
 			// Resource-level or informational; handled elsewhere or deliberately not merged
@@ -940,6 +1007,86 @@ func applyDerivedDefault(
 			To:      "computed_optional is correct: the default is derived, not constant",
 			Warning: "the blueprint's assumption was right, for a reason nobody had established",
 		})
+	}
+}
+
+// applyForcedValue records that the API substitutes its own value for whatever is sent.
+//
+// Held to the same corroboration bar as writable=false, and for the same reason: acting on
+// it tells a practitioner their configured value can never take effect, which they have no
+// way to work around. One hop's observation might be an influencer artefact; seen on both
+// the create and update paths, or for two distinct sent values, it is the API's policy.
+func applyForcedValue(
+	res *blueprint.Resource,
+	attr *blueprint.Attribute,
+	path string,
+	f probe.Fact,
+	result *Result,
+) {
+	lit := f.Value.Literal
+	if lit == nil {
+		return
+	}
+
+	if !f.Confidence.AtLeast(probe.Corroborated) {
+		result.Conflicts = append(result.Conflicts, needsCorroboration(res, path, f,
+			"serverForced="+lit.Raw))
+		return
+	}
+
+	if attr.Behaviour.ForcedValue == nil || attr.Behaviour.ForcedValue.Raw != lit.Raw {
+		result.Changes = append(result.Changes, Change{
+			Resource: res.Key, JSONPath: path,
+			What: "behaviour.forcedValue", To: lit.Raw,
+		})
+		copied := *lit
+		attr.Behaviour.ForcedValue = &copied
+	}
+
+	result.Recommendations = append(result.Recommendations, fmt.Sprintf(
+		"%s.%s: the API forces %s whatever is sent. Consider Computed -- an attribute a "+
+			"practitioner can set but never affect is a standing inconsistent-apply. Not "+
+			"applied: removing configurability is a human decision.",
+		res.Key, path, lit.Raw))
+}
+
+// applyUpdateDefault records the constant an omitted-on-update field reverts to.
+//
+// Recorded even when it disagrees with the create-path default -- both observations are
+// real at once -- but the disagreement is also surfaced as a conflict, because it is
+// direct evidence that a static Default would lie on one of the two paths.
+func applyUpdateDefault(
+	res *blueprint.Resource,
+	attr *blueprint.Attribute,
+	path string,
+	f probe.Fact,
+	result *Result,
+) {
+	lit := f.Value.Literal
+	if lit == nil {
+		return
+	}
+
+	if sd := attr.Behaviour.ServerDefault; sd != nil && sd.Raw != lit.Raw {
+		result.Conflicts = append(result.Conflicts, Conflict{
+			Resource: res.Key, JSONPath: path,
+			Curated:   "create-path server default " + sd.Raw,
+			Observed:  "update-path default " + lit.Raw,
+			Suggested: "no static default; the generated update should always send this field",
+			Why: "the API defaults differently on the create and update paths, so a static " +
+				"Default derived from either would lie on the other",
+			Evidence: f.Evidence,
+			Fix:      "keep the attribute computed_optional and review the update behaviour",
+		})
+	}
+
+	if attr.Behaviour.UpdateDefault == nil || attr.Behaviour.UpdateDefault.Raw != lit.Raw {
+		result.Changes = append(result.Changes, Change{
+			Resource: res.Key, JSONPath: path,
+			What: "behaviour.updateDefault", To: lit.Raw,
+		})
+		copied := *lit
+		attr.Behaviour.UpdateDefault = &copied
 	}
 }
 

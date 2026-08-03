@@ -1,0 +1,47 @@
+[
+  {
+    "minimal": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "dnsServers": [
+        "tfacc-dns-servers-element"
+      ],
+      "domain": "example.com",
+      "interval": 3600
+    },
+    "maximal": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "description": "tfacc-description",
+      "dnsQueryClass": "in",
+      "dnsServers": [
+        "tfacc-dns-servers-element"
+      ],
+      "dnsTransportProtocol": "udp",
+      "domain": "example.com",
+      "enabled": true,
+      "fixedPacketRate": 50,
+      "interval": 3600,
+      "ipv6Policy": "force-ipv4",
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": true,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "recursiveQueries": false,
+      "testName": "tfacc-test-name",
+      "usePublicBgp": true
+    }
+  }
+]

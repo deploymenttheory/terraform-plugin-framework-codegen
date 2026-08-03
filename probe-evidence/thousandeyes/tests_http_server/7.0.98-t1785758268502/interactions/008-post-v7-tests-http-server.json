@@ -1,0 +1,74 @@
+{
+  "id": "008-post-v7-tests-http-server",
+  "seq": 8,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/http-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": false,
+      "allowUnsafeLegacyRenegotiation": false,
+      "authType": "none",
+      "bandwidthMeasurements": true,
+      "bgpMeasurements": false,
+      "collectProxyNetworkData": true,
+      "contentRegex": "tfacc-content-regex",
+      "description": "tfacc-description",
+      "desiredStatusCode": "200",
+      "distributedTracing": true,
+      "dnsOverride": "8.8.8.8",
+      "downloadLimit": 1,
+      "enabled": false,
+      "fixedPacketRate": 50,
+      "followRedirects": false,
+      "headers": [
+        "tfacc-headers-element"
+      ],
+      "httpTargetTime": 1001,
+      "httpTimeLimit": 6,
+      "httpVersion": 1,
+      "includeHeaders": true,
+      "interval": 3600,
+      "ipv6Policy": "force-ipv4",
+      "mtuMeasurements": false,
+      "networkMeasurements": false,
+      "numPathTraces": 4,
+      "overrideAgentProxy": true,
+      "pathTraceMode": "classic",
+      "postBody": "tfacc-post-body",
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "requestMethod": "get",
+      "sslVersionId": "0",
+      "testName": "tfpfgen-probe-write-rehearsal-2",
+      "url": "https://www.example.com",
+      "useNtlm": true,
+      "usePublicBgp": false,
+      "userAgent": "tfacc-user-agent",
+      "verifyCertificate": false
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/http-server",
+      "status": 400,
+      "title": "400 Bad Request\nCannot add a test that is disabled",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}
