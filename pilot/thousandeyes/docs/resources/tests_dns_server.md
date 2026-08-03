@@ -27,7 +27,7 @@ resource "thousandeyes_tests_dns_server" "example" {
 
 - `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. <!-- probed:7.0.98-t1785744994227 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> (see [below for nested schema](#nestedatt--agents))
 - `dns_servers` (Set of String) A list of DNS server FQDN. Sent as a list of server names; the read reports servers as objects, which v1 does not round-trip. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785744994227 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
-- `domain` (String) The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785744994227 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
+- `domain` (String) The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785744994227 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> The API normalises this value (appends the record type, example.com becomes "example.com ANY"; the 2026-08-03 acceptance run (#13)); state carries the configured form.
 
 ### Optional
 

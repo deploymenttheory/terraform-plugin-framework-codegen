@@ -362,6 +362,12 @@ func importIgnores(r blueprint.Resource) (names, reasons []string) {
 
 		why := ""
 		switch b := a.Behaviour; {
+		case a.Wire.SkipFlatten:
+			// Structural, not evidential: a write-only attribute's state is carried
+			// from configuration, and an import has no configuration to carry from.
+			// The classic tests' agents is the live case -- present before import,
+			// absent after, and the difference says nothing about import working.
+			why = "it is write-only, carried from configuration, which an import does not have"
 		case notReturnedSomewhere(b):
 			why = "the API never returns it, so it is absent after an import"
 		case b.Volatile != nil && *b.Volatile:

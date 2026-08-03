@@ -12,7 +12,7 @@ resource "thousandeyes_tests_web_transaction" "test" {
   #
   # auth_type: documented; unprobed
   #
-  # interval: documented; unprobed
+  # interval: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # page_loading_strategy: documented; unprobed
   #
@@ -25,6 +25,8 @@ resource "thousandeyes_tests_web_transaction" "test" {
   # ssl_version_id: documented; unprobed
   #
   # subinterval: documented; unprobed
+  #
+  # url: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # agents: curated in the blueprint's accFixture; the generator cannot derive it
   #
@@ -69,7 +71,7 @@ resource "thousandeyes_tests_web_transaction" "test" {
   http_version                           = 1
   identify_agent_traffic_with_user_agent = true
   include_headers                        = true
-  interval                               = "60"
+  interval                               = 3600
   mtu_measurements                       = true
   network_measurements                   = true
   num_path_traces                        = 1
@@ -86,7 +88,7 @@ resource "thousandeyes_tests_web_transaction" "test" {
   test_name                              = "tfacc-test-name"
   time_limit                             = 5
   transaction_script                     = "tfacc-transaction-script"
-  url                                    = "tfacc-url"
+  url                                    = "https://www.example.com"
   use_ntlm                               = true
   use_public_bgp                         = true
   user_agent                             = "tfacc-user-agent"

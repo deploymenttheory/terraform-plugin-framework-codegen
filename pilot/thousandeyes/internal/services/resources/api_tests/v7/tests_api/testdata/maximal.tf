@@ -10,20 +10,54 @@
 resource "thousandeyes_tests_api" "test" {
   # Where a value came from.
   #
+  # alerts_enabled: the API's own default, so a value it is known to accept
+  #
+  # bgp_measurements: the API's own default, so a value it is known to accept
+  #
+  # collect_proxy_network_data: the API's own default, so a value it is known to accept
+  #
+  # distributed_tracing: the API's own default, so a value it is known to accept
+  #
+  # enabled: the API's own default, so a value it is known to accept
+  #
+  # interval: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # mtu_measurements: the API's own default, so a value it is known to accept
+  #
+  # network_measurements: the API's own default, so a value it is known to accept
+  #
+  # num_path_traces: the API's own default, so a value it is known to accept
+  #
+  # override_agent_proxy: the API's own default, so a value it is known to accept
+  #
   # path_trace_mode: documented; unprobed
   #
   # probe_mode: documented; unprobed
   #
-  # protocol: documented; unprobed
+  # protocol: observed accepted; the API refused udp
+  #
+  # randomized_start_time: the API's own default, so a value it is known to accept
   #
   # requests: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # ssl_version_id: documented; unprobed
   #
+  # target_time: the API's own default, so a value it is known to accept
+  #
+  # time_limit: the API's own default, so a value it is known to accept
+  #
+  # url: curated in the blueprint's accFixture; the generator cannot derive it
+  #
+  # use_public_bgp: the API's own default, so a value it is known to accept
+  #
   # agents: curated in the blueprint's accFixture; the generator cannot derive it
   #
   # Not filled in, because no correct value could be derived. Each of these is optional, so this
   # configuration is valid as it stands -- but it is testing less than it could.
+  #
+  # credentials: its elements have no derivable value: it is credential-shaped, and a generated
+  # fixture must not invent values that read as secrets; supply one through accFixture if the
+  # test needs it
   #
   # predefined_variables: a nested object's members may be identifiers of objects that must
   # already exist, and nothing in the specification says whether they are
@@ -34,28 +68,27 @@ resource "thousandeyes_tests_api" "test" {
   bgp_measurements               = true
   client_cert_domains_allow_list = "tfacc-client-cert-domains-allow-list"
   client_certificate             = "tfacc-client-certificate"
-  collect_proxy_network_data     = true
-  credentials                    = ["tfacc-credentials-element"]
+  collect_proxy_network_data     = false
   description                    = "tfacc-description"
-  distributed_tracing            = true
+  distributed_tracing            = false
   enabled                        = true
   follow_redirects               = true
-  interval                       = 1
+  interval                       = 3600
   mtu_measurements               = true
   network_measurements           = true
-  num_path_traces                = 1
-  override_agent_proxy           = true
+  num_path_traces                = 3
+  override_agent_proxy           = false
   override_proxy_id              = "tfacc-override-proxy-id"
   path_trace_mode                = "classic"
   probe_mode                     = "auto"
   protocol                       = "tcp"
-  randomized_start_time          = true
+  randomized_start_time          = false
   requests                       = [{ name = "step-1", url = "https://api.stripe.com/healthcheck", method = "get" }]
   ssl_version_id                 = "0"
-  target_time                    = 1
+  target_time                    = 6
   test_name                      = "tfacc-test-name"
-  time_limit                     = 5
-  url                            = "tfacc-url"
+  time_limit                     = 10
+  url                            = "https://api.stripe.com/healthcheck"
   use_public_bgp                 = true
   agents                         = [{ agent_id = "3" }]
 }
