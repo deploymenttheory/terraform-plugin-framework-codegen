@@ -1,0 +1,99 @@
+[
+  {
+    "resource": "tests_web_transaction",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "404=problem"
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-tests-web-transactions-999999999"
+    ],
+    "rationale": "a 404 response used the problem error shape"
+  },
+  {
+    "resource": "tests_web_transaction",
+    "field": "policy.delete.notFoundIsSuccess",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-tests-web-transactions-999999999"
+    ],
+    "rationale": "reading an absent object answered 404 with a problem error body",
+    "alternatives": [
+      "the API may answer differently for an identifier that once existed and was deleted"
+    ]
+  },
+  {
+    "resource": "tests_web_transaction",
+    "field": "unknownParamTolerated",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.unknown-param",
+    "evidence": [
+      "001-get-v7-tests-web-transactions",
+      "003-get-v7-tests-web-transactions",
+      "004-get-v7-tests-web-transactions",
+      "005-get-v7-tests-web-transactions",
+      "006-get-v7-tests-web-transactions",
+      "007-get-v7-tests-web-transactions",
+      "008-get-v7-tests-web-transactions",
+      "009-get-v7-tests-web-transactions",
+      "028-get-v7-tests-web-transactions"
+    ],
+    "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+    "alternatives": [
+      "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+    ]
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "protocol",
+    "field": "rejectedValues",
+    "value": {
+      "list": [
+        "udp"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "015-post-v7-tests-web-transactions",
+      "016-post-v7-tests-web-transactions",
+      "017-post-v7-tests-web-transactions",
+      "018-post-v7-tests-web-transactions",
+      "019-post-v7-tests-web-transactions"
+    ],
+    "rationale": "the specification documents tcp, icmp, udp but this API refused udp",
+    "alternatives": [
+      "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
+    ]
+  },
+  {
+    "resource": "tests_web_transaction",
+    "jsonPath": "protocol",
+    "field": "valuesClosed",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "015-post-v7-tests-web-transactions",
+      "016-post-v7-tests-web-transactions",
+      "017-post-v7-tests-web-transactions",
+      "018-post-v7-tests-web-transactions",
+      "019-post-v7-tests-web-transactions"
+    ],
+    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+    "alternatives": [
+      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+    ]
+  }
+]

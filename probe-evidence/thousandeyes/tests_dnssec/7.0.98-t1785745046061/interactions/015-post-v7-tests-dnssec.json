@@ -1,0 +1,61 @@
+{
+  "id": "015-post-v7-tests-dnssec",
+  "seq": 15,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/dnssec",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": true,
+      "description": "probe-description-1",
+      "domain": "probe-domain-1",
+      "enabled": true,
+      "interval": 3600,
+      "randomizedStartTime": true,
+      "testName": "tfpfgen-probe-write-writable-returned-1"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/dnssec/281474976976864",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dnssec/281474976976864"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976864/dnssec"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:17:09Z",
+      "description": "probe-description-1",
+      "dnsQueryClass": "in",
+      "domain": "probe-domain-1 ANY",
+      "enabled": true,
+      "interval": 3600,
+      "liveShare": false,
+      "randomizedStartTime": true,
+      "savedEvent": false,
+      "testId": "281474976976864",
+      "testName": "tfpfgen-probe-write-writable-returned-1",
+      "type": "dnssec"
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "id": "035-get-v7-tests-ftp-server-281474976976875",
+  "seq": 35,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/ftp-server/281474976976875",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976976875"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976875/ftp-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976875/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976875/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976875/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:17:56Z",
+      "enabled": true,
+      "ftpTargetTime": 1000,
+      "ftpTimeLimit": 5,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requestType": "download",
+      "savedEvent": false,
+      "testId": "281474976976875",
+      "testName": "tfpfgen-probe-write-immutability-3",
+      "type": "ftp-server",
+      "url": "ftp://speedtest.tele2.net/",
+      "useActiveFtp": false,
+      "useExplicitFtps": false,
+      "usePublicBgp": true,
+      "username": "anonymous"
+    },
+    "droppedHeaders": 14
+  }
+}

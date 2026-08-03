@@ -1,0 +1,79 @@
+{
+  "id": "024-get-v7-tests-http-server-281474976976778",
+  "seq": 24,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/http-server/281474976976778",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/http-server/281474976976778"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976778/http-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976778/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976778/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976778/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "allowUnsafeLegacyRenegotiation": true,
+      "authType": "none",
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "collectProxyNetworkData": false,
+      "contentRegex": "",
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:10:18Z",
+      "distributedTracing": false,
+      "enabled": true,
+      "followRedirects": true,
+      "httpTargetTime": 1000,
+      "httpTimeLimit": 5,
+      "httpVersion": 2,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "oAuth": {},
+      "overrideAgentProxy": false,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requestMethod": "get",
+      "savedEvent": false,
+      "sslVersion": "Auto",
+      "sslVersionId": "0",
+      "testId": "281474976976778",
+      "testName": "tfpfgen-probe-write-server-default-2",
+      "type": "http-server",
+      "url": "https://www.example.com",
+      "useNtlm": false,
+      "usePublicBgp": true,
+      "vaultCredentials": [],
+      "verifyCertificate": true
+    },
+    "droppedHeaders": 14
+  }
+}

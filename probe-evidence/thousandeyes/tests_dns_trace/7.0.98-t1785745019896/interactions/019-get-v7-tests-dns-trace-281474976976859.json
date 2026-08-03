@@ -1,0 +1,45 @@
+{
+  "id": "019-get-v7-tests-dns-trace-281474976976859",
+  "seq": 19,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/dns-trace/281474976976859",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dns-trace/281474976976859"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976859/dns-trace"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:16:46Z",
+      "dnsQueryClass": "in",
+      "dnsTransportProtocol": "udp",
+      "domain": "probe-domain-1 ANY",
+      "enabled": true,
+      "interval": 3600,
+      "liveShare": false,
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "testId": "281474976976859",
+      "testName": "tfpfgen-probe-write-update-style-1",
+      "type": "dns-trace"
+    },
+    "droppedHeaders": 14
+  }
+}

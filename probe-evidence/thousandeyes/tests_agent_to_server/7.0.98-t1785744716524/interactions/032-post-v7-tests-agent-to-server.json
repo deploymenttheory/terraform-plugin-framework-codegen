@@ -1,0 +1,76 @@
+{
+  "id": "032-post-v7-tests-agent-to-server",
+  "seq": 32,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/agent-to-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "description": "MiXeD-probe-description-2",
+      "interval": 3600,
+      "server": "MiXeD-probe-server-2",
+      "testName": "tfpfgen-probe-write-normalisation-2"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/agent-to-server/281474976976793",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/agent-to-server/281474976976793"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976793/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976793/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976793/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "continuousMode": false,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:11:54Z",
+      "description": "MiXeD-probe-description-2",
+      "dscp": "Best Effort (DSCP 0)",
+      "dscpId": "0",
+      "enabled": true,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "server": "MiXeD-probe-server-2:80",
+      "testId": "281474976976793",
+      "testName": "tfpfgen-probe-write-normalisation-2",
+      "type": "agent-to-server",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

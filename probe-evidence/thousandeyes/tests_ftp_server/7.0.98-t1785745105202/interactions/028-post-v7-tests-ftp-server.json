@@ -1,0 +1,84 @@
+{
+  "id": "028-post-v7-tests-ftp-server",
+  "seq": 28,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/ftp-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "password": "guest",
+      "protocol": "icmp",
+      "requestType": "download",
+      "testName": "tfpfgen-probe-write-immutability-1",
+      "url": "ftp://speedtest.tele2.net",
+      "username": "anonymous"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976976873",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/ftp-server/281474976976873"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976873/ftp-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976873/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976873/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976873/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:17:48Z",
+      "enabled": true,
+      "ftpTargetTime": 1000,
+      "ftpTimeLimit": 5,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": false,
+      "requestType": "download",
+      "savedEvent": false,
+      "testId": "281474976976873",
+      "testName": "tfpfgen-probe-write-immutability-1",
+      "type": "ftp-server",
+      "url": "ftp://speedtest.tele2.net/",
+      "useActiveFtp": false,
+      "useExplicitFtps": false,
+      "usePublicBgp": true,
+      "username": "anonymous"
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -23,76 +23,76 @@ resource "thousandeyes_tests_page_load" "example" {
 
 ### Required
 
-- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. (see [below for nested schema](#nestedatt--agents))
+- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. <!-- probed:7.0.98-t1785745161014 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> (see [below for nested schema](#nestedatt--agents))
 
 ### Optional
 
-- `alerts_enabled` (Boolean) Indicates if alerts are enabled.
-- `allow_geolocation` (Boolean) Set true to use the agent’s geolocation by the web page.
-- `allow_mic_and_camera` (Boolean) Set true allow the use of a fake mic and camera in the browser.
-- `allow_unsafe_legacy_renegotiation` (Boolean) Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation.
+- `alerts_enabled` (Boolean) Indicates if alerts are enabled. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `allow_geolocation` (Boolean) Set true to use the agent’s geolocation by the web page. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `allow_mic_and_camera` (Boolean) Set true allow the use of a fake mic and camera in the browser. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `allow_unsafe_legacy_renegotiation` (Boolean) Allows TLS renegotiation with servers not supporting RFC 5746. Default Set to true to allow unsafe legacy renegotiation. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `auth_type` (String) HTTP authentication type.
-- `bandwidth_measurements` (Boolean) Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.
-- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements.
-- `block_domains` (String) Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests.
-- `browser_language` (String) Set one of the available browser language that you want to use to configure the browser.
+- `bandwidth_measurements` (Boolean) Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `block_domains` (String) Domains or full object URLs to be excluded from metrics and waterfall data for transaction tests. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns "" when this is omitted. <!-- /probed -->
+- `browser_language` (String) Set one of the available browser language that you want to use to configure the browser. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns "en-US" when this is omitted. <!-- /probed -->
 - `chrome_options` (String) Command-line options passed to Chrome when running the test.
 - `chrome_policies` (String) JSON string of Chrome policy settings to apply.
 - `client_certificate` (String) String representation (containing newline characters) of client certificate, the private key must be placed first, then the certificate.
 - `collect_proxy_network_data` (Boolean) Indicates whether network data to the proxy should be collected.
-- `content_regex` (String) Content regex, this field does not require escaping.
+- `content_regex` (String) Content regex, this field does not require escaping. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns "" when this is omitted. <!-- /probed -->
 - `description` (String) A description of the test.
 - `desired_status_code` (String) Specify the HTTP status code value that indicates a successful response. The default value accepts any 2xx or 3xx status code.
-- `disable_screenshot` (Boolean) Enables or disables screenshots on error. Set true to not capture
-- `distributed_tracing` (Boolean) Adds distributed tracing headers to API requests using B3 and W3C standards.
+- `disable_screenshot` (Boolean) Enables or disables screenshots on error. Set true to not capture <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `distributed_tracing` (Boolean) Adds distributed tracing headers to API requests using B3 and W3C standards. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `dns_override` (String) IP address to use for DNS override.
 - `download_limit` (Number) Specifies maximum number of bytes to download from the target object.
-- `emulated_device_id` (String) ID of the emulated device, if one was given when the test was created.
-- `enabled` (Boolean) Test is enabled.
+- `emulated_device_id` (String) ID of the emulated device, if one was given when the test was created. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns "281474976710656" when this is omitted. <!-- /probed -->
+- `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `fixed_packet_rate` (Number) Sets packets rate sent to measure the network in packets per second.
-- `follow_redirects` (Boolean) To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`.
+- `follow_redirects` (Boolean) To disable following HTTP/301 or HTTP/302 redirect directives, set this parameter to `false`. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `http_interval` (Number) HTTP test run interval. The interval between HTTP test runs in seconds cannot exceed the specified interval value and defaults to the same value as the interval if not set. Documented values: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.
-- `http_target_time` (Number) Target time for HTTP server completion, specified in milliseconds.
-- `http_time_limit` (Number) HTTP time limit in seconds.
-- `http_version` (Number) HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1.
-- `identify_agent_traffic_with_user_agent` (Boolean) Determines how agent traffic is identified: * `false`: Adds the `x-thousandeyes-agent: yes` header. * `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header. For more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy).
-- `include_headers` (Boolean) Set to `true` to capture response headers for objects loaded by the test.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
-- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
-- `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements.
-- `num_path_traces` (Number) Number of path traces executed by the agent.
-- `override_agent_proxy` (Boolean) Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`.
+- `http_target_time` (Number) Target time for HTTP server completion, specified in milliseconds. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns 1000 when this is omitted. <!-- /probed -->
+- `http_time_limit` (Number) HTTP time limit in seconds. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns 5 when this is omitted. <!-- /probed -->
+- `http_version` (Number) HTTP protocol version. Set to '2' to prefer HTTP/2, or '1' to use only HTTP/1.1. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns 2 when this is omitted. <!-- /probed -->
+- `identify_agent_traffic_with_user_agent` (Boolean) Determines how agent traffic is identified: * `false`: Adds the `x-thousandeyes-agent: yes` header. * `true`: Appends `(ThousandEyes Agent)` to the `user-agent` header. For more information, see [Notes on Agent ID Strategy](https://docs.thousandeyes.com/product-documentation/browser-synthetics/test-settings-page-load-transaction#notes-on-agent-id-strategy). <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `include_headers` (Boolean) Set to `true` to capture response headers for objects loaded by the test. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run). <!-- probed:7.0.98-t1785745161014 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
+- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `network_measurements` (Boolean) Enable or disable network measurements. Set to true to enable or false to disable network measurements. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns 3 when this is omitted. <!-- /probed -->
+- `override_agent_proxy` (Boolean) Flag indicating if a proxy other than the default should be used. To override the default proxy for agents, set to `true` and specify a value for `overrideProxyId`. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `override_proxy_id` (String) ID of the proxy to be used if the default proxy is overridden.
-- `page_load_target_time` (Number) Target time for page load completion, specified in seconds and cannot exceed the `pageLoadTimeLimit`.
-- `page_load_time_limit` (Number) Page load time limit. Must be larger than the `httpTimeLimit`.
+- `page_load_target_time` (Number) Target time for page load completion, specified in seconds and cannot exceed the `pageLoadTimeLimit`. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns 6 when this is omitted. <!-- /probed -->
+- `page_load_time_limit` (Number) Page load time limit. Must be larger than the `httpTimeLimit`. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns 10 when this is omitted. <!-- /probed -->
 - `page_loading_strategy` (String) * `normal`: The test waits until the entire page is fully loaded, including the downloading and parsing of HTML content as well as all associated resources, before advancing to the next action in the transaction test script. * `eager`: The test waits for the DOMContentLoaded event, indicating that HTML content is downloaded and parsed, and the document reaches the "interactive" readiness state, before proceeding to the next action in the test script. * `none`: The test only waits for the download of HTML content. Once the HTML is downloaded, the test continues to the next action in the transaction test script without waiting for additional resources.
 - `password` (String) Password for Basic/NTLM authentication.
 - `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
 - `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
-- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD).
-- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
+- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD). <!-- probed:7.0.98-t1785745161014 --> Values accepted here: `tcp`, `icmp`. The specification documents `udp`, which the API rejected. Observed: the API assigns "tcp" when this is omitted. <!-- /probed -->
+- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `ssl_version_id` (String) SSL version options: * Use '0' for automatic selection. * Use '3' for SSLv3. * Use '4' for TLS v1.0. * Use '5' for TLS v1.1. * Use '6' for TLS v1.2. * Use '7' for TLS v1.3.
 - `subinterval` (Number) Subinterval for round-robin testing (in seconds). Must be less than or equal to interval and must evenly divide interval. Documented values: `60`, `120`, `300`, `600`, `900`, `1200`, `1800`, `3600`.
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks.
-- `use_ntlm` (Boolean) Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set.
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
+- `url` (String) Target for the test. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785745161014 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
+- `use_ntlm` (Boolean) Set to true to use NTLM, false to use Basic Authentication. Requires username and password to be set. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `user_agent` (String) User-agent string to be provided during the test.
 - `username` (String) Username for Basic/NTLM authentication.
 - `vault_credentials` (Attributes Set) List of credential IDs that are stored in an external vault. (see [below for nested schema](#nestedatt--vault_credentials))
-- `verify_certificate` (Boolean) Ignore or acknowledge certificate errors. Set to false to ignore certificate errors.
+- `verify_certificate` (Boolean) Ignore or acknowledge certificate errors. Set to false to ignore certificate errors. <!-- probed:7.0.98-t1785745161014 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 
 ### Read-Only
 
 - `created_by` (String) User that created the test.
 - `created_date` (String) UTC created date (ISO date-time format).
+- `id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `live_share` (Boolean) Indicates if the test is shared with the account group.
 - `modified_by` (String) User that modified the test.
 - `modified_date` (String) UTC last modification date (ISO date-time format).
 - `saved_event` (Boolean) Indicates if the test is a saved event. **Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.
 - `ssl_version` (String) Reflects the verbose SSL protocol version used by a test.
-- `test_id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `type` (String) This is a read only value, as test type is implicit in the test creation url.
 
 <a id="nestedatt--agents"></a>
@@ -120,4 +120,4 @@ Optional:
 Optional:
 
 - `secret_id` (String) UUID of the configured secret.
-- `target` (String) The target setting that the credential should be used for.
+- `target` (String) The target setting that the credential should be used for. <!-- probed:7.0.98-t1785745161014 --> Values accepted here: `username`, `password`, `script`. The API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute. <!-- /probed -->

@@ -1,0 +1,38 @@
+{
+  "id": "015-post-v7-tests-ftp-server",
+  "seq": 15,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/ftp-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "password": "guest",
+      "requestType": "download",
+      "testName": "tfpfgen-probe-write-required-6",
+      "username": "anonymous"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/ftp-server",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Error in field url.url : URL is empty.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

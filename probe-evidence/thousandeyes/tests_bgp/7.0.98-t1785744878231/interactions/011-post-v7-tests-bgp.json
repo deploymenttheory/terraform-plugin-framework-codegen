@@ -1,0 +1,29 @@
+{
+  "id": "011-post-v7-tests-bgp",
+  "seq": 11,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/bgp",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "testName": "tfpfgen-probe-write-required-2"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/bgp",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Error in field prefix.prefix : Prefix is empty.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

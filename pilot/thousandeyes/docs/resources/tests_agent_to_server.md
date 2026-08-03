@@ -23,44 +23,44 @@ resource "thousandeyes_tests_agent_to_server" "example" {
 
 ### Required
 
-- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. (see [below for nested schema](#nestedatt--agents))
+- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. <!-- probed:7.0.98-t1785744716524 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> (see [below for nested schema](#nestedatt--agents))
 
 ### Optional
 
-- `alerts_enabled` (Boolean) Indicates if alerts are enabled.
-- `bandwidth_measurements` (Boolean) Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.
-- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements.
-- `continuous_mode` (Boolean) To enable continuous monitoring, set this parameter to `true` to. When continuous monitoring is enabled, the following actions occur: * `fixedPacketRate` is enforced * `bandwidthMeasurements` are disabled * If the `protocol` is set to `tcp`, `probeMode` is set to `syn`.
+- `alerts_enabled` (Boolean) Indicates if alerts are enabled. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `bandwidth_measurements` (Boolean) Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `bgp_measurements` (Boolean) Set to `true` to enable bgp measurements. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `continuous_mode` (Boolean) To enable continuous monitoring, set this parameter to `true` to. When continuous monitoring is enabled, the following actions occur: * `fixedPacketRate` is enforced * `bandwidthMeasurements` are disabled * If the `protocol` is set to `tcp`, `probeMode` is set to `syn`. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `description` (String) A description of the test.
 - `dscp_id` (String) DSCP ID [to see list for acceptable values](https://docs.thousandeyes.com/product-documentation/tests/dscp-options-in-network-tests)
-- `enabled` (Boolean) Test is enabled.
+- `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `fixed_packet_rate` (Number) If continuousMode is `false`, set the fixedPacketRate to a value between 10-100. If `continuousMode` is `true`, set the `fixedPacketRate` to `1`
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run). <!-- probed:7.0.98-t1785744716524 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 - `ipv6_policy` (String) IP version policy. Overrides the IPv6 policy configured at the agent level.
-- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target.
-- `network_measurements` (Boolean) View packet loss in 1-second intervals. This is only available for 1-minute interval tests. Set to `true` to enable network measurements.
-- `num_path_traces` (Number) Number of path traces executed by the agent.
+- `mtu_measurements` (Boolean) Set `true` to measure MTU sizes on network from agents to the target. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `network_measurements` (Boolean) View packet loss in 1-second intervals. This is only available for 1-minute interval tests. Set to `true` to enable network measurements. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `num_path_traces` (Number) Number of path traces executed by the agent. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns 3 when this is omitted. <!-- /probed -->
 - `path_trace_mode` (String) Select `inSession` to perform the path trace within a TCP session.
 - `ping_payload_size` (Number) Payload size (not total packet size) for the end-to-end metric's probes, ping payload size allows values from 0 to 1400 bytes. When set to null, payload sizes are 0 bytes for ICMP-based tests and 1 byte for TCP-based tests.
 - `port` (Number) Port number to use for the test. The default port is 80.
 - `probe_mode` (String) Probe mode used by network test, only valid when the protocol is set to TCP.
-- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD).
-- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
-- `server` (String) The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon. The test's target: the API refuses a create without it, whatever the specification marks.
+- `protocol` (String) Protocol used by dependent network tests (end-to-end, path trace, PMTUD). <!-- probed:7.0.98-t1785744716524 --> Values accepted here: `tcp`, `icmp`. The specification documents `udp`, which the API rejected. Observed: the API assigns "tcp" when this is omitted. <!-- /probed -->
+- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
+- `server` (String) The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785744716524 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.
+- `use_public_bgp` (Boolean) Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value. <!-- probed:7.0.98-t1785744716524 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 
 ### Read-Only
 
 - `created_by` (String) User that created the test.
 - `created_date` (String) UTC created date (ISO date-time format).
 - `dscp` (String) DSCP label.
+- `id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `live_share` (Boolean) Indicates if the test is shared with the account group.
 - `modified_by` (String) User that modified the test.
 - `modified_date` (String) UTC last modification date (ISO date-time format).
 - `saved_event` (Boolean) Indicates if the test is a saved event. **Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.
-- `test_id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `type` (String) This is a read only value, as test type is implicit in the test creation url.
 
 <a id="nestedatt--agents"></a>

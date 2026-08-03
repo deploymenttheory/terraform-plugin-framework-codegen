@@ -1,0 +1,87 @@
+{
+  "id": "041-post-v7-tests-dns-server",
+  "seq": 41,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/dns-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "dnsServers": [
+        "8.8.8.8"
+      ],
+      "domain": "example.com",
+      "interval": 3600,
+      "protocol": "TCP",
+      "testName": "tfpfgen-probe-write-enum-6"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/dns-server/281474976976854",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dns-server/281474976976854"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976854/dns-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976854/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976854/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976854/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:16:13Z",
+      "dnsQueryClass": "in",
+      "dnsServers": [
+        {
+          "serverId": "281474976711366",
+          "serverName": "8.8.8.8"
+        }
+      ],
+      "dnsTransportProtocol": "udp",
+      "domain": "example.com ANY",
+      "enabled": true,
+      "interval": 3600,
+      "ipv6Policy": "use-agent-policy",
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 1,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "recursiveQueries": false,
+      "savedEvent": false,
+      "testId": "281474976976854",
+      "testName": "tfpfgen-probe-write-enum-6",
+      "type": "dns-server",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

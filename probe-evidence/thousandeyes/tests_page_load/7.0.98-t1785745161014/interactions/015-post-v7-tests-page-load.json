@@ -1,0 +1,80 @@
+{
+  "id": "015-post-v7-tests-page-load",
+  "seq": 15,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/page-load",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": true,
+      "allowGeolocation": true,
+      "allowMicAndCamera": true,
+      "allowUnsafeLegacyRenegotiation": true,
+      "bandwidthMeasurements": true,
+      "bgpMeasurements": true,
+      "blockDomains": "probe-blockDomains-1",
+      "browserLanguage": "probe-browserLanguage-1",
+      "chromeOptions": "probe-chromeOptions-1",
+      "chromePolicies": "probe-chromePolicies-1",
+      "clientCertificate": "probe-clientCertificate-1",
+      "collectProxyNetworkData": true,
+      "contentRegex": "probe-contentRegex-1",
+      "description": "probe-description-1",
+      "desiredStatusCode": "probe-desiredStatusCode-1",
+      "disableScreenshot": true,
+      "distributedTracing": true,
+      "dnsOverride": "probe-dnsOverride-1",
+      "downloadLimit": 1001,
+      "emulatedDeviceId": "probe-emulatedDeviceId-1",
+      "enabled": true,
+      "fixedPacketRate": 1001,
+      "followRedirects": true,
+      "httpTargetTime": 1001,
+      "httpTimeLimit": 1001,
+      "httpVersion": 1001,
+      "identifyAgentTrafficWithUserAgent": true,
+      "includeHeaders": true,
+      "interval": 3600,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 1001,
+      "overrideAgentProxy": true,
+      "overrideProxyId": "probe-overrideProxyId-1",
+      "pageLoadTargetTime": 1001,
+      "pageLoadTimeLimit": 1001,
+      "password": "probe-password-1",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "testName": "tfpfgen-probe-write-writable-returned-1",
+      "url": "probe-url-1",
+      "useNtlm": true,
+      "usePublicBgp": true,
+      "userAgent": "probe-userAgent-1",
+      "username": "probe-username-1",
+      "verifyCertificate": true
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Invalid value for fields: httpVersion",
+      "instance": "/v7/tests/page-load",
+      "status": 400,
+      "title": "request validation failed. There are invalid or missing fields",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

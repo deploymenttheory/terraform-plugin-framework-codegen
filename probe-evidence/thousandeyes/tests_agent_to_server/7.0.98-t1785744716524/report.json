@@ -1,0 +1,736 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (0 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "tests_agent_to_server",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tests-agent-to-server-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-tests-agent-to-server-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "field": "policy.readBack",
+      "value": {
+        "readBack": {
+          "reason": "every one of 3 read(s) immediately after a create succeeded on the first attempt"
+        }
+      },
+      "confidence": "inferred",
+      "probe": "write.read-your-writes",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789",
+        "033-get-v7-tests-agent-to-server-281474976976793"
+      ],
+      "rationale": "3 object(s) were read immediately after creation and every first read succeeded",
+      "alternatives": [
+        "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "field": "policy.updateStyle",
+      "value": {
+        "text": "replaceOnly"
+      },
+      "confidence": "inferred",
+      "probe": "write.update-style",
+      "evidence": [],
+      "rationale": "the blueprint records no update operation, so every writable attribute needs replacement rather than an in-place change",
+      "alternatives": [
+        "no cassette interaction could be matched to this observation, so it cannot be re-derived offline"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-tests-agent-to-server",
+        "003-get-v7-tests-agent-to-server",
+        "004-get-v7-tests-agent-to-server",
+        "005-get-v7-tests-agent-to-server",
+        "006-get-v7-tests-agent-to-server",
+        "007-get-v7-tests-agent-to-server",
+        "008-get-v7-tests-agent-to-server",
+        "009-get-v7-tests-agent-to-server",
+        "035-get-v7-tests-agent-to-server"
+      ],
+      "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "agents",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "011-post-v7-tests-agent-to-server"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "alertsEnabled",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "bandwidthMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "bgpMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "continuousMode",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "enabled",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "interval",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "012-post-v7-tests-agent-to-server"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "mtuMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "networkMeasurements",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "numPathTraces",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "3"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as 3 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "protocol",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "tcp",
+          "icmp"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "022-post-v7-tests-agent-to-server",
+        "023-post-v7-tests-agent-to-server",
+        "024-post-v7-tests-agent-to-server",
+        "025-post-v7-tests-agent-to-server",
+        "026-post-v7-tests-agent-to-server"
+      ],
+      "rationale": "2 of the 3 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "protocol",
+      "field": "rejectedValues",
+      "value": {
+        "list": [
+          "udp"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "022-post-v7-tests-agent-to-server",
+        "023-post-v7-tests-agent-to-server",
+        "024-post-v7-tests-agent-to-server",
+        "025-post-v7-tests-agent-to-server",
+        "026-post-v7-tests-agent-to-server"
+      ],
+      "rationale": "the specification documents tcp, icmp, udp but this API refused udp",
+      "alternatives": [
+        "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "protocol",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"tcp\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as tcp every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "protocol",
+      "field": "valuesClosed",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "022-post-v7-tests-agent-to-server",
+        "023-post-v7-tests-agent-to-server",
+        "024-post-v7-tests-agent-to-server",
+        "025-post-v7-tests-agent-to-server",
+        "026-post-v7-tests-agent-to-server"
+      ],
+      "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+      "alternatives": [
+        "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "randomizedStartTime",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "false"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "server",
+      "field": "normalisation",
+      "value": {
+        "text": "the value came back changed by \"letter case is changed\", in a way this probe could not identify"
+      },
+      "confidence": "suspected",
+      "probe": "write.normalisation",
+      "evidence": [
+        "033-get-v7-tests-agent-to-server-281474976976793"
+      ],
+      "rationale": "MiXeD-probe-server-2 was sent and MiXeD-probe-server-2:80 came back",
+      "alternatives": [
+        "the difference may be a server default overwriting the sent value rather than a transformation of it, which write.writable-returned would distinguish"
+      ]
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "server",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.required",
+      "evidence": [
+        "013-post-v7-tests-agent-to-server"
+      ],
+      "rationale": "a create omitting this field was refused with 400 and the error named the field"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "usePublicBgp",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "true"
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "017-get-v7-tests-agent-to-server-281474976976788",
+        "019-get-v7-tests-agent-to-server-281474976976789"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "resource": "tests_agent_to_server",
+      "probe": "write.writable-returned",
+      "message": "fixture minimal was refused with 400 (), so nothing was observed about writability from it"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "probe": "read.error-envelope",
+      "message": "no candidate query parameter (limit, max, offset, page) was validated, so no error shape was observed without mutating anything"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "probe": "read.volatile",
+      "message": "no existing object to read repeatedly, so volatility was not observed"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "probe": "read.returned-weak",
+      "message": "no existing object to read, so no field presence was observed"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "probe": "read.list-shape",
+      "message": "the collection is empty, so no item shape was observed and later probes have no fixture to draw on"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"surrounding whitespace is stripped\" was refused with 400 (), so nothing was observed about that transform"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "probe": "write.side-effect",
+      "message": "the plan declares no field whose value might affect another, so there is no suspected trigger to perturb; declare one under defaultInfluencers"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "probe": "write.immutability",
+      "message": "the resource has no update operation, so immutability is not a question about it: write.update-style records replaceOnly instead"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "agents.agentId",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "description",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "dscpId",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "fixedPacketRate",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "interval",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "ipv6Policy",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "pathTraceMode",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "pingPayloadSize",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "port",
+      "probe": "write.server-default",
+      "message": "the field was omitted and did not appear in the read, so the API assigns no value a generated default could carry"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "probeMode",
+      "probe": "write.writable-returned",
+      "message": "the plan denies this field, so nothing was sent for it and whatever the blueprint currently claims about it is still unprobed"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "protocol",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "protocol",
+      "probe": "write.enum",
+      "message": "the API accepted \"TCP\" for a value the specification documents as \"tcp\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "testName",
+      "probe": "write.normalisation",
+      "message": "\"letter case is changed\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "testName",
+      "probe": "write.normalisation",
+      "message": "\"surrounding whitespace is stripped\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "tests_agent_to_server",
+      "jsonPath": "testName",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 4,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 6,
+      "facts": 3
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.normalisation",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 3,
+      "facts": 1
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 3
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 11
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    }
+  ],
+  "budget": {
+    "requests": 34,
+    "maxRequests": 240,
+    "creates": 15,
+    "maxCreates": 80,
+    "deletes": 7,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  }
+}

@@ -207,7 +207,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -225,7 +225,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -353,8 +353,14 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Indicates if alerts are enabled.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Indicates if alerts are enabled.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "true"
+              }
+            },
             "wire": {
               "jsonPath": "alertsEnabled",
               "sdkField": "AlertsEnabled",
@@ -373,8 +379,14 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set to `true` to enable bandwidth measurements, only applies to Enterprise agents assigned to the test.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "false"
+              }
+            },
             "wire": {
               "jsonPath": "bandwidthMeasurements",
               "sdkField": "BandwidthMeasurements",
@@ -396,8 +408,14 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set to `true` to enable bgp measurements.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set to `true` to enable bgp measurements.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "true"
+              }
+            },
             "wire": {
               "jsonPath": "bgpMeasurements",
               "sdkField": "BgpMeasurements",
@@ -419,8 +437,14 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "To enable continuous monitoring, set this parameter to `true` to. \nWhen continuous monitoring is enabled, the following actions occur:\n* `fixedPacketRate` is enforced\n* `bandwidthMeasurements` are disabled\n* If the `protocol` is set to `tcp`, `probeMode` is set to `syn`.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "To enable continuous monitoring, set this parameter to `true` to. \nWhen continuous monitoring is enabled, the following actions occur:\n* `fixedPacketRate` is enforced\n* `bandwidthMeasurements` are disabled\n* If the `protocol` is set to `tcp`, `probeMode` is set to `syn`.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "false"
+              }
+            },
             "wire": {
               "jsonPath": "continuousMode",
               "sdkField": "ContinuousMode",
@@ -560,8 +584,14 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Test is enabled.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Test is enabled.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "true"
+              }
+            },
             "wire": {
               "jsonPath": "enabled",
               "sdkField": "Enabled",
@@ -620,7 +650,10 @@
               ]
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).",
+            "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true
+            },
             "wire": {
               "jsonPath": "interval",
               "sdkField": "Interval",
@@ -634,9 +667,6 @@
               "flatten": {
                 "func": "convert.IntEnumToFramework"
               }
-            },
-            "behaviour": {
-              "requiredByApi": true
             }
           },
           {
@@ -956,8 +986,14 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Set `true` to measure MTU sizes on network from agents to the target.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "true"
+              }
+            },
             "wire": {
               "jsonPath": "mtuMeasurements",
               "sdkField": "MtuMeasurements",
@@ -979,8 +1015,14 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "View packet loss in 1-second intervals. This is only available for 1-minute interval tests. Set to `true` to enable network measurements.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "View packet loss in 1-second intervals. This is only available for 1-minute interval tests. Set to `true` to enable network measurements.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "true"
+              }
+            },
             "wire": {
               "jsonPath": "networkMeasurements",
               "sdkField": "NetworkMeasurements",
@@ -1003,8 +1045,14 @@
                 "maximum": 10
               }
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Number of path traces executed by the agent.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Number of path traces executed by the agent.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns 3 when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "3"
+              }
+            },
             "wire": {
               "jsonPath": "numPathTraces",
               "sdkField": "NumPathTraces",
@@ -1134,8 +1182,22 @@
                 "udp"
               ]
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785744716524 -->\nValues accepted here: `tcp`, `icmp`.\nThe specification documents `udp`, which the API rejected.\nObserved: the API assigns \"tcp\" when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "\"tcp\""
+              },
+              "acceptedValues": [
+                "tcp",
+                "icmp"
+              ],
+              "rejectedValues": [
+                "udp"
+              ],
+              "valuesClosed": true
+            },
             "wire": {
               "jsonPath": "protocol",
               "sdkField": "Protocol",
@@ -1157,8 +1219,14 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Indicates whether agents should randomize the start time in each test round.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns false when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "false"
+              }
+            },
             "wire": {
               "jsonPath": "randomizedStartTime",
               "sdkField": "RandomizedStartTime",
@@ -1199,7 +1267,10 @@
               "kind": "string"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.",
+            "markdownDescription": "The target name or IP address. If a port is set for the test, it is appended to the target name or IP address using a colon.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true
+            },
             "wire": {
               "jsonPath": "server",
               "sdkField": "Server",
@@ -1210,9 +1281,6 @@
               "flatten": {
                 "func": "convert.EnumToFramework"
               }
-            },
-            "behaviour": {
-              "requiredByApi": true
             }
           },
           {
@@ -1368,8 +1436,8 @@
             "drop": true
           },
           {
-            "name": "test_id",
-            "goField": "TestID",
+            "name": "id",
+            "goField": "ID",
             "type": {
               "kind": "string"
             },
@@ -1429,8 +1497,14 @@
             "type": {
               "kind": "bool"
             },
-            "computedOptionalRequired": "optional",
-            "markdownDescription": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.",
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Indicate if all available public BGP monitors should be used, when ommited defaults to `bgpMeasurements` value.\n\n<!-- probed:7.0.98-t1785744716524 -->\nObserved: the API assigns true when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "true"
+              }
+            },
             "wire": {
               "jsonPath": "usePublicBgp",
               "sdkField": "UsePublicBGP",
@@ -1457,6 +1531,7 @@
                 "attrTypesVar": "agentToServerAgentAttrTypes",
                 "objectTypeVar": "agentToServerAgentObjectType",
                 "expandFunc": "expandAgentToServerAgents",
+                "flattenFunc": "",
                 "attributes": [
                   {
                     "name": "agent_id",
@@ -1480,17 +1555,20 @@
               }
             },
             "computedOptionalRequired": "required",
-            "markdownDescription": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.",
+            "markdownDescription": "The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state.\n\n<!-- probed:7.0.98-t1785744716524 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true
+            },
             "wire": {
               "jsonPath": "agents",
               "sdkField": "Agents",
               "sdkGoType": "[]agent_to_server_tests.TestAgentRequest",
-              "skipFlatten": true,
               "expand": {
                 "func": "expandAgentToServerAgents",
                 "needsCtx": true,
                 "returnsError": true
-              }
+              },
+              "skipFlatten": true
             }
           }
         ],
@@ -1527,7 +1605,7 @@
             },
             {
               "kind": "stateField",
-              "field": "TestID"
+              "field": "ID"
             }
           ],
           "return": "resultTransportError",
@@ -1544,7 +1622,7 @@
             },
             {
               "kind": "stateField",
-              "field": "TestID"
+              "field": "ID"
             }
           ],
           "return": "transportError",
@@ -1552,8 +1630,8 @@
           "pathTemplate": "/tests/agent-to-server/{testId}"
         },
         "id": {
-          "attribute": "test_id",
-          "goField": "TestID",
+          "attribute": "id",
+          "goField": "ID",
           "fromCreate": "created.TestID",
           "fromCreateIsPointer": true
         },
@@ -1572,7 +1650,10 @@
       },
       "import": {
         "style": "passthroughId",
-        "attribute": "test_id"
+        "attribute": "id"
+      },
+      "sweep": {
+        "nameField": "testName"
       },
       "accFixture": {
         "values": [
@@ -1589,9 +1670,6 @@
             "hcl": "3600"
           }
         ]
-      },
-      "sweep": {
-        "nameField": "testName"
       }
     }
   ]

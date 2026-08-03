@@ -1,0 +1,59 @@
+{
+  "id": "030-post-v7-tests-dns-trace",
+  "seq": 30,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/dns-trace",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "description": "MiXeD-probe-description-2",
+      "domain": "MiXeD-probe-domain-2",
+      "interval": 3600,
+      "testName": "tfpfgen-probe-write-normalisation-2"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/tests/dns-trace/281474976976862",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/dns-trace/281474976976862"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976862/dns-trace"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:16:57Z",
+      "description": "MiXeD-probe-description-2",
+      "dnsQueryClass": "in",
+      "dnsTransportProtocol": "udp",
+      "domain": "MiXeD-probe-domain-2 ANY",
+      "enabled": true,
+      "interval": 3600,
+      "liveShare": false,
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "testId": "281474976976862",
+      "testName": "tfpfgen-probe-write-normalisation-2",
+      "type": "dns-trace"
+    },
+    "droppedHeaders": 14
+  }
+}

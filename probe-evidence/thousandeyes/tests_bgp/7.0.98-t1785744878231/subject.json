@@ -1,0 +1,132 @@
+{
+  "resource": "tests_bgp",
+  "collectionTemplate": "/tests/bgp",
+  "itemTemplate": "/tests/bgp/{testId}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/tests/bgp"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/tests/bgp/{testId}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/tests/bgp/{testId}"
+  },
+  "fields": [
+    {
+      "jsonPath": "alertsEnabled",
+      "attribute": "alerts_enabled",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "createdBy",
+      "attribute": "created_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "createdDate",
+      "attribute": "created_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "description",
+      "attribute": "description",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "enabled",
+      "attribute": "enabled",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "includeCoveredPrefixes",
+      "attribute": "include_covered_prefixes",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "liveShare",
+      "attribute": "live_share",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedBy",
+      "attribute": "modified_by",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedDate",
+      "attribute": "modified_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "prefix",
+      "attribute": "prefix",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "savedEvent",
+      "attribute": "saved_event",
+      "kind": "bool",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "testId",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "testName",
+      "attribute": "test_name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "type",
+      "attribute": "type",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "usePublicBgp",
+      "attribute": "use_public_bgp",
+      "kind": "bool",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    }
+  ],
+  "policy": {
+    "updateStyle": "replaceOnly",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "testId",
+  "nameField": "testName"
+}

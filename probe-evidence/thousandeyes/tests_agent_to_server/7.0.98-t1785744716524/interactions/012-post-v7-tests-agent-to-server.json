@@ -1,0 +1,35 @@
+{
+  "id": "012-post-v7-tests-agent-to-server",
+  "seq": 12,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/agent-to-server",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "server": "www.example.com",
+      "testName": "tfpfgen-probe-write-required-3"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/agent-to-server",
+      "status": 400,
+      "title": "There were some errors in your request, please correct them before trying again. Error in field interval : Interval is empty.",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

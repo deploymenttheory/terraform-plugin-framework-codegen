@@ -1,0 +1,43 @@
+{
+  "id": "015-get-v7-tests-bgp-281474976976844",
+  "seq": 15,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/bgp/281474976976844",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/bgp/281474976976844"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976844/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:14:33Z",
+      "enabled": true,
+      "includeCoveredPrefixes": false,
+      "liveShare": false,
+      "prefix": "8.8.8.0/24",
+      "savedEvent": false,
+      "testId": "281474976976844",
+      "testName": "tfpfgen-probe-write-server-default-1",
+      "type": "bgp",
+      "usePublicBgp": true
+    },
+    "droppedHeaders": 14
+  }
+}

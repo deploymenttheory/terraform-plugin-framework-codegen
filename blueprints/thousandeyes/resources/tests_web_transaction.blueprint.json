@@ -281,7 +281,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -299,7 +299,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -448,7 +448,7 @@
               "kind": "bool"
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Set true to use the agent\u2019s geolocation by the web page.",
+            "markdownDescription": "Set true to use the agent’s geolocation by the web page.",
             "wire": {
               "jsonPath": "allowGeolocation",
               "sdkField": "AllowGeolocation",
@@ -1261,6 +1261,9 @@
             },
             "computedOptionalRequired": "optional",
             "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).",
+            "behaviour": {
+              "requiredByApi": true
+            },
             "wire": {
               "jsonPath": "interval",
               "sdkField": "Interval",
@@ -1274,9 +1277,6 @@
               "flatten": {
                 "func": "convert.IntEnumToFramework"
               }
-            },
-            "behaviour": {
-              "requiredByApi": true
             }
           },
           {
@@ -1991,7 +1991,13 @@
               ]
             },
             "computedOptionalRequired": "optional",
-            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).",
+            "markdownDescription": "Protocol used by dependent network tests (end-to-end, path trace, PMTUD).\n\n<!-- probed:7.0.98-t1785745177323 -->\nThe specification documents `udp`, which the API rejected.\n<!-- /probed -->",
+            "behaviour": {
+              "rejectedValues": [
+                "udp"
+              ],
+              "valuesClosed": true
+            },
             "wire": {
               "jsonPath": "protocol",
               "sdkField": "Protocol",
@@ -2310,8 +2316,8 @@
             }
           },
           {
-            "name": "test_id",
-            "goField": "TestID",
+            "name": "id",
+            "goField": "ID",
             "type": {
               "kind": "string"
             },
@@ -2435,6 +2441,9 @@
             },
             "computedOptionalRequired": "optional",
             "markdownDescription": "Target for the test.\n\nThe test's target: the API refuses a create without it, whatever the specification marks.",
+            "behaviour": {
+              "requiredByApi": true
+            },
             "wire": {
               "jsonPath": "url",
               "sdkField": "URL",
@@ -2448,9 +2457,6 @@
               "flatten": {
                 "func": "convert.EnumToFramework"
               }
-            },
-            "behaviour": {
-              "requiredByApi": true
             }
           },
           {
@@ -2661,6 +2667,7 @@
                 "attrTypesVar": "webTransactionAgentAttrTypes",
                 "objectTypeVar": "webTransactionAgentObjectType",
                 "expandFunc": "expandWebTransactionAgents",
+                "flattenFunc": "",
                 "attributes": [
                   {
                     "name": "agent_id",
@@ -2689,12 +2696,12 @@
               "jsonPath": "agents",
               "sdkField": "Agents",
               "sdkGoType": "[]web_transaction_tests.TestAgentRequest",
-              "skipFlatten": true,
               "expand": {
                 "func": "expandWebTransactionAgents",
                 "needsCtx": true,
                 "returnsError": true
-              }
+              },
+              "skipFlatten": true
             }
           }
         ],
@@ -2731,7 +2738,7 @@
             },
             {
               "kind": "stateField",
-              "field": "TestID"
+              "field": "ID"
             }
           ],
           "return": "resultTransportError",
@@ -2748,7 +2755,7 @@
             },
             {
               "kind": "stateField",
-              "field": "TestID"
+              "field": "ID"
             },
             {
               "kind": "body"
@@ -2768,7 +2775,7 @@
             },
             {
               "kind": "stateField",
-              "field": "TestID"
+              "field": "ID"
             }
           ],
           "return": "transportError",
@@ -2776,8 +2783,8 @@
           "pathTemplate": "/tests/web-transactions/{testId}"
         },
         "id": {
-          "attribute": "test_id",
-          "goField": "TestID",
+          "attribute": "id",
+          "goField": "ID",
           "fromCreate": "created.TestID",
           "fromCreateIsPointer": true
         },
@@ -2796,7 +2803,10 @@
       },
       "import": {
         "style": "passthroughId",
-        "attribute": "test_id"
+        "attribute": "id"
+      },
+      "sweep": {
+        "nameField": "testName"
       },
       "accFixture": {
         "values": [
@@ -2813,9 +2823,6 @@
             "hcl": "3600"
           }
         ]
-      },
-      "sweep": {
-        "nameField": "testName"
       }
     }
   ]

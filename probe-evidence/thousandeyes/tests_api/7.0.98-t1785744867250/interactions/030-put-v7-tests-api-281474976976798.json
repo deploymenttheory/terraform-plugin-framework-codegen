@@ -1,0 +1,97 @@
+{
+  "id": "030-put-v7-tests-api-281474976976798",
+  "seq": 30,
+  "request": {
+    "method": "PUT",
+    "path": "/v7/tests/api/281474976976798",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "protocol": "tcp",
+      "requests": [
+        {
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck"
+        }
+      ],
+      "testName": "tfpfgen-probe-write-immutability-0",
+      "url": "https://api.stripe.com/healthcheck"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/api/281474976976798"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976798/api"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976798/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976798/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976798/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "bgpMeasurements": true,
+      "collectProxyNetworkData": false,
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:12:21Z",
+      "distributedTracing": false,
+      "enabled": true,
+      "interval": 3600,
+      "liveShare": false,
+      "modifiedBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "modifiedDate": "2026-08-03T08:12:23Z",
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "overrideAgentProxy": false,
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "tcp",
+      "randomizedStartTime": false,
+      "requests": [
+        {
+          "authType": "none",
+          "collectApiResponse": false,
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck",
+          "verifyCertificate": false
+        }
+      ],
+      "savedEvent": false,
+      "targetTime": 6,
+      "testId": "281474976976798",
+      "testName": "tfpfgen-probe-write-immutability-0",
+      "timeLimit": 10,
+      "type": "api",
+      "url": "https://api.stripe.com/healthcheck",
+      "usePublicBgp": true,
+      "vaultCredentials": []
+    },
+    "droppedHeaders": 14
+  }
+}

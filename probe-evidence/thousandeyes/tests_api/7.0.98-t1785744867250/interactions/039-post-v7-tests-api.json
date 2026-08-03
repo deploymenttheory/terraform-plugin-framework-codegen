@@ -1,0 +1,45 @@
+{
+  "id": "039-post-v7-tests-api",
+  "seq": 39,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/api",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "interval": 3600,
+      "protocol": "qqq",
+      "requests": [
+        {
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck"
+        }
+      ],
+      "testName": "tfpfgen-probe-write-enum-4",
+      "url": "https://api.stripe.com/healthcheck"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Invalid value for fields: protocol",
+      "instance": "/v7/tests/api",
+      "status": 400,
+      "title": "request validation failed. There are invalid or missing fields",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

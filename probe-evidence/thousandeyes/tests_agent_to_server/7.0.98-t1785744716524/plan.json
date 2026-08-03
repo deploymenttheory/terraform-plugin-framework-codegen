@@ -1,0 +1,34 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "agents": [
+          {
+            "agentId": "3"
+          }
+        ],
+        "interval": 3600,
+        "server": "www.example.com",
+        "testName": "tfpfgen-probe-fixture"
+      }
+    }
+  ],
+  "candidates": {
+    "protocol": [
+      "icmp",
+      "udp"
+    ]
+  },
+  "deny": [
+    "dscpId",
+    "interval",
+    "ipv6Policy",
+    "pathTraceMode",
+    "probeMode"
+  ],
+  "budget": {
+    "maxRequests": 240,
+    "maxCreates": 80
+  }
+}

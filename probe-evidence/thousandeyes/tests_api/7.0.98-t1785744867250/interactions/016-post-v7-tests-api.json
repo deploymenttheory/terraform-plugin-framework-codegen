@@ -1,0 +1,62 @@
+{
+  "id": "016-post-v7-tests-api",
+  "seq": 16,
+  "request": {
+    "method": "POST",
+    "path": "/v7/tests/api",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "agents": [
+        {
+          "agentId": "3"
+        }
+      ],
+      "alertsEnabled": true,
+      "bgpMeasurements": true,
+      "clientCertDomainsAllowList": "probe-clientCertDomainsAllowList-1",
+      "clientCertificate": "probe-clientCertificate-1",
+      "collectProxyNetworkData": true,
+      "description": "probe-description-1",
+      "distributedTracing": true,
+      "enabled": true,
+      "followRedirects": true,
+      "interval": 3600,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 1001,
+      "overrideAgentProxy": true,
+      "overrideProxyId": "probe-overrideProxyId-1",
+      "protocol": "icmp",
+      "randomizedStartTime": true,
+      "requests": [
+        {
+          "method": "get",
+          "name": "step-1",
+          "url": "https://api.stripe.com/healthcheck"
+        }
+      ],
+      "targetTime": 1001,
+      "testName": "tfpfgen-probe-write-writable-returned-1",
+      "timeLimit": 1001,
+      "url": "probe-url-1",
+      "usePublicBgp": true
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "instance": "/v7/tests/api",
+      "status": 400,
+      "title": "Bad Request",
+      "type": "about:blank"
+    },
+    "droppedHeaders": 13
+  }
+}

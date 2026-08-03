@@ -207,7 +207,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -225,7 +225,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -606,6 +606,9 @@
             },
             "computedOptionalRequired": "optional",
             "markdownDescription": "Interval between test runs in seconds.\n\nDocumented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`.\n\nThe request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).",
+            "behaviour": {
+              "requiredByApi": true
+            },
             "wire": {
               "jsonPath": "interval",
               "sdkField": "Interval",
@@ -619,9 +622,6 @@
               "flatten": {
                 "func": "convert.IntEnumToFramework"
               }
-            },
-            "behaviour": {
-              "requiredByApi": true
             }
           },
           {
@@ -1254,8 +1254,8 @@
             }
           },
           {
-            "name": "test_id",
-            "goField": "TestID",
+            "name": "id",
+            "goField": "ID",
             "type": {
               "kind": "string"
             },
@@ -1417,6 +1417,7 @@
                 "attrTypesVar": "agentToAgentAgentAttrTypes",
                 "objectTypeVar": "agentToAgentAgentObjectType",
                 "expandFunc": "expandAgentToAgentAgents",
+                "flattenFunc": "",
                 "attributes": [
                   {
                     "name": "agent_id",
@@ -1445,12 +1446,12 @@
               "jsonPath": "agents",
               "sdkField": "Agents",
               "sdkGoType": "[]agent_to_agent_tests.TestAgentRequest",
-              "skipFlatten": true,
               "expand": {
                 "func": "expandAgentToAgentAgents",
                 "needsCtx": true,
                 "returnsError": true
-              }
+              },
+              "skipFlatten": true
             }
           }
         ],
@@ -1487,7 +1488,7 @@
             },
             {
               "kind": "stateField",
-              "field": "TestID"
+              "field": "ID"
             }
           ],
           "return": "resultTransportError",
@@ -1504,7 +1505,7 @@
             },
             {
               "kind": "stateField",
-              "field": "TestID"
+              "field": "ID"
             },
             {
               "kind": "body"
@@ -1524,7 +1525,7 @@
             },
             {
               "kind": "stateField",
-              "field": "TestID"
+              "field": "ID"
             }
           ],
           "return": "transportError",
@@ -1532,8 +1533,8 @@
           "pathTemplate": "/tests/agent-to-agent/{testId}"
         },
         "id": {
-          "attribute": "test_id",
-          "goField": "TestID",
+          "attribute": "id",
+          "goField": "ID",
           "fromCreate": "created.TestID",
           "fromCreateIsPointer": true
         },
@@ -1552,7 +1553,10 @@
       },
       "import": {
         "style": "passthroughId",
-        "attribute": "test_id"
+        "attribute": "id"
+      },
+      "sweep": {
+        "nameField": "testName"
       },
       "accFixture": {
         "values": [
@@ -1565,9 +1569,6 @@
             "hcl": "3600"
           }
         ]
-      },
-      "sweep": {
-        "nameField": "testName"
       },
       "accTest": {
         "skipUnlessEnv": "TFPFGEN_ACC_ENTERPRISE"

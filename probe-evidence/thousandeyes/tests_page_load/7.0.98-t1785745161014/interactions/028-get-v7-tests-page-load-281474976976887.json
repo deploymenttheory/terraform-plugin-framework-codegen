@@ -1,0 +1,92 @@
+{
+  "id": "028-get-v7-tests-page-load-281474976976887",
+  "seq": 28,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/page-load/281474976976887",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/page-load/281474976976887"
+        },
+        "testResults": [
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976887/http-server"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976887/page-load"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976887/network"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976887/path-vis"
+          },
+          {
+            "href": "https://api.thousandeyes.com/v7/test-results/281474976976887/bgp"
+          }
+        ]
+      },
+      "alertsEnabled": true,
+      "allowGeolocation": false,
+      "allowMicAndCamera": false,
+      "allowUnsafeLegacyRenegotiation": true,
+      "authType": "none",
+      "bandwidthMeasurements": false,
+      "bgpMeasurements": true,
+      "blockDomains": "",
+      "browserLanguage": "en-US",
+      "chromiumTrack": "stable",
+      "contentRegex": "",
+      "coreWebVitalsMode": "none",
+      "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+      "createdDate": "2026-08-03T08:18:46Z",
+      "disableScreenshot": false,
+      "distributedTracing": false,
+      "emulatedDeviceId": "281474976710656",
+      "enabled": true,
+      "followRedirects": true,
+      "httpInterval": 3600,
+      "httpTargetTime": 1000,
+      "httpTimeLimit": 5,
+      "httpVersion": 2,
+      "identifyAgentTrafficWithUserAgent": false,
+      "includeHeaders": true,
+      "interval": 3600,
+      "liveShare": false,
+      "mtuMeasurements": true,
+      "networkMeasurements": true,
+      "numPathTraces": 3,
+      "overrideAgentProxy": false,
+      "pageLoadTargetTime": 6,
+      "pageLoadTimeLimit": 10,
+      "pageLoadingStrategy": "normal",
+      "pathTraceMode": "classic",
+      "probeMode": "auto",
+      "protocol": "icmp",
+      "randomizedStartTime": false,
+      "savedEvent": false,
+      "sslVersion": "Auto",
+      "sslVersionId": "0",
+      "testId": "281474976976887",
+      "testName": "tfpfgen-probe-write-immutability-1",
+      "type": "page-load",
+      "url": "https://www.example.com",
+      "useNtlm": false,
+      "usePublicBgp": true,
+      "vaultCredentials": [],
+      "verifyCertificate": true
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "id": "051-get-v7-tests-http-server",
+  "seq": 51,
+  "request": {
+    "method": "GET",
+    "path": "/v7/tests/http-server",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/tests/http-server"
+        }
+      },
+      "tests": [
+        {
+          "_links": {
+            "self": {
+              "href": "https://api.thousandeyes.com/v7/tests/http-server/281474976976786"
+            },
+            "testResults": [
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976976786/http-server"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976976786/network"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976976786/path-vis"
+              },
+              {
+                "href": "https://api.thousandeyes.com/v7/test-results/281474976976786/bgp"
+              }
+            ]
+          },
+          "alertsEnabled": true,
+          "allowUnsafeLegacyRenegotiation": true,
+          "authType": "none",
+          "bandwidthMeasurements": false,
+          "bgpMeasurements": true,
+          "collectProxyNetworkData": false,
+          "contentRegex": "",
+          "createdBy": "dafyddwatkins (dafydd.watkins@deploymenttheory.com)",
+          "createdDate": "2026-08-03T08:10:42Z",
+          "distributedTracing": false,
+          "enabled": true,
+          "followRedirects": true,
+          "httpTargetTime": 1000,
+          "httpTimeLimit": 5,
+          "httpVersion": 2,
+          "interval": 3600,
+          "ipv6Policy": "use-agent-policy",
+          "liveShare": false,
+          "mtuMeasurements": true,
+          "networkMeasurements": true,
+          "numPathTraces": 3,
+          "overrideAgentProxy": false,
+          "pathTraceMode": "classic",
+          "probeMode": "auto",
+          "protocol": "tcp",
+          "randomizedStartTime": false,
+          "requestMethod": "get",
+          "savedEvent": false,
+          "sslVersion": "Auto",
+          "sslVersionId": "0",
+          "testId": "281474976976786",
+          "testName": "tfpfgen-probe-write-enum-9",
+          "type": "http-server",
+          "url": "https://www.example.com",
+          "useNtlm": false,
+          "usePublicBgp": true,
+          "verifyCertificate": true
+        }
+      ]
+    },
+    "droppedHeaders": 14
+  }
+}

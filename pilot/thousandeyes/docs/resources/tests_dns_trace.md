@@ -24,18 +24,18 @@ resource "thousandeyes_tests_dns_trace" "example" {
 
 ### Required
 
-- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. (see [below for nested schema](#nestedatt--agents))
-- `domain` (String) The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record. The test's target: the API refuses a create without it, whatever the specification marks.
+- `agents` (Attributes Set) The agents the test runs from. Sent on create and update; the read reports assignment through its own fields, so this does not round-trip into state. <!-- probed:7.0.98-t1785745019896 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed --> (see [below for nested schema](#nestedatt--agents))
+- `domain` (String) The target record for the test, with the record type suffixed. If no record type is specified, the test defaults to an ANY record. The test's target: the API refuses a create without it, whatever the specification marks. <!-- probed:7.0.98-t1785745019896 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
 
 ### Optional
 
-- `alerts_enabled` (Boolean) Indicates if alerts are enabled.
+- `alerts_enabled` (Boolean) Indicates if alerts are enabled. <!-- probed:7.0.98-t1785745019896 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
 - `description` (String) A description of the test.
 - `dns_query_class` (String) Domain class used by this test. 'in' stands for Internet, while 'ch' stands for Chaos.
 - `dns_transport_protocol` (String) Transport protocol used for DNS requests.
-- `enabled` (Boolean) Test is enabled.
-- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run).
-- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round.
+- `enabled` (Boolean) Test is enabled. <!-- probed:7.0.98-t1785745019896 --> Observed: the API assigns true when this is omitted. <!-- /probed -->
+- `interval` (Number) Interval between test runs in seconds. Documented intervals, in seconds: `60`, `120`, `300`, `600`, `900`, `1800`, `3600`. The request carries this field unconditionally, so omitting it sends zero, which the API refuses (the 2026-08-03 scheduled acceptance run). <!-- probed:7.0.98-t1785745019896 --> The API enforces this field's presence, which the specification does not declare. <!-- /probed -->
+- `randomized_start_time` (Boolean) Indicates whether agents should randomize the start time in each test round. <!-- probed:7.0.98-t1785745019896 --> Observed: the API assigns false when this is omitted. <!-- /probed -->
 - `test_name` (String) The name of the test. Test name must be unique.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
@@ -43,11 +43,11 @@ resource "thousandeyes_tests_dns_trace" "example" {
 
 - `created_by` (String) User that created the test.
 - `created_date` (String) UTC created date (ISO date-time format).
+- `id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `live_share` (Boolean) Indicates if the test is shared with the account group.
 - `modified_by` (String) User that modified the test.
 - `modified_date` (String) UTC last modification date (ISO date-time format).
 - `saved_event` (Boolean) Indicates if the test is a saved event. **Note**: **Saved Events** are now called **Private Snapshots** in the user interface. This change does not affect API.
-- `test_id` (String) Each test is assigned an unique ID; this is used to access test information and results from other endpoints.
 - `type` (String)
 
 <a id="nestedatt--agents"></a>

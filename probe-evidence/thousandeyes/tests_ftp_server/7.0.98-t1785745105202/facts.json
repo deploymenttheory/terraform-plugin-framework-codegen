@@ -1,0 +1,609 @@
+[
+  {
+    "resource": "tests_ftp_server",
+    "field": "errorEnvelope",
+    "value": {
+      "text": "404=problem"
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-tests-ftp-server-999999999"
+    ],
+    "rationale": "a 404 response used the problem error shape"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "field": "policy.delete.notFoundIsSuccess",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.not-found-shape",
+    "evidence": [
+      "002-get-v7-tests-ftp-server-999999999"
+    ],
+    "rationale": "reading an absent object answered 404 with a problem error body",
+    "alternatives": [
+      "the API may answer differently for an identifier that once existed and was deleted"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "field": "policy.readBack",
+    "value": {
+      "readBack": {
+        "reason": "every one of 7 read(s) immediately after a create succeeded on the first attempt"
+      }
+    },
+    "confidence": "inferred",
+    "probe": "write.read-your-writes",
+    "evidence": [
+      "020-get-v7-tests-ftp-server-281474976976870",
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872",
+      "029-get-v7-tests-ftp-server-281474976976873",
+      "033-get-v7-tests-ftp-server-281474976976873",
+      "035-get-v7-tests-ftp-server-281474976976875",
+      "060-get-v7-tests-ftp-server-281474976976882"
+    ],
+    "rationale": "7 object(s) were read immediately after creation and every first read succeeded",
+    "alternatives": [
+      "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "field": "unknownParamTolerated",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "read.unknown-param",
+    "evidence": [
+      "001-get-v7-tests-ftp-server",
+      "003-get-v7-tests-ftp-server",
+      "004-get-v7-tests-ftp-server",
+      "005-get-v7-tests-ftp-server",
+      "006-get-v7-tests-ftp-server",
+      "007-get-v7-tests-ftp-server",
+      "008-get-v7-tests-ftp-server",
+      "009-get-v7-tests-ftp-server",
+      "062-get-v7-tests-ftp-server"
+    ],
+    "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+    "alternatives": [
+      "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "agents",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "011-post-v7-tests-ftp-server"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "alertsEnabled",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "bandwidthMeasurements",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "bgpMeasurements",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "enabled",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "ftpTargetTime",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "1000"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as 1000 every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "ftpTimeLimit",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "5"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as 5 every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "interval",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "012-post-v7-tests-ftp-server"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "mtuMeasurements",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "networkMeasurements",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "numPathTraces",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "3"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as 3 every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "password",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "013-post-v7-tests-ftp-server"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "protocol",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "tcp",
+        "icmp"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "040-post-v7-tests-ftp-server",
+      "041-post-v7-tests-ftp-server",
+      "042-post-v7-tests-ftp-server",
+      "043-post-v7-tests-ftp-server",
+      "044-post-v7-tests-ftp-server"
+    ],
+    "rationale": "2 of the 3 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "protocol",
+    "field": "immutable",
+    "value": {
+      "bool": false
+    },
+    "confidence": "observed",
+    "probe": "write.immutability",
+    "evidence": [
+      "033-get-v7-tests-ftp-server-281474976976873"
+    ],
+    "rationale": "an update changed this field from icmp to icmp and the read confirmed it"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "protocol",
+    "field": "rejectedValues",
+    "value": {
+      "list": [
+        "udp"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "040-post-v7-tests-ftp-server",
+      "041-post-v7-tests-ftp-server",
+      "042-post-v7-tests-ftp-server",
+      "043-post-v7-tests-ftp-server",
+      "044-post-v7-tests-ftp-server"
+    ],
+    "rationale": "the specification documents tcp, icmp, udp but this API refused udp",
+    "alternatives": [
+      "a value this tenant refuses may be licence-gated or plan-gated rather than nonexistent, so this says rejected here and not does not exist"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "protocol",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "\"tcp\""
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as tcp every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "protocol",
+    "field": "valuesClosed",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "040-post-v7-tests-ftp-server",
+      "041-post-v7-tests-ftp-server",
+      "042-post-v7-tests-ftp-server",
+      "043-post-v7-tests-ftp-server",
+      "044-post-v7-tests-ftp-server"
+    ],
+    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+    "alternatives": [
+      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "randomizedStartTime",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "requestType",
+    "field": "acceptedValues",
+    "value": {
+      "list": [
+        "download",
+        "list"
+      ]
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "046-post-v7-tests-ftp-server",
+      "047-post-v7-tests-ftp-server",
+      "048-post-v7-tests-ftp-server",
+      "049-post-v7-tests-ftp-server",
+      "050-post-v7-tests-ftp-server"
+    ],
+    "rationale": "2 of the 3 documented value(s) were accepted on create"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "requestType",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "014-post-v7-tests-ftp-server"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "requestType",
+    "field": "valuesClosed",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.enum",
+    "evidence": [
+      "046-post-v7-tests-ftp-server",
+      "047-post-v7-tests-ftp-server",
+      "048-post-v7-tests-ftp-server",
+      "049-post-v7-tests-ftp-server",
+      "050-post-v7-tests-ftp-server"
+    ],
+    "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+    "alternatives": [
+      "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "url",
+    "field": "normalisation",
+    "value": {
+      "text": "the value came back changed by \"letter case is changed\", in a way this probe could not identify"
+    },
+    "confidence": "suspected",
+    "probe": "write.normalisation",
+    "evidence": [
+      "060-get-v7-tests-ftp-server-281474976976882"
+    ],
+    "rationale": "MiXeD-probe-url-2 was sent and ftp://MiXeD-probe-url-2/ came back",
+    "alternatives": [
+      "the difference may be a server default overwriting the sent value rather than a transformation of it, which write.writable-returned would distinguish"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "url",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "015-post-v7-tests-ftp-server"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "useActiveFtp",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "useExplicitFtps",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "false"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as false every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "usePublicBgp",
+    "field": "serverDefault",
+    "value": {
+      "literal": {
+        "kind": "",
+        "raw": "true"
+      }
+    },
+    "confidence": "observed",
+    "probe": "write.server-default",
+    "evidence": [
+      "023-get-v7-tests-ftp-server-281474976976871",
+      "025-get-v7-tests-ftp-server-281474976976872"
+    ],
+    "rationale": "the field was omitted from 2 create(s) and came back as true every time",
+    "alternatives": [
+      "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+      "the value may be derived from a field this plan's fixtures did not vary"
+    ]
+  },
+  {
+    "resource": "tests_ftp_server",
+    "jsonPath": "username",
+    "field": "requiredByApi",
+    "value": {
+      "bool": true
+    },
+    "confidence": "observed",
+    "probe": "write.required",
+    "evidence": [
+      "016-post-v7-tests-ftp-server"
+    ],
+    "rationale": "a create omitting this field was refused with 400 and the error named the field"
+  }
+]
