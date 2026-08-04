@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/emit"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/generate"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
 )
 
@@ -69,12 +69,12 @@ func runVerify(args []string) error {
 		return err
 	}
 
-	gen, err := emit.New()
+	gen, err := generate.New()
 	if err != nil {
 		return err
 	}
 
-	plan, err := gen.Build(bp, emit.Options{BlueprintPath: *blueprintPath})
+	plan, err := gen.Build(bp, generate.BuildOptions{BlueprintPath: *blueprintPath})
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func runVerify(args []string) error {
 }
 
 // compareAgainstDisk checks what the blueprints produce against what is there.
-func compareAgainstDisk(plan emit.Plan, out string) (verifyResult, error) {
+func compareAgainstDisk(plan generate.Fileset, out string) (verifyResult, error) {
 	var res verifyResult
 
 	produced := make(map[string]bool, len(plan.Files))

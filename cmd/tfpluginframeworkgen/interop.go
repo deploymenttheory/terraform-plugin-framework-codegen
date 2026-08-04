@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/terraform-plugin-codegen-spec/spec"
+	hcspec "github.com/hashicorp/terraform-plugin-codegen-spec/spec"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/interop"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec"
 )
 
 // The usage sketches are constants rather than fields read back off the table,
@@ -106,12 +106,12 @@ func runInteropExport(args []string) error {
 		}
 	}
 
-	s, report, err := interop.FromBlueprint(bp)
+	s, report, err := spec.FromBlueprint(bp)
 	if err != nil {
 		return err
 	}
 
-	data, err := interop.Marshal(s)
+	data, err := spec.Marshal(s)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func runInteropExport(args []string) error {
 	// not after. A document that fails that schema is a bug in this package, and
 	// writing it first would leave a bad artefact on disk for CI to diff against.
 	// This is also the conformance check that justifies the whole package.
-	if err := interop.Validate(context.Background(), data); err != nil {
+	if err := spec.Validate(context.Background(), data); err != nil {
 		return err
 	}
 
@@ -178,7 +178,7 @@ func runInteropImport(args []string) error {
 		return fmt.Errorf("reading %s: %w", *specPath, err)
 	}
 
-	s, err := interop.Parse(context.Background(), data)
+	s, err := spec.Parse(context.Background(), data)
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func runInteropImport(args []string) error {
 		return usagef("-out is required")
 	}
 
-	bp, report, err := interop.ToBlueprint(s, interop.Options{
+	bp, report, err := spec.ToBlueprint(s, spec.Options{
 		Provider:      *provider,
 		TypePrefix:    *typePrefix,
 		GoModule:      *goModule,
@@ -228,7 +228,7 @@ func writeDrafts(root string, bp blueprint.Blueprint) ([]string, error) {
 	// The provider part carries no resources, so it is a draft too -- its SDK block
 	// is empty and has to be authored.
 	providerPart := blueprint.Blueprint{FormatVersion: bp.FormatVersion, Provider: bp.Provider}
-	providerPath := filepath.Join(root, "provider"+interop.DraftExt)
+	providerPath := filepath.Join(root, "provider"+spec.DraftExt)
 
 	if err := blueprint.Save(providerPath, providerPart); err != nil {
 		return nil, err
@@ -237,7 +237,7 @@ func writeDrafts(root string, bp blueprint.Blueprint) ([]string, error) {
 
 	for _, res := range bp.Resources {
 		part := blueprint.Blueprint{FormatVersion: bp.FormatVersion, Resources: []blueprint.Resource{res}}
-		path := filepath.Join(root, "resources", res.Key+interop.DraftExt)
+		path := filepath.Join(root, "resources", res.Key+spec.DraftExt)
 
 		if err := blueprint.Save(path, part); err != nil {
 			return nil, err
@@ -250,7 +250,7 @@ func writeDrafts(root string, bp blueprint.Blueprint) ([]string, error) {
 
 // printUnauthored tells the operator what to write and what to do next.
 func printUnauthored(bp blueprint.Blueprint, written []string) {
-	fields := interop.Unauthored(bp)
+	fields := spec.Unauthored(bp)
 
 	fmt.Fprintf(os.Stderr, "\n%d draft(s) written. %d field group(s) must be authored before emission:\n\n",
 		len(written), len(fields))
@@ -266,11 +266,11 @@ bindings against the SDK:
 
   go run ./cmd/tfpluginframeworkgen bindings -blueprint <dir> -module <provider dir>
 
-`, interop.DraftExt, blueprint.Ext)
+`, spec.DraftExt, blueprint.Ext)
 }
 
 // listSpec reports what a document offers without writing anything.
-func listSpec(s spec.Specification) error {
+func listSpec(s hcspec.Specification) error {
 	name := "(none)"
 	if s.Provider != nil {
 		name = s.Provider.Name
@@ -329,14 +329,14 @@ func keepOnly(bp *blueprint.Blueprint, key string) error {
 // the log package, and a loss report is not progress chatter. A user who silences
 // progress has not asked to be kept in the dark about what the export could not
 // carry.
-func printReport(r interop.Report) {
+func printReport(r spec.Report) {
 	fmt.Fprintln(os.Stderr, r.Summary())
 
 	if len(r.Notes) == 0 {
 		return
 	}
 
-	current := interop.Severity("")
+	current := spec.Severity("")
 
 	for _, n := range r.Sorted() {
 		if n.Severity != current {
@@ -350,15 +350,15 @@ func printReport(r interop.Report) {
 
 	// One annotation per severity for the checks UI, matching runBindings' single
 	// ::error:: line rather than annotating every note.
-	if n := r.Count(interop.SeverityDropped); n > 0 {
+	if n := r.Count(spec.SeverityDropped); n > 0 {
 		fmt.Fprintf(os.Stderr, "::warning::%d blueprint value(s) have no counterpart in the exported specification\n", n)
 	}
-	if n := r.Count(interop.SeverityLossy); n > 0 {
+	if n := r.Count(spec.SeverityLossy); n > 0 {
 		fmt.Fprintf(os.Stderr, "::warning::%d blueprint value(s) were coarsened on export\n", n)
 	}
 }
 
-func writeReport(path string, r interop.Report) error {
+func writeReport(path string, r spec.Report) error {
 	data, err := json.MarshalIndent(r, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encoding the report: %w", err)

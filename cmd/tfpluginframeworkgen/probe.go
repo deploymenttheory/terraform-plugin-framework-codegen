@@ -588,7 +588,7 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	// rehearse-only recording has no read tier for a full replay to mismatch on.
 	meta.Only = opts.only
 
-	snap, err := cassette.Write(root, meta, result.Interactions, map[string]string{"bearer": token}, time.Now())
+	snap, err := cassette.Record(root, meta, result.Interactions, map[string]string{"bearer": token}, time.Now())
 	if err != nil {
 		return err
 	}

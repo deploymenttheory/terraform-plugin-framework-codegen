@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/emit"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/generate"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version"
 )
@@ -76,12 +76,12 @@ func runEmit(args []string) error {
 	log.Printf("blueprint: %s (%d resource(s), %d data source(s))",
 		o.blueprintPath, len(bp.Resources), len(bp.DataSources))
 
-	gen, err := emit.New()
+	gen, err := generate.New()
 	if err != nil {
 		return err
 	}
 
-	plan, err := gen.Build(bp, emit.Options{BlueprintPath: o.blueprintPath, Only: o.only})
+	plan, err := gen.Build(bp, generate.BuildOptions{BlueprintPath: o.blueprintPath, Only: o.only})
 	if err != nil {
 		return err
 	}
@@ -191,15 +191,15 @@ func hasGenerateDirective(out string) bool {
 //
 // Building a plan touches nothing on disk, so these flags exercise the same code
 // path as a real run rather than approximating it.
-func printPlan(plan emit.Plan) {
+func printPlan(plan generate.Fileset) {
 	for _, f := range plan.Files {
 		fmt.Fprintf(os.Stdout, "%-72s %6d bytes  sha256:%s\n", f.Path, len(f.Content), f.SHA256()[:12])
 	}
 	log.Printf("%d file(s) would be written; nothing was changed", len(plan.Files))
 }
 
-func writePlan(plan emit.Plan, o emitOptions) error {
-	res, err := emit.Write(plan, emit.WriteOptions{Root: o.out, Force: o.force})
+func writePlan(plan generate.Fileset, o emitOptions) error {
+	res, err := generate.Write(plan, generate.WriteOptions{Root: o.out, Force: o.force})
 	if err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func writePlan(plan emit.Plan, o emitOptions) error {
 // leaving them.
 // handleOrphans returns the manifest entries for orphans that were reported but
 // not deleted, so the caller can carry them forward.
-func handleOrphans(root string, plan emit.Plan, clean bool) ([]manifest.Entry, error) {
+func handleOrphans(root string, plan generate.Fileset, clean bool) ([]manifest.Entry, error) {
 	m, ok, err := manifest.Load(root)
 	if err != nil {
 		return nil, err
@@ -314,7 +314,7 @@ func handleOrphans(root string, plan emit.Plan, clean bool) ([]manifest.Entry, e
 // the drift check reads, so a file listed there is one the practitioner may not edit. Leaving a
 // scaffold out is what makes it theirs -- and it also keeps it from being reported as an orphan
 // once it stops appearing in a later plan.
-func manifestEntries(plan emit.Plan, blueprintPath string) []manifest.Entry {
+func manifestEntries(plan generate.Fileset, blueprintPath string) []manifest.Entry {
 	out := make([]manifest.Entry, 0, len(plan.Files))
 	for _, f := range plan.Files {
 		if f.Scaffold {

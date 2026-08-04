@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/ingest/openapi"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specstore"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
 )
 
 const usageSpecs = "specs [-url URL] [-output-dir DIR] [-dry-run]"
@@ -47,10 +47,10 @@ func runSpecs(args []string) error {
 	}
 
 	sourceURL := *url
-	var previous specstore.Snapshot
+	var previous snapshot.Snapshot
 	havePrevious := false
 
-	if latest, err := specstore.Latest(*outputDir); err == nil {
+	if latest, err := snapshot.Latest(*outputDir); err == nil {
 		previous, havePrevious = latest, true
 		if sourceURL == "" {
 			meta, mErr := latest.LoadMetadata()
@@ -59,7 +59,7 @@ func runSpecs(args []string) error {
 			}
 			sourceURL = meta.SourceURL
 		}
-	} else if !errors.Is(err, specstore.ErrNoSnapshot) {
+	} else if !errors.Is(err, snapshot.ErrNoSnapshot) {
 		return err
 	}
 
@@ -114,7 +114,7 @@ func runSpecs(args []string) error {
 		return nil
 	}
 
-	snap, err := specstore.Pin(*outputDir, doc, specstore.Metadata{
+	snap, err := snapshot.Pin(*outputDir, doc, snapshot.Metadata{
 		Version:        parsed.Version,
 		SHA256:         digest,
 		SourceURL:      sourceURL,

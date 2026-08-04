@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/ingest/openapi"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
 )
 
 // TestUnit_CLI_CommittedBlueprintMatchesTheSpecItWasInferredFrom is the gate that was missing.

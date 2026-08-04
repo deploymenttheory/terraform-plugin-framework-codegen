@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/ingest/openapi"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
 )
 

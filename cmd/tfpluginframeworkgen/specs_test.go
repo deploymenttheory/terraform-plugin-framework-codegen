@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specstore"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
 )
 
 // minimalSpec is the smallest document the ingester parses.
@@ -53,7 +53,7 @@ func TestUnit_CLI_Specs_PinsAndThenRefreshesFromItsOwnRecord(t *testing.T) {
 		t.Fatalf("first pin: %v", err)
 	}
 
-	snaps, err := specstore.List(root)
+	snaps, err := snapshot.List(root)
 	if err != nil || len(snaps) != 1 {
 		t.Fatalf("snapshots = %v, %v", snaps, err)
 	}
@@ -76,7 +76,7 @@ func TestUnit_CLI_Specs_PinsAndThenRefreshesFromItsOwnRecord(t *testing.T) {
 	if err := runSpecs([]string{"-output-dir", root}); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
-	if snaps, _ = specstore.List(root); len(snaps) != 1 {
+	if snaps, _ = snapshot.List(root); len(snaps) != 1 {
 		t.Errorf("an unchanged upstream must pin nothing, got %d snapshots", len(snaps))
 	}
 }

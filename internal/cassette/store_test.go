@@ -40,12 +40,12 @@ func TestUnit_Cassette_WriteAndRead(t *testing.T) {
 	root := t.TempDir()
 	at := time.UnixMilli(1785152261691)
 
-	snap, err := Write(root, sampleMetadata(), sampleInteractions(), nil, at)
+	snap, err := Record(root, sampleMetadata(), sampleInteractions(), nil, at)
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
 
-	// The directory name mirrors specstore's, so both stores read the same way.
+	// The directory name mirrors the snapshot store's, so both stores read the same way.
 	if got := filepath.Base(snap.Dir); got != "7.0.97-t1785152261691" {
 		t.Errorf("directory = %q, want 7.0.97-t1785152261691", got)
 	}
@@ -91,7 +91,7 @@ func TestUnit_Cassette_WriteAndRead(t *testing.T) {
 // identical bytes. Otherwise the drift gate fires on runs that changed nothing, and a gate
 // that cries wolf gets disabled.
 //
-// Twenty-five iterations for the same reason internal/emit uses that many: map iteration
+// Twenty-five iterations for the same reason internal/generate uses that many: map iteration
 // order is randomised per run, so a single comparison would pass by luck often enough to be
 // useless.
 func TestUnit_Cassette_WriteIsDeterministic(t *testing.T) {
@@ -104,7 +104,7 @@ func TestUnit_Cassette_WriteIsDeterministic(t *testing.T) {
 	for range 25 {
 		root := t.TempDir()
 
-		snap, err := Write(root, sampleMetadata(), sampleInteractions(), nil, at)
+		snap, err := Record(root, sampleMetadata(), sampleInteractions(), nil, at)
 		if err != nil {
 			t.Fatalf("Write: %v", err)
 		}
@@ -172,11 +172,11 @@ func TestUnit_Cassette_KeyOrderProducesNoDiff(t *testing.T) {
 
 	rootA, rootB := t.TempDir(), t.TempDir()
 
-	snapA, err := Write(rootA, sampleMetadata(), oneOrder, nil, at)
+	snapA, err := Record(rootA, sampleMetadata(), oneOrder, nil, at)
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
-	snapB, err := Write(rootB, sampleMetadata(), otherOrder, nil, at)
+	snapB, err := Record(rootB, sampleMetadata(), otherOrder, nil, at)
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
@@ -195,7 +195,7 @@ func TestUnit_Cassette_VerifyDetectsTampering(t *testing.T) {
 
 	root := t.TempDir()
 
-	snap, err := Write(root, sampleMetadata(), sampleInteractions(), nil, time.UnixMilli(1))
+	snap, err := Record(root, sampleMetadata(), sampleInteractions(), nil, time.UnixMilli(1))
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestUnit_Cassette_LoadRejectsASequenceGap(t *testing.T) {
 		{ID: "003-get-tags", Seq: 3, Request: Request{Method: "GET", Path: "/tags"}, Response: Response{Status: 200}},
 	}
 
-	snap, err := Write(root, sampleMetadata(), gapped, nil, time.UnixMilli(1))
+	snap, err := Record(root, sampleMetadata(), gapped, nil, time.UnixMilli(1))
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
@@ -260,11 +260,11 @@ func TestUnit_Cassette_ListLatestAndFind(t *testing.T) {
 
 	root := t.TempDir()
 
-	older, err := Write(root, sampleMetadata(), sampleInteractions(), nil, time.UnixMilli(1000))
+	older, err := Record(root, sampleMetadata(), sampleInteractions(), nil, time.UnixMilli(1000))
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
-	newer, err := Write(root, sampleMetadata(), sampleInteractions(), nil, time.UnixMilli(2000))
+	newer, err := Record(root, sampleMetadata(), sampleInteractions(), nil, time.UnixMilli(2000))
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}
@@ -328,7 +328,7 @@ func TestUnit_Cassette_StoreEdgeCases(t *testing.T) {
 
 	// Writing nothing is refused: an empty snapshot would satisfy Verify and support no
 	// facts, which is a worse artefact than none.
-	if _, err := Write(t.TempDir(), sampleMetadata(), nil, nil, time.UnixMilli(1)); !errors.Is(err, ErrInvalidCassette) {
+	if _, err := Record(t.TempDir(), sampleMetadata(), nil, nil, time.UnixMilli(1)); !errors.Is(err, ErrInvalidCassette) {
 		t.Errorf("error = %v, want ErrInvalidCassette", err)
 	}
 
@@ -337,7 +337,7 @@ func TestUnit_Cassette_StoreEdgeCases(t *testing.T) {
 	meta := sampleMetadata()
 	meta.APIVersion = ""
 
-	snap, err := Write(root, meta, sampleInteractions(), nil, time.UnixMilli(5))
+	snap, err := Record(root, meta, sampleInteractions(), nil, time.UnixMilli(5))
 	if err != nil {
 		t.Fatalf("Write: %v", err)
 	}

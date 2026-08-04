@@ -11,9 +11,9 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/ingest/openapi"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specstore"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
 )
 
 func runIngest(args []string) error {
@@ -203,7 +203,7 @@ func resolveSpecPath(specPath, specRoot, snapshotName string) (string, error) {
 		return specPath, nil
 	}
 
-	snap, err := specstore.Find(specRoot, snapshotName)
+	snap, err := snapshot.Find(specRoot, snapshotName)
 	if err != nil {
 		return "", err
 	}

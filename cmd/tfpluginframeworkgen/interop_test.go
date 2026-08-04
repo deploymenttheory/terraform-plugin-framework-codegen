@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/interop"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec"
 )
 
 // committedSpec is the exported document CI diffs against.
@@ -61,7 +61,7 @@ func TestUnit_CLI_Interop_TheCommittedSpecIsValid(t *testing.T) {
 		t.Fatalf("reading the committed specification: %v", err)
 	}
 
-	if err := interop.Validate(context.Background(), data); err != nil {
+	if err := spec.Validate(context.Background(), data); err != nil {
 		t.Fatalf("the committed specification does not satisfy the upstream schema: %v", err)
 	}
 
@@ -134,7 +134,7 @@ func TestUnit_CLI_Interop_StrictFailsOnThePilot(t *testing.T) {
 	// The pilot has CRUD bindings, and the format cannot carry them, so strict must
 	// fail. If this ever passes, either the taxonomy stopped reporting or the
 	// blueprint stopped binding -- both worth knowing about.
-	if !errors.Is(err, interop.ErrDowngraded) {
+	if !errors.Is(err, spec.ErrDowngraded) {
 		t.Errorf("error = %v, want ErrDowngraded", err)
 	}
 }
@@ -164,15 +164,15 @@ func TestUnit_CLI_Interop_PilotHasNoLossyNotes(t *testing.T) {
 		t.Fatalf("reading the report: %v", err)
 	}
 
-	var report interop.Report
+	var report spec.Report
 	if err := json.Unmarshal(data, &report); err != nil {
 		t.Fatalf("parsing the report: %v", err)
 	}
 
-	if got := report.Count(interop.SeverityLossy); got != 0 {
+	if got := report.Count(spec.SeverityLossy); got != 0 {
 		t.Errorf("the pilot should need no coarsening, got %d lossy note(s):\n%v", got, report.Sorted())
 	}
-	if report.Count(interop.SeverityDropped) == 0 {
+	if report.Count(spec.SeverityDropped) == 0 {
 		t.Error("the pilot's CRUD bindings must be reported as dropped")
 	}
 
@@ -217,7 +217,7 @@ func TestUnit_CLI_Interop_Only(t *testing.T) {
 // TestUnit_CLI_Interop_ImportWritesInvisibleDrafts is the empirical half of the draft
 // design.
 //
-// TestUnit_Interop_Drafts asserts the extension does not match; this asserts the
+// TestUnit_Spec_Drafts asserts the extension does not match; this asserts the
 // consequence, which is the thing actually promised: a directory of drafts is not
 // something emit refuses to process, it is something emit cannot see at all. The
 // distinction matters because the failure mode being designed against is a
@@ -241,7 +241,7 @@ func TestUnit_CLI_Interop_ImportWritesInvisibleDrafts(t *testing.T) {
 			return err
 		}
 		found = append(found, filepath.Base(path))
-		if !strings.HasSuffix(path, interop.DraftExt) {
+		if !strings.HasSuffix(path, spec.DraftExt) {
 			t.Errorf("%s is not a draft; an imported blueprint must not be loadable by emit", path)
 		}
 		return nil
@@ -280,7 +280,7 @@ func TestUnit_CLI_Interop_PromotedDraftsLoadAndFailOnBindings(t *testing.T) {
 		if err != nil || d.IsDir() {
 			return err
 		}
-		promoted := strings.TrimSuffix(path, interop.DraftExt) + blueprint.Ext
+		promoted := strings.TrimSuffix(path, spec.DraftExt) + blueprint.Ext
 		return os.Rename(path, promoted)
 	})
 	if err != nil {

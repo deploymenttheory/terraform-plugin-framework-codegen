@@ -353,7 +353,7 @@ func TestUnit_Cassette_PlantedTokenWritesNothing(t *testing.T) {
 
 	meta := Metadata{Provider: "example", Resource: "thing", Host: "api.example.com"}
 
-	_, err := Write(root, meta, interactions, map[string]string{"bearer": testToken}, time.Unix(0, 0))
+	_, err := Record(root, meta, interactions, map[string]string{"bearer": testToken}, time.Unix(0, 0))
 	if !errors.Is(err, ErrSecretFound) {
 		t.Fatalf("error = %v, want ErrSecretFound", err)
 	}

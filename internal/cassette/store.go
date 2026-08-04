@@ -15,14 +15,14 @@ import (
 	"time"
 )
 
-// The on-disk layout mirrors internal/specstore:
+// The on-disk layout mirrors internal/snapshot:
 //
 //	probe-evidence/<provider>/<resource>/<version>-t<epochMillis>/
 //	  metadata.json
 //	  interactions/001-get-tags.json … NNN-*.json
 //
-// Copied rather than generalised from specstore. Two callers do not justify an
-// abstraction, specstore's doc comment is specifically about specifications, and the
+// Copied rather than generalised from the snapshot store. Two callers do not justify an
+// abstraction, the snapshot store's doc comment is specifically about specifications, and the
 // duplicated part is about 120 lines of directory handling -- against which the cost of a
 // shared abstraction is that neither caller can change its layout without considering the
 // other.
@@ -58,7 +58,7 @@ var ErrNoSnapshot = errors.New("no cassette snapshot found")
 // ErrChecksumMismatch marks a snapshot whose interactions no longer match its metadata.
 var ErrChecksumMismatch = errors.New("cassette checksum does not match its metadata")
 
-// dirPattern matches "<version>-t<epochMillis>", the same shape specstore uses.
+// dirPattern matches "<version>-t<epochMillis>", the same shape the snapshot store uses.
 var dirPattern = regexp.MustCompile(`^(.+)-t(\d+)$`)
 
 // Snapshot is one recorded session on disk.
@@ -80,7 +80,7 @@ type Snapshot struct {
 //
 // No timestamp field beyond the one in the directory name, and no tool version: the
 // directory is committed and diffed, so a value that changed without an input changing
-// would make the drift check useless. Same rule as internal/blueprint and internal/emit.
+// would make the drift check useless. Same rule as internal/blueprint and internal/generate.
 type Metadata struct {
 	// Provider and Resource identify what was probed.
 	Provider string `json:"provider"`
@@ -239,12 +239,12 @@ func Find(root, name string) (Snapshot, error) {
 	return Snapshot{}, fmt.Errorf("%w: %s under %s", ErrNoSnapshot, name, root)
 }
 
-// Write creates a snapshot directory and writes its interactions and metadata.
+// Record creates a snapshot directory and writes its interactions and metadata.
 //
 // The fail-closed order is the important part: every interaction is scanned before
 // anything is written, and a finding writes nothing at all -- not a partial directory,
 // not a single file. So a leak cannot be committed; it can only fail the build.
-func Write(
+func Record(
 	root string,
 	meta Metadata,
 	interactions []Interaction,

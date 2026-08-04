@@ -5,7 +5,7 @@
 // describe a schema and nothing else — it has no representation for CRUD wiring,
 // for the SDK symbols a resource calls, for observed API behaviour, or for test
 // scaffolding. Those are most of what a working provider is, so the blueprint
-// carries them and the official format is something internal/interop reads and
+// carries them and the official format is something internal/spec reads and
 // writes rather than this package's model.
 //
 // Three conventions run through the types and are worth knowing before reading
