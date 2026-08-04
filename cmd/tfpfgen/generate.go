@@ -25,6 +25,12 @@ var providerVerbs = []command{
 		run:     runProviderGenerate,
 	},
 	{
+		name:    "push",
+		summary: "publish the generated tree to its repository as a branch and pull request",
+		usage:   usageProviderPush,
+		run:     runProviderPush,
+	},
+	{
 		name:    "scaffold",
 		summary: "write a blank resource from the scaffold template, registered and compiling",
 		usage:   "provider scaffold <resource|data-source> -name NAME",

@@ -9,6 +9,16 @@ This file is maintained by [release-please](.github/workflows/release-please.yml
 from conventional commit messages. Add entries by writing good commit messages,
 not by editing this file by hand.
 
+## Unreleased — provider push
+
+`tfpfgen provider push -out DIR -repo URL` publishes the generated provider
+tree to its own repository: shallow-clone, sync, manifest-based pruning of
+files the generator owned and no longer produces, a commit with stated
+provenance on the generator-owned `tfpfgen/generate-<digest>` branch, and a
+pull request against the default branch. No difference means exit 0 and
+nothing pushed. The token comes from `TFPFGEN_GITHUB_TOKEN` (or
+`GITHUB_TOKEN`) — env only, never a flag.
+
 ## Unreleased — Naming standard hard cut
 
 Everything below was renamed in one release; no aliases were kept.

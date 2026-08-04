@@ -21,7 +21,7 @@ order `help` prints them.
 | `openapi` | fetch and pin upstream OpenAPI documents | `fetch` |
 | `blueprint` | draft, merge, validate, diff or list blueprints | `draft`, `merge`; `validate`, `diff`, `list` planned |
 | `probe` | exercise a resource's lifecycle; record or replay cassettes | `record`, `replay`, `verify`, `sweep`, `list` |
-| `provider` | generate a terraform-plugin-framework provider from blueprints | `generate`; `scaffold` planned |
+| `provider` | generate a terraform-plugin-framework provider from blueprints | `generate`, `push`; `scaffold` planned |
 | `bindings` | check blueprint SDK bindings against the pinned SDK | `check`, `facts` |
 | `spec` | export or import Provider Code Specification v0.1 JSON | `export`, `import` |
 | `version` | print the toolkit version and exit | — |
@@ -351,6 +351,44 @@ generating into a scratch directory for inspection stays cheap.
 `-skip-postcheck` exists for tight inner loops; CI and any run before a commit
 should keep the battery on — a skipped battery just moves the same failures to
 the CI checks.
+
+### `provider push`
+
+Publishes the generated tree to its own repository, as a branch and a pull
+request.
+
+```
+tfpfgen provider push -out DIR -repo URL [-branch NAME] [-base NAME] [-dry-run]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-out` | — | provider root to publish, as written by `provider generate` (required) |
+| `-repo` | — | target repository: a clone URL or GitHub `owner/name` (required) |
+| `-branch` | `tfpfgen/generate-<digest>` | branch to push; the digest is derived from the manifest, so the same content always names the same branch |
+| `-base` | the repository's default branch | branch to diff and open the pull request against |
+| `-dry-run` | `false` | clone and compare, but push nothing and open nothing |
+
+The token comes from `TFPFGEN_GITHUB_TOKEN` (or `GITHUB_TOKEN`, which is what
+Actions injects), never from a flag — the same doctrine as the probe
+credential. It reaches git through the environment, not the command line, so it
+never appears in the process table.
+
+Push refuses a tree that carries no `.tfpfgen/manifest.json`: it publishes
+generated output with stated provenance, not arbitrary trees. The target is
+shallow-cloned, the generated tree is synced over it, and files the target's
+*previous* manifest owned that are no longer produced are pruned — the same
+ownership rule the drift check enforces, so the target repository's own files
+(its release workflows, its licence) are never touched. No difference means
+exit `0` and nothing pushed.
+
+A real difference is committed to the generator-owned `tfpfgen/generate-*`
+branch namespace and force-pushed — the content is a pure function of the
+blueprints, so the newest generation is always what the branch should hold —
+and a pull request is opened against the base branch with the tool version,
+blueprint sources and change count in its body. A branch whose pull request is
+already open is updated rather than duplicated. A remote that is not a GitHub
+host gets the branch push and a note instead of a pull request.
 
 ### `provider scaffold`
 
