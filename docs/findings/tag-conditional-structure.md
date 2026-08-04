@@ -133,10 +133,11 @@ probing them. That is the design working: a valid dynamic body cannot omit eithe
 know a valid value for them is simply true. Their omission behaviour is still covered by
 `write.required`, which is where it belongs.
 
-## Consequences for the blueprint, not yet applied
+## Consequences for the blueprint, as diagnosed at the time
 
-Each of these is a schema change whose evidence is above, and each changes the probe plan, so they
-belong with the re-record rather than before it.
+Each of these was a schema change whose evidence is above, and each changed the probe plan, so
+they belonged with the re-record rather than before it. All are since applied — see the status
+section below.
 
 - `type`: must become writable, with its legal value gated on `object_type`.
 - `assignments`: must become `computed`. It is read-only in the document and discarded in practice.

@@ -2,15 +2,16 @@
 
 A toolkit that programmatically generates [terraform-plugin-framework][framework]
 providers from an API specification **plus recorded API behaviour**, so that
-state mapping is compile-checked generated code instead of runtime reflection.
+state mapping is compile-checked generated code instead of runtime reflection —
+and so that the first acceptance run confirms what the evidence already proved,
+instead of discovering what it missed.
 
-> **Status: Phase 6 of 7.** The pipeline works end to end: `ingest` infers a
-> blueprint from a pinned OpenAPI snapshot, `probe` has recorded a live mutating
-> run against a real sandbox, `merge` folds the facts in, and the emitted pilot
-> compiles, tests and plans. What remains is breadth — more resources, docs,
-> and a second API to prove nothing is pilot-shaped. The one unbuilt stage is
-> `specs` (fetching a snapshot; committed snapshots verify and load fine). See
-> [Roadmap](#roadmap).
+> **Status: the pilot is real.** The pipeline runs end to end and has been walked
+> across five recorded waves: 23 resource blueprints, 22 resources green against
+> the live API in CI, 20 committed evidence snapshots, plus data sources, an
+> ephemeral and an action. The full cross-repo chain — OpenAPI spec bump → SDK
+> regeneration and release → provider re-generation → live acceptance — has been
+> validated once, deliberately. See [Roadmap](#roadmap).
 
 ## Why
 
@@ -35,118 +36,122 @@ So this toolkit **pokes the live API and records what it does**. The probe
 transcripts are committed as evidence, facts are re-derived from them offline in
 CI, and they feed the generator alongside the specification.
 
-## Pipeline
+The pilot taught one more lesson, big enough to reshape the pipeline: it is not
+enough to probe fields one behaviour at a time and let acceptance tests find the
+rest. Fixing failures after generation is whack-a-mole against the most expensive
+oracle available. So the probe now ends by **rehearsing the exact lifecycles the
+generated acceptance tests will run** — same values, same bodies, both directions
+— before any provider code exists. Acceptance is confirmation, not discovery.
+
+## Key features
+
+- **A 16-probe catalogue** against a live sandbox: six read-only protocols and
+  ten mutating ones, ending with `write.rehearsal` — minimal→maximal and
+  maximal→minimal lifecycles, per-hop echo comparison, in-bounds contrast values,
+  and single-culprit bisection of refused bodies.
+- **Evidence you can replay.** Every recorded run freezes its transcript, facts,
+  plan, subject and rehearsal bodies; CI re-derives the facts offline with egress
+  blocked and fails on any difference.
+- **Static facts from the SDK itself.** Behaviour written into the SDK's struct
+  tags (a zero value the encoding cannot send) is derived by inspection, not
+  probed, and drift-gated against the pinned SDK version.
+- **One fixture derivation, two renderings.** The values the probe rehearses on
+  the wire are the values the generator renders into `minimal.tf`/`maximal.tf` —
+  format-aware (`date-time`, `uuid`, `ipv4`, …), with curated hints and omissions
+  where no derivation can know.
+- **Deterministic, committed artefacts with a drift gate on every arrow** —
+  snapshots, blueprints, plans, evidence, static facts, the generated tree, the
+  interop export. Byte-identical regeneration is a tested property.
+- **Generation finishes with the tools that gate it.** `emit` runs a postcheck
+  battery — compile, tfplugindocs, `terraform fmt` — so a tree that would fail CI
+  fails at generation time.
+- **A hard generated/hand-written boundary**, enforced five ways, with an escape
+  hatch that scaffolds once and never regenerates.
+- **Safety as structure, not convention**: mutating probes sit behind a
+  runtime-verified sandbox gate, every create is ledgered before it is issued,
+  cleanup is per-probe, and cassettes pass a refuse-on-detect secret scan before
+  anything is written.
+
+## High-level architecture
 
 ```
-OpenAPI snapshot ──ingest──┐
-                            ├──merge──► blueprint.json ──emit──► provider Go tree
-live API ────────probe──────┤                                    + acceptance tests
-                            │                                      and fixtures
-human overrides ────────────┘
+upstream URL ──specs──► OpenAPI snapshot ──ingest──┐
+                                                    ├──merge──► blueprint.json ──emit──► provider Go tree
+live API ──probe (catalogue + rehearsal fixpoint)───┤                            │       + tests, fixtures,
+pinned SDK ──bindings -facts-out (static facts)─────┤                            │         examples, docs
+                                                    │                        postcheck
+human curation (plans, hints, presence) ────────────┘                  (build · docs · fmt)
 ```
 
 Each arrow writes a **committed, reviewable artefact**. CI regenerates every one
 of them and fails on drift, then builds and tests the result — because a
-generator change can produce a clean diff and broken code.
+generator change can produce a clean diff and broken code. The
+[gates](docs/gates.md) page lists every job and its local reproduction.
 
 A blueprint names SDK symbols as strings, so `tfpluginframeworkgen bindings` type-checks
 them against the SDK the provider actually pins. That turns a wrong symbol from a
 pile of identical compile errors in generated code into one message naming the
 blueprint field to edit.
 
-## Quick start
-
-Every step below works except step 0, which is a stub: snapshots are pinned by
-hand today, and the committed one verifies by checksum on every load.
-
-```bash
-# 0. pin an upstream spec snapshot
-tfpluginframeworkgen specs -output-dir openapi-specs/thousandeyes
-
-# 1. see what the spec offers before committing to anything
-tfpluginframeworkgen ingest -only Tags -list
-
-# 2. infer a blueprint, bound against SDK methods that provably exist
-tfpluginframeworkgen ingest -only Tags -out blueprints/thousandeyes
-
-# 3. probe a sandbox, recording evidence. Every guard is required.
-#    The token comes from TFPFGEN_PROBE_TOKEN and never from a flag or the profile.
-#    Plans resolve per resource by convention: blueprints/PROVIDER/KEY.probe.plan.json.
-#    Scope with -resource, or omit it to record every planned resource in one wave --
-#    a resource with no plan file is skipped with a stated note.
-tfpluginframeworkgen probe -blueprint blueprints/thousandeyes -resource tag \
-  -mode record --allow-mutations \
-  -profile .tfpluginframeworkgen/sandbox/thousandeyes.json
-
-# 3b. re-derive the same facts from the committed transcript, with no network at all
-tfpluginframeworkgen probe -blueprint blueprints/thousandeyes -mode verify
-
-# 4. fold the evidence in; conflicts with the spec are surfaced, never resolved silently
-tfpluginframeworkgen merge -blueprint ... -facts ... -strategy annotate
-
-# 4b. check every SDK symbol the blueprint names actually exists
-tfpluginframeworkgen bindings -blueprint blueprints/thousandeyes -module pilot/thousandeyes
-
-# 5. emit. Dry run first, always.
-tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes -dry-run
-tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes
-
-# 6. the actual proof
-cd pilot/thousandeyes && go build ./... && go test ./... && terraform plan
-
-# 7. the CI gate
-tfpluginframeworkgen verify -blueprint blueprints/thousandeyes -out pilot/thousandeyes
-tfpluginframeworkgen probe  -blueprint blueprints/thousandeyes -mode verify   # no network
-```
-
-## What is generated and what is yours
-
-The boundary is the most important thing to understand about a generated
-provider. It is enforced four ways: a per-file header, the emission manifest,
-`.gitattributes`, and `tfpluginframeworkgen verify`.
-
-| Path | Owner | Change it by |
-|---|---|---|
-| `internal/services/**/{resource,model,construct,state,crud,list_resource}.go` | toolkit | editing the blueprint, then `emit` |
-| `internal/services/**/{modify_plan,predicate,state_upgrade}.go` | **you** | editing them; scaffolded once, `emit` never touches them again |
-| `internal/services/**/{resource_acceptance_test,test_helper_test}.go`, `testdata/minimal.tf` | toolkit | re-probing, then `emit` |
-| `internal/services/**/testdata/maximal.tf` | **you** | editing it; scaffolded once |
-| `internal/provider/{resources,datasources,list_resources,actions}.go` | toolkit | `emit` |
-| `internal/provider/{provider,interfaces}.go`, `internal/client/` | **you** | editing them — auth is always bespoke |
-| `internal/services/common/{convert,crud,errors,schema}/` | **you** | editing them |
-
-Generated files carry exactly this header, and nothing else may:
-
-```go
-// Code generated by tfpluginframeworkgen from blueprints/<path> (sha256:…). DO NOT EDIT.
-```
-
-There is deliberately **no** preserved-region mechanism inside a generated file:
-ownership is all-or-nothing per file. A file that genuinely cannot be generated is
-scaffolded once and then yours, and `emit` never touches it again.
-
-[`docs/generated-boundary.md`](docs/generated-boundary.md) covers how the boundary
-is enforced, orphan detection, and the escape hatch.
-
-## Repository layout
+### Repository layout
 
 | Path | Contents |
 |---|---|
 | `cmd/tfpluginframeworkgen/` | the one installable binary; stdlib `flag` subcommand dispatch |
 | `internal/blueprint/` | the IR, its validation, and the layered-merge engine |
 | `internal/ingest/` | OpenAPI → blueprint |
+| `internal/specstore/` | pinned specification snapshots: list, read, checksum, pin |
 | `internal/interop/` | reads and writes `terraform-plugin-codegen-spec` v0.1 |
 | `internal/probe/` | the API behaviour prober |
 | `internal/cassette/` | HTTP record/replay, redaction, deterministic canonicalisation |
+| `internal/fixturespec/` | the one derivation of fixture values, rendered as HCL and as wire JSON |
 | `internal/emit/`, `internal/render/` | blueprint → Go; all logic lives in `render` |
-| `internal/sdkbind/` | type-checks blueprint bindings against the pinned SDK |
+| `internal/sdkbind/` | type-checks blueprint bindings against the pinned SDK; derives static facts |
 | `internal/manifest/` | what the last run produced, so orphaned files can be found |
 | `internal/templates/` | embedded `.tmpl` files — the emitted shape, as reviewable text |
-| `blueprints/` | committed blueprints, one directory per provider |
+| `blueprints/` | committed blueprints, plans and static facts, one directory per provider |
 | `probe-evidence/` | committed probe cassettes and derived facts |
 | `openapi-specs/` | pinned, immutable specification snapshots |
-| `pilot/thousandeyes/` | a nested module: a fully generated provider, built and unit-tested in CI |
-| `docs/` | architecture, CLI reference, and the new-API onboarding runbook |
+| `interop-specs/` | the committed codegen-spec v0.1 export, drift-gated |
+| `pilot/thousandeyes/` | a nested module: a fully generated provider, built, unit-tested and live-tested in CI |
+| `docs/` | architecture, guides and the CLI reference — see below |
+
+## Quick start
+
+The loop, end to end (each step's full story is in the
+[onboarding runbook](docs/onboarding-a-new-api.md)):
+
+```bash
+tfpluginframeworkgen specs -url https://…/api.yaml -output-dir openapi-specs/PROVIDER
+tfpluginframeworkgen ingest -only THING -out blueprints/PROVIDER -plan-drafts blueprints/PROVIDER
+tfpluginframeworkgen bindings -blueprint blueprints/PROVIDER -module pilot/PROVIDER
+tfpluginframeworkgen probe -blueprint blueprints/PROVIDER -resource THING \
+  -mode record --allow-mutations -profile .tfpluginframeworkgen/sandbox/PROVIDER.json
+tfpluginframeworkgen merge -blueprint blueprints/PROVIDER -facts probe-evidence/…/facts.json
+tfpluginframeworkgen emit -blueprint blueprints/PROVIDER -out pilot/PROVIDER
+```
+
+The safe modes are the defaults: `probe` replays committed evidence unless told
+to record, mutating runs demand a sandbox profile that proves itself at runtime,
+and the token comes from `TFPFGEN_PROBE_TOKEN` — never a flag, never a file.
+
+## What is generated and what is yours
+
+The boundary is the most important thing to understand about a generated
+provider. Generated files carry exactly this header, and nothing else may:
+
+```go
+// Code generated by tfpluginframeworkgen from blueprints/<path> (sha256:…). DO NOT EDIT.
+```
+
+Broadly: CRUD, models, schemas, registration, acceptance tests and **both**
+fixture files are generated; authentication, the client, plan modifiers and
+read-back predicates are yours — scaffolded once where declared, then never
+touched again. There is deliberately **no** preserved-region mechanism inside a
+generated file: ownership is all-or-nothing per file.
+
+[`docs/generated-boundary.md`](docs/generated-boundary.md) has the full ownership
+table, the five enforcement mechanisms, and the escape hatch.
 
 ## Relationship to HashiCorp's code generation tooling
 
@@ -161,6 +166,23 @@ interop format: `tfpluginframeworkgen interop` reads and writes v0.1 JSON, so
 `tfplugingen-openapi` output can be ingested and the schema slice can be handed
 to other tools. Everything that format cannot carry — CRUD wiring, SDK binding,
 observed behaviour, test scaffolding — lives in this project's own richer IR.
+CI feeds the committed export to HashiCorp's real `tfplugingen-framework` on
+every PR, as a conformance oracle that does not share this repository's
+assumptions ([docs/interop.md](docs/interop.md)).
+
+## Documentation
+
+| Doc | What it covers |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | the pipeline, package map, and where logic may live |
+| [docs/onboarding-a-new-api.md](docs/onboarding-a-new-api.md) | the end-to-end runbook, walked ~20 times |
+| [docs/cli.md](docs/cli.md) | every subcommand, flag and exit code |
+| [docs/blueprint.md](docs/blueprint.md) | the IR, field by field |
+| [docs/probing.md](docs/probing.md) | the probe catalogue, sandbox gate, ledger, budgets |
+| [docs/fixtures-and-rehearsal.md](docs/fixtures-and-rehearsal.md) | fixture derivation and the rehearsal fixpoint |
+| [docs/generated-boundary.md](docs/generated-boundary.md) | what is generated, what is yours, how it is enforced |
+| [docs/gates.md](docs/gates.md) | every CI gate and its local reproduction |
+| [docs/interop.md](docs/interop.md) | the codegen-spec v0.1 bridge |
 
 ## Roadmap
 
@@ -173,22 +195,19 @@ observed behaviour, test scaffolding — lives in this project's own richer IR.
 | 3 | `terraform-plugin-codegen-spec` v0.1 interop | **done** |
 | 4 | the prober: record, replay, gating, cleanup | **done** |
 | 5 | block kinds: data sources, actions, identity, list resources, arbitrary-depth nesting, generated validators, read-after-write, escape hatches | **done** |
-| 6 | breadth — ~20 resources, docs, weekly spec refresh | next |
-| 7 | a second API, proving nothing is pilot-shaped | |
+| 6 | breadth: 23 resources across five waves; probe resequencing (rehearsal, static facts, generated fixtures); postcheck; spec-refresh loop; SDK chain validated end to end | **done** |
+| 7 | a second API, proving nothing is pilot-shaped | next |
 
-Phase 5 was re-scoped against a real 167-resource provider rather than the
-original guess, and the reasoning is recorded in
-[`docs/blueprint.md`](docs/blueprint.md) where each decision landed. Tests,
-mocks and fixtures derived from probe evidence — the original phase 5 line —
-moved into phase 6, since the evidence turned out to be more useful for
-deciding *schema* than for generating tests.
+Three pilot resources are deferred with their reasons recorded in the blueprints:
+agent-to-agent, voice and endpoint scheduled tests all need lab hardware
+(enterprise or endpoint agents) that a disposable tenant does not have. Read-only
+results surfaces were never in scope. The dashboard `layout` attribute is dropped
+pending a widgets model.
 
-**Generated today:** resources, data sources, actions, resource identity, list
-resources. `ephemeral` exists as a block kind — so attribute validation knows
-that its attributes may not carry a `Default` or plan modifiers — but there is
-no way to declare one and no template to emit it. Provider-defined functions,
-state upgraders and `statestore` are not modelled at all. None of these appears
-in the reference provider, which is why they are last rather than next.
+**Generated today:** resources, data sources, actions, ephemerals, resource
+identity, list resources. Provider-defined functions, state upgrader *bodies*
+(the scaffold exists) and `statestore` are not modelled at all; none appears in
+the reference provider, which is why they are last rather than next.
 
 ## Limitations
 
@@ -208,35 +227,19 @@ in the reference provider, which is why they are last rather than next.
   the documented set is the wider of the two, so a stale specification surfaces as a real
   API error carrying the API's own message rather than as a plan failure nobody can work
   around. Where the prober saw a documented value refused, it stays permitted and the
-  refusal is named in a comment beside the validator — a value one tenant rejects may be
-  licence-gated rather than nonexistent. The one case that suppresses the validator
-  outright is direct evidence of harm: the API accepted a value from *outside* the
-  documented set, so a `OneOf` would reject configurations it demonstrably takes.
-- **Declared bounds become validators too.** A `pattern`, a length, a size or a numeric range
-  in the specification becomes the framework validator its type provides — and a bound the
-  framework has no validator for is refused by name rather than emitted as a call to a function
-  that does not exist. A `pattern` Go's `regexp` cannot compile is reported and dropped: the
-  generated code would call `regexp.MustCompile` on it and panic at provider start.
+  refusal is named in a comment beside the validator.
+- **The rehearsal bisects one culprit at a time.** A body refused because of two
+  *interacting* fields exceeds the bisection budget and is recorded as a refusal
+  note for a human, not silently guessed at.
 - **The prober cannot learn everything.** Licence-gated behaviour, cross-object
   constraints, RBAC, production latency, and whether a field is *semantically* a
-  secret all need a human. The probe plan's deny list is where that boundary is
-  drawn honestly.
+  secret all need a human. The probe plan's deny list and the blueprint's
+  curated hints are where that boundary is drawn honestly.
 - **`ingest` refuses partial resources by default.** A resource whose CRUD set is
   incomplete is a curation decision, not something to guess at.
-- **Nesting is generated to any depth** the blueprint declares. Two things are refused,
-  naming the offending attribute: two nested objects that would declare the same Go
-  identifier, and nesting past ten levels — a runaway guard, since a schema deeper than
-  that is usually one whose depth is decided at runtime and so is not expressible here.
-- **One attribute decision in the pilot is still an unprobed guess.** The prober
-  settled the server-default question: `color` really does carry one (`#A7EB10`,
-  corroborated), `access_type` is required by the API so cannot have one, and
-  `match_type` is not returned on read so a default is not observable. What it did
-  *not* settle is whether `legacy_id` is integral despite the specification typing
-  it as a `number`, so it is still generated as a `float64`. The cassette contains
-  63 integral observations and no fractional one, which is suggestive but is not a
-  fact the prober derives — there is no numeric-integrality probe. Adding one
-  changes the fact protocol, so it belongs in a phase that re-records rather than
-  in one that replays.
+- **There is no numeric-integrality probe.** A field the specification types as
+  `number` is generated as `float64` even when every recorded observation of it
+  is integral; the observations are suggestive, not a derived fact.
 
 ## Contributing
 

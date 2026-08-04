@@ -33,7 +33,7 @@ A small number of files are scaffolded once and then owned by you — those carr
 no such header, and the generator will not touch them again. The
 [generated boundary](docs/) documentation is the full list.
 
-Two consequences worth knowing before opening a pull request:
+Three consequences worth knowing before opening a pull request:
 
 - **Emitted output must be deterministic.** No timestamps, no tool version, no
   absolute paths, and no reliance on Go map iteration order in anything written
@@ -41,8 +41,15 @@ Two consequences worth knowing before opening a pull request:
   nothing, which destroys its usefulness.
 - **Never commit a real credential to probe evidence.** Cassettes are committed
   by design. Redaction allowlists header values rather than denylisting them, and
-  a final pass fails the run outright if any known secret survives into the
-  output. Run `tfpluginframeworkgen probe redact --check` before pushing.
+  a final pass fails the recording outright — exit `7`, nothing written — if any
+  credential-shaped value survives into the output. There is nothing extra to run
+  before pushing; the check is part of every record run, and
+  `probe -mode verify` re-derives committed evidence offline.
+- **Regenerate with the postcheck on.** `emit` finishes by compiling the output,
+  regenerating its registry docs and running `terraform fmt`
+  (`-skip-postcheck` exists for tight inner loops only). A PR that arrives with
+  stale `docs/` or unformatted fixtures is a PR whose final `emit` was skipped —
+  CI will say so, one gate later.
 
 <!-- References -->
 

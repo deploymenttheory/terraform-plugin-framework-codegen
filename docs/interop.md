@@ -95,8 +95,9 @@ conventions, specification provenance, and attribute descriptions — see below.
 
 Uniform losses are aggregated per resource with a count; selective ones stay addressed
 per attribute. Wire bindings and model field names exist on *every* attribute, so
-reporting them individually makes the pilot's report sixty-four lines of which
-forty-five are identical. Aggregating gives twenty, each saying something distinct.
+reporting them individually made even the single-resource pilot's report sixty-four
+lines of which forty-five were identical — and the pilot now exports twenty-three
+resources. Aggregating gives one line per distinct loss.
 
 ### Attribute descriptions
 

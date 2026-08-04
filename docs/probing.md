@@ -5,9 +5,9 @@ what an API *does* rather than what its specification claims. Everything it conc
 own evidence and a confidence level, and everything it does to somebody's tenant is bounded,
 recorded and swept.
 
-> Status: complete. All fifteen probes are implemented, and the pilot's committed evidence is a
-> live mutating run against a real sandbox — 112 requests, 45 objects created, 45 removed, 39 facts,
-> all of them re-derivable offline from the transcript.
+> Status: complete. All sixteen probes are implemented, and the pilot's committed evidence is
+> twenty live mutating runs against a real sandbox, recorded across five waves — every one of
+> them re-derivable offline from its transcript, and every one gated in CI by replay-verify.
 
 ## What the first live run found
 
@@ -26,6 +26,13 @@ were wrong**, and lost the observations of six probes entirely. None of it was v
 
 Each of those is now a guard with a regression test. The one that matters most is the identifier
 lookup: it failed *silently*, in the direction that leaves objects in somebody's tenant.
+
+Later waves kept finding the same class of thing, which is the evidence the approach generalises
+rather than having been lucky once: an API version bump started refusing a synthesised HTTP
+header the previous version tolerated (caught by the recorded rehearsal, fixed with one plan
+hint); a permissionless role create turned out to be a genuine server-side 500; user emails are
+globally unique and deletion is what frees them, which reshaped the whole fixture strategy for
+that resource. None of those facts is in any specification.
 
 **The evidence the run produced**, all of it re-derivable offline:
 
@@ -47,11 +54,28 @@ lookup: it failed *silently*, in the direction that leaves objects in somebody's
 | Tier | What it does | What it needs |
 |---|---|---|
 | Read-only | six probes: list shape, read shape, error envelope, volatility, pagination, unknown-parameter tolerance | credentials |
-| Mutating | nine probes: writability, update style, read-your-writes, requiredness, server defaults, immutability, enum boundaries, normalisation, write side effects | credentials, `--allow-mutations`, a sandbox profile, and every gate condition |
+| Mutating | ten probes: writability, update style, read-your-writes, requiredness, server defaults, immutability, enum boundaries, normalisation, write side effects, and the rehearsal | credentials, `--allow-mutations`, a sandbox profile, and every gate condition |
 
 The two are separate Go interfaces with no overlap, so a read-only probe cannot write. That is a
 property of the type system rather than a convention: `ReadProbe` is handed a session whose only
 method is `Get`.
+
+### The rehearsal
+
+`write.rehearsal` is the tenth mutating probe and the last to run, and it is different in kind
+from the other nine: they each isolate one behaviour, while the rehearsal walks the **exact
+lifecycles the generated acceptance tests will run** — create minimal → update to maximal →
+downgrade → delete, and the reverse — with the same derived fixture values the generator will
+render into HCL. Every hop's response is compared field-by-field against what was sent, updates
+are contrasted against sibling values to tell "suppressed by interaction" from "never returned",
+and a jointly-refused body is bisected one sibling at a time to name the culprit. Its facts are
+the ones that used to be discovered by a failing acceptance test.
+
+After the standard probes, `probe -mode record` re-derives the fixtures from the merged evidence
+and re-runs the rehearsal until the derived bodies stop changing, then freezes the converged
+bodies as `rehearsal.json` beside the cassette. The full contract — derivation, the fact kinds,
+and why the fixpoint exists — is in
+[fixtures-and-rehearsal.md](fixtures-and-rehearsal.md).
 
 ## Modes
 
@@ -72,7 +96,29 @@ that can change somebody's tenant has to be spelled out.
 `verify` is the purity gate, and it runs in CI with egress blocked and no credentials. If
 derivation ever depended on anything outside the transcript — a clock, an environment variable,
 map iteration order — the committed facts and the replayed facts would differ, and every fact in
-the store would be unreproducible.
+the store would be unreproducible. Two refinements keep that gate honest rather than brittle:
+a replay that reproduces an error the recording itself ended on still has its facts compared
+(a faithful reproduction of a recorded failure is a *pass*, not a crash), and `replay -rederive`
+rewrites `facts.json` from the committed cassette when the derivation logic itself improves —
+so better inference never requires re-probing a live API.
+
+## What a snapshot freezes
+
+A committed evidence snapshot is not just the cassette. It freezes everything replay needs to be
+a pure function of the directory:
+
+| File | What it pins |
+|---|---|
+| `cassette.json` | the ordered transcript, redacted |
+| `facts.json` | the derived facts, which `verify` re-derives and compares |
+| `plan.json`, `subject.json` | the plan and blueprint-derived subject *as probed*, so later curation cannot silently change what a replay sends |
+| `rehearsal.json` | the converged rehearsal bodies, so the fixpoint's outcome replays instead of re-deriving from a blueprint that has since moved |
+
+Two version marks make old evidence honest rather than wrong. The subject carries an
+`evidenceRev`: observations added to the prober after a snapshot was recorded are only asserted
+against evidence recorded at a revision that knew to capture them, so upgrading the toolkit never
+turns green history red. And a snapshot recorded with `-only` records that filter in its
+metadata, so a filtered recording replays filtered rather than failing over probes it never ran.
 
 ## Credentials
 
@@ -182,6 +228,14 @@ with no identifier in it — leaves the intent outstanding.
 
 A ledger is clean when it *reconciles*, not when it is empty: forty creates and forty deletes is
 a clean run.
+
+One more resolution exists, because the conservative classification above manufactures phantoms:
+a create refused with a 5xx leaves its intent outstanding — correctly, since a 5xx proves
+nothing — but if the server genuinely created nothing, that intent blocks every later record run
+over an object that does not exist. The sweeper resolves it by **proven absence**: when a
+collection read is *complete* (not truncated, not suspiciously round) and the intent's stamped
+name is not in it, the object demonstrably does not exist and the intent is marked rejected.
+Absence from a partial read proves nothing and resolves nothing.
 
 ### The sweeper's two passes
 
@@ -299,6 +353,32 @@ values as well.
 A field whose only acceptable value cannot be discovered belongs on `deny`, with the consequence
 understood: every probe that would have sent it emits a note, and whatever the blueprint claims
 about it stays unprobed.
+
+`deny` gates **experiments, not sends**. A denied field is never probed — never omitted to test
+requiredness, never substituted to test immutability — but if a fixture declares a value for it,
+that value still goes into every body that needs it. The distinction matters because the two
+readings diverge exactly when a denied field is also required: strip it from the rehearsal's
+bodies and every create fails, and the run learns nothing about all the *other* fields.
+
+## Static facts
+
+Not every fact needs a network. Some behaviour is written into the SDK's own source: a
+value-typed request field tagged `omitempty` is a field whose zero value the SDK is
+**structurally unable to send** — `false`, `0` and `""` serialise as an omission, whatever the
+API would have said about them. Probing for that would be probing the wrong system.
+
+`bindings -facts-out` derives these `zeroValueUnsendable` facts by scanning the pinned SDK's
+struct tags, and writes them as an ordinary facts document — the pilot commits
+`blueprints/thousandeyes/static.facts.json` — that `merge` folds in exactly like probe facts.
+They live outside the evidence snapshots because their evidence is a source location, not an
+interaction, and they get their own drift gate: `bindings -facts-check` re-derives and fails on
+any difference, so an SDK version bump that changes a struct tag cannot leave the committed
+facts stale.
+
+The description marker blocks that `merge` writes keep the two provenances apart: live evidence
+writes under its snapshot id, static facts under the id `static`, and within each channel the
+newest evidence wins. A fact learned from the SDK's source can never be overwritten by — or
+masquerade as — one observed on the wire.
 
 ## What a probe may not do
 

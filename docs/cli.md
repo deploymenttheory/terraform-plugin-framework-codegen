@@ -11,17 +11,20 @@ global flag namespace for two subcommands to collide in, and `tfpluginframeworkg
 
 ## Commands
 
+Listed in pipeline order — the order an author walks them, which is also the order
+`help` prints them.
+
 | Command | Purpose | State |
 |---|---|---|
-| `specs` | fetch and snapshot an upstream OpenAPI document | planned |
+| `specs` | fetch and snapshot an upstream OpenAPI document | **built** |
 | `ingest` | infer a provider blueprint from an OpenAPI snapshot | **built** *(resources only; data sources, actions and the provider block are hand-authored)* |
 | `blueprint` | validate, diff or list blueprints | planned *(validation itself is built and runs on every load)* |
-| `probe` | exercise a resource's lifecycle; record, replay, verify or sweep | **built** *(both tiers; a mutating run needs `--allow-mutations` and a sandbox profile)* |
+| `probe` | exercise a resource's lifecycle; record, replay, verify or sweep | **built** *(both tiers plus the rehearsal; a mutating run needs `--allow-mutations` and a sandbox profile)* |
 | `merge` | fold probe facts into a blueprint | **built** |
-| `emit` | render a provider from blueprints | **built** |
+| `emit` | render a provider from blueprints, then postcheck it | **built** |
 | `verify` | fail if the committed provider has drifted | **built** |
-| `bindings` | check blueprint SDK bindings against the pinned SDK | **built** |
 | `scaffold` | write a blank resource from the archetype | planned *(the archetype exists; `emit` scaffolds it via `hooks`)* |
+| `bindings` | check blueprint SDK bindings against the pinned SDK; derive static facts | **built** |
 | `interop` | export or import codegen-spec v0.1 JSON | **built** *(import is resources-only and writes drafts)* |
 | `version` | print the version | **built** |
 
@@ -29,6 +32,13 @@ A planned command is registered and documented but not implemented: running one
 says so and exits non-zero. Registering the full surface up front means `help`
 describes the intended pipeline from the first commit, and reaching for a missing
 stage gets a straight answer rather than "unknown command".
+
+Two pieces of pipeline behaviour live *inside* commands rather than as commands of
+their own, and it is worth saying so because the source layout suggests otherwise:
+the **rehearsal fixpoint** (`cmd/tfpluginframeworkgen/rehearse.go`) is a behaviour
+of `probe -mode record`, and **plan promotion** (`cmd/tfpluginframeworkgen/promote.go`)
+is a behaviour of `merge -promote-plans`. There is no `rehearse` or `promote`
+subcommand.
 
 ## Global flags
 
@@ -74,9 +84,193 @@ the errors happened to be joined in.
 
 ---
 
+## `specs`
+
+Fetches the upstream OpenAPI document and pins it as a new snapshot.
+
+```
+tfpluginframeworkgen specs [-url URL] [-output-dir DIR] [-dry-run]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-url` | the latest snapshot's recorded source | the document to fetch |
+| `-output-dir` | — | snapshot root, e.g. `openapi-specs/thousandeyes` (required) |
+| `-dry-run` | `false` | fetch and report, but pin nothing |
+
+The refresh loop is the point: with `-url` omitted, the source comes from the
+latest snapshot's own metadata, so `specs -output-dir openapi-specs/thousandeyes`
+re-fetches from wherever the last pin came from. No one has to remember the URL,
+because the snapshot that would go stale is the thing that records it. `-url` is
+only required for the very first snapshot.
+
+A snapshot is a directory named `<version>-t<millis>` holding the document
+(`api.yaml`) and `metadata.json` (source URL, digest, fetch time). An upstream
+document identical to the latest snapshot pins nothing and exits `0` — the weekly
+refresh should be quiet when there is nothing to review.
+
+The fetch is bounded at two minutes: a specification is a couple of megabytes, and
+anything slower is a network problem worth hearing about.
+
+## `ingest`
+
+Infers draft blueprints (and optionally probe-plan worksheets) from a pinned
+OpenAPI snapshot.
+
+```
+tfpluginframeworkgen ingest [-spec-root DIR] [-snapshot NAME] [-only TAG] [-list]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-spec-root` | `openapi-specs/thousandeyes` | directory holding pinned snapshots |
+| `-snapshot` | the newest | snapshot to read |
+| `-spec` | — | read this document directly, bypassing the snapshot store |
+| `-list` | `false` | list what the document offers and exit |
+| `-only` | — | restrict to candidates whose tag or key contains this; comma-separate several |
+| `-all` | `false` | include candidates that cannot become resources or data sources |
+| `-out` | — | write inferred blueprints under this directory |
+| `-plan-drafts` | — | also scaffold a `KEY.probe.plan.draft.json` worksheet per resource under this directory |
+| `-provider` | `thousandeyes` | provider name, which prefixes every resource type |
+| `-api-version-dir` | `v7` | version directory generated packages live under |
+| `-sdk-service-root` | the ThousandEyes SDK's | import prefix the SDK's service packages live under |
+| `-sdk-accessor` | `r.client.API` | expression reaching a service from the resource receiver |
+
+`ingest -list` is the survey: it reports every candidate the document offers and
+why the ineligible ones are ineligible. The write path produces **drafts** — a
+schema and a best-guess binding, which a human then curates (presence, hints,
+denials, sweep configuration) before the file earns its non-draft name. The
+`-plan-drafts` worksheets serve the same role for probe plans: every field listed
+with a place to put fixture values and candidates, nothing invented.
+
+## `probe`
+
+Exercises a live API and writes down what it observed.
+
+```
+tfpluginframeworkgen probe [-mode record|replay|verify|sweep] -blueprint DIR
+    [-resource KEY] [-only PROBE] [-list] [-plan FILE] [-plan-dir DIR]
+    [--allow-mutations] [-profile FILE] [-force] [-no-rehearse] [-rederive]
+    [-evidence DIR] [-provider NAME]
+```
+
+| Flag | Purpose |
+|---|---|
+| `-mode` | `replay` (default), `record`, `verify` or `sweep` |
+| `-blueprint` | blueprint file or directory (required) |
+| `-resource` | probe one resource, by blueprint key |
+| `-only` | run one probe, by name |
+| `-list` | print the catalogue with its worst-case cost, and exit |
+| `-plan` | probe plan: the fixtures and candidate values a probe cannot discover |
+| `-plan-dir` | directory of per-resource plans, `KEY.probe.plan.json`; defaults to the blueprint directory |
+| `--allow-mutations` | permit probes that create, update and delete |
+| `-profile` | sandbox profile; defaults to `.tfpluginframeworkgen/sandbox/<provider>.json` |
+| `-force` | record over evidence that is already committed |
+| `-no-rehearse` | skip the rehearsal fixpoint after the standard mutating probes |
+| `-rederive` | with `-mode replay`: rewrite `facts.json` from the committed cassette, no network |
+| `-evidence` | root of the committed evidence (default `probe-evidence`) |
+| `-provider` | provider name for the evidence path; defaults to the blueprint's |
+
+The four modes:
+
+- **`record`** talks to the live API and freezes everything it saw — cassette,
+  facts, the plan and subject as probed, and the rehearsal's derived bodies.
+- **`replay`** re-runs the probes against the committed cassette. No network, no
+  credentials. This is the default because the safe mode should be what you get by
+  typing less.
+- **`verify`** replays and then compares the derived facts against the committed
+  `facts.json`, failing on any difference — the CI drift gate for evidence. It
+  compares facts even when the replay reproduces an error the recording ended on,
+  because a reproduced failure with identical facts is a faithful replay.
+- **`sweep`** deletes every leftover object the ledger still holds an intent for,
+  and nothing else.
+
+`-resource` and `-only` are separate axes and deliberately not one flag: probing one
+resource with the whole catalogue and probing every resource with one protocol are
+both things an operator wants.
+
+A mutating record ends with the **rehearsal**: `write.rehearsal` walks both
+lifecycle directions (create minimal → update to maximal → downgrade → delete, and
+the reverse), and the command then re-derives fixtures from the merged evidence and
+re-runs it until the derived bodies stop changing. The converged bodies are frozen
+as `rehearsal.json` beside the cassette. `-no-rehearse` skips this for a cheap
+targeted re-record; evidence recorded that way carries no rehearsal facts. See
+[fixtures-and-rehearsal.md](fixtures-and-rehearsal.md).
+
+`-rederive` exists for toolkit upgrades: when fact derivation itself changes, the
+committed cassettes are re-read and `facts.json` files are rewritten without
+touching the network, so better inference never requires re-probing a live API.
+
+Credentials come from the environment and nowhere else — `TFPFGEN_PROBE_ENDPOINT` and
+`TFPFGEN_PROBE_TOKEN`. A flag would put the token in shell history and in the process
+table; the profile is a file that gets written down, and the gate refuses one that
+contains the token's value.
+
+`-list` needs no credentials, no cassettes and no network:
+
+```
+$ tfpluginframeworkgen probe -blueprint blueprints/thousandeyes -resource tag -list
+```
+
+A mutating run needs `-mode record`, `--allow-mutations`, and a sandbox profile that
+passes every gate condition. A refusal lists all of them at once and exits `3`:
+
+```
+$ tfpluginframeworkgen probe -blueprint blueprints/example -resource tag \
+    -mode record --allow-mutations
+tfpluginframeworkgen: mutating probes refused: 5 condition(s) were not met:
+  - sandbox: the profile does not declare sandbox: true
+  - sandboxEvidence: sandboxEvidence is 2 characters, and at least 24 are required; …
+  - namePrefix: namePrefix "tf" is shorter than 8 characters; …
+  - plan: the plan declares no fixtures; …
+  - noSnapshotOverwrite: evidence for this plan is already committed; …
+```
+
+See [probing.md](probing.md) for the gate, the ledger, the sweeper and the budgets.
+
+## `merge`
+
+Folds a probe run's facts into the blueprint they describe.
+
+```
+tfpluginframeworkgen merge -blueprint DIR -facts FILE [-strategy annotate|apply]
+    [-check] [-accept-conflicts] [-promote-plans DIR] [-snapshot-id ID]
+    [-github-summary PATH]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-blueprint` | — | blueprint file or directory (required) |
+| `-facts` | — | facts JSON to fold in (required) |
+| `-strategy` | `annotate` | `annotate` writes behaviour and descriptions; `apply` may also widen presence |
+| `-check` | `false` | write nothing and exit 1 if merging would change anything |
+| `-accept-conflicts` | `false` | suppress the conflict exit code; conflicts are still reported and still not applied |
+| `-promote-plans` | — | directory of `KEY.probe.plan.json` files whose fixture values are promoted into `accFixture` wire hints, for attributes the generator refuses to derive |
+| `-snapshot-id` | the facts file's directory | identifies the evidence in the description marker |
+| `-github-summary` | — | append a summary here |
+
+`annotate` is the default because most of what a probe learns lands in `behaviour`
+and in the description marker block, neither of which changes the schema. `apply`
+is for the facts that do — a field observed as server-populated widening to
+`computed_optional`, for instance — and a fact whose application would *conflict*
+with a curated declaration is reported and left alone under either strategy.
+
+`-check` is the drift gate: CI re-merges every committed facts file and fails if
+any blueprint would change, so evidence and blueprint cannot silently diverge. A
+facts file with no facts (a rehearsal-only or read-only snapshot) is trivially
+reflected and passes.
+
+`-promote-plans` copies fixture values from the *plan* into `accFixture` wire
+hints — but only for attributes the fixture generator refuses to derive itself,
+only from the plan's first fixture (later fixtures probe variants, not the
+canonical shape), and never over a hand-written hint. Static facts documents merge
+through the same command with `-snapshot-id` naming the `static` channel; see
+[probing.md](probing.md#static-facts).
+
 ## `emit`
 
-Renders a provider from blueprints.
+Renders a provider from blueprints, then runs the postcheck battery over what it
+wrote.
 
 ```
 tfpluginframeworkgen emit -blueprint DIR -out DIR [-only NAME] [-dry-run]
@@ -91,6 +285,7 @@ tfpluginframeworkgen emit -blueprint DIR -out DIR [-only NAME] [-dry-run]
 | `-list` | `false` | list the files that would be written and exit |
 | `-clean` | `false` | delete files the blueprints no longer produce |
 | `-force` | `false` | overwrite files that are not marked as generated |
+| `-skip-postcheck` | `false` | skip the post-emit battery; for tight inner loops only |
 
 Building the plan touches nothing on disk, so `-dry-run` exercises the same code
 path as a real run rather than approximating it.
@@ -105,6 +300,24 @@ unlisted file as an orphan.
 
 Files whose content is already identical are reported as unchanged rather than
 rewritten, so regenerating does not churn modification times.
+
+### The postcheck battery
+
+After writing, `emit` finishes the job with the same tools that gate the result in
+CI, in order:
+
+1. **`go build ./...`** in the output module — the tree must compile.
+2. **`go generate .`** — regenerates `docs/` via tfplugindocs, but only when the
+   module root carries a `go:generate` directive for it. Schema changes and their
+   registry docs can never drift apart.
+3. **`terraform fmt -recursive`** — formats the generated `.tf` fixtures, and then
+   *fails if it rewrote anything*, because a rewrite means the generator produced
+   unformatted HCL and that is a generator bug to fix, not output to keep patching.
+
+The battery only runs when the output root is a Go module (`go.mod` present), so
+emitting into a scratch directory for inspection stays cheap. `-skip-postcheck`
+exists for tight inner loops; CI and any run before a commit should keep the
+battery on — a skipped battery just moves the same failures to the gates.
 
 ## `verify`
 
@@ -139,16 +352,18 @@ assumed.
 ## `bindings`
 
 Type-checks a blueprint's SDK bindings against the SDK the provider will compile
-against.
+against, and derives the static facts that live in the SDK's own source.
 
 ```
-tfpluginframeworkgen bindings -blueprint DIR -module DIR
+tfpluginframeworkgen bindings -blueprint DIR -module DIR [-facts-out FILE | -facts-check FILE]
 ```
 
 | Flag | Default | Purpose |
 |---|---|---|
 | `-blueprint` | — | blueprint file or directory (required) |
 | `-module` | — | a module whose `go.mod` pins the SDK (required) |
+| `-facts-out` | — | write statically derived facts (zero-value unsendable) to FILE |
+| `-facts-check` | — | re-derive static facts and fail when FILE differs — the drift gate for a committed static facts document |
 
 `-module` is normally the generated provider's own directory. The toolkit's module
 deliberately depends on no provider SDK, so it cannot be used — and resolving the
@@ -164,6 +379,15 @@ or written to.
 tag: binding.service.accessor: "r.client.Tags" does not resolve:
   thousandeyes.Client has no field "Tags" (available: API, Transport)
 ```
+
+`-facts-out` scans the request models' struct tags for value-typed fields with
+`omitempty` — fields whose zero value the SDK is structurally unable to send — and
+writes them as `zeroValueUnsendable` facts for `merge` to fold in. `-facts-check`
+is the same derivation as a drift gate: bump the SDK pin and CI tells you if the
+facts document is stale. The scan also *warns* about value-typed request structs
+that no attribute sets, because such a struct always serialises as `{}` on the
+wire; a required struct stays a value by design, so this is a warning and not an
+error. See [probing.md](probing.md#static-facts).
 
 ## `interop`
 
@@ -239,64 +463,6 @@ first, collapsed:
   resources[tag].attributes[*].wire.{sdkField,sdkGoType,expand,flatten}   (23)
 ```
 
-## `probe`
-
-Exercises a live API and writes down what it observed.
-
-```
-tfpluginframeworkgen probe [-mode record|replay|verify|sweep] -blueprint DIR
-    [-resource KEY] [-only PROBE] [-list] [-plan FILE]
-    [--allow-mutations] [-profile FILE] [-force]
-    [-evidence DIR] [-provider NAME]
-```
-
-| Flag | Purpose |
-|---|---|
-| `-mode` | `replay` (default), `record`, `verify` or `sweep` |
-| `-blueprint` | blueprint file or directory (required) |
-| `-resource` | probe one resource, by blueprint key |
-| `-only` | run one probe, by name |
-| `-list` | print the catalogue with its worst-case cost, and exit |
-| `-plan` | probe plan: the fixtures and candidate values a probe cannot discover |
-| `--allow-mutations` | permit probes that create, update and delete |
-| `-profile` | sandbox profile; defaults to `.tfpluginframeworkgen/sandbox/<provider>.json` |
-| `-force` | record over evidence that is already committed |
-| `-evidence` | root of the committed evidence (default `probe-evidence`) |
-| `-provider` | provider name for the evidence path; defaults to the blueprint's |
-
-`-resource` and `-only` are separate axes and deliberately not one flag: probing one
-resource with the whole catalogue and probing every resource with one protocol are
-both things an operator wants.
-
-`replay` is the default because the safe mode should be what you get by typing less.
-
-Credentials come from the environment and nowhere else — `TFPFGEN_PROBE_ENDPOINT` and
-`TFPFGEN_PROBE_TOKEN`. A flag would put the token in shell history and in the process
-table; the profile is a file that gets written down, and the gate refuses one that
-contains the token's value.
-
-`-list` needs no credentials, no cassettes and no network:
-
-```
-$ tfpluginframeworkgen probe -blueprint blueprints/thousandeyes -resource tag -list
-```
-
-A mutating run needs `-mode record`, `--allow-mutations`, and a sandbox profile that
-passes every gate condition. A refusal lists all of them at once and exits `3`:
-
-```
-$ tfpluginframeworkgen probe -blueprint blueprints/example -resource tag \
-    -mode record --allow-mutations
-tfpluginframeworkgen: mutating probes refused: 5 condition(s) were not met:
-  - sandbox: the profile does not declare sandbox: true
-  - sandboxEvidence: sandboxEvidence is 2 characters, and at least 24 are required; …
-  - namePrefix: namePrefix "tf" is shorter than 8 characters; …
-  - plan: the plan declares no fixtures; …
-  - noSnapshotOverwrite: evidence for this plan is already committed; …
-```
-
-See [probing.md](probing.md) for the gate, the ledger, the sweeper and the budgets.
-
 ## `version`
 
 ```
@@ -305,23 +471,6 @@ tfpluginframeworkgen version [-short]
 
 ---
 
-## Worked example
-
-The pilot, end to end:
-
-```bash
-# what would be written, without writing it
-tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -dry-run
-
-# check every SDK symbol the blueprint names actually exists
-tfpluginframeworkgen bindings -blueprint blueprints/thousandeyes -module pilot/thousandeyes
-
-# generate
-tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes
-
-# the actual proof
-cd pilot/thousandeyes && go build ./... && go test ./... && terraform plan
-
-# what CI runs
-tfpluginframeworkgen verify -blueprint blueprints/thousandeyes -out pilot/thousandeyes
-```
+For the full pipeline walked in order with these commands — including the record →
+merge → emit loop and the CI gates each stage answers to — see
+[onboarding-a-new-api.md](onboarding-a-new-api.md) and [gates.md](gates.md).
