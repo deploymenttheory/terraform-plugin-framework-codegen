@@ -154,7 +154,7 @@ func DataSource(
 		impState.add(pkgDiag, "")
 	}
 
-	state, err := stateView(d.Schema, d.Binding.Response.Type, shapes)
+	state, err := stateView(d.Schema, d.Binding.Response.Type, d.Binding.Response.AccessStyle, shapes)
 	if err != nil {
 		return DataSourceView{}, err
 	}

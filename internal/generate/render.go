@@ -55,6 +55,9 @@ const (
 // `schema` never appear in the same file and there is nothing to disambiguate.
 type schemaScope struct {
 	kind blueprint.BlockKind
+	// access is how the binding's SDK models expose their fields, threaded to
+	// every nested shape built under this scope.
+	access blueprint.AccessStyle
 	// what names the block in an error message, e.g. `resource "tag"`.
 	what string
 	// patterns collects the package-level regexp vars this schema's RegexMatches validators
@@ -80,6 +83,7 @@ func (sc schemaScope) schemaImport() string {
 func resourceScope(r blueprint.Resource) schemaScope {
 	return schemaScope{
 		kind:        blueprint.BlockKindResource,
+		access:      r.Binding.Body.AccessStyle,
 		what:        fmt.Sprintf("resource %q", r.Key),
 		patterns:    newPatternVars(),
 		idAttribute: r.Binding.ID.Attribute,
@@ -90,6 +94,7 @@ func resourceScope(r blueprint.Resource) schemaScope {
 func dataSourceScope(d blueprint.DataSource) schemaScope {
 	return schemaScope{
 		kind:     blueprint.BlockKindDataSource,
+		access:   d.Binding.Response.AccessStyle,
 		what:     fmt.Sprintf("data source %q", d.Key),
 		patterns: newPatternVars(),
 	}
@@ -519,7 +524,7 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	}
 
 	v.Construct = constructView(r, shapes)
-	state, err := stateView(r.Schema, r.Binding.Body.ResponseType, shapes)
+	state, err := stateView(r.Schema, r.Binding.Body.ResponseType, r.Binding.Body.AccessStyle, shapes)
 	if err != nil {
 		return ResourceView{}, err
 	}
@@ -1160,11 +1165,11 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 				updateCall = a.Wire.UpdateExpand
 			}
 			v.Update.Assignments = append(v.Update.Assignments,
-				expandAssignment(*updateCall, a, &v.NeedsDiagnostics))
+				expandAssignment(r.Binding.Body.AccessStyle, *updateCall, a, &v.NeedsDiagnostics))
 		}
 
 		v.Assignments = append(v.Assignments,
-			expandAssignment(*a.Wire.Expand, a, &v.NeedsDiagnostics))
+			expandAssignment(r.Binding.Body.AccessStyle, *a.Wire.Expand, a, &v.NeedsDiagnostics))
 	}
 
 	return v
@@ -1173,35 +1178,22 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 // expandAssignment renders one construct statement for a call and attribute.
 //
 // A fallible conversion becomes two statements plus a diagnostics append, which is
-// why the enclosing function has to return diagnostics at all. A wrapper cannot take
-// a two-value call, so the result lands in a temp first: Deref for a value-typed
-// field the helper points at, Cast for a named slice of what the helper produces.
-func expandAssignment(call blueprint.ConvertCall, a blueprint.Attribute, needsDiags *bool) string {
-	if !call.ReturnsError {
-		return fmt.Sprintf("body.%s = %s",
-			a.Wire.SDKField, convertExpr(call, "data."+a.GoField))
-	}
-
-	*needsDiags = true
-
-	if needsTemp(call) {
-		inner := call
-		inner.Deref, inner.Cast = false, ""
-		tmp := lowerFirst(a.GoField) + "Raw"
-		return fmt.Sprintf(
-			"%s, d := %s\ndiags.Append(d...)\nbody.%s = %s",
-			tmp, convertExpr(inner, "data."+a.GoField), a.Wire.SDKField,
-			wrapConverted(call, tmp))
-	}
-
-	return fmt.Sprintf(
-		"body.%s, d = %s\ndiags.Append(d...)",
-		a.Wire.SDKField, convertExpr(call, "data."+a.GoField))
+// why the enclosing function has to return diagnostics at all -- the shapes live
+// in expandStmt, the one seam that knows how an SDK field is written.
+func expandAssignment(
+	style blueprint.AccessStyle,
+	call blueprint.ConvertCall,
+	a blueprint.Attribute,
+	needsDiags *bool,
+) string {
+	return expandStmt(style, "body", a.Wire.SDKField, call,
+		"data."+a.GoField, lowerFirst(a.GoField), needsDiags)
 }
 
 func stateView(
 	s blueprint.Schema,
 	responseType string,
+	style blueprint.AccessStyle,
 	shapes []nestedShape,
 ) (StateView, error) {
 	v := StateView{ResponseType: responseType}
@@ -1269,12 +1261,12 @@ func stateView(
 			v.NeedsDiagnostics = true
 			v.Assignments = append(v.Assignments, fmt.Sprintf(
 				"data.%s, d = %s\ndiags.Append(d...)",
-				a.GoField, convertExpr(*a.Wire.Flatten, "remote."+a.Wire.SDKField)))
+				a.GoField, convertExpr(*a.Wire.Flatten, readExpr(style, "remote", a.Wire.SDKField))))
 			continue
 		}
 
 		v.Assignments = append(v.Assignments, fmt.Sprintf("data.%s = %s",
-			a.GoField, convertExpr(*a.Wire.Flatten, "remote."+a.Wire.SDKField)))
+			a.GoField, convertExpr(*a.Wire.Flatten, readExpr(style, "remote", a.Wire.SDKField))))
 	}
 
 	return v, nil

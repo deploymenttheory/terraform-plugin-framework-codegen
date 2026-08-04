@@ -250,7 +250,7 @@ func TestUnit_Render_TheStateMapperDoesNotFlattenWhatTheAPINeverReturns(t *testi
 
 	s := blueprint.Schema{Attributes: []blueprint.Attribute{returned, notReturned}}
 
-	view, err := stateView(s, "tags.Tag", nil)
+	view, err := stateView(s, "tags.Tag", blueprint.AccessStructField, nil)
 	if err != nil {
 		t.Fatalf("stateView: %v", err)
 	}
@@ -304,7 +304,7 @@ func TestUnit_Render_ANeverReturnedCollectionIsRefusedRatherThanApproximated(t *
 			Flatten:  &blueprint.ConvertCall{Func: "convert.Whatever"},
 		}
 
-		_, err := stateView(blueprint.Schema{Attributes: []blueprint.Attribute{a}}, "x.Y", nil)
+		_, err := stateView(blueprint.Schema{Attributes: []blueprint.Attribute{a}}, "x.Y", blueprint.AccessStructField, nil)
 		if err == nil {
 			t.Errorf("%s should be refused rather than approximated", kind)
 			continue
