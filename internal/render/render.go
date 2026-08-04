@@ -220,6 +220,10 @@ type ConstructView struct {
 type ConstructTarget struct {
 	RequestType     string
 	ConstructorExpr string
+	// Assignments are the update body's own statements. They differ from the
+	// create list exactly where an attribute declares UpdateExpand -- an SDK whose
+	// update type spells a field differently from create's.
+	Assignments []string
 }
 
 // StateView is the flatten function.
@@ -546,6 +550,21 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 		return ResourceView{}, err
 	}
 	v.CRUD = crud
+
+	// An argument's verbatim expression can name packages crud.go never otherwise
+	// imports -- a request option for an expansion-gated read is the live case.
+	for _, op := range []*blueprint.Operation{
+		r.Binding.Create, r.Binding.Read, r.Binding.Update, r.Binding.Delete,
+	} {
+		if op == nil {
+			continue
+		}
+		for _, arg := range op.Args {
+			for _, imp := range arg.Imports {
+				impCRUD.add(imp.Path, imp.Alias)
+			}
+		}
+	}
 
 	// The identifier assignment can name an SDK type in a generic argument --
 	// alerts_rule's id flattens through EnumToFramework[alert_rules.RuleId] -- and
@@ -1135,37 +1154,49 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 			continue
 		}
 
-		// A fallible conversion becomes two statements plus a diagnostics append,
-		// which is why the enclosing function has to return diagnostics at all.
-		if a.Wire.Expand.ReturnsError {
-			v.NeedsDiagnostics = true
-
-			// A wrapper cannot take a two-value call, so the result lands in a temp
-			// first: Deref for a value-typed field the helper points at (a
-			// suppression window's required Repeat), Cast for a named slice of what
-			// the helper produces (a dashboard filter's Context).
-			if needsTemp(*a.Wire.Expand) {
-				call := *a.Wire.Expand
-				call.Deref, call.Cast = false, ""
-				tmp := lowerFirst(a.GoField) + "Raw"
-				v.Assignments = append(v.Assignments, fmt.Sprintf(
-					"%s, d := %s\ndiags.Append(d...)\nbody.%s = %s",
-					tmp, convertExpr(call, "data."+a.GoField), a.Wire.SDKField,
-					wrapConverted(*a.Wire.Expand, tmp)))
-				continue
+		if v.Update != nil {
+			updateCall := a.Wire.Expand
+			if a.Wire.UpdateExpand != nil {
+				updateCall = a.Wire.UpdateExpand
 			}
-
-			v.Assignments = append(v.Assignments, fmt.Sprintf(
-				"body.%s, d = %s\ndiags.Append(d...)",
-				a.Wire.SDKField, convertExpr(*a.Wire.Expand, "data."+a.GoField)))
-			continue
+			v.Update.Assignments = append(v.Update.Assignments,
+				expandAssignment(*updateCall, a, &v.NeedsDiagnostics))
 		}
 
-		v.Assignments = append(v.Assignments, fmt.Sprintf("body.%s = %s",
-			a.Wire.SDKField, convertExpr(*a.Wire.Expand, "data."+a.GoField)))
+		v.Assignments = append(v.Assignments,
+			expandAssignment(*a.Wire.Expand, a, &v.NeedsDiagnostics))
 	}
 
 	return v
+}
+
+// expandAssignment renders one construct statement for a call and attribute.
+//
+// A fallible conversion becomes two statements plus a diagnostics append, which is
+// why the enclosing function has to return diagnostics at all. A wrapper cannot take
+// a two-value call, so the result lands in a temp first: Deref for a value-typed
+// field the helper points at, Cast for a named slice of what the helper produces.
+func expandAssignment(call blueprint.ConvertCall, a blueprint.Attribute, needsDiags *bool) string {
+	if !call.ReturnsError {
+		return fmt.Sprintf("body.%s = %s",
+			a.Wire.SDKField, convertExpr(call, "data."+a.GoField))
+	}
+
+	*needsDiags = true
+
+	if needsTemp(call) {
+		inner := call
+		inner.Deref, inner.Cast = false, ""
+		tmp := lowerFirst(a.GoField) + "Raw"
+		return fmt.Sprintf(
+			"%s, d := %s\ndiags.Append(d...)\nbody.%s = %s",
+			tmp, convertExpr(inner, "data."+a.GoField), a.Wire.SDKField,
+			wrapConverted(call, tmp))
+	}
+
+	return fmt.Sprintf(
+		"body.%s, d = %s\ndiags.Append(d...)",
+		a.Wire.SDKField, convertExpr(call, "data."+a.GoField))
 }
 
 func stateView(

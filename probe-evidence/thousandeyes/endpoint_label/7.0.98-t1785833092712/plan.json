@@ -1,0 +1,27 @@
+{
+  "fixtures": [
+    {
+      "name": "minimal",
+      "body": {
+        "filters": [
+          {
+            "key": "platform",
+            "mode": "in",
+            "values": [
+              "windows"
+            ]
+          }
+        ],
+        "matchType": "and",
+        "name": "CURATE_ME-stamped-by-probe"
+      }
+    }
+  ],
+  "expansions": [
+    "expand=filters"
+  ],
+  "budget": {
+    "maxRequests": 260,
+    "maxCreates": 50
+  }
+}

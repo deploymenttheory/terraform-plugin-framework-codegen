@@ -1,0 +1,29 @@
+{
+  "id": "009-post-v7-endpoint-labels",
+  "seq": 9,
+  "request": {
+    "method": "POST",
+    "path": "/v7/endpoint/labels",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-required-2"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Required request body is missing mandatory field",
+      "status": 400,
+      "title": "Request validation failed"
+    },
+    "droppedHeaders": 13
+  }
+}

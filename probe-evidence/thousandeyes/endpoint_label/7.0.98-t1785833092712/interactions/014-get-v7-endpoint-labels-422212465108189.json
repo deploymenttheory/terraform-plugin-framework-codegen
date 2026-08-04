@@ -1,0 +1,30 @@
+{
+  "id": "014-get-v7-endpoint-labels-422212465108189",
+  "seq": 14,
+  "request": {
+    "method": "GET",
+    "path": "/v7/endpoint/labels/422212465108189",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/endpoint/labels/422212465108189"
+        }
+      },
+      "color": "#d9d9d9",
+      "id": "422212465108189",
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-update-style-1"
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -284,12 +284,11 @@
             "wire": {
               "jsonPath": "createdBy",
               "sdkField": "CreatedBy",
-              "sdkGoType": "dashboards_filters.ApiDashboardFilterUserDetails",
+              "sdkGoType": "*dashboards_filters.ApiDashboardFilterUserDetails",
               "flatten": {
                 "func": "flattenDashboardsFilterApiDashboardFilterUserDetails",
                 "needsCtx": true,
-                "returnsError": true,
-                "takesAddress": true
+                "returnsError": true
               },
               "skipExpand": true
             }
@@ -423,12 +422,11 @@
             "wire": {
               "jsonPath": "modifiedBy",
               "sdkField": "ModifiedBy",
-              "sdkGoType": "dashboards_filters.ApiDashboardFilterUserDetails",
+              "sdkGoType": "*dashboards_filters.ApiDashboardFilterUserDetails",
               "flatten": {
                 "func": "flattenDashboardsFilterApiDashboardFilterUserDetails2",
                 "needsCtx": true,
-                "returnsError": true,
-                "takesAddress": true
+                "returnsError": true
               },
               "skipExpand": true
             }

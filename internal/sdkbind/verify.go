@@ -627,6 +627,13 @@ func verifySplitFieldsAgree(
 	if request == "" || update == "" || a.Wire.SkipExpand || a.Wire.Expand == nil {
 		return
 	}
+	// A per-op expand converter is the declared answer to a type that differs
+	// between the two bodies -- existence on each is already checked above, and
+	// identity is exactly what UpdateExpand exists to not require.
+	if a.Wire.UpdateExpand != nil {
+		r.Checked++
+		return
+	}
 
 	created, errC := l.LookupField(svc.ImportPath, request, a.Wire.SDKField)
 	updated, errU := l.LookupField(svc.ImportPath, update, a.Wire.SDKField)

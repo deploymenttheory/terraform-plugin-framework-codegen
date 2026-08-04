@@ -1,0 +1,175 @@
+{
+  "resource": "endpoint_label",
+  "collectionTemplate": "/endpoint/labels",
+  "itemTemplate": "/endpoint/labels/{id}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/endpoint/labels"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/endpoint/labels/{id}"
+  },
+  "update": {
+    "method": "PATCH",
+    "pathTemplate": "/endpoint/labels/{id}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/endpoint/labels/{id}"
+  },
+  "fields": [
+    {
+      "jsonPath": "color",
+      "attribute": "color",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "\"#d9d9d9\""
+        },
+        "returnedOnUpdate": true
+      }
+    },
+    {
+      "jsonPath": "filters",
+      "attribute": "filters",
+      "kind": "set_nested",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnUpdate": true
+      }
+    },
+    {
+      "jsonPath": "filters.key",
+      "attribute": "key",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "agent-id",
+        "public-network",
+        "local-network",
+        "connection",
+        "gateway",
+        "platform",
+        "agent-type",
+        "vpn-vendor",
+        "vpn-gateway-address",
+        "vpn-client-network",
+        "vpn-client-address",
+        "ip-address-family",
+        "ssid",
+        "bssid",
+        "hostname",
+        "username",
+        "asn"
+      ],
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "\"platform\""
+        },
+        "acceptedValues": [
+          "agent-id",
+          "public-network",
+          "local-network",
+          "connection",
+          "gateway",
+          "platform",
+          "agent-type",
+          "vpn-vendor",
+          "vpn-gateway-address",
+          "vpn-client-network",
+          "vpn-client-address",
+          "ip-address-family",
+          "ssid",
+          "bssid",
+          "hostname",
+          "username",
+          "asn"
+        ],
+        "valuesClosed": false
+      }
+    },
+    {
+      "jsonPath": "filters.mode",
+      "attribute": "mode",
+      "kind": "string",
+      "computedOptionalRequired": "computed_optional",
+      "writable": true,
+      "allowedValues": [
+        "in",
+        "not-in"
+      ],
+      "behaviour": {
+        "serverDefault": {
+          "kind": "",
+          "raw": "\"in\""
+        },
+        "acceptedValues": [
+          "in",
+          "not-in"
+        ],
+        "valuesClosed": false
+      }
+    },
+    {
+      "jsonPath": "filters.values",
+      "attribute": "values",
+      "kind": "set",
+      "computedOptionalRequired": "optional",
+      "writable": true
+    },
+    {
+      "jsonPath": "id",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "matchType",
+      "attribute": "match_type",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "allowedValues": [
+        "and",
+        "or"
+      ],
+      "behaviour": {
+        "requiredByApi": true,
+        "returnedOnUpdate": true,
+        "acceptedValues": [
+          "and",
+          "or"
+        ],
+        "valuesClosed": true
+      }
+    },
+    {
+      "jsonPath": "name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "requiredByApi": true
+      }
+    }
+  ],
+  "policy": {
+    "updateStyle": "patchMerge",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "id",
+  "nameField": "name",
+  "evidenceRev": 1
+}

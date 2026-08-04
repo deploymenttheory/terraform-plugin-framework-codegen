@@ -1,0 +1,54 @@
+{
+  "id": "020-post-v7-endpoint-labels",
+  "seq": 20,
+  "request": {
+    "method": "POST",
+    "path": "/v7/endpoint/labels",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-server-default-2"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/endpoint/labels/422212465108191",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/endpoint/labels/422212465108191"
+        }
+      },
+      "color": "#d9d9d9",
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "id": "422212465108191",
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-server-default-2"
+    },
+    "droppedHeaders": 14
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "002-get-v7-endpoint-labels-999999999",
+  "seq": 2,
+  "request": {
+    "method": "GET",
+    "path": "/v7/endpoint/labels/999999999",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 404,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Label in account: 281474976742769 and id: 999999999 was not found.",
+      "status": 404,
+      "title": "Not found"
+    },
+    "droppedHeaders": 13
+  }
+}

@@ -1,0 +1,741 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (0 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "endpoint_label",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "404=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-endpoint-labels-999999999"
+      ],
+      "rationale": "a 404 response used the problem error shape"
+    },
+    {
+      "resource": "endpoint_label",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "400=problem"
+      },
+      "confidence": "observed",
+      "probe": "read.error-envelope",
+      "evidence": [
+        "001-get-v7-endpoint-labels",
+        "003-get-v7-endpoint-labels",
+        "004-get-v7-endpoint-labels",
+        "005-get-v7-endpoint-labels",
+        "006-get-v7-endpoint-labels",
+        "007-get-v7-endpoint-labels",
+        "095-get-v7-endpoint-labels"
+      ],
+      "rationale": "an invalid value for the \"max\" parameter answered 400 with a problem body",
+      "alternatives": [
+        "an API may use a different error shape for authorisation failures than for validation failures, which one malformed read cannot establish"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "field": "errorEnvelope",
+      "value": {
+        "text": "namesOffendingField=true"
+      },
+      "confidence": "observed",
+      "probe": "read.error-envelope",
+      "evidence": [
+        "001-get-v7-endpoint-labels",
+        "003-get-v7-endpoint-labels",
+        "004-get-v7-endpoint-labels",
+        "005-get-v7-endpoint-labels",
+        "006-get-v7-endpoint-labels",
+        "007-get-v7-endpoint-labels",
+        "095-get-v7-endpoint-labels"
+      ],
+      "rationale": "whether the error body carries a detail naming what was wrong decides whether later probes can attribute a rejection to a specific field"
+    },
+    {
+      "resource": "endpoint_label",
+      "field": "policy.delete.notFoundIsSuccess",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.not-found-shape",
+      "evidence": [
+        "002-get-v7-endpoint-labels-999999999"
+      ],
+      "rationale": "reading an absent object answered 404 with a problem error body",
+      "alternatives": [
+        "the API may answer differently for an identifier that once existed and was deleted"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "field": "policy.readBack",
+      "value": {
+        "readBack": {
+          "reason": "every one of 9 read(s) immediately after a create succeeded on the first attempt"
+        }
+      },
+      "confidence": "inferred",
+      "probe": "write.read-your-writes",
+      "evidence": [
+        "014-get-v7-endpoint-labels-422212465108189",
+        "016-get-v7-endpoint-labels-422212465108189",
+        "019-get-v7-endpoint-labels-422212465108190",
+        "021-get-v7-endpoint-labels-422212465108191",
+        "084-get-v7-endpoint-labels-422212465108219",
+        "086-get-v7-endpoint-labels-422212465108219",
+        "088-get-v7-endpoint-labels-422212465108219",
+        "091-get-v7-endpoint-labels-422212465108220",
+        "093-get-v7-endpoint-labels-422212465108220"
+      ],
+      "rationale": "9 object(s) were read immediately after creation and every first read succeeded",
+      "alternatives": [
+        "a consistency window measured on an idle sandbox is not production's; the interval is a floor rather than a property of the real system"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "field": "policy.updateStyle",
+      "value": {
+        "text": "patchMerge"
+      },
+      "confidence": "observed",
+      "probe": "write.update-style",
+      "evidence": [
+        "014-get-v7-endpoint-labels-422212465108189",
+        "016-get-v7-endpoint-labels-422212465108189"
+      ],
+      "rationale": "an update omitting matchType left it unchanged, so the API merges",
+      "alternatives": [
+        "an API that distinguishes an absent key from an explicit null may treat the two differently, and only the absent case was sent",
+        "the behaviour was observed for matchType and is assumed to hold for every other field"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "field": "unknownParamTolerated",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "read.unknown-param",
+      "evidence": [
+        "001-get-v7-endpoint-labels",
+        "003-get-v7-endpoint-labels",
+        "004-get-v7-endpoint-labels",
+        "005-get-v7-endpoint-labels",
+        "006-get-v7-endpoint-labels",
+        "007-get-v7-endpoint-labels",
+        "095-get-v7-endpoint-labels"
+      ],
+      "rationale": "a collection read carrying an unrecognised query parameter answered 200",
+      "alternatives": [
+        "a gateway rather than the API itself may have rejected the parameter, in which case tolerance of unknown request-body fields does not follow"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "color",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "085-patch-v7-endpoint-labels-422212465108219"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "color",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"#d9d9d9\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "019-get-v7-endpoint-labels-422212465108190",
+        "021-get-v7-endpoint-labels-422212465108191"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as #d9d9d9 every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "inferred",
+      "probe": "write.required",
+      "evidence": [
+        "009-post-v7-endpoint-labels"
+      ],
+      "rationale": "a create omitting this field was refused with 400, but the error body did not name the field, so the refusal may have had another cause",
+      "alternatives": [
+        "the create may have been refused for a reason unrelated to this field, which only an error body naming it would rule out"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "085-patch-v7-endpoint-labels-422212465108219"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.key",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "agent-id",
+          "public-network",
+          "local-network",
+          "connection",
+          "gateway",
+          "platform",
+          "agent-type",
+          "vpn-vendor",
+          "vpn-gateway-address",
+          "vpn-client-network",
+          "vpn-client-address",
+          "ip-address-family",
+          "ssid",
+          "bssid",
+          "hostname",
+          "username",
+          "asn"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "024-post-v7-endpoint-labels",
+        "025-post-v7-endpoint-labels",
+        "026-post-v7-endpoint-labels",
+        "027-post-v7-endpoint-labels",
+        "028-post-v7-endpoint-labels",
+        "029-post-v7-endpoint-labels",
+        "030-post-v7-endpoint-labels",
+        "031-post-v7-endpoint-labels",
+        "032-post-v7-endpoint-labels",
+        "033-post-v7-endpoint-labels",
+        "034-post-v7-endpoint-labels",
+        "035-post-v7-endpoint-labels",
+        "036-post-v7-endpoint-labels",
+        "037-post-v7-endpoint-labels",
+        "038-post-v7-endpoint-labels",
+        "039-post-v7-endpoint-labels",
+        "040-post-v7-endpoint-labels",
+        "041-post-v7-endpoint-labels",
+        "042-post-v7-endpoint-labels"
+      ],
+      "rationale": "17 of the 17 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.key",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"platform\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "019-get-v7-endpoint-labels-422212465108190",
+        "021-get-v7-endpoint-labels-422212465108191"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as platform every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.key",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "024-post-v7-endpoint-labels",
+        "025-post-v7-endpoint-labels",
+        "026-post-v7-endpoint-labels",
+        "027-post-v7-endpoint-labels",
+        "028-post-v7-endpoint-labels",
+        "029-post-v7-endpoint-labels",
+        "030-post-v7-endpoint-labels",
+        "031-post-v7-endpoint-labels",
+        "032-post-v7-endpoint-labels",
+        "033-post-v7-endpoint-labels",
+        "034-post-v7-endpoint-labels",
+        "035-post-v7-endpoint-labels",
+        "036-post-v7-endpoint-labels",
+        "037-post-v7-endpoint-labels",
+        "038-post-v7-endpoint-labels",
+        "039-post-v7-endpoint-labels",
+        "040-post-v7-endpoint-labels",
+        "041-post-v7-endpoint-labels",
+        "042-post-v7-endpoint-labels"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.mode",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "in",
+          "not-in"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "044-post-v7-endpoint-labels",
+        "045-post-v7-endpoint-labels",
+        "046-post-v7-endpoint-labels",
+        "047-post-v7-endpoint-labels"
+      ],
+      "rationale": "2 of the 2 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.mode",
+      "field": "serverDefault",
+      "value": {
+        "literal": {
+          "kind": "",
+          "raw": "\"in\""
+        }
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "019-get-v7-endpoint-labels-422212465108190",
+        "021-get-v7-endpoint-labels-422212465108191"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as in every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.mode",
+      "field": "valuesClosed",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "044-post-v7-endpoint-labels",
+        "045-post-v7-endpoint-labels",
+        "046-post-v7-endpoint-labels",
+        "047-post-v7-endpoint-labels"
+      ],
+      "rationale": "2 of 2 value(s) outside the documented set were accepted, so the API takes values the specification does not list"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.values",
+      "field": "serverDefault",
+      "value": {
+        "text": "[windows]"
+      },
+      "confidence": "observed",
+      "probe": "write.server-default",
+      "evidence": [
+        "019-get-v7-endpoint-labels-422212465108190",
+        "021-get-v7-endpoint-labels-422212465108191"
+      ],
+      "rationale": "the field was omitted from 2 create(s) and came back as [windows] every time",
+      "alternatives": [
+        "the value may be derived from tenant configuration rather than being a constant, which no number of creates in one tenant can rule out",
+        "the value may be derived from a field this plan's fixtures did not vary"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "matchType",
+      "field": "acceptedValues",
+      "value": {
+        "list": [
+          "and",
+          "or"
+        ]
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "049-post-v7-endpoint-labels",
+        "050-post-v7-endpoint-labels",
+        "051-post-v7-endpoint-labels",
+        "052-post-v7-endpoint-labels"
+      ],
+      "rationale": "2 of the 2 documented value(s) were accepted on create"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "matchType",
+      "field": "requiredByApi",
+      "value": {
+        "bool": true
+      },
+      "confidence": "inferred",
+      "probe": "write.required",
+      "evidence": [
+        "010-post-v7-endpoint-labels"
+      ],
+      "rationale": "a create omitting this field was refused with 400, but the error body did not name the field, so the refusal may have had another cause",
+      "alternatives": [
+        "the create may have been refused for a reason unrelated to this field, which only an error body naming it would rule out"
+      ]
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "matchType",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "085-patch-v7-endpoint-labels-422212465108219"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "matchType",
+      "field": "valuesClosed",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.enum",
+      "evidence": [
+        "049-post-v7-endpoint-labels",
+        "050-post-v7-endpoint-labels",
+        "051-post-v7-endpoint-labels",
+        "052-post-v7-endpoint-labels"
+      ],
+      "rationale": "2 value(s) outside the documented set were sent and all 2 were refused",
+      "alternatives": [
+        "a generated value may have been refused by a length or character-set check rather than by enum membership, which is why the candidates are shaped like the documented values"
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "resource": "endpoint_label",
+      "probe": "write.writable-returned",
+      "message": "fixture minimal was refused with 400 (There are invalid or missing fields), so nothing was observed about writability from it"
+    },
+    {
+      "resource": "endpoint_label",
+      "probe": "read.volatile",
+      "message": "no existing object to read repeatedly, so volatility was not observed"
+    },
+    {
+      "resource": "endpoint_label",
+      "probe": "read.returned-weak",
+      "message": "no existing object to read, so no field presence was observed"
+    },
+    {
+      "resource": "endpoint_label",
+      "probe": "write.immutability",
+      "message": "no field carries two or more candidate values, so no field can be probed for immutability: the fact requires two distinct values both refused, and one candidate cannot supply that"
+    },
+    {
+      "resource": "endpoint_label",
+      "probe": "read.list-shape",
+      "message": "the collection is empty, so no item shape was observed and later probes have no fixture to draw on"
+    },
+    {
+      "resource": "endpoint_label",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"letter case is changed\" was refused with 400 (There are invalid or missing fields), so nothing was observed about that transform"
+    },
+    {
+      "resource": "endpoint_label",
+      "probe": "write.normalisation",
+      "message": "the create carrying \"surrounding whitespace is stripped\" was refused with 400 (There are invalid or missing fields), so nothing was observed about that transform"
+    },
+    {
+      "resource": "endpoint_label",
+      "probe": "write.side-effect",
+      "message": "the plan declares no field whose value might affect another, so there is no suspected trigger to perturb; declare one under defaultInfluencers"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.key",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.key",
+      "probe": "write.enum",
+      "message": "the API accepted \"AGENT-ID\" for a value the specification documents as \"agent-id\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.mode",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "filters.mode",
+      "probe": "write.enum",
+      "message": "the API accepted \"IN\" for a value the specification documents as \"in\", so the documented set is not the whole of what it takes and a validator built from it would reject configurations the API allows"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "matchType",
+      "probe": "write.enum",
+      "message": "a generated OneOf comes from the documented set, not from this accepted set: the documented set is the wider of the two, so a validator built from it errs toward permitting and a stale specification surfaces as the API's own error rather than as a plan failure. What this probe decides is whether there is a validator at all -- an accepted value from outside the documented set suppresses it"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "matchType",
+      "probe": "write.enum",
+      "message": "the documented value \"and\" was accepted and \"AND\" was refused with 400, so the API treats this set case-sensitively"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "name",
+      "probe": "write.normalisation",
+      "message": "\"letter case is changed\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "name",
+      "probe": "write.normalisation",
+      "message": "\"surrounding whitespace is stripped\" could not be sent for this field because it carries the sweeper's name prefix and the awkward shape would destroy it, so this transform is unprobed for it"
+    },
+    {
+      "resource": "endpoint_label",
+      "jsonPath": "name",
+      "probe": "write.required",
+      "message": "this field carries the sweeper's name prefix, so a create omitting it would produce an object that could not be found again and is refused before it is sent; its requiredness is therefore unprobed"
+    }
+  ],
+  "probes": [
+    {
+      "name": "read.error-envelope",
+      "kind": "read",
+      "status": "ok",
+      "requests": 2,
+      "facts": 2
+    },
+    {
+      "name": "read.list-shape",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.not-found-shape",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 2
+    },
+    {
+      "name": "read.returned-weak",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "read.unknown-param",
+      "kind": "read",
+      "status": "ok",
+      "requests": 1,
+      "facts": 1
+    },
+    {
+      "name": "read.volatile",
+      "kind": "read",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.enum",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 30,
+      "facts": 6
+    },
+    {
+      "name": "write.immutability",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.normalisation",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 2,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.read-your-writes",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 0,
+      "facts": 1
+    },
+    {
+      "name": "write.rehearsal",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 12,
+      "facts": 3
+    },
+    {
+      "name": "write.required",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 3,
+      "facts": 2
+    },
+    {
+      "name": "write.server-default",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 4
+    },
+    {
+      "name": "write.side-effect",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 0,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    },
+    {
+      "name": "write.update-style",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 4,
+      "facts": 1
+    },
+    {
+      "name": "write.writable-returned",
+      "kind": "mutating",
+      "status": "abandoned",
+      "requests": 1,
+      "facts": 0,
+      "reason": "ran but established nothing"
+    }
+  ],
+  "budget": {
+    "requests": 94,
+    "maxRequests": 260,
+    "creates": 41,
+    "maxCreates": 50,
+    "deletes": 33,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  },
+  "rehearsal": [
+    {
+      "minimal": {
+        "filters": [
+          {
+            "key": "platform",
+            "mode": "in",
+            "values": [
+              "windows"
+            ]
+          }
+        ],
+        "matchType": "and",
+        "name": "tfacc-name"
+      },
+      "maximal": {
+        "color": "#d9d9d9",
+        "filters": [
+          {
+            "key": "platform",
+            "mode": "in",
+            "values": [
+              "windows"
+            ]
+          }
+        ],
+        "matchType": "and",
+        "name": "tfacc-name"
+      }
+    }
+  ]
+}

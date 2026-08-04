@@ -1,0 +1,53 @@
+{
+  "id": "092-patch-v7-endpoint-labels-422212465108220",
+  "seq": 92,
+  "request": {
+    "method": "PATCH",
+    "path": "/v7/endpoint/labels/422212465108220",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-rehearsal-2"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/endpoint/labels/422212465108220"
+        }
+      },
+      "color": "#d9d9d9",
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "id": "422212465108220",
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-rehearsal-2"
+    },
+    "droppedHeaders": 14
+  }
+}

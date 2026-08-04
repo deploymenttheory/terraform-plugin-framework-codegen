@@ -172,18 +172,16 @@
             "wire": {
               "jsonPath": "endRepeat",
               "sdkField": "EndRepeat",
-              "sdkGoType": "alert_suppression_windows.EndRepeat",
+              "sdkGoType": "*alert_suppression_windows.EndRepeat",
               "expand": {
                 "func": "expandAlertSuppressionWindowEndRepeat",
                 "needsCtx": true,
-                "returnsError": true,
-                "deref": true
+                "returnsError": true
               },
               "flatten": {
                 "func": "flattenAlertSuppressionWindowEndRepeat",
                 "needsCtx": true,
-                "returnsError": true,
-                "takesAddress": true
+                "returnsError": true
               }
             }
           },
@@ -407,18 +405,16 @@
             "wire": {
               "jsonPath": "repeat",
               "sdkField": "Repeat",
-              "sdkGoType": "alert_suppression_windows.Repeat",
+              "sdkGoType": "*alert_suppression_windows.Repeat",
               "expand": {
                 "func": "expandAlertSuppressionWindowRepeat",
                 "needsCtx": true,
-                "returnsError": true,
-                "deref": true
+                "returnsError": true
               },
               "flatten": {
                 "func": "flattenAlertSuppressionWindowRepeat",
                 "needsCtx": true,
-                "returnsError": true,
-                "takesAddress": true
+                "returnsError": true
               }
             }
           },

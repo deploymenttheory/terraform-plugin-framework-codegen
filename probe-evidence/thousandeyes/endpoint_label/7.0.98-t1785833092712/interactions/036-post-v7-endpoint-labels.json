@@ -1,0 +1,55 @@
+{
+  "id": "036-post-v7-endpoint-labels",
+  "seq": 36,
+  "request": {
+    "method": "POST",
+    "path": "/v7/endpoint/labels",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "filters.key": "ssid",
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-enum-13"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/endpoint/labels/422212465108204",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/endpoint/labels/422212465108204"
+        }
+      },
+      "color": "#d9d9d9",
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "id": "422212465108204",
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-enum-13"
+    },
+    "droppedHeaders": 14
+  }
+}

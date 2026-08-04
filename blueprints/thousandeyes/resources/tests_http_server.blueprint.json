@@ -281,7 +281,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the divisor (y value) for the “X of Y times” condition.",
+                    "markdownDescription": "Specifies the divisor (y value) for the \u201cX of Y times\u201d condition.",
                     "wire": {
                       "jsonPath": "roundsViolatingOutOf",
                       "sdkField": "RoundsViolatingOutOf",
@@ -299,7 +299,7 @@
                       "kind": "int64"
                     },
                     "computedOptionalRequired": "computed",
-                    "markdownDescription": "Specifies the numerator (x value) for the “X of Y times” condition",
+                    "markdownDescription": "Specifies the numerator (x value) for the \u201cX of Y times\u201d condition",
                     "wire": {
                       "jsonPath": "roundsViolatingRequired",
                       "sdkField": "RoundsViolatingRequired",
@@ -2808,18 +2808,6 @@
             "hcl": "[{ agent_id = \"3\" }]"
           },
           {
-            "attr": "url",
-            "hcl": "\"https://www.example.com\""
-          },
-          {
-            "attr": "interval",
-            "hcl": "3600"
-          },
-          {
-            "attr": "fixed_packet_rate",
-            "hcl": "50"
-          },
-          {
             "attr": "bandwidth_measurements",
             "hcl": "false"
           },
@@ -2830,6 +2818,25 @@
           {
             "attr": "dns_override",
             "hcl": "\"8.8.8.8\""
+          },
+          {
+            "attr": "fixed_packet_rate",
+            "hcl": "50"
+          },
+          {
+            "attr": "headers",
+            "hcl": "[\"X-Tfacc: yes\"]",
+            "wire": [
+              "X-Tfacc: yes"
+            ]
+          },
+          {
+            "attr": "interval",
+            "hcl": "3600"
+          },
+          {
+            "attr": "url",
+            "hcl": "\"https://www.example.com\""
           }
         ]
       }
