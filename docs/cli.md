@@ -168,7 +168,7 @@ Infers draft blueprints (and optionally scenario worksheets) from a pinned
 OpenAPI snapshot.
 
 ```
-tfpfgen blueprint draft [-openapi-dir DIR] [-snapshot NAME] [-tag TAG] [-out DIR] [-dry-run]
+tfpfgen blueprint draft [-openapi-dir DIR] [-snapshot NAME] [-tag TAG] [-sdk-dialect restyService|kiotaFluent] [-out DIR] [-dry-run]
 ```
 
 | Flag | Default | Purpose |
@@ -185,6 +185,8 @@ tfpfgen blueprint draft [-openapi-dir DIR] [-snapshot NAME] [-tag TAG] [-out DIR
 | `-sdk-accessor` | `r.client.API` | expression reaching a service from the resource receiver |
 | `-api-version-dir` | `v7` | version directory generated packages live under |
 | `-scenario-drafts` | — | also scaffold a `KEY.scenario.draft.json` scenario worksheet per resource under this directory |
+| `-sdk-dialect` | `restyService` | binding shape to infer: `restyService`, or `kiotaFluent` for a kiota-generated SDK |
+| `-sdk-models-package` | — | import path of the kiota SDK's models package (required with `-sdk-dialect kiotaFluent`; the resty `-sdk-service-root`/`-sdk-accessor` knobs are refused under it) |
 
 `blueprint draft -dry-run` is the survey: it reports every candidate the
 document offers and why the ineligible ones are ineligible. The write path
@@ -194,6 +196,14 @@ its non-draft name. The `-scenario-drafts` worksheets serve the same role for
 scenarios: every field listed with a place to put fixture values and candidates,
 nothing invented. An existing draft is never overwritten; promoting one is a
 rename, which is a diff a reviewer sees.
+
+Under `-sdk-dialect kiotaFluent` the drafted bindings are fluent chains derived
+from each operation's path template — `/tags/{tagId}` becomes
+`Tags().ByTagId(id).Get(ctx, nil)` — with method access, model constructors and
+kiota's own accessor spelling (plain word capitalisation plus keyword mangling,
+so `accountGroupId` maps to `GetAccountGroupId`). The names are derived from
+the OpenAPI document, not the generated SDK; `bindings check` resolves every
+one against the real SDK and its did-you-mean answers with the true spelling.
 
 ### `blueprint merge`
 

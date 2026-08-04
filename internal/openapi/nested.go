@@ -22,16 +22,20 @@ type inferCtx struct {
 	resourceBase string
 	// sdkPkg is the SDK package a nested object's Go type lives in, e.g. "tags".
 	sdkPkg string
+	// dialect decides the SDK-facing spellings: accessor bases, model type
+	// shapes and constructors.
+	dialect blueprint.SDKDialect
 
 	taken map[string]bool
 	notes []Caveat
 }
 
-func newInferCtx(resourceKey, sdkPkg string) *inferCtx {
+func newInferCtx(resourceKey, sdkPkg string, dialect blueprint.SDKDialect) *inferCtx {
 	return &inferCtx{
 		resource:     resourceKey,
 		resourceBase: namingOpts.GoTypeName(resourceKey),
 		sdkPkg:       sdkPkg,
+		dialect:      dialect,
 		taken:        map[string]bool{},
 	}
 }
@@ -73,11 +77,25 @@ func (ctx *inferCtx) nestedObject(
 		helperBase = pluralise(base)
 	}
 
+	sdkType := ctx.sdkPkg + "." + namingOpts.GoTypeName(f.ObjectTypeName)
+	constructor := ""
+	if ctx.dialect == blueprint.DialectKiotaFluent {
+		// Builders traffic in the <Type>able interface; elements are built by
+		// constructor and filled through setters.
+		kn := kiotaName(f.ObjectTypeName)
+		if kn == "" {
+			kn = ctx.resourceBase + "Object"
+		}
+		sdkType = "models." + kn + "able"
+		constructor = "models.New" + kn + "()"
+	}
+
 	n := &blueprint.NestedAttributeObject{
-		GoTypeName:    naming.Unique(ctx.taken, base+"Model"),
-		SDKType:       ctx.sdkPkg + "." + namingOpts.GoTypeName(f.ObjectTypeName),
-		AttrTypesVar:  naming.Unique(ctx.taken, varBase+"AttrTypes"),
-		ObjectTypeVar: naming.Unique(ctx.taken, varBase+"ObjectType"),
+		GoTypeName:      naming.Unique(ctx.taken, base+"Model"),
+		SDKType:         sdkType,
+		ConstructorExpr: constructor,
+		AttrTypesVar:    naming.Unique(ctx.taken, varBase+"AttrTypes"),
+		ObjectTypeVar:   naming.Unique(ctx.taken, varBase+"ObjectType"),
 		// Both directions are named even when the object is read-only. The name costs
 		// nothing, blueprint.Validate requires it on a resource, and a later decision to
 		// make the attribute writable then needs no new identifier.
