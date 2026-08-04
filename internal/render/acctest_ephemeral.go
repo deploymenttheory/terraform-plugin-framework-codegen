@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
 )
 
 // EphemeralAccTestView is what the ephemeral acceptance test template needs.
@@ -86,10 +87,9 @@ func EphemeralAccTest(
 	seedType := bp.Provider.TerraformType(seed.Name)
 
 	v := EphemeralAccTestView{
-		Header:  GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
-		Package: e.GoPackage + "_test",
-		TestName: fmt.Sprintf(
-			"TestAccEphemeral%s_01_Open", trimEphemeralSuffix(e.GoTypeName)),
+		Header:               GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
+		Package:              e.GoPackage + "_test",
+		TestName:             naming.AccTestName("Ephemeral", trimEphemeralSuffix(e.GoTypeName), 1, "Open"),
 		EchoAddress:          "echo.test",
 		SeedAddress:          seedType + "." + fixtureLabel,
 		SeedTerraformType:    seedType,

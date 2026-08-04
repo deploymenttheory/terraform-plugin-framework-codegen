@@ -64,7 +64,7 @@ func TestUnit_CLI_RehearsalBodiesMatchWhatTheFixturesWouldApply(t *testing.T) {
 		Value: probe.LiteralValue(blueprint.Literal{
 			Kind: blueprint.KindBool, Raw: "true",
 		}),
-		Confidence: probe.Corroborated, Probe: "write.rehearsal",
+		Confidence: probe.ConfidenceCorroborated, Probe: "write.rehearsal",
 		Evidence: []string{"005-put-tests"}, Rationale: "test",
 	}
 	if _, err := rehearsalBodies(bp, "tests_http_server", plan, []probe.Fact{forced}); err != nil {

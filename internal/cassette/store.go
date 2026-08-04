@@ -259,7 +259,7 @@ func Write(
 	}
 
 	// Scan first, write second. Nothing below this point can leak.
-	var findings []Finding
+	var findings []Leak
 	for _, i := range interactions {
 		found, err := ScanInteraction(i, secrets)
 		if err != nil {
@@ -268,7 +268,7 @@ func Write(
 		findings = append(findings, found...)
 	}
 	if len(findings) > 0 {
-		return Snapshot{}, FindingsError(findings)
+		return Snapshot{}, LeaksError(findings)
 	}
 
 	encoded := make(map[string][]byte, len(interactions))

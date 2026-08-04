@@ -721,13 +721,13 @@ func (g *Generator) registrationFiles(
 
 	specs := []struct {
 		name, tmpl string
-		kind       render.Kind
+		kind       render.RegistryKind
 	}{
-		{"resources.go", "provider_resources.go.tmpl", render.KindResources},
-		{"datasources.go", "provider_datasources.go.tmpl", render.KindDataSources},
-		{"list_resources.go", "provider_list_resources.go.tmpl", render.KindListResources},
-		{"actions.go", "provider_actions.go.tmpl", render.KindActions},
-		{"ephemerals.go", "provider_ephemerals.go.tmpl", render.KindEphemerals},
+		{"resources.go", "provider_resources.go.tmpl", render.RegistryKindResources},
+		{"datasources.go", "provider_datasources.go.tmpl", render.RegistryKindDataSources},
+		{"list_resources.go", "provider_list_resources.go.tmpl", render.RegistryKindListResources},
+		{"actions.go", "provider_actions.go.tmpl", render.RegistryKindActions},
+		{"ephemerals.go", "provider_ephemerals.go.tmpl", render.RegistryKindEphemerals},
 	}
 
 	out := make([]File, 0, len(specs))

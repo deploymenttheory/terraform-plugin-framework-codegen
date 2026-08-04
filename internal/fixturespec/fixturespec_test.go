@@ -22,14 +22,14 @@ func TestUnit_Fixturespec_ObservedEvidenceBeatsDocumentation(t *testing.T) {
 	a.Behaviour.RejectedValues = []string{"system"}
 
 	e := Derive(a, "")
-	if e.Value != "user" || e.Source != ObservedAccepted {
+	if e.Value != "user" || e.Source != SourceObservedAccepted {
 		t.Fatalf("want observed-accepted %q, got %+v", "user", e)
 	}
 
 	a.Behaviour.AcceptedValues = nil
 	a.Behaviour.RejectedValues = nil
 	e = Derive(a, "")
-	if e.Value != "system" || e.Source != Documented {
+	if e.Value != "system" || e.Source != SourceDocumented {
 		t.Fatalf("want documented %q, got %+v", "system", e)
 	}
 }
@@ -57,7 +57,7 @@ func TestUnit_Fixturespec_AServerDefaultCarriesBothWireValueAndVerbatimLiteral(t
 		if !reflect.DeepEqual(e.Value, c.want) {
 			t.Fatalf("raw %s: want wire value %#v, got %#v", c.raw, c.want, e.Value)
 		}
-		if e.Source != ServerDefault {
+		if e.Source != SourceServerDefault {
 			t.Fatalf("raw %s: want source server-default, got %q", c.raw, e.Source)
 		}
 	}
@@ -68,7 +68,7 @@ func TestUnit_Fixturespec_AnEmptyStringDefaultIsNeverAFixtureValue(t *testing.T)
 	a.Behaviour.ServerDefault = &blueprint.Literal{Raw: `""`}
 
 	e := Derive(a, "")
-	if e.Source == ServerDefault {
+	if e.Source == SourceServerDefault {
 		t.Fatal("an empty-string default is indistinguishable from absence and must not be configured")
 	}
 }

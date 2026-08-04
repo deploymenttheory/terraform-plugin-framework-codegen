@@ -308,7 +308,7 @@ func (opts SweepOptions) sweepByPrefix(ctx context.Context, summary *SweepSummar
 			if o.ID != "" || present[o.Name] || !strings.HasPrefix(o.Name, opts.NamePrefix) {
 				continue
 			}
-			_ = opts.Session.cfg.Ledger.Resolve(o.Seq, KindRejected, "", 0,
+			_ = opts.Session.cfg.Ledger.Resolve(o.Seq, EntryKindRejected, "", 0,
 				"absent from a complete collection read: the create never took effect")
 			summary.Notes = append(summary.Notes, Note{
 				Probe: "sweep.prefix",

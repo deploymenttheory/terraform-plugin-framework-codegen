@@ -142,7 +142,7 @@ func listView(
 
 	if lf.Schema != nil {
 		lsc := schemaScope{
-			kind:     blueprint.BlockList,
+			kind:     blueprint.BlockKindList,
 			what:     fmt.Sprintf("list facet of resource %q", r.Key),
 			patterns: newPatternVars(),
 		}

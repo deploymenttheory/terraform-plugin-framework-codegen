@@ -42,8 +42,8 @@ func goodEnv() MapEnviron {
 	return MapEnviron{"TFPFGEN_PROBE_TOKEN": "a-token-value"}
 }
 
-func goodOptions() GateOptions {
-	return GateOptions{
+func goodOptions() GuardOptions {
+	return GuardOptions{
 		Mode:           ModeRecord,
 		AllowMutations: true,
 		Subject:        quirkSubject(),
@@ -64,16 +64,16 @@ func TestUnit_Probe_GateRefusesEachConditionOnItsOwn(t *testing.T) {
 	tests := []struct {
 		condition string
 		profile   func(*Profile)
-		opts      func(*GateOptions)
+		opts      func(*GuardOptions)
 		env       MapEnviron
 	}{
 		{
 			condition: "mode",
-			opts:      func(o *GateOptions) { o.Mode = ModeReplay },
+			opts:      func(o *GuardOptions) { o.Mode = ModeReplay },
 		},
 		{
 			condition: "allowMutations",
-			opts:      func(o *GateOptions) { o.AllowMutations = false },
+			opts:      func(o *GuardOptions) { o.AllowMutations = false },
 		},
 		{
 			condition: "sandbox",
@@ -132,26 +132,26 @@ func TestUnit_Probe_GateRefusesEachConditionOnItsOwn(t *testing.T) {
 		},
 		{
 			condition: "canMutate",
-			opts:      func(o *GateOptions) { o.Subject.Create = nil },
+			opts:      func(o *GuardOptions) { o.Subject.Create = nil },
 		},
 		{
 			condition: "canMutate",
-			opts:      func(o *GateOptions) { o.Subject.IDField = "" },
+			opts:      func(o *GuardOptions) { o.Subject.IDField = "" },
 		},
 		{
 			condition: "plan",
-			opts: func(o *GateOptions) {
+			opts: func(o *GuardOptions) {
 				o.Plan.Deny = []string{"nonexistent-field"}
 			},
 		},
 		{
 			// `probe -list` works with no fixture; a mutating run cannot.
 			condition: "plan",
-			opts:      func(o *GateOptions) { o.Plan.Fixtures = nil },
+			opts:      func(o *GuardOptions) { o.Plan.Fixtures = nil },
 		},
 		{
 			condition: "noSnapshotOverwrite",
-			opts:      func(o *GateOptions) { o.EquivalentSnapshotExists = true },
+			opts:      func(o *GuardOptions) { o.EquivalentSnapshotExists = true },
 		},
 	}
 
@@ -202,7 +202,7 @@ func TestUnit_Probe_GateReportsEveryUnmetConditionAtOnce(t *testing.T) {
 	t.Parallel()
 
 	// Nothing set at all, which is what running the command with no profile looks like.
-	_, _, err := Authorise(context.Background(), nil, Profile{}, GateOptions{
+	_, _, err := Authorise(context.Background(), nil, Profile{}, GuardOptions{
 		Mode:    ModeReplay,
 		Subject: Subject{},
 	}, MapEnviron{})
@@ -517,7 +517,7 @@ func TestUnit_Probe_AuthoriseSweepIsDeliberatelyWeaker(t *testing.T) {
 	profile := goodProfile()
 	profile.Assertions.MaxExistingObjects = 1
 
-	opts := GateOptions{Mode: ModeSweep, AllowMutations: false}
+	opts := GuardOptions{Mode: ModeSweep, AllowMutations: false}
 
 	grant, err := AuthoriseSweep(profile, opts, goodEnv())
 	if err != nil {

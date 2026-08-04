@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
 )
 
 // The packages a generated acceptance test needs.
@@ -125,12 +126,9 @@ func AccTest(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (AccTes
 	patterns := newPatternVars()
 
 	v := AccTestView{
-		Header:  GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
-		Package: r.GoPackage + "_test",
-		TestName: fmt.Sprintf(
-			"TestAccResource%s_01_Lifecycle",
-			trimResourceSuffix(r.GoTypeName),
-		),
+		Header:           GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
+		Package:          r.GoPackage + "_test",
+		TestName:         naming.AccTestName("Resource", trimResourceSuffix(r.GoTypeName), 1, "Lifecycle"),
 		Address:          tfType + "." + fixtureLabel,
 		TerraformType:    tfType,
 		TestResourceType: r.GoPackage + "." + testResourceTypeName(r.GoTypeName),

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe/apierr"
 )
 
 // client is a plain HTTP client; these tests are about the server.
@@ -406,11 +408,11 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 
 		// All four shapes the real API uses. A prober that assumed one could not tell
 		// "rejected because immutable" from "rejected because the token expired".
-		tests := map[EnvelopeKind]func(map[string]any) bool{
-			EnvelopeProblem: func(b map[string]any) bool { _, ok := b["title"]; return ok },
-			EnvelopeOAuth:   func(b map[string]any) bool { _, ok := b["error_description"]; return ok },
-			EnvelopeLegacy:  func(b map[string]any) bool { _, ok := b["errorMessage"]; return ok },
-			EnvelopeEmpty:   func(b map[string]any) bool { return len(b) == 0 },
+		tests := map[apierr.Envelope]func(map[string]any) bool{
+			apierr.EnvelopeProblem: func(b map[string]any) bool { _, ok := b["title"]; return ok },
+			apierr.EnvelopeOAuth:   func(b map[string]any) bool { _, ok := b["error_description"]; return ok },
+			apierr.EnvelopeLegacy:  func(b map[string]any) bool { _, ok := b["errorMessage"]; return ok },
+			apierr.EnvelopeEmpty:   func(b map[string]any) bool { return len(b) == 0 },
 		}
 
 		for kind, check := range tests {

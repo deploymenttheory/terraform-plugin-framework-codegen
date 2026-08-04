@@ -24,18 +24,18 @@ func boolFact(path string, field FactField, value bool, conf Confidence) Fact {
 func TestUnit_Probe_FindingsAnswersTheOneRealDependency(t *testing.T) {
 	t.Parallel()
 
-	f := NewFindings([]Fact{
-		boolFact("value", FactWritable, true, Observed),
-		boolFact("colour", FactWritable, false, Observed),
+	f := NewFactSet([]Fact{
+		boolFact("value", FactWritable, true, ConfidenceObserved),
+		boolFact("colour", FactWritable, false, ConfidenceObserved),
 	})
 
-	if !f.True("value", FactWritable, Observed) {
+	if !f.True("value", FactWritable, ConfidenceObserved) {
 		t.Error("value was established as writable")
 	}
-	if f.True("colour", FactWritable, Observed) {
+	if f.True("colour", FactWritable, ConfidenceObserved) {
 		t.Error("colour was established as NOT writable, which is not the same as unknown")
 	}
-	if f.True("absent", FactWritable, Observed) {
+	if f.True("absent", FactWritable, ConfidenceObserved) {
 		t.Error("a field nothing was established about must not read as true")
 	}
 }
@@ -47,12 +47,12 @@ func TestUnit_Probe_FindingsAnswersTheOneRealDependency(t *testing.T) {
 func TestUnit_Probe_FindingsRespectsTheCallersConfidenceFloor(t *testing.T) {
 	t.Parallel()
 
-	f := NewFindings([]Fact{boolFact("value", FactWritable, true, Suspected)})
+	f := NewFactSet([]Fact{boolFact("value", FactWritable, true, ConfidenceSuspected)})
 
-	if _, ok := f.Settled("value", FactWritable, Suspected); !ok {
+	if _, ok := f.Settled("value", FactWritable, ConfidenceSuspected); !ok {
 		t.Error("a suspected fact should satisfy a suspected floor")
 	}
-	if _, ok := f.Settled("value", FactWritable, Observed); ok {
+	if _, ok := f.Settled("value", FactWritable, ConfidenceObserved); ok {
 		t.Error("a suspected fact must not satisfy an observed floor")
 	}
 }
@@ -64,21 +64,21 @@ func TestUnit_Probe_FindingsRespectsTheCallersConfidenceFloor(t *testing.T) {
 func TestUnit_Probe_FindingsPrefersTheStrongestFact(t *testing.T) {
 	t.Parallel()
 
-	weakFirst := NewFindings([]Fact{
-		boolFact("value", FactWritable, true, Inferred),
-		boolFact("value", FactWritable, true, Corroborated),
+	weakFirst := NewFactSet([]Fact{
+		boolFact("value", FactWritable, true, ConfidenceInferred),
+		boolFact("value", FactWritable, true, ConfidenceCorroborated),
 	})
-	strongFirst := NewFindings([]Fact{
-		boolFact("value", FactWritable, true, Corroborated),
-		boolFact("value", FactWritable, true, Inferred),
+	strongFirst := NewFactSet([]Fact{
+		boolFact("value", FactWritable, true, ConfidenceCorroborated),
+		boolFact("value", FactWritable, true, ConfidenceInferred),
 	})
 
-	for name, f := range map[string]*Findings{"weak first": weakFirst, "strong first": strongFirst} {
-		got, ok := f.Settled("value", FactWritable, Inferred)
+	for name, f := range map[string]*FactSet{"weak first": weakFirst, "strong first": strongFirst} {
+		got, ok := f.Settled("value", FactWritable, ConfidenceInferred)
 		if !ok {
 			t.Fatalf("%s: nothing settled", name)
 		}
-		if got.Confidence != Corroborated {
+		if got.Confidence != ConfidenceCorroborated {
 			t.Errorf("%s: confidence = %s, want corroborated", name, got.Confidence)
 		}
 	}
@@ -92,25 +92,25 @@ func TestUnit_Probe_FindingsPrefersTheStrongestFact(t *testing.T) {
 func TestUnit_Probe_RetractRemovesADisprovedFact(t *testing.T) {
 	t.Parallel()
 
-	f := NewFindings([]Fact{
-		boolFact("value", FactWritable, true, Observed),
-		boolFact("value", FactReturnedOnRead, true, Observed),
-		boolFact("colour", FactWritable, true, Observed),
+	f := NewFactSet([]Fact{
+		boolFact("value", FactWritable, true, ConfidenceObserved),
+		boolFact("value", FactReturnedOnRead, true, ConfidenceObserved),
+		boolFact("colour", FactWritable, true, ConfidenceObserved),
 	})
 
 	if got := f.Retract("value", FactWritable); got != 1 {
 		t.Errorf("Retract removed %d, want 1", got)
 	}
 
-	if f.True("value", FactWritable, Suspected) {
+	if f.True("value", FactWritable, ConfidenceSuspected) {
 		t.Error("the retracted fact is still there")
 	}
 	// Only that claim about that path. A retraction that took the neighbours with it would
 	// quietly discard evidence nobody disproved.
-	if !f.True("value", FactReturnedOnRead, Suspected) {
+	if !f.True("value", FactReturnedOnRead, ConfidenceSuspected) {
 		t.Error("a different claim about the same path was removed")
 	}
-	if !f.True("colour", FactWritable, Suspected) {
+	if !f.True("colour", FactWritable, ConfidenceSuspected) {
 		t.Error("the same claim about a different path was removed")
 	}
 
@@ -128,21 +128,21 @@ func TestUnit_Probe_RetractRemovesADisprovedFact(t *testing.T) {
 func TestUnit_Probe_AConditionalFactDoesNotSettleAnUnconditionalQuestion(t *testing.T) {
 	t.Parallel()
 
-	conditional := boolFact("value", FactWritable, true, Corroborated)
+	conditional := boolFact("value", FactWritable, true, ConfidenceCorroborated)
 	conditional.When = []Condition{{JSONPath: "type", Equals: "dynamic"}}
 
-	f := NewFindings([]Fact{conditional})
+	f := NewFactSet([]Fact{conditional})
 
-	if _, ok := f.Settled("value", FactWritable, Inferred); ok {
+	if _, ok := f.Settled("value", FactWritable, ConfidenceInferred); ok {
 		t.Error("a conditional fact must not settle an unconditional question")
 	}
-	if f.True("value", FactWritable, Inferred) {
+	if f.True("value", FactWritable, ConfidenceInferred) {
 		t.Error("True answered an unconditional question from a conditional fact")
 	}
 
 	// Retract still removes every variant: a disproof of the path's claim disproves each
 	// branch, and a surviving branch would hand merge a fact whose foundation is gone.
-	other := boolFact("value", FactWritable, true, Corroborated)
+	other := boolFact("value", FactWritable, true, ConfidenceCorroborated)
 	other.When = []Condition{{JSONPath: "type", Equals: "static"}}
 	f.Add(other)
 
@@ -158,13 +158,13 @@ func TestUnit_Probe_AConditionalFactDoesNotSettleAnUnconditionalQuestion(t *test
 func TestUnit_Probe_FindingsIsTheRunnersToWrite(t *testing.T) {
 	t.Parallel()
 
-	f := NewFindings(nil)
+	f := NewFactSet(nil)
 
 	if len(f.Facts()) != 0 {
 		t.Error("a fresh accumulator holds nothing")
 	}
 
-	f.Add(boolFact("value", FactWritable, true, Observed))
+	f.Add(boolFact("value", FactWritable, true, ConfidenceObserved))
 
 	if len(f.Facts()) != 1 {
 		t.Errorf("Facts = %v", f.Facts())
@@ -180,15 +180,15 @@ func TestUnit_Probe_FindingsIsTheRunnersToWrite(t *testing.T) {
 	}
 
 	// And the constructor copies its input, so the caller's slice is not aliased either.
-	source := []Fact{boolFact("value", FactWritable, true, Observed)}
-	built := NewFindings(source)
+	source := []Fact{boolFact("value", FactWritable, true, ConfidenceObserved)}
+	built := NewFactSet(source)
 	source[0].JSONPath = "mutated"
 
 	if built.Facts()[0].JSONPath != "value" {
 		t.Error("NewFindings aliased its argument")
 	}
 
-	var none *Findings
+	var none *FactSet
 	if none.Facts() != nil {
 		t.Error("a nil accumulator must answer safely")
 	}

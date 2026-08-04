@@ -24,7 +24,7 @@ type inferCtx struct {
 	sdkPkg string
 
 	taken map[string]bool
-	notes []Note
+	notes []Caveat
 }
 
 func newInferCtx(resourceKey, sdkPkg string) *inferCtx {
@@ -37,7 +37,7 @@ func newInferCtx(resourceKey, sdkPkg string) *inferCtx {
 }
 
 func (ctx *inferCtx) note(path, msg string) {
-	ctx.notes = append(ctx.notes, Note{Resource: ctx.resource, Field: path, Message: msg})
+	ctx.notes = append(ctx.notes, Caveat{Resource: ctx.resource, Field: path, Message: msg})
 }
 
 // nestedObject builds the generated shape for one nested object, recursing into it.

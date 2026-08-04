@@ -308,7 +308,7 @@ func runReadProbes(ctx context.Context, s ReadSession, opts RunOptions, report *
 	sc := opts.scope()
 
 	for _, p := range ReadProbes(opts.Only) {
-		outcome := ProbeOutcome{Name: p.Name(), Kind: KindRead}
+		outcome := ProbeOutcome{Name: p.Name(), Kind: ProbeKindRead}
 
 		result, err := p.Observe(ctx, s, sc)
 
@@ -386,7 +386,7 @@ func reportSkippedMutating(opts RunOptions, report *Report) {
 	for _, p := range MutatingProbes(opts.Only) {
 		report.Probes = append(report.Probes, ProbeOutcome{
 			Name:   p.Name(),
-			Kind:   KindMutating,
+			Kind:   ProbeKindMutating,
 			Status: "skipped",
 			Reason: reason,
 		})
@@ -440,8 +440,8 @@ func attachEvidence(report *Report, transcript []cassette.Interaction) {
 			// transcript. Downgraded rather than dropped, so the observation survives for a
 			// human while being ineligible for merge.
 			fact.Evidence = []string{}
-			if fact.Confidence.AtLeast(Observed) {
-				fact.Confidence = Suspected
+			if fact.Confidence.AtLeast(ConfidenceObserved) {
+				fact.Confidence = ConfidenceSuspected
 			}
 			fact.Alternatives = append(fact.Alternatives,
 				"no cassette interaction could be matched to this observation, so it cannot be "+

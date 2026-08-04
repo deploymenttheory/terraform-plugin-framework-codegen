@@ -635,7 +635,7 @@ func TestUnit_Render_RegistrationIsSortedAndComplete(t *testing.T) {
 	second.GoTypeName = "AaaResource"
 	bp.Resources = append(bp.Resources, second)
 
-	v := Registration(bp, KindResources, Options{BlueprintPath: "b", BlueprintSHA256: "s"})
+	v := Registration(bp, RegistryKindResources, Options{BlueprintPath: "b", BlueprintSHA256: "s"})
 
 	// The committed blueprint's non-dropped resources plus the one appended above
 	// -- a dropped resource (the SDK-gated dashboard) registers nothing.
@@ -658,12 +658,12 @@ func TestUnit_Render_RegistrationIsSortedAndComplete(t *testing.T) {
 
 	// A dropped resource must not be registered.
 	bp.Resources[len(bp.Resources)-1].Drop = true
-	if got := Registration(bp, KindResources, Options{}); len(got.Entries) != want-1 {
+	if got := Registration(bp, RegistryKindResources, Options{}); len(got.Entries) != want-1 {
 		t.Errorf("a dropped resource should not be registered: %v", got.Entries)
 	}
 
 	// Data sources register through the same path, sorted by the same rule.
-	ds := Registration(bp, KindDataSources, Options{})
+	ds := Registration(bp, RegistryKindDataSources, Options{})
 	if len(ds.Entries) != 2 {
 		t.Fatalf("got %d data source entries, want 2: %v", len(ds.Entries), ds.Entries)
 	}
@@ -678,7 +678,7 @@ func TestUnit_Render_RegistrationIsSortedAndComplete(t *testing.T) {
 	// still render rather than failing.
 	bp.DataSources[0].Drop = true
 	bp.DataSources[1].Drop = true
-	if got := Registration(bp, KindDataSources, Options{}); len(got.Entries) != 0 {
+	if got := Registration(bp, RegistryKindDataSources, Options{}); len(got.Entries) != 0 {
 		t.Errorf("dropped data sources should not be registered: %v", got.Entries)
 	}
 }

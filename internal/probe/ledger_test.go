@@ -53,7 +53,7 @@ func TestUnit_Probe_LedgerIntentIsDurableBeforeItReturns(t *testing.T) {
 	}
 
 	got := onDisk[0]
-	if got.Kind != KindIntent || got.Probe != "write.required" || got.Name == "" {
+	if got.Kind != EntryKindIntent || got.Probe != "write.required" || got.Name == "" {
 		t.Errorf("entry = %+v", got)
 	}
 	// The name is what the prefix pass matches on, so its absence would make the whole
@@ -73,10 +73,10 @@ func TestUnit_Probe_LedgerReconcilesRatherThanEmptying(t *testing.T) {
 	l, _ := tempLedger(t)
 
 	created, _ := l.Intent("p", "/things", "n1")
-	if err := l.Resolve(created, KindCreated, "1", 201, ""); err != nil {
+	if err := l.Resolve(created, EntryKindCreated, "1", 201, ""); err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
-	if err := l.Resolve(created, KindDeleted, "1", 204, ""); err != nil {
+	if err := l.Resolve(created, EntryKindDeleted, "1", 204, ""); err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
 
@@ -104,18 +104,18 @@ func TestUnit_Probe_LedgerOutstandingCases(t *testing.T) {
 	}{
 		{
 			// A 4xx is reliable evidence that nothing was created.
-			name: "rejected", resolve: kind(KindRejected), outstanding: false,
+			name: "rejected", resolve: kind(EntryKindRejected), outstanding: false,
 		},
 		{
-			name: "deleted", resolve: kind(KindDeleted), id: "1", outstanding: false,
+			name: "deleted", resolve: kind(EntryKindDeleted), id: "1", outstanding: false,
 		},
 		{
-			name: "created and not deleted", resolve: kind(KindCreated), id: "1",
+			name: "created and not deleted", resolve: kind(EntryKindCreated), id: "1",
 			outstanding: true, wantID: "1", wantReason: "created and not deleted",
 		},
 		{
 			// A 5xx, or a transport error. The object may well exist.
-			name: "failed", resolve: kind(KindFailed), outstanding: true,
+			name: "failed", resolve: kind(EntryKindFailed), outstanding: true,
 		},
 		{
 			// The signature of a crash between sending and reading. No id was ever learned,
@@ -181,11 +181,11 @@ func TestUnit_Probe_LedgerSurvivesATruncatedFinalLine(t *testing.T) {
 		t.Fatalf("MkdirAll: %v", err)
 	}
 
-	good, err := json.Marshal(LedgerEntry{Kind: KindIntent, Seq: 1, Probe: "p", Name: "n1"})
+	good, err := json.Marshal(LedgerEntry{Kind: EntryKindIntent, Seq: 1, Probe: "p", Name: "n1"})
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
-	resolved, err := json.Marshal(LedgerEntry{Kind: KindDeleted, Seq: 1, Probe: "p"})
+	resolved, err := json.Marshal(LedgerEntry{Kind: EntryKindDeleted, Seq: 1, Probe: "p"})
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestUnit_Probe_OpenLedgerResumesAPreviousRun(t *testing.T) {
 		t.Fatalf("OpenLedger: %v", err)
 	}
 	seq, _ := first.Intent("p", "/things", "n1")
-	if err := first.Resolve(seq, KindCreated, "42", 201, ""); err != nil {
+	if err := first.Resolve(seq, EntryKindCreated, "42", 201, ""); err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
 	if err := first.Close(); err != nil {
@@ -265,10 +265,10 @@ func TestUnit_Probe_OpenLedgerResumesAPreviousRun(t *testing.T) {
 	}
 
 	// And resolving the resumed object works, which is what a sweep does.
-	if err := second.Resolve(42, KindDeleted, "42", 204, ""); err == nil {
+	if err := second.Resolve(42, EntryKindDeleted, "42", 204, ""); err == nil {
 		t.Error("resolving a sequence that is not an intent should fail")
 	}
-	if err := second.Resolve(seq, KindDeleted, "42", 204, ""); err != nil {
+	if err := second.Resolve(seq, EntryKindDeleted, "42", 204, ""); err != nil {
 		t.Errorf("resolving the resumed intent: %v", err)
 	}
 	if !Clean(second.Entries()) {
@@ -290,7 +290,7 @@ func TestUnit_Probe_MemoryLedgerWritesNothing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Intent: %v", err)
 	}
-	if err := l.Resolve(seq, KindCreated, "1", 201, ""); err != nil {
+	if err := l.Resolve(seq, EntryKindCreated, "1", 201, ""); err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
 

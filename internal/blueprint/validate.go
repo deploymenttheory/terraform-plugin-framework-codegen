@@ -188,7 +188,7 @@ func (e Ephemeral) validate(at string, p *problems) {
 		}
 
 		a.validate(aat, p)
-		a.validateForKind(BlockEphemeral, aat, p)
+		a.validateForKind(BlockKindEphemeral, aat, p)
 
 		dup(p, seenNames, a.Name, aat+".name", "attribute name")
 		dup(p, seenFields, a.GoField, aat+".goField", "model field")
@@ -362,7 +362,7 @@ func (a Action) validate(at string, p *problems) {
 		}
 
 		attr.validate(aat, p)
-		attr.validateForKind(BlockAction, aat, p)
+		attr.validateForKind(BlockKindAction, aat, p)
 
 		dup(p, seenNames, attr.Name, aat+".name", "attribute name")
 		dup(p, seenFields, attr.GoField, aat+".goField", "model field")
@@ -421,7 +421,7 @@ func (d DataSource) validate(at string, p *problems) {
 		}
 
 		a.validate(aat, p)
-		a.validateForKind(BlockDataSource, aat, p)
+		a.validateForKind(BlockKindDataSource, aat, p)
 
 		dup(p, seenNames, a.Name, aat+".name", "attribute name")
 		dup(p, seenFields, a.GoField, aat+".goField", "model field")
@@ -484,7 +484,7 @@ func (r Resource) validate(at string, p *problems) {
 		}
 
 		a.validate(aat, p)
-		a.validateForKind(BlockResource, aat, p)
+		a.validateForKind(BlockKindResource, aat, p)
 
 		dup(p, seenNames, a.Name, aat+".name", "attribute name")
 		// A duplicated Go field is the subtler failure: the schema is fine and
@@ -758,7 +758,7 @@ func (r Resource) validateIDBinding(at string, names, fields map[string]bool, p 
 
 func (r Resource) validatePolicy(at string, hasWritable bool, p *problems) {
 	switch r.Policy.UpdateStyle {
-	case UpdateMergePatch, UpdatePutFull:
+	case UpdatePatchMerge, UpdatePutFull:
 		if r.Binding.Update == nil {
 			p.add(
 				at+".policy.updateStyle",
@@ -1294,7 +1294,7 @@ func (lf ListFacet) validateFilterSchema(at string, p *problems) {
 			}
 
 			a.validate(aat, p)
-			a.validateForKind(BlockList, aat, p)
+			a.validateForKind(BlockKindList, aat, p)
 
 			dup(p, seenNames, a.Name, aat+".name", "filter attribute name")
 			dup(p, seenFields, a.GoField, aat+".goField", "filter model field")

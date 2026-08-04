@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
 )
 
 // ListAccTestView is what the list acceptance test template needs.
@@ -57,10 +58,9 @@ func ListAccTest(
 	tfType := bp.Provider.TerraformType(r.Name)
 
 	v := ListAccTestView{
-		Header:  GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
-		Package: r.GoPackage + "_test",
-		TestName: fmt.Sprintf(
-			"TestAccList%s_01_Query", trimResourceSuffix(r.GoTypeName)),
+		Header:        GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
+		Package:       r.GoPackage + "_test",
+		TestName:      naming.AccTestName("List", trimResourceSuffix(r.GoTypeName), 1, "Query"),
 		TerraformType: tfType,
 		QueryAddress:  tfType + "." + fixtureLabel,
 	}

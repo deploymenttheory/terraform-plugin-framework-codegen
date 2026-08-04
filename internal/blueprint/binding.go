@@ -274,13 +274,13 @@ type WireBinding struct {
 	SDKGoType string `json:"sdkGoType,omitempty"`
 
 	// Expand converts Terraform to SDK; Flatten converts SDK to Terraform.
-	Expand  *ConvertCall `json:"expand,omitempty"`
+	Expand *ConvertCall `json:"expand,omitempty"`
 	// UpdateExpand overrides Expand for the update body, for an SDK whose update
 	// type declares a field differently from create's -- an endpoint label's Name
 	// is string on LabelRequest and *string on Label, and one assignment list
 	// cannot fill both. Meaningful only with a split update body.
 	UpdateExpand *ConvertCall `json:"updateExpand,omitempty"`
-	Flatten *ConvertCall `json:"flatten,omitempty"`
+	Flatten      *ConvertCall `json:"flatten,omitempty"`
 
 	// SkipExpand excludes an attribute from the request body. A computed
 	// timestamp is read but never sent.

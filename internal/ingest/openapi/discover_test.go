@@ -127,7 +127,7 @@ func TestUnit_Discover_NonCrudOperationsAreKeptNotDiscarded(t *testing.T) {
 	}
 
 	kind, why := c.Classify()
-	if kind != KindNeither {
+	if kind != CandidateKindNeither {
 		t.Errorf("classify = %s (%s), want neither: it can be created and never read", kind, why)
 	}
 }
@@ -139,13 +139,13 @@ func TestUnit_Discover_Classify(t *testing.T) {
 
 	tests := []struct {
 		key  string
-		want Kind
+		want CandidateKind
 	}{
-		{"tag", KindResource},
-		{"usage", KindDataSource},
+		{"tag", CandidateKindResource},
+		{"usage", CandidateKindDataSource},
 		// Create with no read is a job submission: Terraform could make one and
 		// never see it again.
-		{"instant_test", KindNeither},
+		{"instant_test", CandidateKindNeither},
 	}
 
 	for _, tc := range tests {
@@ -168,7 +168,7 @@ func TestUnit_Discover_ClassifyReportsPartialLifecycles(t *testing.T) {
 	op := &Operation{Method: "GET"}
 
 	kind, why := Candidate{Create: op, Read: op}.Classify()
-	if kind != KindResource {
+	if kind != CandidateKindResource {
 		t.Fatalf("kind = %s, want resource", kind)
 	}
 	if why != "no update or delete" {
@@ -291,7 +291,7 @@ func TestUnit_Discover_AgainstTheCommittedSpecification(t *testing.T) {
 	tag := find(t, all, "tag")
 
 	kind, why := tag.Classify()
-	if kind != KindResource {
+	if kind != CandidateKindResource {
 		t.Errorf("tag classified as %s (%s), want resource", kind, why)
 	}
 	if why != "full lifecycle" {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe/apierr"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe/quirkserver"
 )
 
@@ -247,10 +248,10 @@ func TestUnit_Probe_NotFoundShape(t *testing.T) {
 func TestUnit_Probe_ErrorEnvelopeIsIdentified(t *testing.T) {
 	t.Parallel()
 
-	for _, kind := range []quirkserver.EnvelopeKind{
-		quirkserver.EnvelopeProblem,
-		quirkserver.EnvelopeLegacy,
-		quirkserver.EnvelopeEmpty,
+	for _, kind := range []apierr.Envelope{
+		apierr.EnvelopeProblem,
+		apierr.EnvelopeLegacy,
+		apierr.EnvelopeEmpty,
 	} {
 		t.Run(string(kind), func(t *testing.T) {
 			t.Parallel()
@@ -280,7 +281,7 @@ func TestUnit_Probe_ErrorEnvelopeIsIdentified(t *testing.T) {
 		t.Parallel()
 
 		srv := quirkserver.New(t, quirkserver.Quirks{
-			ErrorEnvelope:  quirkserver.EnvelopeOAuth,
+			ErrorEnvelope:  apierr.EnvelopeOAuth,
 			NotFoundStatus: http.StatusUnauthorized,
 		})
 
@@ -315,7 +316,7 @@ func TestUnit_Probe_VolatileOnRead(t *testing.T) {
 		if fact.Value.Bool == nil || !*fact.Value.Bool {
 			t.Errorf("modifiedDate should be volatile: %v", fact.Value)
 		}
-		if fact.Confidence != Observed {
+		if fact.Confidence != ConfidenceObserved {
 			t.Errorf("confidence = %s, want observed", fact.Confidence)
 		}
 	})
@@ -397,7 +398,7 @@ func TestUnit_Probe_IntegralNumbersAreReported(t *testing.T) {
 	if f.Value.Bool == nil || !*f.Value.Bool {
 		t.Errorf("value = %v, want true", f.Value)
 	}
-	if f.Confidence != Inferred {
+	if f.Confidence != ConfidenceInferred {
 		t.Errorf("confidence = %s, want inferred -- JSON cannot distinguish 5 from 5.0, so "+
 			"this must never rise above an assumption", f.Confidence)
 	}
@@ -426,7 +427,7 @@ func TestUnit_Probe_ReturnedOnReadWeakIsAlwaysSuspected(t *testing.T) {
 			continue
 		}
 		seen++
-		if f.Confidence != Suspected {
+		if f.Confidence != ConfidenceSuspected {
 			t.Errorf("%s: confidence = %s, want suspected", f.JSONPath, f.Confidence)
 		}
 		if len(f.Alternatives) < 2 {
@@ -502,7 +503,7 @@ func TestUnit_Probe_MutatingTierIsReportedAsSkipped(t *testing.T) {
 
 	var skipped int
 	for _, p := range got.Report.Probes {
-		if p.Kind == KindMutating {
+		if p.Kind == ProbeKindMutating {
 			if p.Status != "skipped" {
 				t.Errorf("%s: status = %s, want skipped", p.Name, p.Status)
 			}
@@ -547,7 +548,7 @@ func TestUnit_Probe_EvidenceCitesRealInteractions(t *testing.T) {
 		}
 		// An observed-or-better fact with no evidence would fail Fact.Validate, so the
 		// downgrade has to have happened.
-		if len(f.Evidence) == 0 && f.Confidence.AtLeast(Observed) {
+		if len(f.Evidence) == 0 && f.Confidence.AtLeast(ConfidenceObserved) {
 			t.Errorf("%s has no evidence but claims %s", factKey(f), f.Confidence)
 		}
 	}
@@ -568,7 +569,7 @@ func TestUnit_Probe_EveryDerivedFactValidates(t *testing.T) {
 	got := recordAgainst(t, srv, "")
 
 	for _, f := range got.Report.Facts {
-		if f.Confidence == Suspected {
+		if f.Confidence == ConfidenceSuspected {
 			// Suspected facts are report-only and may legitimately lack evidence after a
 			// downgrade.
 			continue
@@ -605,7 +606,7 @@ func TestUnit_Probe_VerifyFactsDetectsDrift(t *testing.T) {
 
 	base := []Fact{{
 		Resource: "tag", JSONPath: "colour", Field: FactWritable,
-		Value: BoolValue(true), Confidence: Observed,
+		Value: BoolValue(true), Confidence: ConfidenceObserved,
 	}}
 
 	if err := VerifyFacts(base, base); err != nil {
@@ -616,15 +617,15 @@ func TestUnit_Probe_VerifyFactsDetectsDrift(t *testing.T) {
 		"a missing fact": {},
 		"a changed value": {{
 			Resource: "tag", JSONPath: "colour", Field: FactWritable,
-			Value: BoolValue(false), Confidence: Observed,
+			Value: BoolValue(false), Confidence: ConfidenceObserved,
 		}},
 		"a changed confidence": {{
 			Resource: "tag", JSONPath: "colour", Field: FactWritable,
-			Value: BoolValue(true), Confidence: Suspected,
+			Value: BoolValue(true), Confidence: ConfidenceSuspected,
 		}},
 		"a different field": {{
 			Resource: "tag", JSONPath: "colour", Field: FactImmutable,
-			Value: BoolValue(true), Confidence: Observed,
+			Value: BoolValue(true), Confidence: ConfidenceObserved,
 		}},
 	}
 
@@ -649,11 +650,11 @@ func TestUnit_Probe_VerifyFactsDetectsAPreconditionMismatch(t *testing.T) {
 
 	committed := []Fact{{
 		Resource: "tag", JSONPath: "matchType", Field: FactReturnedOnRead,
-		Value: BoolValue(false), Confidence: Observed,
+		Value: BoolValue(false), Confidence: ConfidenceObserved,
 	}}
 	derived := []Fact{{
 		Resource: "tag", JSONPath: "matchType", Field: FactReturnedOnRead,
-		Value: BoolValue(false), Confidence: Observed,
+		Value: BoolValue(false), Confidence: ConfidenceObserved,
 		When: []Condition{{JSONPath: "type", Equals: "static"}},
 	}}
 
@@ -771,7 +772,7 @@ func TestUnit_Probe_EvidenceResolvesAcrossABasePath(t *testing.T) {
 				t.Errorf("%s cites %q, which is not in the transcript", factKey(f), cited)
 			}
 		}
-		if f.Confidence.AtLeast(Observed) {
+		if f.Confidence.AtLeast(ConfidenceObserved) {
 			observed++
 			if len(f.Evidence) == 0 {
 				t.Errorf("%s claims %s with no evidence", factKey(f), f.Confidence)
@@ -852,48 +853,48 @@ func TestUnit_Probe_ANestedFieldInsideAnArrayIsReadable(t *testing.T) {
 		{
 			name: "an object inside a single-element array",
 			body: `{"filters":[{"mode":"and","key":"network"}]}`,
-			path: "filters.mode", want: Present, val: "and",
+			path: "filters.mode", want: OutcomePresent, val: "and",
 		},
 		{
 			// The array is how a great many APIs model a nested object, so this is the common
 			// case rather than an exotic one.
 			name: "a plain nested object still works",
 			body: `{"filters":{"mode":"or"}}`,
-			path: "filters.mode", want: Present, val: "or",
+			path: "filters.mode", want: OutcomePresent, val: "or",
 		},
 		{
 			// Which element did the caller mean? Taking the first would produce a fact about
 			// element zero and label it a fact about the field.
 			name: "two elements is ambiguous, not absent",
 			body: `{"filters":[{"mode":"and"},{"mode":"or"}]}`,
-			path: "filters.mode", want: Ambiguous,
+			path: "filters.mode", want: OutcomeAmbiguous,
 		},
 		{
 			name: "an empty array is ambiguous too",
 			body: `{"filters":[]}`,
-			path: "filters.mode", want: Ambiguous,
+			path: "filters.mode", want: OutcomeAmbiguous,
 		},
 		{
 			name: "a genuinely absent field is absent",
 			body: `{"filters":[{"key":"network"}]}`,
-			path: "filters.mode", want: Absent,
+			path: "filters.mode", want: OutcomeAbsent,
 		},
 		{
 			// Present-and-null is a different observation from not-returned, and the whole
 			// writability protocol turns on the difference.
 			name: "present and null is present",
 			body: `{"filters":[{"mode":null}]}`,
-			path: "filters.mode", want: Present, val: nil,
+			path: "filters.mode", want: OutcomePresent, val: nil,
 		},
 		{
 			name: "two levels of single-element array",
 			body: `{"a":[{"b":[{"c":"deep"}]}]}`,
-			path: "a.b.c", want: Present, val: "deep",
+			path: "a.b.c", want: OutcomePresent, val: "deep",
 		},
 		{
 			name: "a scalar where an object was expected",
 			body: `{"filters":"not-an-object"}`,
-			path: "filters.mode", want: Absent,
+			path: "filters.mode", want: OutcomeAbsent,
 		},
 	}
 
@@ -907,22 +908,22 @@ func TestUnit_Probe_ANestedFieldInsideAnArrayIsReadable(t *testing.T) {
 			if outcome != tc.want {
 				t.Fatalf("outcome = %s, want %s", outcome, tc.want)
 			}
-			if outcome == Present && got != tc.val {
+			if outcome == OutcomePresent && got != tc.val {
 				t.Errorf("value = %v, want %v", got, tc.val)
 			}
 
 			// Field folds Ambiguous into false, which is the safe direction for a caller that
 			// has not thought about arrays.
 			_, ok := resp.Field(tc.path)
-			if ok != (tc.want == Present) {
-				t.Errorf("Field ok = %v, want %v", ok, tc.want == Present)
+			if ok != (tc.want == OutcomePresent) {
+				t.Errorf("Field ok = %v, want %v", ok, tc.want == OutcomePresent)
 			}
 		})
 	}
 
 	// A nil response answers safely: every probe reads a response it may not have got.
 	var none *Response
-	if _, outcome := none.LookupField("a.b"); outcome != Absent {
+	if _, outcome := none.LookupField("a.b"); outcome != OutcomeAbsent {
 		t.Errorf("a nil response gave %s", outcome)
 	}
 }
@@ -985,7 +986,7 @@ func TestUnit_Probe_AFactCitesTheExactInteractionItRestsOn(t *testing.T) {
 	// back into all three.
 	report := Report{Facts: []Fact{{
 		Resource: "thing", JSONPath: "key", Field: FactReturnedOnRead,
-		Value: BoolValue(true), Confidence: Observed, Probe: "read.returned-weak",
+		Value: BoolValue(true), Confidence: ConfidenceObserved, Probe: "read.returned-weak",
 		Evidence: []string{ids[1]}, Rationale: "for the test",
 	}}}
 
@@ -1000,7 +1001,7 @@ func TestUnit_Probe_AFactCitesTheExactInteractionItRestsOn(t *testing.T) {
 	// change: they cite the path they asked for.
 	byPath := Report{Facts: []Fact{{
 		Resource: "thing", JSONPath: "key", Field: FactReturnedOnRead,
-		Value: BoolValue(true), Confidence: Observed, Probe: "read.returned-weak",
+		Value: BoolValue(true), Confidence: ConfidenceObserved, Probe: "read.returned-weak",
 		// A probe's own citation: a sequence number local to *that probe*, plus the method and
 		// path it asked for. Seq 7 rather than 1 deliberately -- a probe's first request in a
 		// run that begins with it produces a citation that happens to equal the real id

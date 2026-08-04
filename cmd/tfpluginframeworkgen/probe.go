@@ -683,7 +683,7 @@ func authoriseMutations(
 		return nil, nil, err
 	}
 
-	return probe.Authorise(ctx, read, profile, probe.GateOptions{
+	return probe.Authorise(ctx, read, profile, probe.GuardOptions{
 		Mode:                     probe.ModeRecord,
 		AllowMutations:           opts.allowMutate,
 		Subject:                  subj,
@@ -743,7 +743,7 @@ func sweepEverything(opts probeRun) error {
 		return err
 	}
 
-	grant, err := probe.AuthoriseSweep(profile, probe.GateOptions{Mode: probe.ModeSweep},
+	grant, err := probe.AuthoriseSweep(profile, probe.GuardOptions{Mode: probe.ModeSweep},
 		probe.OSEnviron{})
 	if err != nil {
 		return err
@@ -1106,7 +1106,7 @@ func readFacts(path string) ([]probe.Fact, error) {
 	// nothing. A Suspected fact is exempt from the strength checks only -- its shape (field,
 	// value, preconditions) is still checked, so a malformed When cannot load unnoticed.
 	for _, f := range out {
-		if f.Confidence == probe.Suspected {
+		if f.Confidence == probe.ConfidenceSuspected {
 			if err := f.ValidateShape(); err != nil {
 				return nil, fmt.Errorf("%s: %w", path, err)
 			}
@@ -1253,7 +1253,7 @@ func listProbes(opts probeRun) error {
 			// because it will never run. Showing its nominal cost would overstate the
 			// budget by an order of magnitude.
 			requests, creates := e.Cost, e.Creates
-			if e.Kind == probe.KindMutating && !probeable {
+			if e.Kind == probe.ProbeKindMutating && !probeable {
 				requests, creates = 0, 0
 			}
 

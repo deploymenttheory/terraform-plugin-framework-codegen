@@ -15,11 +15,11 @@ func TestUnit_BlockKind_SchemaPackage(t *testing.T) {
 	t.Parallel()
 
 	want := map[BlockKind]string{
-		BlockResource:         "resource/schema",
-		BlockDataSource:       "datasource/schema",
-		BlockEphemeral:        "ephemeral/schema",
-		BlockAction:           "action/schema",
-		BlockList:             "list/schema",
+		BlockKindResource:     "resource/schema",
+		BlockKindDataSource:   "datasource/schema",
+		BlockKindEphemeral:    "ephemeral/schema",
+		BlockKindAction:       "action/schema",
+		BlockKindList:         "list/schema",
 		BlockKind("nonesuch"): "",
 	}
 
@@ -40,7 +40,7 @@ func TestUnit_BlockKind_SchemaPackage(t *testing.T) {
 func TestUnit_BlockKind_FieldSupport(t *testing.T) {
 	t.Parallel()
 
-	kinds := []BlockKind{BlockResource, BlockDataSource, BlockEphemeral, BlockAction, BlockList}
+	kinds := []BlockKind{BlockKindResource, BlockKindDataSource, BlockKindEphemeral, BlockKindAction, BlockKindList}
 
 	tests := []struct {
 		field string
@@ -86,28 +86,28 @@ func TestUnit_BlockKind_ValidateRefusesFieldsTheKindHasNoHomeFor(t *testing.T) {
 	}{
 		{
 			name:     "default on a data source attribute",
-			kind:     BlockDataSource,
+			kind:     BlockKindDataSource,
 			attr:     Attribute{Name: "f", Default: &Default{Static: &Literal{Kind: KindString, Raw: `"x"`}}},
 			wantPath: "attributes[f].default",
 			wantMsg:  "resources only",
 		},
 		{
 			name:     "plan modifier on a data source attribute",
-			kind:     BlockDataSource,
+			kind:     BlockKindDataSource,
 			attr:     Attribute{Name: "f", PlanModifiers: []CustomCode{{}}},
 			wantPath: "attributes[f].planModifiers",
 			wantMsg:  "no plan to modify",
 		},
 		{
 			name:     "write-only on a data source attribute",
-			kind:     BlockDataSource,
+			kind:     BlockKindDataSource,
 			attr:     Attribute{Name: "f", WriteOnly: true},
 			wantPath: "attributes[f].writeOnly",
 			wantMsg:  "write-only",
 		},
 		{
 			name:     "computed on a list attribute",
-			kind:     BlockList,
+			kind:     BlockKindList,
 			attr:     Attribute{Name: "f", ComputedOptionalRequired: Computed},
 			wantPath: "attributes[f].computedOptionalRequired",
 			wantMsg:  "required and optional",
@@ -116,14 +116,14 @@ func TestUnit_BlockKind_ValidateRefusesFieldsTheKindHasNoHomeFor(t *testing.T) {
 			// computed_optional also sets Computed, so it must be refused too --
 			// checking only for the exact value "computed" would let it through.
 			name:     "computed_optional on an action attribute",
-			kind:     BlockAction,
+			kind:     BlockKindAction,
 			attr:     Attribute{Name: "f", ComputedOptionalRequired: ComputedOptional},
 			wantPath: "attributes[f].computedOptionalRequired",
 			wantMsg:  "required and optional",
 		},
 		{
 			name:     "sensitive on an action attribute",
-			kind:     BlockAction,
+			kind:     BlockKindAction,
 			attr:     Attribute{Name: "f", Sensitive: true},
 			wantPath: "attributes[f].sensitive",
 			wantMsg:  "sensitive",
@@ -132,7 +132,7 @@ func TestUnit_BlockKind_ValidateRefusesFieldsTheKindHasNoHomeFor(t *testing.T) {
 			// The refusal has to reach through nesting, because that is where a
 			// hand-authored blueprint is least likely to be read carefully.
 			name: "default on an attribute nested inside a data source attribute",
-			kind: BlockDataSource,
+			kind: BlockKindDataSource,
 			attr: Attribute{
 				Name: "outer",
 				Type: AttrType{
@@ -208,7 +208,7 @@ func TestUnit_BlockKind_ValidateAcceptsEveryFieldOnAResource(t *testing.T) {
 	}
 
 	var p problems
-	a.validateForKind(BlockResource, "attributes[f]", &p)
+	a.validateForKind(BlockKindResource, "attributes[f]", &p)
 
 	if len(p) != 0 {
 		t.Errorf("a resource attribute may set all of these; got %v", p)
@@ -228,11 +228,11 @@ func TestUnit_BlockKind_Expands(t *testing.T) {
 	// as call arguments and the emitter generates no construct function for one -- so there
 	// is no request body for an expand to build.
 	want := map[BlockKind]bool{
-		BlockResource:   true,
-		BlockAction:     false,
-		BlockDataSource: false,
-		BlockEphemeral:  false,
-		BlockList:       false,
+		BlockKindResource:   true,
+		BlockKindAction:     false,
+		BlockKindDataSource: false,
+		BlockKindEphemeral:  false,
+		BlockKindList:       false,
 	}
 
 	for kind, w := range want {
@@ -251,11 +251,11 @@ func TestUnit_BlockKind_Flattens(t *testing.T) {
 	t.Parallel()
 
 	want := map[BlockKind]bool{
-		BlockResource:   true,
-		BlockDataSource: true,
-		BlockEphemeral:  true,
-		BlockList:       true,
-		BlockAction:     false,
+		BlockKindResource:   true,
+		BlockKindDataSource: true,
+		BlockKindEphemeral:  true,
+		BlockKindList:       true,
+		BlockKindAction:     false,
 	}
 
 	for kind, w := range want {
@@ -286,7 +286,7 @@ func TestUnit_BlockKind_WireDirectionsAreCheckedPerKind(t *testing.T) {
 	}{
 		{
 			name: "a writable resource attribute needs an expand",
-			kind: BlockResource,
+			kind: BlockKindResource,
 			attr: Attribute{
 				Name: "f", ComputedOptionalRequired: Required,
 				Wire: WireBinding{Flatten: flatten},
@@ -295,7 +295,7 @@ func TestUnit_BlockKind_WireDirectionsAreCheckedPerKind(t *testing.T) {
 		},
 		{
 			name: "skipExpand on a writable resource attribute is refused",
-			kind: BlockResource,
+			kind: BlockKindResource,
 			attr: Attribute{
 				Name: "f", ComputedOptionalRequired: Optional,
 				Wire: WireBinding{Flatten: flatten, SkipExpand: true},
@@ -304,7 +304,7 @@ func TestUnit_BlockKind_WireDirectionsAreCheckedPerKind(t *testing.T) {
 		},
 		{
 			name: "an expand on a data source attribute is refused",
-			kind: BlockDataSource,
+			kind: BlockKindDataSource,
 			attr: Attribute{
 				Name: "f", ComputedOptionalRequired: Required,
 				Wire: WireBinding{Expand: expand, Flatten: flatten},
@@ -313,13 +313,13 @@ func TestUnit_BlockKind_WireDirectionsAreCheckedPerKind(t *testing.T) {
 		},
 		{
 			name:     "every kind needs a flatten",
-			kind:     BlockDataSource,
+			kind:     BlockKindDataSource,
 			attr:     Attribute{Name: "f", ComputedOptionalRequired: Computed},
 			wantPath: "attributes[f].wire.flatten",
 		},
 		{
 			name: "a resource's nested object needs an expand helper",
-			kind: BlockResource,
+			kind: BlockKindResource,
 			attr: Attribute{
 				Name: "outer", ComputedOptionalRequired: Computed,
 				Wire: WireBinding{Flatten: flatten},
@@ -335,7 +335,7 @@ func TestUnit_BlockKind_WireDirectionsAreCheckedPerKind(t *testing.T) {
 		},
 		{
 			name: "every kind's nested object needs a flatten helper",
-			kind: BlockDataSource,
+			kind: BlockKindDataSource,
 			attr: Attribute{
 				Name: "outer", ComputedOptionalRequired: Computed,
 				Wire: WireBinding{Flatten: flatten},
@@ -383,7 +383,7 @@ func TestUnit_BlockKind_ReadOnlyAttributeNeedsNoExpand(t *testing.T) {
 	}
 
 	var p problems
-	lookup.validateForKind(BlockDataSource, "attributes[id]", &p)
+	lookup.validateForKind(BlockKindDataSource, "attributes[id]", &p)
 
 	if len(p) != 0 {
 		t.Errorf("a data source's required lookup argument needs no expand; got %v", p)

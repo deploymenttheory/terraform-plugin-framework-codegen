@@ -112,7 +112,7 @@ components:
           items: {$ref: '#/components/schemas/Node'}
 `
 
-func inferNested(t *testing.T) (blueprint.Resource, []Note) {
+func inferNested(t *testing.T) (blueprint.Resource, []Caveat) {
 	t.Helper()
 
 	dir := t.TempDir()

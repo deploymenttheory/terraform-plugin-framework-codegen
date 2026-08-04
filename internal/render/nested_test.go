@@ -10,7 +10,7 @@ import (
 // testResourceScope is the scope the resource-oriented rendering tests pass. It is named
 // rather than inlined so a test that means to render as a data source has to say so.
 var testResourceScope = schemaScope{
-	kind: blueprint.BlockResource,
+	kind: blueprint.BlockKindResource,
 	what: `resource "tag"`,
 	// The identifier, which is the only attribute UseStateForUnknown is applied to.
 	idAttribute: "id",

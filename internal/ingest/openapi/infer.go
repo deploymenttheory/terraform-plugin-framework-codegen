@@ -41,19 +41,19 @@ type InferOptions struct {
 	APIVersionDir string
 }
 
-// Note records something inference could not do, or did by assumption.
+// Caveat records something inference could not do, or did by assumption.
 //
 // Notes are the point of the exercise as much as the blueprint is. A generator
 // that silently drops what it cannot express produces a provider that looks
 // complete and is not, so everything skipped is reported with the attribute it
 // belongs to.
-type Note struct {
+type Caveat struct {
 	Resource string
 	Field    string
 	Message  string
 }
 
-func (n Note) String() string {
+func (n Caveat) String() string {
 	if n.Field == "" {
 		return fmt.Sprintf("%s: %s", n.Resource, n.Message)
 	}
@@ -71,13 +71,13 @@ var namingOpts = naming.Options{StripPrefix: naming.DefaultStripPrefix}
 // deliberate presence overrides and curated descriptions belong to a person, and
 // the difference between this output and a curated blueprint is exactly the work
 // that required judgement.
-func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []Note, error) {
+func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []Caveat, error) {
 	kind, why := c.Classify()
-	if kind != KindResource {
+	if kind != CandidateKindResource {
 		return blueprint.Resource{}, nil, fmt.Errorf("%w: %s: %s", ErrNotAResource, c.Key, why)
 	}
 
-	var notes []Note
+	var notes []Caveat
 
 	service := namingOpts.GoTypeName(c.Tag)
 	pkgDir := naming.SnakeDirName(c.Key)
@@ -154,7 +154,7 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 
 	// Without an identifier there is nothing to read, import or delete by.
 	if !hasAttribute(r.Schema.Attributes, "id") {
-		notes = append(notes, Note{
+		notes = append(notes, Caveat{
 			Resource: c.Key,
 			Message:  "no id attribute in the schemas, so the resource cannot be imported or refreshed",
 		})
@@ -174,7 +174,7 @@ func updateStyleOf(op *Operation) blueprint.UpdateStyle {
 	case op == nil:
 		return blueprint.UpdateReplaceOnly
 	case op.Method == "PATCH":
-		return blueprint.UpdateMergePatch
+		return blueprint.UpdatePatchMerge
 	default:
 		return blueprint.UpdatePutFull
 	}
@@ -237,7 +237,7 @@ func bindOperations(r *blueprint.Resource, c Candidate, resultType string) {
 // A field in both is configurable; one only in the response is computed. That
 // merge is the whole of presence inference, and it is why both schemas are read
 // rather than just one.
-func (d *Document) attributes(c Candidate, sdkPkg string) ([]blueprint.Attribute, []Note) {
+func (d *Document) attributes(c Candidate, sdkPkg string) ([]blueprint.Attribute, []Caveat) {
 	writable := map[string]Field{}
 	for _, f := range Fields(d.requestSchema(c)) {
 		writable[f.Name] = f

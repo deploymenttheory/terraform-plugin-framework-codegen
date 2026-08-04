@@ -26,7 +26,7 @@ type RegistrationView struct {
 }
 
 // Registration builds the view for the resource or data source registration file.
-func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationView {
+func Registration(bp blueprint.Blueprint, kind RegistryKind, opts Options) RegistrationView {
 	v := RegistrationView{
 		Header:  GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
 		Package: providerPackage(bp),
@@ -36,7 +36,7 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 	var entries []entry
 
 	switch kind {
-	case KindResources:
+	case RegistryKindResources:
 		for _, r := range bp.Resources {
 			if r.Drop {
 				continue
@@ -47,7 +47,7 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 				ctor:       "New" + r.GoTypeName,
 			})
 		}
-	case KindDataSources:
+	case RegistryKindDataSources:
 		for _, d := range bp.DataSources {
 			if d.Drop {
 				continue
@@ -58,7 +58,7 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 				ctor:       "New" + d.GoTypeName,
 			})
 		}
-	case KindActions:
+	case RegistryKindActions:
 		for _, a := range bp.Actions {
 			if a.Drop {
 				continue
@@ -69,7 +69,7 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 				ctor:       "New" + a.GoTypeName,
 			})
 		}
-	case KindEphemerals:
+	case RegistryKindEphemerals:
 		for _, e := range bp.Ephemerals {
 			if e.Drop {
 				continue
@@ -80,7 +80,7 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 				ctor:       "New" + e.GoTypeName,
 			})
 		}
-	case KindListResources:
+	case RegistryKindListResources:
 		// From the resources, not from a list of their own: a list resource is a facet, and
 		// it is registered because the resource it lists declares one. The import is the
 		// resource's package, since that is where the generated file lives.
@@ -110,15 +110,15 @@ func Registration(bp blueprint.Blueprint, kind Kind, opts Options) RegistrationV
 	return v
 }
 
-// Kind selects which registration file to render.
-type Kind string
+// RegistryKind selects which registration file to render.
+type RegistryKind string
 
 const (
-	KindResources     Kind = "resources"
-	KindDataSources   Kind = "dataSources"
-	KindListResources Kind = "listResources"
-	KindActions       Kind = "actions"
-	KindEphemerals    Kind = "ephemerals"
+	RegistryKindResources     RegistryKind = "resources"
+	RegistryKindDataSources   RegistryKind = "dataSources"
+	RegistryKindListResources RegistryKind = "listResources"
+	RegistryKindActions       RegistryKind = "actions"
+	RegistryKindEphemerals    RegistryKind = "ephemerals"
 )
 
 // providerPackage is the Go package name of the provider directory.

@@ -62,8 +62,8 @@ func (m MapEnviron) Lookup(name string) (string, bool) {
 	return v, ok
 }
 
-// GateOptions is what the caller asked for, as distinct from what the profile allows.
-type GateOptions struct {
+// GuardOptions is what the caller asked for, as distinct from what the profile allows.
+type GuardOptions struct {
 	Mode Mode
 	// AllowMutations is the flag. A request, not an authorisation.
 	AllowMutations bool
@@ -87,13 +87,13 @@ type GateOptions struct {
 	Force                    bool
 }
 
-// gateInput is everything a condition may look at.
+// guardInput is everything a condition may look at.
 //
 // One struct rather than a closure over locals, so the table's entries are pure functions of
 // their input and a test can build any combination it likes.
-type gateInput struct {
+type guardInput struct {
 	profile Profile
-	opts    GateOptions
+	opts    GuardOptions
 
 	// token is resolved once, and is the only place the credential appears in this file.
 	token string
@@ -109,7 +109,7 @@ type condition struct {
 	// AuthoriseSweep.
 	modes []Mode
 	// check returns "" when satisfied, and otherwise the sentence an operator reads.
-	check func(gateInput) string
+	check func(guardInput) string
 }
 
 // minSecretLength is the shortest value worth looking for verbatim. Below it, a match is far
@@ -139,7 +139,7 @@ var staticConditions = []condition{
 	{
 		name:  "mode",
 		modes: []Mode{ModeRecord},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			if in.opts.Mode == ModeRecord {
 				return ""
 			}
@@ -151,7 +151,7 @@ var staticConditions = []condition{
 	{
 		name:  "allowMutations",
 		modes: []Mode{ModeRecord},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			if in.opts.AllowMutations {
 				return ""
 			}
@@ -162,7 +162,7 @@ var staticConditions = []condition{
 	{
 		name:  "sandbox",
 		modes: []Mode{ModeRecord},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			if in.profile.Sandbox {
 				return ""
 			}
@@ -172,7 +172,7 @@ var staticConditions = []condition{
 	{
 		name:  "sandboxEvidence",
 		modes: []Mode{ModeRecord},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			evidence := strings.TrimSpace(in.profile.SandboxEvidence)
 
 			switch {
@@ -194,7 +194,7 @@ var staticConditions = []condition{
 	{
 		name:  "namePrefix",
 		modes: []Mode{ModeRecord, ModeSweep},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			prefix := in.profile.NamePrefix
 
 			switch {
@@ -214,7 +214,7 @@ var staticConditions = []condition{
 	{
 		name:  "tokenEnv",
 		modes: []Mode{ModeRecord, ModeSweep},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			if in.profile.TokenEnv == "" {
 				return "the profile names no tokenEnv; the credential is read from an " +
 					"environment variable and must never be in the profile or on a command line"
@@ -230,12 +230,12 @@ var staticConditions = []condition{
 	{
 		name:  "noCredentialInProfile",
 		modes: []Mode{ModeRecord, ModeSweep},
-		check: func(in gateInput) string { return credentialShaped(in.profile, in.token) },
+		check: func(in guardInput) string { return credentialShaped(in.profile, in.token) },
 	},
 	{
 		name:  "https",
 		modes: []Mode{ModeRecord, ModeSweep},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			if in.endpoint == nil {
 				return fmt.Sprintf("the endpoint %q is not a URL", in.profile.Endpoint)
 			}
@@ -250,7 +250,7 @@ var staticConditions = []condition{
 	{
 		name:  "endpointHostSuffix",
 		modes: []Mode{ModeRecord, ModeSweep},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			want := in.profile.Assertions.EndpointHostSuffix
 			if want == "" || in.endpoint == nil {
 				return ""
@@ -268,7 +268,7 @@ var staticConditions = []condition{
 	{
 		name:  "canMutate",
 		modes: []Mode{ModeRecord},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			if can, why := in.opts.Subject.CanMutate(); !can {
 				return why
 			}
@@ -278,7 +278,7 @@ var staticConditions = []condition{
 	{
 		name:  "plan",
 		modes: []Mode{ModeRecord},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			if err := in.opts.Plan.Validate(in.opts.Subject); err != nil {
 				return "the probe plan is not usable: " + err.Error()
 			}
@@ -298,7 +298,7 @@ var staticConditions = []condition{
 	{
 		name:  "noSnapshotOverwrite",
 		modes: []Mode{ModeRecord},
-		check: func(in gateInput) string {
+		check: func(in guardInput) string {
 			if !in.opts.EquivalentSnapshotExists || in.opts.Force {
 				return ""
 			}
@@ -438,7 +438,7 @@ func Authorise(
 	ctx context.Context,
 	read ReadSession,
 	p Profile,
-	opts GateOptions,
+	opts GuardOptions,
 	env Environ,
 ) (*Grant, []string, error) {
 	if env == nil {
@@ -487,7 +487,7 @@ func Authorise(
 // up after yourself is perverse, and an operator staring at an orphan table should not have to
 // re-read the documentation. Deliberately does not check maxExistingObjects either: a tenant
 // that now fails it may be failing it *because* it is holding your orphans.
-func AuthoriseSweep(p Profile, opts GateOptions, env Environ) (*Grant, error) {
+func AuthoriseSweep(p Profile, opts GuardOptions, env Environ) (*Grant, error) {
 	if env == nil {
 		env = OSEnviron{}
 	}
@@ -517,8 +517,8 @@ func AuthoriseSweep(p Profile, opts GateOptions, env Environ) (*Grant, error) {
 // The token is read here and held nowhere else in this file: it exists only so the tokenEnv
 // condition can tell "no variable named" from "named but unset", which are different mistakes
 // with different fixes.
-func inputFor(p Profile, opts GateOptions, env Environ) gateInput {
-	in := gateInput{profile: p, opts: opts}
+func inputFor(p Profile, opts GuardOptions, env Environ) guardInput {
+	in := guardInput{profile: p, opts: opts}
 	in.token, _ = env.Lookup(p.TokenEnv)
 
 	// A URL that does not parse leaves endpoint nil, which the https condition reports. Parsed
@@ -532,7 +532,7 @@ func inputFor(p Profile, opts GateOptions, env Environ) gateInput {
 }
 
 // checkRuntime performs the assertions that need the tenant to answer.
-func checkRuntime(ctx context.Context, read ReadSession, in gateInput) (passed, refusals []string) {
+func checkRuntime(ctx context.Context, read ReadSession, in guardInput) (passed, refusals []string) {
 	if read == nil {
 		return nil, []string{"maxExistingObjects: no session was available to check the " +
 			"tenant with, and an unchecked assertion must not read as a passed one"}
@@ -582,7 +582,7 @@ func checkRuntime(ctx context.Context, read ReadSession, in gateInput) (passed, 
 // On an empty tenant no object can confirm the scope, and the weaker outcome is recorded
 // verbatim rather than upgraded. A gate that recorded the strong claim from the weak evidence
 // would be worse than one that recorded nothing.
-func checkAccountGroup(ctx context.Context, read ReadSession, in gateInput) (string, string) {
+func checkAccountGroup(ctx context.Context, read ReadSession, in guardInput) (string, string) {
 	want := in.profile.Assertions.AccountGroupID
 	if want == "" {
 		return "", ""

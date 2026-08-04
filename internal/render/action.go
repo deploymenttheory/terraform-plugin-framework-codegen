@@ -175,7 +175,7 @@ func Action(bp blueprint.Blueprint, a blueprint.Action, opts Options) (ActionVie
 // actionScope names an action for the error messages attribute rendering produces.
 func actionScope(a blueprint.Action) schemaScope {
 	return schemaScope{
-		kind:     blueprint.BlockAction,
+		kind:     blueprint.BlockKindAction,
 		what:     fmt.Sprintf("action %q", a.Key),
 		patterns: newPatternVars(),
 	}

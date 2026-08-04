@@ -327,7 +327,7 @@ func TestUnit_Probe_CostAlwaysCoversCreates(t *testing.T) {
 					t.Errorf("%s: declares %d creates but only %d requests; every created "+
 						"object costs at least a create and a delete", e.Name, e.Creates, e.Cost)
 				}
-				if e.Kind == KindRead && e.Creates != 0 {
+				if e.Kind == ProbeKindRead && e.Creates != 0 {
 					t.Errorf("%s is read-only but claims %d creates", e.Name, e.Creates)
 				}
 			}

@@ -432,13 +432,10 @@ func TestUnit_Naming_SnakeDirName(t *testing.T) {
 func TestUnit_Naming_TestNames(t *testing.T) {
 	t.Parallel()
 
-	if got := UnitTestName(1, "Tag", "Schema"); got != "TestUnit_Tag_01_Schema" {
-		t.Errorf("UnitTestName = %q", got)
+	if got := AccTestName("Resource", "Tag", 1, "Lifecycle"); got != "TestAccResourceTag_01_Lifecycle" {
+		t.Errorf("AccTestName = %q", got)
 	}
-	if got := UnitTestName(12, "Tag", "Minimal"); got != "TestUnit_Tag_12_Minimal" {
-		t.Errorf("UnitTestName = %q", got)
-	}
-	if got := AccTestName(1, "Tag", "Minimal"); got != "TestAcc_Tag_01_Minimal" {
+	if got := AccTestName("DataSource", "Tag", 12, "Read"); got != "TestAccDataSourceTag_12_Read" {
 		t.Errorf("AccTestName = %q", got)
 	}
 }

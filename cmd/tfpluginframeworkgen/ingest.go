@@ -86,13 +86,13 @@ func inferAll(
 	planDrafts string,
 ) error {
 	var (
-		notes   []openapi.Note
+		notes   []openapi.Caveat
 		written int
 		skipped int
 	)
 
 	for _, c := range candidates {
-		if kind, why := c.Classify(); kind != openapi.KindResource {
+		if kind, why := c.Classify(); kind != openapi.CandidateKindResource {
 			// Said out loud rather than silently skipped: silence reads as agreement,
 			// and a data source or action the spec offers deserves at least a line
 			// saying inference does not reach it yet.
@@ -184,7 +184,7 @@ func writePlanDraft(dir string, bp blueprint.Blueprint, res blueprint.Resource) 
 // This is as much the output as the blueprints are. A generator that silently
 // drops what it cannot express produces a provider that looks complete and is
 // not, so every skipped field is named.
-func printNotes(notes []openapi.Note) {
+func printNotes(notes []openapi.Caveat) {
 	if len(notes) == 0 {
 		return
 	}
@@ -223,7 +223,7 @@ func filterCandidates(in []openapi.Candidate, only string, includeUnusable bool)
 
 	for _, c := range in {
 		kind, _ := c.Classify()
-		if kind == openapi.KindNeither && !includeUnusable {
+		if kind == openapi.CandidateKindNeither && !includeUnusable {
 			continue
 		}
 		if only != "" && !matches(c, only) {
@@ -271,11 +271,11 @@ func printCandidates(candidates []openapi.Candidate) {
 	for _, c := range candidates {
 		kind, why := c.Classify()
 		switch kind {
-		case openapi.KindResource:
+		case openapi.CandidateKindResource:
 			resources++
-		case openapi.KindDataSource:
+		case openapi.CandidateKindDataSource:
 			dataSources++
-		case openapi.KindNeither:
+		case openapi.CandidateKindNeither:
 		}
 
 		extra := ""

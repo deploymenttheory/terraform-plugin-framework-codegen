@@ -427,11 +427,11 @@ func TestUnit_Cassette_RecordingRequiresARedactor(t *testing.T) {
 func TestUnit_Cassette_FindingsError(t *testing.T) {
 	t.Parallel()
 
-	if err := FindingsError(nil); err != nil {
+	if err := LeaksError(nil); err != nil {
 		t.Errorf("no findings should give no error, got %v", err)
 	}
 
-	err := FindingsError([]Finding{
+	err := LeaksError([]Leak{
 		{Interaction: "001", Shape: "jwt", Pointer: "at byte offset 12"},
 		{Interaction: "002", Shape: "declared secret bearer", Pointer: "somewhere"},
 	})

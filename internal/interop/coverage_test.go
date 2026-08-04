@@ -707,7 +707,7 @@ func TestUnit_Interop_ReportRendering(t *testing.T) {
 func TestUnit_Interop_NoteString(t *testing.T) {
 	t.Parallel()
 
-	got := Note{Severity: SeverityDropped, Path: "resources[tag].binding", Message: "no counterpart"}.String()
+	got := Loss{Severity: SeverityDropped, Path: "resources[tag].binding", Message: "no counterpart"}.String()
 
 	for _, want := range []string{"dropped", "resources[tag].binding", "no counterpart"} {
 		if !strings.Contains(got, want) {

@@ -179,7 +179,7 @@ func Ephemeral(
 // ephemeralScope names an ephemeral for the error messages attribute rendering produces.
 func ephemeralScope(e blueprint.Ephemeral) schemaScope {
 	return schemaScope{
-		kind:     blueprint.BlockEphemeral,
+		kind:     blueprint.BlockKindEphemeral,
 		what:     fmt.Sprintf("ephemeral %q", e.Key),
 		patterns: newPatternVars(),
 	}

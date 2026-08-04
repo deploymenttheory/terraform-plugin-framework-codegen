@@ -42,7 +42,7 @@ var nonAlphanumeric = regexp.MustCompile(`[^A-Za-z0-9]+`)
 // Order matters: a longer entry must precede any entry that is a prefix or
 // suffix of it, so UUID is matched before ID.
 var Initialisms = []string{
-	"HTTPS", "HTTP", "JSON", "UUID", "YAML", "CIDR", "CSV", "XML", "SKU",
+	"DNSSEC", "HTTPS", "HTTP", "JSON", "UUID", "YAML", "CIDR", "CSV", "XML", "SKU",
 	"API", "ASN", "BGP", "CPU", "DNS", "FTP", "MTU", "RAM", "SIP", "SSL",
 	"TCP", "TLS", "UDP", "URI", "URL", "VPN", "ARN", "AID", "ID", "IP", "OS",
 }

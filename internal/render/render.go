@@ -79,7 +79,7 @@ func (sc schemaScope) schemaImport() string {
 // rendering produces.
 func resourceScope(r blueprint.Resource) schemaScope {
 	return schemaScope{
-		kind:        blueprint.BlockResource,
+		kind:        blueprint.BlockKindResource,
 		what:        fmt.Sprintf("resource %q", r.Key),
 		patterns:    newPatternVars(),
 		idAttribute: r.Binding.ID.Attribute,
@@ -89,7 +89,7 @@ func resourceScope(r blueprint.Resource) schemaScope {
 
 func dataSourceScope(d blueprint.DataSource) schemaScope {
 	return schemaScope{
-		kind:     blueprint.BlockDataSource,
+		kind:     blueprint.BlockKindDataSource,
 		what:     fmt.Sprintf("data source %q", d.Key),
 		patterns: newPatternVars(),
 	}

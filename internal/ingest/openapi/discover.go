@@ -115,16 +115,16 @@ type Candidate struct {
 	Extra []Operation
 }
 
-// Kind classifies what a candidate can become.
-type Kind string
+// CandidateKind classifies what a candidate can become.
+type CandidateKind string
 
 const (
-	// KindResource has enough of a lifecycle for Terraform to own it.
-	KindResource Kind = "resource"
-	// KindDataSource can be read but not managed.
-	KindDataSource Kind = "dataSource"
-	// KindNeither is reporting, actions or something else Terraform cannot model.
-	KindNeither Kind = "neither"
+	// CandidateKindResource has enough of a lifecycle for Terraform to own it.
+	CandidateKindResource CandidateKind = "resource"
+	// CandidateKindDataSource can be read but not managed.
+	CandidateKindDataSource CandidateKind = "dataSource"
+	// CandidateKindNeither is reporting, actions or something else Terraform cannot model.
+	CandidateKindNeither CandidateKind = "neither"
 )
 
 // Classify decides what a candidate can become, and says why.
@@ -134,7 +134,7 @@ const (
 // and one with no delete is unusual but real. Without create there is nothing to
 // manage; without read there is no way to refresh state, so a plan can never be
 // correct.
-func (c Candidate) Classify() (Kind, string) {
+func (c Candidate) Classify() (CandidateKind, string) {
 	switch {
 	case c.Create != nil && c.Read != nil:
 		var missing []string
@@ -145,20 +145,20 @@ func (c Candidate) Classify() (Kind, string) {
 			missing = append(missing, "delete")
 		}
 		if len(missing) > 0 {
-			return KindResource, "no " + strings.Join(missing, " or ")
+			return CandidateKindResource, "no " + strings.Join(missing, " or ")
 		}
-		return KindResource, "full lifecycle"
+		return CandidateKindResource, "full lifecycle"
 
 	case c.Read != nil || c.List != nil:
-		return KindDataSource, "readable but not creatable"
+		return CandidateKindDataSource, "readable but not creatable"
 
 	case c.Create != nil:
 		// Create with no read is a job submission, not a resource: Terraform
 		// could make one and would never be able to see it again.
-		return KindNeither, "create with no read, which Terraform cannot refresh"
+		return CandidateKindNeither, "create with no read, which Terraform cannot refresh"
 
 	default:
-		return KindNeither, "no create and no read"
+		return CandidateKindNeither, "no create and no read"
 	}
 }
 

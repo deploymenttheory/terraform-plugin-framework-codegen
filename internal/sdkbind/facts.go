@@ -71,7 +71,7 @@ func StaticFacts(l *Loader, bp blueprint.Blueprint) ([]probe.Fact, error) {
 				JSONPath:   a.Wire.JSONPath,
 				Field:      probe.FactZeroValueUnsendable,
 				Value:      probe.BoolValue(true),
-				Confidence: probe.Corroborated,
+				Confidence: probe.ConfidenceCorroborated,
 				Probe:      "static.sdkbind",
 				Evidence:   ev,
 				Rationale: "the SDK declares this field value-typed with omitempty, so its " +

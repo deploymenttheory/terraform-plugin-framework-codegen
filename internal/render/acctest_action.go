@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
 )
 
 // ActionAccTestView is what the action acceptance test template needs.
@@ -79,10 +80,9 @@ func ActionAccTest(
 	actionType := bp.Provider.TerraformType(a.Name)
 
 	v := ActionAccTestView{
-		Header:  GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
-		Package: a.GoPackage + "_test",
-		TestName: fmt.Sprintf(
-			"TestAccAction%s_01_Invoke", trimActionSuffix(a.GoTypeName)),
+		Header:     GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
+		Package:    a.GoPackage + "_test",
+		TestName:   naming.AccTestName("Action", trimActionSuffix(a.GoTypeName), 1, "Invoke"),
 		ActionType: actionType,
 	}
 

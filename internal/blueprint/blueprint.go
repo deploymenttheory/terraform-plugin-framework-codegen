@@ -1111,8 +1111,8 @@ func (b Behaviour) IsZero() bool {
 type UpdateStyle string
 
 const (
-	// UpdateMergePatch leaves omitted fields alone.
-	UpdateMergePatch UpdateStyle = "patchMerge"
+	// UpdatePatchMerge leaves omitted fields alone.
+	UpdatePatchMerge UpdateStyle = "patchMerge"
 	// UpdatePutFull clears omitted fields, so the request must carry the whole
 	// object. The ThousandEyes tag endpoint is PUT, and getting this wrong
 	// silently erases attributes the practitioner did not mention.

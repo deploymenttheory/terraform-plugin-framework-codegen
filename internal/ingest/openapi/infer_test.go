@@ -138,7 +138,7 @@ func inferOptions() InferOptions {
 	}
 }
 
-func inferWidget(t *testing.T) (blueprint.Resource, []Note) {
+func inferWidget(t *testing.T) (blueprint.Resource, []Caveat) {
 	t.Helper()
 
 	dir := t.TempDir()
@@ -445,7 +445,7 @@ func TestUnit_Infer_UpdateStyleComesFromTheVerb(t *testing.T) {
 		op   *Operation
 		want blueprint.UpdateStyle
 	}{
-		"patch":     {&Operation{Method: "PATCH"}, blueprint.UpdateMergePatch},
+		"patch":     {&Operation{Method: "PATCH"}, blueprint.UpdatePatchMerge},
 		"put":       {&Operation{Method: "PUT"}, blueprint.UpdatePutFull},
 		"no update": {nil, blueprint.UpdateReplaceOnly},
 	}
@@ -700,7 +700,7 @@ func assertNestedIdentifiers(t *testing.T, res blueprint.Resource, want nestedId
 	}
 }
 
-func noteStrings(notes []Note) []string {
+func noteStrings(notes []Caveat) []string {
 	out := make([]string, 0, len(notes))
 	for _, n := range notes {
 		out = append(out, n.String())
@@ -711,10 +711,10 @@ func noteStrings(notes []Note) []string {
 func TestUnit_Infer_NoteString(t *testing.T) {
 	t.Parallel()
 
-	if got := (Note{Resource: "tag", Field: "colour", Message: "why"}).String(); got != "tag.colour: why" {
+	if got := (Caveat{Resource: "tag", Field: "colour", Message: "why"}).String(); got != "tag.colour: why" {
 		t.Errorf("String = %q", got)
 	}
-	if got := (Note{Resource: "tag", Message: "why"}).String(); got != "tag: why" {
+	if got := (Caveat{Resource: "tag", Message: "why"}).String(); got != "tag: why" {
 		t.Errorf("String = %q", got)
 	}
 }

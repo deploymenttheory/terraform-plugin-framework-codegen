@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
 )
 
 // DataSourceAccTestView is what the data source acceptance test template needs.
@@ -95,10 +96,9 @@ func DataSourceAccTest(
 	seedType := bp.Provider.TerraformType(seed.Name)
 
 	v := DataSourceAccTestView{
-		Header:  GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
-		Package: d.GoPackage + "_test",
-		TestName: fmt.Sprintf(
-			"TestAccDataSource%s_01_Read", trimDataSourceSuffix(d.GoTypeName)),
+		Header:               GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
+		Package:              d.GoPackage + "_test",
+		TestName:             naming.AccTestName("DataSource", trimDataSourceSuffix(d.GoTypeName), 1, "Read"),
 		Address:              "data." + dsType + "." + fixtureLabel,
 		SeedAddress:          seedType + "." + fixtureLabel,
 		SeedTerraformType:    seedType,

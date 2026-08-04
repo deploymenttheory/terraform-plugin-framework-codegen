@@ -231,7 +231,7 @@ func TestUnit_Render_DataSourcePackagePath(t *testing.T) {
 		ServiceGroup: "agents", APIVersionDir: "v7",
 	}}
 
-	v := Registration(bp, KindDataSources, Options{})
+	v := Registration(bp, RegistryKindDataSources, Options{})
 
 	if len(v.Entries) != 1 || !strings.HasPrefix(v.Entries[0], "v7Agent.") {
 		t.Fatalf("entries = %v", v.Entries)

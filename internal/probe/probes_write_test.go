@@ -105,7 +105,7 @@ func TestUnit_Probe_WritableIsSettledByTwoDistinctValues(t *testing.T) {
 		{
 			name:   "a field the API stores",
 			quirks: quirkserver.Quirks{},
-			found:  true, wantWritable: true, wantAtLeast: Corroborated,
+			found:  true, wantWritable: true, wantAtLeast: ConfidenceCorroborated,
 		},
 		{
 			// Accepted and thrown away -- and deliberately *no* writability fact. From outside,
@@ -121,7 +121,7 @@ func TestUnit_Probe_WritableIsSettledByTwoDistinctValues(t *testing.T) {
 			// conflating the two would mark a perfectly writable field as computed.
 			name:   "a field the API normalises",
 			quirks: quirkserver.Quirks{NormalisesCase: []string{"value"}},
-			found:  true, wantWritable: true, wantAtLeast: Corroborated,
+			found:  true, wantWritable: true, wantAtLeast: ConfidenceCorroborated,
 		},
 	}
 
@@ -195,7 +195,7 @@ func TestUnit_Probe_OneFixtureCannotSettleWritability(t *testing.T) {
 	// But what the read *did* show is still recorded: the field came back.
 	if fact, ok := factFor(t, report, "value", FactReturnedOnRead); !ok {
 		t.Error("returnedOnRead is observable from one round and should still be recorded")
-	} else if fact.Confidence != Observed {
+	} else if fact.Confidence != ConfidenceObserved {
 		t.Errorf("confidence = %s, want observed from a single round", fact.Confidence)
 	}
 
@@ -287,7 +287,7 @@ func TestUnit_Probe_UpdateStyleIsSettledByTheInterstitialRead(t *testing.T) {
 			if fact.Value.Text != tc.want {
 				t.Errorf("updateStyle = %q, want %q (%s)", fact.Value.Text, tc.want, fact.Rationale)
 			}
-			if fact.Confidence != Observed {
+			if fact.Confidence != ConfidenceObserved {
 				t.Errorf("confidence = %s, want observed", fact.Confidence)
 			}
 
@@ -391,13 +391,13 @@ func TestUnit_Probe_ReadYourWritesIsAsymmetric(t *testing.T) {
 			name:   "a consistent API",
 			quirks: quirkserver.Quirks{},
 			// Inferred, deliberately: nothing here proves the next write will be visible.
-			wantEnabled: false, wantConf: Inferred,
+			wantEnabled: false, wantConf: ConfidenceInferred,
 		},
 		{
 			name:   "an eventually consistent API",
 			quirks: quirkserver.Quirks{EventuallyConsistentReads: 1},
 			// Observed: the failure was seen.
-			wantEnabled: true, wantConf: Observed,
+			wantEnabled: true, wantConf: ConfidenceObserved,
 		},
 	}
 
@@ -588,7 +588,7 @@ func TestUnit_Probe_AMutatingReplayNeedsAGrant(t *testing.T) {
 	}
 
 	for _, p := range out.Report.Probes {
-		if p.Kind == KindMutating && p.Status != "skipped" {
+		if p.Kind == ProbeKindMutating && p.Status != "skipped" {
 			t.Errorf("%s ran without a grant, status %q", p.Name, p.Status)
 		}
 	}
@@ -779,13 +779,13 @@ func TestUnit_Probe_RequirednessIsAsymmetric(t *testing.T) {
 			// declares no required list.
 			name:   "a field the API does not enforce",
 			quirks: quirkserver.Quirks{},
-			want:   false, wantConf: Corroborated,
+			want:   false, wantConf: ConfidenceCorroborated,
 		},
 		{
 			// The quirk server names the offending field, which is what earns Observed.
 			name:   "a field the API enforces and names",
 			quirks: quirkserver.Quirks{RequiredButUndeclared: []string{"value"}},
-			want:   true, wantConf: Corroborated,
+			want:   true, wantConf: ConfidenceCorroborated,
 		},
 	}
 
@@ -1281,7 +1281,7 @@ func TestUnit_Probe_OneFixtureCannotRuleOutDerivation(t *testing.T) {
 		t.Fatalf("no fact: %v (notes %v)", report.Facts, report.Notes)
 	}
 
-	if fact.Confidence != Observed {
+	if fact.Confidence != ConfidenceObserved {
 		t.Errorf("confidence = %s, want observed: one fixture cannot rule out derivation from "+
 			"the request", fact.Confidence)
 	}
@@ -1423,13 +1423,13 @@ func TestUnit_Probe_ImmutabilityRequiresTwoRefusals(t *testing.T) {
 		{
 			name:   "a field that cannot be changed",
 			quirks: quirkserver.Quirks{ImmutableAfterCreate: []string{"value"}},
-			found:  true, wantImmutable: true, wantConf: Corroborated,
+			found:  true, wantImmutable: true, wantConf: ConfidenceCorroborated,
 		},
 		{
 			// One demonstration is enough for false: it recommends nothing.
 			name:   "a field that can be changed",
 			quirks: quirkserver.Quirks{},
-			found:  true, wantImmutable: false, wantConf: Observed,
+			found:  true, wantImmutable: false, wantConf: ConfidenceObserved,
 		},
 	}
 
@@ -1875,7 +1875,7 @@ func TestUnit_Probe_AnIdentifiedTransformIsObservedAndAVagueOneIsSuspected(t *te
 			if !strings.Contains(fact.Value.Text, tc.wantSay) {
 				t.Errorf("fact says %q, want it to mention %q", fact.Value.Text, tc.wantSay)
 			}
-			if fact.Confidence != Observed {
+			if fact.Confidence != ConfidenceObserved {
 				t.Errorf("confidence = %s, want observed for an identified transform",
 					fact.Confidence)
 			}
@@ -2018,7 +2018,7 @@ func TestUnit_Probe_ASideEffectIsConfirmedByPerturbingTheTrigger(t *testing.T) {
 
 	// Inferred even after confirmation: "the server set it in response to this request" and "the
 	// server always sets it" are different claims, and one perturbation establishes only the first.
-	if fact.Confidence != Inferred {
+	if fact.Confidence != ConfidenceInferred {
 		t.Errorf("confidence = %s, want inferred", fact.Confidence)
 	}
 	if len(fact.Alternatives) < 2 {

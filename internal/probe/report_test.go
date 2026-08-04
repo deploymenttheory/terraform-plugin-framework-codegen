@@ -17,10 +17,10 @@ func TestUnit_Probe_ReportSummary(t *testing.T) {
 
 	r := Report{
 		Probes: []ProbeOutcome{
-			{Name: "read.volatile", Kind: KindRead, Status: "ok", Requests: 3, Facts: 1},
-			{Name: "read.list-shape", Kind: KindRead, Status: "skipped", Reason: "empty collection"},
-			{Name: "write.immutability", Kind: KindMutating, Status: "abandoned", Reason: "control request failed"},
-			{Name: "write.enum", Kind: KindMutating, Status: "failed", Reason: "429"},
+			{Name: "read.volatile", Kind: ProbeKindRead, Status: "ok", Requests: 3, Facts: 1},
+			{Name: "read.list-shape", Kind: ProbeKindRead, Status: "skipped", Reason: "empty collection"},
+			{Name: "write.immutability", Kind: ProbeKindMutating, Status: "abandoned", Reason: "control request failed"},
+			{Name: "write.enum", Kind: ProbeKindMutating, Status: "failed", Reason: "429"},
 		},
 		Facts:  []Fact{validFact()},
 		Notes:  []Note{{Resource: "tag", Message: "no fixtures"}},
@@ -70,9 +70,9 @@ func TestUnit_Probe_ReportSortIsDeterministic(t *testing.T) {
 			{Resource: "agent", Message: "z"},
 		},
 		Probes: []ProbeOutcome{
-			{Name: "write.enum", Kind: KindMutating},
-			{Name: "read.volatile", Kind: KindRead},
-			{Name: "read.list-shape", Kind: KindRead},
+			{Name: "write.enum", Kind: ProbeKindMutating},
+			{Name: "read.volatile", Kind: ProbeKindRead},
+			{Name: "read.list-shape", Kind: ProbeKindRead},
 		},
 		Orphans: []Orphan{{ID: "9"}, {ID: "1"}},
 	}
@@ -86,7 +86,7 @@ func TestUnit_Probe_ReportSortIsDeterministic(t *testing.T) {
 		t.Errorf("notes are not sorted: %v", r.Notes)
 	}
 	// Read probes first, matching the catalogue and the order they run in.
-	if r.Probes[0].Kind != KindRead || r.Probes[0].Name != "read.list-shape" {
+	if r.Probes[0].Kind != ProbeKindRead || r.Probes[0].Name != "read.list-shape" {
 		t.Errorf("probes are not sorted read-first by name: %v", r.Probes)
 	}
 	if r.Orphans[0].ID != "1" {
@@ -100,19 +100,19 @@ func TestUnit_Probe_FactsAtLeast(t *testing.T) {
 	t.Parallel()
 
 	r := Report{Facts: []Fact{
-		{Resource: "a", Confidence: Corroborated},
-		{Resource: "b", Confidence: Observed},
-		{Resource: "c", Confidence: Inferred},
-		{Resource: "d", Confidence: Suspected},
+		{Resource: "a", Confidence: ConfidenceCorroborated},
+		{Resource: "b", Confidence: ConfidenceObserved},
+		{Resource: "c", Confidence: ConfidenceInferred},
+		{Resource: "d", Confidence: ConfidenceSuspected},
 	}}
 
-	if got := len(r.FactsAtLeast(Corroborated)); got != 1 {
+	if got := len(r.FactsAtLeast(ConfidenceCorroborated)); got != 1 {
 		t.Errorf("corroborated floor gave %d facts, want 1", got)
 	}
-	if got := len(r.FactsAtLeast(Observed)); got != 2 {
+	if got := len(r.FactsAtLeast(ConfidenceObserved)); got != 2 {
 		t.Errorf("observed floor gave %d facts, want 2", got)
 	}
-	if got := len(r.FactsAtLeast(Suspected)); got != 4 {
+	if got := len(r.FactsAtLeast(ConfidenceSuspected)); got != 4 {
 		t.Errorf("suspected floor gave %d facts, want 4", got)
 	}
 }

@@ -280,27 +280,27 @@ func (r *Response) Error() apierr.Error {
 type FieldOutcome int
 
 const (
-	// Absent means no such path. Distinct from present-and-null, which is the whole basis of
+	// OutcomeAbsent means no such path. Distinct from present-and-null, which is the whole basis of
 	// the writability and default protocols: a field that came back null is a very different
 	// observation from one that did not come back at all.
-	Absent FieldOutcome = iota
-	// Present means the path resolved, possibly to null.
-	Present
-	// Ambiguous means the path crossed an array holding more than one element, so which
+	OutcomeAbsent FieldOutcome = iota
+	// OutcomePresent means the path resolved, possibly to null.
+	OutcomePresent
+	// OutcomeAmbiguous means the path crossed an array holding more than one element, so which
 	// element the probe meant cannot be known.
 	//
 	// Its own outcome rather than folded into Absent, because the two demand opposite
-	// responses. Absent is an observation a probe may build a fact on; Ambiguous is a note,
+	// responses. Absent is an observation a probe may build a fact on; OutcomeAmbiguous is a note,
 	// and treating it as absence would emit ReturnedOnRead=false at Observed for a field that
 	// was demonstrably returned.
-	Ambiguous
+	OutcomeAmbiguous
 )
 
 func (o FieldOutcome) String() string {
 	switch o {
-	case Present:
+	case OutcomePresent:
 		return "present"
-	case Ambiguous:
+	case OutcomeAmbiguous:
 		return "ambiguous"
 	default:
 		return "absent"
@@ -318,13 +318,13 @@ func (o FieldOutcome) String() string {
 func (r *Response) Field(jsonPath string) (any, bool) {
 	v, outcome := r.LookupField(jsonPath)
 
-	return v, outcome == Present
+	return v, outcome == OutcomePresent
 }
 
 // LookupField reads a dotted path and distinguishes all three outcomes.
 func (r *Response) LookupField(jsonPath string) (any, FieldOutcome) {
 	if r == nil || r.Body == nil {
-		return nil, Absent
+		return nil, OutcomeAbsent
 	}
 
 	return lookupIn(r.Body, jsonPath)
@@ -333,7 +333,7 @@ func (r *Response) LookupField(jsonPath string) (any, FieldOutcome) {
 func fieldIn(body any, jsonPath string) (any, bool) {
 	v, outcome := lookupIn(body, jsonPath)
 
-	return v, outcome == Present
+	return v, outcome == OutcomePresent
 }
 
 // lookupIn walks a dotted path, descending into a single-element array.
@@ -356,24 +356,24 @@ func lookupIn(body any, jsonPath string) (any, FieldOutcome) {
 			case 1:
 				current = arr[0]
 			default:
-				return nil, Ambiguous
+				return nil, OutcomeAmbiguous
 			}
 		}
 
 		obj, ok := current.(map[string]any)
 		if !ok {
-			return nil, Absent
+			return nil, OutcomeAbsent
 		}
 
 		v, present := obj[segment]
 		if !present {
-			return nil, Absent
+			return nil, OutcomeAbsent
 		}
 
 		current = v
 	}
 
-	return current, Present
+	return current, OutcomePresent
 }
 
 // Items pulls a collection out of a list response.

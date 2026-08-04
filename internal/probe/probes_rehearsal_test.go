@@ -87,7 +87,7 @@ func TestUnit_Probe_RehearsalObservesTheForcedValue(t *testing.T) {
 	if fact.Value.Literal == nil || fact.Value.Literal.Raw != "true" {
 		t.Errorf("forced value = %v, want true", fact.Value)
 	}
-	if fact.Confidence != Corroborated {
+	if fact.Confidence != ConfidenceCorroborated {
 		t.Errorf("both write paths stored the same value; want Corroborated, got %s",
 			fact.Confidence)
 	}
@@ -121,7 +121,7 @@ func TestUnit_Probe_RehearsalObservesTheUpdateReset(t *testing.T) {
 	if fact.Value.Literal == nil || fact.Value.Literal.Raw != `"grey"` {
 		t.Errorf("updateDefault = %v, want \"grey\"", fact.Value)
 	}
-	if fact.Confidence != Corroborated {
+	if fact.Confidence != ConfidenceCorroborated {
 		t.Errorf("both directions' downgrades agreed; want Corroborated, got %s", fact.Confidence)
 	}
 }
@@ -146,7 +146,7 @@ func TestUnit_Probe_RehearsalBisectsTheSuppressingSibling(t *testing.T) {
 	if len(fact.When) != 1 || fact.When[0].JSONPath != "requestMethod" {
 		t.Errorf("the fact must name the culprit as a precondition: %+v", fact.When)
 	}
-	if fact.Confidence != Observed {
+	if fact.Confidence != ConfidenceObserved {
 		t.Errorf("a bisected culprit is Observed, got %s", fact.Confidence)
 	}
 
@@ -187,7 +187,7 @@ func TestUnit_Probe_RehearsalEchoesFeedReturnedOnUpdate(t *testing.T) {
 	if fact.Value.Bool == nil || *fact.Value.Bool {
 		t.Errorf("explicit null for a sent value is not returned; got %v", fact.Value)
 	}
-	if fact.Confidence != Corroborated {
+	if fact.Confidence != ConfidenceCorroborated {
 		t.Errorf("both directions read null; want Corroborated, got %s", fact.Confidence)
 	}
 }

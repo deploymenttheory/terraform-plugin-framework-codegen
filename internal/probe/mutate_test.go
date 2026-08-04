@@ -77,7 +77,7 @@ func TestUnit_Probe_LedgerWritesIntentBeforeTheRequest(t *testing.T) {
 				t.Errorf("reading the ledger from inside the handler: %v", readErr)
 			}
 			for _, e := range entries {
-				if e.Kind == KindIntent {
+				if e.Kind == EntryKindIntent {
 					sawIntent = true
 					sawName = e.Name
 				}
@@ -186,13 +186,13 @@ func TestUnit_Probe_CreateStatusClassification(t *testing.T) {
 		outstanding bool
 		wantKind    EntryKind
 	}{
-		{"created", http.StatusCreated, `{"id":"1"}`, true, KindCreated},
-		{"bad request", http.StatusBadRequest, `{"title":"nope"}`, false, KindRejected},
-		{"conflict", http.StatusConflict, `{"title":"exists"}`, false, KindRejected},
-		{"server error", http.StatusInternalServerError, `{}`, true, KindFailed},
-		{"bad gateway", http.StatusBadGateway, ``, true, KindFailed},
+		{"created", http.StatusCreated, `{"id":"1"}`, true, EntryKindCreated},
+		{"bad request", http.StatusBadRequest, `{"title":"nope"}`, false, EntryKindRejected},
+		{"conflict", http.StatusConflict, `{"title":"exists"}`, false, EntryKindRejected},
+		{"server error", http.StatusInternalServerError, `{}`, true, EntryKindFailed},
+		{"bad gateway", http.StatusBadGateway, ``, true, EntryKindFailed},
 		// A 2xx whose body carries no identifier: the object exists and cannot be addressed.
-		{"created with no id", http.StatusCreated, `{"key":"x"}`, true, KindFailed},
+		{"created with no id", http.StatusCreated, `{"key":"x"}`, true, EntryKindFailed},
 	}
 
 	for _, tc := range tests {
@@ -226,7 +226,7 @@ func TestUnit_Probe_CreateStatusClassification(t *testing.T) {
 
 			var kinds []EntryKind
 			for _, e := range l.Entries() {
-				if e.Kind != KindIntent {
+				if e.Kind != EntryKindIntent {
 					kinds = append(kinds, e.Kind)
 				}
 			}
@@ -313,7 +313,7 @@ func TestUnit_Probe_InFlightContextIgnoresCancellation(t *testing.T) {
 type panicProbe struct{}
 
 func (panicProbe) Name() string      { return "write.panics" }
-func (panicProbe) Kind() Kind        { return KindMutating }
+func (panicProbe) Kind() ProbeKind   { return ProbeKindMutating }
 func (panicProbe) Cost(Scope) int    { return 1 }
 func (panicProbe) Creates(Scope) int { return 1 }
 
@@ -326,7 +326,7 @@ func (panicProbe) Exercise(_ context.Context, _ *MutatingSession, _ Scope) (Resu
 type createThenPanicProbe struct{}
 
 func (createThenPanicProbe) Name() string      { return "write.creates-then-panics" }
-func (createThenPanicProbe) Kind() Kind        { return KindMutating }
+func (createThenPanicProbe) Kind() ProbeKind   { return ProbeKindMutating }
 func (createThenPanicProbe) Cost(Scope) int    { return 2 }
 func (createThenPanicProbe) Creates(Scope) int { return 1 }
 
@@ -787,7 +787,7 @@ func TestUnit_Probe_RunWithAGrantSweepsAndReportsIt(t *testing.T) {
 	// skipped. A run where the write tier did nothing must not read as a complete one.
 	var mutating int
 	for _, p := range out.Report.Probes {
-		if p.Kind != KindMutating {
+		if p.Kind != ProbeKindMutating {
 			continue
 		}
 

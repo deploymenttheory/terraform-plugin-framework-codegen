@@ -49,7 +49,7 @@ type RecordingTransport struct {
 	// findings accumulates redaction failures. A recording with any finding writes
 	// nothing at all, so these are collected rather than returned per request: failing
 	// the first request would leave the operator debugging one symptom at a time.
-	findings []Finding
+	findings []Leak
 }
 
 // NewRecordingTransport builds a recorder.
@@ -149,7 +149,7 @@ func (t *RecordingTransport) record(
 	// so the finding names the interaction it came from.
 	findings, err := ScanInteraction(i, t.Secrets)
 	if err != nil {
-		t.findings = append(t.findings, Finding{
+		t.findings = append(t.findings, Leak{
 			Interaction: i.ID,
 			Shape:       "unserialisable",
 			Pointer:     err.Error(),
@@ -184,7 +184,7 @@ func (t *RecordingTransport) Interactions() ([]Interaction, error) {
 	defer t.mu.Unlock()
 
 	if len(t.findings) > 0 {
-		return nil, FindingsError(t.findings)
+		return nil, LeaksError(t.findings)
 	}
 
 	out := make([]Interaction, len(t.interactions))

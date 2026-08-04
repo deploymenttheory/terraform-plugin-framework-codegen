@@ -48,19 +48,19 @@ func (s Severity) rank() int {
 	}
 }
 
-// Note is one thing the official format could not carry.
+// Loss is one thing the official format could not carry.
 //
 // Path addresses a node in the blueprint using the same dotted form
 // blueprint.Validate uses, because interop losses happen at depths a
 // resource-plus-field pair cannot reach: an unrepresentable default inside a
 // nested object needs to be named, not described.
-type Note struct {
+type Loss struct {
 	Severity Severity `json:"severity"`
 	Path     string   `json:"path"`
 	Message  string   `json:"message"`
 }
 
-func (n Note) String() string {
+func (n Loss) String() string {
 	return fmt.Sprintf("%-7s %s: %s", n.Severity, n.Path, n.Message)
 }
 
@@ -70,7 +70,7 @@ func (n Note) String() string {
 // that converted everything both produce an empty error, and without the counts
 // they are indistinguishable in a log.
 type Report struct {
-	Notes []Note `json:"notes,omitempty"`
+	Notes []Loss `json:"notes,omitempty"`
 
 	Resources   int `json:"resources"`
 	DataSources int `json:"dataSources"`
@@ -89,7 +89,7 @@ type Report struct {
 func (r *Report) add(sev Severity, path, format string, args ...any) {
 	r.Notes = append(
 		r.Notes,
-		Note{Severity: sev, Path: path, Message: fmt.Sprintf(format, args...)},
+		Loss{Severity: sev, Path: path, Message: fmt.Sprintf(format, args...)},
 	)
 }
 
@@ -129,8 +129,8 @@ func (r Report) Err(strict bool) error {
 //
 // Sorting by path rather than by discovery order means the report of a given
 // blueprint is byte-stable, which is what lets a CI job diff it.
-func (r Report) Sorted() []Note {
-	out := make([]Note, len(r.Notes))
+func (r Report) Sorted() []Loss {
+	out := make([]Loss, len(r.Notes))
 	copy(out, r.Notes)
 
 	sort.SliceStable(out, func(i, j int) bool {
@@ -188,7 +188,7 @@ func (r Report) MarshalJSON() ([]byte, error) {
 //
 // Keys are the dotted path suffix the note is addressed at, relative to whatever
 // node is being converted.
-var taxonomy = map[string]Note{
+var taxonomy = map[string]Loss{
 	// Provider-level. The official provider block carries a name and a
 	// configuration schema, and nothing else.
 	"provider.schema": {
@@ -365,7 +365,7 @@ func (r *Report) note(key, at string) {
 		path = entry.Path
 	}
 
-	r.Notes = append(r.Notes, Note{Severity: entry.Severity, Path: path, Message: entry.Message})
+	r.Notes = append(r.Notes, Loss{Severity: entry.Severity, Path: path, Message: entry.Message})
 }
 
 // noteCount records an aggregated loss, stating how many nodes it covers.
@@ -380,7 +380,7 @@ func (r *Report) noteCount(key, at string, n int) {
 		return
 	}
 
-	r.Notes = append(r.Notes, Note{
+	r.Notes = append(r.Notes, Loss{
 		Severity: entry.Severity,
 		Path:     at,
 		Message:  fmt.Sprintf("%s (%d affected)", entry.Message, n),

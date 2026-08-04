@@ -1,6 +1,6 @@
 package probe
 
-// Findings is what earlier probes established, readable by later ones.
+// FactSet is what earlier probes established, readable by later ones.
 //
 // # Why this and not a dependency graph
 //
@@ -23,17 +23,17 @@ package probe
 // Read-only plus Retract. A probe adds facts by *returning* them, so the runner stays the only
 // writer -- otherwise two probes could disagree about what is in the report and the last one to
 // run would win silently.
-type Findings struct {
+type FactSet struct {
 	facts []Fact
 }
 
-// NewFindings builds an accumulator over facts already established.
-func NewFindings(facts []Fact) *Findings {
-	return &Findings{facts: append([]Fact(nil), facts...)}
+// NewFactSet builds an accumulator over facts already established.
+func NewFactSet(facts []Fact) *FactSet {
+	return &FactSet{facts: append([]Fact(nil), facts...)}
 }
 
 // Add records facts a probe returned. Called by the runner, not by a probe.
-func (f *Findings) Add(facts ...Fact) {
+func (f *FactSet) Add(facts ...Fact) {
 	f.facts = append(f.facts, facts...)
 }
 
@@ -41,7 +41,7 @@ func (f *Findings) Add(facts ...Fact) {
 //
 // The floor is the caller's, deliberately. A probe that will create objects on the strength of an
 // earlier conclusion should demand more of it than one merely deciding whether to emit a note.
-func (f *Findings) Settled(jsonPath string, claim FactField, floor Confidence) (Fact, bool) {
+func (f *FactSet) Settled(jsonPath string, claim FactField, floor Confidence) (Fact, bool) {
 	var (
 		best  Fact
 		found bool
@@ -75,7 +75,7 @@ func (f *Findings) Settled(jsonPath string, claim FactField, floor Confidence) (
 //
 // The convenience the one real dependency needs: server-default asking "is this field writable"
 // wants a yes or a no, not a Fact.
-func (f *Findings) True(jsonPath string, claim FactField, floor Confidence) bool {
+func (f *FactSet) True(jsonPath string, claim FactField, floor Confidence) bool {
 	fact, ok := f.Settled(jsonPath, claim, floor)
 	if !ok {
 		return false
@@ -97,7 +97,7 @@ func (f *Findings) True(jsonPath string, claim FactField, floor Confidence) bool
 // Retraction removes every variant of the claim, conditional ones included: a disproof of the
 // path's claim disproves each branch of it, and keeping a branch alive after its parent claim
 // fell would leave merge a fact whose foundation is gone.
-func (f *Findings) Retract(jsonPath string, claim FactField) int {
+func (f *FactSet) Retract(jsonPath string, claim FactField) int {
 	kept := make([]Fact, 0, len(f.facts))
 	removed := 0
 
@@ -116,7 +116,7 @@ func (f *Findings) Retract(jsonPath string, claim FactField) int {
 }
 
 // Facts returns everything accumulated, for the report.
-func (f *Findings) Facts() []Fact {
+func (f *FactSet) Facts() []Fact {
 	if f == nil {
 		return nil
 	}
