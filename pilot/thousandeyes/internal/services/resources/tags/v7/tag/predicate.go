@@ -34,7 +34,7 @@ import (
 // touches on write.
 func readBackLanded(ctx context.Context, state *TagResourceModel) bool {
 	tflog.Trace(ctx, "read-back predicate not implemented, accepting the first read", map[string]any{
-		"resource": ResourceName,
+		"resource": TypeName,
 	})
 
 	return true

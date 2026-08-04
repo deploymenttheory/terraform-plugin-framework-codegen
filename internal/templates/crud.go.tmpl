@@ -16,7 +16,7 @@ func (r *{{ $.GoTypeName }}) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	tflog.Debug(ctx, "creating resource", map[string]any{"resource": ResourceName})
+	tflog.Debug(ctx, "creating resource", map[string]any{"resource": TypeName})
 
 	timeout := crud.Timeout(ctx, plan.Timeouts, {{ .Phase }}, {{ .TimeoutConst }}*time.Second, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
@@ -37,7 +37,7 @@ func (r *{{ $.GoTypeName }}) Create(ctx context.Context, req resource.CreateRequ
 
 	{{ .Assign }} {{ .Call }}
 	if err != nil {
-		errors.Handle(&resp.Diagnostics, ResourceName, {{ .ErrorOp }}, err)
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, err)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (r *{{ $.GoTypeName }}) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	tflog.Debug(ctx, "reading resource", map[string]any{"resource": ResourceName})
+	tflog.Debug(ctx, "reading resource", map[string]any{"resource": TypeName})
 
 	timeout := crud.Timeout(ctx, state.Timeouts, {{ .Phase }}, {{ .TimeoutConst }}*time.Second, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
@@ -98,7 +98,7 @@ func (r *{{ $.GoTypeName }}) Read(ctx context.Context, req resource.ReadRequest,
 	// error the practitioner has no way to clear.
 	if !found {
 		tflog.Debug(ctx, "resource no longer exists, removing it from state", map[string]any{
-			"resource": ResourceName,
+			"resource": TypeName,
 		})
 		resp.State.RemoveResource(ctx)
 		return
@@ -140,7 +140,7 @@ func (r *{{ $.GoTypeName }}) readState(
 			return false, diags
 		}
 
-		errors.Handle(&diags, ResourceName, op, err)
+		errors.Handle(&diags, TypeName, op, err)
 
 		return false, diags
 	}
@@ -184,7 +184,7 @@ func (r *{{ $.GoTypeName }}) readAfterWrite(
 	opts := crud.ReadBackOptions{
 		MaxRetries:   {{ $.CRUD.ReadBackMaxRetries }},
 		Interval:     {{ $.CRUD.ReadBackIntervalMS }} * time.Millisecond,
-		ResourceType: ResourceName,
+		ResourceType: TypeName,
 		Operation:    string(op),
 {{- if $.CRUD.ReadBackReason }}
 		Reason: {{ printf "%q" $.CRUD.ReadBackReason }},
@@ -215,7 +215,7 @@ func (r *{{ $.GoTypeName }}) readAfterWrite(
 	// A stop signal means readState has already produced the diagnostic, so reporting
 	// here as well would say the same thing twice.
 	if err != nil && !crud.IsStopRetrying(err) {
-		errors.Handle(&diags, ResourceName, op, err)
+		errors.Handle(&diags, TypeName, op, err)
 	}
 
 	return diags
@@ -232,7 +232,7 @@ func (r *{{ $.GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	tflog.Debug(ctx, "updating resource", map[string]any{"resource": ResourceName})
+	tflog.Debug(ctx, "updating resource", map[string]any{"resource": TypeName})
 
 	timeout := crud.Timeout(ctx, plan.Timeouts, {{ .Phase }}, {{ .TimeoutConst }}*time.Second, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
@@ -265,7 +265,7 @@ func (r *{{ $.GoTypeName }}) Update(ctx context.Context, req resource.UpdateRequ
 
 	{{ .Assign }} {{ .Call }}
 	if err != nil {
-		errors.Handle(&resp.Diagnostics, ResourceName, {{ .ErrorOp }}, err)
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, err)
 		return
 	}
 
@@ -318,7 +318,7 @@ func (r *{{ $.GoTypeName }}) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	tflog.Debug(ctx, "deleting resource", map[string]any{"resource": ResourceName})
+	tflog.Debug(ctx, "deleting resource", map[string]any{"resource": TypeName})
 
 	timeout := crud.Timeout(ctx, state.Timeouts, {{ .Phase }}, {{ .TimeoutConst }}*time.Second, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
@@ -335,7 +335,7 @@ func (r *{{ $.GoTypeName }}) Delete(ctx context.Context, req resource.DeleteRequ
 			return
 		}
 {{- end }}
-		errors.Handle(&resp.Diagnostics, ResourceName, {{ .ErrorOp }}, err)
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, err)
 		return
 	}
 

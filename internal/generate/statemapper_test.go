@@ -226,8 +226,8 @@ func TestUnit_Generate_AListFacetEmitsItsFileAndRegistration(t *testing.T) {
 	// The type name is read from the same constant the resource uses. That equality is the
 	// entire linkage between the two -- the framework errors from GetMetadata if they
 	// differ -- so it is asserted rather than left to inspection.
-	if !strings.Contains(listFile, "resp.TypeName = ResourceName") {
-		t.Error("the list resource should take its type name from ResourceName")
+	if !strings.Contains(listFile, "resp.TypeName = TypeName") {
+		t.Error("the list resource should take its type name from TypeName")
 	}
 
 	// Metadata and Configure take resource.* request types, not list.*. The framework

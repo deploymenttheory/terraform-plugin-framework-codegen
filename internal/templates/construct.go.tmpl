@@ -19,7 +19,7 @@ func constructResource(ctx context.Context, data *{{ .ModelTypeName }}) (*{{ .Co
 {{- else }}
 func constructResource(ctx context.Context, data *{{ .ModelTypeName }}) *{{ .Construct.RequestType }} {
 {{- end }}
-	tflog.Debug(ctx, "constructing request body", map[string]any{"resource": ResourceName})
+	tflog.Debug(ctx, "constructing request body", map[string]any{"resource": TypeName})
 
 	body := {{ .Construct.ConstructorExpr }}
 {{ range .Construct.Assignments }}
@@ -48,7 +48,7 @@ func constructResourceUpdate(ctx context.Context, data *{{ .ModelTypeName }}) (*
 {{- else }}
 func constructResourceUpdate(ctx context.Context, data *{{ .ModelTypeName }}) *{{ .Construct.Update.RequestType }} {
 {{- end }}
-	tflog.Debug(ctx, "constructing update request body", map[string]any{"resource": ResourceName})
+	tflog.Debug(ctx, "constructing update request body", map[string]any{"resource": TypeName})
 
 	body := {{ .Construct.Update.ConstructorExpr }}
 {{ range .Construct.Update.Assignments }}

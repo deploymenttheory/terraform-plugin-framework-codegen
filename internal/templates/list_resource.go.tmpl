@@ -30,20 +30,20 @@ type {{ .List.GoTypeName }} struct {
 //
 // That equality is the entire linkage between a list resource and the resource it lists --
 // there is no import from one to the other -- and the framework returns an error diagnostic
-// from GetMetadata if they differ. Both read ResourceName for exactly that reason.
+// from GetMetadata if they differ. Both read TypeName for exactly that reason.
 //
 // The request and response types are resource.* and not list.*. The framework declares them
 // that way so one implementation can satisfy both interfaces, and reaching for list.Metadata
 // here is the mistake that shape invites.
 func (l *{{ .List.GoTypeName }}) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = ResourceName
+	resp.TypeName = TypeName
 }
 
 // Configure receives the configured SDK client from the provider.
 //
 // resource.ConfigureRequest again, not a list-specific type.
 func (l *{{ .List.GoTypeName }}) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	l.client = client.ForResource(ctx, req, resp, ResourceName)
+	l.client = client.ForResource(ctx, req, resp, TypeName)
 }
 
 // ListResourceConfigSchema returns the schema for a query block.
@@ -87,7 +87,7 @@ type {{ .List.FilterModelType }} struct {
 // per element for data the query may not use.
 {{- end }}
 func (l *{{ $.List.GoTypeName }}) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
-	tflog.Debug(ctx, "listing resources", map[string]any{"resource": ResourceName})
+	tflog.Debug(ctx, "listing resources", map[string]any{"resource": TypeName})
 
 	// A nil client is a provider bug -- Configure must populate ListResourceData -- and
 	// the failure mode without this guard is a segfault that kills the whole provider
@@ -117,7 +117,7 @@ func (l *{{ $.List.GoTypeName }}) List(ctx context.Context, req list.ListRequest
 	{{ .Assign }} {{ .Call }}
 	if err != nil {
 		var diags diag.Diagnostics
-		errors.Handle(&diags, ResourceName, {{ .ErrorOp }}, err)
+		errors.Handle(&diags, TypeName, {{ .ErrorOp }}, err)
 
 		stream.Results = list.ListResultsStreamDiagnostics(diags)
 

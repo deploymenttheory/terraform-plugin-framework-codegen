@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	// ActionName is the Terraform type this action registers as.
-	ActionName = "{{ .ActionName }}"
+	// TypeName is the Terraform type this action registers as.
+	TypeName = "{{ .ActionName }}"
 
 	// InvokeTimeout is the deadline in seconds. One operation, one deadline -- and unlike a
 	// resource there is no timeouts block to override it, because the framework's action
@@ -50,7 +50,7 @@ type {{ .GoTypeName }} struct {
 
 // Metadata returns the action type name.
 func (a *{{ .GoTypeName }}) Metadata(_ context.Context, _ action.MetadataRequest, resp *action.MetadataResponse) {
-	resp.TypeName = ActionName
+	resp.TypeName = TypeName
 }
 
 // Configure receives the configured SDK client from the provider.
@@ -58,7 +58,7 @@ func (a *{{ .GoTypeName }}) Metadata(_ context.Context, _ action.MetadataRequest
 // action.ConfigureRequest, which is its own type: the framework gives each block kind a
 // distinct one, so this cannot share the resource's helper.
 func (a *{{ .GoTypeName }}) Configure(ctx context.Context, req action.ConfigureRequest, resp *action.ConfigureResponse) {
-	a.client = client.ForAction(ctx, req, resp, ActionName)
+	a.client = client.ForAction(ctx, req, resp, TypeName)
 }
 
 // Schema returns the action schema.
