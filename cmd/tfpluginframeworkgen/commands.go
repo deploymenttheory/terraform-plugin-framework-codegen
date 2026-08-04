@@ -32,7 +32,7 @@ var commands = []command{
 	{
 		name:    "ingest",
 		summary: "infer a provider blueprint from an OpenAPI snapshot",
-		usage:   "ingest [-spec FILE] [-out DIR] [-only TAG] [-list]",
+		usage:   "ingest [-spec-root DIR] [-snapshot NAME] [-only TAG] [-list]",
 		run:     runIngest,
 	},
 	{
