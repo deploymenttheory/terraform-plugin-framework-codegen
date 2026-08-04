@@ -89,6 +89,7 @@ var builtCommands = map[string]bool{
 	"probe sweep":       true,
 	"probe list":        true,
 	"provider generate": true,
+	"provider push":     true,
 	"bindings check":    true,
 	"bindings facts":    true,
 	// spec exports, and imports resources-only drafts.
