@@ -48,6 +48,8 @@ go.work.sum
 # for a version with nothing real in it.
 .tfpfgen/sandbox/
 
+.tfpluginframeworkgen/
+
 # Emitted when a template renders unparsable Go, kept for inspection only.
 *.broken
 
