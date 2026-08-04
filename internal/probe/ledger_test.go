@@ -223,7 +223,7 @@ func TestUnit_Probe_LedgerSurvivesATruncatedFinalLine(t *testing.T) {
 	}
 }
 
-// TestUnit_Probe_OpenLedgerResumesAPreviousRun: -mode sweep continues a run that did not
+// TestUnit_Probe_OpenLedgerResumesAPreviousRun: probe sweep continues a run that did not
 // finish, so it must see what that run recorded.
 func TestUnit_Probe_OpenLedgerResumesAPreviousRun(t *testing.T) {
 	t.Parallel()
@@ -343,7 +343,7 @@ func TestUnit_Probe_DirtyErrorNamesTheFix(t *testing.T) {
 	msg := err.Error()
 	for _, want := range []string{
 		"2 object(s)", "42", "identifier never recorded",
-		"-mode sweep", "-resource tag", "/tmp/x/ledger.jsonl",
+		"probe sweep", "-resource tag", "/tmp/x/ledger.jsonl",
 	} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("the message omits %q:\n%s", want, msg)
@@ -354,8 +354,8 @@ func TestUnit_Probe_DirtyErrorNamesTheFix(t *testing.T) {
 func TestUnit_Probe_LedgerPath(t *testing.T) {
 	t.Parallel()
 
-	got := LedgerPath(".tfpluginframeworkgen/probe", "thousandeyes", "tag")
-	want := filepath.Join(".tfpluginframeworkgen/probe", "thousandeyes", "tag", "ledger.jsonl")
+	got := LedgerPath(".tfpfgen/probe", "thousandeyes", "tag")
+	want := filepath.Join(".tfpfgen/probe", "thousandeyes", "tag", "ledger.jsonl")
 
 	if got != want {
 		t.Errorf("LedgerPath = %q, want %q", got, want)

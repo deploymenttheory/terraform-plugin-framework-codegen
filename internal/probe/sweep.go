@@ -107,7 +107,7 @@ func SweepContext(parent context.Context, maxSeconds int) (context.Context, cont
 	)
 }
 
-// SweepRunOptions is what `probe -mode sweep` needs.
+// SweepRunOptions is what `probe sweep` needs.
 //
 // A separate entry point rather than an exported constructor, because newMutatingSession is
 // unexported on purpose: a caller that could build one could write to an API without a grant.

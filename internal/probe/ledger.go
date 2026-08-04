@@ -100,7 +100,7 @@ func LedgerPath(root, provider, resource string) string {
 
 // OpenLedger reads any existing entries and then opens the file for appending.
 //
-// Reading first is what lets `probe -mode sweep` resume a previous run's ledger through the
+// Reading first is what lets `probe sweep` resume a previous run's ledger through the
 // same constructor: a sweep is not a fresh start, it is the continuation of a run that did
 // not finish.
 func OpenLedger(path string) (*Ledger, error) {
@@ -438,7 +438,7 @@ func DirtyError(path, resource string, outstanding []Outstanding) error {
 		}
 		fmt.Fprintf(&b, "  %s  %s  %s\n", id, o.Name, o.Reason)
 	}
-	fmt.Fprintf(&b, "\nsweep them first:\n  tfpluginframeworkgen probe -mode sweep -resource %s "+
+	fmt.Fprintf(&b, "\nsweep them first:\n  tfpfgen probe sweep -resource %s "+
 		"-profile <your profile>\n\nthe ledger is at %s", resource, path)
 
 	return fmt.Errorf("%w: %s", ErrDirtyLedger, b.String())

@@ -1,0 +1,33 @@
+{"kind":"intent","seq":1,"probe":"write.required","path":"/roles","name":"tfpfgen-probe-write-required-1"}
+{"kind":"failed","seq":1,"probe":"write.required","path":"/roles","name":"tfpfgen-probe-write-required-1","status":500,"reason":"server error"}
+{"kind":"intent","seq":2,"probe":"write.writable-returned","path":"/roles","name":"tfpfgen-probe-write-writable-returned-1"}
+{"kind":"failed","seq":2,"probe":"write.writable-returned","path":"/roles","name":"tfpfgen-probe-write-writable-returned-1","status":500,"reason":"server error"}
+{"kind":"intent","seq":3,"probe":"write.server-default","path":"/roles","name":"tfpfgen-probe-write-server-default-1"}
+{"kind":"failed","seq":3,"probe":"write.server-default","path":"/roles","name":"tfpfgen-probe-write-server-default-1","status":500,"reason":"server error"}
+{"kind":"intent","seq":4,"probe":"write.normalisation","path":"/roles","name":"tfpfgen-probe-write-normalisation-3"}
+{"kind":"rejected","seq":4,"probe":"write.normalisation","path":"/roles","name":"tfpfgen-probe-write-normalisation-3","status":400}
+{"kind":"intent","seq":5,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-1"}
+{"kind":"failed","seq":5,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-1","status":500,"reason":"server error"}
+{"kind":"intent","seq":6,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-2"}
+{"kind":"rejected","seq":6,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-2","status":400}
+{"kind":"rejected","seq":1,"probe":"write.required","path":"/roles","name":"tfpfgen-probe-write-required-1","reason":"absent from a complete collection read: the create never took effect"}
+{"kind":"rejected","seq":2,"probe":"write.writable-returned","path":"/roles","name":"tfpfgen-probe-write-writable-returned-1","reason":"absent from a complete collection read: the create never took effect"}
+{"kind":"rejected","seq":3,"probe":"write.server-default","path":"/roles","name":"tfpfgen-probe-write-server-default-1","reason":"absent from a complete collection read: the create never took effect"}
+{"kind":"rejected","seq":5,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-1","reason":"absent from a complete collection read: the create never took effect"}
+{"kind":"intent","seq":7,"probe":"write.required","path":"/roles","name":"tfpfgen-probe-write-required-1"}
+{"kind":"created","seq":7,"probe":"write.required","path":"/roles","name":"tfpfgen-probe-write-required-1","id":"281474976765324","status":201}
+{"kind":"intent","seq":8,"probe":"write.required","path":"/roles","name":"tfpfgen-probe-write-required-2"}
+{"kind":"failed","seq":8,"probe":"write.required","path":"/roles","name":"tfpfgen-probe-write-required-2","status":500,"reason":"server error"}
+{"kind":"deleted","seq":7,"probe":"write.required","path":"/roles","name":"tfpfgen-probe-write-required-1","id":"281474976765324","status":204}
+{"kind":"intent","seq":9,"probe":"write.writable-returned","path":"/roles","name":"tfpfgen-probe-write-writable-returned-1"}
+{"kind":"created","seq":9,"probe":"write.writable-returned","path":"/roles","name":"tfpfgen-probe-write-writable-returned-1","id":"281474976765325","status":201}
+{"kind":"deleted","seq":9,"probe":"write.writable-returned","path":"/roles","name":"tfpfgen-probe-write-writable-returned-1","id":"281474976765325","status":204}
+{"kind":"intent","seq":10,"probe":"write.normalisation","path":"/roles","name":"tfpfgen-probe-write-normalisation-3"}
+{"kind":"rejected","seq":10,"probe":"write.normalisation","path":"/roles","name":"tfpfgen-probe-write-normalisation-3","status":400}
+{"kind":"intent","seq":11,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-1"}
+{"kind":"created","seq":11,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-1","id":"281474976765326","status":201}
+{"kind":"deleted","seq":11,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-1","id":"281474976765326","status":204}
+{"kind":"intent","seq":12,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-2"}
+{"kind":"created","seq":12,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-2","id":"281474976765327","status":201}
+{"kind":"deleted","seq":12,"probe":"write.rehearsal","path":"/roles","name":"tfpfgen-probe-write-rehearsal-2","id":"281474976765327","status":204}
+{"kind":"rejected","seq":8,"probe":"write.required","path":"/roles","name":"tfpfgen-probe-write-required-2","reason":"absent from a complete collection read: the create never took effect"}

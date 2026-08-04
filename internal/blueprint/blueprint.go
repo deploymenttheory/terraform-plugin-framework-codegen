@@ -205,7 +205,7 @@ type Resource struct {
 
 	// Sweep overrides the prober's name-field inference for this resource.
 	//
-	// On the resource rather than the probe plan, because `probe -mode sweep` builds its
+	// On the resource rather than the probe plan, because `probe sweep` builds its
 	// subject from the blueprint alone -- a sweep is exactly the situation where no plan
 	// may be to hand, and the field that finds stranded objects cannot depend on one.
 	// Absent means the prober infers the field itself.

@@ -1,0 +1,1378 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"log"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+	"text/tabwriter"
+	"time"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cassette"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version"
+)
+
+// The environment is the only place a credential or an endpoint comes from.
+//
+// Not a flag: a flag puts the token in shell history and in the process table. Not a profile
+// file: that gets committed. See probe.Profile's doc comment.
+const (
+	tokenEnv    = "TFPFGEN_PROBE_TOKEN"
+	endpointEnv = "TFPFGEN_PROBE_ENDPOINT"
+)
+
+// defaultRecordingRoot is where committed cassettes live, matching the repository layout.
+const defaultRecordingRoot = "probe-evidence"
+
+// replayBaseURL is the unresolvable host replay requests are addressed to. The recorded base path
+// is appended, so a cassette made against an endpoint with a prefix replays against the same
+// paths it holds.
+const replayBaseURL = "https://replay.invalid"
+
+// basePathOf extracts the path prefix from an endpoint, e.g. "/v7" from
+// "https://api.example.com/v7".
+func basePathOf(endpoint string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSuffix(u.Path, "/")
+}
+
+// The probe verbs' usage sketches.
+const (
+	usageProbeRecord = "probe record -blueprint DIR [-resource KEY] [-scenario FILE] " +
+		"[-allow-mutations] [-profile FILE] [-force]"
+	usageProbeReplay = "probe replay -blueprint DIR [-resource KEY] [-probe NAME] [-rederive]"
+	usageProbeVerify = "probe verify -blueprint DIR [-resource KEY]"
+	usageProbeSweep  = "probe sweep -blueprint DIR [-resource KEY] [-profile FILE]"
+	usageProbeList   = "probe list -blueprint DIR"
+)
+
+// Probe verbs. The default is replay, deliberately: the safe verb is what you get by
+// typing less, and the verb that can change somebody's tenant has to be spelled out.
+const (
+	modeReplay = "replay"
+	modeRecord = "record"
+	modeVerify = "verify"
+	modeSweep  = "sweep"
+	modeList   = "list"
+)
+
+// probeVerbs is the probe group's verb table.
+var probeVerbs = []command{
+	{
+		name:    "record",
+		summary: "run the catalogue against a live API and commit a recording",
+		usage:   usageProbeRecord,
+		run:     probeVerb(modeRecord),
+	},
+	{
+		name:    "replay",
+		summary: "re-derive facts from the committed recording, no network",
+		usage:   usageProbeReplay,
+		run:     probeVerb(modeReplay),
+	},
+	{
+		name:    "verify",
+		summary: "fail unless the committed facts reproduce from the recording",
+		usage:   usageProbeVerify,
+		run:     probeVerb(modeVerify),
+	},
+	{
+		name:    "sweep",
+		summary: "delete leftover objects a previous run created",
+		usage:   usageProbeSweep,
+		run:     probeVerb(modeSweep),
+	},
+	{
+		name:    "list",
+		summary: "print the probe catalogue and exit",
+		usage:   usageProbeList,
+		run:     probeVerb(modeList),
+	},
+}
+
+// probeVerb binds one verb's mode into the shared runner.
+func probeVerb(mode string) func(args []string) error {
+	return func(args []string) error {
+		return probeError(probeMain(mode, args))
+	}
+}
+
+// runProbe dispatches the probe verbs, defaulting to replay. Every verb funnels
+// through probeError, so no return path escapes the exit-code mapping.
+//
+// The mapping cannot live in main.go's errors.As walk: errors.As returns the *first* match in a
+// preorder walk, and first is not most serious. These conditions genuinely co-occur -- a run can
+// exceed its budget, sweep, and still leave an orphan -- and which number CI sees must not depend
+// on the order the errors were joined in.
+func runProbe(args []string) error {
+	return runVerbs("probe", probeVerbs, modeReplay, args)
+}
+
+// probeExitPrecedence is the order in which co-occurring failures are reported.
+//
+// 7 > 5 > 3 > 4 > 6 > 1, and each step is an argument about what a human needs to see first:
+//
+//   - 7, a redaction failure, outranks everything: nothing was written, and a secret nearly was.
+//   - 5, orphans, outranks the rest because objects are still live in somebody's tenant.
+//   - 3, a refused gate, before 4 because a refusal means nothing ran at all.
+//   - 4, a budget cap, before 6 because it explains why a replay might not match.
+//   - 6, a replay mismatch, last of the specific codes.
+var probeExitPrecedence = []struct {
+	err  error
+	code int
+}{
+	{cassette.ErrSecretFound, exitRedactionFailed},
+	{probe.ErrRedaction, exitRedactionFailed},
+	{probe.ErrOrphans, exitOrphansLeft},
+	{probe.ErrLedger, exitOrphansLeft},
+	// A stale ledger is not itself an orphan, but it is the record of objects that may be
+	// live -- so it gets the code that means "something is still out there".
+	{probe.ErrDirtyLedger, exitOrphansLeft},
+	{probe.ErrRefused, exitGatingRefused},
+	{probe.ErrBudget, exitBudgetExceeded},
+	{probe.ErrDeleteFailures, exitBudgetExceeded},
+	{probe.ErrReplayMismatch, exitReplayMismatch},
+}
+
+// probeError maps a probe failure onto a documented exit code.
+func probeError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// Help is not a failure, and a usage error already carries its own code.
+	var coded exitCoder
+	if errors.Is(err, flag.ErrHelp) || errors.As(err, &coded) {
+		return err
+	}
+
+	for _, entry := range probeExitPrecedence {
+		if errors.Is(err, entry.err) {
+			return &codedError{err: err, code: entry.code}
+		}
+	}
+
+	return err
+}
+
+// codedError attaches an exit code without losing the original error.
+type codedError struct {
+	err  error
+	code int
+}
+
+func (e *codedError) Error() string { return e.err.Error() }
+func (e *codedError) Unwrap() error { return e.err }
+func (e *codedError) ExitCode() int { return e.code }
+
+func probeMain(mode string, args []string) error {
+	fs, _ := newFlagSet("probe "+mode, usageForProbeVerb(mode))
+
+	var (
+		rederive = fs.Bool("rederive", false,
+			"with probe replay: rewrite facts.json from the committed cassette, no network")
+		blueprintPath = fs.String("blueprint", "", "blueprint file or directory (required)")
+		resource      = fs.String("resource", "", "probe one resource, by blueprint key")
+		probeName     = fs.String("probe", "", "run one probe, by name")
+		recordingRoot = fs.String("recordings", defaultRecordingRoot, "root of the committed probe recordings")
+		providerName  = fs.String("provider", "", "provider name for the recording path; defaults to the blueprint's")
+
+		allowMutations = fs.Bool("allow-mutations", false,
+			"permit probes that create, update and delete; requires probe record and a sandbox profile")
+		profilePath = fs.String("profile", "",
+			"sandbox profile for a mutating run; defaults to "+defaultProfileDir+"/PROVIDER.json")
+		planPath = fs.String("scenario", "", "probe scenario: fixtures and candidates a probe cannot discover")
+		planDir  = fs.String("scenario-dir", "",
+			"directory of per-resource scenarios, KEY.probe.plan.json; defaults to the blueprint directory")
+		force         = fs.Bool("force", false, "record over a recording that is already committed")
+		skipRehearsal = fs.Bool("skip-rehearsal", false,
+			"skip the rehearsal fixpoint after the standard mutating probes")
+	)
+
+	if err := parse(fs, args); err != nil {
+		return err
+	}
+
+	if *blueprintPath == "" {
+		return usagef("-blueprint is required")
+	}
+
+	bp, err := blueprint.LoadDir(*blueprintPath)
+	if err != nil {
+		return err
+	}
+
+	if *resource != "" {
+		if err := keepOnlyResource(&bp, *resource); err != nil {
+			return err
+		}
+	}
+
+	if *providerName == "" {
+		*providerName = bp.Provider.Name
+	}
+
+	subjects, notes, err := subjectsOf(bp)
+	if err != nil {
+		return err
+	}
+
+	// Printed before anything else: a resource the prober cannot work on at all is
+	// something the operator needs to know regardless of what the run then does.
+	for _, n := range notes {
+		fmt.Fprintf(os.Stderr, "  %s\n", n)
+	}
+
+	if len(subjects) == 0 {
+		return fmt.Errorf("%w: no resource in %s can be probed", errNothingToDo, *blueprintPath)
+	}
+
+	if *probeName != "" {
+		if _, ok := probe.Lookup(*probeName); !ok {
+			return usagef("-probe %q is not a registered probe; run `probe list` to see them", *probeName)
+		}
+	}
+
+	// Refused here rather than inside the gate, because the gate only runs on the record path
+	// and this combination would otherwise be silently ignored -- letting a scripted run
+	// believe it had probed the write path when it replayed a cassette instead.
+	if *allowMutations && mode != modeRecord {
+		return fmt.Errorf("%w: -allow-mutations needs probe record, and this is probe %s; replay and "+
+			"verify derive facts from a committed transcript and must never write",
+			probe.ErrRefused, mode)
+	}
+
+	// Same shape of refusal for -rederive: only replay honours it, and silence would let a
+	// scripted run believe it had rewritten facts.json when nothing was written at all.
+	if *rederive && mode != modeReplay && mode != modeList {
+		return usagef("-rederive needs probe replay, and this is probe %s; verify asserts the "+
+			"committed facts reproduce, it must not rewrite them", mode)
+	}
+
+	// One plan speaks one schema's wire vocabulary. Applied to every subject of a
+	// multi-resource run it would inject one resource's fixtures into every other's
+	// probes, so the combination is refused rather than quietly wrong.
+	if *planPath != "" && *resource == "" {
+		return usagef("-scenario needs -resource: a scenario speaks one schema's vocabulary; " +
+			"for a multi-resource run use -scenario-dir (or its default, the blueprint " +
+			"directory) with one KEY.probe.plan.json per resource")
+	}
+
+	plan, err := loadPlan(*planPath)
+	if err != nil {
+		return err
+	}
+
+	opts := probeRun{
+		mode:         mode,
+		rederive:     *rederive,
+		subjects:     subjects,
+		only:         *probeName,
+		evidenceRoot: *recordingRoot,
+		provider:     *providerName,
+		apiVersion:   bp.Source.SpecVersion,
+		plan:         plan,
+		planExplicit: *planPath != "",
+		planDir:      planDirFor(*planDir, *blueprintPath),
+		profilePath:  profilePathFor(*profilePath, *providerName),
+		allowMutate:  *allowMutations,
+		force:        *force,
+		noRehearse:   *skipRehearsal,
+		bp:           bp,
+	}
+
+	switch mode {
+	case modeList:
+		return listProbes(opts)
+	case modeSweep:
+		return sweepEverything(opts)
+	default:
+		return runProbeMode(opts)
+	}
+}
+
+// usageForProbeVerb picks the verb's usage sketch for its flag help.
+func usageForProbeVerb(mode string) string {
+	switch mode {
+	case modeRecord:
+		return usageProbeRecord
+	case modeVerify:
+		return usageProbeVerify
+	case modeSweep:
+		return usageProbeSweep
+	case modeList:
+		return usageProbeList
+	default:
+		return usageProbeReplay
+	}
+}
+
+// planDirFor defaults the per-resource plan directory to wherever the blueprint lives.
+//
+// The convention -- blueprints/PROVIDER/KEY.probe.plan.json beside the blueprint files
+// -- is already how the committed plans are laid out, so the default makes the bulk
+// path the zero-flag path.
+func planDirFor(planDir, blueprintPath string) string {
+	if planDir != "" {
+		return planDir
+	}
+
+	if info, err := os.Stat(blueprintPath); err == nil && !info.IsDir() {
+		return filepath.Dir(blueprintPath)
+	}
+
+	return blueprintPath
+}
+
+// probeRun is one invocation's settings, gathered so the mode functions take one argument
+// instead of nine positional strings nobody can read at a call site.
+type probeRun struct {
+	mode         string
+	rederive     bool
+	subjects     []probe.Subject
+	only         string
+	evidenceRoot string
+	provider     string
+	apiVersion   string
+
+	// plan is the -plan flag's plan; meaningful only with planExplicit. Every other
+	// run resolves a plan per subject from planDir, through planFor -- one plan
+	// speaks one schema's vocabulary, so a shared plan across subjects is never right.
+	plan         probe.Plan
+	planExplicit bool
+	planDir      string
+
+	profilePath string
+	allowMutate bool
+	force       bool
+	noRehearse  bool
+
+	// bp is the loaded blueprint, carried so the record path can derive rehearsal
+	// bodies from the same document the run's subjects came from.
+	bp blueprint.Blueprint
+}
+
+// planFor resolves the plan for one subject: the explicit -plan when one was given,
+// else the conventional KEY.probe.plan.json beside the blueprint. found reports whether
+// any plan was actually supplied -- a zero plan and an absent file must not be
+// conflated, because a mutating run skips an unplanned subject with a stated note
+// rather than letting the gate refuse the whole wave.
+func (opts probeRun) planFor(resource string) (plan probe.Plan, found bool, err error) {
+	if opts.planExplicit {
+		return opts.plan, true, nil
+	}
+
+	path := filepath.Join(opts.planDir, resource+".probe.plan.json")
+	if _, statErr := os.Stat(path); errors.Is(statErr, os.ErrNotExist) {
+		return probe.Plan{}, false, nil
+	}
+
+	plan, err = loadPlan(path)
+
+	return plan, err == nil, err
+}
+
+// ledgerRoot is where per-run ledgers live. Gitignored: a ledger records live objects in
+// somebody's tenant and is per-run rather than per-snapshot.
+const ledgerRoot = ".tfpfgen/probe"
+
+// loadPlan reads a probe plan, or returns the zero plan when none is named.
+//
+// The zero plan is usable for a read-only run and is refused by the gate for a mutating one,
+// which is the right split: -list reports the unnarrowed worst case, and a mutating run needs a
+// fixture.
+// loadPlanIfPresent is loadPlan for a path that may legitimately not exist.
+//
+// A read-only recording carries no plan, and a snapshot from before plans were frozen carries none
+// either. Neither is an error: the run simply has no fixtures, and the mutating tier is reported
+// skipped. An explicit -plan pointing at a missing file *is* an error, which is why the strict
+// version stays.
+func loadPlanIfPresent(path string) (probe.Plan, error) {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return probe.Plan{}, nil
+	}
+
+	return loadPlan(path)
+}
+
+func loadPlan(path string) (probe.Plan, error) {
+	var p probe.Plan
+
+	if path == "" {
+		return p, nil
+	}
+
+	data, err := os.ReadFile(path) //nolint:gosec // operator-supplied path by design
+	if err != nil {
+		return p, fmt.Errorf("reading %s: %w", path, err)
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(data))
+	// Strict: a mistyped key in a plan silently omits the fixture or candidate it meant to
+	// supply, and a missing fixture value looks exactly like a server default.
+	dec.DisallowUnknownFields()
+
+	if err := dec.Decode(&p); err != nil {
+		return probe.Plan{}, usagef("%s is not a usable probe plan: %v", path, err)
+	}
+
+	return p, nil
+}
+
+// checkLedger reports what a stale ledger means for this mode.
+//
+// Refused in record: a run against a tenant already holding your own orphans makes
+// maxExistingObjects measure your own rubbish, and creating more on top of objects you have
+// already failed to clean up is the wrong direction. A note in replay and verify, because
+// refusing an offline CI gate over a stale local file buys nothing. Proceeds in sweep, which is
+// the whole point of it.
+func checkLedger(mode, provider, resource string) error {
+	path := probe.LedgerPath(ledgerRoot, provider, resource)
+
+	entries, err := probe.ReadLedger(path)
+	if err != nil {
+		return err
+	}
+
+	outstanding := probe.Unresolved(entries)
+	if len(outstanding) == 0 {
+		return nil
+	}
+
+	if mode != modeRecord {
+		fmt.Fprintf(os.Stderr,
+			"  note  %d object(s) from a previous run are unaccounted for in %s; "+
+				"run `probe sweep -resource %s` when you next have credentials\n",
+			len(outstanding), path, resource)
+
+		return nil
+	}
+
+	return probe.DirtyError(path, resource, outstanding)
+}
+
+// runProbeMode records, replays or verifies.
+func runProbeMode(opts probeRun) error {
+	failures := 0
+	verified := 0
+
+	for _, subj := range opts.subjects {
+		root := filepath.Join(opts.evidenceRoot, opts.provider, subj.Resource)
+
+		if err := checkLedger(opts.mode, opts.provider, subj.Resource); err != nil {
+			return err
+		}
+
+		plan, planFound, err := opts.planFor(subj.Resource)
+		if err != nil {
+			return err
+		}
+
+		switch opts.mode {
+		case modeRecord:
+			// A mutating wave skips an uncurated subject with a stated note rather
+			// than stopping: the gate would refuse it anyway (no fixture, no valid
+			// body), and one resource nobody has planned yet must not block the
+			// nineteen that are ready.
+			if opts.allowMutate && !planFound {
+				fmt.Fprintf(os.Stderr,
+					"  note  %s: no plan at %s; skipped -- a mutating probe needs a "+
+						"fixture to build on\n",
+					subj.Resource, filepath.Join(opts.planDir, subj.Resource+".probe.plan.json"))
+				continue
+			}
+
+			subjOpts := opts
+			subjOpts.plan = plan
+
+			if err := recordProbe(subjOpts, subj, root); err != nil {
+				return err
+			}
+
+		case modeReplay, modeVerify:
+			if err := replayProbe(opts.mode, subj, opts.only, root, opts.rederive); err != nil {
+				if errors.Is(err, probe.ErrReplayMismatch) {
+					// Reported and counted rather than returned, so a multi-resource run
+					// reports every mismatch instead of one per invocation.
+					fmt.Fprintf(os.Stderr, "::error::%s: %v\n", subj.Resource, err)
+					failures++
+					continue
+				}
+				if errors.Is(err, cassette.ErrNoSnapshot) {
+					// A resource with no committed evidence is a resource nobody has
+					// recorded yet, which is the normal state of one just added to the
+					// blueprint -- the pipeline authors the blueprint first and records
+					// second. Failing the whole run here would block adding any resource
+					// before a live run, so it is a stated note; the run still fails when
+					// *nothing* had evidence, because that verify proved nothing.
+					fmt.Fprintf(os.Stderr,
+						"  note  %s: no committed evidence; record a snapshot to bring it "+
+							"under the replay gate\n", subj.Resource)
+					continue
+				}
+				return err
+			}
+			verified++
+		}
+	}
+
+	if failures > 0 {
+		return fmt.Errorf("%w: %d resource(s) did not reproduce their committed facts",
+			probe.ErrReplayMismatch, failures)
+	}
+
+	// A replay or verify that touched no evidence at all proved nothing, and letting it
+	// exit zero would let the CI gate go green on an empty evidence tree.
+	if opts.mode != modeRecord && verified == 0 {
+		return fmt.Errorf("%w: no resource has committed evidence to %s against",
+			errNothingToDo, opts.mode)
+	}
+
+	return nil
+}
+
+// recordProbe runs live and writes a snapshot.
+func recordProbe(opts probeRun, subj probe.Subject, root string) error {
+	endpoint := os.Getenv(endpointEnv)
+	if endpoint == "" {
+		return usagef("%s must be set for probe record: it names the API to probe", endpointEnv)
+	}
+
+	// The token comes from the environment and nowhere else -- not a flag, not a profile,
+	// not anything written to disk. A flag would put it in shell history and in the
+	// process table.
+	token := os.Getenv(tokenEnv)
+	if token == "" {
+		return usagef("%s must be set for probe record", tokenEnv)
+	}
+
+	ctx, cancel := probe.DeadlineFor(context.Background(), opts.plan.Budget)
+	defer cancel()
+
+	// The gate, and the ledger it makes safe to open. Both only when mutations were asked for:
+	// a read-only run needs no profile, no assertions and no ledger, and demanding one would
+	// make the safe mode the inconvenient one.
+	//
+	// Before the redactor, so an operator with an unusable profile reads about the profile
+	// rather than about a detail of how recordings are scrubbed.
+	var (
+		grant      *probe.Grant
+		assertions []string
+		ledger     *probe.Ledger
+	)
+
+	if opts.allowMutate {
+		var err error
+
+		grant, assertions, err = authoriseMutations(ctx, opts, subj, endpoint, token, root)
+		if err != nil {
+			return err
+		}
+
+		ledger, err = probe.OpenLedger(probe.LedgerPath(ledgerRoot, opts.provider, subj.Resource))
+		if err != nil {
+			return err
+		}
+		defer func() { _ = ledger.Close() }()
+	}
+
+	redactor, err := cassette.NewRedactor(map[string]string{"bearer": token}, nil)
+	if err != nil {
+		return err
+	}
+
+	runOpts := probe.RunOptions{
+		Mode:     probe.ModeRecord,
+		Subject:  subj,
+		Plan:     opts.plan,
+		Only:     opts.only,
+		BaseURL:  endpoint,
+		Token:    token,
+		Redactor: redactor,
+		Secrets:  map[string]string{"bearer": token},
+
+		AllowMutations: opts.allowMutate,
+
+		Grant:            grant,
+		Ledger:           ledger,
+		AssertionsPassed: assertions,
+	}
+
+	// The rehearsal fixpoint: the probe asks this closure for each round's bodies,
+	// which merges the facts gathered so far into an in-memory blueprint copy and
+	// re-derives -- the same derivation emit's fixtures use, which is the whole point.
+	if opts.allowMutate && !opts.noRehearse {
+		runOpts.Rehearsal = &probe.RehearsalConfig{
+			Derive: rehearsalDerive(opts.bp, subj.Resource, opts.plan),
+		}
+	}
+
+	result, runErr := probe.Run(ctx, runOpts)
+
+	// Everything below happens whatever Run returned. A run that left an orphan or panicked
+	// owes the operator its report, its transcript and its orphan table more than a clean run
+	// does, and returning early here is what would deny them.
+	printProbeReport(subj.Resource, result.Report)
+	reportOrphans(subj.Resource, result.Report)
+
+	if runErr != nil && !worthWriting(runErr) {
+		return runErr
+	}
+
+	meta := probe.RecordingMetadata(opts.provider, subj, result.Report.Profile.Host, version.Version)
+	meta.BasePath = basePathOf(endpoint)
+	// The API version the blueprint was inferred from, so the snapshot directory names the
+	// specification the facts were recorded against rather than reading "unknown". A cassette
+	// whose directory does not say which API version produced it is far less useful a year later.
+	meta.APIVersion = opts.apiVersion
+	// The prefix every created object carried. Without it a mutating replay cannot reproduce a
+	// single create: ReplayTransport matches request bodies, and the name is in the body.
+	meta.NamePrefix = runOpts.Grant.NamePrefix()
+	// The probe filter, so replay narrows itself to the traffic the cassette holds: a
+	// rehearse-only recording has no read tier for a full replay to mismatch on.
+	meta.Only = opts.only
+
+	snap, err := cassette.Record(root, meta, result.Interactions, map[string]string{"bearer": token}, time.Now())
+	if err != nil {
+		return err
+	}
+
+	if err := writeFacts(snap.FactsPath(), result.Report.Facts); err != nil {
+		return err
+	}
+	if err := writeJSONFile(snap.ReportPath(), result.Report); err != nil {
+		return err
+	}
+
+	// Frozen beside the transcript. A write-tier recording's request bodies *are* the plan's
+	// fixtures, so a replay that read the plan from the working tree would fail on any later edit
+	// with a body mismatch indistinguishable from a probe regression.
+	if len(opts.plan.Fixtures) > 0 {
+		if err := writeJSONFile(snap.PlanPath(), opts.plan); err != nil {
+			return err
+		}
+	}
+
+	// The subject too, for the same reason and from a live failure: request synthesis
+	// reads the subject -- writability, documented values, recorded behaviour -- and the
+	// very merge that follows a record run moves those. The committed case: the
+	// re-record's own curation made `type` writable, and every full-body probe then
+	// replayed with one more key than the transcript held.
+	if err := writeJSONFile(snap.SubjectPath(), subj); err != nil {
+		return err
+	}
+
+	// The rehearsal's derived bodies, frozen like the plan and subject and for the
+	// same reason: the very merge that follows this run moves the blueprint they
+	// were derived from.
+	if len(result.Report.Rehearsal) > 0 {
+		if err := writeJSONFile(snap.RehearsalPath(), result.Report.Rehearsal); err != nil {
+			return err
+		}
+	}
+
+	log.Printf("wrote %s", snap.Dir)
+
+	// Returned last, so the exit code reflects what went wrong while the evidence of it is
+	// already on disk.
+	return runErr
+}
+
+// worthWriting reports whether a snapshot should still be written after a failed run.
+//
+// A redaction failure is the one case where nothing may be written: the whole point is that the
+// caller cannot proceed to commit something containing a secret. Everything else -- orphans, a
+// budget cap, a panicking probe -- produced real observations, and a transcript of the run that
+// went wrong is more useful than none.
+func worthWriting(err error) bool {
+	return !errors.Is(err, cassette.ErrSecretFound) && !errors.Is(err, probe.ErrRedaction)
+}
+
+// authoriseMutations runs the gate.
+//
+// The gate's tenant reads go through their own unrecorded transport, and that is not an
+// oversight. Replay has no gate, so a cassette holding requests the replayed run will never
+// issue is a cassette that cannot reproduce itself -- the same silent, total failure class as a
+// base path that does not round-trip.
+func authoriseMutations(
+	ctx context.Context,
+	opts probeRun,
+	subj probe.Subject,
+	endpoint, token, root string,
+) (*probe.Grant, []string, error) {
+	profile, err := loadProfile(opts.profilePath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// The profile says where; the environment says with what. A profile pointing somewhere
+	// other than TFPFGEN_PROBE_ENDPOINT is a mistake worth refusing rather than resolving,
+	// because whichever one loses would be a surprise.
+	if profile.Endpoint != "" && profile.Endpoint != endpoint {
+		return nil, nil, fmt.Errorf("%w: the profile's endpoint %q is not %s (%q); one of the "+
+			"two is pointed somewhere it was not meant to be",
+			probe.ErrRefused, profile.Endpoint, endpointEnv, endpoint)
+	}
+
+	read, err := probe.NewReadSession(probe.SessionConfig{
+		Transport:          probe.UnrecordedTransport(),
+		BaseURL:            endpoint,
+		Token:              token,
+		CollectionTemplate: subj.CollectionTemplate,
+		ItemTemplate:       subj.ItemTemplate,
+		// Only the gate's own reads come through here, and there are at most two.
+		Budget: probe.Budget{MaxRequests: 4, MaxCreates: 0},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return probe.Authorise(ctx, read, profile, probe.GuardOptions{
+		Mode:                     probe.ModeRecord,
+		AllowMutations:           opts.allowMutate,
+		Subject:                  subj,
+		Plan:                     opts.plan,
+		EquivalentSnapshotExists: equivalentSnapshotExists(root, opts.plan),
+		Force:                    opts.force,
+	}, probe.OSEnviron{})
+}
+
+// equivalentSnapshotExists reports whether the newest committed snapshot was recorded with an
+// identical plan.
+//
+// Compared by canonical JSON rather than by a stored hash: the plan is already frozen into the
+// snapshot, so the comparison needs no second representation that could disagree with it.
+//
+// Any failure to read or compare answers false. Being unable to tell must not block a recording --
+// the consequence of a wrong false is one extra snapshot, and of a wrong true is a run an operator
+// cannot make at all.
+func equivalentSnapshotExists(root string, plan probe.Plan) bool {
+	existing, err := cassette.Latest(root)
+	if err != nil {
+		return false
+	}
+
+	frozen, err := loadPlanIfPresent(existing.PlanPath())
+	if err != nil {
+		return false
+	}
+
+	was, err := json.Marshal(frozen)
+	if err != nil {
+		return false
+	}
+
+	now, err := json.Marshal(plan)
+	if err != nil {
+		return false
+	}
+
+	return bytes.Equal(was, now)
+}
+
+// sweepEverything removes what previous runs left behind.
+func sweepEverything(opts probeRun) error {
+	endpoint := os.Getenv(endpointEnv)
+	if endpoint == "" {
+		return usagef("%s must be set for -mode sweep: it names the API to clean up in", endpointEnv)
+	}
+
+	token := os.Getenv(tokenEnv)
+	if token == "" {
+		return usagef("%s must be set for -mode sweep", tokenEnv)
+	}
+
+	profile, err := loadProfile(opts.profilePath)
+	if err != nil {
+		return err
+	}
+
+	grant, err := probe.AuthoriseSweep(profile, probe.GuardOptions{Mode: probe.ModeSweep},
+		probe.OSEnviron{})
+	if err != nil {
+		return err
+	}
+
+	var failed error
+
+	for _, subj := range opts.subjects {
+		if can, why := subj.CanMutate(); !can {
+			// Nothing could have been created here, so there is nothing to sweep. Said out
+			// loud rather than skipped silently, because an operator sweeping after a failure
+			// needs to know which resources were even considered.
+			fmt.Fprintf(os.Stderr, "  %s: nothing to sweep (%s)\n", subj.Resource, why)
+			continue
+		}
+
+		// The subject's own plan, for its sweep budget; a subject with none sweeps on
+		// the defaults, which is exactly what an unplanned resource should get.
+		plan, _, err := opts.planFor(subj.Resource)
+		if err != nil {
+			return err
+		}
+
+		ledger, err := probe.OpenLedger(probe.LedgerPath(ledgerRoot, opts.provider, subj.Resource))
+		if err != nil {
+			return err
+		}
+
+		ctx, cancel := probe.SweepContext(context.Background(), plan.Budget.MaxSweepSeconds)
+
+		summary, sweepErr := probe.RunSweep(ctx, probe.SweepRunOptions{
+			Grant:      grant,
+			Subject:    subj,
+			BaseURL:    endpoint,
+			Token:      token,
+			Ledger:     ledger,
+			MaxSeconds: plan.Budget.MaxSweepSeconds,
+		})
+
+		cancel()
+		_ = ledger.Close()
+
+		printSweepSummary(subj.Resource, summary)
+
+		if sweepErr != nil {
+			// Every resource is attempted: stopping at the first would leave the rest of the
+			// tenant holding objects for no reason but ordering.
+			failed = errors.Join(failed, fmt.Errorf("%s: %w", subj.Resource, sweepErr))
+		}
+	}
+
+	return failed
+}
+
+// printSweepSummary says what the sweep did, including when it did nothing.
+func printSweepSummary(resource string, summary probe.SweepSummary) {
+	fmt.Fprintf(os.Stderr, "\n%s: %d removed by ledger, %d by name prefix",
+		resource, summary.LedgerDeletes, summary.PrefixDeletes)
+
+	if !summary.Complete {
+		fmt.Fprint(os.Stderr, " (INCOMPLETE)")
+	}
+	fmt.Fprintln(os.Stderr)
+
+	for _, n := range summary.Notes {
+		fmt.Fprintf(os.Stderr, "  note  %s\n", n)
+	}
+
+	printOrphanTable(summary.Orphans)
+}
+
+// reportOrphans prints the orphan table after a run.
+func reportOrphans(resource string, report probe.Report) {
+	if len(report.Orphans) == 0 {
+		return
+	}
+
+	fmt.Fprintf(os.Stderr, "\n%s: %d OBJECT(S) LEFT BEHIND\n", resource, len(report.Orphans))
+	printOrphanTable(report.Orphans)
+}
+
+// printOrphanTable prints one row per object a human has to remove.
+//
+// To stderr and to $GITHUB_STEP_SUMMARY where there is one, because the person who has to clean
+// up should not have to find this in a fold-out log. The curl lines carry
+// "$TFPFGEN_PROBE_TOKEN" and never a value.
+func printOrphanTable(orphans []probe.Orphan) {
+	if len(orphans) == 0 {
+		return
+	}
+
+	w := tabwriter.NewWriter(os.Stderr, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "  ID\tPROBE\tPATH")
+
+	for _, o := range orphans {
+		fmt.Fprintf(w, "  %s\t%s\t%s\n", or(o.ID, "(unknown)"), o.Probe, o.Path)
+	}
+	_ = w.Flush()
+
+	fmt.Fprintln(os.Stderr, "\n  remove them with:")
+	for _, o := range orphans {
+		if o.Curl != "" {
+			fmt.Fprintf(os.Stderr, "    %s\n", o.Curl)
+		}
+	}
+
+	appendStepSummary(orphans)
+}
+
+// appendStepSummary puts the orphan table where a CI reviewer will see it.
+func appendStepSummary(orphans []probe.Orphan) {
+	path := os.Getenv("GITHUB_STEP_SUMMARY")
+	if path == "" {
+		return
+	}
+
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "\n### ⚠️ %d probe object(s) left behind\n\n", len(orphans))
+	b.WriteString("| id | probe | remove with |\n|---|---|---|\n")
+
+	for _, o := range orphans {
+		fmt.Fprintf(&b, "| `%s` | %s | `%s` |\n", or(o.ID, "unknown"), o.Probe, o.Curl)
+	}
+
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600) //nolint:gosec // CI-supplied path
+	if err != nil {
+		// Best effort by design: failing a run because a CI convenience file was unwritable
+		// would replace a useful failure with a confusing one.
+		return
+	}
+	defer func() { _ = f.Close() }()
+
+	_, _ = f.WriteString(b.String())
+}
+
+func or(v, fallback string) string {
+	if v == "" {
+		return fallback
+	}
+	return v
+}
+
+// replayProbe re-derives facts from a committed snapshot with no network.
+// frozenSubject loads the snapshot's frozen subject, or falls back to the working
+// tree's with a stated note.
+//
+// The frozen file must speak about the same resource: a snapshot copied into the wrong
+// evidence directory would otherwise replay one resource's requests under another's key,
+// and every fact would join to the wrong attributes.
+func frozenSubject(snap cassette.Snapshot, current probe.Subject) (probe.Subject, error) {
+	data, err := os.ReadFile(snap.SubjectPath()) //nolint:gosec // committed evidence path
+	if errors.Is(err, os.ErrNotExist) {
+		fmt.Fprintf(os.Stderr,
+			"  note  %s: the snapshot predates subject freezing, so this replay synthesises "+
+				"requests from the working tree's blueprint; re-record to freeze the subject\n",
+			current.Resource)
+
+		return current, nil
+	}
+	if err != nil {
+		return probe.Subject{}, err
+	}
+
+	var frozen probe.Subject
+	if err := json.Unmarshal(data, &frozen); err != nil {
+		return probe.Subject{}, fmt.Errorf("reading %s: %w", snap.SubjectPath(), err)
+	}
+
+	if frozen.Resource != current.Resource {
+		return probe.Subject{}, fmt.Errorf("%s speaks about %q, not %q; the snapshot is in "+
+			"the wrong evidence directory", snap.SubjectPath(), frozen.Resource, current.Resource)
+	}
+
+	return frozen, nil
+}
+
+func replayProbe(mode string, subj probe.Subject, only, root string, rederive bool) error {
+	snap, err := cassette.Latest(root)
+	if err != nil {
+		return err
+	}
+
+	// The checksum first: replaying a tampered cassette would produce facts that look
+	// derived from evidence which no longer matches what was committed.
+	if err := snap.Verify(); err != nil {
+		return err
+	}
+
+	interactions, err := snap.LoadInteractions()
+	if err != nil {
+		return err
+	}
+
+	meta, err := snap.LoadMetadata()
+	if err != nil {
+		return err
+	}
+
+	// The plan the *recording* was made with, never the working tree's. See Snapshot.PlanPath.
+	plan, err := loadPlanIfPresent(snap.PlanPath())
+	if err != nil {
+		return err
+	}
+
+	// The subject too: request synthesis reads writability, documented values and
+	// recorded behaviour off it, and the working tree's copy moves with every curation
+	// pass -- starting with the merge of this very recording's facts. A snapshot from
+	// before subjects were frozen replays against the working tree's, stated out loud,
+	// because a silent fallback is how the divergence went unnoticed the first time.
+	subj, err = frozenSubject(snap, subj)
+	if err != nil {
+		return err
+	}
+
+	grant := grantForReplay(plan, meta)
+
+	// A filtered recording replays filtered: the cassette holds only that probe's
+	// traffic, and the wider catalogue would mismatch on its first request.
+	if only == "" && meta.Only != "" {
+		only = meta.Only
+	}
+
+	// The frozen rehearsal bodies, when the recording made any. Never re-derived from
+	// the working tree: the blueprint moved with the merge of this very recording's
+	// facts, and a re-derivation would replay bodies the transcript never held.
+	rehearsalCfg, err := frozenRehearsal(snap)
+	if err != nil {
+		return err
+	}
+
+	result, runErr := probe.Run(context.Background(), probe.RunOptions{
+		Mode:    probe.ModeReplay,
+		Subject: subj,
+		Plan:    plan,
+		Grant:   grant,
+		Ledger:  probe.MemoryLedger(),
+		Only:    only,
+		// The recorded prefix, reproduced. A cassette stores full request paths, so replaying
+		// a recording made against an endpoint with a prefix needs that prefix back.
+		BaseURL:      replayBaseURL + meta.BasePath,
+		Interactions: interactions,
+		Rehearsal:    rehearsalCfg,
+	})
+
+	if rederive && mode == modeReplay {
+		// Legitimate precisely because derivation is a pure function of the transcript, which is
+		// the claim `probe verify` exists to keep true. The cassette is untouched and its
+		// checksum was verified above, so the diff to facts.json is reviewable against traffic
+		// that has not moved -- which is the difference between re-deriving and re-recording.
+		//
+		// Needed because there was no way to act on a derivation improvement: a probe that stopped
+		// drawing a wrong conclusion made `verify` fail, and the only way to update the facts was a
+		// live run that also replaced the evidence.
+		if err := writeFacts(snap.FactsPath(), result.Report.Facts); err != nil {
+			return err
+		}
+
+		fmt.Fprintf(os.Stderr, "re-derived %d fact(s) into %s from the committed cassette\n",
+			len(result.Report.Facts), snap.FactsPath())
+	}
+
+	// Printed before the error is returned, for the same reason recordProbe does it: a replay that
+	// leaves something unresolved is precisely the run whose report a reader needs, and returning
+	// first means they are told a count and nothing else.
+	printProbeReport(subj.Resource, result.Report)
+	reportOrphans(subj.Resource, result.Report)
+
+	// In verify mode a reproduced run error must not pre-empt the fact comparison.
+	// A recording may legitimately contain a stopping error -- the account_group
+	// snapshot holds a delete the API refused, later resolved by the ledger sweep --
+	// and replay reproducing that error is replay working. What verify asserts is
+	// that the facts are a pure function of the transcript; the error is part of the
+	// transcript. Any other mode surfaces it as before.
+	if runErr != nil && mode != modeVerify {
+		return runErr
+	}
+
+	if mode != modeVerify {
+		return nil
+	}
+
+	// Verify is the purity test: the committed facts must be exactly what replaying the
+	// committed transcript produces. A difference means derivation depends on something
+	// outside the transcript, and every fact in the store is then unreproducible.
+	committed, err := readFacts(snap.FactsPath())
+	if err != nil {
+		return err
+	}
+
+	if err := probe.VerifyFacts(result.Report.Facts, committed); err != nil {
+		return err
+	}
+
+	if runErr != nil {
+		log.Printf("note: the recorded run stopped early (%v); its facts reproduce, "+
+			"which is what verify asserts", runErr)
+	}
+
+	log.Printf("✅ %s: %d fact(s) reproduced from the committed cassette", subj.Resource, len(committed))
+
+	return nil
+}
+
+// grantForReplay authorises the mutating tier during a replay, and only when the recording had one.
+//
+// A read-only recording carries no plan and no name prefix, so no grant is issued and the mutating
+// probes are reported skipped -- which is what they were. A mutating recording gets a replay grant
+// carrying the prefix the run stamped, because ReplayTransport matches request bodies and the name
+// is in the body.
+func grantForReplay(plan probe.Plan, meta cassette.Metadata) *probe.Grant {
+	if len(plan.Fixtures) == 0 || meta.NamePrefix == "" {
+		return nil
+	}
+
+	return probe.ReplayGrant(meta.NamePrefix)
+}
+
+// printProbeReport writes the run summary to stderr.
+//
+// Stderr with fmt rather than the log package, following runIngest's printNotes: -q silences
+// progress, and what a probe could not establish is not progress chatter.
+func printProbeReport(resource string, report probe.Report) {
+	fmt.Fprintf(os.Stderr, "\n%s: %s\n", resource, report.Summary())
+
+	for _, p := range report.Probes {
+		if p.Status == "ok" {
+			continue
+		}
+		fmt.Fprintf(os.Stderr, "  %-24s %-10s %s\n", p.Name, p.Status, p.Reason)
+	}
+
+	for _, f := range report.Facts {
+		fmt.Fprintf(os.Stderr, "  fact  %s\n", f)
+	}
+	for _, n := range report.Notes {
+		fmt.Fprintf(os.Stderr, "  note  %s\n", n)
+	}
+
+	fmt.Fprintln(os.Stderr)
+}
+
+func writeFacts(path string, facts []probe.Fact) error {
+	return writeJSONFile(path, facts)
+}
+
+func readFacts(path string) ([]probe.Fact, error) {
+	data, err := os.ReadFile(path) //nolint:gosec // operator-supplied path by design
+	if err != nil {
+		return nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+
+	var out []probe.Fact
+	if err := json.Unmarshal(data, &out); err != nil {
+		return nil, fmt.Errorf("parsing %s: %w", path, err)
+	}
+
+	// Validated on load, because a committed facts document is hand-editable and a fact with
+	// no evidence would otherwise flow into merge and change a schema on the strength of
+	// nothing. A Suspected fact is exempt from the strength checks only -- its shape (field,
+	// value, preconditions) is still checked, so a malformed When cannot load unnoticed.
+	for _, f := range out {
+		if f.Confidence == probe.ConfidenceSuspected {
+			if err := f.ValidateShape(); err != nil {
+				return nil, fmt.Errorf("%s: %w", path, err)
+			}
+			continue
+		}
+		if err := f.Validate(); err != nil {
+			return nil, fmt.Errorf("%s: %w", path, err)
+		}
+	}
+
+	return out, nil
+}
+
+// writeJSONFile writes canonical JSON: two-space indent, no HTML escaping, trailing newline.
+// Matching blueprint.Marshal, because these files are committed and diffed.
+func writeJSONFile(path string, v any) error {
+	var buf bytes.Buffer
+
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+
+	if err := enc.Encode(v); err != nil {
+		return fmt.Errorf("encoding %s: %w", path, err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+		return fmt.Errorf("creating %s: %w", filepath.Dir(path), err)
+	}
+	if err := os.WriteFile(path, buf.Bytes(), 0o600); err != nil {
+		return fmt.Errorf("writing %s: %w", path, err)
+	}
+
+	return nil
+}
+
+// keepOnlyResource narrows the blueprint to one resource.
+//
+// A separate flag from -only, which selects a probe. Both exist because the two axes are
+// independent: probing one resource with the whole catalogue and probing every resource
+// with one protocol are both things an operator wants, and conflating them into one flag
+// would make the common case ambiguous.
+//
+// Naming a single resource *file* on -blueprint does not work, and deliberately: a
+// resource file carries no provider block, so LoadDir refuses it rather than silently
+// probing against a half-loaded document.
+func keepOnlyResource(bp *blueprint.Blueprint, key string) error {
+	for _, r := range bp.Resources {
+		if r.Key == key {
+			bp.Resources = []blueprint.Resource{r}
+			return nil
+		}
+	}
+
+	return usagef("-resource %q matches no resource key in the blueprint", key)
+}
+
+// subjectsOf flattens every probeable resource, collecting a note for each one that
+// cannot be probed rather than failing the run.
+//
+// A blueprint with twenty resources of which two have no read operation should still
+// probe the other eighteen. Refusing the whole run because one resource is unprobeable
+// would make the prober useless on any real provider.
+func subjectsOf(bp blueprint.Blueprint) ([]probe.Subject, []string, error) {
+	var (
+		subjects []probe.Subject
+		notes    []string
+	)
+
+	for _, res := range bp.Resources {
+		if res.Drop {
+			continue
+		}
+
+		subj, err := probe.SubjectOf(bp, res)
+		if err != nil {
+			if errors.Is(err, probe.ErrNotProbeable) {
+				notes = append(notes, err.Error())
+				continue
+			}
+			return nil, nil, err
+		}
+
+		subjects = append(subjects, subj)
+	}
+
+	return subjects, notes, nil
+}
+
+// listProbes prints the catalogue with its worst-case costs.
+//
+// This works with no credentials, no cassettes and no network, which is what makes it
+// the first useful thing the prober does: the costs and the mutating/read split are
+// reviewable against a real blueprint before anybody points it at a tenant.
+func listProbes(opts probeRun) error {
+	for _, subj := range opts.subjects {
+		// Per subject, so a multi-resource listing costs each resource against its
+		// own plan rather than against whichever plan happened to be passed.
+		plan, _, err := opts.planFor(subj.Resource)
+		if err != nil {
+			return err
+		}
+
+		sc, err := probe.NewScope(subj, plan)
+		if err != nil {
+			return err
+		}
+
+		// Two different reasons a mutating probe might not run, and they must not be conflated.
+		// A resource with no delete can never be probed, so its nominal cost is noise. A
+		// resource with no *plan* could be probed the moment one exists, so its unnarrowed
+		// worst case is exactly the figure an operator needs in order to write that plan.
+		probeable, why := subj.CanMutate()
+		_, planWhy := sc.CanMutate()
+
+		fmt.Printf("\n%s  (%s)\n", subj.Resource, subj.CollectionTemplate)
+		fmt.Printf("  %d field(s), %d writable", len(subj.Fields), len(subj.WritableFields()))
+		if subj.NameField != "" {
+			fmt.Printf(", name prefix goes in %q", subj.NameField)
+		}
+		fmt.Println()
+		fmt.Printf("  %s\n", sc)
+
+		switch {
+		case !probeable:
+			// Stated per subject rather than per probe, because it is a property of
+			// the resource and would otherwise be repeated nine times.
+			fmt.Printf("  mutating probes refused: %s\n", why)
+		case planWhy != "":
+			fmt.Printf("  mutating probes need a plan: %s\n", planWhy)
+		}
+
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		fmt.Fprintln(w, "\n  PROBE\tKIND\tREQUESTS\tCREATES")
+
+		var totalRequests, totalCreates int
+
+		for _, e := range probe.Catalogue(sc) {
+			if opts.only != "" && e.Name != opts.only {
+				continue
+			}
+
+			// A mutating probe against a resource that cannot be mutated costs nothing,
+			// because it will never run. Showing its nominal cost would overstate the
+			// budget by an order of magnitude.
+			requests, creates := e.Cost, e.Creates
+			if e.Kind == probe.ProbeKindMutating && !probeable {
+				requests, creates = 0, 0
+			}
+
+			fmt.Fprintf(w, "  %s\t%s\t%d\t%d\n", e.Name, e.Kind, requests, creates)
+
+			totalRequests += requests
+			totalCreates += creates
+		}
+
+		fmt.Fprintf(w, "  %s\t%s\t%d\t%d\n", "TOTAL", "", totalRequests, totalCreates)
+
+		if err := w.Flush(); err != nil {
+			return fmt.Errorf("writing the catalogue: %w", err)
+		}
+
+		printBudgetVerdict(sc, totalRequests, totalCreates)
+	}
+
+	fmt.Println()
+
+	return nil
+}
+
+// printBudgetVerdict compares the catalogue's worst case against the default caps.
+//
+// This is the whole reason -list prints costs rather than just names. The unbounded
+// catalogue against the pilot wants roughly 500 requests and 226 creates, against
+// defaults of 200 and 25 -- so the full run does not fit, and an operator needs to know
+// that *before* pointing it at a tenant rather than discovering it as an exit 4 partway
+// through.
+//
+// It is not a defect in either number. The per-field probes scale with the count of
+// writable fields, and the answer is to narrow them with a plan: candidates, fixtures
+// and a deny list are how an operator says which fields are worth the requests. Saying
+// so here is more useful than quietly showing a total nobody compares to anything.
+func printBudgetVerdict(sc probe.Scope, requests, creates int) {
+	budget := sc.Plan.Budget.WithDefaults()
+
+	overRequests := requests > budget.MaxRequests
+	overCreates := creates > budget.MaxCreates
+
+	which := "default"
+	if sc.Planned {
+		which = "plan's"
+	}
+
+	if !overRequests && !overCreates {
+		fmt.Printf("\n  Fits the %s budget (%d/%d requests, %d/%d creates).\n",
+			which, requests, budget.MaxRequests, creates, budget.MaxCreates)
+		return
+	}
+
+	fmt.Printf("\n  Does NOT fit the %s budget: %d/%d requests, %d/%d creates.\n",
+		which, requests, budget.MaxRequests, creates, budget.MaxCreates)
+
+	if !sc.Planned {
+		fmt.Println("  This is the unnarrowed worst case: with no plan, the per-field probes are")
+		fmt.Println("  costed over every writable field. Supply -plan with fixtures, candidates and")
+		fmt.Println("  a deny list to narrow them -- that is what the plan is for.")
+
+		return
+	}
+
+	fmt.Println("  Narrow the plan further: fewer candidate fields for the immutability protocol,")
+	fmt.Println("  or a longer deny list. Without that, a record run would stop at exit 4.")
+}

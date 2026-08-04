@@ -107,9 +107,9 @@ func TestUnit_Generate_CarriesNoTimestampOrVersion(t *testing.T) {
 		t.Fatalf("Build: %v", err)
 	}
 
-	// Year prefixes catch a date in any common format; "tfpluginframeworkgen v" catches a
+	// Year prefixes catch a date in any common format; "tfpfgen v" catches a
 	// version stamp.
-	forbidden := []string{"202", "generated at", "tfpluginframeworkgen v", os.TempDir()}
+	forbidden := []string{"202", "generated at", "tfpfgen v", os.TempDir()}
 
 	for _, f := range plan.Files {
 		// The header names the blueprint and its digest, which is intended. Only
