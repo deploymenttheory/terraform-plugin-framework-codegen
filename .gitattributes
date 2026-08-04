@@ -14,10 +14,10 @@
 # resources is thousands of lines of emitted Go that nobody should read line by
 # line -- the reviewable change is the blueprint, so point reviewers there.
 blueprints/** linguist-generated=true
-probe-evidence/** linguist-generated=true
-openapi-specs/** linguist-generated=true
-interop-specs/** linguist-generated=true
+recordings/** linguist-generated=true
+openapi/** linguist-generated=true
+specs/** linguist-generated=true
 pilot/*/internal/services/** linguist-generated=true
 
 # Pinned specifications are upstream documents, not ours to review line by line.
-openapi-specs/**/api.yaml linguist-generated=true
+openapi/**/api.yaml linguist-generated=true

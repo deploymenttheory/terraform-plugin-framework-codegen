@@ -46,7 +46,7 @@ func runWriteProbes(
 	out, err := Run(context.Background(), RunOptions{
 		Mode:     ModeRecord,
 		Subject:  quirkSubject(),
-		Scenario:     plan,
+		Scenario: plan,
 		Only:     only,
 		BaseURL:  srv.BaseURL(),
 		Redactor: testRedactor(t),
@@ -497,7 +497,7 @@ func runWriteProbesFast(
 	out, err := Run(context.Background(), RunOptions{
 		Mode:      ModeRecord,
 		Subject:   quirkSubject(),
-		Scenario:      plan,
+		Scenario:  plan,
 		Only:      only,
 		BaseURL:   srv.BaseURL(),
 		Redactor:  testRedactor(t),
@@ -544,7 +544,7 @@ func TestUnit_Probe_AMutatingRunReplaysToTheSameFacts(t *testing.T) {
 	replayed, err := Run(context.Background(), RunOptions{
 		Mode:         ModeReplay,
 		Subject:      quirkSubject(),
-		Scenario:         writePlan(),
+		Scenario:     writePlan(),
 		BaseURL:      "https://replay.invalid",
 		Interactions: interactions,
 		// A replay grant: nothing is created, the transport answers from the cassette, and the
@@ -579,7 +579,7 @@ func TestUnit_Probe_AMutatingReplayNeedsAGrant(t *testing.T) {
 	out, err := Run(context.Background(), RunOptions{
 		Mode:         ModeReplay,
 		Subject:      quirkSubject(),
-		Scenario:         writePlan(),
+		Scenario:     writePlan(),
 		BaseURL:      "https://replay.invalid",
 		Interactions: interactions,
 	})
@@ -598,7 +598,7 @@ func TestUnit_Probe_AMutatingReplayNeedsAGrant(t *testing.T) {
 	_, err = Run(context.Background(), RunOptions{
 		Mode:     ModeRecord,
 		Subject:  quirkSubject(),
-		Scenario:     writePlan(),
+		Scenario: writePlan(),
 		BaseURL:  srv.BaseURL(),
 		Redactor: testRedactor(t),
 		Grant:    ReplayGrant(testPrefix),
@@ -740,7 +740,7 @@ func runAgainst(
 	out, err := Run(context.Background(), RunOptions{
 		Mode:      ModeRecord,
 		Subject:   subj,
-		Scenario:      plan,
+		Scenario:  plan,
 		Only:      only,
 		BaseURL:   srv.BaseURL(),
 		Redactor:  testRedactor(t),
@@ -1709,7 +1709,7 @@ func TestUnit_Probe_TheNegativesAreShapedLikeTheDocumentedValues(t *testing.T) {
 	out, err := Run(context.Background(), RunOptions{
 		Mode:      ModeRecord,
 		Subject:   enumSubject(),
-		Scenario:      enumPlan(),
+		Scenario:  enumPlan(),
 		Only:      "write.enum",
 		BaseURL:   srv.BaseURL(),
 		Redactor:  testRedactor(t),

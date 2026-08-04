@@ -24,4 +24,4 @@ Scoped to this path only. Every other file in the repository is still scanned,
 including the probe cassettes that a later phase will commit -- those carry real
 recorded HTTP traffic and must keep being checked.
 """
-paths = ['''^openapi-specs/''']
+paths = ['''^openapi/''']

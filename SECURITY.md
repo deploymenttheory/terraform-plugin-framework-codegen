@@ -19,12 +19,12 @@ transcripts, so its threat surface is specific and worth stating:
   profile loader refuses a profile containing a credential-shaped value. Anything
   that would move a token into a file, a flag, a log line or a committed artefact
   is a vulnerability — report it.
-- **Committed cassettes.** Probe transcripts under `probe-evidence/` are public
+- **Committed cassettes.** Probe transcripts under `recordings/` are public
   by design. Redaction allowlists rather than denylists, and a recording fails
   outright (exit `7`, nothing written) if a credential-shaped value survives.
   A redaction bypass — any way a secret can reach a committed cassette — is the
   highest-severity bug this repository can have.
-- **Sandbox profiles.** `.tfpluginframeworkgen/sandbox/` is gitignored because a
+- **Sandbox profiles.** `.tfpfgen/sandbox/` is gitignored because a
   profile carries tenant identifiers. Committed artefacts must never contain
   tenant names; opaque numeric identifiers are accepted.
 - **Generated fixtures.** The fixture derivation refuses to invent values for

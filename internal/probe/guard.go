@@ -68,8 +68,8 @@ type GuardOptions struct {
 	// AllowMutations is the flag. A request, not an authorisation.
 	AllowMutations bool
 
-	Subject Subject
-	Scenario    Scenario
+	Subject  Subject
+	Scenario Scenario
 
 	// EquivalentRecordingExists is true when committed evidence was already recorded with an
 	// identical plan.
@@ -84,7 +84,7 @@ type GuardOptions struct {
 	// A run whose plan differs is new evidence and is allowed. The first write-tier recording
 	// against a resource that only has read-tier evidence is exactly that case.
 	EquivalentRecordingExists bool
-	Force                    bool
+	Force                     bool
 }
 
 // guardInput is everything a condition may look at.
@@ -143,7 +143,7 @@ var staticConditions = []condition{
 			if in.opts.Mode == ModeRecord {
 				return ""
 			}
-			return fmt.Sprintf("mutating probes need -mode record, and this is %s; "+
+			return fmt.Sprintf("mutating probes need probe record, and this is probe %s; "+
 				"replay and verify derive facts from a transcript and must never write",
 				in.opts.Mode)
 		},
@@ -155,7 +155,7 @@ var staticConditions = []condition{
 			if in.opts.AllowMutations {
 				return ""
 			}
-			return "--allow-mutations was not given; mutating probes create real objects in " +
+			return "-allow-mutations was not given; mutating probes create real objects in " +
 				"the tenant the profile points at, so the flag is required every time"
 		},
 	},
@@ -483,7 +483,7 @@ func Authorise(
 
 // AuthoriseSweep is the same table, filtered to what cleaning up needs.
 //
-// Deliberately does not require --allow-mutations: demanding the mutation flag in order to clean
+// Deliberately does not require -allow-mutations: demanding the mutation flag in order to clean
 // up after yourself is perverse, and an operator staring at an orphan table should not have to
 // re-read the documentation. Deliberately does not check maxExistingObjects either: a tenant
 // that now fails it may be failing it *because* it is holding your orphans.

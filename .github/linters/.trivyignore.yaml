@@ -4,7 +4,7 @@
 #
 # Referenced explicitly from trivy.yaml. Trivy's filesystem scanner walks the tree
 # rather than reading super-linter's changed-file list, which is why an exception
-# has to live here and not in FILTER_REGEX_EXCLUDE -- the same reason openapi-specs
+# has to live here and not in FILTER_REGEX_EXCLUDE -- the same reason openapi
 # is handled by scan.skip-dirs.
 
 vulnerabilities:

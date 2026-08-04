@@ -28,9 +28,9 @@ const (
 
 // RunOptions is what a run needs.
 type RunOptions struct {
-	Mode    Mode
-	Subject Subject
-	Scenario    Scenario
+	Mode     Mode
+	Subject  Subject
+	Scenario Scenario
 
 	// Only restricts the run to one probe by name.
 	Only string
@@ -378,7 +378,7 @@ func reportSkippedMutating(opts RunOptions, report *Report) {
 		return
 	}
 
-	reason := "no grant: mutating probes need -mode record, --allow-mutations and a sandbox profile"
+	reason := "no grant: mutating probes need probe record, -allow-mutations and a sandbox profile"
 	if can, why := opts.Subject.CanMutate(); !can {
 		reason = why
 	}

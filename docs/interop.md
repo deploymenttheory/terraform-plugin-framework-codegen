@@ -1,15 +1,15 @@
-# Provider Code Specification interop
+# The Provider Code Specification bridge
 
-`internal/interop` reads and writes HashiCorp's [Provider Code Specification][spec]
-v0.1. `tfpluginframeworkgen interop export` projects a blueprint onto that format;
-`interop import` reads one back as a draft.
+`internal/spec` reads and writes HashiCorp's [Provider Code Specification][spec]
+(codegen-spec v0.1). `tfpfgen spec export` projects a blueprint onto that format;
+`spec import` reads one back as a draft.
 
 [spec]: https://developer.hashicorp.com/terraform/plugin/code-generation/specification
 
 ## Why this exists
 
 **Nothing in this toolkit's pipeline consumes the exported document.** The pipeline
-runs blueprint → Go. The official format sits outside it, and no stage reads it.
+runs blueprint → Go. The spec sits outside it, and no stage reads it.
 
 The value is as a **conformance oracle**. Exporting the pilot blueprint and validating
 it against HashiCorp's own embedded JSON schema — then feeding it to their real
@@ -27,9 +27,9 @@ workflow job.
 The half that has not earned its keep is **import**, not export. Export is cheap — the
 blueprint is a superset, so it is a projection plus a report — and it buys the oracle.
 Import needs naming synthesis, the draft mechanism, block conversion and four
-refusals, and what it buys is a *worse* starting point than `ingest` already produces
-from the same OpenAPI document, for any API where somebody has published a
-codegen-spec. That set is currently empty. It is built narrowly for that reason:
+refusals, and what it buys is a *worse* starting point than `blueprint draft` already
+produces from the same OpenAPI document, for any API where somebody has published a
+spec. That set is currently empty. It is built narrowly for that reason:
 resources only, no data sources, no provider configuration schema.
 
 ## The version string is `"0.1"`, not `"0.1.0"`
@@ -49,14 +49,14 @@ The published documentation shows `0.1.0`, which upstream rejects. Anybody writi
 version by hand from the docs produces a document no tool will read, and the failure
 arrives as a bare "version is unsupported" a long way from the cause.
 
-`interop.SpecVersion` is taken from `spec.Version0_1` rather than written out, and
-`TestUnit_Interop_Version` asserts all four halves of this: the constant's value, that
-our output declares it, that upstream parses our output, and that upstream **rejects**
-the same document with `0.1.0` substituted.
+`spec.SpecVersion` is taken from upstream's `Version0_1` constant rather than written
+out, and `TestUnit_Spec_Version` asserts all four halves of this: the constant's value,
+that our output declares it, that upstream parses our output, and that upstream
+**rejects** the same document with `0.1.0` substituted.
 
 ## Upstream types are used verbatim
 
-`internal/interop` never redeclares HashiCorp's structs. The official JSON is
+`internal/spec` never redeclares HashiCorp's structs. The official JSON is
 snake_case and the house `.golangci.yml` enables `tagliatelle` with a camelCase
 default, so a local redeclaration would need a linter exclusion on every field — and
 would give two definitions to drift apart. Using their types directly means there are
@@ -67,20 +67,21 @@ times over, once each in the `resource`, `datasource` and `provider` packages, a
 struct with one pointer field per type. `prepared.go` absorbs that — it holds every
 converted sub-value from the shared `schema` package, and the per-package assemblers do
 nothing but choose which pointer field to set. It is the same division the toolkit
-draws between `internal/render` and `internal/templates`.
+draws between `internal/generate` and `internal/templates`.
 
 ## What the format cannot carry
 
-Everything below is reported, never dropped in silence. Severities are assigned by a
-table in `note.go` rather than by judgement at each call site, so the whole loss
-vocabulary reads in one screen and `TestUnit_Interop_Severities` can assert it is
-total — a new IR field with no entry fails that test.
+Everything below is reported, never dropped in silence. A downgrade is a `spec.Loss`,
+and severities are assigned by a table in `note.go` rather than by judgement at each
+call site, so the whole loss vocabulary reads in one screen and
+`TestUnit_Spec_Severities` can assert it is total — a new IR field with no entry fails
+that test.
 
 | Severity | Meaning |
 |---|---|
 | `info` | No counterpart, but nothing is at risk: provenance only, mechanically re-derivable, or the content crossed verbatim into a field with a different declared contract. |
 | `lossy` | Crossed in a coarsened form a consumer cannot distinguish from the original. |
-| `dropped` | Carried nowhere. This is the level that says the export cannot be turned back into something emittable. |
+| `dropped` | Carried nowhere. This is the level that says the export cannot be turned back into something the toolkit could generate from. |
 
 **Dropped:** CRUD bindings (`binding`), wire bindings (`wire`), observed behaviour
 (`behaviour`), update style, read-back, delete semantics, import policy, timeouts, the
@@ -91,7 +92,7 @@ attribute on import; plan modifiers and defaults on a data-source attribute, whi
 format has no field for.
 
 **Info:** generated Go identifiers, the model field name, the type prefix, layout
-conventions, specification provenance, and attribute descriptions — see below.
+conventions, snapshot provenance, and attribute descriptions — see below.
 
 Uniform losses are aggregated per resource with a count; selective ones stay addressed
 per attribute. Wire bindings and model field names exist on *every* attribute, so
@@ -124,8 +125,8 @@ is otherwise invisible, because the export would still be valid and still round-
 
 ## Static defaults
 
-The blueprint stores a default as the Go literal the emitter will write (`"devices"`,
-`0`, `false`); the official format wants a typed JSON value. Export parses, import
+The blueprint stores a default as the Go literal the generator will write (`"devices"`,
+`0`, `false`); the spec wants a typed JSON value. Export parses, import
 renders back.
 
 Two refusals live here, both returning `ErrUnrepresentable`:
@@ -145,12 +146,12 @@ interpreted one (`"devices"`), because the format carries the value and not the 
 
 ## Importing produces a draft
 
-An imported blueprint has a schema and no bindings, so it cannot be emitted. Running
-one through `blueprint.Validate` produces a correct message per missing field — for the
-pilot, **fifty-three problems** that collectively say "this is broken" rather than
-"this came from a schema-only source and needs its bindings authored".
+An imported blueprint has a schema and no bindings, so nothing can be generated from
+it. Running one through `blueprint.Validate` produces a correct message per missing
+field — for the pilot, **fifty-three problems** that collectively say "this is broken"
+rather than "this came from a schema-only source and needs its bindings authored".
 
-So `interop import` writes `*.blueprint.draft.json`:
+So `spec import` writes `*.blueprint.draft.json`:
 
 ```go
 const DraftExt = ".blueprint.draft.json"
@@ -158,17 +159,17 @@ const DraftExt = ".blueprint.draft.json"
 
 `blueprint.findBlueprints` matches names ending in `blueprint.Ext`
 (`.blueprint.json`), and `.blueprint.draft.json` does not have that suffix. **So
-`LoadDir`, `emit` and `verify` cannot see a draft at all.** That is the whole
-mechanism: an incomplete blueprint is not something the pipeline tolerates, it is
-something the pipeline cannot open. Promoting one is a rename — a git-visible,
-reviewable act.
+`LoadDir` — and with it `provider generate`, `-check` included — cannot see a draft at
+all.** That is the whole mechanism: an incomplete blueprint is not something the
+pipeline tolerates, it is something the pipeline cannot open. Promoting one is a
+rename — a git-visible, reviewable act.
 
 ```
-$ tfpluginframeworkgen emit -blueprint drafts/ -out provider/
+$ tfpfgen provider generate -blueprint drafts/ -out provider/
 no blueprint found under drafts/ (expected files named *.blueprint.json)
 ```
 
-Instead of the fifty-three messages, `interop import` prints what to author,
+Instead of the fifty-three messages, `spec import` prints what to author,
 collapsed:
 
 ```
@@ -187,12 +188,12 @@ collapsed:
 
 - **A `Draft bool` on the blueprint, with `Validate` softening binding errors.** One
   field, but it creates a first-class "incomplete blueprint" state, and within two
-  releases somebody makes `emit` tolerate it.
-- **Writing a normal `.blueprint.json` and letting `emit` fail.** The file is then
-  loadable by nothing — not even `blueprint validate` — so it is a trap that reports as
-  fifty-three unrelated errors.
+  releases somebody makes `provider generate` tolerate it.
+- **Writing a normal `.blueprint.json` and letting `provider generate` fail.** The file
+  is then loadable by nothing — not even `blueprint validate` — so it is a trap that
+  reports as fifty-three unrelated errors.
 - **Setting `drop: true`.** The worst of the three: `Validate` *skips* dropped
-  resources, so the blueprint would pass CI cleanly while emitting nothing at all.
+  resources, so the blueprint would pass CI cleanly while generating nothing at all.
 
 ### Names are derived, and not singularised
 
@@ -221,36 +222,36 @@ round-trip expectations for a field that is re-derivable anyway.
 | A `custom_type` | Reported as `dropped`; the blueprint has no field for it. |
 
 Blocks are **not** refused. A block and a nested attribute are the same data with
-different HCL syntax, so refusing would make hand-authored specifications
-un-ingestible; they are converted and reported `lossy`, because the choice is permanent
-once a provider is published. HashiCorp's own OpenAPI generator emits no blocks, so this
-only fires on hand-written input.
+different HCL syntax, so refusing would make hand-authored documents unimportable;
+they are converted and reported `lossy`, because the choice is permanent
+once a provider is published. HashiCorp's own OpenAPI generator produces no blocks, so
+this only fires on hand-written input.
 
 ## Verification
 
 ```bash
 # Round-trip and conformance, hermetic.
-go test ./internal/interop/... -cover
+go test ./internal/spec/... -cover
 
 # The committed export must match the blueprints.
-go run ./cmd/tfpluginframeworkgen interop export \
+go run ./cmd/tfpfgen spec export \
   -blueprint blueprints/thousandeyes \
-  -out interop-specs/thousandeyes/provider-code-spec.json
-git diff --quiet -- interop-specs/
+  -out specs/thousandeyes/provider-code-spec.json
+git diff --quiet -- specs/
 
 # Strict fails on the pilot, because its CRUD bindings cannot cross.
-go run ./cmd/tfpluginframeworkgen interop export -blueprint blueprints/thousandeyes -strict; echo $?   # 1
+go run ./cmd/tfpfgen spec export -blueprint blueprints/thousandeyes -strict; echo $?   # 1
 
 # The third-party parse: the reason this package exists.
 go install github.com/hashicorp/terraform-plugin-codegen-framework/cmd/tfplugingen-framework@v0.4.1
 tfplugingen-framework generate resources \
-  --input interop-specs/thousandeyes/provider-code-spec.json --output /tmp/gen
+  --input specs/thousandeyes/provider-code-spec.json --output /tmp/gen
 
 # Import, and confirm the drafts are invisible to the pipeline.
-go run ./cmd/tfpluginframeworkgen interop import \
-  -spec interop-specs/thousandeyes/provider-code-spec.json \
+go run ./cmd/tfpfgen spec import \
+  -spec specs/thousandeyes/provider-code-spec.json \
   -provider thousandeyes -api-version-dir v7 -service-group tags -out /tmp/drafts
-go run ./cmd/tfpluginframeworkgen emit -blueprint /tmp/drafts -out /tmp/out   # expect: no blueprint found
+go run ./cmd/tfpfgen provider generate -blueprint /tmp/drafts -out /tmp/out   # expect: no blueprint found
 ```
 
 The `tfplugingen-framework` job in `codegen-verify.yml` **blocks** rather than warns. A
@@ -258,7 +259,7 @@ check that cannot fail the build goes red within a month and is ignored within t
 which point it is a standing lie about the state of the export. Blocking is safe because
 the input is fixed — the committed document, not a freshly inferred one — and the tool
 is pinned, so the only thing that can break it is a change to our own mapping, which is
-precisely what wants guarding.
+precisely what the check exists to catch.
 
 ## Exit codes
 

@@ -130,7 +130,7 @@ jobs:
       # Deliberately no sweep step, and the reason is worth recording rather than leaving as an
       # apparent omission.
       #
-      # `probe -mode sweep` exists, but it sweeps the *prober's* ledger -- the objects it recorded
+      # `probe sweep` exists, but it sweeps the *prober's* ledger -- the objects it recorded
       # creating before it issued each request. It knows nothing about objects an acceptance test
       # created, because those are Terraform's, tracked in its state and destroyed by the test
       # framework at the end of the run. Invoking it here would clean up nothing and look like it

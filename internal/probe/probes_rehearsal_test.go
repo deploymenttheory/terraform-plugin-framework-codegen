@@ -55,7 +55,7 @@ func runRehearsal(t *testing.T, srv *quirkserver.Server, cfg *RehearsalConfig) R
 	out, err := Run(context.Background(), RunOptions{
 		Mode:      ModeRecord,
 		Subject:   rehearsalSubject(),
-		Scenario:      writePlan(),
+		Scenario:  writePlan(),
 		Only:      "write.rehearsal",
 		BaseURL:   srv.BaseURL(),
 		Redactor:  testRedactor(t),

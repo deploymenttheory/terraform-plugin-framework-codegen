@@ -18,7 +18,7 @@ import (
 // Grant is proof that mutating probes were authorised.
 //
 // It has no exported fields and exactly one constructor, which performs the whole
-// gating conjunction: record mode, the --allow-mutations flag, a profile declaring
+// gating conjunction: the record verb, the -allow-mutations flag, a profile declaring
 // sandbox with human-written evidence, every runtime assertion passing against the live
 // tenant, the token present in the environment, and nothing credential-shaped in the
 // profile itself.
