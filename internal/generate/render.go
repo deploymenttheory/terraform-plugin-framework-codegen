@@ -275,6 +275,13 @@ type NestedFuncView struct {
 	// from the attribute kind -- so hardcoding one of them emits a list_nested
 	// attribute whose helper does not compile against its own model.
 	Container string
+	// ConstructorExpr builds one element under a setter-based SDK; empty means
+	// a zero-value declaration of SDKType, the struct-field dialect.
+	ConstructorExpr string
+	// SharedDiag is true when an assignment uses the enclosing shared d, which
+	// is what makes declaring `var d` outside a loop body load-bearing; the
+	// temp forms declare their own.
+	SharedDiag bool
 	// Assignments are finished per-field statements inside the helper.
 	Assignments []string
 	// NeedsDiagnostics is true when a field conversion inside the helper can fail.
@@ -1200,7 +1207,7 @@ func expandAssignment(
 	needsDiags *bool,
 ) string {
 	return expandStmt(style, "body", a.Wire.SDKField, call,
-		"data."+a.GoField, lowerFirst(a.GoField), needsDiags)
+		"data."+a.GoField, lowerFirst(a.GoField), needsDiags, nil)
 }
 
 func stateView(
@@ -1209,7 +1216,14 @@ func stateView(
 	style blueprint.AccessStyle,
 	shapes []nestedShape,
 ) (StateView, error) {
-	v := StateView{ResponseType: responseType}
+	// The mapper's parameter type: a struct-field SDK hands over a pointer to
+	// its model, a method-access SDK hands over the interface its builders
+	// return -- pointering an interface would break every call site.
+	param := "*" + responseType
+	if style == blueprint.AccessMethod {
+		param = responseType
+	}
+	v := StateView{ResponseType: param}
 
 	for _, sh := range shapes {
 		if sh.attr.Wire.SkipFlatten {

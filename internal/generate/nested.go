@@ -330,12 +330,13 @@ func attrTypeExpr(t blueprint.AttrType) (string, error) {
 // structs.
 func nestedExpandView(s nestedShape) NestedFuncView {
 	v := NestedFuncView{
-		FuncName:      s.nested.ExpandFunc,
-		FrameworkType: frameworkModelType[s.attr.Type.Kind],
-		SDKType:       s.nested.SDKType,
-		ObjectTypeVar: s.nested.ObjectTypeVar,
-		ModelType:     s.nested.GoTypeName,
-		IsCollection:  s.attr.Type.Kind.IsNestedCollection(),
+		ConstructorExpr: s.nested.ConstructorExpr,
+		FuncName:        s.nested.ExpandFunc,
+		FrameworkType:   frameworkModelType[s.attr.Type.Kind],
+		SDKType:         s.nested.SDKType,
+		ObjectTypeVar:   s.nested.ObjectTypeVar,
+		ModelType:       s.nested.GoTypeName,
+		IsCollection:    s.attr.Type.Kind.IsNestedCollection(),
 	}
 
 	for _, child := range s.nested.Attributes {
@@ -353,12 +354,12 @@ func nestedExpandView(s nestedShape) NestedFuncView {
 			// -- a dashboard layout's value-typed Details is the nested case.
 			v.Assignments = append(v.Assignments, expandStmt(s.access, "item",
 				child.Wire.SDKField, call, "m."+child.GoField,
-				lowerFirst(child.GoField), &v.NeedsDiagnostics))
+				lowerFirst(child.GoField), &v.NeedsDiagnostics, &v.SharedDiag))
 			continue
 		}
 		v.Assignments = append(v.Assignments, expandStmt(s.access, "item",
 			child.Wire.SDKField, call, "m."+child.GoField,
-			lowerFirst(child.GoField), &v.NeedsDiagnostics))
+			lowerFirst(child.GoField), &v.NeedsDiagnostics, &v.SharedDiag))
 	}
 
 	return v
@@ -385,6 +386,7 @@ func nestedFlattenView(s nestedShape) NestedFuncView {
 		call := *child.Wire.Flatten
 		if call.ReturnsError {
 			v.NeedsDiagnostics = true
+			v.SharedDiag = true
 			v.Assignments = append(v.Assignments, fmt.Sprintf(
 				"m.%s, d = %s\ndiags.Append(d...)",
 				child.GoField, convertExpr(call, readExpr(s.access, "item", child.Wire.SDKField))))

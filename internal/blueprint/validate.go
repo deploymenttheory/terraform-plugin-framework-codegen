@@ -510,6 +510,19 @@ func (b Blueprint) validateCallStyles(p *problems) {
 		if r.Drop {
 			continue
 		}
+		// A single nested attribute's helpers are still rendered struct-shaped;
+		// under a setter-based SDK they would hand a nil interface to a setter.
+		// Collections construct their elements and are fully supported.
+		for _, a := range r.Schema.Attributes {
+			if a.Drop || a.Type.Kind != KindSingleNested || a.Wire.SDKField == "" {
+				continue
+			}
+			if b.Provider.SDK.Dialect == DialectKiotaFluent && (!a.Wire.SkipExpand || !a.Wire.SkipFlatten) {
+				p.add("resources["+r.Key+"].schema.attributes["+a.Name+"]",
+					"a single nested attribute's wire conversion is not yet rendered for dialect %q; "+
+						"skip both directions or model it by hand", DialectKiotaFluent)
+			}
+		}
 		at := "resources[" + r.Key + "].binding"
 		check(at+".create", r.Binding.Create)
 		check(at+".read", r.Binding.Read)

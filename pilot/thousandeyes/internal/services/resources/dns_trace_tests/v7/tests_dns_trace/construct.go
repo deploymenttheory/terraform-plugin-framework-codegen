@@ -52,14 +52,14 @@ func expandDnsTraceAgents(ctx context.Context, v types.Set) ([]dns_trace_tests.T
 		return nil, diags
 	}
 
-	var models []DnsTraceAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []DnsTraceAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]dns_trace_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]dns_trace_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item dns_trace_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

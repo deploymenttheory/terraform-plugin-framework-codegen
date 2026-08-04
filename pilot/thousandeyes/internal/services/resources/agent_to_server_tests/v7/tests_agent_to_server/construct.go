@@ -65,14 +65,14 @@ func expandAgentToServerAgents(ctx context.Context, v types.Set) ([]agent_to_ser
 		return nil, diags
 	}
 
-	var models []AgentToServerAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []AgentToServerAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]agent_to_server_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]agent_to_server_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item agent_to_server_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

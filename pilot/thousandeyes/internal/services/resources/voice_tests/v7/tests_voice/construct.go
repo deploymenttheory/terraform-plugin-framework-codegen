@@ -58,14 +58,14 @@ func expandVoiceAgents(ctx context.Context, v types.Set) ([]voice_tests.TestAgen
 		return nil, diags
 	}
 
-	var models []VoiceAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []VoiceAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]voice_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]voice_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item voice_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

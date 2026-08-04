@@ -51,14 +51,14 @@ func expandDnssecAgents(ctx context.Context, v types.Set) ([]dnssec_tests.TestAg
 		return nil, diags
 	}
 
-	var models []DnssecAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []DnssecAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]dnssec_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]dnssec_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item dnssec_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

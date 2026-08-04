@@ -68,14 +68,14 @@ func expandFtpServerAgents(ctx context.Context, v types.Set) ([]ftp_server_tests
 		return nil, diags
 	}
 
-	var models []FtpServerAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []FtpServerAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]ftp_server_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]ftp_server_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item ftp_server_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

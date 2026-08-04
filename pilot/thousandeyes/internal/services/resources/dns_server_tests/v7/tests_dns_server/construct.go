@@ -65,14 +65,14 @@ func expandDnsServerAgents(ctx context.Context, v types.Set) ([]dns_server_tests
 		return nil, diags
 	}
 
-	var models []DnsServerAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []DnsServerAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]dns_server_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]dns_server_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item dns_server_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

@@ -1,0 +1,159 @@
+// Package crud holds the operation-shaped helpers every generated resource uses:
+// timeout handling and the re-read after a write.
+//
+// It is hand-written and owned by the provider. Generated CRUD bodies are a fixed
+// skeleton that calls into here, which keeps the generated code short enough to read
+// and puts the fiddly parts somewhere they can be tested directly.
+package crud
+
+import (
+	"context"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+)
+
+// TimeoutFunc resolves a configured timeout, falling back to a default. It
+// matches the signature of the timeouts value's Create, Read, Update and Delete
+// methods so a generated call can pass one directly.
+type TimeoutFunc func(ctx context.Context, def time.Duration) (time.Duration, diag.Diagnostics)
+
+// HandleTimeout derives a context bounded by the configured timeout.
+//
+// It returns a nil cancel function when the timeout could not be resolved, which
+// is the signal for the caller to return without proceeding. Returning a usable
+// context alongside an error would invite a caller to ignore the error and run the
+// operation unbounded.
+func HandleTimeout(
+	ctx context.Context,
+	resolve TimeoutFunc,
+	def time.Duration,
+	diags *diag.Diagnostics,
+) (context.Context, context.CancelFunc) {
+	d := def
+
+	if resolve != nil {
+		resolved, tdiags := resolve(ctx, def)
+		diags.Append(tdiags...)
+		if diags.HasError() {
+			return ctx, nil
+		}
+		d = resolved
+	}
+
+	c, cancel := context.WithTimeout(ctx, d)
+	return c, cancel
+}
+
+// Timeout resolves one of a resource's four timeouts to a duration, treating a
+// zero configured value as the default.
+func Timeout(ctx context.Context, v timeouts.Value, which Phase, def time.Duration, diags *diag.Diagnostics) time.Duration {
+	var (
+		d      time.Duration
+		tdiags diag.Diagnostics
+	)
+
+	switch which {
+	case PhaseCreate:
+		d, tdiags = v.Create(ctx, def)
+	case PhaseRead:
+		d, tdiags = v.Read(ctx, def)
+	case PhaseUpdate:
+		d, tdiags = v.Update(ctx, def)
+	case PhaseDelete:
+		d, tdiags = v.Delete(ctx, def)
+	}
+
+	diags.Append(tdiags...)
+	if d <= 0 {
+		return def
+	}
+	return d
+}
+
+// Phase identifies which of a resource's timeouts to resolve.
+type Phase string
+
+const (
+	PhaseCreate Phase = "create"
+	PhaseRead   Phase = "read"
+	PhaseUpdate Phase = "update"
+	PhaseDelete Phase = "delete"
+)
+
+// ReadBackOptions configures the re-read after a write.
+type ReadBackOptions struct {
+	// MaxRetries is the number of additional attempts after the first.
+	MaxRetries int
+	// Interval is the wait between attempts.
+	Interval time.Duration
+	// ResourceType and Operation appear in log lines.
+	ResourceType string
+	Operation    string
+	// Reason records why the re-read is needed, so a retry loop in generated code
+	// is not indistinguishable from cargo cult.
+	Reason string
+}
+
+// DefaultReadBackOptions is a conservative starting point for an API whose
+// consistency has not been measured. The prober replaces these with observed
+// values, and is only permitted to increase them.
+func DefaultReadBackOptions() ReadBackOptions {
+	return ReadBackOptions{MaxRetries: 10, Interval: 2 * time.Second}
+}
+
+// ReadBack calls read until it reports success, or until the retries or the
+// context are exhausted.
+//
+// read reports whether the resource was observed. It is separate from the error
+// return because "not there yet" and "the request failed" need different handling:
+// the first is worth retrying and the second is not.
+func ReadBack(ctx context.Context, opts ReadBackOptions, read func(context.Context) (bool, error)) error {
+	if opts.Interval <= 0 {
+		opts.Interval = time.Second
+	}
+
+	var lastErr error
+
+	for attempt := 0; attempt <= opts.MaxRetries; attempt++ {
+		found, err := read(ctx)
+		switch {
+		case err != nil:
+			// A hard failure is not retried. Retrying a 403 just delays the
+			// report by the whole retry budget.
+			return err
+		case found:
+			if attempt > 0 {
+				tflog.Debug(ctx, "resource became readable after retrying", map[string]any{
+					"resource":  opts.ResourceType,
+					"operation": opts.Operation,
+					"attempts":  attempt + 1,
+				})
+			}
+			return nil
+		}
+
+		lastErr = ErrNotYetReadable
+
+		if attempt == opts.MaxRetries {
+			break
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(opts.Interval):
+		}
+	}
+
+	tflog.Warn(ctx, "resource did not become readable within the retry budget", map[string]any{
+		"resource":  opts.ResourceType,
+		"operation": opts.Operation,
+		"attempts":  opts.MaxRetries + 1,
+		"reason":    opts.Reason,
+	})
+
+	return lastErr
+}

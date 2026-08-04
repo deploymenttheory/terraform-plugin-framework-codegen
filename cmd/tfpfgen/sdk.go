@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -277,6 +278,13 @@ func diffTrees(fresh, committed string) ([]string, error) {
 			drifted = append(drifted, rel+" (missing)")
 		case err != nil:
 			return err
+		case rel == kiota.LockFileName:
+			// The lock records the description's path relative to the output
+			// directory, so a scratch regeneration always differs on that one
+			// field; every other field must still match byte-for-byte.
+			if !lockEquivalent(want, have) {
+				drifted = append(drifted, rel)
+			}
 		case !bytes.Equal(want, have):
 			drifted = append(drifted, rel)
 		}
@@ -302,6 +310,20 @@ func diffTrees(fresh, committed string) ([]string, error) {
 		return nil
 	})
 	return drifted, err
+}
+
+// lockEquivalent compares two kiota lock files ignoring descriptionLocation,
+// the one field that legitimately depends on where the output directory sits.
+func lockEquivalent(a, b []byte) bool {
+	var la, lb map[string]any
+	if json.Unmarshal(a, &la) != nil || json.Unmarshal(b, &lb) != nil {
+		return bytes.Equal(a, b)
+	}
+	delete(la, "descriptionLocation")
+	delete(lb, "descriptionLocation")
+	ja, errA := json.Marshal(la)
+	jb, errB := json.Marshal(lb)
+	return errA == nil && errB == nil && bytes.Equal(ja, jb)
 }
 
 // ensureSDKModule writes a minimal go.mod for an external SDK tree and lets

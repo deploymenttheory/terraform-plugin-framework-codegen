@@ -193,7 +193,11 @@ func ephemeralStateView(
 	e blueprint.Ephemeral,
 	imports *importSet,
 ) (StateView, error) {
-	v := StateView{ResponseType: e.Binding.Response.Type}
+	param := "*" + e.Binding.Response.Type
+	if e.Binding.Response.AccessStyle == blueprint.AccessMethod {
+		param = e.Binding.Response.Type
+	}
+	v := StateView{ResponseType: param}
 
 	sup := bp.Provider.Support
 	imports.add(pkgContext, "")

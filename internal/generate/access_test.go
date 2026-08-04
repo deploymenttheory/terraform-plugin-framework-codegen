@@ -72,7 +72,7 @@ func TestUnit_Generate_ExpandStmtShapes(t *testing.T) {
 			t.Parallel()
 
 			var needsDiags bool
-			got := expandStmt(tc.style, "body", "Title", tc.call, "data.Title", "title", &needsDiags)
+			got := expandStmt(tc.style, "body", "Title", tc.call, "data.Title", "title", &needsDiags, nil)
 			if got != tc.want {
 				t.Errorf("expandStmt =\n%s\nwant\n%s", got, tc.want)
 			}

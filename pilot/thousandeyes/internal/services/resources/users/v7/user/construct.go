@@ -49,14 +49,14 @@ func expandUserAccountGroupRoles(ctx context.Context, v types.Set) ([]users.User
 		return nil, diags
 	}
 
-	var models []UserAccountGroupRoleModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []UserAccountGroupRoleModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]users.UserAccountGroupRole, 0, len(models))
-	for _, m := range models {
+	out := make([]users.UserAccountGroupRole, 0, len(elements))
+	for _, m := range elements {
 		var item users.UserAccountGroupRole
 
 		item.AccountGroupID = convert.FrameworkToPtrString(m.AccountGroupID)

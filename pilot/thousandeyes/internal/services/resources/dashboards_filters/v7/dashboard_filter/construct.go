@@ -47,14 +47,14 @@ func expandDashboardFilterApiContextFilterses(ctx context.Context, v types.Set) 
 		return nil, diags
 	}
 
-	var models []DashboardFilterApiContextFiltersModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []DashboardFilterApiContextFiltersModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]dashboards_filters.ApiDataSourceFilters, 0, len(models))
-	for _, m := range models {
+	out := make([]dashboards_filters.ApiDataSourceFilters, 0, len(elements))
+	for _, m := range elements {
 		var item dashboards_filters.ApiDataSourceFilters
 
 		item.DataSourceID = convert.FrameworkToString(m.DataSourceID)
@@ -77,14 +77,14 @@ func expandDashboardFilterApiDataSourceFilters(ctx context.Context, v types.Set)
 		return nil, diags
 	}
 
-	var models []DashboardFilterApiDataSourceFilterModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []DashboardFilterApiDataSourceFilterModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]dashboards_filters.ApiDataSourceFilter, 0, len(models))
-	for _, m := range models {
+	out := make([]dashboards_filters.ApiDataSourceFilter, 0, len(elements))
+	for _, m := range elements {
 		var item dashboards_filters.ApiDataSourceFilter
 
 		item.FilterID = convert.FrameworkToString(m.FilterID)

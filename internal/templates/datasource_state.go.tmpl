@@ -12,7 +12,7 @@ import (
 // generated code, a field whose conversion is wrong is a compile error rather
 // than a surprise during apply.
 {{- if .State.NeedsDiagnostics }}
-func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) diag.Diagnostics {
+func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, remote {{ .State.ResponseType }}) diag.Diagnostics {
 	var (
 		diags diag.Diagnostics
 		d     diag.Diagnostics
@@ -25,7 +25,7 @@ func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, 
 		return diags
 	}
 {{- else }}
-func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) {
+func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, remote {{ .State.ResponseType }}) {
 	if remote == nil {
 		tflog.Debug(ctx, "remote object is nil, leaving state untouched", map[string]any{
 			"dataSource": TypeName,

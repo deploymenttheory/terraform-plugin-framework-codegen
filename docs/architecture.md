@@ -34,7 +34,9 @@ Every stage is built, and each is a verb of the one binary.
 | Stage | Package | State |
 |---|---|---|
 | `openapi fetch` — fetch and pin an OpenAPI snapshot | `internal/snapshot` | **built** — the refresh loop re-fetches from the latest snapshot's recorded source |
-| `blueprint draft` — OpenAPI → blueprint + scenario drafts | `internal/openapi` | **built** |
+| `sdk generate` — OpenAPI snapshot → Go SDK via kiota (optional; embed or external) | `internal/kiota` | **built** — version-gated on the committed kiota-lock.json |
+| `blueprint draft` — OpenAPI → blueprint + scenario drafts | `internal/kiota` | drives the kiota generator as a gated PATH tool: version gate, lock reading, deterministic invocation |
+| `internal/openapi` | **built** (restyService and kiotaFluent dialects) |
 | `probe` — live API → behaviour facts | `internal/probe` | **built** (record, replay, verify, sweep, list; the rehearsal fixpoint) |
 | `blueprint merge` — fold facts into a blueprint | `internal/blueprint/merge` | **built** (plus scenario adoption) |
 | `provider generate` — blueprint → provider, postchecked | `internal/generate`, `internal/templates` | **built** |

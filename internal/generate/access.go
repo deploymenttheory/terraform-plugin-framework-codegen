@@ -42,12 +42,15 @@ func writeStmt(style blueprint.AccessStyle, target, field, value string) string 
 // only when a wrapper (Deref, Cast) has to apply to the converted value --
 // exactly the shapes expandAssignment always produced, which is what keeps
 // the resty output byte-identical.
+// sharedDiag, when non-nil, is set for the plain two-value form that assigns
+// the enclosing scope's shared d -- the one form that needs `var d` declared
+// outside a loop body; the temp forms declare their own with `:=`.
 func expandStmt(
 	style blueprint.AccessStyle,
 	target, field string,
 	call blueprint.ConvertCall,
 	src, tmpBase string,
-	needsDiags *bool,
+	needsDiags, sharedDiag *bool,
 ) string {
 	if !call.ReturnsError {
 		return writeStmt(style, target, field, convertExpr(call, src))
@@ -65,6 +68,9 @@ func expandStmt(
 			writeStmt(style, target, field, wrapConverted(call, tmp)))
 	}
 
+	if sharedDiag != nil {
+		*sharedDiag = true
+	}
 	return fmt.Sprintf(
 		"%s.%s, d = %s\ndiags.Append(d...)",
 		target, field, convertExpr(call, src))

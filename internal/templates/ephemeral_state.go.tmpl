@@ -11,7 +11,7 @@ import (
 // Named for where the values go: an ephemeral has no state, and calling this a state
 // mapper would claim a persistence the kind exists to avoid.
 {{- if .State.NeedsDiagnostics }}
-func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) diag.Diagnostics {
+func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote {{ .State.ResponseType }}) diag.Diagnostics {
 	var (
 		diags diag.Diagnostics
 		d     diag.Diagnostics
@@ -24,7 +24,7 @@ func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote *
 		return diags
 	}
 {{- else }}
-func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) {
+func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote {{ .State.ResponseType }}) {
 	if remote == nil {
 		tflog.Debug(ctx, "remote object is nil, leaving the result untouched", map[string]any{
 			"ephemeral": TypeName,
