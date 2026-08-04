@@ -14,6 +14,7 @@ to do when a file genuinely cannot be generated.
 | `internal/services/**/{modify_plan,validate}.go` | **you** | editing them; `emit` never touches them again |
 | `internal/provider/{resources,datasources,list_resources,actions}.go` | toolkit | adding a blueprint, then `emit` |
 | `internal/services/actions/**/{action,model,invoke}.go` | toolkit | editing the blueprint, then `emit` |
+| `internal/services/**/testdata/{minimal,maximal}.tf` | toolkit | editing the blueprint's `accFixture` hints, then `emit` — see the note on fixtures |
 | `internal/provider/interfaces.go` | **you** | it pins that the generated registries are what satisfy each `ProviderWith*` |
 | `internal/provider/provider.go` | **you** | editing it — authentication is always bespoke |
 | `internal/client/` | **you** | editing it |
@@ -33,6 +34,15 @@ its ownership was previously undocumented, and an undocumented owner is the one 
 generator eventually overwrites. It becomes partly generated when a blueprint
 starts declaring where its SDK comes from, since the SDK requirement and any
 `replace` for local development are then facts the blueprint holds.
+
+The acceptance fixtures (`testdata/minimal.tf`, `testdata/maximal.tf`) moved from
+"yours" to generated, and the reversal is worth recording. A hand-maintained
+maximal fixture desynchronised from the bodies the probe had rehearsed within one
+wave of resources — the values acceptance ran were no longer the values the
+evidence vouched for. Both renderings of a fixture now come from one derivation
+(see [fixtures-and-rehearsal.md](fixtures-and-rehearsal.md)); what used to be a
+hand edit to the fixture is now an `accFixture` hint in the blueprint, which the
+probe honours too.
 
 ## The acceptance harness
 
@@ -60,7 +70,7 @@ compiles its equivalent into the shipped binary. An external `_test` package can
 still reach the exported identifiers of a package's own test files, so nothing is
 lost and no test scaffolding reaches a release build.
 
-## Four ways the boundary is enforced
+## Five ways the boundary is enforced
 
 **1. A header on every generated file.**
 
@@ -113,6 +123,16 @@ The workflow then builds and tests **both modules**. The explicit
 `go build ./...` silently skips every generated file. Without that step the gate
 would pass on generated code that does not compile — the exact failure it exists
 to prevent.
+
+**5. `emit` finishes with the tools that gate it.**
+
+After writing, `emit` runs the postcheck battery — `go build ./...`, `go generate .`
+(tfplugindocs), and `terraform fmt` over the output module (see
+[cli.md](cli.md#the-postcheck-battery)). The battery is the boundary enforced at
+generation time rather than at review time: an emitted tree that does not compile,
+or whose registry docs or fixture formatting would drift, fails on the author's
+machine instead of in CI. It exists because both failures happened — the gates
+caught them, but a gate that fires after the commit is a slower postcheck.
 
 ## State mapping has exactly one call site
 
@@ -254,17 +274,6 @@ before doing that work:
 
 ## Onboarding a new API
 
-Steps 1 to 3 and the hand-written `common/` packages happen once per API; 4 onward
-repeat per resource.
-
-1. Pin a specification snapshot and commit it *(Phase 2)*.
-2. Write the provider blueprint: name, module, SDK dialect, client type, support
-   package paths.
-3. Hand-write `internal/client`, `internal/provider/provider.go` and
-   `common/{crud,errors,schema}`. Authentication is always bespoke.
-4. Write or infer a resource blueprint. Read it like a code review — it is JSON on
-   purpose.
-5. `tfpluginframeworkgen bindings` to confirm every SDK symbol it names exists.
-6. `tfpluginframeworkgen emit -dry-run`, then `emit`. Then `go build`. **Fix the
-   blueprint, not the Go.**
-7. Wire `codegen-verify.yml` into the provider's repository.
+The full runbook — from pinning a specification to a green live acceptance run —
+lives in [onboarding-a-new-api.md](onboarding-a-new-api.md). The one rule that
+belongs on this page as well: at every step, **fix the blueprint, not the Go.**

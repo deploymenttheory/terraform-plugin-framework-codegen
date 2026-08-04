@@ -378,6 +378,13 @@ diagnostic. Constraints live on `AttrType` rather than `Attribute` because they 
 of the type: a collection's **element type carries its own**, and those are lifted onto the
 collection as `ValueStringsAre(...)` — a bound on a set's elements is not a bound on the set.
 
+`constraints.format` carries the specification's declared string format (`date-time`, `uuid`,
+`email`, …). It generates no validator — the framework has none for formats — but it drives
+fixture synthesis: a probe or acceptance fixture for a `date-time` field sends a real timestamp
+rather than a sentinel string an API would refuse (see
+[fixtures-and-rehearsal.md](fixtures-and-rehearsal.md)). Declared numeric bounds are also what
+keep the rehearsal's contrast values in range.
+
 Three refusals, each because the framework has no validator to generate:
 
 - A bound on a kind that has none — a `pattern` on a number, a length on a collection.
@@ -485,6 +492,7 @@ How one attribute crosses the boundary.
 | `sdkField`, `sdkGoType` | the SDK model's field and its exact declared type |
 | `expand` | Terraform → SDK |
 | `flatten` | SDK → Terraform |
+| `updateExpand` | overrides `expand` for the update body only — see below |
 | `skipExpand` | a computed field is read, never sent |
 | `skipFlatten` | a write-only secret must not be flattened, or state blanks on every read |
 
@@ -492,6 +500,21 @@ A conversion with `returnsError` makes its caller fallible, which propagates:
 the helper returns diagnostics, so `constructResource` does, so its CRUD call site
 changes. That propagation is computed in `render`, so a resource with only
 infallible scalars still gets the simpler signatures.
+
+An `expand` or `flatten` is a `ConvertCall`, and three small fields on it absorb
+the SDK shape differences that would otherwise need bespoke converters:
+
+| Field | Purpose |
+|---|---|
+| `deref` | wrap the call in `convert.Deref`, for an SDK field declared as a value where the converter yields a pointer |
+| `takesAddress` | pass the argument by address — the flatten-side mirror of `deref` |
+| `cast` | wrap the finished call in a Go conversion, for an SDK field whose type is a named alias |
+| `imports` | packages the call's expression needs |
+
+`updateExpand` exists because a generated SDK sometimes types the *same* field
+differently per operation — the live case is a `string` on create and a `*string`
+on update. One converter cannot satisfy both bodies, so the update body may name
+its own; absent, `expand` serves both.
 
 ## Binding
 
@@ -515,6 +538,14 @@ methods look different should be a blueprint change, not an emitter change.
 error return in the generated body. Getting it wrong produces code that does not
 compile — `tfpluginframeworkgen bindings` checks it against the method's real signature.
 
+An argument of kind `literal` carries an `expr` — a verbatim Go expression —
+plus the `imports` that expression references. It exists for constant request
+options: an expansion-gated read (`teclient.WithQueryParam("expand", "filters")`)
+needs the option repeated everywhere the read is generated, including the
+acceptance test helper, where the SDK's client package must be aliased because
+the helper's own `client` variable shadows it. A literal with no expression is
+refused where it appears — there is nothing to repeat.
+
 ## Policy
 
 `updateStyle` is **required** when a resource has an update operation, and
@@ -529,6 +560,16 @@ mentioned. The ThousandEyes tag endpoint is `PUT`.
 What the API actually does, as opposed to what its document claims: `writable`,
 `immutable`, `serverDefault`, `returnedOnRead`, `volatile`, `requiredByApi`, and
 the observed value sets (`acceptedValues`, `rejectedValues`, `valuesClosed`).
+
+The rehearsal (see [fixtures-and-rehearsal.md](fixtures-and-rehearsal.md)) added
+five more:
+
+| Field | Meaning |
+|---|---|
+| `returnedOnCreate` / `returnedOnUpdate` | false for a field sent on that hop and absent or null in its response — distinct from `returnedOnRead`, because write responses and reads genuinely differ |
+| `forcedValue` | the value the API substitutes no matter what is sent; the fixture derivation then sends exactly this, because rehearsing anything else rehearses a lie |
+| `updateDefault` | the value assigned when an update omits the field — kept separate from `serverDefault` because the pilot's APIs default differently on create and update |
+| `zeroValueUnsendable` | the SDK's wire encoding cannot express the zero value at all; derived statically from struct tags, not probed (see [probing.md](probing.md#static-facts)) |
 
 Populated by `merge` from probe facts — the pilot's tag blueprint carries values
 recorded from a live run — and consumed by `render`: an observed normalisation or
@@ -570,6 +611,51 @@ The semantics are a contract between merge (which writes variants) and emission
   sets). A conditional fact about anything else is held back in the description
   with its condition stated — applying it unconditionally is the bug this
   structure exists to prevent.
+
+## Acceptance-test curation: `accFixture`, `sweep`, `skipUnlessEnv`
+
+Three resource-level fields curate what the generated acceptance tests do, for
+the knowledge no derivation can have.
+
+**`accFixture`** holds curated fixture values (the full derivation story is in
+[fixtures-and-rehearsal.md](fixtures-and-rehearsal.md)):
+
+```jsonc
+"accFixture": {
+  "dataBlocks": ["data \"thousandeyes_agents\" \"test\" {}"],
+  "values": [
+    { "attr": "agent_id", "hcl": "data.thousandeyes_agents.test.agents[0].agent_id" },
+    { "attr": "filters",  "hcl": "[{ key = \"platform\", mode = \"in\", values = [\"windows\"] }]",
+      "wire": [{ "key": "platform", "mode": "in", "values": ["windows"] }] },
+    { "attr": "minimum_sources_pct", "omit": true }
+  ]
+}
+```
+
+- `dataBlocks` are emitted verbatim above the resource block, so a hint can
+  reference live tenant data instead of a literal that goes stale.
+- A value's `hcl` is the fixture's right-hand side, verbatim and never salted.
+  `wire` is the same value in wire-typed form, which the rehearsal sends; a data
+  reference has no wire form, a literal does. `source` marks a hint promoted from
+  a probe plan (`merge -promote-plans`), which refreshes its own hints on
+  re-merge and never touches hand-written ones.
+- `omit: true` is a **curated omission**: the attribute appears in no generated
+  fixture and no rehearsal body. For values that are individually valid and
+  jointly refused — a rule takes `minimumSources` or `minimumSourcesPct` but
+  never both. The attribute stays configurable; the maximal fixture just cannot
+  carry every combination. Recording the omission makes it a decision instead of
+  an accident.
+
+**`sweep`** overrides the prober's name-field inference (`nameField`,
+`readNameField`). It lives on the resource rather than the probe plan because
+`probe -mode sweep` builds its subject from the blueprint alone — a sweep is
+exactly the situation where no plan may be to hand, and the field that finds
+stranded objects cannot depend on one.
+
+**`accTest.skipUnlessEnv`** names an environment variable the generated test
+requires; unset, the test skips with a message naming it. The pilot gates its
+admin-scoped resources on `TFPFGEN_ACC_ADMIN` this way, so a contributor without
+an admin token gets skips rather than failures.
 
 ## Validation
 

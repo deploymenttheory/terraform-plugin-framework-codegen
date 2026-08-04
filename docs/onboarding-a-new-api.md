@@ -1,10 +1,12 @@
 # Onboarding a new API, end to end
 
 The numbered runbook for taking an API from "there is a specification and an SDK" to "a
-generated provider with live-proven behaviour". Written from two walked paths — the tag
-resource (ingest-assisted, fully probed) and the credential pair (hand-authored, probed,
-plus an ephemeral) — so every step below has been done at least twice, and the sharp
-edges each one found are recorded where they cut.
+generated provider with live-proven behaviour". First written from two walked paths — the
+tag resource (ingest-assisted, fully probed) and the credential pair (hand-authored,
+probed, plus an ephemeral) — and since walked roughly twenty times across five recorded
+waves (tests, alerts, dashboards, account management, endpoint labels), so every step
+below has been done repeatedly, and the sharp edges each one found are recorded where
+they cut.
 
 Throughout: the pipeline's order is **author first, record second**. A resource lands in
 the blueprint before it has evidence; replay and verify note the gap and continue, and
@@ -107,13 +109,32 @@ signatures, return arities, response models, every attribute's `sdkField`, for a
 block kinds, counted per kind. Run it before ever emitting: it turns a pile of identical
 compile errors in generated code into one message naming the blueprint field to edit.
 
+Then derive the **static facts** — the behaviour written into the SDK's own struct tags
+(a value-typed `omitempty` field cannot send its zero value) — and fold them in:
+
+```sh
+tfpluginframeworkgen bindings -blueprint blueprints/PROVIDER -module pilot/PROVIDER \
+  -facts-out blueprints/PROVIDER/static.facts.json
+tfpluginframeworkgen merge -blueprint blueprints/PROVIDER \
+  -facts blueprints/PROVIDER/static.facts.json
+```
+
+Commit the document; CI re-derives it with `-facts-check`, so an SDK version bump that
+changes a struct tag shows up as drift instead of as a silently wrong fixture. Repeat
+both commands whenever the SDK pin moves.
+
 ## 6. Emit, build, and wire the hand-written shell
 
 ```sh
 tfpluginframeworkgen emit -blueprint blueprints/PROVIDER -out pilot/PROVIDER -dry-run
 tfpluginframeworkgen emit -blueprint blueprints/PROVIDER -out pilot/PROVIDER
-cd pilot/PROVIDER && go build ./... && go test ./...
+cd pilot/PROVIDER && go test ./...
 ```
+
+`emit` finishes with the postcheck battery — compile, tfplugindocs regeneration,
+`terraform fmt` over the fixtures — so a tree that would fail the CI gates fails on your
+machine at generation time. `go test` is still yours to run; the battery proves the tree
+is well-formed, not that it is correct.
 
 The hand-written boundary (once per provider, then stable): `main.go`,
 `internal/provider/{provider,interfaces}.go`, `internal/client/`,
@@ -156,6 +177,14 @@ names all unmet conditions at once. What the fixtures decide:
 - **Refused enum values escalate** into every other declared fixture before being called
   rejected; a disagreement one gate cleanly partitions becomes a fact per branch.
 
+A mutating record ends with the **rehearsal fixpoint**: the exact lifecycles the
+generated acceptance tests will run, with the fixture values the generator will render,
+re-derived and re-run until they converge (see
+[fixtures-and-rehearsal.md](fixtures-and-rehearsal.md)). Its refusal notes are the
+pre-emit signal — a body the API refuses in rehearsal is an acceptance failure you get
+to fix *before* any provider code exists, usually with an `accFixture` hint or omission.
+`-no-rehearse` skips it for a cheap targeted re-record.
+
 Then prove purity offline, exactly as CI will:
 
 ```sh
@@ -186,6 +215,19 @@ Reconcile presence changes by hand where the evidence demands them (the findings
 pattern: a field the API discards becomes `computed`; a gated field becomes writable
 with its enum converter), then re-run merge until it reports nothing.
 
+Where the fixture generator refuses to derive a value the plan already knows
+(`-promote-plans` names the attributes in its output), promote the plan's values into
+`accFixture` wire hints instead of retyping them:
+
+```sh
+tfpluginframeworkgen merge -blueprint blueprints/PROVIDER \
+  -facts probe-evidence/PROVIDER/THING/SNAPSHOT/facts.json \
+  -promote-plans blueprints/PROVIDER
+```
+
+Promotion only fills gaps — refused attributes, first fixture, hand-written hints always
+win — so re-running it is safe.
+
 ## 9. Acceptance, live
 
 ```sh
@@ -203,9 +245,11 @@ gated, and the only job that creates real objects.
 
 ## 10. The gates that keep it honest
 
-Every PR: regenerate-and-diff, build and test toolkit + pilot, bindings, interop
-round-trip, offline fact re-derivation with egress blocked, `merge -check`, terraform
-validation of examples and fixtures. A resource with no evidence yet is a stated note;
-a verify that proved nothing at all fails. When any of these disagrees with you, the
-committed artefact is the arbiter — regenerate, re-derive, or re-record; never edit a
-generated file or a cassette by hand.
+Every PR runs five jobs in `codegen-verify.yml` — 🔁 Regenerate and diff, 🔗 Verify SDK
+bindings (including the static-facts drift check), 🔀 Round-trip through
+tfplugingen-framework, 🔬 Re-derive probe facts offline (replay-verify with egress
+blocked, then `merge -check` over every facts file), and 🌍 Terraform validates the
+examples — each with a local reproduction listed in [gates.md](gates.md). A resource
+with no evidence yet is a stated note; a verify that proved nothing at all fails. When
+any of these disagrees with you, the committed artefact is the arbiter — regenerate,
+re-derive, or re-record; never edit a generated file or a cassette by hand.

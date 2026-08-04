@@ -7,28 +7,30 @@ those boundaries are drawn where they are.
 ## The pipeline
 
 ```
-OpenAPI snapshot ──ingest──┐
-                            ├──merge──► blueprint.json ──emit──► provider Go tree
-live API ────────probe──────┤                                    + tests, mocks,
-                            │                                      fixtures, docs
-human overrides ────────────┘
+upstream URL ──specs──► OpenAPI snapshot ──ingest──┐
+                                                    ├──merge──► blueprint.json ──emit──► provider Go tree
+live API ──probe (catalogue + rehearsal fixpoint)───┤                            │       + tests, fixtures,
+pinned SDK ──bindings -facts-out (static facts)─────┤                            │         examples, docs
+                                                    │                        postcheck
+human curation (plans, hints, presence) ────────────┘                  (build · docs · fmt)
 ```
 
 Every arrow's output is a committed, reviewable artefact. That is deliberate: a
 pipeline whose intermediate state lives only in memory can only be reviewed by
-reading its output, and its output is thousands of lines of generated Go.
+reading its output, and its output is thousands of lines of generated Go. And
+every arrow has a drift gate in CI — see [gates.md](gates.md).
 
 Every stage is built, and each is a subcommand of the one binary.
 
 | Stage | Package | State |
 |---|---|---|
-| `specs` — fetch and pin an OpenAPI snapshot | `internal/specstore` | **half-built** — read, list and checksum-verify work; the fetch is a stub, so snapshots are pinned by hand |
-| `ingest` — OpenAPI → blueprint | `internal/ingest/openapi` | **built** |
-| `probe` — live API → behaviour facts | `internal/probe` | **built** (record and replay) |
-| `merge` — fold facts into a blueprint | `internal/blueprint/merge` | **built** |
-| `emit` — blueprint → provider | `internal/emit`, `internal/render`, `internal/templates` | **built** |
+| `specs` — fetch and pin an OpenAPI snapshot | `internal/specstore` | **built** — the refresh loop re-fetches from the latest snapshot's recorded source |
+| `ingest` — OpenAPI → blueprint + plan drafts | `internal/ingest/openapi` | **built** |
+| `probe` — live API → behaviour facts | `internal/probe` | **built** (record, replay, verify, sweep; the rehearsal fixpoint) |
+| `merge` — fold facts into a blueprint | `internal/blueprint/merge` | **built** (plus plan promotion) |
+| `emit` — blueprint → provider, postchecked | `internal/emit`, `internal/render`, `internal/templates` | **built** |
 | `verify` — fail on drift | `cmd/tfpluginframeworkgen/verify.go`, `internal/manifest` | **built** |
-| `bindings` — type-check bindings against the SDK | `internal/sdkbind` | **built** |
+| `bindings` — type-check bindings against the SDK; derive static facts | `internal/sdkbind` | **built** |
 | `interop` — Provider Code Specification v0.1 | `internal/interop` | **built** (export; import writes drafts) |
 
 ## Where logic is allowed to live
@@ -61,21 +63,35 @@ declarations, which the file template merely lists.
 cmd/tfpluginframeworkgen/     CLI. stdlib flag, one FlagSet per subcommand, no cobra.
 internal/
   blueprint/           the IR: types, validation, canonical JSON, layered load
-  render/              ALL logic. Blueprint -> finished strings.
+  render/              ALL emit logic. Blueprint -> finished strings.
   templates/           embedded .tmpl. The emitted shape, as reviewable text.
-  emit/                plan, format, write. Owns gofumpt and overwrite refusal.
+  emit/                plan, format, write, postcheck. Owns gofumpt and overwrite refusal.
   manifest/            what the last run produced, so orphans can be found
   naming/              identifiers. One word-splitter, several joins.
   sdkbind/             type-checks bindings against the SDK actually pinned
                        -- every kind that has one: resources, data sources,
-                       list facets and actions. It walked resources alone until
-                       actions landed, so three quarters went unchecked
+                       list facets and actions. Also derives static facts
+                       (zero-value unsendable) from the SDK's struct tags.
+  fixturespec/         ONE derivation of acceptance-fixture values, rendered
+                       as HCL by render and as wire JSON by probe
+  ingest/openapi/      OpenAPI document -> draft blueprints + plan worksheets
+  specstore/           pinned OpenAPI snapshots: list, read, checksum, pin
+  probe/               the probe catalogue, gate, ledger, sweeper, budgets
+  cassette/            transcripts: record, redact, replay, freeze
+  interop/             codegen-spec v0.1 export and import
   version/             the tool version, in exactly one place
 ```
 
 `naming` and `blueprint` depend on nothing else in the repo. `render` depends on
-`blueprint` and `naming`. `emit` depends on `render` and `templates`. Nothing
-depends on `cmd`.
+`blueprint`, `naming` and `fixturespec`. `emit` depends on `render` and
+`templates`. Nothing depends on `cmd`.
+
+Two behaviours live in `cmd` rather than in a stage package, on purpose. The
+rehearsal fixpoint (`rehearse.go`) alternates `probe` and `merge` until fixture
+derivation converges, and plan promotion (`promote.go`) copies plan values into
+blueprint hints — both need packages from opposite ends of the pipeline, and the
+probe must never import the package that interprets its output. The command layer
+is the only place allowed to see both at once.
 
 ## Determinism
 
@@ -133,4 +149,8 @@ The generator fails loudly rather than emitting something approximate.
 - [`blueprint.md`](blueprint.md) — the IR, field by field
 - [`generated-boundary.md`](generated-boundary.md) — what is generated, what is
   yours, and how the two are kept apart
+- [`probing.md`](probing.md) — the probe catalogue, gate, ledger and budgets
+- [`fixtures-and-rehearsal.md`](fixtures-and-rehearsal.md) — fixture derivation
+  and the rehearsal fixpoint
+- [`gates.md`](gates.md) — every CI gate and its local reproduction
 - [`cli.md`](cli.md) — command reference
