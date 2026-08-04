@@ -132,7 +132,7 @@ func TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed(t *testing.T) {
 			probe.ConfidenceCorroborated),
 	}
 
-	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "1.0-t1"})
+	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "1.0-t1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestUnit_Merge_DerivedDefaultConfirmsTheGuess(t *testing.T) {
 		fact("colour", probe.FactDefaultIsDerived, probe.BoolValue(true), probe.ConfidenceObserved),
 	}
 
-	result, err := Apply(&bp, facts, Options{SnapshotID: "1.0-t1"})
+	result, err := Apply(&bp, facts, Options{RecordingID: "1.0-t1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 			fact("key", probe.FactRequiredByAPI, probe.BoolValue(true), probe.ConfidenceObserved),
 		}
 
-		result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "1.0-t1"})
+		result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "1.0-t1"})
 		if err != nil {
 			t.Fatalf("Apply: %v", err)
 		}
@@ -594,7 +594,7 @@ func TestUnit_Merge_AnIntegralFactIsARecommendationOnly(t *testing.T) {
 
 	integral := fact("colour", probe.FactIntegral, probe.BoolValue(true), probe.ConfidenceInferred)
 
-	res, err := Apply(&bp, []probe.Fact{integral}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{integral}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -725,7 +725,7 @@ func TestUnit_Merge_IsIdempotent(t *testing.T) {
 	}
 
 	bp := testBlueprint()
-	opts := Options{Strategy: StrategyApply, SnapshotID: "1.0-t1785152261691"}
+	opts := Options{Strategy: StrategyApply, RecordingID: "1.0-t1785152261691"}
 
 	first, err := Apply(&bp, facts, opts)
 	if err != nil {
@@ -753,7 +753,7 @@ func TestUnit_Merge_IsIdempotent(t *testing.T) {
 
 	// Newer evidence *should* produce a visible one-line diff, so a reader can see which
 	// recording a description came from.
-	third, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "1.1-t9"})
+	third, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "1.1-t9"})
 	if err != nil {
 		t.Fatalf("third Apply: %v", err)
 	}
@@ -793,7 +793,7 @@ func TestUnit_Merge_DescriptionBlockHandling(t *testing.T) {
 	// The static channel owns its own block beside the live one: the SDK-type facts and a
 	// live recording are different evidence, and one overwriting the other is how re-merging
 	// a snapshot came to read as drift.
-	both := appendBlock(replaced, buildBlock([]string{"Static: z."}, StaticSnapshotID))
+	both := appendBlock(replaced, buildBlock([]string{"Static: z."}, StaticRecordingID))
 	if s, ok := channelBlock(both, true); !ok || !strings.Contains(s, "Static: z.") {
 		t.Errorf("the static block should be found beside the live one: %q", both)
 	}
@@ -867,7 +867,7 @@ func TestUnit_Merge_ObservedValueSetsAreStoredAsData(t *testing.T) {
 			probe.ListValue([]string{"deprecated"}), probe.ConfidenceObserved),
 	}
 
-	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "s1"})
+	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "s1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -928,7 +928,7 @@ func TestUnit_Merge_ValuesClosedLandsOnTheAttribute(t *testing.T) {
 				fact("colour", probe.FactValuesClosed, probe.BoolValue(tc.closed), probe.ConfidenceObserved),
 			}
 
-			result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "s1"})
+			result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "s1"})
 			if err != nil {
 				t.Fatalf("Apply: %v", err)
 			}
@@ -1012,7 +1012,7 @@ func TestUnit_Merge_AConditionalFactBecomesABehaviourVariant(t *testing.T) {
 		"objectType", "static",
 	)
 
-	res, err := Apply(&bp, []probe.Fact{returned}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{returned}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1084,7 +1084,7 @@ func TestUnit_Merge_AConditionalFactWithNoVariantHomeIsHeldBackAsProse(t *testin
 		"objectType", "static",
 	)
 
-	res, err := Apply(&bp, []probe.Fact{volatile}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{volatile}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1125,7 +1125,7 @@ func TestUnit_Merge_AConditionalFactContradictingTheBaseConflicts(t *testing.T) 
 		"objectType", "dynamic",
 	)
 
-	res, err := Apply(&bp, []probe.Fact{branchTrue}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{branchTrue}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1157,7 +1157,7 @@ func TestUnit_Merge_AConditionalWritableFalseStillNeedsCorroboration(t *testing.
 		"objectType", "static",
 	)
 
-	res, err := Apply(&bp, []probe.Fact{weak}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{weak}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1187,11 +1187,11 @@ func TestUnit_Merge_VariantOrderDoesNotDependOnFactOrder(t *testing.T) {
 	backward := []probe.Fact{forward[1], forward[0]}
 
 	one := testBlueprint()
-	if _, err := Apply(&one, forward, Options{SnapshotID: "snap-1"}); err != nil {
+	if _, err := Apply(&one, forward, Options{RecordingID: "snap-1"}); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	other := testBlueprint()
-	if _, err := Apply(&other, backward, Options{SnapshotID: "snap-1"}); err != nil {
+	if _, err := Apply(&other, backward, Options{RecordingID: "snap-1"}); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
@@ -1222,7 +1222,7 @@ func TestUnit_Merge_TheSameFactWithoutAConditionIsApplied(t *testing.T) {
 		"colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.ConfidenceCorroborated,
 	)
 
-	res, err := Apply(&bp, []probe.Fact{unconditional}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{unconditional}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1262,7 +1262,7 @@ func TestUnit_Merge_ConditionalFactsFromBothBranchesBecomeSeparateVariants(t *te
 		),
 	}
 
-	res, err := Apply(&bp, facts, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, facts, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1317,11 +1317,11 @@ func TestUnit_Merge_AConditionalFactIsIdempotentOnASecondMerge(t *testing.T) {
 		"objectType", "static",
 	)}
 
-	if _, err := Apply(&bp, facts, Options{SnapshotID: "snap-1"}); err != nil {
+	if _, err := Apply(&bp, facts, Options{RecordingID: "snap-1"}); err != nil {
 		t.Fatalf("first Apply: %v", err)
 	}
 
-	second, err := Apply(&bp, facts, Options{SnapshotID: "snap-1"})
+	second, err := Apply(&bp, facts, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("second Apply: %v", err)
 	}

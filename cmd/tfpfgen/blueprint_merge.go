@@ -31,7 +31,7 @@ func runBlueprintMerge(args []string) error {
 		recordingID = fs.String("recording", "",
 			"identifies the recording in the description marker; defaults to the facts file's directory")
 		adoptDir = fs.String("adopt-scenarios", "",
-			"directory of KEY.probe.plan.json scenario files whose fixture values are adopted into "+
+			"directory of KEY.scenario.json scenario files whose fixture values are adopted into "+
 				"accFixture wire hints, for attributes the generator refuses to derive")
 		summaryPath = fs.String("summary", os.Getenv("GITHUB_STEP_SUMMARY"),
 			"append a markdown summary here (defaults to $GITHUB_STEP_SUMMARY)")
@@ -83,7 +83,7 @@ func runBlueprintMerge(args []string) error {
 		// Static facts write their own description channel under a fixed id: they are not
 		// tied to any recording, and letting them default to a directory name made them
 		// overwrite every live block -- after which re-merging the snapshot read as drift.
-		id = merge.StaticSnapshotID
+		id = merge.StaticRecordingID
 	default:
 		// The snapshot directory name, which is what cassette.Write produced. Using it means
 		// re-merging the same evidence is a no-op while newer evidence produces a visible
@@ -92,15 +92,15 @@ func runBlueprintMerge(args []string) error {
 	}
 
 	result, err := merge.Apply(&bp, facts, merge.Options{
-		Strategy:   merge.Strategy(*strategy),
-		SnapshotID: id,
+		Strategy:    merge.Strategy(*strategy),
+		RecordingID: id,
 	})
 	if err != nil {
 		return err
 	}
 
 	if *adoptDir != "" {
-		promoted, err := promotePlans(&bp, *adoptDir)
+		promoted, err := adoptScenarios(&bp, *adoptDir)
 		if err != nil {
 			return err
 		}

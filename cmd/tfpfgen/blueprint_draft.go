@@ -22,7 +22,7 @@ func runBlueprintDraft(args []string) error {
 	fs, _ := newFlagSet("blueprint draft", usageBlueprintDraft)
 
 	var (
-		openapiDir  = fs.String("openapi-dir", "openapi-specs/thousandeyes", "directory holding pinned OpenAPI snapshots")
+		openapiDir  = fs.String("openapi-dir", "openapi/thousandeyes", "directory holding pinned OpenAPI snapshots")
 		snapshot    = fs.String("snapshot", "", "snapshot to read (default: the newest)")
 		openapiPath = fs.String("openapi", "", "read this OpenAPI document directly, bypassing the snapshot store")
 		tag         = fs.String("tag", "",
@@ -37,7 +37,7 @@ func runBlueprintDraft(args []string) error {
 		accessor       = fs.String("sdk-accessor", "r.client.API", "expression reaching a service from the resource receiver")
 		apiVersionDir  = fs.String("api-version-dir", "v7", "version directory generated packages live under")
 		scenarioDrafts = fs.String("scenario-drafts", "",
-			"also scaffold a KEY.probe.plan.draft.json scenario worksheet per resource under this directory")
+			"also scaffold a KEY.scenario.draft.json scenario worksheet per resource under this directory")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -124,7 +124,7 @@ func inferAll(
 		written++
 
 		if planDrafts != "" {
-			if err := writePlanDraft(planDrafts, bp, res); err != nil {
+			if err := writeScenarioDraft(planDrafts, bp, res); err != nil {
 				return err
 			}
 		}
@@ -141,14 +141,14 @@ func inferAll(
 	return nil
 }
 
-// writePlanDraft scaffolds one resource's probe-plan worksheet.
+// writeScenarioDraft scaffolds one resource's probe-plan worksheet.
 //
 // The .draft.json suffix is the whole mechanism, borrowed from interop's drafts: no
-// loader resolves it -- the bulk record driver reads only KEY.probe.plan.json -- so a
+// loader resolves it -- the bulk record driver reads only KEY.scenario.json -- so a
 // scaffold nobody has curated can never be recorded against by accident. Promotion is
 // a rename, which is a diff a reviewer sees. An existing draft is never overwritten:
 // a worksheet somebody has started marking up is theirs.
-func writePlanDraft(dir string, bp blueprint.Blueprint, res blueprint.Resource) error {
+func writeScenarioDraft(dir string, bp blueprint.Blueprint, res blueprint.Resource) error {
 	subj, err := probe.SubjectOf(bp, res)
 	if err != nil {
 		// A resource the prober cannot subject at all gets no worksheet; the probe
@@ -157,13 +157,13 @@ func writePlanDraft(dir string, bp blueprint.Blueprint, res blueprint.Resource) 
 		return nil
 	}
 
-	path := filepath.Join(dir, res.Key+".probe.plan.draft.json")
+	path := filepath.Join(dir, res.Key+".scenario.draft.json")
 	if _, err := os.Stat(path); err == nil {
 		log.Printf("kept      %s (already exists; drafts are never overwritten)", path)
 		return nil
 	}
 
-	data, err := json.MarshalIndent(probe.DraftPlan(subj), "", "  ")
+	data, err := json.MarshalIndent(probe.DraftScenario(subj), "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshalling the %s plan draft: %w", res.Key, err)
 	}

@@ -47,7 +47,7 @@ func goodOptions() GuardOptions {
 		Mode:           ModeRecord,
 		AllowMutations: true,
 		Subject:        quirkSubject(),
-		Plan: Plan{Fixtures: []Fixture{
+		Scenario: Scenario{Fixtures: []Fixture{
 			{Name: "minimal", Body: map[string]any{"key": "x"}},
 		}},
 	}
@@ -141,17 +141,17 @@ func TestUnit_Probe_GateRefusesEachConditionOnItsOwn(t *testing.T) {
 		{
 			condition: "plan",
 			opts: func(o *GuardOptions) {
-				o.Plan.Deny = []string{"nonexistent-field"}
+				o.Scenario.Deny = []string{"nonexistent-field"}
 			},
 		},
 		{
 			// `probe -list` works with no fixture; a mutating run cannot.
 			condition: "plan",
-			opts:      func(o *GuardOptions) { o.Plan.Fixtures = nil },
+			opts:      func(o *GuardOptions) { o.Scenario.Fixtures = nil },
 		},
 		{
 			condition: "noSnapshotOverwrite",
-			opts:      func(o *GuardOptions) { o.EquivalentSnapshotExists = true },
+			opts:      func(o *GuardOptions) { o.EquivalentRecordingExists = true },
 		},
 	}
 
@@ -642,19 +642,19 @@ func TestUnit_Probe_ACredentialInTheProfileIsRefused(t *testing.T) {
 // TestUnit_Probe_OSEnvironReadsTheProcess: the production Environ, checked once so the interface
 // is not the only thing ever exercised.
 func TestUnit_Probe_OSEnvironReadsTheProcess(t *testing.T) {
-	t.Setenv("TFPFGEN_TEST_GATE_VAR", "present")
+	t.Setenv("TFPFGEN_TEST_GUARD_VAR", "present")
 
-	if v, ok := (OSEnviron{}).Lookup("TFPFGEN_TEST_GATE_VAR"); !ok || v != "present" {
+	if v, ok := (OSEnviron{}).Lookup("TFPFGEN_TEST_GUARD_VAR"); !ok || v != "present" {
 		t.Errorf("Lookup = %q, %v", v, ok)
 	}
-	if _, ok := (OSEnviron{}).Lookup("TFPFGEN_TEST_GATE_ABSENT"); ok {
+	if _, ok := (OSEnviron{}).Lookup("TFPFGEN_TEST_GUARD_ABSENT"); ok {
 		t.Error("an unset variable must report absent")
 	}
 
 	// A nil Environ falls back to the process, so a caller cannot accidentally build a gate
 	// that reads nothing and passes.
 	profile := goodProfile()
-	profile.TokenEnv = "TFPFGEN_TEST_GATE_VAR"
+	profile.TokenEnv = "TFPFGEN_TEST_GUARD_VAR"
 
 	if _, _, err := Authorise(context.Background(), nil, profile, goodOptions(), nil); err == nil {
 		t.Fatal("this should still be refused on the runtime tier")

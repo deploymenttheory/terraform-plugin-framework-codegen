@@ -166,9 +166,9 @@ func (r Result) Changed() bool { return len(r.Changes) > 0 }
 // Options configures a merge.
 type Options struct {
 	Strategy Strategy
-	// SnapshotID identifies the evidence, and goes into the regenerable description marker so
+	// RecordingID identifies the evidence, and goes into the regenerable description marker so
 	// re-merging the same snapshot is idempotent.
-	SnapshotID string
+	RecordingID string
 }
 
 // Apply folds facts into a blueprint, returning what changed and what was refused.
@@ -755,7 +755,7 @@ func applyAttributeFacts(
 	}
 
 	if len(observations) > 0 {
-		rewriteDescription(attr, observations, opts.SnapshotID, res, path, result)
+		rewriteDescription(attr, observations, opts.RecordingID, res, path, result)
 	}
 }
 

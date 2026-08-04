@@ -14,7 +14,7 @@ const (
 	// BlockKindResource is a managed resource: Metadata, Schema, Create, Read, Update, Delete.
 	BlockKindResource BlockKind = "resource"
 	// BlockKindDataSource is a data source: Metadata, Schema, Read.
-	BlockKindDataSource BlockKind = "datasource"
+	BlockKindDataSource BlockKind = "dataSource"
 	// BlockKindEphemeral is an ephemeral resource: Metadata, Schema, Open.
 	BlockKindEphemeral BlockKind = "ephemeral"
 	// BlockKindAction is an action: Metadata, Schema, Invoke.

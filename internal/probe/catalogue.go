@@ -580,7 +580,7 @@ func (normalisation) Creates(sc Scope) int {
 // honest worst case is "any of them". Reporting zero unplanned would tell an operator the most
 // expensive probe in the catalogue is free.
 func immutabilityFields(sc Scope) int {
-	if !sc.Planned {
+	if !sc.HasScenario {
 		return len(sc.Sendable())
 	}
 
@@ -618,7 +618,7 @@ func withFixture(sc Scope, perFixture int) int { return fixtureCount(sc) * perFi
 // omissionCreates counts the requiredness protocol's creates: a baseline plus one omission per key
 // the fixture actually sets.
 func omissionCreates(sc Scope) int {
-	if !sc.Planned {
+	if !sc.HasScenario {
 		// No fixture, so no keys are known. The unnarrowed worst case is every sendable field,
 		// which is what -list should report rather than a small number that means nothing.
 		return 1 + len(sc.Sendable())

@@ -29,8 +29,8 @@ const (
 	markerOpen   = markerPrefix + "%s -->"
 	markerClose  = "<!-- /probed -->"
 
-	// StaticSnapshotID is the marker id the static-facts channel writes under.
-	StaticSnapshotID = "static"
+	// StaticRecordingID is the marker id the static-facts channel writes under.
+	StaticRecordingID = "static"
 )
 
 // rewriteDescription replaces one channel's probed block in an attribute's description.
@@ -56,7 +56,7 @@ func rewriteDescription(
 	}
 
 	block := buildBlock(kept, snapshotID)
-	static := snapshotID == StaticSnapshotID
+	static := snapshotID == StaticRecordingID
 
 	existing, hadBlock := channelBlock(attr.MarkdownDescription, static)
 
@@ -153,7 +153,7 @@ func blockID(block string) string {
 // the live one, whatever recording it came from.
 func channelBlock(description string, static bool) (string, bool) {
 	for _, b := range blocks(description) {
-		if (blockID(b) == StaticSnapshotID) == static {
+		if (blockID(b) == StaticRecordingID) == static {
 			return b, true
 		}
 	}

@@ -26,8 +26,8 @@ func scopeSubject() Subject {
 	return subj
 }
 
-func scopePlan() Plan {
-	return Plan{
+func scopePlan() Scenario {
+	return Scenario{
 		Fixtures: []Fixture{
 			{Name: "minimal", Body: map[string]any{"key": "x", "value": "v"}},
 			{Name: "full", Body: map[string]any{"key": "x", "value": "v", "mode": "and"}},
@@ -55,7 +55,7 @@ func TestUnit_Probe_ScopeNarrowsByThePlan(t *testing.T) {
 		t.Fatalf("NewScope: %v", err)
 	}
 
-	if !sc.Planned {
+	if !sc.HasScenario {
 		t.Error("a plan with fixtures is a plan")
 	}
 
@@ -136,7 +136,7 @@ func TestUnit_Probe_UnplannedScopeReportsTheWorstCase(t *testing.T) {
 
 	sc := UnplannedScope(scopeSubject())
 
-	if sc.Planned {
+	if sc.HasScenario {
 		t.Error("no plan is not a plan")
 	}
 	if len(sc.Sendable()) == 0 {
@@ -149,11 +149,11 @@ func TestUnit_Probe_UnplannedScopeReportsTheWorstCase(t *testing.T) {
 	}
 
 	// A zero Plan is not a plan either, which is the case `probe -list` with no -plan hits.
-	zero, err := NewScope(scopeSubject(), Plan{})
+	zero, err := NewScope(scopeSubject(), Scenario{})
 	if err != nil {
 		t.Fatalf("NewScope: %v", err)
 	}
-	if zero.Planned {
+	if zero.HasScenario {
 		t.Error("a plan with no fixtures narrows nothing and must not read as planned")
 	}
 
@@ -172,7 +172,7 @@ func TestUnit_Probe_UnplannedScopeReportsTheWorstCase(t *testing.T) {
 func TestUnit_Probe_ScopeRefusesAPlanThatNamesNothing(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewScope(scopeSubject(), Plan{
+	_, err := NewScope(scopeSubject(), Scenario{
 		Fixtures: []Fixture{{Name: "typo", Body: map[string]any{"keyy": "x"}}},
 	})
 	if !errors.Is(err, ErrInvalidPlan) {
@@ -367,7 +367,7 @@ func TestUnit_Probe_PlanNarrowingActuallyReducesTheCost(t *testing.T) {
 	}
 }
 
-func mustScope(t *testing.T, subj Subject, plan Plan) Scope {
+func mustScope(t *testing.T, subj Subject, plan Scenario) Scope {
 	t.Helper()
 
 	sc, err := NewScope(subj, plan)

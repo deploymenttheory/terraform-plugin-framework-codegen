@@ -30,7 +30,7 @@ const (
 type RunOptions struct {
 	Mode    Mode
 	Subject Subject
-	Plan    Plan
+	Scenario    Scenario
 
 	// Only restricts the run to one probe by name.
 	Only string
@@ -143,7 +143,7 @@ func Run(ctx context.Context, opts RunOptions) (RunResult, error) {
 		Token:              opts.Token,
 		CollectionTemplate: opts.Subject.CollectionTemplate,
 		ItemTemplate:       opts.Subject.ItemTemplate,
-		Budget:             opts.Plan.Budget,
+		Budget:             opts.Scenario.Budget,
 	})
 	if err != nil {
 		return out, err
@@ -225,7 +225,7 @@ func runMutatingTier(
 
 	// A separate context, because the commonest reason to be here with something to clean up
 	// is that the run's own context is already done.
-	sweepCtx, cancel := SweepContext(ctx, opts.Plan.Budget.MaxSweepSeconds)
+	sweepCtx, cancel := SweepContext(ctx, opts.Scenario.Budget.MaxSweepSeconds)
 	defer cancel()
 
 	summary, sweepErr := Sweep(sweepCtx, SweepOptions{
@@ -235,7 +235,7 @@ func runMutatingTier(
 		// the list response actually says, and an API may rename on the way out.
 		NameField:  opts.Subject.SweepNameField(),
 		PageParams: opts.SweepPageParams,
-		MaxSeconds: opts.Plan.Budget.MaxSweepSeconds,
+		MaxSeconds: opts.Scenario.Budget.MaxSweepSeconds,
 	})
 
 	report.Sweep = &summary
@@ -259,7 +259,7 @@ func updateMethodOf(subj Subject) string {
 // read-only tier needs no plan at all, and the gate has already refused a mutating run whose plan
 // is unusable. Failing here would make one bad fixture stop six probes that never looked at it.
 func (opts RunOptions) scope() Scope {
-	if sc, err := NewScope(opts.Subject, opts.Plan); err == nil {
+	if sc, err := NewScope(opts.Subject, opts.Scenario); err == nil {
 		return sc
 	}
 

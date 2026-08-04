@@ -268,7 +268,7 @@ func TestUnit_Discover_IsDeterministic(t *testing.T) {
 func TestUnit_Discover_AgainstTheCommittedSpecification(t *testing.T) {
 	t.Parallel()
 
-	path := filepath.Join("..", "..", "..", "openapi-specs", "thousandeyes",
+	path := filepath.Join("..", "..", "..", "openapi", "thousandeyes",
 		"7.0.97-t1785152261691", "api.yaml")
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {

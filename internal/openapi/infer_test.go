@@ -597,7 +597,7 @@ func TestUnit_Infer_IsDeterministic(t *testing.T) {
 func TestUnit_Infer_AgainstTheCommittedSpecification(t *testing.T) {
 	t.Parallel()
 
-	path := filepath.Join("..", "..", "..", "openapi-specs", "thousandeyes",
+	path := filepath.Join("..", "..", "..", "openapi", "thousandeyes",
 		"7.0.97-t1785152261691", "api.yaml")
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		t.Skipf("the pinned snapshot is not present at %s", path)

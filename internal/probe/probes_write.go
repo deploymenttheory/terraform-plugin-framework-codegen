@@ -415,7 +415,7 @@ func (p writableAndReturned) readExpanded(
 func expansionQuery(sc Scope) url.Values {
 	query := url.Values{}
 
-	for _, raw := range sc.Plan.Expansions {
+	for _, raw := range sc.Scenario.Expansions {
 		key, value, found := strings.Cut(raw, "=")
 		if !found {
 			continue
@@ -741,7 +741,7 @@ func (p writableAndReturned) writableFact(
 // field is denied -- it is writable and has consequences -- is exactly the reason its existing
 // guess deserves scrutiny.
 func (p writableAndReturned) noteDenied(sc Scope, out *Result) {
-	for _, path := range sc.Plan.Deny {
+	for _, path := range sc.Scenario.Deny {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
 			Message: "the plan denies this field, so nothing was sent for it and whatever the " +

@@ -31,7 +31,7 @@ const (
 )
 
 // defaultRecordingRoot is where committed cassettes live, matching the repository layout.
-const defaultRecordingRoot = "probe-evidence"
+const defaultRecordingRoot = "recordings"
 
 // replayBaseURL is the unresolvable host replay requests are addressed to. The recorded base path
 // is appended, so a cassette made against an endpoint with a prefix replays against the same
@@ -193,9 +193,9 @@ func probeMain(mode string, args []string) error {
 			"permit probes that create, update and delete; requires probe record and a sandbox profile")
 		profilePath = fs.String("profile", "",
 			"sandbox profile for a mutating run; defaults to "+defaultProfileDir+"/PROVIDER.json")
-		planPath = fs.String("scenario", "", "probe scenario: fixtures and candidates a probe cannot discover")
-		planDir  = fs.String("scenario-dir", "",
-			"directory of per-resource scenarios, KEY.probe.plan.json; defaults to the blueprint directory")
+		scenarioPath = fs.String("scenario", "", "probe scenario: fixtures and candidates a probe cannot discover")
+		scenarioDir  = fs.String("scenario-dir", "",
+			"directory of per-resource scenarios, KEY.scenario.json; defaults to the blueprint directory")
 		force         = fs.Bool("force", false, "record over a recording that is already committed")
 		skipRehearsal = fs.Bool("skip-rehearsal", false,
 			"skip the rehearsal fixpoint after the standard mutating probes")
@@ -264,33 +264,33 @@ func probeMain(mode string, args []string) error {
 	// One plan speaks one schema's wire vocabulary. Applied to every subject of a
 	// multi-resource run it would inject one resource's fixtures into every other's
 	// probes, so the combination is refused rather than quietly wrong.
-	if *planPath != "" && *resource == "" {
+	if *scenarioPath != "" && *resource == "" {
 		return usagef("-scenario needs -resource: a scenario speaks one schema's vocabulary; " +
 			"for a multi-resource run use -scenario-dir (or its default, the blueprint " +
-			"directory) with one KEY.probe.plan.json per resource")
+			"directory) with one KEY.scenario.json per resource")
 	}
 
-	plan, err := loadPlan(*planPath)
+	scenario, err := loadScenario(*scenarioPath)
 	if err != nil {
 		return err
 	}
 
 	opts := probeRun{
-		mode:         mode,
-		rederive:     *rederive,
-		subjects:     subjects,
-		only:         *probeName,
-		evidenceRoot: *recordingRoot,
-		provider:     *providerName,
-		apiVersion:   bp.Source.SpecVersion,
-		plan:         plan,
-		planExplicit: *planPath != "",
-		planDir:      planDirFor(*planDir, *blueprintPath),
-		profilePath:  profilePathFor(*profilePath, *providerName),
-		allowMutate:  *allowMutations,
-		force:        *force,
-		noRehearse:   *skipRehearsal,
-		bp:           bp,
+		mode:             mode,
+		rederive:         *rederive,
+		subjects:         subjects,
+		only:             *probeName,
+		evidenceRoot:     *recordingRoot,
+		provider:         *providerName,
+		apiVersion:       bp.Source.SpecVersion,
+		scenario:         scenario,
+		scenarioExplicit: *scenarioPath != "",
+		scenarioDir:      scenarioDirFor(*scenarioDir, *blueprintPath),
+		profilePath:      profilePathFor(*profilePath, *providerName),
+		allowMutate:      *allowMutations,
+		force:            *force,
+		noRehearse:       *skipRehearsal,
+		bp:               bp,
 	}
 
 	switch mode {
@@ -319,14 +319,14 @@ func usageForProbeVerb(mode string) string {
 	}
 }
 
-// planDirFor defaults the per-resource plan directory to wherever the blueprint lives.
+// scenarioDirFor defaults the per-resource plan directory to wherever the blueprint lives.
 //
-// The convention -- blueprints/PROVIDER/KEY.probe.plan.json beside the blueprint files
+// The convention -- blueprints/PROVIDER/KEY.scenario.json beside the blueprint files
 // -- is already how the committed plans are laid out, so the default makes the bulk
 // path the zero-flag path.
-func planDirFor(planDir, blueprintPath string) string {
-	if planDir != "" {
-		return planDir
+func scenarioDirFor(scenarioDir, blueprintPath string) string {
+	if scenarioDir != "" {
+		return scenarioDir
 	}
 
 	if info, err := os.Stat(blueprintPath); err == nil && !info.IsDir() {
@@ -347,12 +347,12 @@ type probeRun struct {
 	provider     string
 	apiVersion   string
 
-	// plan is the -plan flag's plan; meaningful only with planExplicit. Every other
-	// run resolves a plan per subject from planDir, through planFor -- one plan
+	// plan is the -plan flag's plan; meaningful only with scenarioExplicit. Every other
+	// run resolves a plan per subject from scenarioDir, through scenarioFor -- one plan
 	// speaks one schema's vocabulary, so a shared plan across subjects is never right.
-	plan         probe.Plan
-	planExplicit bool
-	planDir      string
+	scenario         probe.Scenario
+	scenarioExplicit bool
+	scenarioDir      string
 
 	profilePath string
 	allowMutate bool
@@ -364,51 +364,51 @@ type probeRun struct {
 	bp blueprint.Blueprint
 }
 
-// planFor resolves the plan for one subject: the explicit -plan when one was given,
-// else the conventional KEY.probe.plan.json beside the blueprint. found reports whether
+// scenarioFor resolves the plan for one subject: the explicit -plan when one was given,
+// else the conventional KEY.scenario.json beside the blueprint. found reports whether
 // any plan was actually supplied -- a zero plan and an absent file must not be
 // conflated, because a mutating run skips an unplanned subject with a stated note
 // rather than letting the gate refuse the whole wave.
-func (opts probeRun) planFor(resource string) (plan probe.Plan, found bool, err error) {
-	if opts.planExplicit {
-		return opts.plan, true, nil
+func (opts probeRun) scenarioFor(resource string) (scenario probe.Scenario, found bool, err error) {
+	if opts.scenarioExplicit {
+		return opts.scenario, true, nil
 	}
 
-	path := filepath.Join(opts.planDir, resource+".probe.plan.json")
+	path := filepath.Join(opts.scenarioDir, resource+".scenario.json")
 	if _, statErr := os.Stat(path); errors.Is(statErr, os.ErrNotExist) {
-		return probe.Plan{}, false, nil
+		return probe.Scenario{}, false, nil
 	}
 
-	plan, err = loadPlan(path)
+	scenario, err = loadScenario(path)
 
-	return plan, err == nil, err
+	return scenario, err == nil, err
 }
 
 // ledgerRoot is where per-run ledgers live. Gitignored: a ledger records live objects in
 // somebody's tenant and is per-run rather than per-snapshot.
 const ledgerRoot = ".tfpfgen/probe"
 
-// loadPlan reads a probe plan, or returns the zero plan when none is named.
+// loadScenario reads a probe plan, or returns the zero plan when none is named.
 //
 // The zero plan is usable for a read-only run and is refused by the gate for a mutating one,
 // which is the right split: -list reports the unnarrowed worst case, and a mutating run needs a
 // fixture.
-// loadPlanIfPresent is loadPlan for a path that may legitimately not exist.
+// loadScenarioIfPresent is loadScenario for a path that may legitimately not exist.
 //
 // A read-only recording carries no plan, and a snapshot from before plans were frozen carries none
 // either. Neither is an error: the run simply has no fixtures, and the mutating tier is reported
 // skipped. An explicit -plan pointing at a missing file *is* an error, which is why the strict
 // version stays.
-func loadPlanIfPresent(path string) (probe.Plan, error) {
+func loadScenarioIfPresent(path string) (probe.Scenario, error) {
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		return probe.Plan{}, nil
+		return probe.Scenario{}, nil
 	}
 
-	return loadPlan(path)
+	return loadScenario(path)
 }
 
-func loadPlan(path string) (probe.Plan, error) {
-	var p probe.Plan
+func loadScenario(path string) (probe.Scenario, error) {
+	var p probe.Scenario
 
 	if path == "" {
 		return p, nil
@@ -425,7 +425,7 @@ func loadPlan(path string) (probe.Plan, error) {
 	dec.DisallowUnknownFields()
 
 	if err := dec.Decode(&p); err != nil {
-		return probe.Plan{}, usagef("%s is not a usable probe plan: %v", path, err)
+		return probe.Scenario{}, usagef("%s is not a usable probe scenario: %v", path, err)
 	}
 
 	return p, nil
@@ -475,7 +475,7 @@ func runProbeMode(opts probeRun) error {
 			return err
 		}
 
-		plan, planFound, err := opts.planFor(subj.Resource)
+		scenario, scenarioFound, err := opts.scenarioFor(subj.Resource)
 		if err != nil {
 			return err
 		}
@@ -486,16 +486,16 @@ func runProbeMode(opts probeRun) error {
 			// than stopping: the gate would refuse it anyway (no fixture, no valid
 			// body), and one resource nobody has planned yet must not block the
 			// nineteen that are ready.
-			if opts.allowMutate && !planFound {
+			if opts.allowMutate && !scenarioFound {
 				fmt.Fprintf(os.Stderr,
-					"  note  %s: no plan at %s; skipped -- a mutating probe needs a "+
+					"  note  %s: no scenario at %s; skipped -- a mutating probe needs a "+
 						"fixture to build on\n",
-					subj.Resource, filepath.Join(opts.planDir, subj.Resource+".probe.plan.json"))
+					subj.Resource, filepath.Join(opts.scenarioDir, subj.Resource+".scenario.json"))
 				continue
 			}
 
 			subjOpts := opts
-			subjOpts.plan = plan
+			subjOpts.scenario = scenario
 
 			if err := recordProbe(subjOpts, subj, root); err != nil {
 				return err
@@ -558,7 +558,7 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 		return usagef("%s must be set for probe record", tokenEnv)
 	}
 
-	ctx, cancel := probe.DeadlineFor(context.Background(), opts.plan.Budget)
+	ctx, cancel := probe.DeadlineFor(context.Background(), opts.scenario.Budget)
 	defer cancel()
 
 	// The gate, and the ledger it makes safe to open. Both only when mutations were asked for:
@@ -596,7 +596,7 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	runOpts := probe.RunOptions{
 		Mode:     probe.ModeRecord,
 		Subject:  subj,
-		Plan:     opts.plan,
+		Scenario: opts.scenario,
 		Only:     opts.only,
 		BaseURL:  endpoint,
 		Token:    token,
@@ -615,7 +615,7 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	// re-derives -- the same derivation emit's fixtures use, which is the whole point.
 	if opts.allowMutate && !opts.noRehearse {
 		runOpts.Rehearsal = &probe.RehearsalConfig{
-			Derive: rehearsalDerive(opts.bp, subj.Resource, opts.plan),
+			Derive: rehearsalDerive(opts.bp, subj.Resource, opts.scenario),
 		}
 	}
 
@@ -659,8 +659,8 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	// Frozen beside the transcript. A write-tier recording's request bodies *are* the plan's
 	// fixtures, so a replay that read the plan from the working tree would fail on any later edit
 	// with a body mismatch indistinguishable from a probe regression.
-	if len(opts.plan.Fixtures) > 0 {
-		if err := writeJSONFile(snap.PlanPath(), opts.plan); err != nil {
+	if len(opts.scenario.Fixtures) > 0 {
+		if err := writeJSONFile(snap.ScenarioPath(), opts.scenario); err != nil {
 			return err
 		}
 	}
@@ -740,12 +740,12 @@ func authoriseMutations(
 	}
 
 	return probe.Authorise(ctx, read, profile, probe.GuardOptions{
-		Mode:                     probe.ModeRecord,
-		AllowMutations:           opts.allowMutate,
-		Subject:                  subj,
-		Plan:                     opts.plan,
-		EquivalentSnapshotExists: equivalentSnapshotExists(root, opts.plan),
-		Force:                    opts.force,
+		Mode:                      probe.ModeRecord,
+		AllowMutations:            opts.allowMutate,
+		Subject:                   subj,
+		Scenario:                  opts.scenario,
+		EquivalentRecordingExists: equivalentRecordingExists(root, opts.scenario),
+		Force:                     opts.force,
 	}, probe.OSEnviron{})
 }
 
@@ -758,13 +758,13 @@ func authoriseMutations(
 // Any failure to read or compare answers false. Being unable to tell must not block a recording --
 // the consequence of a wrong false is one extra snapshot, and of a wrong true is a run an operator
 // cannot make at all.
-func equivalentSnapshotExists(root string, plan probe.Plan) bool {
+func equivalentRecordingExists(root string, scenario probe.Scenario) bool {
 	existing, err := cassette.Latest(root)
 	if err != nil {
 		return false
 	}
 
-	frozen, err := loadPlanIfPresent(existing.PlanPath())
+	frozen, err := loadScenarioIfPresent(existing.ScenarioPath())
 	if err != nil {
 		return false
 	}
@@ -774,7 +774,7 @@ func equivalentSnapshotExists(root string, plan probe.Plan) bool {
 		return false
 	}
 
-	now, err := json.Marshal(plan)
+	now, err := json.Marshal(scenario)
 	if err != nil {
 		return false
 	}
@@ -818,7 +818,7 @@ func sweepEverything(opts probeRun) error {
 
 		// The subject's own plan, for its sweep budget; a subject with none sweeps on
 		// the defaults, which is exactly what an unplanned resource should get.
-		plan, _, err := opts.planFor(subj.Resource)
+		plan, _, err := opts.scenarioFor(subj.Resource)
 		if err != nil {
 			return err
 		}
@@ -1000,7 +1000,7 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 	}
 
 	// The plan the *recording* was made with, never the working tree's. See Snapshot.PlanPath.
-	plan, err := loadPlanIfPresent(snap.PlanPath())
+	scenario, err := loadScenarioIfPresent(snap.ScenarioPath())
 	if err != nil {
 		return err
 	}
@@ -1015,7 +1015,7 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 		return err
 	}
 
-	grant := grantForReplay(plan, meta)
+	grant := grantForReplay(scenario, meta)
 
 	// A filtered recording replays filtered: the cassette holds only that probe's
 	// traffic, and the wider catalogue would mismatch on its first request.
@@ -1032,12 +1032,12 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 	}
 
 	result, runErr := probe.Run(context.Background(), probe.RunOptions{
-		Mode:    probe.ModeReplay,
-		Subject: subj,
-		Plan:    plan,
-		Grant:   grant,
-		Ledger:  probe.MemoryLedger(),
-		Only:    only,
+		Mode:     probe.ModeReplay,
+		Subject:  subj,
+		Scenario: scenario,
+		Grant:    grant,
+		Ledger:   probe.MemoryLedger(),
+		Only:     only,
 		// The recorded prefix, reproduced. A cassette stores full request paths, so replaying
 		// a recording made against an endpoint with a prefix needs that prefix back.
 		BaseURL:      replayBaseURL + meta.BasePath,
@@ -1110,8 +1110,8 @@ func replayProbe(mode string, subj probe.Subject, only, root string, rederive bo
 // probes are reported skipped -- which is what they were. A mutating recording gets a replay grant
 // carrying the prefix the run stamped, because ReplayTransport matches request bodies and the name
 // is in the body.
-func grantForReplay(plan probe.Plan, meta cassette.Metadata) *probe.Grant {
-	if len(plan.Fixtures) == 0 || meta.NamePrefix == "" {
+func grantForReplay(scenario probe.Scenario, meta cassette.Metadata) *probe.Grant {
+	if len(scenario.Fixtures) == 0 || meta.NamePrefix == "" {
 		return nil
 	}
 
@@ -1261,7 +1261,7 @@ func listProbes(opts probeRun) error {
 	for _, subj := range opts.subjects {
 		// Per subject, so a multi-resource listing costs each resource against its
 		// own plan rather than against whichever plan happened to be passed.
-		plan, _, err := opts.planFor(subj.Resource)
+		plan, _, err := opts.scenarioFor(subj.Resource)
 		if err != nil {
 			return err
 		}
@@ -1292,7 +1292,7 @@ func listProbes(opts probeRun) error {
 			// the resource and would otherwise be repeated nine times.
 			fmt.Printf("  mutating probes refused: %s\n", why)
 		case planWhy != "":
-			fmt.Printf("  mutating probes need a plan: %s\n", planWhy)
+			fmt.Printf("  mutating probes need a scenario: %s\n", planWhy)
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
@@ -1342,17 +1342,17 @@ func listProbes(opts probeRun) error {
 // through.
 //
 // It is not a defect in either number. The per-field probes scale with the count of
-// writable fields, and the answer is to narrow them with a plan: candidates, fixtures
+// writable fields, and the answer is to narrow them with a scenario: candidates, fixtures
 // and a deny list are how an operator says which fields are worth the requests. Saying
 // so here is more useful than quietly showing a total nobody compares to anything.
 func printBudgetVerdict(sc probe.Scope, requests, creates int) {
-	budget := sc.Plan.Budget.WithDefaults()
+	budget := sc.Scenario.Budget.WithDefaults()
 
 	overRequests := requests > budget.MaxRequests
 	overCreates := creates > budget.MaxCreates
 
 	which := "default"
-	if sc.Planned {
+	if sc.HasScenario {
 		which = "plan's"
 	}
 
@@ -1365,7 +1365,7 @@ func printBudgetVerdict(sc probe.Scope, requests, creates int) {
 	fmt.Printf("\n  Does NOT fit the %s budget: %d/%d requests, %d/%d creates.\n",
 		which, requests, budget.MaxRequests, creates, budget.MaxCreates)
 
-	if !sc.Planned {
+	if !sc.HasScenario {
 		fmt.Println("  This is the unnarrowed worst case: with no plan, the per-field probes are")
 		fmt.Println("  costed over every writable field. Supply -plan with fixtures, candidates and")
 		fmt.Println("  a deny list to narrow them -- that is what the plan is for.")

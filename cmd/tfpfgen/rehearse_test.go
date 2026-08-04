@@ -19,7 +19,7 @@ func TestUnit_CLI_RehearsalBodiesMatchWhatTheFixturesWouldApply(t *testing.T) {
 		t.Fatalf("loading the committed blueprint: %v", err)
 	}
 
-	plan, err := loadPlan(blueprintDir() + "/tests_http_server.probe.plan.json")
+	plan, err := loadScenario(blueprintDir() + "/tests_http_server.scenario.json")
 	if err != nil {
 		t.Fatalf("loading the committed plan: %v", err)
 	}

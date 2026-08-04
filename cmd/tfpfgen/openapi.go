@@ -40,7 +40,7 @@ const fetchTimeout = 2 * time.Minute
 // runOpenAPIFetch fetches the upstream OpenAPI document and pins it as a new snapshot.
 //
 // The refresh loop is the point: with -url omitted, the source comes from the latest
-// snapshot's own metadata, so `openapi fetch -out openapi-specs/thousandeyes` re-fetches
+// snapshot's own metadata, so `openapi fetch -out openapi/thousandeyes` re-fetches
 // from wherever the last pin came from -- no one has to remember the URL, because the
 // snapshot that would go stale is the thing that records it.
 func runOpenAPIFetch(args []string) error {
@@ -48,7 +48,7 @@ func runOpenAPIFetch(args []string) error {
 
 	var (
 		url    = fs.String("url", "", "the document to fetch; defaults to the latest snapshot's recorded source")
-		out    = fs.String("out", "", "snapshot root to pin into, e.g. openapi-specs/thousandeyes (required)")
+		out    = fs.String("out", "", "snapshot root to pin into, e.g. openapi/thousandeyes (required)")
 		dryRun = fs.Bool("dry-run", false, "fetch and report, but pin nothing")
 	)
 

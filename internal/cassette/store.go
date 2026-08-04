@@ -17,7 +17,7 @@ import (
 
 // The on-disk layout mirrors internal/snapshot:
 //
-//	probe-evidence/<provider>/<resource>/<version>-t<epochMillis>/
+//	recordings/<provider>/<resource>/<version>-t<epochMillis>/
 //	  metadata.json
 //	  interactions/001-get-tags.json … NNN-*.json
 //
@@ -41,9 +41,9 @@ const (
 	FactsFileName = "facts.json"
 	// ReportFileName holds the run report.
 	ReportFileName = "report.json"
-	// PlanFileName holds the probe plan the recording was made with. Absent for a read-only
+	// ScenarioFileName holds the probe scenario the recording was made with. Absent for a read-only
 	// recording, which needs no plan.
-	PlanFileName = "plan.json"
+	ScenarioFileName = "scenario.json"
 	// SubjectFileName holds the flattened subject the recording was made with. Absent
 	// only for snapshots that predate freezing.
 	SubjectFileName = "subject.json"
@@ -141,14 +141,14 @@ func (s Snapshot) FactsPath() string { return filepath.Join(s.Dir, FactsFileName
 // ReportPath is the run report.
 func (s Snapshot) ReportPath() string { return filepath.Join(s.Dir, ReportFileName) }
 
-// PlanPath is the frozen copy of the probe plan the recording was made with.
+// ScenarioPath is the frozen copy of the probe plan the recording was made with.
 //
 // Frozen into the snapshot rather than read from the working tree at replay time, and the reason is
 // specific to the write tier. Facts are derived from the transcript, but *which requests exist in
 // the transcript* is a function of the plan: its fixtures are the request bodies. Editing a fixture
 // would then make replay fail with a body mismatch that looks exactly like a probe regression and
 // is nothing of the kind.
-func (s Snapshot) PlanPath() string { return filepath.Join(s.Dir, PlanFileName) }
+func (s Snapshot) ScenarioPath() string { return filepath.Join(s.Dir, ScenarioFileName) }
 
 // SubjectPath is the frozen copy of the flattened subject the recording was made with.
 //

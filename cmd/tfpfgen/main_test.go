@@ -82,7 +82,7 @@ var builtCommands = map[string]bool{
 	// blueprint merge folds facts into a blueprint and reports what it refused.
 	"blueprint merge": true,
 	// probe records, replays, verifies and sweeps; the mutating tier ran live
-	// against a sandbox and its recordings are committed under probe-evidence/.
+	// against a sandbox and its recordings are committed under recordings/.
 	"probe record":      true,
 	"probe replay":      true,
 	"probe verify":      true,

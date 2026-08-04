@@ -22,7 +22,7 @@ import (
 func rehearsalDerive(
 	bp blueprint.Blueprint,
 	key string,
-	plan probe.Plan,
+	plan probe.Scenario,
 ) func([]probe.Fact) (probe.RehearsalRound, error) {
 	return func(facts []probe.Fact) (probe.RehearsalRound, error) {
 		return rehearsalBodies(bp, key, plan, facts)
@@ -38,7 +38,7 @@ func rehearsalDerive(
 func rehearsalBodies(
 	bp blueprint.Blueprint,
 	key string,
-	plan probe.Plan,
+	plan probe.Scenario,
 	facts []probe.Fact,
 ) (probe.RehearsalRound, error) {
 	// Narrowed to the one resource before the round-trip: Unmarshal validates, and a
@@ -99,7 +99,7 @@ func rehearsalBodies(
 
 // wireBody derives one fixture's wire form: JSONPath-keyed values chosen exactly as
 // the generated HCL fixture chooses them, in fixturespec.
-func wireBody(res blueprint.Resource, plan probe.Plan, minimal bool) map[string]any {
+func wireBody(res blueprint.Resource, plan probe.Scenario, minimal bool) map[string]any {
 	body := map[string]any{}
 
 	for _, a := range res.Schema.Attributes {
@@ -224,7 +224,7 @@ func scalarHCLValue(hcl string) (any, bool) {
 }
 
 // planValue reads a top-level key out of the first plan fixture that sets it.
-func planValue(plan probe.Plan, path string) (any, bool) {
+func planValue(plan probe.Scenario, path string) (any, bool) {
 	for _, f := range plan.Fixtures {
 		if v, ok := f.Body[path]; ok {
 			return v, true

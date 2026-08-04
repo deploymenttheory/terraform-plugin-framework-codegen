@@ -340,7 +340,7 @@ func TestUnit_Cassette_ScanFindsDeclaredSecrets(t *testing.T) {
 func TestUnit_Cassette_PlantedTokenWritesNothing(t *testing.T) {
 	t.Parallel()
 
-	root := filepath.Join(t.TempDir(), "probe-evidence")
+	root := filepath.Join(t.TempDir(), "recordings")
 
 	// A redactor that does not know about the token, standing in for the realistic failure:
 	// the operator declared the wrong value, or the API echoed a credential nobody

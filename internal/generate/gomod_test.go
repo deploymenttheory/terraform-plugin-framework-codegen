@@ -115,17 +115,17 @@ func TestUnit_Generate_CommittedBlueprintDoesNotClaimAnAbsentSnapshot(t *testing
 		if c.value == "" {
 			continue
 		}
-		// A claimed snapshot has to be somewhere under openapi-specs/.
-		matches, err := filepath.Glob(filepath.Join(repoRoot, "openapi-specs", "*", c.value))
+		// A claimed snapshot has to be somewhere under openapi/.
+		matches, err := filepath.Glob(filepath.Join(repoRoot, "openapi", "*", c.value))
 		if err != nil {
 			t.Fatalf("Glob: %v", err)
 		}
-		nested, err := filepath.Glob(filepath.Join(repoRoot, "openapi-specs", "*", "*", c.value))
+		nested, err := filepath.Glob(filepath.Join(repoRoot, "openapi", "*", "*", c.value))
 		if err != nil {
 			t.Fatalf("Glob: %v", err)
 		}
 		if len(matches)+len(nested) == 0 {
-			t.Errorf("the blueprint's source.%s is %q, but nothing matching it is committed under openapi-specs/. "+
+			t.Errorf("the blueprint's source.%s is %q, but nothing matching it is committed under openapi/. "+
 				"Either commit the snapshot or clear the field.", c.field, c.value)
 		}
 	}

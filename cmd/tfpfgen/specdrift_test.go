@@ -159,7 +159,7 @@ func collectSpecFacts(attrs []blueprint.Attribute, prefix string, out map[string
 func newestSnapshot(t *testing.T) string {
 	t.Helper()
 
-	root := filepath.Join(repoRoot, "openapi-specs", "thousandeyes")
+	root := filepath.Join(repoRoot, "openapi", "thousandeyes")
 
 	matches, err := filepath.Glob(filepath.Join(root, "*", "api.yaml"))
 	if err != nil || len(matches) == 0 {

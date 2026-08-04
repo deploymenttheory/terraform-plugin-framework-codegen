@@ -18,8 +18,8 @@ import (
 // Two fixtures because that is what separates "the server stored what I sent" from "the server
 // returned its own value" -- the second fixture's differing value is the whole basis of every
 // writability conclusion below.
-func writePlan() Plan {
-	return Plan{
+func writePlan() Scenario {
+	return Scenario{
 		Fixtures: []Fixture{
 			{Name: "first", Body: map[string]any{"key": "stamped", "value": "a"}},
 			{Name: "second", Body: map[string]any{"key": "stamped", "value": "b"}},
@@ -38,7 +38,7 @@ func writePlan() Plan {
 func runWriteProbes(
 	t *testing.T,
 	srv *quirkserver.Server,
-	plan Plan,
+	plan Scenario,
 	only string,
 ) (Report, []cassette.Interaction) {
 	t.Helper()
@@ -46,7 +46,7 @@ func runWriteProbes(
 	out, err := Run(context.Background(), RunOptions{
 		Mode:     ModeRecord,
 		Subject:  quirkSubject(),
-		Plan:     plan,
+		Scenario:     plan,
 		Only:     only,
 		BaseURL:  srv.BaseURL(),
 		Redactor: testRedactor(t),
@@ -489,7 +489,7 @@ func TestUnit_Probe_ReadYourWritesCreatesNothing(t *testing.T) {
 func runWriteProbesFast(
 	t *testing.T,
 	srv *quirkserver.Server,
-	plan Plan,
+	plan Scenario,
 	only string,
 ) (Report, []cassette.Interaction) {
 	t.Helper()
@@ -497,7 +497,7 @@ func runWriteProbesFast(
 	out, err := Run(context.Background(), RunOptions{
 		Mode:      ModeRecord,
 		Subject:   quirkSubject(),
-		Plan:      plan,
+		Scenario:      plan,
 		Only:      only,
 		BaseURL:   srv.BaseURL(),
 		Redactor:  testRedactor(t),
@@ -544,7 +544,7 @@ func TestUnit_Probe_AMutatingRunReplaysToTheSameFacts(t *testing.T) {
 	replayed, err := Run(context.Background(), RunOptions{
 		Mode:         ModeReplay,
 		Subject:      quirkSubject(),
-		Plan:         writePlan(),
+		Scenario:         writePlan(),
 		BaseURL:      "https://replay.invalid",
 		Interactions: interactions,
 		// A replay grant: nothing is created, the transport answers from the cassette, and the
@@ -579,7 +579,7 @@ func TestUnit_Probe_AMutatingReplayNeedsAGrant(t *testing.T) {
 	out, err := Run(context.Background(), RunOptions{
 		Mode:         ModeReplay,
 		Subject:      quirkSubject(),
-		Plan:         writePlan(),
+		Scenario:         writePlan(),
 		BaseURL:      "https://replay.invalid",
 		Interactions: interactions,
 	})
@@ -598,7 +598,7 @@ func TestUnit_Probe_AMutatingReplayNeedsAGrant(t *testing.T) {
 	_, err = Run(context.Background(), RunOptions{
 		Mode:     ModeRecord,
 		Subject:  quirkSubject(),
-		Plan:     writePlan(),
+		Scenario:     writePlan(),
 		BaseURL:  srv.BaseURL(),
 		Redactor: testRedactor(t),
 		Grant:    ReplayGrant(testPrefix),
@@ -698,8 +698,8 @@ func TestUnit_Probe_TheDeclaredCostIsNeverExceeded(t *testing.T) {
 // defaultsPlan omits two fields from every fixture, so both are in the omitted set the
 // server-default protocol observes, and varies one field between fixtures so a derived value can
 // be told from a constant.
-func defaultsPlan() Plan {
-	return Plan{
+func defaultsPlan() Scenario {
+	return Scenario{
 		Fixtures: []Fixture{
 			{Name: "first", Body: map[string]any{"key": "stamped", "value": "a"}},
 			{Name: "second", Body: map[string]any{"key": "stamped", "value": "b"}},
@@ -732,7 +732,7 @@ func runAgainst(
 	t *testing.T,
 	srv *quirkserver.Server,
 	subj Subject,
-	plan Plan,
+	plan Scenario,
 	only string,
 ) Report {
 	t.Helper()
@@ -740,7 +740,7 @@ func runAgainst(
 	out, err := Run(context.Background(), RunOptions{
 		Mode:      ModeRecord,
 		Subject:   subj,
-		Plan:      plan,
+		Scenario:      plan,
 		Only:      only,
 		BaseURL:   srv.BaseURL(),
 		Redactor:  testRedactor(t),
@@ -866,7 +866,7 @@ func TestUnit_Probe_ConditionalRequirementIsANoteWhenNothingExplainsIt(t *testin
 		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true,
 	})
 
-	plan := Plan{
+	plan := Scenario{
 		Fixtures: []Fixture{
 			{Name: "plain", Body: map[string]any{
 				"key": "stamped", "value": "a", "objectType": "ordinary",
@@ -913,7 +913,7 @@ func TestUnit_Probe_ADeclaredGateTurnsTheDisagreementIntoFacts(t *testing.T) {
 		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Required, Writable: true,
 	})
 
-	plan := Plan{
+	plan := Scenario{
 		Fixtures: []Fixture{
 			{Name: "plain", Body: map[string]any{
 				"key": "stamped", "value": "a", "objectType": "ordinary",
@@ -994,7 +994,7 @@ func TestUnit_Probe_MixedPresenceWithAGateBecomesBranchFacts(t *testing.T) {
 		AllowedValues: []string{"static", "dynamic"},
 	})
 
-	plan := Plan{
+	plan := Scenario{
 		Fixtures: []Fixture{
 			{Name: "static", Body: map[string]any{
 				"key": "stamped", "value": "a", "objectType": "static",
@@ -1068,7 +1068,7 @@ func TestUnit_Probe_MixedPresenceWithoutAGateStaysANote(t *testing.T) {
 		AllowedValues: []string{"static", "dynamic"},
 	})
 
-	plan := Plan{
+	plan := Scenario{
 		Fixtures: []Fixture{
 			{Name: "static", Body: map[string]any{
 				"key": "stamped", "value": "a", "objectType": "static",
@@ -1321,7 +1321,7 @@ func TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled(t *testing.T) {
 	// The fixtures set key and objectType and omit the three computed_optional fields, which is
 	// what makes the two groups observable at all -- exactly how the committed pilot plan is
 	// built.
-	plan := Plan{
+	plan := Scenario{
 		Fixtures: []Fixture{
 			{Name: "first", Body: map[string]any{
 				"key": "stamped", "value": "a", "objectType": "test",
@@ -1392,8 +1392,8 @@ func TestUnit_Probe_TheFiveOpenPilotGuessesAreSettled(t *testing.T) {
 
 // immutablePlan declares two candidate values for one field, which is the minimum the
 // immutability fact requires: two distinct values, both refused.
-func immutablePlan() Plan {
-	return Plan{
+func immutablePlan() Scenario {
+	return Scenario{
 		Fixtures: []Fixture{
 			{Name: "first", Body: map[string]any{"key": "stamped", "value": "original"}},
 		},
@@ -1597,8 +1597,8 @@ func enumSubject() Subject {
 	return subj
 }
 
-func enumPlan() Plan {
-	return Plan{
+func enumPlan() Scenario {
+	return Scenario{
 		Fixtures: []Fixture{
 			{Name: "first", Body: map[string]any{"key": "stamped", "value": "a", "mode": "and"}},
 		},
@@ -1709,7 +1709,7 @@ func TestUnit_Probe_TheNegativesAreShapedLikeTheDocumentedValues(t *testing.T) {
 	out, err := Run(context.Background(), RunOptions{
 		Mode:      ModeRecord,
 		Subject:   enumSubject(),
-		Plan:      enumPlan(),
+		Scenario:      enumPlan(),
 		Only:      "write.enum",
 		BaseURL:   srv.BaseURL(),
 		Redactor:  testRedactor(t),
@@ -1983,8 +1983,8 @@ func sideEffectSubject() Subject {
 	return subj
 }
 
-func sideEffectPlan() Plan {
-	return Plan{
+func sideEffectPlan() Scenario {
+	return Scenario{
 		Fixtures: []Fixture{
 			{Name: "first", Body: map[string]any{"key": "stamped", "value": "a"}},
 		},
@@ -2111,7 +2111,7 @@ func TestUnit_Probe_TheWholeCatalogueRunsAndSweepsClean(t *testing.T) {
 		Kind: blueprint.KindString, ComputedOptionalRequired: blueprint.Optional, Writable: true,
 	})
 
-	plan := Plan{
+	plan := Scenario{
 		Fixtures: []Fixture{
 			{Name: "first", Body: map[string]any{"key": "stamped", "value": "a"}},
 			{Name: "second", Body: map[string]any{"key": "stamped", "value": "b"}},
@@ -2181,7 +2181,7 @@ func TestUnit_Probe_ARefusedEnumCandidateEscalatesIntoOtherFixtures(t *testing.T
 		},
 	)
 
-	plan := Plan{
+	plan := Scenario{
 		Fixtures: []Fixture{
 			{Name: "static", Body: map[string]any{
 				"key": "stamped", "value": "a", "objectType": "static", "mode": "and",
@@ -2249,7 +2249,7 @@ func TestUnit_Probe_TheCreateResponseIsEvidenceUnderTheCurrentRevision(t *testin
 		subj.EvidenceRev = CurrentEvidenceRev
 
 		out, err := Run(context.Background(), RunOptions{
-			Mode: ModeRecord, Subject: subj, Plan: writePlan(),
+			Mode: ModeRecord, Subject: subj, Scenario: writePlan(),
 			Only: "write.writable-returned", BaseURL: srv.BaseURL(),
 			Redactor: testRedactor(t), Grant: &Grant{namePrefix: testPrefix},
 			Ledger: MemoryLedger(),
@@ -2279,7 +2279,7 @@ func TestUnit_Probe_TheCreateResponseIsEvidenceUnderTheCurrentRevision(t *testin
 		subj.EvidenceRev = CurrentEvidenceRev
 
 		out, err := Run(context.Background(), RunOptions{
-			Mode: ModeRecord, Subject: subj, Plan: writePlan(),
+			Mode: ModeRecord, Subject: subj, Scenario: writePlan(),
 			Only: "write.writable-returned", BaseURL: srv.BaseURL(),
 			Redactor: testRedactor(t), Grant: &Grant{namePrefix: testPrefix},
 			Ledger: MemoryLedger(),

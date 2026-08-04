@@ -69,9 +69,9 @@ type GuardOptions struct {
 	AllowMutations bool
 
 	Subject Subject
-	Plan    Plan
+	Scenario    Scenario
 
-	// EquivalentSnapshotExists is true when committed evidence was already recorded with an
+	// EquivalentRecordingExists is true when committed evidence was already recorded with an
 	// identical plan.
 	//
 	// Equivalent, not merely present, and the distinction is the whole condition. A recording
@@ -83,7 +83,7 @@ type GuardOptions struct {
 	//
 	// A run whose plan differs is new evidence and is allowed. The first write-tier recording
 	// against a resource that only has read-tier evidence is exactly that case.
-	EquivalentSnapshotExists bool
+	EquivalentRecordingExists bool
 	Force                    bool
 }
 
@@ -279,7 +279,7 @@ var staticConditions = []condition{
 		name:  "plan",
 		modes: []Mode{ModeRecord},
 		check: func(in guardInput) string {
-			if err := in.opts.Plan.Validate(in.opts.Subject); err != nil {
+			if err := in.opts.Scenario.Validate(in.opts.Subject); err != nil {
 				return "the probe plan is not usable: " + err.Error()
 			}
 
@@ -287,7 +287,7 @@ var staticConditions = []condition{
 			// works with no fixture at all -- it reports the unnarrowed worst case. A mutating
 			// run cannot: a fixture is the only source of a body the API will accept, and
 			// without one every probe would abandon its protocol on the first create.
-			if len(in.opts.Plan.Fixtures) == 0 {
+			if len(in.opts.Scenario.Fixtures) == 0 {
 				return "the plan declares no fixtures; a mutating probe has no valid request " +
 					"body to build on without at least one"
 			}
@@ -299,7 +299,7 @@ var staticConditions = []condition{
 		name:  "noSnapshotOverwrite",
 		modes: []Mode{ModeRecord},
 		check: func(in guardInput) string {
-			if !in.opts.EquivalentSnapshotExists || in.opts.Force {
+			if !in.opts.EquivalentRecordingExists || in.opts.Force {
 				return ""
 			}
 

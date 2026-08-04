@@ -9,7 +9,7 @@
 // The layout is inherited from go-sdk-thousandeyes, which pins specifications the
 // same way for the same reason:
 //
-//	openapi-specs/<provider>/<version>-t<epochMillis>/
+//	openapi/<provider>/<version>-t<epochMillis>/
 //	  api.yaml        the document
 //	  metadata.json   version, checksum, source and counts
 //

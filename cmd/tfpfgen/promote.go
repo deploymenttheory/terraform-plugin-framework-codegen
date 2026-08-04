@@ -13,7 +13,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
 )
 
-// promotePlans folds probe-plan fixture values into accFixture wire hints, so the
+// adoptScenarios folds probe-plan fixture values into accFixture wire hints, so the
 // operator states a value exactly once -- in the plan, where a live run proved it --
 // and the generated fixtures and the rehearsal both read it from the blueprint.
 //
@@ -23,13 +23,13 @@ import (
 // Values the generator synthesises fine stay synthesised -- a promoted constant
 // would defeat the salting that keeps concurrent seeds from colliding. Hand-written
 // hints are never touched: a person's stated value outranks a mechanical copy.
-func promotePlans(bp *blueprint.Blueprint, planDir string) (int, error) {
+func adoptScenarios(bp *blueprint.Blueprint, scenarioDir string) (int, error) {
 	promoted := 0
 
 	for i := range bp.Resources {
 		res := &bp.Resources[i]
 
-		plan, found, err := loadPlanIfFound(filepath.Join(planDir, res.Key+".probe.plan.json"))
+		plan, found, err := loadPlanIfFound(filepath.Join(scenarioDir, res.Key+".scenario.json"))
 		if err != nil {
 			return promoted, err
 		}
@@ -96,13 +96,13 @@ func promotePlans(bp *blueprint.Blueprint, planDir string) (int, error) {
 	return promoted, nil
 }
 
-// loadPlanIfFound is loadPlan with absence as a non-error, matching probeRun.planFor.
-func loadPlanIfFound(path string) (plan probe.Plan, found bool, err error) {
+// loadPlanIfFound is loadScenario with absence as a non-error, matching probeRun.scenarioFor.
+func loadPlanIfFound(path string) (plan probe.Scenario, found bool, err error) {
 	if _, statErr := os.Stat(path); os.IsNotExist(statErr) {
 		return plan, false, nil
 	}
 
-	loaded, err := loadPlan(path)
+	loaded, err := loadScenario(path)
 	if err != nil {
 		return plan, false, err
 	}

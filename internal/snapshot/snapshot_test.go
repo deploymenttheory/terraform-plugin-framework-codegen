@@ -216,7 +216,7 @@ func TestUnit_SpecStore_DirName(t *testing.T) {
 func TestUnit_SpecStore_CommittedSnapshotVerifies(t *testing.T) {
 	t.Parallel()
 
-	root := filepath.Join("..", "..", "openapi-specs", "thousandeyes")
+	root := filepath.Join("..", "..", "openapi", "thousandeyes")
 
 	snap, err := Latest(root)
 	if err != nil {

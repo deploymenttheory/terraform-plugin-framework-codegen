@@ -344,7 +344,7 @@ func TestUnit_CLI_Ingest_ListsCandidates(t *testing.T) {
 
 	got := captureStdout(t, func() {
 		err := runBlueprintDraft([]string{
-			"-openapi-dir", filepath.Join(repoRoot, "openapi-specs", "thousandeyes"),
+			"-openapi-dir", filepath.Join(repoRoot, "openapi", "thousandeyes"),
 			"-tag", "tag", "-dry-run",
 		})
 		if err != nil {
@@ -365,7 +365,7 @@ func TestUnit_CLI_Ingest_InfersBlueprints(t *testing.T) {
 	out := t.TempDir()
 
 	err := runBlueprintDraft([]string{
-		"-openapi-dir", filepath.Join(repoRoot, "openapi-specs", "thousandeyes"),
+		"-openapi-dir", filepath.Join(repoRoot, "openapi", "thousandeyes"),
 		"-tag", "tag", "-out", out,
 	})
 	if err != nil {
@@ -379,7 +379,7 @@ func TestUnit_CLI_Ingest_InfersBlueprints(t *testing.T) {
 }
 
 // TestUnit_CLI_Ingest_ScaffoldsPlanDraftWorksheets: -plan-drafts writes one
-// KEY.probe.plan.draft.json per inferred resource -- invisible to every loader until
+// KEY.scenario.draft.json per inferred resource -- invisible to every loader until
 // the curator renames the .draft away -- and never overwrites a started worksheet.
 func TestUnit_CLI_Ingest_ScaffoldsPlanDraftWorksheets(t *testing.T) {
 	quiet(t)
@@ -389,7 +389,7 @@ func TestUnit_CLI_Ingest_ScaffoldsPlanDraftWorksheets(t *testing.T) {
 
 	run := func() error {
 		return runBlueprintDraft([]string{
-			"-openapi-dir", filepath.Join(repoRoot, "openapi-specs", "thousandeyes"),
+			"-openapi-dir", filepath.Join(repoRoot, "openapi", "thousandeyes"),
 			"-tag", "tag", "-out", out, "-scenario-drafts", drafts,
 		})
 	}
@@ -397,7 +397,7 @@ func TestUnit_CLI_Ingest_ScaffoldsPlanDraftWorksheets(t *testing.T) {
 		t.Fatalf("ingest: %v", err)
 	}
 
-	path := filepath.Join(drafts, "tag.probe.plan.draft.json")
+	path := filepath.Join(drafts, "tag.scenario.draft.json")
 	data, err := os.ReadFile(path) //nolint:gosec // test-owned path
 	if err != nil {
 		t.Fatalf("the draft should have been written: %v", err)
@@ -405,7 +405,7 @@ func TestUnit_CLI_Ingest_ScaffoldsPlanDraftWorksheets(t *testing.T) {
 
 	// The draft must be a plan the strict loader would take after curation --
 	// same decoder, same unknown-field refusal.
-	plan, err := loadPlan(path)
+	plan, err := loadScenario(path)
 	if err != nil {
 		t.Fatalf("the draft does not round-trip through the plan loader: %v", err)
 	}
@@ -445,7 +445,7 @@ func TestUnit_CLI_Ingest_OnlyTakesACommaList(t *testing.T) {
 
 	got := captureStdout(t, func() {
 		err := runBlueprintDraft([]string{
-			"-openapi-dir", filepath.Join(repoRoot, "openapi-specs", "thousandeyes"),
+			"-openapi-dir", filepath.Join(repoRoot, "openapi", "thousandeyes"),
 			"-tag", "tags,credentials", "-dry-run",
 		})
 		if err != nil {
@@ -464,7 +464,7 @@ func TestUnit_CLI_Ingest_RequiresAnOutputUnlessListing(t *testing.T) {
 	quiet(t)
 
 	err := runBlueprintDraft([]string{
-		"-openapi-dir", filepath.Join(repoRoot, "openapi-specs", "thousandeyes"), "-tag", "tag",
+		"-openapi-dir", filepath.Join(repoRoot, "openapi", "thousandeyes"), "-tag", "tag",
 	})
 	if err == nil {
 		t.Fatal("expected -out to be required")
@@ -479,7 +479,7 @@ func TestUnit_CLI_Ingest_UnmatchedFilterIsAnError(t *testing.T) {
 	quiet(t)
 
 	err := runBlueprintDraft([]string{
-		"-openapi-dir", filepath.Join(repoRoot, "openapi-specs", "thousandeyes"),
+		"-openapi-dir", filepath.Join(repoRoot, "openapi", "thousandeyes"),
 		"-tag", "definitelynotathing", "-dry-run",
 	})
 	if !errors.Is(err, errNothingToDo) {
@@ -504,7 +504,7 @@ func TestUnit_CLI_Ingest_MissingSnapshotIsReported(t *testing.T) {
 func TestUnit_CLI_Ingest_ReadsAnExplicitSpec(t *testing.T) {
 	quiet(t)
 
-	spec := filepath.Join(repoRoot, "openapi-specs", "thousandeyes",
+	spec := filepath.Join(repoRoot, "openapi", "thousandeyes",
 		"7.0.97-t1785152261691", "api.yaml")
 
 	captureStdout(t, func() {

@@ -394,21 +394,21 @@ func TestUnit_CLI_ThePilotPlanMatchesTheCommittedBlueprint(t *testing.T) {
 	var checked int
 
 	// Every committed plan is found by the same convention the bulk record driver uses --
-	// KEY.probe.plan.json beside the blueprint -- so this test is also the proof the
+	// KEY.scenario.json beside the blueprint -- so this test is also the proof the
 	// convention holds: a plan filed under the wrong name is a plan no wave will load.
 	for _, res := range bp.Resources {
 		if res.Drop {
 			continue
 		}
 
-		path := filepath.Join(blueprintDir(), res.Key+".probe.plan.json")
+		path := filepath.Join(blueprintDir(), res.Key+".scenario.json")
 		if _, statErr := os.Stat(path); errors.Is(statErr, os.ErrNotExist) {
 			continue
 		}
 
-		plan, err := loadPlan(path)
+		plan, err := loadScenario(path)
 		if err != nil {
-			t.Fatalf("loadPlan(%s): %v", path, err)
+			t.Fatalf("loadScenario(%s): %v", path, err)
 		}
 
 		if res.Key == "tag" && len(plan.Fixtures) < 2 {
@@ -484,7 +484,7 @@ func TestUnit_CLI_APlanWithoutAResourceIsRefused(t *testing.T) {
 
 	err := runProbe([]string{
 		"-blueprint", blueprintDir(),
-		"-scenario", filepath.Join(blueprintDir(), "tag.probe.plan.json"),
+		"-scenario", filepath.Join(blueprintDir(), "tag.scenario.json"),
 	})
 	if err == nil || !strings.Contains(err.Error(), "-scenario needs -resource") {
 		t.Fatalf("expected the combination to be refused by name, got: %v", err)
@@ -492,29 +492,29 @@ func TestUnit_CLI_APlanWithoutAResourceIsRefused(t *testing.T) {
 }
 
 // TestUnit_CLI_PlansResolvePerResourceByConvention: the bulk driver's whole mechanism
-// is KEY.probe.plan.json beside the blueprint, so -list with no -plan at all must cost
+// is KEY.scenario.json beside the blueprint, so -list with no -plan at all must cost
 // the tag against its own committed plan rather than against the unnarrowed worst case.
 func TestUnit_CLI_PlansResolvePerResourceByConvention(t *testing.T) {
 	t.Parallel()
 
 	// The default plan directory follows the blueprint path, whether it is the
 	// directory itself or a file inside it.
-	if got := planDirFor("", blueprintDir()); got != blueprintDir() {
-		t.Errorf("planDirFor(dir) = %q, want the directory itself", got)
+	if got := scenarioDirFor("", blueprintDir()); got != blueprintDir() {
+		t.Errorf("scenarioDirFor(dir) = %q, want the directory itself", got)
 	}
 	file := filepath.Join(blueprintDir(), "provider.blueprint.json")
-	if got := planDirFor("", file); got != blueprintDir() {
-		t.Errorf("planDirFor(file) = %q, want the containing directory", got)
+	if got := scenarioDirFor("", file); got != blueprintDir() {
+		t.Errorf("scenarioDirFor(file) = %q, want the containing directory", got)
 	}
-	if got := planDirFor("elsewhere", blueprintDir()); got != "elsewhere" {
+	if got := scenarioDirFor("elsewhere", blueprintDir()); got != "elsewhere" {
 		t.Errorf("an explicit -plan-dir must win, got %q", got)
 	}
 
-	opts := probeRun{planDir: blueprintDir()}
+	opts := probeRun{scenarioDir: blueprintDir()}
 
-	plan, found, err := opts.planFor("tag")
+	plan, found, err := opts.scenarioFor("tag")
 	if err != nil {
-		t.Fatalf("planFor(tag): %v", err)
+		t.Fatalf("scenarioFor(tag): %v", err)
 	}
 	if !found || len(plan.Fixtures) == 0 {
 		t.Error("the committed tag plan should resolve by convention")
@@ -522,7 +522,7 @@ func TestUnit_CLI_PlansResolvePerResourceByConvention(t *testing.T) {
 
 	// A resource nobody has planned resolves to nothing, found=false -- the signal the
 	// record wave uses to skip it with a stated note instead of failing the wave.
-	if _, found, err := opts.planFor("no-such-resource"); err != nil || found {
+	if _, found, err := opts.scenarioFor("no-such-resource"); err != nil || found {
 		t.Errorf("an absent plan must be (zero, false, nil), got found=%v err=%v", found, err)
 	}
 }
@@ -576,7 +576,7 @@ func TestUnit_CLI_ThePilotBlueprintCarriesSpecEnumValues(t *testing.T) {
 func TestUnit_CLI_ReplayUsesTheFrozenSubject(t *testing.T) {
 	t.Parallel()
 
-	root := filepath.Join(repoRoot, "probe-evidence", "thousandeyes", "tag")
+	root := filepath.Join(repoRoot, "recordings", "thousandeyes", "tag")
 	snap, err := cassette.Latest(root)
 	if err != nil {
 		t.Fatalf("Latest: %v", err)

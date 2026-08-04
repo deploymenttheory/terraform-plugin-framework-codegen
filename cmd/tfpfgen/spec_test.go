@@ -15,7 +15,7 @@ import (
 
 // committedSpec is the exported document CI diffs against.
 func committedSpec() string {
-	return filepath.Join(repoRoot, "interop-specs", "thousandeyes", "provider-code-spec.json")
+	return filepath.Join(repoRoot, "specs", "thousandeyes", "provider-code-spec.json")
 }
 
 // TestUnit_CLI_Interop_ExportMatchesTheCommittedSpec is the drift gate as a test.
