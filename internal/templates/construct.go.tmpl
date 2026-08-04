@@ -84,11 +84,7 @@ func {{ .FuncName }}(ctx context.Context, v {{ .FrameworkType }}) ([]{{ .SDKType
 
 	out := make([]{{ .SDKType }}, 0, len(elements))
 	for _, m := range elements {
-{{- if .ConstructorExpr }}
-		item := {{ .ConstructorExpr }}
-{{- else }}
-		var item {{ .SDKType }}
-{{- end }}
+		{{ if .ConstructorExpr }}item := {{ .ConstructorExpr }}{{ else }}var item {{ .SDKType }}{{ end }}
 {{ range .Assignments }}
 		{{ . }}
 {{- end }}
@@ -98,7 +94,7 @@ func {{ .FuncName }}(ctx context.Context, v {{ .FrameworkType }}) ([]{{ .SDKType
 	return out, diags
 }
 {{- else }}
-func {{ .FuncName }}(ctx context.Context, v {{ .FrameworkType }}) (*{{ .SDKType }}, diag.Diagnostics) {
+func {{ .FuncName }}(ctx context.Context, v {{ .FrameworkType }}) ({{ .SDKSingleType }}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 {{- if .NeedsDiagnostics }}
 	var d diag.Diagnostics
@@ -114,12 +110,12 @@ func {{ .FuncName }}(ctx context.Context, v {{ .FrameworkType }}) (*{{ .SDKType 
 		return nil, diags
 	}
 
-	var item {{ .SDKType }}
+	{{ if .ConstructorExpr }}item := {{ .ConstructorExpr }}{{ else }}var item {{ .SDKType }}{{ end }}
 {{ range .Assignments }}
 	{{ . }}
 {{- end }}
 
-	return &item, diags
+	return {{ .ItemRef }}, diags
 }
 {{- end }}
 {{ end }}

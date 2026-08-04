@@ -1,5 +1,5 @@
 {
-  "descriptionHash": "3EE8972B8856F95DDACB7458A00D4759743AC58ABD6EE4E5139696A6055F32185E321FB81BD67E301E3F16A091B0FE75F215572F1DFCAA530247FAD22B0B795B",
+  "descriptionHash": "C7EE08CA53ACA69B6B933964B99950ABC346EAD5E80D3C5C92F53129CA4F03EF2474AB3D9E98910CB7CCDB77F7D2702A38209BC3D9AFD63BE15E87C303AAB17E",
   "descriptionLocation": "../../../../openapi/thousandeyes/7.0.98-t1785502133469/api.yaml",
   "lockFileVersion": "1.0.0",
   "kiotaVersion": "1.34.1",
@@ -28,11 +28,12 @@
     "application/x-www-form-urlencoded;q=0.2",
     "multipart/form-data;q=0.1"
   ],
-  "includePatterns": [
-    "/tags",
-    "/tags/**"
+  "includePatterns": [],
+  "excludePatterns": [
+    "/endpoint/tests/dynamic-tests/**",
+    "/endpoint/agents/transfer",
+    "/endpoint/agents/transfer/**"
   ],
-  "excludePatterns": [],
   "disabledValidationRules": [],
   "allowedExternalOrigins": []
 }

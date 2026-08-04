@@ -812,6 +812,10 @@ type ListIdentityMapping struct {
 	FromSDKField string `json:"fromSdkField"`
 	// IsPointer records whether the SDK field needs dereferencing before assignment.
 	IsPointer bool `json:"isPointer,omitempty"`
+	// ConvertFunc is a verbatim helper wrapped around the (dereferenced) value
+	// when the SDK field is not already the identity's string -- a generated
+	// SDK's uuid-typed identifier is the live case. Applied after IsPointer.
+	ConvertFunc string `json:"convertFunc,omitempty"`
 }
 
 // ResourceIdentity is a resource's identity schema.

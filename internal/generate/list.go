@@ -44,6 +44,10 @@ type ListView struct {
 	// DisplayName is the finished expression for ListResult.DisplayName, or empty.
 	DisplayName string
 
+	// ItemRef hands one element to the state mapper: "&item" when elements are
+	// values, "item" when the SDK's collections hold interfaces already.
+	ItemRef string
+
 	// HasFilters, ConfigAttributes, FilterModelType and FilterModelFields render the
 	// facet's filter schema: the query block's attributes, and the model List decodes
 	// them into. Empty when the facet declares no filters, in which case a query lists
@@ -91,7 +95,13 @@ func listView(
 
 	imports := newImportSet()
 
+	itemRef := "&item"
+	if r.Binding.Body.AccessStyle == blueprint.AccessMethod {
+		itemRef = "item"
+	}
+
 	v := &ListView{
+		ItemRef:            itemRef,
 		GoTypeName:         lf.GoTypeName,
 		ConstructorFn:      "New" + lf.GoTypeName,
 		IdentityGoTypeName: r.Identity.GoTypeName,
@@ -125,6 +135,9 @@ func listView(
 			// Dereferenced through the provider's convert package rather than inline, so a
 			// nil field yields the zero value instead of panicking during a query.
 			src = "convert.Deref(" + src + ")"
+		}
+		if m.ConvertFunc != "" {
+			src = m.ConvertFunc + "(" + src + ")"
 		}
 		v.IdentityAssignments = append(
 			v.IdentityAssignments,

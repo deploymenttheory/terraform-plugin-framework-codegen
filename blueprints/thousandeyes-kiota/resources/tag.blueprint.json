@@ -977,6 +977,57 @@
       "hooks": {
         "modifyPlan": true,
         "readBackPredicate": true
+      },
+      "list": {
+        "goTypeName": "TagListResource",
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/models",
+          "alias": "models",
+          "accessor": "l.client"
+        },
+        "read": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Tags"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Tags_API_Tagsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/tags",
+          "successCodes": [
+            200
+          ]
+        },
+        "response": {
+          "type": "models.Tags_API_Tagsable",
+          "accessStyle": "method"
+        },
+        "collectionField": "GetTags()",
+        "elementType": "models.Tags_API_Tagable",
+        "identityFrom": [
+          {
+            "goField": "ID",
+            "fromSdkField": "Id",
+            "isPointer": true,
+            "convertFunc": "convert.StringerToString"
+          }
+        ],
+        "displayNameFrom": "Key",
+        "displayNameIsPointer": true
       }
     }
   ]

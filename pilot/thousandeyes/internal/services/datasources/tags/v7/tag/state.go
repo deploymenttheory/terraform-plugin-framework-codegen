@@ -67,16 +67,16 @@ func flattenTagAssignments(ctx context.Context, in []tags.Assignment) (types.Set
 		return types.SetNull(tagAssignmentObjectType), diags
 	}
 
-	models := make([]TagAssignmentModel, 0, len(in))
+	elements := make([]TagAssignmentModel, 0, len(in))
 	for _, item := range in {
 		var m TagAssignmentModel
 
 		m.ID = convert.PtrStringToFramework(item.ID)
 		m.Type = convert.EnumToFramework(item.Type)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, tagAssignmentObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, tagAssignmentObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -93,7 +93,7 @@ func flattenTagFilters(ctx context.Context, in []tags.TagFilter) (types.Set, dia
 		return types.SetNull(tagFilterObjectType), diags
 	}
 
-	models := make([]TagFilterModel, 0, len(in))
+	elements := make([]TagFilterModel, 0, len(in))
 	for _, item := range in {
 		var m TagFilterModel
 
@@ -102,10 +102,10 @@ func flattenTagFilters(ctx context.Context, in []tags.TagFilter) (types.Set, dia
 		m.Scope = convert.EnumToFramework(item.Scope)
 		m.Values, d = convert.StringSliceToFrameworkSet(ctx, item.Values)
 		diags.Append(d...)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, tagFilterObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, tagFilterObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags

@@ -109,16 +109,16 @@ func flattenTestsPageLoadTestVaultCredentials(ctx context.Context, in []page_loa
 		return types.SetNull(testsPageLoadTestVaultCredentialObjectType), diags
 	}
 
-	models := make([]TestsPageLoadTestVaultCredentialModel, 0, len(in))
+	elements := make([]TestsPageLoadTestVaultCredentialModel, 0, len(in))
 	for _, item := range in {
 		var m TestsPageLoadTestVaultCredentialModel
 
 		m.SecretID = convert.PtrStringToFramework(item.SecretID)
 		m.Target = convert.EnumToFramework(item.Target)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, testsPageLoadTestVaultCredentialObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, testsPageLoadTestVaultCredentialObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags

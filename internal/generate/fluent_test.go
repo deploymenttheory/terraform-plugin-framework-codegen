@@ -103,6 +103,80 @@ func TestUnit_Generate_FluentDialectRenders(t *testing.T) {
 	}
 }
 
+// TestUnit_Generate_FluentSingleNestedConstructs proves the single-object
+// helpers under method access: the element is built by constructor, handed
+// around as the bare interface, and returned without an address-of.
+func TestUnit_Generate_FluentSingleNestedConstructs(t *testing.T) {
+	t.Parallel()
+
+	bp := fluentPilot(t)
+	r := &bp.Resources[0]
+
+	r.Schema.Attributes = append(r.Schema.Attributes, blueprint.Attribute{
+		Name: "details", GoField: "Details",
+		ComputedOptionalRequired: blueprint.Optional,
+		Type: blueprint.AttrType{
+			Kind: blueprint.KindSingleNested,
+			NestedObject: &blueprint.NestedAttributeObject{
+				GoTypeName:      "TagDetailsModel",
+				SDKType:         "models.Tags_API_Detailsable",
+				ConstructorExpr: "models.NewTags_API_Details()",
+				AttrTypesVar:    "tagDetailsAttrTypes",
+				ObjectTypeVar:   "tagDetailsObjectType",
+				ExpandFunc:      "expandTagDetails",
+				FlattenFunc:     "flattenTagDetails",
+				Attributes: []blueprint.Attribute{{
+					Name: "note", GoField: "Note",
+					ComputedOptionalRequired: blueprint.Optional,
+					Type:                     blueprint.AttrType{Kind: blueprint.KindString},
+					Wire: blueprint.WireBinding{
+						JSONPath: "note", SDKField: "Note", SDKGoType: "*string",
+						Flatten: &blueprint.ConvertCall{Func: "convert.PtrStringToFramework"},
+						Expand:  &blueprint.ConvertCall{Func: "convert.FrameworkToPtrString"},
+					},
+				}},
+			},
+		},
+		Wire: blueprint.WireBinding{
+			JSONPath: "details", SDKField: "Details", SDKGoType: "models.Tags_API_Detailsable",
+			Flatten: &blueprint.ConvertCall{Func: "flattenTagDetails", NeedsCtx: true, ReturnsError: true},
+			Expand:  &blueprint.ConvertCall{Func: "expandTagDetails", NeedsCtx: true, ReturnsError: true},
+		},
+	})
+
+	if err := bp.Validate(); err != nil {
+		t.Fatalf("a fluent single nested attribute must validate now: %v", err)
+	}
+
+	v, err := Resource(bp, bp.Resources[0], Options{})
+	if err != nil {
+		t.Fatalf("Resource: %v", err)
+	}
+
+	var expand *NestedFuncView
+	for i := range v.Construct.NestedObject {
+		if v.Construct.NestedObject[i].FuncName == "expandTagDetails" {
+			expand = &v.Construct.NestedObject[i]
+		}
+	}
+	if expand == nil {
+		t.Fatal("the single-object expand helper was not built")
+	}
+	if expand.SDKSingleType != "models.Tags_API_Detailsable" {
+		t.Errorf("SDKSingleType = %q, want the bare interface", expand.SDKSingleType)
+	}
+	if expand.ItemRef != "item" {
+		t.Errorf("ItemRef = %q, want item (no address-of on an interface)", expand.ItemRef)
+	}
+	if expand.ConstructorExpr != "models.NewTags_API_Details()" {
+		t.Errorf("ConstructorExpr = %q", expand.ConstructorExpr)
+	}
+	joined := strings.Join(expand.Assignments, "NEWLINE")
+	if !strings.Contains(joined, "item.SetNote(") {
+		t.Errorf("single-object assignments must go through setters:\n%s", joined)
+	}
+}
+
 func TestUnit_Generate_FluentTestHelperRebasesTheChain(t *testing.T) {
 	t.Parallel()
 

@@ -24,22 +24,22 @@ func {{ .FuncName }}(ctx context.Context, in []{{ .SDKType }}) ({{ .FrameworkTyp
 		return types.{{ .Container }}Null({{ .ObjectTypeVar }}), diags
 	}
 
-	models := make([]{{ .ModelType }}, 0, len(in))
+	elements := make([]{{ .ModelType }}, 0, len(in))
 	for _, item := range in {
 		var m {{ .ModelType }}
 {{ range .Assignments }}
 		{{ . }}
 {{- end }}
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.{{ .Container }}ValueFrom(ctx, {{ .ObjectTypeVar }}, models)
+	out, d2 := types.{{ .Container }}ValueFrom(ctx, {{ .ObjectTypeVar }}, elements)
 	diags.Append(d2...)
 
 	return out, diags
 }
 {{- else }}
-func {{ .FuncName }}(ctx context.Context, in *{{ .SDKType }}) ({{ .FrameworkType }}, diag.Diagnostics) {
+func {{ .FuncName }}(ctx context.Context, in {{ .SDKSingleType }}) ({{ .FrameworkType }}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 {{- if .NeedsDiagnostics }}
 	var d diag.Diagnostics

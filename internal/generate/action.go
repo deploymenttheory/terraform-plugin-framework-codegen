@@ -111,6 +111,24 @@ func Action(bp blueprint.Blueprint, a blueprint.Action, opts Options) (ActionVie
 	// resolve, so the deadline is the generated constant applied with context.WithTimeout.
 	impInvoke.add(sup.Errors.Path, sup.Errors.Alias)
 
+	// An argument's verbatim expression can name packages invoke.go never
+	// otherwise imports -- a typed-indexer conversion through the provider's
+	// convert package is the live case.
+	if op := a.Binding.Invoke; op != nil {
+		for _, arg := range op.Args {
+			for _, imp := range arg.Imports {
+				impInvoke.add(imp.Path, imp.Alias)
+			}
+		}
+		for _, seg := range op.Chain {
+			for _, arg := range seg.Args {
+				for _, imp := range arg.Imports {
+					impInvoke.add(imp.Path, imp.Alias)
+				}
+			}
+		}
+	}
+
 	attrs, fields, err := attributes(sc, a.Schema, impAction)
 	if err != nil {
 		return ActionView{}, err

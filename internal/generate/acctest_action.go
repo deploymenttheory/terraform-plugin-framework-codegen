@@ -145,6 +145,23 @@ func ActionAccTest(
 		imports.add(org+"/"+accSubdir+"/exists", "")
 	}
 
+	// A cleanup argument's expression can name packages the test file never
+	// otherwise imports -- a typed-indexer conversion is the live case.
+	if cleanup := a.AccTest.Cleanup; cleanup != nil {
+		for _, arg := range cleanup.Args {
+			for _, imp := range arg.Imports {
+				imports.add(imp.Path, imp.Alias)
+			}
+		}
+		for _, seg := range cleanup.Chain {
+			for _, arg := range seg.Args {
+				for _, imp := range arg.Imports {
+					imports.add(imp.Path, imp.Alias)
+				}
+			}
+		}
+	}
+
 	v.Imports = imports.render(org)
 
 	return v, fixture, nil
@@ -157,7 +174,9 @@ func cleanupCall(
 	op *blueprint.Operation,
 	byField map[string]string,
 ) (assign, call string, err error) {
-	if op.Style != blueprint.CallStyleMethod {
+	switch op.Style {
+	case blueprint.CallStyleMethod, blueprint.CallStyleFluent:
+	default:
 		return "", "", &ErrUnsupported{
 			What: fmt.Sprintf("cleanup for action %q", a.Key),
 			Why:  fmt.Sprintf("call style %q is not implemented", op.Style),
@@ -179,25 +198,30 @@ func cleanupCall(
 	}
 	accessor := rest
 
-	args := make([]string, 0, len(op.Args))
-	for i, arg := range op.Args {
+	// One argument renderer for both shapes. A configField reads the env-arg
+	// variable the test declared; an expression override wins outright, which
+	// is how a typed-indexer conversion names the same variable.
+	renderArg := func(i int, arg blueprint.Argument) (string, error) {
 		switch arg.Kind {
 		case blueprint.ArgContext:
-			args = append(args, "ctx")
+			return "ctx", nil
 		case blueprint.ArgConfigField:
 			goVar, ok := byField[arg.Field]
 			if !ok {
-				return "", "", &ErrUnsupported{
+				return "", &ErrUnsupported{
 					What: fmt.Sprintf("cleanup for action %q", a.Key),
 					Why: fmt.Sprintf("args[%d] reads config field %q, which no envArg fills",
 						i, arg.Field),
 				}
 			}
-			args = append(args, goVar)
+			if arg.Expr != "" {
+				return arg.Expr, nil
+			}
+			return goVar, nil
 		case blueprint.ArgLiteral:
-			args = append(args, arg.Expr)
+			return arg.Expr, nil
 		default:
-			return "", "", &ErrUnsupported{
+			return "", &ErrUnsupported{
 				What: fmt.Sprintf("cleanup for action %q", a.Key),
 				Why:  fmt.Sprintf("args[%d] has kind %q, which a test cannot supply", i, arg.Kind),
 			}
@@ -207,6 +231,25 @@ func cleanupCall(
 	// Plain assignment, not a declaration: the generated cleanup already holds an err
 	// from acquiring the client, and := would shadow-refuse to compile.
 	assign = strings.TrimSuffix(discardingAssign(op.Return), ":=") + "="
+
+	if op.Style == blueprint.CallStyleFluent {
+		call, err := chainCall(accessor, *op, func(arg blueprint.Argument) (string, error) {
+			return renderArg(0, arg)
+		})
+		if err != nil {
+			return "", "", err
+		}
+		return assign, call, nil
+	}
+
+	args := make([]string, 0, len(op.Args))
+	for i, arg := range op.Args {
+		expr, err := renderArg(i, arg)
+		if err != nil {
+			return "", "", err
+		}
+		args = append(args, expr)
+	}
 
 	return assign,
 		fmt.Sprintf("%s.%s(%s)", accessor, op.Method, strings.Join(args, ", ")), nil

@@ -61,17 +61,17 @@ func flattenDashboardFilterApiContextFilterses(ctx context.Context, in []dashboa
 		return types.SetNull(dashboardsFilterApiContextFiltersObjectType), diags
 	}
 
-	models := make([]DashboardFilterApiContextFiltersModel, 0, len(in))
+	elements := make([]DashboardFilterApiContextFiltersModel, 0, len(in))
 	for _, item := range in {
 		var m DashboardFilterApiContextFiltersModel
 
 		m.DataSourceID = convert.StringToFramework(item.DataSourceID)
 		m.Filters, d = flattenDashboardFilterApiDataSourceFilters(ctx, item.Filters)
 		diags.Append(d...)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, dashboardsFilterApiContextFiltersObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, dashboardsFilterApiContextFiltersObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -88,7 +88,7 @@ func flattenDashboardFilterApiDataSourceFilters(ctx context.Context, in []dashbo
 		return types.SetNull(dashboardsFilterApiDataSourceFilterObjectType), diags
 	}
 
-	models := make([]DashboardFilterApiDataSourceFilterModel, 0, len(in))
+	elements := make([]DashboardFilterApiDataSourceFilterModel, 0, len(in))
 	for _, item := range in {
 		var m DashboardFilterApiDataSourceFilterModel
 
@@ -97,10 +97,10 @@ func flattenDashboardFilterApiDataSourceFilters(ctx context.Context, in []dashbo
 		diags.Append(d...)
 		m.Values, d = convert.StringSliceToFrameworkSet(ctx, item.Values)
 		diags.Append(d...)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, dashboardsFilterApiDataSourceFilterObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, dashboardsFilterApiDataSourceFilterObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags

@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -377,6 +378,28 @@ func PtrStringerToFramework[T fmt.Stringer](p *T) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue((*p).String())
+}
+
+// ParseUUID reads a uuid the SDK's typed indexers demand from a string the
+// practitioner configured. A malformed value yields the zero uuid rather than
+// a panic: the API answers a lookup for the zero uuid with the not-found the
+// situation deserves, and a provider must never crash on configuration.
+func ParseUUID(s string) uuid.UUID {
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return uuid.UUID{}
+	}
+	return id
+}
+
+// StringerToString renders a value through its own String method, for an SDK
+// identifier that is a typed value (a uuid) where the identity model wants the
+// plain string.
+func StringerToString(v fmt.Stringer) string {
+	if v == nil {
+		return ""
+	}
+	return v.String()
 }
 
 // PtrTimeToFramework converts an optional timestamp to types.String in RFC 3339,

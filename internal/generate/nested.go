@@ -331,6 +331,8 @@ func attrTypeExpr(t blueprint.AttrType) (string, error) {
 func nestedExpandView(s nestedShape) NestedFuncView {
 	v := NestedFuncView{
 		ConstructorExpr: s.nested.ConstructorExpr,
+		SDKSingleType:   nestedSingleType(s),
+		ItemRef:         nestedItemRef(s),
 		FuncName:        s.nested.ExpandFunc,
 		FrameworkType:   frameworkModelType[s.attr.Type.Kind],
 		SDKType:         s.nested.SDKType,
@@ -365,10 +367,28 @@ func nestedExpandView(s nestedShape) NestedFuncView {
 	return v
 }
 
+// nestedSingleType is the single-object type a helper takes or returns:
+// *Model for struct access, the bare interface for method access.
+func nestedSingleType(s nestedShape) string {
+	if s.access == blueprint.AccessMethod {
+		return s.nested.SDKType
+	}
+	return "*" + s.nested.SDKType
+}
+
+// nestedItemRef returns the expression handing back one finished element.
+func nestedItemRef(s nestedShape) string {
+	if s.access == blueprint.AccessMethod {
+		return "item"
+	}
+	return "&item"
+}
+
 // nestedFlattenView builds the helper converting SDK structs into a framework
 // collection.
 func nestedFlattenView(s nestedShape) NestedFuncView {
 	v := NestedFuncView{
+		SDKSingleType: nestedSingleType(s),
 		FuncName:      s.nested.FlattenFunc,
 		FrameworkType: frameworkModelType[s.attr.Type.Kind],
 		SDKType:       s.nested.SDKType,
