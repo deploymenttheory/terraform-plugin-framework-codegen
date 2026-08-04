@@ -1,0 +1,98 @@
+# Release packaging for the tfpfgen command.
+#
+# The toolkit is pure Go and cross-compiles without cgo, so every target is
+# built from one runner rather than needing a machine per platform. The pilot
+# provider is a separate module and is not released from here: it is the
+# generator's own output, and its home is wherever `provider push` sends it.
+version: 2
+
+project_name: tfpfgen
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: tfpfgen
+    main: ./cmd/tfpfgen
+    binary: tfpfgen
+    env:
+      # No cgo anywhere in the toolkit. Setting it explicitly keeps a
+      # cgo-enabled runner from producing binaries that will not run elsewhere.
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      # -s -w drop the symbol and DWARF tables, which a released binary does
+      # not need. The version is stamped so `tfpfgen version` names the tag it
+      # was cut from rather than a constant someone has to remember to bump.
+      # One symbol: internal/version owns the version and everything else asks
+      # it, so there is nothing to keep in sync -- the -X path below is the one
+      # internal/version's own doc comment documents.
+      - -s -w
+      - -X github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version.Version={{ .Tag }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: tfpfgen
+    ids: [tfpfgen]
+    # A predictable name: tfpfgen_0.3.0_darwin_arm64.tar.gz.
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+# Sign the checksum file rather than each archive: verifying the checksums
+# verifies every archive through it, and one signature is one thing to check.
+# Keyless signing binds the signature to this workflow's identity, so there is
+# no private key to hold or rotate.
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  # release-please writes CHANGELOG.md from the conventional commits and owns
+  # the release notes; duplicating them here would only disagree with it.
+  disable: true
+
+release:
+  # The release already exists: release-please creates it when it merges its
+  # pull request, and this run attaches the artifacts to it.
+  mode: append
+  footer: |
+    ---
+
+    Binaries are pure Go and require no runtime dependencies.
+
+    Verify a download against the signed checksum file:
+
+    ```console
+    cosign verify-blob \
+      --bundle tfpfgen_{{ .Version }}_checksums.txt.sigstore.json \
+      --certificate-identity-regexp 'https://github.com/deploymenttheory/terraform-plugin-framework-codegen/.*' \
+      --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      tfpfgen_{{ .Version }}_checksums.txt
+
+    shasum -a 256 -c tfpfgen_{{ .Version }}_checksums.txt --ignore-missing
+    ```

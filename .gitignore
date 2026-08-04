@@ -70,4 +70,4 @@ __pycache__/
 *.dll
 *.exe
 *.dylib
-*.so
+*.sodist/

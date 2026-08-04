@@ -1,0 +1,73 @@
+# Builds the release binaries and attaches them to the GitHub release.
+#
+# Runs when release-please publishes a release (linux, macOS and windows,
+# amd64 and arm64, from one runner -- the toolkit is pure Go). One caveat,
+# inherited from GitHub's token rules: a release created with the fallback
+# GITHUB_TOKEN does not trigger this event, so binaries ship automatically
+# only once RELEASE_PLEASE_PAT is configured -- the same reason
+# release-please.yml already asks for the PAT. Until then, or after a failed
+# build, workflow_dispatch runs the same job against an existing tag.
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "the release tag to build, e.g. v0.3.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# One build per tag at a time: goreleaser appends assets to the release, and
+# two concurrent runs for the same tag would race on the uploads.
+concurrency:
+  group: release-${{ inputs.tag || github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  goreleaser:
+    name: "📦 Build and attach release artifacts"
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      # Attach the archives and checksums to the release.
+      contents: write
+      # Mint the OIDC token cosign's keyless signing exchanges for a
+      # certificate; the signature is bound to this workflow's identity.
+      id-token: write
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      # The tag, not the branch: a re-run must build exactly what was
+      # released, whatever main has moved on to. Full depth because goreleaser
+      # derives the version from the tag it finds at HEAD.
+      - name: Checkout the release tag
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.tag || github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Build, sign and attach the archives
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
