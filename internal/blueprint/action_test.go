@@ -27,7 +27,7 @@ func validAction(mutate func(*Action)) Blueprint {
 			}},
 		},
 		Binding: ActionBinding{
-			Service: ServiceRef{ImportPath: "p", TypeName: "Agents", Accessor: "a.client.Agents"},
+			Service: ServiceRef{ImportPath: "example.com/sdk/p", TypeName: "Agents", Accessor: "a.client.Agents"},
 			Invoke: &Operation{
 				Style: CallStyleMethod, Method: "DisableAgent",
 				Return: ReturnResultTransportError, ResultType: "agents.Agent",

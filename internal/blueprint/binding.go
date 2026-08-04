@@ -134,6 +134,19 @@ func (r ReturnArity) HasTransport() bool {
 	return r == ReturnResultTransportError || r == ReturnTransportError
 }
 
+// ChainSegment is one hop in a fluent request-builder chain.
+//
+// The emitter renders segments generically -- accessor.Seg1(args).Seg2(args)...
+// -- without knowing which generator produced the SDK; the chain is the call,
+// as data, which is the same doctrine the flat method style follows. A
+// mid-chain identifier is an ordinary stateField or planField argument on its
+// segment; the trailing request-configuration a builder verb takes is a
+// literal nil.
+type ChainSegment struct {
+	Method string     `json:"method"`
+	Args   []Argument `json:"args,omitempty"`
+}
+
 // Operation is one SDK call.
 type Operation struct {
 	Style CallStyle `json:"style"`
@@ -141,6 +154,11 @@ type Operation struct {
 	// method suffix, as go-sdk-jamfpro-v2 does with ListV1, needs nothing
 	// special here: the version is simply part of the name.
 	Method string `json:"method"`
+
+	// Chain is the request-builder chain for CallStyleFluent. The final
+	// segment is the verb; Method and Args must be empty when Chain is set,
+	// because a fluent call's verb is its last segment.
+	Chain []ChainSegment `json:"chain,omitempty"`
 
 	Args   []Argument  `json:"args,omitempty"`
 	Return ReturnArity `json:"return"`
@@ -316,6 +334,11 @@ type ConvertCall struct {
 	// is a named slice or named scalar of what the helper produces -- a dashboard
 	// filter's Context is ApiContextFilters, a named []ApiDataSourceFilters.
 	Cast string `json:"cast,omitempty"`
+
+	// ExtraArgs are verbatim expressions appended after the converted value,
+	// for a helper that needs a companion function -- the enum parse function a
+	// generated SDK pairs with each enum type.
+	ExtraArgs []string `json:"extraArgs,omitempty"`
 
 	Imports []Import `json:"imports,omitempty"`
 }

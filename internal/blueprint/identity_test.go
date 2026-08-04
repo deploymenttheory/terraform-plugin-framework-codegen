@@ -163,7 +163,7 @@ func TestUnit_Blueprint_AListFacetRequiresAnIdentity(t *testing.T) {
 	b.Resources[0].Identity = nil
 	b.Resources[0].List = &ListFacet{
 		GoTypeName: "TagListResource",
-		Service:    ServiceRef{ImportPath: "p", TypeName: "Tags", Accessor: "l.client.Tags"},
+		Service:    ServiceRef{ImportPath: "example.com/sdk/p", TypeName: "Tags", Accessor: "l.client.Tags"},
 		Read: &Operation{
 			Style: CallStyleMethod, Method: "GetTags",
 			Return: ReturnResultTransportError, ResultType: "tags.ResourceTags",
@@ -206,7 +206,7 @@ func TestUnit_Blueprint_AListFacetMustFillEveryIdentityField(t *testing.T) {
 		})
 		b.Resources[0].List = &ListFacet{
 			GoTypeName: "TagListResource",
-			Service:    ServiceRef{ImportPath: "p", TypeName: "Tags", Accessor: "l.client.Tags"},
+			Service:    ServiceRef{ImportPath: "example.com/sdk/p", TypeName: "Tags", Accessor: "l.client.Tags"},
 			Read: &Operation{
 				Style: CallStyleMethod, Method: "GetTags",
 				Return: ReturnResultTransportError, ResultType: "tags.ResourceTags",

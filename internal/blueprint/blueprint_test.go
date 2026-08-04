@@ -153,7 +153,7 @@ func addListFacet(r *Resource) {
 	}
 	r.List = &ListFacet{
 		GoTypeName: "TagListResource",
-		Service:    ServiceRef{ImportPath: "p", TypeName: "Tags", Accessor: "l.client.Tags"},
+		Service:    ServiceRef{ImportPath: "example.com/sdk/p", TypeName: "Tags", Accessor: "l.client.Tags"},
 		Read: &Operation{
 			Style: CallStyleMethod, Method: "GetTags",
 			Return: ReturnResultTransportError, ResultType: "tags.ResourceTags",
