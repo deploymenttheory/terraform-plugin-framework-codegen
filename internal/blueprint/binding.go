@@ -191,6 +191,10 @@ type Argument struct {
 	// Expr is a verbatim Go expression, required for ArgLiteral and otherwise an
 	// override the emitter would have derived from Field.
 	Expr string `json:"expr,omitempty"`
+	// Imports are the packages Expr references -- a request option like
+	// client.WithQueryParam("expand", "filters") names the SDK's client package,
+	// which crud.go otherwise never imports.
+	Imports []Import `json:"imports,omitempty"`
 }
 
 // IDBinding says where a resource's identifier comes from after create, and what
@@ -271,6 +275,11 @@ type WireBinding struct {
 
 	// Expand converts Terraform to SDK; Flatten converts SDK to Terraform.
 	Expand  *ConvertCall `json:"expand,omitempty"`
+	// UpdateExpand overrides Expand for the update body, for an SDK whose update
+	// type declares a field differently from create's -- an endpoint label's Name
+	// is string on LabelRequest and *string on Label, and one assignment list
+	// cannot fill both. Meaningful only with a split update body.
+	UpdateExpand *ConvertCall `json:"updateExpand,omitempty"`
 	Flatten *ConvertCall `json:"flatten,omitempty"`
 
 	// SkipExpand excludes an attribute from the request body. A computed

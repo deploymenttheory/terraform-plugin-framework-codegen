@@ -1,0 +1,39 @@
+{
+  "id": "081-post-v7-endpoint-labels",
+  "seq": 81,
+  "request": {
+    "method": "POST",
+    "path": "/v7/endpoint/labels",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "color": "  probe-color-1  ",
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-normalisation-1"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "There are invalid or missing fields",
+      "status": 400,
+      "title": "Request validation failed"
+    },
+    "droppedHeaders": 13
+  }
+}

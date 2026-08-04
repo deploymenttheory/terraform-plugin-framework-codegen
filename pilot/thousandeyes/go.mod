@@ -3,7 +3,7 @@ module github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thou
 go 1.25.8
 
 require (
-	github.com/deploymenttheory/go-sdk-thousandeyes v0.1.0
+	github.com/deploymenttheory/go-sdk-thousandeyes v0.2.0
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-framework-timeouts v0.7.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0

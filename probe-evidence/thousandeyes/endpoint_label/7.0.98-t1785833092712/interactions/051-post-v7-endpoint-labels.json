@@ -1,0 +1,38 @@
+{
+  "id": "051-post-v7-endpoint-labels",
+  "seq": 51,
+  "request": {
+    "method": "POST",
+    "path": "/v7/endpoint/labels",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "matchType": "qqq",
+      "name": "tfpfgen-probe-write-enum-28"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Unexpected 'match type' value found 'qqq', valid values are: and,or",
+      "status": 400,
+      "title": "Request validation failed"
+    },
+    "droppedHeaders": 14
+  }
+}

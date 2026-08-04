@@ -1,0 +1,38 @@
+{
+  "id": "053-post-v7-endpoint-labels",
+  "seq": 53,
+  "request": {
+    "method": "POST",
+    "path": "/v7/endpoint/labels",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "matchType": "AND",
+      "name": "tfpfgen-probe-write-enum-30"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Unexpected 'match type' value found 'AND', valid values are: and,or",
+      "status": 400,
+      "title": "Request validation failed"
+    },
+    "droppedHeaders": 13
+  }
+}

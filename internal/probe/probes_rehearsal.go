@@ -176,7 +176,7 @@ func (p rehearsal) directionA(
 	}
 	hops.createEcho = resp
 
-	read1, err := s.ReadCreated(ctx, p.Name(), id, nil)
+	read1, err := s.ReadCreated(ctx, p.Name(), id, expansionQuery(sc))
 	out.Requests++
 	if err != nil {
 		return nil, err
@@ -243,7 +243,7 @@ func (p rehearsal) directionA(
 	}
 	hops.updateEcho = upd
 
-	read2, err := s.ReadCreated(ctx, p.Name(), id, nil)
+	read2, err := s.ReadCreated(ctx, p.Name(), id, expansionQuery(sc))
 	out.Requests++
 	if err != nil {
 		return hops, err
@@ -255,7 +255,7 @@ func (p rehearsal) directionA(
 	}
 	out.Requests++
 
-	read3, err := s.ReadCreated(ctx, p.Name(), id, nil)
+	read3, err := s.ReadCreated(ctx, p.Name(), id, expansionQuery(sc))
 	out.Requests++
 	if err != nil {
 		return hops, err
@@ -314,7 +314,7 @@ func (p rehearsal) directionB(
 	}
 	hops.createEcho = resp
 
-	read1, err := s.ReadCreated(ctx, p.Name(), id, nil)
+	read1, err := s.ReadCreated(ctx, p.Name(), id, expansionQuery(sc))
 	out.Requests++
 	if err != nil {
 		return nil, err
@@ -330,7 +330,7 @@ func (p rehearsal) directionB(
 		}
 		out.Requests++
 
-		read2, err := s.ReadCreated(ctx, p.Name(), id, nil)
+		read2, err := s.ReadCreated(ctx, p.Name(), id, expansionQuery(sc))
 		out.Requests++
 		if err != nil {
 			return hops, err

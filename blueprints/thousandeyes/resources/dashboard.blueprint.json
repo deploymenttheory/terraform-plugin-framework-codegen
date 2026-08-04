@@ -612,18 +612,16 @@
             "wire": {
               "jsonPath": "layout",
               "sdkField": "Layout",
-              "sdkGoType": "dashboards.DashboardLayout",
+              "sdkGoType": "*dashboards.DashboardLayout",
               "expand": {
                 "func": "expandDashboardLayout",
                 "needsCtx": true,
-                "returnsError": true,
-                "deref": true
+                "returnsError": true
               },
               "flatten": {
                 "func": "flattenDashboardLayout",
                 "needsCtx": true,
-                "returnsError": true,
-                "takesAddress": true
+                "returnsError": true
               }
             },
             "drop": true
@@ -709,7 +707,7 @@
             }
           }
         ],
-        "markdownDescription": "Retrieve dashboard.\n\nDropped pending an SDK fix: Dashboard declares Layout and DefaultTimespan as value-typed structs, so every request serialises them as empty objects the API refuses (\"layout\":{\"type\":\"\"}, \"defaultTimespan\":{}) whenever a configuration omits them -- which is every configuration that does not use widgets, themselves the stated v1 drop. Pointer fields in go-sdk-thousandeyes re-enable this resource unchanged; the recorded evidence and probe plan stay committed for that day (live isolation, 2026-08-03)."
+        "markdownDescription": "Retrieve dashboard."
       },
       "binding": {
         "service": {
@@ -808,8 +806,7 @@
       "import": {
         "style": "passthroughId",
         "attribute": "id"
-      },
-      "drop": true
+      }
     }
   ]
 }

@@ -76,6 +76,15 @@ func TestHelper(
 	imports.add(bp.Provider.SDK.ClientImport.Path, bp.Provider.SDK.ClientImport.Alias)
 	imports.add(bp.Provider.GoModule+"/"+accSubdir+"/exists", "")
 
+	// A literal argument's expression can name packages of its own -- an aliased
+	// request option for an expansion-gated read is the live case, aliased because
+	// the helper's own client variable shadows the SDK's client package name.
+	for _, a := range op.Args {
+		for _, imp := range a.Imports {
+			imports.add(imp.Path, imp.Alias)
+		}
+	}
+
 	v := TestHelperView{
 		Header:     GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
 		Package:    r.GoPackage,
@@ -154,6 +163,18 @@ func helperArgs(r blueprint.Resource, op blueprint.Operation) ([]string, error) 
 			}
 
 			out = append(out, fmt.Sprintf("state.Attributes[%s]", goStringLit(name)))
+
+		case blueprint.ArgLiteral:
+			// A literal with an expression is a constant -- a request option like an
+			// expansion query needs no source, only repeating. Without one there is
+			// nothing to repeat, which stays a refusal below.
+			if a.Expr != "" {
+				out = append(out, a.Expr)
+
+				continue
+			}
+
+			fallthrough
 
 		default:
 			return nil, &ErrUnsupported{

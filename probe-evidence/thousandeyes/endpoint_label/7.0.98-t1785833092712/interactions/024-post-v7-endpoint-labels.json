@@ -1,0 +1,55 @@
+{
+  "id": "024-post-v7-endpoint-labels",
+  "seq": 24,
+  "request": {
+    "method": "POST",
+    "path": "/v7/endpoint/labels",
+    "header": {
+      "accept": "application/json",
+      "content-type": "application/json"
+    },
+    "body": {
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "filters.key": "agent-id",
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-enum-1"
+    }
+  },
+  "response": {
+    "status": 201,
+    "header": {
+      "content-type": "application/json",
+      "location": "https://api.thousandeyes.com/v7/endpoint/labels/422212465108192",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/endpoint/labels/422212465108192"
+        }
+      },
+      "color": "#d9d9d9",
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "id": "422212465108192",
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-enum-1"
+    },
+    "droppedHeaders": 14
+  }
+}

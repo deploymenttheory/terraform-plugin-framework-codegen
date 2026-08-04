@@ -1,0 +1,29 @@
+{
+  "id": "006-get-v7-endpoint-labels",
+  "seq": 6,
+  "request": {
+    "method": "GET",
+    "path": "/v7/endpoint/labels",
+    "query": {
+      "max": [
+        "not-a-number"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 400,
+    "header": {
+      "content-type": "application/problem+json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "detail": "Wrong type for path parameter max",
+      "status": 400,
+      "title": "Request validation failed"
+    },
+    "droppedHeaders": 14
+  }
+}

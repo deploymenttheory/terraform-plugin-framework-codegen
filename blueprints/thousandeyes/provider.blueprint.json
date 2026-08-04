@@ -48,6 +48,6 @@
     "specVersion": "7.0.98",
     "specSha256": "969c3dfceafed4ab3db33675e688d9957f460aa8263689fdab3108e7f0e6b7cb",
     "snapshotDir": "7.0.98-t1785502133469",
-    "sdkVersion": "v0.1.0"
+    "sdkVersion": "v0.2.0"
   }
 }

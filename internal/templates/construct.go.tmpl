@@ -36,9 +36,9 @@ func constructResource(ctx context.Context, data *{{ .ModelTypeName }}) *{{ .Con
 // constructResourceUpdate builds the update request body.
 //
 // A separate function because this SDK gives update its own request type. The
-// assignment list is identical to constructResource's -- the two types are
-// field-name clones, and the bindings check has proven every assigned field
-// exists on both -- so the only thing that differs is the type being filled.
+// assignment list is create's except where an attribute declares updateExpand --
+// an SDK whose update type spells a field differently from create's -- and the
+// bindings check has proven every assigned field exists on its own type.
 {{- if .Construct.NeedsDiagnostics }}
 func constructResourceUpdate(ctx context.Context, data *{{ .ModelTypeName }}) (*{{ .Construct.Update.RequestType }}, diag.Diagnostics) {
 	var (
@@ -51,7 +51,7 @@ func constructResourceUpdate(ctx context.Context, data *{{ .ModelTypeName }}) *{
 	tflog.Debug(ctx, "constructing update request body", map[string]any{"resource": ResourceName})
 
 	body := {{ .Construct.Update.ConstructorExpr }}
-{{ range .Construct.Assignments }}
+{{ range .Construct.Update.Assignments }}
 	{{ . }}
 {{- end }}
 {{ if .Construct.NeedsDiagnostics }}

@@ -1,0 +1,44 @@
+{
+  "id": "019-get-v7-endpoint-labels-422212465108190",
+  "seq": 19,
+  "request": {
+    "method": "GET",
+    "path": "/v7/endpoint/labels/422212465108190",
+    "query": {
+      "expand": [
+        "filters"
+      ]
+    },
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "header": {
+      "content-type": "application/json",
+      "x-organization-rate-limit-limit": "240"
+    },
+    "body": {
+      "_links": {
+        "self": {
+          "href": "https://api.thousandeyes.com/v7/endpoint/labels/422212465108190?expand=filters"
+        }
+      },
+      "color": "#d9d9d9",
+      "filters": [
+        {
+          "key": "platform",
+          "mode": "in",
+          "values": [
+            "windows"
+          ]
+        }
+      ],
+      "id": "422212465108190",
+      "matchType": "and",
+      "name": "tfpfgen-probe-write-server-default-1"
+    },
+    "droppedHeaders": 14
+  }
+}

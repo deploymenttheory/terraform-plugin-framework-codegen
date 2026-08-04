@@ -1,0 +1,18 @@
+{
+  "id": "080-delete-v7-endpoint-labels-422212465108218",
+  "seq": 80,
+  "request": {
+    "method": "DELETE",
+    "path": "/v7/endpoint/labels/422212465108218",
+    "header": {
+      "accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 204,
+    "header": {
+      "x-organization-rate-limit-limit": "240"
+    },
+    "droppedHeaders": 14
+  }
+}

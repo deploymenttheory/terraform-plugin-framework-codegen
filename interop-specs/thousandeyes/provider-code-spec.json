@@ -863,6 +863,160 @@
       }
     },
     {
+      "name": "dashboard",
+      "schema": {
+        "attributes": [
+          {
+            "name": "account_id",
+            "int64": {
+              "computed_optional_required": "computed",
+              "deprecation_message": "The API documents this field as deprecated.",
+              "description": "Identifier for the account group associated with a dashboard."
+            }
+          },
+          {
+            "name": "aid",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Identifier for the account group associated with a dashboard."
+            }
+          },
+          {
+            "name": "created_by",
+            "int64": {
+              "computed_optional_required": "computed",
+              "deprecation_message": "The API documents this field as deprecated.",
+              "description": "Identifier for the user that created a dashboard."
+            }
+          },
+          {
+            "name": "dashboard_created_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Identifier for the user that created a dashboard."
+            }
+          },
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Identifier of a dashboard.\n\nNamed `id` because terraform-plugin-testing populates import state only from an attribute literally called id; the wire field stays dashboardId."
+            }
+          },
+          {
+            "name": "dashboard_modified_by",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Identifier for the user that last modified a dashboard."
+            }
+          },
+          {
+            "name": "dashboard_modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "UTC date/time when a dashboard was last modified (ISO date-time format)."
+            }
+          },
+          {
+            "name": "description",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "A text description of the dashboard's purpose and functionality. This information assists users in understanding the dashboard but isn't displayed when viewing a dashboard."
+            }
+          },
+          {
+            "name": "global_filter_id",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Default global dashboard filter ID (obtained from `/dashboards/filters` endpoint)."
+            }
+          },
+          {
+            "name": "global_override",
+            "bool": {
+              "computed_optional_required": "computed",
+              "deprecation_message": "The API documents this field as deprecated.",
+              "description": "When set to `true`, the defaultTimespan is used and overrides the widget's timespan. If set to `false`, the the widget's timespan is used."
+            }
+          },
+          {
+            "name": "is_built_in",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates if a dashboard is built-in. True for built-in dashboards, false for user-created dashboards."
+            }
+          },
+          {
+            "name": "is_default_for_account",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates whether this dashboard is the account group's default. True for default, false if not."
+            }
+          },
+          {
+            "name": "is_default_for_user",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "Indicates whether this dashboard is the user's default. True for default, false if not."
+            }
+          },
+          {
+            "name": "is_global_override",
+            "bool": {
+              "computed_optional_required": "computed_optional",
+              "description": "When set to `true`, the defaultTimespan is used and overrides the widget's timespan. If set to `false`, the the widget's timespan is used.\n\n<!-- probed:7.0.98-t1785769218413 -->\nObserved: the API assigns false when this is omitted.\nObserved: the API assigns false when this is omitted from an update.\nOmitting this field from an update resets it rather than preserving the stored value.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "is_migrated_report",
+            "bool": {
+              "computed_optional_required": "computed",
+              "description": "True if this dashboard was previously a report."
+            }
+          },
+          {
+            "name": "is_private",
+            "bool": {
+              "computed_optional_required": "computed_optional",
+              "description": "A dashboard can be viewed by other users in the account. If true, only the creator of the dashboard may view it. If false, all users in the same account may view it.\n\n<!-- probed:7.0.98-t1785769218413 -->\nObserved: the API assigns false when this is omitted.\nObserved: the API assigns false when this is omitted from an update.\nOmitting this field from an update resets it rather than preserving the stored value.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "migrated_report",
+            "bool": {
+              "computed_optional_required": "computed",
+              "deprecation_message": "The API documents this field as deprecated.",
+              "description": "True if this dashboard was previously a report."
+            }
+          },
+          {
+            "name": "modified_by",
+            "int64": {
+              "computed_optional_required": "computed",
+              "deprecation_message": "The API documents this field as deprecated.",
+              "description": "Identifier for the user that last modified a dashboard."
+            }
+          },
+          {
+            "name": "modified_date",
+            "string": {
+              "computed_optional_required": "computed",
+              "deprecation_message": "The API documents this field as deprecated.",
+              "description": "UTC date/time when a dashboard was last modified."
+            }
+          },
+          {
+            "name": "title",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Title of a dashboard.\n\nMarked required-by-API by curation: title is the sweeper's field, so the probe cannot test omitting it, and a titleless dashboard is unaddressable in the UI either way."
+            }
+          }
+        ],
+        "markdown_description": "Retrieve dashboard."
+      }
+    },
+    {
       "name": "dashboards_filter",
       "schema": {
         "attributes": [
@@ -1024,6 +1178,79 @@
           }
         ],
         "markdown_description": "Get dashboard filter."
+      }
+    },
+    {
+      "name": "endpoint_label",
+      "schema": {
+        "attributes": [
+          {
+            "name": "color",
+            "string": {
+              "computed_optional_required": "computed_optional",
+              "description": "UI color\n\n<!-- probed:7.0.98-t1785833092712 -->\nObserved: the API assigns \"#d9d9d9\" when this is omitted.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "filters",
+            "set_nested": {
+              "computed_optional_required": "optional",
+              "nested_object": {
+                "associated_external_type": {
+                  "type": "endpoint_agent_labels.Filter"
+                },
+                "attributes": [
+                  {
+                    "name": "key",
+                    "string": {
+                      "computed_optional_required": "computed_optional",
+                      "description": "Type of filter - the data that will be used to filter.\n\n<!-- probed:7.0.98-t1785833092712 -->\nValues accepted here: `agent-id`, `public-network`, `local-network`, `connection`, `gateway`, `platform`, `agent-type`, `vpn-vendor`, `vpn-gateway-address`, `vpn-client-network`, `vpn-client-address`, `ip-address-family`, `ssid`, `bssid`, `hostname`, `username`, `asn`.\nObserved: the API assigns \"platform\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
+                    }
+                  },
+                  {
+                    "name": "mode",
+                    "string": {
+                      "computed_optional_required": "computed_optional",
+                      "description": "Type of matching to be applied for the values:\n\n* `in`: The value on the agent must match one of the list of values provided.\n* `not-in`: The value on the agent must not match any of the list of values provided.\n\n<!-- probed:7.0.98-t1785833092712 -->\nValues accepted here: `in`, `not-in`.\nObserved: the API assigns \"in\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->"
+                    }
+                  },
+                  {
+                    "name": "values",
+                    "set": {
+                      "computed_optional_required": "optional",
+                      "element_type": {
+                        "string": {}
+                      }
+                    }
+                  }
+                ]
+              },
+              "description": "The filters combined using the matchType to determine the label's match.\n\nThe API refuses a label without at least one filter (live probe, 2026-08-04).\n\nOnly returned when the read asks for expand=filters; the generated read always does (live probe, 2026-08-04).\n\n<!-- probed:7.0.98-t1785833092712 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "id",
+            "string": {
+              "computed_optional_required": "computed",
+              "description": "Label identifier."
+            }
+          },
+          {
+            "name": "match_type",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "Specifies how the filters are combined for matching this label.\n\n* `and`: All filters must be matched.\n* `or`: Any of the filters should match.\n\n<!-- probed:7.0.98-t1785833092712 -->\nValues accepted here: `and`, `or`.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->"
+            }
+          },
+          {
+            "name": "name",
+            "string": {
+              "computed_optional_required": "optional",
+              "description": "The label name.\n\nRequired-by-API by curation: the sweeper's field, unprobeable by omission."
+            }
+          }
+        ],
+        "markdown_description": "Retrieve label."
       }
     },
     {
