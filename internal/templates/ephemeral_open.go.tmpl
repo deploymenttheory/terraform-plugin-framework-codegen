@@ -46,6 +46,15 @@ func (e *{{ $.GoTypeName }}) Open(ctx context.Context, req ephemeral.OpenRequest
 		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, err)
 		return
 	}
+{{- if .NilResultGuard }}
+
+	// An empty success body is the same failure as a missing object: whatever
+	// was going to consume the value has nothing to consume.
+	if {{ .ResultVar }} == nil {
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, errors.ErrEmptyResponse)
+		return
+	}
+{{- end }}
 
 {{- if $.State.NeedsDiagnostics }}
 	resp.Diagnostics.Append(mapRemoteToResult(ctx, &data, {{ .ResultVar }})...)

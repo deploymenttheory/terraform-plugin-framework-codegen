@@ -62,6 +62,7 @@ func (b Blueprint) Validate() error {
 
 	b.Provider.validate(&p)
 	b.validateServiceImports(&p)
+	b.validateCallStyles(&p)
 
 	seenKeys := map[string]bool{}
 	seenTypes := map[string]bool{}
@@ -198,19 +199,15 @@ func (e Ephemeral) validate(at string, p *problems) {
 
 func (b EphemeralBinding) validate(at string, p *problems) {
 	required(p, at+".service.importPath", b.Service.ImportPath)
-	required(p, at+".service.typeName", b.Service.TypeName)
+	if usesMethodStyle(b.Open, b.Renew, b.Close) {
+		required(p, at+".service.typeName", b.Service.TypeName)
+	}
 	required(p, at+".service.accessor", b.Service.Accessor)
 
 	required(p, at+".response.type", b.Response.Type)
 
 	switch b.Response.AccessStyle {
-	case AccessStructField:
-	case AccessMethod:
-		p.add(
-			at+".response.accessStyle",
-			"%q is reserved but not yet implemented by the emitter",
-			b.Response.AccessStyle,
-		)
+	case AccessStructField, AccessMethod:
 	default:
 		p.add(at+".response.accessStyle", "%q is not a known access style", b.Response.AccessStyle)
 	}
@@ -377,7 +374,9 @@ func (a Action) validate(at string, p *problems) {
 // and asking for a response type would be asking for something with nowhere to go.
 func (b ActionBinding) validate(at string, p *problems) {
 	required(p, at+".service.importPath", b.Service.ImportPath)
-	required(p, at+".service.typeName", b.Service.TypeName)
+	if usesMethodStyle(b.Invoke) {
+		required(p, at+".service.typeName", b.Service.TypeName)
+	}
 	required(p, at+".service.accessor", b.Service.Accessor)
 
 	if b.Invoke == nil {
@@ -479,6 +478,58 @@ func (b Blueprint) validateServiceImports(p *problems) {
 	}
 }
 
+// usesMethodStyle reports whether any declared operation calls through a
+// named service type. A binding whose every call is a fluent chain resolves
+// from the client itself, so requiring a service type there would demand a
+// name nothing uses.
+func usesMethodStyle(ops ...*Operation) bool {
+	for _, op := range ops {
+		if op != nil && op.Style != CallStyleFluent {
+			return true
+		}
+	}
+	return false
+}
+
+// validateCallStyles holds every operation's style to the provider's declared
+// dialect: a fluent chain is how a kiotaFluent SDK is called, and rendering
+// one against a struct-field SDK would name methods that do not exist.
+func (b Blueprint) validateCallStyles(p *problems) {
+	if b.Provider.SDK.Dialect == DialectKiotaFluent {
+		return
+	}
+
+	check := func(at string, op *Operation) {
+		if op != nil && op.Style == CallStyleFluent {
+			p.add(at+".style", "style fluent needs provider.sdk.dialect %q; this blueprint declares %q",
+				DialectKiotaFluent, b.Provider.SDK.Dialect)
+		}
+	}
+
+	for _, r := range b.Resources {
+		if r.Drop {
+			continue
+		}
+		at := "resources[" + r.Key + "].binding"
+		check(at+".create", r.Binding.Create)
+		check(at+".read", r.Binding.Read)
+		check(at+".update", r.Binding.Update)
+		check(at+".delete", r.Binding.Delete)
+		if r.List != nil {
+			check("resources["+r.Key+"].list.read", r.List.Read)
+		}
+	}
+	for _, d := range b.DataSources {
+		check("dataSources["+d.Key+"].binding.read", d.Binding.Read)
+	}
+	for _, e := range b.Ephemerals {
+		check("ephemerals["+e.Key+"].binding.open", e.Binding.Open)
+	}
+	for _, a := range b.Actions {
+		check("actions["+a.Key+"].binding.invoke", a.Binding.Invoke)
+	}
+}
+
 func (pr Provider) validate(p *problems) {
 	required(p, "provider.name", pr.Name)
 	required(p, "provider.goModule", pr.GoModule)
@@ -487,13 +538,7 @@ func (pr Provider) validate(p *problems) {
 	required(p, "provider.sdk.clientType", pr.SDK.ClientType)
 
 	switch pr.SDK.Dialect {
-	case DialectRestyService:
-	case DialectKiotaFluent:
-		p.add(
-			"provider.sdk.dialect",
-			"%q is reserved but not yet implemented by the emitter",
-			pr.SDK.Dialect,
-		)
+	case DialectRestyService, DialectKiotaFluent:
 	default:
 		p.add("provider.sdk.dialect", "%q is not a known dialect", pr.SDK.Dialect)
 	}
@@ -1135,7 +1180,9 @@ func (n NestedAttributeObject) validate(at string, p *problems) {
 
 func (b ResourceBinding) validate(at string, p *problems) {
 	required(p, at+".service.importPath", b.Service.ImportPath)
-	required(p, at+".service.typeName", b.Service.TypeName)
+	if usesMethodStyle(b.Create, b.Read, b.Update, b.Delete) {
+		required(p, at+".service.typeName", b.Service.TypeName)
+	}
 	required(p, at+".service.accessor", b.Service.Accessor)
 
 	required(p, at+".body.requestType", b.Body.RequestType)
@@ -1161,13 +1208,7 @@ func (b ResourceBinding) validate(at string, p *problems) {
 	}
 
 	switch b.Body.AccessStyle {
-	case AccessStructField:
-	case AccessMethod:
-		p.add(
-			at+".body.accessStyle",
-			"%q is reserved but not yet implemented by the emitter",
-			b.Body.AccessStyle,
-		)
+	case AccessStructField, AccessMethod:
 	default:
 		p.add(at+".body.accessStyle", "%q is not a known access style", b.Body.AccessStyle)
 	}
@@ -1270,7 +1311,9 @@ func (lf ListFacet) validate(r Resource, at string, p *problems) {
 
 	required(p, at+".goTypeName", lf.GoTypeName)
 	required(p, at+".service.importPath", lf.Service.ImportPath)
-	required(p, at+".service.typeName", lf.Service.TypeName)
+	if usesMethodStyle(lf.Read) {
+		required(p, at+".service.typeName", lf.Service.TypeName)
+	}
 	required(p, at+".service.accessor", lf.Service.Accessor)
 	required(p, at+".elementType", lf.ElementType)
 	required(p, at+".response.type", lf.Response.Type)
@@ -1492,19 +1535,15 @@ func hasAttributeNamed(attrs []Attribute, name string) bool {
 
 func (b DataSourceBinding) validate(at string, p *problems) {
 	required(p, at+".service.importPath", b.Service.ImportPath)
-	required(p, at+".service.typeName", b.Service.TypeName)
+	if usesMethodStyle(b.Read) {
+		required(p, at+".service.typeName", b.Service.TypeName)
+	}
 	required(p, at+".service.accessor", b.Service.Accessor)
 
 	required(p, at+".response.type", b.Response.Type)
 
 	switch b.Response.AccessStyle {
-	case AccessStructField:
-	case AccessMethod:
-		p.add(
-			at+".response.accessStyle",
-			"%q is reserved but not yet implemented by the emitter",
-			b.Response.AccessStyle,
-		)
+	case AccessStructField, AccessMethod:
 	default:
 		p.add(at+".response.accessStyle", "%q is not a known access style", b.Response.AccessStyle)
 	}
@@ -1525,7 +1564,6 @@ func (o Operation) validate(at string, p *problems) {
 			p.add(at+".chain", "is set but style %q calls one method; a chained call is style fluent", o.Style)
 		}
 	case CallStyleFluent:
-		p.add(at+".style", "%q is reserved but not yet implemented by the emitter", o.Style)
 		o.validateChain(at, p)
 	default:
 		p.add(at+".style", "%q is not a known call style", o.Style)

@@ -53,21 +53,33 @@ func TestHelper(
 
 	op := *r.Binding.Read
 
-	if op.Style != blueprint.CallStyleMethod {
-		return TestHelperView{}, &ErrUnsupported{
-			What: fmt.Sprintf("test helper for resource %q", r.Key),
-			Why:  fmt.Sprintf("call style %q is not implemented", op.Style),
-		}
-	}
-
 	accessor, err := rebaseAccessor(r.Binding.Service.Accessor, r.Key)
 	if err != nil {
 		return TestHelperView{}, err
 	}
 
-	args, err := helperArgs(r, op)
-	if err != nil {
-		return TestHelperView{}, err
+	var call string
+	switch op.Style {
+	case blueprint.CallStyleMethod:
+		args, err := helperArgs(r, op)
+		if err != nil {
+			return TestHelperView{}, err
+		}
+		call = fmt.Sprintf("%s.%s(%s)", accessor, op.Method, strings.Join(args, ", "))
+
+	case blueprint.CallStyleFluent:
+		call, err = chainCall(accessor, op, func(a blueprint.Argument) (string, error) {
+			return helperArgExpr(r, a)
+		})
+		if err != nil {
+			return TestHelperView{}, err
+		}
+
+	default:
+		return TestHelperView{}, &ErrUnsupported{
+			What: fmt.Sprintf("test helper for resource %q", r.Key),
+			Why:  fmt.Sprintf("call style %q is not implemented", op.Style),
+		}
 	}
 
 	imports := newImportSet()
@@ -84,6 +96,13 @@ func TestHelper(
 			imports.add(imp.Path, imp.Alias)
 		}
 	}
+	for _, seg := range op.Chain {
+		for _, a := range seg.Args {
+			for _, imp := range a.Imports {
+				imports.add(imp.Path, imp.Alias)
+			}
+		}
+	}
 
 	v := TestHelperView{
 		Header:     GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
@@ -92,7 +111,7 @@ func TestHelper(
 		Subject:    bp.Provider.TerraformType(r.Name),
 		ClientType: bp.Provider.SDK.ClientType,
 		Assign:     discardingAssign(op.Return),
-		Call:       fmt.Sprintf("%s.%s(%s)", accessor, op.Method, strings.Join(args, ", ")),
+		Call:       call,
 		Imports:    imports.render(bp.Provider.GoModule),
 	}
 
@@ -138,56 +157,62 @@ func helperArgs(r blueprint.Resource, op blueprint.Operation) ([]string, error) 
 	out := make([]string, 0, len(op.Args))
 
 	for _, a := range op.Args {
-		switch a.Kind {
-		case blueprint.ArgContext:
-			out = append(out, "ctx")
-
-		case blueprint.ArgStateField:
-			name, ok := attributeNameForField(r, a.Field)
-			if !ok {
-				return nil, &ErrUnsupported{
-					What: fmt.Sprintf("test helper for resource %q", r.Key),
-					Why: fmt.Sprintf(
-						"its read call takes model field %q, which no declared attribute maps to",
-						a.Field,
-					),
-				}
-			}
-
-			// The identifier is state.ID rather than an attribute lookup, because
-			// terraform.InstanceState exposes it directly and every resource has one.
-			if name == r.Binding.ID.Attribute {
-				out = append(out, "state.ID")
-
-				continue
-			}
-
-			out = append(out, fmt.Sprintf("state.Attributes[%s]", goStringLit(name)))
-
-		case blueprint.ArgLiteral:
-			// A literal with an expression is a constant -- a request option like an
-			// expansion query needs no source, only repeating. Without one there is
-			// nothing to repeat, which stays a refusal below.
-			if a.Expr != "" {
-				out = append(out, a.Expr)
-
-				continue
-			}
-
-			fallthrough
-
-		default:
-			return nil, &ErrUnsupported{
-				What: fmt.Sprintf("test helper for resource %q", r.Key),
-				Why: fmt.Sprintf(
-					"its read call takes a %q argument, which an acceptance check has no "+
-						"source for", a.Kind,
-				),
-			}
+		expr, err := helperArgExpr(r, a)
+		if err != nil {
+			return nil, err
 		}
+		out = append(out, expr)
 	}
 
 	return out, nil
+}
+
+// helperArgExpr renders one argument in the helper's scope, which has a
+// *terraform.InstanceState rather than a decoded model.
+func helperArgExpr(r blueprint.Resource, a blueprint.Argument) (string, error) {
+	switch a.Kind {
+	case blueprint.ArgContext:
+		return "ctx", nil
+
+	case blueprint.ArgStateField:
+		name, ok := attributeNameForField(r, a.Field)
+		if !ok {
+			return "", &ErrUnsupported{
+				What: fmt.Sprintf("test helper for resource %q", r.Key),
+				Why: fmt.Sprintf(
+					"its read call takes model field %q, which no declared attribute maps to",
+					a.Field,
+				),
+			}
+		}
+
+		// The identifier is state.ID rather than an attribute lookup, because
+		// terraform.InstanceState exposes it directly and every resource has one.
+		if name == r.Binding.ID.Attribute {
+			return "state.ID", nil
+		}
+
+		return fmt.Sprintf("state.Attributes[%s]", goStringLit(name)), nil
+
+	case blueprint.ArgLiteral:
+		// A literal with an expression is a constant -- a request option like an
+		// expansion query needs no source, only repeating. Without one there is
+		// nothing to repeat, which stays a refusal below.
+		if a.Expr != "" {
+			return a.Expr, nil
+		}
+
+		fallthrough
+
+	default:
+		return "", &ErrUnsupported{
+			What: fmt.Sprintf("test helper for resource %q", r.Key),
+			Why: fmt.Sprintf(
+				"its read call takes a %q argument, which an acceptance check has no "+
+					"source for", a.Kind,
+			),
+		}
+	}
 }
 
 // testResourceTypeName derives the helper type's name from the resource type's.

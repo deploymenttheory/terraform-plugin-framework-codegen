@@ -483,12 +483,21 @@ func TestUnit_Render_CRUDCallsMatchTheirArity(t *testing.T) {
 func TestUnit_Render_UnsupportedCallStyleAndArityFail(t *testing.T) {
 	t.Parallel()
 
-	t.Run("call style", func(t *testing.T) {
+	t.Run("chainless fluent style", func(t *testing.T) {
 		t.Parallel()
 		bp := pilot(t)
 		bp.Resources[0].Binding.Read.Style = blueprint.CallStyleFluent
 		if _, err := Resource(bp, bp.Resources[0], Options{}); err == nil {
-			t.Error("an unimplemented call style must fail loudly")
+			t.Error("a fluent operation without a chain has no call to render and must fail loudly")
+		}
+	})
+
+	t.Run("unknown call style", func(t *testing.T) {
+		t.Parallel()
+		bp := pilot(t)
+		bp.Resources[0].Binding.Read.Style = "telepathy"
+		if _, err := Resource(bp, bp.Resources[0], Options{}); err == nil {
+			t.Error("an unknown call style must fail loudly")
 		}
 	})
 

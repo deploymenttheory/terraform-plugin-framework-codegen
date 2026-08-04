@@ -248,11 +248,20 @@ func TestUnit_Blueprint_Validate_RejectsStructuralProblems(t *testing.T) {
 			wantPath: "provider.sdk.dialect",
 		},
 		{
-			// Reserved-but-unimplemented must fail loudly rather than emit
-			// silently wrong code.
-			name:     "kiota dialect is rejected as unimplemented",
-			mutate:   func(b *Blueprint) { b.Provider.SDK.Dialect = DialectKiotaFluent },
-			wantPath: "not yet implemented",
+			// A fluent chain is how a kiotaFluent SDK is called; declaring one
+			// against a struct-field dialect would render methods that do not
+			// exist, so the mismatch is refused by name.
+			name: "fluent style under a resty dialect is rejected",
+			mutate: func(b *Blueprint) {
+				b.Resources[0].Binding.Read.Style = CallStyleFluent
+				b.Resources[0].Binding.Read.Method = ""
+				b.Resources[0].Binding.Read.Args = nil
+				b.Resources[0].Binding.Read.Chain = []ChainSegment{
+					{Method: "Tags"},
+					{Method: "Get", Args: []Argument{{Kind: ArgContext}, {Kind: ArgLiteral, Expr: "nil"}}},
+				}
+			},
+			wantPath: "needs provider.sdk.dialect",
 		},
 		{
 			name:     "resource with no attributes",

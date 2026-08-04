@@ -123,6 +123,15 @@ func (l *{{ $.List.GoTypeName }}) List(ctx context.Context, req list.ListRequest
 
 		return
 	}
+{{- if .NilResultGuard }}
+
+	// An empty success body is an empty collection, not an error.
+	if {{ .ResultVar }} == nil {
+		stream.Results = list.NoListResults
+
+		return
+	}
+{{- end }}
 
 	stream.Results = func(push func(list.ListResult) bool) {
 		for _, item := range {{ $.List.Elements }} {

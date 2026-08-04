@@ -40,6 +40,15 @@ func (r *{{ $.GoTypeName }}) Create(ctx context.Context, req resource.CreateRequ
 		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, err)
 		return
 	}
+{{- if .NilResultGuard }}
+
+	// An empty success body cannot be recorded: without a response there is no
+	// identifier, and inventing one would orphan whatever the API just created.
+	if {{ .ResultVar }} == nil {
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, errors.ErrEmptyResponse)
+		return
+	}
+{{- end }}
 
 	// The identifier is assigned first, so that a partially-successful create still
 	// leaves a resource Terraform can find and delete rather than an orphan it has no
@@ -144,6 +153,14 @@ func (r *{{ $.GoTypeName }}) readState(
 
 		return false, diags
 	}
+{{- if .NilResultGuard }}
+
+	// An empty success body means the object is gone as far as this provider can
+	// tell; treat it exactly like a not-found rather than mapping nothing.
+	if {{ .ResultVar }} == nil {
+		return false, diags
+	}
+{{- end }}
 
 {{- if $.State.NeedsDiagnostics }}
 	diags.Append(mapRemoteStateToTerraform(ctx, state, {{ .ResultVar }})...)

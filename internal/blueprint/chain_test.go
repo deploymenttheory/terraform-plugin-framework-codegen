@@ -34,9 +34,9 @@ func TestUnit_Blueprint_ChainRules(t *testing.T) {
 
 	for name, tc := range map[string]struct {
 		op   Operation
-		want string // substring of a problem; empty means only the reserved-style refusal may appear
+		want string // substring of a problem; empty means the operation validates clean
 	}{
-		"a well-formed fluent chain has only the reserved refusal": {
+		"a well-formed fluent chain validates clean": {
 			op: Operation{Style: CallStyleFluent, Chain: goodChain, Return: ReturnResultError, ResultType: "models.Tagable"},
 		},
 		"a chain on a method-style call is refused": {
@@ -71,10 +71,8 @@ func TestUnit_Blueprint_ChainRules(t *testing.T) {
 
 			got := problemsOf(tc.op)
 			if tc.want == "" {
-				// Until the emitter implements fluent calls the style itself is
-				// refused; a structurally sound chain must add nothing beyond that.
-				if !strings.Contains(got, "1 problem(s)") || !strings.Contains(got, "reserved") {
-					t.Fatalf("want only the reserved-style refusal, got: %s", got)
+				if got != "" {
+					t.Fatalf("want a clean validation, got: %s", got)
 				}
 				return
 			}
