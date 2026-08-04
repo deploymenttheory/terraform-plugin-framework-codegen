@@ -162,6 +162,11 @@ func staticFacts(bp blueprint.Blueprint, module, out, check string) error {
 		return err
 	}
 
+	if bp.Provider.SDK.Dialect == blueprint.DialectKiotaFluent {
+		log.Printf("dialect %s derives no static facts: its models are pointer-typed behind "+
+			"accessors with no encoder-level omitempty, so zero-value-unsendable cannot arise",
+			bp.Provider.SDK.Dialect)
+	}
 	log.Printf("%d static fact(s) derived from the SDK's types", len(facts))
 
 	if out != "" {

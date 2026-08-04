@@ -339,7 +339,7 @@ func TestUnit_SDKBind_AccessorChain(t *testing.T) {
 	}{
 		{"r.client.API.Tags", []string{"API", "Tags"}, true},
 		{"r.client.Tags", []string{"Tags"}, true},
-		{"r.client", nil, false},
+		{"r.client", []string{}, true}, // the fluent root: chain starts at the client itself
 		{"client.API.Tags", nil, false},
 		{"someGlobal.Tags", nil, false},
 		{"", nil, false},

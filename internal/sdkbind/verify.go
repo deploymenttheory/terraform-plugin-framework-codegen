@@ -146,7 +146,7 @@ func verifyEphemeral(
 	)
 
 	if e.Binding.Open != nil {
-		verifyOperation(l, e.Key, svc, "open", *e.Binding.Open, r)
+		verifyOperation(l, clientType, e.Key, svc, "open", *e.Binding.Open, r)
 	}
 
 	if !responseOK {
@@ -160,7 +160,7 @@ func verifyEphemeral(
 			continue
 		}
 		verifyFieldOn(
-			l, e.Key,
+			l, e.Binding.Response.AccessStyle, e.Key,
 			fmt.Sprintf("schema.attributes[%s].wire.sdkField", a.Name),
 			response, a.Wire.SDKField, svc, r,
 		)
@@ -191,7 +191,7 @@ func verifyDataSource(
 	)
 
 	if d.Binding.Read != nil {
-		verifyOperation(l, d.Key, svc, "read", *d.Binding.Read, r)
+		verifyOperation(l, clientType, d.Key, svc, "read", *d.Binding.Read, r)
 	}
 
 	if !responseOK {
@@ -207,7 +207,7 @@ func verifyDataSource(
 			continue
 		}
 		verifyFieldOn(
-			l, d.Key,
+			l, d.Binding.Response.AccessStyle, d.Key,
 			fmt.Sprintf("schema.attributes[%s].wire.sdkField", a.Name),
 			response, a.Wire.SDKField, svc, r,
 		)
@@ -231,7 +231,7 @@ func verifyListFacet(
 	verifyNamedType(l, res.Key, "list.response.type", lf.Response.Type, svc, r)
 
 	if lf.Read != nil {
-		verifyOperation(l, res.Key, svc, "read", *lf.Read, r)
+		verifyOperation(l, clientType, res.Key, svc, "read", *lf.Read, r)
 	}
 
 	if !verifyNamedType(l, res.Key, "list.elementType", lf.ElementType, svc, r) {
@@ -242,13 +242,13 @@ func verifyListFacet(
 
 	for i, m := range lf.IdentityFrom {
 		verifyFieldOn(
-			l, res.Key,
+			l, res.Binding.Body.AccessStyle, res.Key,
 			fmt.Sprintf("list.identityFrom[%d].fromSdkField", i),
 			element, m.FromSDKField, svc, r,
 		)
 	}
 
-	verifyFieldOn(l, res.Key, "list.displayNameFrom", element, lf.DisplayNameFrom, svc, r)
+	verifyFieldOn(l, res.Binding.Body.AccessStyle, res.Key, "list.displayNameFrom", element, lf.DisplayNameFrom, svc, r)
 }
 
 // verifyAction checks an action's binding.
@@ -267,7 +267,7 @@ func verifyAction(
 	verifyAccessor(l, clientType, a.Key, "binding.service.accessor", svc, r)
 
 	if a.Binding.Invoke != nil {
-		verifyOperation(l, a.Key, svc, "invoke", *a.Binding.Invoke, r)
+		verifyOperation(l, clientType, a.Key, svc, "invoke", *a.Binding.Invoke, r)
 	}
 }
 
@@ -295,6 +295,21 @@ func verifyAccessor(
 			Detail: fmt.Sprintf(
 				"%q is not of the form \"<receiver>.client.<Field>...\", so it cannot be verified",
 				svc.Accessor,
+			),
+		})
+
+		return
+	}
+
+	// A bare "<receiver>.client" is the fluent root and legitimate only there;
+	// a binding that declares a service type has to actually reach it.
+	if len(chain) == 0 && svc.TypeName != "" {
+		r.Problems = append(r.Problems, Problem{
+			Resource: key,
+			Path:     path,
+			Detail: fmt.Sprintf(
+				"%q stops at the client, but the binding declares service type %s; name the field that reaches it",
+				svc.Accessor, svc.TypeName,
 			),
 		})
 
@@ -341,6 +356,7 @@ func verifyNamedType(l *Loader, key, path, expr string, svc blueprint.ServiceRef
 // of the same type the code compiles and the provider moves the wrong value.
 func verifyFieldOn(
 	l *Loader,
+	style blueprint.AccessStyle,
 	key, path, typeName, field string,
 	svc blueprint.ServiceRef,
 	r *Report,
@@ -349,7 +365,7 @@ func verifyFieldOn(
 		return
 	}
 
-	if _, err := l.LookupField(svc.ImportPath, typeName, field); err != nil {
+	if _, err := l.LookupFieldAccess(style, svc.ImportPath, typeName, field, false); err != nil {
 		r.Problems = append(r.Problems, Problem{
 			Resource: key,
 			Path:     path,
@@ -399,17 +415,20 @@ func verifyResource(
 
 	verifyAccessor(l, clientType, res.Key, "binding.service.accessor", svc, r)
 
-	// The service type itself.
-	if _, err := l.LookupType(svc.ImportPath, svc.TypeName); err != nil {
-		r.Problems = append(r.Problems, Problem{
-			Resource: res.Key,
-			Path:     "binding.service.typeName",
-			Detail:   unwrapDetail(err),
-		})
-		// Without the service type there are no methods to check.
-		return
+	// The service type itself. Optional under a fluent binding: there is no
+	// service struct, the chain resolves from the client type.
+	if svc.TypeName != "" {
+		if _, err := l.LookupType(svc.ImportPath, svc.TypeName); err != nil {
+			r.Problems = append(r.Problems, Problem{
+				Resource: res.Key,
+				Path:     "binding.service.typeName",
+				Detail:   unwrapDetail(err),
+			})
+			// Without the service type there are no methods to check.
+			return
+		}
+		r.Checked++
 	}
-	r.Checked++
 
 	ops := map[string]*blueprint.Operation{
 		"create": res.Binding.Create,
@@ -421,7 +440,7 @@ func verifyResource(
 		if op == nil {
 			continue
 		}
-		verifyOperation(l, res.Key, svc, name, *op, r)
+		verifyOperation(l, clientType, res.Key, svc, name, *op, r)
 	}
 
 	ok := verifyBodyModels(l, res, r)
@@ -430,6 +449,7 @@ func verifyResource(
 
 func verifyOperation(
 	l *Loader,
+	clientType types.Type,
 	key string,
 	svc blueprint.ServiceRef,
 	name string,
@@ -437,6 +457,45 @@ func verifyOperation(
 	r *Report,
 ) {
 	path := "binding." + name
+
+	// A fluent operation's call is its chain: resolve the accessor to a start
+	// type, then walk every hop by method. The final segment gets exactly the
+	// arity and result checks a flat call gets.
+	if op.Style == blueprint.CallStyleFluent {
+		chain, ok := accessorChain(svc.Accessor)
+		if !ok {
+			r.Problems = append(r.Problems, Problem{
+				Resource: key,
+				Path:     path + ".chain",
+				Detail: fmt.Sprintf(
+					"accessor %q is not of the form \"<receiver>.client...\", so the chain has no start",
+					svc.Accessor),
+			})
+			return
+		}
+		start, err := l.FieldChain(clientType, chain)
+		if err != nil {
+			r.Problems = append(r.Problems, Problem{
+				Resource: key,
+				Path:     path + ".chain",
+				Detail:   fmt.Sprintf("accessor %q does not resolve: %v", svc.Accessor, unwrapDetail(err)),
+			})
+			return
+		}
+
+		m, err := l.MethodChain(start, op.Chain)
+		if err != nil {
+			r.Problems = append(r.Problems, Problem{
+				Resource: key,
+				Path:     path + ".chain",
+				Detail:   unwrapDetail(err),
+			})
+			return
+		}
+		r.Checked++
+		verifyMethodContract(m, key, path, op, r)
+		return
+	}
 
 	m, err := l.LookupMethod(svc.ImportPath, svc.TypeName, op.Method)
 	if err != nil {
@@ -448,7 +507,12 @@ func verifyOperation(
 		return
 	}
 	r.Checked++
+	verifyMethodContract(m, key, path, op, r)
+}
 
+// verifyMethodContract holds a resolved method to the operation's declared
+// return contract, whichever way the method was reached.
+func verifyMethodContract(m Method, key, path string, op blueprint.Operation, r *Report) {
 	// The declared return arity must match the method's, because it decides the
 	// arity of every error return in the generated body. A mismatch produces code
 	// that does not compile, so catching it here is strictly better than in the
@@ -461,7 +525,7 @@ func verifyOperation(
 			Resource: key,
 			Path:     path + ".return",
 			Detail: fmt.Sprintf("declared %q implies %d result(s), but %s returns %d: %s",
-				op.Return, gotArity, op.Method, wantResults, m.Signature()),
+				op.Return, gotArity, m.Name, wantResults, m.Signature()),
 		})
 		return
 	}
@@ -476,7 +540,7 @@ func verifyOperation(
 				Resource: key,
 				Path:     path + ".resultType",
 				Detail: fmt.Sprintf("declared %q but %s returns %s: %s",
-					op.ResultType, op.Method, m.Results[0], m.Signature()),
+					op.ResultType, m.Name, m.Results[0], m.Signature()),
 			})
 		}
 	}
@@ -586,8 +650,10 @@ func verifyWireFields(l *Loader, res blueprint.Resource, ok bodyTypesOK, r *Repo
 			checks[response] = "flatten"
 		}
 
+		style := res.Binding.Body.AccessStyle
 		for typeName, direction := range checks {
-			if _, err := l.LookupField(svc.ImportPath, typeName, a.Wire.SDKField); err != nil {
+			wantSet := strings.HasPrefix(direction, "expand")
+			if _, err := l.LookupFieldAccess(style, svc.ImportPath, typeName, a.Wire.SDKField, wantSet); err != nil {
 				r.Problems = append(r.Problems, Problem{
 					Resource: res.Key,
 					Path:     fmt.Sprintf("attributes[%s].wire.sdkField", a.Name),
@@ -603,7 +669,7 @@ func verifyWireFields(l *Loader, res blueprint.Resource, ok bodyTypesOK, r *Repo
 			r.Checked++
 		}
 
-		verifySplitFieldsAgree(l, svc, res.Key, a, request, update, r)
+		verifySplitFieldsAgree(l, svc, style, res.Key, a, request, update, r)
 	}
 }
 
@@ -619,6 +685,7 @@ func verifyWireFields(l *Loader, res blueprint.Resource, ok bodyTypesOK, r *Repo
 func verifySplitFieldsAgree(
 	l *Loader,
 	svc blueprint.ServiceRef,
+	style blueprint.AccessStyle,
 	key string,
 	a blueprint.Attribute,
 	request, update string,
@@ -635,8 +702,8 @@ func verifySplitFieldsAgree(
 		return
 	}
 
-	created, errC := l.LookupField(svc.ImportPath, request, a.Wire.SDKField)
-	updated, errU := l.LookupField(svc.ImportPath, update, a.Wire.SDKField)
+	created, errC := l.LookupFieldAccess(style, svc.ImportPath, request, a.Wire.SDKField, true)
+	updated, errU := l.LookupFieldAccess(style, svc.ImportPath, update, a.Wire.SDKField, true)
 	if errC != nil || errU != nil {
 		// Absence is already reported by the existence checks; repeating it here
 		// would double every miss.
@@ -681,10 +748,12 @@ func accessorChain(accessor string) ([]string, bool) {
 	// skipped. It was pinned to "r" while this package walked resources and nothing else,
 	// which meant every other kind's accessor came back unverifiable rather than verified.
 	//
-	// What must hold is the shape: a receiver, a field named client, and at least one field
-	// after it. The field chain from client onwards is the part that is resolved against the
-	// real client type, and that is where a wrong accessor is actually caught.
-	if len(parts) < 3 || parts[0] == "" || parts[1] != "client" {
+	// What must hold is the shape: a receiver, a field named client, then zero or more
+	// fields. Zero is the fluent case -- the chain starts at the client itself and the
+	// hops are methods, resolved by MethodChain rather than here. One or more is the
+	// struct-field case, resolved against the real client type, and that is where a
+	// wrong accessor is actually caught.
+	if len(parts) < 2 || parts[0] == "" || parts[1] != "client" {
 		return nil, false
 	}
 
