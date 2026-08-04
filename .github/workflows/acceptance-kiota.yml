@@ -1,0 +1,115 @@
+# Runs the kiota pilot's generated acceptance tests against a live ThousandEyes tenant.
+#
+# A separate workflow from acceptance.yml rather than a matrix leg, deliberately: the two
+# pilots exist to prove two dialects of the same generator, and a failure must name which
+# dialect broke without reading logs. The resty pilot passing while this one fails is the
+# single most useful signal this workflow can produce -- it means the API did not move,
+# the kiota binding did.
+#
+# Everything else follows the resty workflow's rules, for the same reasons it has them:
+# hand-triggered or scheduled, never `pull_request`, because the token is a long-lived
+# credential the ThousandEyes API cannot revoke; gated on the same `acceptance`
+# environment, whose secrets this run reuses -- one tenant, one credential, two dialects.
+name: go | Acceptance tests (kiota)
+
+# No workflow_dispatch inputs; see acceptance.yml for the injection and CKV_GHA_7
+# reasoning, which applies here unchanged.
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, Monday 07:30 UTC: after the resty run's 06:00 slot. The shared concurrency
+    # group below is what actually serialises them; the offset just keeps the queue short.
+    - cron: "30 7 * * 1"
+
+permissions:
+  contents: read
+
+# The SAME group as acceptance.yml, not a kiota-specific one. Both pilots create objects
+# in the same tenant with the same tfacc- fixture prefixes, so two live runs -- whichever
+# workflows they came from -- would fight over state that is not Terraform's.
+concurrency:
+  group: acceptance-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    name: "🌍 Acceptance, kiota dialect (live tenant)"
+    runs-on: ubuntu-24.04-arm
+    # The same gated environment as the resty run: its required reviewers and its
+    # THOUSANDEYES_* secrets apply to both dialects identically.
+    environment: acceptance
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Check Out
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: "go.mod"
+          cache-dependency-path: "go.sum"
+          cache: true
+
+      # terraform-plugin-testing downloads a Terraform binary at run time unless one is on
+      # the PATH; pinning it here keeps a scheduled failure unambiguous between API drift
+      # and CLI drift -- the same version the resty workflow pins.
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.14.*"
+          terraform_wrapper: false
+
+      - name: Refuse to run without a credential
+        env:
+          THOUSANDEYES_BEARER_TOKEN: ${{ secrets.THOUSANDEYES_BEARER_TOKEN }}
+        run: |
+          if [ -z "${THOUSANDEYES_BEARER_TOKEN}" ]; then
+            echo "::error::THOUSANDEYES_BEARER_TOKEN is not set for the 'acceptance' environment."
+            echo "Every acceptance test would skip, and the run would report success having"
+            echo "tested nothing. That is the failure this step exists to prevent."
+            exit 1
+          fi
+          echo "✅ A credential is present."
+
+      # TF_ACC is what terraform-plugin-testing gates on; without it every TestAcc skips.
+      # The token reaches the provider through the environment and never through a flag,
+      # because a flag lands in the process table and in shell history.
+      - name: Run the acceptance tests
+        working-directory: pilot/thousandeyes-kiota
+        env:
+          TF_ACC: "1"
+          THOUSANDEYES_BEARER_TOKEN: ${{ secrets.THOUSANDEYES_BEARER_TOKEN }}
+          THOUSANDEYES_ACCOUNT_GROUP_ID: ${{ secrets.THOUSANDEYES_ACCOUNT_GROUP_ID }}
+        run: |
+          echo "::group::📦 Download"
+          go mod download
+          echo "::endgroup::"
+
+          # -count=1 defeats the test cache -- a cached pass proves nothing about a live
+          # API -- and -p 1 serialises test packages against the one shared tenant, both
+          # for the reasons acceptance.yml records at length.
+          go test \
+            -v \
+            -count=1 \
+            -p 1 \
+            -timeout 90m \
+            -run 'TestAcc' \
+            ./...
+
+      # No sweep step, exactly as in acceptance.yml and for the reasons it records:
+      # terraform-plugin-testing destroys what each test created, the generated
+      # CheckDestroyed proves the API agrees, and `probe sweep` tracks the prober's
+      # ledger, not Terraform's objects.
+      - name: Note on cleanup
+        if: always()
+        run: |
+          echo "Acceptance tests destroy what they create; CheckDestroyed fails the test if the"
+          echo "API still holds the object. If this job was cancelled or the runner died, look"
+          echo "for objects prefixed 'tfacc-' in the tenant."

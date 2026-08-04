@@ -104,7 +104,8 @@ should only go red when someone skipped the battery.
 |---|---|---|
 | `go \| Unit Tests` (`unit-tests.yml`) | 🧪 Run Unit Tests | the toolkit's own suite, with coverage |
 | `go \| Linter` (`go-lint.yml`) | ✨ Run golangci-lint | toolkit lint |
-| `go \| Acceptance tests` (`acceptance.yml`) | 🌍 Acceptance (live tenant) | the generated provider's full lifecycle against the real API |
+| `go \| Acceptance tests` (`acceptance.yml`) | 🌍 Acceptance (live tenant) | the resty pilot's full lifecycle against the real API |
+| `go \| Acceptance tests (kiota)` (`acceptance-kiota.yml`) | 🌍 Acceptance, kiota dialect (live tenant) | the kiota pilot's full lifecycle against the same API — resty green while kiota red means the binding broke, not the API |
 | `Linter` (`linter.yml`) | ✨ Linter | super-linter over markdown, YAML, and everything else non-Go |
 | `Dependency Review` (`dependency-review.yml`) | 🔎 Dependency Review | no known-vulnerable dependency lands via PR |
 | `release-please` (`release-please.yml`) | 🔖 Release Please | versioning and CHANGELOG from conventional commits |
@@ -119,10 +120,16 @@ runs can never fight over the same tenant. It creates and destroys real objects,
 so it needs `TF_ACC=1` and the provider's live credentials; admin-scoped
 resources additionally require `TFPFGEN_ACC_ADMIN`.
 
+The two dialects run as two workflows against one tenant and one credential —
+`acceptance.yml` for the resty pilot, `acceptance-kiota.yml` for the kiota one —
+sharing a single concurrency group so a live run of either queues behind the
+other. Separate workflows, deliberately: a failure names which dialect broke
+without reading logs.
+
 Locally, the equivalent is:
 
 ```bash
-cd pilot/thousandeyes
+cd pilot/thousandeyes          # or pilot/thousandeyes-kiota
 TF_ACC=1 go test -v -count=1 -p 1 -run 'TestAcc' -timeout 90m ./...
 ```
 

@@ -53,14 +53,14 @@ func expandTagFilters(ctx context.Context, v types.Set) ([]tags.TagFilter, diag.
 		return nil, diags
 	}
 
-	var models []TagFilterModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TagFilterModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]tags.TagFilter, 0, len(models))
-	for _, m := range models {
+	out := make([]tags.TagFilter, 0, len(elements))
+	for _, m := range elements {
 		var item tags.TagFilter
 
 		item.Key = convert.FrameworkToPtrString(m.Key)

@@ -43,7 +43,7 @@ without adding it here first.
 | sandbox profile | The operator-authored file that tells the guard what this tenant permits; never "probe profile". |
 | spec | HashiCorp's Provider Code Specification (codegen-spec v0.1), always and only; read and written by `spec export` / `spec import` via `internal/spec`. |
 | binding | The blueprint section that names which SDK service and methods a block's operations call, as data the generator never branches on. |
-| dialect | The SDK calling convention a binding assumes — `restyService` today, `kiotaFluent` reserved. |
+| dialect | The SDK calling convention a binding assumes — `restyService` for hand-written resty-style SDKs, `kiotaFluent` for kiota-generated fluent chains. |
 | wire | How one attribute crosses the boundary: its JSON path, SDK field and type, and the expand/flatten conversions. |
 | behaviour | What the API actually does about a field, as observed — writability, immutability, server defaults, returned-on-read — as opposed to what its document claims. |
 | hooks | The blueprint field naming which hand-written files to scaffold for a resource. |

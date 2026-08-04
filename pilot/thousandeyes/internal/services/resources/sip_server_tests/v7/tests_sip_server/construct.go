@@ -62,14 +62,14 @@ func expandSipServerAgents(ctx context.Context, v types.Set) ([]sip_server_tests
 		return nil, diags
 	}
 
-	var models []SipServerAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []SipServerAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]sip_server_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]sip_server_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item sip_server_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

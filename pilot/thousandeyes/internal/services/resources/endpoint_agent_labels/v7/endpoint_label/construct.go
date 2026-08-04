@@ -71,14 +71,14 @@ func expandEndpointLabelFilters(ctx context.Context, v types.Set) ([]endpoint_ag
 		return nil, diags
 	}
 
-	var models []EndpointLabelFilterModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []EndpointLabelFilterModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]endpoint_agent_labels.Filter, 0, len(models))
-	for _, m := range models {
+	out := make([]endpoint_agent_labels.Filter, 0, len(elements))
+	for _, m := range elements {
 		var item endpoint_agent_labels.Filter
 
 		item.Key = convert.FrameworkToEnum[endpoint_agent_labels.FilterType](m.Key)

@@ -14,7 +14,7 @@ this fragment cannot reach anything kind-specific even by accident.
 {{- if .IsCollection }}
 func {{ .FuncName }}(ctx context.Context, in []{{ .SDKType }}) ({{ .FrameworkType }}, diag.Diagnostics) {
 	var diags diag.Diagnostics
-{{- if .NeedsDiagnostics }}
+{{- if .SharedDiag }}
 	var d diag.Diagnostics
 {{- end }}
 

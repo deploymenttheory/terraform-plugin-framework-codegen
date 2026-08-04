@@ -36,6 +36,15 @@ func (d *{{ $.GoTypeName }}) Read(ctx context.Context, req datasource.ReadReques
 		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, err)
 		return
 	}
+{{- if .NilResultGuard }}
+
+	// An empty success body is the same failure as a missing object: the
+	// practitioner named something the API answered nothing about.
+	if {{ .ResultVar }} == nil {
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, errors.ErrEmptyResponse)
+		return
+	}
+{{- end }}
 
 {{- if $.State.NeedsDiagnostics }}
 	resp.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &data, {{ .ResultVar }})...)

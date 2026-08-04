@@ -65,7 +65,7 @@ picks one, and which one would depend on filename ordering.
 |---|---|
 | `name`, `typePrefix` | registry name; prefixes every resource type |
 | `goModule` | the generated provider's module path |
-| `sdk.dialect` | `restyService` (built) or `kiotaFluent` (reserved, refused) |
+| `sdk.dialect` | `restyService` or `kiotaFluent`, both built; a fluent operation records its call as a `chain` of segments |
 | `sdk.clientType`, `sdk.clientImport` | the client field on every resource struct |
 | `conventions.*` | output directories and default timeouts |
 | `support.*` | the hand-written provider packages generated code calls into |

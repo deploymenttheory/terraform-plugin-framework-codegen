@@ -25,6 +25,15 @@ import (
 // interactions, so they must live in their own committed file rather than inside
 // a snapshot -- replay purity is asserted for snapshot facts only.
 func StaticFacts(l *Loader, bp blueprint.Blueprint) ([]probe.Fact, error) {
+	// A method-access dialect derives no static facts, structurally: its models
+	// are pointer-typed behind accessors with serializer methods instead of
+	// encoder tags, so the zero-value-unsendable class this file detects cannot
+	// arise. Stated as an empty result rather than an error, so the committed
+	// empty document and its -check drift gate work identically across dialects.
+	if bp.Provider.SDK.Dialect == blueprint.DialectKiotaFluent {
+		return nil, nil
+	}
+
 	var facts []probe.Fact
 
 	for _, res := range bp.Resources {
@@ -202,6 +211,11 @@ func pkgName(importPath string) string {
 // live acceptance run, with an error naming neither. The class is detectable from
 // the pinned SDK's types alone, so it is refused here with names instead.
 func UnsendableStructWarnings(l *Loader, bp blueprint.Blueprint) []string {
+	// See StaticFacts: the class cannot arise under a method-access dialect.
+	if bp.Provider.SDK.Dialect == blueprint.DialectKiotaFluent {
+		return nil
+	}
+
 	var out []string
 
 	for _, res := range bp.Resources {

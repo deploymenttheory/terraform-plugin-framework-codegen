@@ -88,14 +88,14 @@ func expandTestsHTTPServerTestVaultCredentials(ctx context.Context, v types.Set)
 		return nil, diags
 	}
 
-	var models []TestsHTTPServerTestVaultCredentialModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TestsHTTPServerTestVaultCredentialModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]http_server_tests.TestVaultCredential, 0, len(models))
-	for _, m := range models {
+	out := make([]http_server_tests.TestVaultCredential, 0, len(elements))
+	for _, m := range elements {
 		var item http_server_tests.TestVaultCredential
 
 		item.SecretID = convert.FrameworkToPtrString(m.SecretID)
@@ -116,14 +116,14 @@ func expandHttpServerAgents(ctx context.Context, v types.Set) ([]http_server_tes
 		return nil, diags
 	}
 
-	var models []HttpServerAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []HttpServerAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]http_server_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]http_server_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item http_server_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

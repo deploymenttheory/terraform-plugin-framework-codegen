@@ -96,14 +96,14 @@ func expandTestsPageLoadTestVaultCredentials(ctx context.Context, v types.Set) (
 		return nil, diags
 	}
 
-	var models []TestsPageLoadTestVaultCredentialModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TestsPageLoadTestVaultCredentialModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]page_load_tests.TestVaultCredential, 0, len(models))
-	for _, m := range models {
+	out := make([]page_load_tests.TestVaultCredential, 0, len(elements))
+	for _, m := range elements {
 		var item page_load_tests.TestVaultCredential
 
 		item.SecretID = convert.FrameworkToPtrString(m.SecretID)
@@ -124,14 +124,14 @@ func expandPageLoadAgents(ctx context.Context, v types.Set) ([]page_load_tests.T
 		return nil, diags
 	}
 
-	var models []PageLoadAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []PageLoadAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]page_load_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]page_load_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item page_load_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

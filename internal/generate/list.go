@@ -120,7 +120,7 @@ func listView(
 	}
 
 	for _, m := range lf.IdentityFrom {
-		src := "item." + m.FromSDKField
+		src := readExpr(r.Binding.Body.AccessStyle, "item", m.FromSDKField)
 		if m.IsPointer {
 			// Dereferenced through the provider's convert package rather than inline, so a
 			// nil field yields the zero value instead of panicking during a query.
@@ -133,7 +133,7 @@ func listView(
 	}
 
 	if lf.DisplayNameFrom != "" {
-		expr := "item." + lf.DisplayNameFrom
+		expr := readExpr(r.Binding.Body.AccessStyle, "item", lf.DisplayNameFrom)
 		if lf.DisplayNameIsPointer {
 			expr = "convert.Deref(" + expr + ")"
 		}
@@ -143,6 +143,7 @@ func listView(
 	if lf.Schema != nil {
 		lsc := schemaScope{
 			kind:     blueprint.BlockKindList,
+			access:   r.Binding.Body.AccessStyle,
 			what:     fmt.Sprintf("list facet of resource %q", r.Key),
 			patterns: newPatternVars(),
 		}

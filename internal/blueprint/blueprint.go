@@ -112,9 +112,30 @@ const (
 )
 
 // SDKModule describes the SDK the emitted provider binds to.
+// SDK modes: where the SDK the bindings name actually lives.
+const (
+	// SDKModeEmbed is an SDK generated inside the provider's own module --
+	// ModulePath equals the provider's goModule, and the service import paths
+	// resolve through it without a require directive.
+	SDKModeEmbed = "embed"
+	// SDKModeExternal is an SDK in its own module, which the provider's go.mod
+	// must require. The zero value: every existing blueprint predates the
+	// field and binds an external, hand-written SDK.
+	SDKModeExternal = "external"
+)
+
 type SDKModule struct {
 	Dialect    SDKDialect `json:"dialect"`
 	ModulePath string     `json:"modulePath"`
+
+	// Mode says whether the SDK lives inside the provider module (embed) or in
+	// its own (external). Absent means external, so existing blueprints keep
+	// their meaning unchanged.
+	Mode string `json:"mode,omitempty"`
+	// Generator names the tool that produced the SDK, e.g. "kiota". Absent
+	// means hand-written. Recorded so a reader of the blueprint knows whether
+	// the SDK is itself regenerable from the pinned OpenAPI document.
+	Generator string `json:"generator,omitempty"`
 
 	// ClientType is the field type on every generated resource struct, written
 	// as it appears at the use site, e.g. "*thousandeyes.Client".
@@ -846,6 +867,11 @@ type NestedAttributeObject struct {
 
 	// SDKType is the SDK struct one element maps to, e.g. "tags.Assignment".
 	SDKType string `json:"sdkType"`
+
+	// ConstructorExpr builds one element under a setter-based SDK, e.g.
+	// "models.NewAssignment()". Empty means a composite literal of SDKType --
+	// the struct-field dialect, and every existing blueprint.
+	ConstructorExpr string `json:"constructorExpr,omitempty"`
 
 	// AttrTypesVar is the generated package-level variable holding this shape's
 	// attr.Type map. Both the expand and the flatten helper reference it, so it is

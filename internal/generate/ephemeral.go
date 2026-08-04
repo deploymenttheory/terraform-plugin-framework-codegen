@@ -180,6 +180,7 @@ func Ephemeral(
 func ephemeralScope(e blueprint.Ephemeral) schemaScope {
 	return schemaScope{
 		kind:     blueprint.BlockKindEphemeral,
+		access:   e.Binding.Response.AccessStyle,
 		what:     fmt.Sprintf("ephemeral %q", e.Key),
 		patterns: newPatternVars(),
 	}
@@ -192,7 +193,11 @@ func ephemeralStateView(
 	e blueprint.Ephemeral,
 	imports *importSet,
 ) (StateView, error) {
-	v := StateView{ResponseType: e.Binding.Response.Type}
+	param := "*" + e.Binding.Response.Type
+	if e.Binding.Response.AccessStyle == blueprint.AccessMethod {
+		param = e.Binding.Response.Type
+	}
+	v := StateView{ResponseType: param}
 
 	sup := bp.Provider.Support
 	imports.add(pkgContext, "")
@@ -212,12 +217,12 @@ func ephemeralStateView(
 			v.NeedsDiagnostics = true
 			v.Assignments = append(v.Assignments, fmt.Sprintf(
 				"data.%s, d = %s\ndiags.Append(d...)",
-				a.GoField, convertExpr(*a.Wire.Flatten, "remote."+a.Wire.SDKField)))
+				a.GoField, convertExpr(*a.Wire.Flatten, readExpr(e.Binding.Response.AccessStyle, "remote", a.Wire.SDKField))))
 			continue
 		}
 
 		v.Assignments = append(v.Assignments, fmt.Sprintf("data.%s = %s",
-			a.GoField, convertExpr(*a.Wire.Flatten, "remote."+a.Wire.SDKField)))
+			a.GoField, convertExpr(*a.Wire.Flatten, readExpr(e.Binding.Response.AccessStyle, "remote", a.Wire.SDKField))))
 	}
 
 	if v.NeedsDiagnostics {

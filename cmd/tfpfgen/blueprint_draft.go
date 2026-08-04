@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -16,7 +17,8 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
 )
 
-const usageBlueprintDraft = "blueprint draft [-openapi-dir DIR] [-snapshot NAME] [-tag TAG] [-out DIR] [-dry-run]"
+const usageBlueprintDraft = "blueprint draft [-openapi-dir DIR] [-snapshot NAME] [-tag TAG] " +
+	"[-sdk-dialect restyService|kiotaFluent] [-out DIR] [-dry-run]"
 
 func runBlueprintDraft(args []string) error {
 	fs, _ := newFlagSet("blueprint draft", usageBlueprintDraft)
@@ -38,10 +40,40 @@ func runBlueprintDraft(args []string) error {
 		apiVersionDir  = fs.String("api-version-dir", "v7", "version directory generated packages live under")
 		scenarioDrafts = fs.String("scenario-drafts", "",
 			"also scaffold a KEY.scenario.draft.json scenario worksheet per resource under this directory")
+		sdkDialect = fs.String("sdk-dialect", string(blueprint.DialectRestyService),
+			"binding shape to infer: restyService, or kiotaFluent for a kiota-generated SDK")
+		sdkModels = fs.String("sdk-models-package", "",
+			"import path of the kiota SDK's models package (required with -sdk-dialect kiotaFluent)")
 	)
 
 	if err := parse(fs, args); err != nil {
 		return err
+	}
+
+	dialect := blueprint.SDKDialect(*sdkDialect)
+	switch dialect {
+	case blueprint.DialectRestyService, blueprint.DialectKiotaFluent:
+	default:
+		return usagef("-sdk-dialect %q is not restyService or kiotaFluent", *sdkDialect)
+	}
+
+	if dialect == blueprint.DialectKiotaFluent {
+		if *sdkModels == "" {
+			return usagef("-sdk-models-package is required with -sdk-dialect kiotaFluent: " +
+				"it names where the generated models live")
+		}
+		// The resty knobs mean nothing to a fluent binding; a value somebody
+		// typed deserves a refusal, not silence.
+		var misused []string
+		fs.Visit(func(f *flag.Flag) {
+			if f.Name == "sdk-service-root" || f.Name == "sdk-accessor" {
+				misused = append(misused, "-"+f.Name)
+			}
+		})
+		if len(misused) > 0 {
+			return usagef("%s do(es) not apply under -sdk-dialect kiotaFluent; a fluent "+
+				"binding resolves from the client and the models package", strings.Join(misused, ", "))
+		}
 	}
 
 	path, err := resolveOpenAPIPath(*openapiPath, *openapiDir, *snapshot)
@@ -75,6 +107,8 @@ func runBlueprintDraft(args []string) error {
 		SDKServiceRoot:    *sdkRoot,
 		SDKAccessorPrefix: *accessor,
 		APIVersionDir:     *apiVersionDir,
+		SDKDialect:        dialect,
+		SDKModelsImport:   *sdkModels,
 	}
 
 	return inferAll(doc, candidates, opts, *out, *scenarioDrafts)

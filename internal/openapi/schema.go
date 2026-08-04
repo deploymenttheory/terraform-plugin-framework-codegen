@@ -34,6 +34,9 @@ type Field struct {
 	Required bool
 	// Nullable is the specification's nullable marker.
 	Nullable bool
+	// Format is the schema's format string (int64, float, date-time...), which
+	// a generated SDK reads literally when choosing a Go width.
+	Format string
 	// Deprecated marks a field the API documents as going away.
 	Deprecated bool
 
@@ -272,6 +275,7 @@ func fieldOf(name string, proxy *base.SchemaProxy, path []string) (Field, bool) 
 		Description: strings.TrimSpace(s.Description),
 		ReadOnly:    boolValue(s.ReadOnly),
 		Nullable:    boolValue(s.Nullable),
+		Format:      s.Format,
 		Deprecated:  boolValue(s.Deprecated),
 	}
 

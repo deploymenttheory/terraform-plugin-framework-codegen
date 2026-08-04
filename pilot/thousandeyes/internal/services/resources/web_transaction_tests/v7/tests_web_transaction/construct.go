@@ -98,14 +98,14 @@ func expandTestsWebTransactionTestVaultCredentials(ctx context.Context, v types.
 		return nil, diags
 	}
 
-	var models []TestsWebTransactionTestVaultCredentialModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TestsWebTransactionTestVaultCredentialModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]web_transaction_tests.TestVaultCredential, 0, len(models))
-	for _, m := range models {
+	out := make([]web_transaction_tests.TestVaultCredential, 0, len(elements))
+	for _, m := range elements {
 		var item web_transaction_tests.TestVaultCredential
 
 		item.SecretID = convert.FrameworkToPtrString(m.SecretID)
@@ -126,14 +126,14 @@ func expandWebTransactionAgents(ctx context.Context, v types.Set) ([]web_transac
 		return nil, diags
 	}
 
-	var models []WebTransactionAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []WebTransactionAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]web_transaction_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]web_transaction_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item web_transaction_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

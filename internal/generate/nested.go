@@ -48,6 +48,10 @@ type nestedShape struct {
 	nested blueprint.NestedAttributeObject
 	// path is the dotted attribute path to this object, for error messages.
 	path string
+	// access is the enclosing binding's field-access style, stamped from the
+	// schema scope so every generated helper reads and writes SDK fields the
+	// way the SDK actually exposes them.
+	access blueprint.AccessStyle
 }
 
 func collectShapes(
@@ -92,7 +96,7 @@ func collectShapes(
 			return err
 		}
 
-		*out = append(*out, nestedShape{attr: a, nested: n, path: at})
+		*out = append(*out, nestedShape{attr: a, nested: n, path: at, access: sc.access})
 
 		if err := collectShapes(sc, n.Attributes, at, depth+1, claimed, out); err != nil {
 			return err
@@ -326,12 +330,13 @@ func attrTypeExpr(t blueprint.AttrType) (string, error) {
 // structs.
 func nestedExpandView(s nestedShape) NestedFuncView {
 	v := NestedFuncView{
-		FuncName:      s.nested.ExpandFunc,
-		FrameworkType: frameworkModelType[s.attr.Type.Kind],
-		SDKType:       s.nested.SDKType,
-		ObjectTypeVar: s.nested.ObjectTypeVar,
-		ModelType:     s.nested.GoTypeName,
-		IsCollection:  s.attr.Type.Kind.IsNestedCollection(),
+		ConstructorExpr: s.nested.ConstructorExpr,
+		FuncName:        s.nested.ExpandFunc,
+		FrameworkType:   frameworkModelType[s.attr.Type.Kind],
+		SDKType:         s.nested.SDKType,
+		ObjectTypeVar:   s.nested.ObjectTypeVar,
+		ModelType:       s.nested.GoTypeName,
+		IsCollection:    s.attr.Type.Kind.IsNestedCollection(),
 	}
 
 	for _, child := range s.nested.Attributes {
@@ -347,24 +352,14 @@ func nestedExpandView(s nestedShape) NestedFuncView {
 			// A wrapper cannot take a two-value call; the result lands in a temp
 			// first. Same shape as constructView's, for the same SDK field classes
 			// -- a dashboard layout's value-typed Details is the nested case.
-			if needsTemp(call) {
-				inner := call
-				inner.Deref, inner.Cast = false, ""
-				tmp := lowerFirst(child.GoField) + "Raw"
-				v.Assignments = append(v.Assignments, fmt.Sprintf(
-					"%s, d := %s\ndiags.Append(d...)\nitem.%s = %s",
-					tmp, convertExpr(inner, "m."+child.GoField), child.Wire.SDKField,
-					wrapConverted(call, tmp)))
-				continue
-			}
-
-			v.Assignments = append(v.Assignments, fmt.Sprintf(
-				"item.%s, d = %s\ndiags.Append(d...)",
-				child.Wire.SDKField, convertExpr(call, "m."+child.GoField)))
+			v.Assignments = append(v.Assignments, expandStmt(s.access, "item",
+				child.Wire.SDKField, call, "m."+child.GoField,
+				lowerFirst(child.GoField), &v.NeedsDiagnostics, &v.SharedDiag))
 			continue
 		}
-		v.Assignments = append(v.Assignments, fmt.Sprintf("item.%s = %s",
-			child.Wire.SDKField, convertExpr(call, "m."+child.GoField)))
+		v.Assignments = append(v.Assignments, expandStmt(s.access, "item",
+			child.Wire.SDKField, call, "m."+child.GoField,
+			lowerFirst(child.GoField), &v.NeedsDiagnostics, &v.SharedDiag))
 	}
 
 	return v
@@ -391,13 +386,14 @@ func nestedFlattenView(s nestedShape) NestedFuncView {
 		call := *child.Wire.Flatten
 		if call.ReturnsError {
 			v.NeedsDiagnostics = true
+			v.SharedDiag = true
 			v.Assignments = append(v.Assignments, fmt.Sprintf(
 				"m.%s, d = %s\ndiags.Append(d...)",
-				child.GoField, convertExpr(call, "item."+child.Wire.SDKField)))
+				child.GoField, convertExpr(call, readExpr(s.access, "item", child.Wire.SDKField))))
 			continue
 		}
 		v.Assignments = append(v.Assignments, fmt.Sprintf("m.%s = %s",
-			child.GoField, convertExpr(call, "item."+child.Wire.SDKField)))
+			child.GoField, convertExpr(call, readExpr(s.access, "item", child.Wire.SDKField))))
 	}
 
 	return v

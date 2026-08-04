@@ -35,6 +35,12 @@ var commands = []command{
 		run:     runOpenAPI,
 	},
 	{
+		name:    "sdk",
+		summary: "generate a Go SDK from a pinned OpenAPI snapshot",
+		usage:   "sdk <generate> [flags]",
+		run:     runSDK,
+	},
+	{
 		name:    "blueprint",
 		summary: "draft, merge, validate, diff or list blueprints",
 		usage:   "blueprint <draft|merge|validate|diff|list> [flags]",

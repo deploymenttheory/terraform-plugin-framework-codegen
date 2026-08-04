@@ -76,14 +76,14 @@ func expandTestsAPIAPIPredefinedVariables(ctx context.Context, v types.Set) ([]a
 		return nil, diags
 	}
 
-	var models []TestsAPIAPIPredefinedVariableModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TestsAPIAPIPredefinedVariableModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]api_tests.ApiPredefinedVariable, 0, len(models))
-	for _, m := range models {
+	out := make([]api_tests.ApiPredefinedVariable, 0, len(elements))
+	for _, m := range elements {
 		var item api_tests.ApiPredefinedVariable
 
 		item.Name = convert.FrameworkToPtrString(m.Name)
@@ -105,14 +105,14 @@ func expandTestsAPIAPIRequests(ctx context.Context, v types.Set) ([]api_tests.Ap
 		return nil, diags
 	}
 
-	var models []TestsAPIAPIRequestModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TestsAPIAPIRequestModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]api_tests.ApiRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]api_tests.ApiRequest, 0, len(elements))
+	for _, m := range elements {
 		var item api_tests.ApiRequest
 
 		item.Assertions, d = expandTestsAPIAPIRequestAssertions(ctx, m.Assertions)
@@ -153,14 +153,14 @@ func expandTestsAPIAPIRequestAssertions(ctx context.Context, v types.Set) ([]api
 		return nil, diags
 	}
 
-	var models []TestsAPIAPIRequestAssertionModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TestsAPIAPIRequestAssertionModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]api_tests.ApiRequestAssertion, 0, len(models))
-	for _, m := range models {
+	out := make([]api_tests.ApiRequestAssertion, 0, len(elements))
+	for _, m := range elements {
 		var item api_tests.ApiRequestAssertion
 
 		item.Name = convert.FrameworkToEnum[api_tests.ApiRequestAssertionName](m.Name)
@@ -182,14 +182,14 @@ func expandTestsAPIAPIRequestHeaders(ctx context.Context, v types.Set) ([]api_te
 		return nil, diags
 	}
 
-	var models []TestsAPIAPIRequestHeaderModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TestsAPIAPIRequestHeaderModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]api_tests.ApiRequestHeader, 0, len(models))
-	for _, m := range models {
+	out := make([]api_tests.ApiRequestHeader, 0, len(elements))
+	for _, m := range elements {
 		var item api_tests.ApiRequestHeader
 
 		item.Key = convert.FrameworkToPtrString(m.Key)
@@ -210,14 +210,14 @@ func expandTestsAPIAPIRequestVariables(ctx context.Context, v types.Set) ([]api_
 		return nil, diags
 	}
 
-	var models []TestsAPIAPIRequestVariableModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TestsAPIAPIRequestVariableModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]api_tests.ApiRequestVariable, 0, len(models))
-	for _, m := range models {
+	out := make([]api_tests.ApiRequestVariable, 0, len(elements))
+	for _, m := range elements {
 		var item api_tests.ApiRequestVariable
 
 		item.Name = convert.FrameworkToPtrString(m.Name)
@@ -238,14 +238,14 @@ func expandTestsAPITestVaultCredentials(ctx context.Context, v types.Set) ([]api
 		return nil, diags
 	}
 
-	var models []TestsAPITestVaultCredentialModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []TestsAPITestVaultCredentialModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]api_tests.TestVaultCredential, 0, len(models))
-	for _, m := range models {
+	out := make([]api_tests.TestVaultCredential, 0, len(elements))
+	for _, m := range elements {
 		var item api_tests.TestVaultCredential
 
 		item.SecretID = convert.FrameworkToPtrString(m.SecretID)
@@ -266,14 +266,14 @@ func expandApiAgents(ctx context.Context, v types.Set) ([]api_tests.TestAgentReq
 		return nil, diags
 	}
 
-	var models []ApiAgentModel
-	diags.Append(v.ElementsAs(ctx, &models, false)...)
+	var elements []ApiAgentModel
+	diags.Append(v.ElementsAs(ctx, &elements, false)...)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	out := make([]api_tests.TestAgentRequest, 0, len(models))
-	for _, m := range models {
+	out := make([]api_tests.TestAgentRequest, 0, len(elements))
+	for _, m := range elements {
 		var item api_tests.TestAgentRequest
 
 		item.AgentID = convert.FrameworkToString(m.AgentID)

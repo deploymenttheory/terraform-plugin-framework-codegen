@@ -25,6 +25,7 @@ func TestUnit_CLI_DocsMatchTheBinary(t *testing.T) {
 
 	groups := map[string][]command{
 		"openapi":   openapiVerbs,
+		"sdk":       sdkVerbs,
 		"blueprint": blueprintVerbs,
 		"probe":     probeVerbs,
 		"provider":  providerVerbs,
@@ -66,8 +67,10 @@ func TestUnit_CLI_DocsMatchTheBinary(t *testing.T) {
 	// Retired spellings must not resurface. Their presence means an edit
 	// described the old surface, which is exactly the drift this test exists
 	// to catch.
+	// "probe -mode" rather than "-mode": the retired spelling was probe's mode
+	// flag; sdk generate legitimately carries a -mode of its own.
 	for _, banned := range []string{
-		"tfpluginframeworkgen", "-mode ", "-output-dir", "-github-summary",
+		"tfpluginframeworkgen", "probe -mode", "-output-dir", "-github-summary",
 		"-accept-conflicts", "-facts-out", "-facts-check", "-no-rehearse",
 		"probe.plan", "probe-evidence", "interop-specs", "openapi-specs",
 		"--allow-mutations",

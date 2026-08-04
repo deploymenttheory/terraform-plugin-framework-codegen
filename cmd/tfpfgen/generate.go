@@ -145,7 +145,7 @@ func runProviderGenerate(args []string) error {
 		return nil
 	}
 
-	return postcheck(o.out)
+	return postcheck(o.out, bp)
 }
 
 // postcheck holds generated output to the tools that gate it.
@@ -157,13 +157,20 @@ func runProviderGenerate(args []string) error {
 // what it writes, so a diff here is a bug worth seeing, and fmt writing the fix keeps
 // the tree correct either way. terraform validate stays a CI job: it needs the
 // provider built into a dev-override, which is workflow plumbing rather than generation.
-func postcheck(out string) error {
+func postcheck(out string, bp blueprint.Blueprint) error {
 	// A scratch generation -- a test's temp dir, a -resource inspection -- has no module
 	// to compile or docs to regenerate, and holding it to the battery would gate
 	// the wrong thing. The pilot and any real provider root carry go.mod.
 	if _, err := os.Stat(filepath.Join(out, "go.mod")); err != nil {
 		log.Printf("postcheck: %s is not a module root; skipped", out)
 		return nil
+	}
+
+	// Cheapest first, and offline: the blueprint's declared SDK requirements
+	// must be present before compiling can mean anything.
+	log.Printf("postcheck: go.mod declares the blueprint's SDK requirements")
+	if err := generate.AssertGoMod(out, bp); err != nil {
+		return fmt.Errorf("postcheck: %w", err)
 	}
 
 	log.Printf("postcheck: go build ./...")

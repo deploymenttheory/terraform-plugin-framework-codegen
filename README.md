@@ -88,7 +88,13 @@ flowchart LR
     bp -. "provider generate -check\n(fails on drift)" .-> prov
 ```
 
-with drift checking: `provider generate -check`. Alongside the main line,
+with drift checking: `provider generate -check`. An optional `sdk generate`
+stage sits between the snapshot and the blueprints: it derives a Go SDK from
+the same pinned OpenAPI document with [Microsoft
+Kiota](https://github.com/microsoft/kiota) — embedded in the provider tree or
+as a standalone module — and the `kiotaFluent` dialect binds fluent
+request-builder chains against it, so a provider no longer requires a
+hand-written SDK. Alongside the main line,
 `bindings facts` derives static facts from the pinned SDK for `blueprint merge`
 to fold in, human curation (scenarios, hints, presence) feeds the same merge,
 and `provider generate` finishes with a postcheck battery (build · docs · fmt).

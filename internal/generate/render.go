@@ -55,6 +55,9 @@ const (
 // `schema` never appear in the same file and there is nothing to disambiguate.
 type schemaScope struct {
 	kind blueprint.BlockKind
+	// access is how the binding's SDK models expose their fields, threaded to
+	// every nested shape built under this scope.
+	access blueprint.AccessStyle
 	// what names the block in an error message, e.g. `resource "tag"`.
 	what string
 	// patterns collects the package-level regexp vars this schema's RegexMatches validators
@@ -80,6 +83,7 @@ func (sc schemaScope) schemaImport() string {
 func resourceScope(r blueprint.Resource) schemaScope {
 	return schemaScope{
 		kind:        blueprint.BlockKindResource,
+		access:      r.Binding.Body.AccessStyle,
 		what:        fmt.Sprintf("resource %q", r.Key),
 		patterns:    newPatternVars(),
 		idAttribute: r.Binding.ID.Attribute,
@@ -90,6 +94,7 @@ func resourceScope(r blueprint.Resource) schemaScope {
 func dataSourceScope(d blueprint.DataSource) schemaScope {
 	return schemaScope{
 		kind:     blueprint.BlockKindDataSource,
+		access:   d.Binding.Response.AccessStyle,
 		what:     fmt.Sprintf("data source %q", d.Key),
 		patterns: newPatternVars(),
 	}
@@ -270,6 +275,13 @@ type NestedFuncView struct {
 	// from the attribute kind -- so hardcoding one of them emits a list_nested
 	// attribute whose helper does not compile against its own model.
 	Container string
+	// ConstructorExpr builds one element under a setter-based SDK; empty means
+	// a zero-value declaration of SDKType, the struct-field dialect.
+	ConstructorExpr string
+	// SharedDiag is true when an assignment uses the enclosing shared d, which
+	// is what makes declaring `var d` outside a loop body load-bearing; the
+	// temp forms declare their own.
+	SharedDiag bool
 	// Assignments are finished per-field statements inside the helper.
 	Assignments []string
 	// NeedsDiagnostics is true when a field conversion inside the helper can fail.
@@ -328,6 +340,11 @@ type OpView struct {
 	Phase string
 	// ErrorOp is the errors package's operation constant.
 	ErrorOp string
+	// NilResultGuard asks the template to treat a nil result as meaningful: a
+	// fluent SDK returns (nil, nil) for an empty success body, so a read maps
+	// it as gone and a create refuses to record an object it cannot identify.
+	// Always false for a struct-field SDK, whose calls never return nil, nil.
+	NilResultGuard bool
 }
 
 // GeneratedHeader returns the canonical generated-file marker.
@@ -519,7 +536,7 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	}
 
 	v.Construct = constructView(r, shapes)
-	state, err := stateView(r.Schema, r.Binding.Body.ResponseType, shapes)
+	state, err := stateView(r.Schema, r.Binding.Body.ResponseType, r.Binding.Body.AccessStyle, shapes)
 	if err != nil {
 		return ResourceView{}, err
 	}
@@ -562,6 +579,14 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 		for _, arg := range op.Args {
 			for _, imp := range arg.Imports {
 				impCRUD.add(imp.Path, imp.Alias)
+			}
+		}
+		// A fluent call carries its arguments on the chain's segments instead.
+		for _, seg := range op.Chain {
+			for _, arg := range seg.Args {
+				for _, imp := range arg.Imports {
+					impCRUD.add(imp.Path, imp.Alias)
+				}
 			}
 		}
 	}
@@ -1160,11 +1185,11 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 				updateCall = a.Wire.UpdateExpand
 			}
 			v.Update.Assignments = append(v.Update.Assignments,
-				expandAssignment(*updateCall, a, &v.NeedsDiagnostics))
+				expandAssignment(r.Binding.Body.AccessStyle, *updateCall, a, &v.NeedsDiagnostics))
 		}
 
 		v.Assignments = append(v.Assignments,
-			expandAssignment(*a.Wire.Expand, a, &v.NeedsDiagnostics))
+			expandAssignment(r.Binding.Body.AccessStyle, *a.Wire.Expand, a, &v.NeedsDiagnostics))
 	}
 
 	return v
@@ -1173,38 +1198,32 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 // expandAssignment renders one construct statement for a call and attribute.
 //
 // A fallible conversion becomes two statements plus a diagnostics append, which is
-// why the enclosing function has to return diagnostics at all. A wrapper cannot take
-// a two-value call, so the result lands in a temp first: Deref for a value-typed
-// field the helper points at, Cast for a named slice of what the helper produces.
-func expandAssignment(call blueprint.ConvertCall, a blueprint.Attribute, needsDiags *bool) string {
-	if !call.ReturnsError {
-		return fmt.Sprintf("body.%s = %s",
-			a.Wire.SDKField, convertExpr(call, "data."+a.GoField))
-	}
-
-	*needsDiags = true
-
-	if needsTemp(call) {
-		inner := call
-		inner.Deref, inner.Cast = false, ""
-		tmp := lowerFirst(a.GoField) + "Raw"
-		return fmt.Sprintf(
-			"%s, d := %s\ndiags.Append(d...)\nbody.%s = %s",
-			tmp, convertExpr(inner, "data."+a.GoField), a.Wire.SDKField,
-			wrapConverted(call, tmp))
-	}
-
-	return fmt.Sprintf(
-		"body.%s, d = %s\ndiags.Append(d...)",
-		a.Wire.SDKField, convertExpr(call, "data."+a.GoField))
+// why the enclosing function has to return diagnostics at all -- the shapes live
+// in expandStmt, the one seam that knows how an SDK field is written.
+func expandAssignment(
+	style blueprint.AccessStyle,
+	call blueprint.ConvertCall,
+	a blueprint.Attribute,
+	needsDiags *bool,
+) string {
+	return expandStmt(style, "body", a.Wire.SDKField, call,
+		"data."+a.GoField, lowerFirst(a.GoField), needsDiags, nil)
 }
 
 func stateView(
 	s blueprint.Schema,
 	responseType string,
+	style blueprint.AccessStyle,
 	shapes []nestedShape,
 ) (StateView, error) {
-	v := StateView{ResponseType: responseType}
+	// The mapper's parameter type: a struct-field SDK hands over a pointer to
+	// its model, a method-access SDK hands over the interface its builders
+	// return -- pointering an interface would break every call site.
+	param := "*" + responseType
+	if style == blueprint.AccessMethod {
+		param = responseType
+	}
+	v := StateView{ResponseType: param}
 
 	for _, sh := range shapes {
 		if sh.attr.Wire.SkipFlatten {
@@ -1269,12 +1288,12 @@ func stateView(
 			v.NeedsDiagnostics = true
 			v.Assignments = append(v.Assignments, fmt.Sprintf(
 				"data.%s, d = %s\ndiags.Append(d...)",
-				a.GoField, convertExpr(*a.Wire.Flatten, "remote."+a.Wire.SDKField)))
+				a.GoField, convertExpr(*a.Wire.Flatten, readExpr(style, "remote", a.Wire.SDKField))))
 			continue
 		}
 
 		v.Assignments = append(v.Assignments, fmt.Sprintf("data.%s = %s",
-			a.GoField, convertExpr(*a.Wire.Flatten, "remote."+a.Wire.SDKField)))
+			a.GoField, convertExpr(*a.Wire.Flatten, readExpr(style, "remote", a.Wire.SDKField))))
 	}
 
 	return v, nil
@@ -1334,6 +1353,9 @@ func convertExpr(c blueprint.ConvertCall, arg string) string {
 		b.WriteString("ctx, ")
 	}
 	b.WriteString(arg)
+	for _, extra := range c.ExtraArgs {
+		b.WriteString(", " + extra)
+	}
 	b.WriteString(")")
 
 	return wrapConverted(c, b.String())
@@ -1469,32 +1491,50 @@ func opView(
 	phase, errOp, timeout string,
 	bind bindResult,
 ) (*OpView, error) {
-	if op.Style != blueprint.CallStyleMethod {
+	var call string
+	switch op.Style {
+	case blueprint.CallStyleMethod:
+		args := make([]string, 0, len(op.Args))
+		for _, a := range op.Args {
+			expr, err := argExpr(what, a)
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, expr)
+		}
+		call = fmt.Sprintf("%s.%s(%s)", accessor, op.Method, strings.Join(args, ", "))
+
+	case blueprint.CallStyleFluent:
+		// Validation refuses an empty chain, but the emitter must not depend on
+		// having been preceded by it: a chainless fluent op would render a bare
+		// accessor, which is not a call.
+		if len(op.Chain) == 0 {
+			return nil, &ErrUnsupported{
+				What: fmt.Sprintf("operation of %s", what),
+				Why:  "style fluent declares no chain, so there is no call to render",
+			}
+		}
+		var err error
+		call, err = chainCall(accessor, op, func(a blueprint.Argument) (string, error) {
+			return argExpr(what, a)
+		})
+		if err != nil {
+			return nil, err
+		}
+
+	default:
 		return nil, &ErrUnsupported{
 			What: fmt.Sprintf("operation %q of %s", op.Method, what),
 			Why:  fmt.Sprintf("call style %q is not implemented", op.Style),
 		}
 	}
 
-	args := make([]string, 0, len(op.Args))
-	for _, a := range op.Args {
-		expr, err := argExpr(what, a)
-		if err != nil {
-			return nil, err
-		}
-		args = append(args, expr)
-	}
-
 	v := &OpView{
-		Call: fmt.Sprintf(
-			"%s.%s(%s)",
-			accessor,
-			op.Method,
-			strings.Join(args, ", "),
-		),
-		TimeoutConst: timeout,
-		Phase:        phase,
-		ErrorOp:      errOp,
+		Call:           call,
+		TimeoutConst:   timeout,
+		Phase:          phase,
+		ErrorOp:        errOp,
+		NilResultGuard: op.Style == blueprint.CallStyleFluent && op.Return.HasResult(),
 	}
 
 	// The assignment must match the call's arity exactly, which is why the
@@ -1528,6 +1568,30 @@ func opView(
 	}
 
 	return v, nil
+}
+
+// chainCall renders a fluent chain: accessor.Seg1(args).Seg2(args)... The
+// renderer knows nothing about which generator produced the SDK -- the chain
+// is the call, as data, and argRender decides how each argument reads in the
+// enclosing scope (a resource body, a test helper's state map).
+func chainCall(
+	accessor string,
+	op blueprint.Operation,
+	argRender func(blueprint.Argument) (string, error),
+) (string, error) {
+	parts := []string{accessor}
+	for _, seg := range op.Chain {
+		args := make([]string, 0, len(seg.Args))
+		for _, a := range seg.Args {
+			expr, err := argRender(a)
+			if err != nil {
+				return "", err
+			}
+			args = append(args, expr)
+		}
+		parts = append(parts, seg.Method+"("+strings.Join(args, ", ")+")")
+	}
+	return strings.Join(parts, "."), nil
 }
 
 // resultVarFor names the result variable after the operation, so a generated body

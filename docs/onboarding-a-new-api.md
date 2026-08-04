@@ -17,10 +17,15 @@ closes it. Nothing here requires doing steps out of order.
 
 ## 0. What you need before starting
 
-- **An SDK.** The toolkit generates the provider layer only; it binds to an SDK that
-  already exists (`restyService` dialect: service structs off a client, methods
-  returning `(*Result, *resty.Response, error)`). The generated provider's `go.mod`
-  pins it, and every symbol a blueprint names is type-checked against that pin.
+- **An SDK — or none.** The toolkit generates the provider layer and binds it to an
+  SDK in one of two dialects. `restyService` binds a hand-written SDK that already
+  exists (service structs off a client, methods returning
+  `(*Result, *resty.Response, error)`); the provider's `go.mod` pins it. With
+  `kiotaFluent` there is nothing to write first: `tfpfgen sdk generate` derives the
+  SDK from the same pinned OpenAPI snapshot with Microsoft Kiota (embedded in the
+  provider tree by default), and `blueprint draft -sdk-dialect kiotaFluent` infers
+  fluent request-builder bindings against it. Either way, every symbol a blueprint
+  names is type-checked against the real SDK by `bindings check`.
 - **A disposable tenant.** Mutating probes and acceptance tests create and destroy real
   objects. The sandbox guard demands a profile that *says so* and proves it at runtime;
   do not point any of this at an account anybody depends on.

@@ -1,0 +1,141 @@
+// Package check is a fluent front end to terraform-plugin-testing's check functions.
+//
+// The value is legibility at the call site. `resource.TestCheckResourceAttr(n, "colour", "#A7EB10")`
+// and `resource.TestCheckResourceAttrSet(n, "id")` are different function names for the same idea,
+// and a generated test is mostly a long list of them. `check.That(n).Key("colour").HasValue(...)`
+// reads as a sentence and, more usefully, groups by resource so the generator writes the address
+// once rather than on every line.
+package check
+
+import (
+	"fmt"
+	"regexp"
+	"strconv"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/acceptance/types"
+)
+
+// That begins an assertion about one resource address, e.g. "thousandeyes_tag.test".
+func That(address string) Resource {
+	return Resource{address: address}
+}
+
+// Resource is an assertion about the object as a whole.
+type Resource struct {
+	address string
+}
+
+// ExistsInAPI asserts the object is really present, by asking the API rather than the state.
+//
+// Distinct from Key("id").Exists(), which only proves Terraform wrote something down. A resource
+// can be in state and absent from the API -- that is precisely the drift an acceptance test is
+// there to catch.
+func (r Resource) ExistsInAPI(tr types.TestResource) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		state, err := instanceState(s, r.address)
+		if err != nil {
+			return err
+		}
+
+		present, err := tr.Exists(testContext(), state)
+		if err != nil {
+			return fmt.Errorf("checking whether %s exists: %w", r.address, err)
+		}
+		if present == nil {
+			return fmt.Errorf("%s: the existence check answered neither yes nor no", r.address)
+		}
+		if !*present {
+			return fmt.Errorf("%s is in state but absent from the API", r.address)
+		}
+
+		return nil
+	}
+}
+
+// Key narrows the assertion to one attribute, e.g. "colour" or "assignments.0.group_id".
+func (r Resource) Key(key string) Attribute {
+	return Attribute{address: r.address, key: key}
+}
+
+// Attribute is an assertion about one attribute of one resource.
+type Attribute struct {
+	address string
+	key     string
+}
+
+// HasValue asserts an exact value.
+func (a Attribute) HasValue(value string) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttr(a.address, a.key, value)
+}
+
+// Exists asserts the attribute is set to something.
+func (a Attribute) Exists() resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrSet(a.address, a.key)
+}
+
+// DoesNotExist asserts the attribute is absent from state entirely.
+func (a Attribute) DoesNotExist() resource.TestCheckFunc {
+	return resource.TestCheckNoResourceAttr(a.address, a.key)
+}
+
+// MatchesRegex asserts the value matches a pattern.
+//
+// This is what a generated constraint assertion uses: the specification's own `pattern` becomes
+// the expectation, so a server that stores something outside its documented shape is caught.
+func (a Attribute) MatchesRegex(re *regexp.Regexp) resource.TestCheckFunc {
+	return resource.TestMatchResourceAttr(a.address, a.key, re)
+}
+
+// MatchesOtherKey asserts two attributes agree, possibly across resources.
+func (a Attribute) MatchesOtherKey(other Attribute) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrPair(a.address, a.key, other.address, other.key)
+}
+
+// IsNotEmpty asserts the attribute is set and not the empty string.
+//
+// Separate from Exists because Terraform records an empty string as set, so an attribute the API
+// returned as "" satisfies Exists while carrying no information.
+func (a Attribute) IsNotEmpty() resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(a.address, a.key, func(value string) error {
+		if value == "" {
+			return fmt.Errorf("is set but empty")
+		}
+
+		return nil
+	})
+}
+
+// CountAtLeast asserts a collection's count key holds at least n elements.
+//
+// Used on a `.#` key. IsNotEmpty cannot serve here: Terraform records an empty
+// collection's count as the string "0", which is set and non-empty while carrying
+// exactly the information the assertion exists to refuse.
+func (a Attribute) CountAtLeast(n int) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(a.address, a.key, func(value string) error {
+		count, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("%q is not a count; is this a collection's # key?", value)
+		}
+		if count < n {
+			return fmt.Errorf("holds %d element(s), want at least %d", count, n)
+		}
+
+		return nil
+	})
+}
+
+// instanceState finds one resource's primary state, with a message that says which.
+func instanceState(s *terraform.State, address string) (*terraform.InstanceState, error) {
+	rs, ok := s.RootModule().Resources[address]
+	if !ok {
+		return nil, fmt.Errorf("%s is not in the state", address)
+	}
+	if rs.Primary == nil {
+		return nil, fmt.Errorf("%s has no primary instance state", address)
+	}
+
+	return rs.Primary, nil
+}

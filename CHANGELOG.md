@@ -9,6 +9,24 @@ This file is maintained by [release-please](.github/workflows/release-please.yml
 from conventional commit messages. Add entries by writing good commit messages,
 not by editing this file by hand.
 
+## Unreleased — Kiota SDK generation and the kiotaFluent dialect
+
+`tfpfgen sdk generate` derives a Go SDK from a pinned OpenAPI snapshot with
+Microsoft Kiota (PATH tool, hard version gate on the committed
+kiota-lock.json; `-mode embed` into the provider module by default,
+`-mode external` with its own go.mod; `-check` regenerates and
+byte-compares). The reserved `kiotaFluent` dialect is implemented end to
+end: blueprints record fluent chains as data (`Operation.chain`), the
+emitter renders them with method access, nil-result guards and enum parse
+companions, `bindings check` walks chains and Get/Set pairs against the
+real SDK with did-you-mean, `blueprint draft -sdk-dialect kiotaFluent`
+infers the whole shape from the snapshot, and `provider.sdk` gains
+`mode`/`generator` with a go.mod assertion in the postcheck. A second
+pilot, `pilot/thousandeyes-kiota`, binds the `tag` resource against an
+embedded kiota SDK and re-derives identical facts from the shared
+`recordings/thousandeyes` — the probe layer is wire-level, so switching
+dialect is a binding change, not an evidence change.
+
 ## Unreleased — provider push
 
 `tfpfgen provider push -out DIR -repo URL` publishes the generated provider

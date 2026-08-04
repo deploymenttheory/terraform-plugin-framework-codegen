@@ -61,6 +61,8 @@ func (b Blueprint) Validate() error {
 	}
 
 	b.Provider.validate(&p)
+	b.validateServiceImports(&p)
+	b.validateCallStyles(&p)
 
 	seenKeys := map[string]bool{}
 	seenTypes := map[string]bool{}
@@ -197,19 +199,15 @@ func (e Ephemeral) validate(at string, p *problems) {
 
 func (b EphemeralBinding) validate(at string, p *problems) {
 	required(p, at+".service.importPath", b.Service.ImportPath)
-	required(p, at+".service.typeName", b.Service.TypeName)
+	if usesMethodStyle(b.Open, b.Renew, b.Close) {
+		required(p, at+".service.typeName", b.Service.TypeName)
+	}
 	required(p, at+".service.accessor", b.Service.Accessor)
 
 	required(p, at+".response.type", b.Response.Type)
 
 	switch b.Response.AccessStyle {
-	case AccessStructField:
-	case AccessMethod:
-		p.add(
-			at+".response.accessStyle",
-			"%q is reserved but not yet implemented by the emitter",
-			b.Response.AccessStyle,
-		)
+	case AccessStructField, AccessMethod:
 	default:
 		p.add(at+".response.accessStyle", "%q is not a known access style", b.Response.AccessStyle)
 	}
@@ -376,7 +374,9 @@ func (a Action) validate(at string, p *problems) {
 // and asking for a response type would be asking for something with nowhere to go.
 func (b ActionBinding) validate(at string, p *problems) {
 	required(p, at+".service.importPath", b.Service.ImportPath)
-	required(p, at+".service.typeName", b.Service.TypeName)
+	if usesMethodStyle(b.Invoke) {
+		required(p, at+".service.typeName", b.Service.TypeName)
+	}
 	required(p, at+".service.accessor", b.Service.Accessor)
 
 	if b.Invoke == nil {
@@ -438,6 +438,111 @@ func dup(p *problems, seen map[string]bool, value, path, what string) {
 	seen[value] = true
 }
 
+// validateServiceImports holds every binding's service import to the declared
+// SDK module. This is what makes provider.sdk.modulePath load-bearing: a
+// service import outside it names a package the provider's module cannot be
+// known to resolve, and under mode embed it would escape the provider's own
+// tree entirely.
+func (b Blueprint) validateServiceImports(p *problems) {
+	if b.Provider.SDK.ModulePath == "" {
+		return // already reported as required
+	}
+
+	check := func(at string, ref ServiceRef) {
+		if ref.ImportPath == "" {
+			return // the binding's own validation reports absence
+		}
+		if !strings.HasPrefix(ref.ImportPath, b.Provider.SDK.ModulePath) {
+			p.add(at+".service.importPath",
+				"%q is outside the declared SDK module %q", ref.ImportPath, b.Provider.SDK.ModulePath)
+		}
+	}
+
+	for _, r := range b.Resources {
+		if r.Drop {
+			continue
+		}
+		check("resources["+r.Key+"].binding", r.Binding.Service)
+		if r.List != nil {
+			check("resources["+r.Key+"].list", r.List.Service)
+		}
+	}
+	for _, d := range b.DataSources {
+		check("datasources["+d.Key+"].binding", d.Binding.Service)
+	}
+	for _, e := range b.Ephemerals {
+		check("ephemerals["+e.Key+"].binding", e.Binding.Service)
+	}
+	for _, a := range b.Actions {
+		check("actions["+a.Key+"].binding", a.Binding.Service)
+	}
+}
+
+// usesMethodStyle reports whether any declared operation calls through a
+// named service type. A binding whose every call is a fluent chain resolves
+// from the client itself, so requiring a service type there would demand a
+// name nothing uses.
+func usesMethodStyle(ops ...*Operation) bool {
+	for _, op := range ops {
+		if op != nil && op.Style != CallStyleFluent {
+			return true
+		}
+	}
+	return false
+}
+
+// validateCallStyles holds every operation's style to the provider's declared
+// dialect: a fluent chain is how a kiotaFluent SDK is called, and rendering
+// one against a struct-field SDK would name methods that do not exist.
+func (b Blueprint) validateCallStyles(p *problems) {
+	if b.Provider.SDK.Dialect == DialectKiotaFluent {
+		return
+	}
+
+	check := func(at string, op *Operation) {
+		if op != nil && op.Style == CallStyleFluent {
+			p.add(at+".style", "style fluent needs provider.sdk.dialect %q; this blueprint declares %q",
+				DialectKiotaFluent, b.Provider.SDK.Dialect)
+		}
+	}
+
+	for _, r := range b.Resources {
+		if r.Drop {
+			continue
+		}
+		// A single nested attribute's helpers are still rendered struct-shaped;
+		// under a setter-based SDK they would hand a nil interface to a setter.
+		// Collections construct their elements and are fully supported.
+		for _, a := range r.Schema.Attributes {
+			if a.Drop || a.Type.Kind != KindSingleNested || a.Wire.SDKField == "" {
+				continue
+			}
+			if b.Provider.SDK.Dialect == DialectKiotaFluent && (!a.Wire.SkipExpand || !a.Wire.SkipFlatten) {
+				p.add("resources["+r.Key+"].schema.attributes["+a.Name+"]",
+					"a single nested attribute's wire conversion is not yet rendered for dialect %q; "+
+						"skip both directions or model it by hand", DialectKiotaFluent)
+			}
+		}
+		at := "resources[" + r.Key + "].binding"
+		check(at+".create", r.Binding.Create)
+		check(at+".read", r.Binding.Read)
+		check(at+".update", r.Binding.Update)
+		check(at+".delete", r.Binding.Delete)
+		if r.List != nil {
+			check("resources["+r.Key+"].list.read", r.List.Read)
+		}
+	}
+	for _, d := range b.DataSources {
+		check("dataSources["+d.Key+"].binding.read", d.Binding.Read)
+	}
+	for _, e := range b.Ephemerals {
+		check("ephemerals["+e.Key+"].binding.open", e.Binding.Open)
+	}
+	for _, a := range b.Actions {
+		check("actions["+a.Key+"].binding.invoke", a.Binding.Invoke)
+	}
+}
+
 func (pr Provider) validate(p *problems) {
 	required(p, "provider.name", pr.Name)
 	required(p, "provider.goModule", pr.GoModule)
@@ -446,15 +551,29 @@ func (pr Provider) validate(p *problems) {
 	required(p, "provider.sdk.clientType", pr.SDK.ClientType)
 
 	switch pr.SDK.Dialect {
-	case DialectRestyService:
-	case DialectKiotaFluent:
-		p.add(
-			"provider.sdk.dialect",
-			"%q is reserved but not yet implemented by the emitter",
-			pr.SDK.Dialect,
-		)
+	case DialectRestyService, DialectKiotaFluent:
 	default:
 		p.add("provider.sdk.dialect", "%q is not a known dialect", pr.SDK.Dialect)
+	}
+
+	switch pr.SDK.Mode {
+	case "", SDKModeExternal:
+		// External is the zero value: the SDK lives in its own module, which
+		// existing blueprints have always meant.
+		if pr.SDK.ModulePath == pr.GoModule && pr.GoModule != "" {
+			p.add("provider.sdk.mode", "the SDK module path equals the provider module, which is mode embed")
+		}
+	case SDKModeEmbed:
+		// Embedded means module-internal: any other module path would make the
+		// bindings name packages the provider cannot resolve without a require
+		// directive nothing declares.
+		if pr.SDK.ModulePath != pr.GoModule {
+			p.add("provider.sdk.modulePath",
+				"mode embed requires the SDK module path to equal provider.goModule; got %q against %q",
+				pr.SDK.ModulePath, pr.GoModule)
+		}
+	default:
+		p.add("provider.sdk.mode", "%q is not embed or external", pr.SDK.Mode)
 	}
 }
 
@@ -1074,7 +1193,9 @@ func (n NestedAttributeObject) validate(at string, p *problems) {
 
 func (b ResourceBinding) validate(at string, p *problems) {
 	required(p, at+".service.importPath", b.Service.ImportPath)
-	required(p, at+".service.typeName", b.Service.TypeName)
+	if usesMethodStyle(b.Create, b.Read, b.Update, b.Delete) {
+		required(p, at+".service.typeName", b.Service.TypeName)
+	}
 	required(p, at+".service.accessor", b.Service.Accessor)
 
 	required(p, at+".body.requestType", b.Body.RequestType)
@@ -1100,13 +1221,7 @@ func (b ResourceBinding) validate(at string, p *problems) {
 	}
 
 	switch b.Body.AccessStyle {
-	case AccessStructField:
-	case AccessMethod:
-		p.add(
-			at+".body.accessStyle",
-			"%q is reserved but not yet implemented by the emitter",
-			b.Body.AccessStyle,
-		)
+	case AccessStructField, AccessMethod:
 	default:
 		p.add(at+".body.accessStyle", "%q is not a known access style", b.Body.AccessStyle)
 	}
@@ -1209,7 +1324,9 @@ func (lf ListFacet) validate(r Resource, at string, p *problems) {
 
 	required(p, at+".goTypeName", lf.GoTypeName)
 	required(p, at+".service.importPath", lf.Service.ImportPath)
-	required(p, at+".service.typeName", lf.Service.TypeName)
+	if usesMethodStyle(lf.Read) {
+		required(p, at+".service.typeName", lf.Service.TypeName)
+	}
 	required(p, at+".service.accessor", lf.Service.Accessor)
 	required(p, at+".elementType", lf.ElementType)
 	required(p, at+".response.type", lf.Response.Type)
@@ -1431,19 +1548,15 @@ func hasAttributeNamed(attrs []Attribute, name string) bool {
 
 func (b DataSourceBinding) validate(at string, p *problems) {
 	required(p, at+".service.importPath", b.Service.ImportPath)
-	required(p, at+".service.typeName", b.Service.TypeName)
+	if usesMethodStyle(b.Read) {
+		required(p, at+".service.typeName", b.Service.TypeName)
+	}
 	required(p, at+".service.accessor", b.Service.Accessor)
 
 	required(p, at+".response.type", b.Response.Type)
 
 	switch b.Response.AccessStyle {
-	case AccessStructField:
-	case AccessMethod:
-		p.add(
-			at+".response.accessStyle",
-			"%q is reserved but not yet implemented by the emitter",
-			b.Response.AccessStyle,
-		)
+	case AccessStructField, AccessMethod:
 	default:
 		p.add(at+".response.accessStyle", "%q is not a known access style", b.Response.AccessStyle)
 	}
@@ -1460,8 +1573,11 @@ func (o Operation) validate(at string, p *problems) {
 	switch o.Style {
 	case CallStyleMethod:
 		required(p, at+".method", o.Method)
+		if len(o.Chain) != 0 {
+			p.add(at+".chain", "is set but style %q calls one method; a chained call is style fluent", o.Style)
+		}
 	case CallStyleFluent:
-		p.add(at+".style", "%q is reserved but not yet implemented by the emitter", o.Style)
+		o.validateChain(at, p)
 	default:
 		p.add(at+".style", "%q is not a known call style", o.Style)
 	}
@@ -1485,6 +1601,37 @@ func (o Operation) validate(at string, p *problems) {
 
 	for i, a := range o.Args {
 		a.validate(fmt.Sprintf("%s.args[%d]", at, i), p)
+	}
+}
+
+// validateChain holds a fluent operation's chain to its shape: the chain IS
+// the call, so a missing or one-segment chain means the document describes no
+// hop to a verb, and a verb carried on the Operation itself would be rendered
+// nowhere.
+func (o Operation) validateChain(at string, p *problems) {
+	if len(o.Chain) < 2 {
+		p.add(at+".chain", "a fluent call needs at least a builder segment and a verb segment; got %d", len(o.Chain))
+	}
+	if o.Method != "" {
+		p.add(at+".method", "is set but style fluent takes its verb from the chain's last segment")
+	}
+	if len(o.Args) != 0 {
+		p.add(at+".args", "are set but style fluent carries arguments on chain segments")
+	}
+
+	// A fluent SDK returns (result, error) or error alone; there is no
+	// transport value to hand back, so an arity that promises one could never
+	// be satisfied by the generated assignment.
+	if o.Return.HasTransport() {
+		p.add(at+".return", "%q promises a transport value, which a fluent SDK does not return", o.Return)
+	}
+
+	for i, seg := range o.Chain {
+		segAt := fmt.Sprintf("%s.chain[%d]", at, i)
+		required(p, segAt+".method", seg.Method)
+		for j, a := range seg.Args {
+			a.validate(fmt.Sprintf("%s.args[%d]", segAt, j), p)
+		}
 	}
 }
 

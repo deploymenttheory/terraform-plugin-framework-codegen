@@ -39,6 +39,13 @@ type InferOptions struct {
 	SDKAccessorPrefix string
 	// APIVersionDir places generated packages under a version directory.
 	APIVersionDir string
+
+	// SDKDialect selects the binding shape: restyService (the zero value) or
+	// kiotaFluent, which binds fluent chains against a kiota-generated SDK.
+	SDKDialect blueprint.SDKDialect
+	// SDKModelsImport is the kiota SDK's models package import path, required
+	// under kiotaFluent and unused otherwise.
+	SDKModelsImport string
 }
 
 // Caveat records something inference could not do, or did by assumption.
@@ -109,39 +116,76 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 	requestType, responseType := d.bodyTypeNames(c)
 	sdkPkg := naming.SnakeDirName(c.Tag)
 
-	body := blueprint.BodyModels{
-		RequestType:     sdkPkg + "." + requestType,
-		ResponseType:    sdkPkg + "." + responseType,
-		ConstructorExpr: "&" + sdkPkg + "." + requestType + "{}",
-		AccessStyle:     blueprint.AccessStructField,
+	if opts.SDKDialect == blueprint.DialectKiotaFluent {
+		// The kiota shape: every model lives in one models package imported
+		// under our own alias (never kiota's hash aliases), builders return
+		// <Type>able interfaces, bodies are built by constructor and setter,
+		// and the chain starts at the bare client.
+		sdkPkg = "models"
+		reqT := kiotaName(requestType)
+		respT := kiotaName(responseType)
+
+		body := blueprint.BodyModels{
+			RequestType:     "models." + reqT,
+			ResponseType:    "models." + respT + "able",
+			ConstructorExpr: "models.New" + reqT + "()",
+			AccessStyle:     blueprint.AccessMethod,
+		}
+		if updateType := d.updateBodyTypeName(c); updateType != "" && updateType != requestType {
+			upT := kiotaName(updateType)
+			body.UpdateRequestType = "models." + upT
+			body.UpdateConstructorExpr = "models.New" + upT + "()"
+		}
+
+		r.Binding = blueprint.ResourceBinding{
+			Service: blueprint.ServiceRef{
+				ImportPath: strings.TrimSuffix(opts.SDKModelsImport, "/"),
+				Alias:      "models",
+				Accessor:   "r.client",
+			},
+			Body: body,
+			ID: blueprint.IDBinding{
+				Attribute: "id", GoField: "ID",
+				FromCreate: "created.GetId()", FromCreateIsPointer: true,
+			},
+		}
+
+		bindOperationsKiota(&r, c, body.ResponseType)
+	} else {
+		body := blueprint.BodyModels{
+			RequestType:     sdkPkg + "." + requestType,
+			ResponseType:    sdkPkg + "." + responseType,
+			ConstructorExpr: "&" + sdkPkg + "." + requestType + "{}",
+			AccessStyle:     blueprint.AccessStructField,
+		}
+
+		// An update whose request schema is its own named type is a split body, and
+		// pretending update sends the create type would fail the bindings check on the
+		// first divergent field. Inferred here so curation starts from the truth; the
+		// emitter reuses one assignment list against both types, which sdkbind proves
+		// safe field by field.
+		if updateType := d.updateBodyTypeName(c); updateType != "" && updateType != requestType {
+			body.UpdateRequestType = sdkPkg + "." + updateType
+			body.UpdateConstructorExpr = "&" + sdkPkg + "." + updateType + "{}"
+		}
+
+		r.Binding = blueprint.ResourceBinding{
+			Service: blueprint.ServiceRef{
+				ImportPath: strings.TrimRight(opts.SDKServiceRoot, "/") + "/" + sdkPkg,
+				TypeName:   service,
+				Accessor:   strings.TrimRight(opts.SDKAccessorPrefix, ".") + "." + service,
+			},
+			Body: body,
+			ID: blueprint.IDBinding{
+				Attribute: "id", GoField: "ID",
+				FromCreate: "created.ID", FromCreateIsPointer: true,
+			},
+		}
+
+		bindOperations(&r, c, sdkPkg+"."+responseType)
 	}
 
-	// An update whose request schema is its own named type is a split body, and
-	// pretending update sends the create type would fail the bindings check on the
-	// first divergent field. Inferred here so curation starts from the truth; the
-	// emitter reuses one assignment list against both types, which sdkbind proves
-	// safe field by field.
-	if updateType := d.updateBodyTypeName(c); updateType != "" && updateType != requestType {
-		body.UpdateRequestType = sdkPkg + "." + updateType
-		body.UpdateConstructorExpr = "&" + sdkPkg + "." + updateType + "{}"
-	}
-
-	r.Binding = blueprint.ResourceBinding{
-		Service: blueprint.ServiceRef{
-			ImportPath: strings.TrimRight(opts.SDKServiceRoot, "/") + "/" + sdkPkg,
-			TypeName:   service,
-			Accessor:   strings.TrimRight(opts.SDKAccessorPrefix, ".") + "." + service,
-		},
-		Body: body,
-		ID: blueprint.IDBinding{
-			Attribute: "id", GoField: "ID",
-			FromCreate: "created.ID", FromCreateIsPointer: true,
-		},
-	}
-
-	bindOperations(&r, c, sdkPkg+"."+responseType)
-
-	attrs, attrNotes := d.attributes(c, sdkPkg)
+	attrs, attrNotes := d.attributes(c, sdkPkg, opts.SDKDialect)
 	r.Schema.Attributes = attrs
 	notes = append(notes, attrNotes...)
 
@@ -237,7 +281,7 @@ func bindOperations(r *blueprint.Resource, c Candidate, resultType string) {
 // A field in both is configurable; one only in the response is computed. That
 // merge is the whole of presence inference, and it is why both schemas are read
 // rather than just one.
-func (d *Document) attributes(c Candidate, sdkPkg string) ([]blueprint.Attribute, []Caveat) {
+func (d *Document) attributes(c Candidate, sdkPkg string, dialect blueprint.SDKDialect) ([]blueprint.Attribute, []Caveat) {
 	writable := map[string]Field{}
 	for _, f := range Fields(d.requestSchema(c)) {
 		writable[f.Name] = f
@@ -260,7 +304,7 @@ func (d *Document) attributes(c Candidate, sdkPkg string) ([]blueprint.Attribute
 	}
 	sort.Strings(names)
 
-	ctx := newInferCtx(c.Key, sdkPkg)
+	ctx := newInferCtx(c.Key, sdkPkg, dialect)
 
 	var out []blueprint.Attribute
 
@@ -377,6 +421,14 @@ func (ctx *inferCtx) attributeOf(
 ) (blueprint.Attribute, string) {
 	goField := namingOpts.GoFieldName(f.Name)
 
+	// The wire join key is the SDK's spelling of the field, which differs by
+	// generator: our models follow Go initialism conventions, kiota's accessors
+	// are plain word-capitalisation plus keyword mangling.
+	sdkField := goField
+	if ctx.dialect == blueprint.DialectKiotaFluent {
+		sdkField = kiotaAccessorBase(f.Name)
+	}
+
 	a := blueprint.Attribute{
 		Name:                     naming.TerraformName(f.Name),
 		GoField:                  goField,
@@ -427,16 +479,23 @@ func (ctx *inferCtx) attributeOf(
 		a.Type.NestedObject = n
 
 		// The SDK holds a collection of objects as a slice and a single object behind a
-		// pointer. That distinction decides the generated helper's signature, so it is
-		// recorded rather than left for the emitter to guess from the kind.
+		// pointer -- except a setter-based SDK, whose builders traffic in bare
+		// interfaces. The distinction decides the generated helper's signature,
+		// so it is recorded rather than left for the emitter to guess.
 		sdkGoType := "*" + n.SDKType
 		if f.Kind.IsNestedCollection() {
 			sdkGoType = "[]" + n.SDKType
 		}
+		if ctx.dialect == blueprint.DialectKiotaFluent {
+			sdkGoType = n.SDKType
+			if f.Kind.IsNestedCollection() {
+				sdkGoType = "[]" + n.SDKType
+			}
+		}
 
 		a.Wire = blueprint.WireBinding{
 			JSONPath:  f.Name,
-			SDKField:  goField,
+			SDKField:  sdkField,
 			SDKGoType: sdkGoType,
 			Flatten: &blueprint.ConvertCall{
 				Func: n.FlattenFunc, NeedsCtx: true, ReturnsError: true,
@@ -454,11 +513,11 @@ func (ctx *inferCtx) attributeOf(
 		return a, ""
 	}
 
-	sdkType, convertFlatten, convertExpand := conversionsFor(f, ctx.sdkPkg)
+	sdkType, convertFlatten, convertExpand := conversionsFor(f, ctx.sdkPkg, ctx.dialect)
 
 	a.Wire = blueprint.WireBinding{
 		JSONPath:  f.Name,
-		SDKField:  goField,
+		SDKField:  sdkField,
 		SDKGoType: sdkType,
 		Flatten:   convertFlatten,
 	}
@@ -497,13 +556,48 @@ func presenceOf(f Field, inWrite bool) blueprint.ComputedOptionalRequired {
 func conversionsFor(
 	f Field,
 	sdkPkg string,
+	dialect blueprint.SDKDialect,
 ) (sdkType string, flatten, expand *blueprint.ConvertCall) {
 	if f.IsEnum() {
+		if dialect == blueprint.DialectKiotaFluent {
+			// A kiota enum is an int-backed named type behind a pointer, paired
+			// with a Parse function; the attribute stays a string driven by the
+			// OpenAPI members, and the parse failure a validator missed becomes
+			// a diagnostic rather than a silent nil.
+			named := "models." + kiotaName(f.EnumTypeName)
+			return "*" + named,
+				&blueprint.ConvertCall{Func: "convert.KiotaEnumToFramework"},
+				&blueprint.ConvertCall{
+					Func: "convert.FrameworkToKiotaEnum", TypeArgs: []string{named},
+					ExtraArgs: []string{"models.Parse" + kiotaName(f.EnumTypeName)}, ReturnsError: true,
+				}
+		}
 		// Generated SDKs hold enumerations by value as a named string type.
 		named := sdkPkg + "." + namingOpts.GoTypeName(f.EnumTypeName)
 		return named,
 			&blueprint.ConvertCall{Func: "convert.EnumToFramework"},
 			&blueprint.ConvertCall{Func: "convert.FrameworkToEnum", TypeArgs: []string{named}}
+	}
+
+	// Kiota reads integer formats literally: a plain integer is *int32 and only
+	// format int64 widens, where the resty dialect holds every number as
+	// *float64 or *int64. The attribute kind stays framework-facing; the
+	// converters bridge the width.
+	if dialect == blueprint.DialectKiotaFluent {
+		switch f.Kind {
+		case blueprint.KindInt64:
+			if f.Format != "int64" {
+				return "*int32",
+					&blueprint.ConvertCall{Func: "convert.PtrInt32ToFramework"},
+					&blueprint.ConvertCall{Func: "convert.FrameworkToPtrInt32"}
+			}
+		case blueprint.KindFloat64, blueprint.KindNumber:
+			if f.Format == "float" {
+				return "*float32",
+					&blueprint.ConvertCall{Func: "convert.PtrFloat32ToFramework"},
+					&blueprint.ConvertCall{Func: "convert.FrameworkToPtrFloat32"}
+			}
+		}
 	}
 
 	switch f.Kind {
