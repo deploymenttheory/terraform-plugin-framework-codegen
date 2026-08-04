@@ -236,8 +236,8 @@ func looksHighEntropy(s string) bool {
 	return false
 }
 
-// Finding is one thing the scanner objected to.
-type Finding struct {
+// Leak is one thing the scanner objected to.
+type Leak struct {
 	// Interaction is the id the secret was found in, empty when scanning loose bytes.
 	Interaction string
 	// Shape names what matched: a declared secret's name, or a secret-shaped pattern.
@@ -246,7 +246,7 @@ type Finding struct {
 	Pointer string
 }
 
-func (f Finding) String() string {
+func (f Leak) String() string {
 	at := f.Pointer
 	if f.Interaction != "" {
 		at = f.Interaction + " " + at
@@ -265,8 +265,8 @@ func (f Finding) String() string {
 //
 // extraSecrets are values that must not appear whatever their shape -- the token itself,
 // and the value of every environment variable the profile names.
-func Scan(interaction string, data []byte, extraSecrets map[string]string) []Finding {
-	var findings []Finding
+func Scan(interaction string, data []byte, extraSecrets map[string]string) []Leak {
+	var findings []Leak
 
 	text := string(data)
 
@@ -282,7 +282,7 @@ func Scan(interaction string, data []byte, extraSecrets map[string]string) []Fin
 			continue
 		}
 		if strings.Contains(text, secret) {
-			findings = append(findings, Finding{
+			findings = append(findings, Leak{
 				Interaction: interaction,
 				Shape:       "declared secret " + name,
 				Pointer:     "somewhere in the serialised interaction",
@@ -302,7 +302,7 @@ func Scan(interaction string, data []byte, extraSecrets map[string]string) []Fin
 			continue
 		}
 
-		findings = append(findings, Finding{
+		findings = append(findings, Leak{
 			Interaction: interaction,
 			Shape:       shape.name,
 			Pointer:     fmt.Sprintf("at byte offset %d", loc[0]),
@@ -313,7 +313,7 @@ func Scan(interaction string, data []byte, extraSecrets map[string]string) []Fin
 }
 
 // ScanInteraction serialises an interaction and scans it.
-func ScanInteraction(i Interaction, extraSecrets map[string]string) ([]Finding, error) {
+func ScanInteraction(i Interaction, extraSecrets map[string]string) ([]Leak, error) {
 	data, err := json.Marshal(i)
 	if err != nil {
 		return nil, fmt.Errorf("%w: serialising interaction %s: %w", ErrInvalidCassette, i.ID, err)
@@ -322,8 +322,8 @@ func ScanInteraction(i Interaction, extraSecrets map[string]string) ([]Finding, 
 	return Scan(i.ID, data, extraSecrets), nil
 }
 
-// FindingsError turns findings into an error carrying ErrSecretFound.
-func FindingsError(findings []Finding) error {
+// LeaksError turns findings into an error carrying ErrSecretFound.
+func LeaksError(findings []Leak) error {
 	if len(findings) == 0 {
 		return nil
 	}

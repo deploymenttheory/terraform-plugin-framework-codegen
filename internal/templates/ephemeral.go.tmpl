@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	// EphemeralName is the Terraform type this ephemeral resource registers as.
-	EphemeralName = "{{ .EphemeralName }}"
+	// TypeName is the Terraform type this ephemeral resource registers as.
+	TypeName = "{{ .EphemeralName }}"
 
 	// OpenTimeout is the open deadline in seconds. Open is the one operation this
 	// ephemeral has, and an ephemeral schema carries no timeouts block for a
@@ -45,12 +45,12 @@ type {{ .GoTypeName }} struct {
 
 // Metadata returns the ephemeral resource type name.
 func (e *{{ .GoTypeName }}) Metadata(_ context.Context, _ ephemeral.MetadataRequest, resp *ephemeral.MetadataResponse) {
-	resp.TypeName = EphemeralName
+	resp.TypeName = TypeName
 }
 
 // Configure receives the configured SDK client from the provider.
 func (e *{{ .GoTypeName }}) Configure(ctx context.Context, req ephemeral.ConfigureRequest, resp *ephemeral.ConfigureResponse) {
-	e.client = client.ForEphemeral(ctx, req, resp, EphemeralName)
+	e.client = client.ForEphemeral(ctx, req, resp, TypeName)
 }
 
 // Schema returns the ephemeral resource schema.

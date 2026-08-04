@@ -340,7 +340,7 @@ func TestUnit_Cassette_ScanFindsDeclaredSecrets(t *testing.T) {
 func TestUnit_Cassette_PlantedTokenWritesNothing(t *testing.T) {
 	t.Parallel()
 
-	root := filepath.Join(t.TempDir(), "probe-evidence")
+	root := filepath.Join(t.TempDir(), "recordings")
 
 	// A redactor that does not know about the token, standing in for the realistic failure:
 	// the operator declared the wrong value, or the API echoed a credential nobody
@@ -353,7 +353,7 @@ func TestUnit_Cassette_PlantedTokenWritesNothing(t *testing.T) {
 
 	meta := Metadata{Provider: "example", Resource: "thing", Host: "api.example.com"}
 
-	_, err := Write(root, meta, interactions, map[string]string{"bearer": testToken}, time.Unix(0, 0))
+	_, err := Record(root, meta, interactions, map[string]string{"bearer": testToken}, time.Unix(0, 0))
 	if !errors.Is(err, ErrSecretFound) {
 		t.Fatalf("error = %v, want ErrSecretFound", err)
 	}
@@ -427,11 +427,11 @@ func TestUnit_Cassette_RecordingRequiresARedactor(t *testing.T) {
 func TestUnit_Cassette_FindingsError(t *testing.T) {
 	t.Parallel()
 
-	if err := FindingsError(nil); err != nil {
+	if err := LeaksError(nil); err != nil {
 		t.Errorf("no findings should give no error, got %v", err)
 	}
 
-	err := FindingsError([]Finding{
+	err := LeaksError([]Leak{
 		{Interaction: "001", Shape: "jwt", Pointer: "at byte offset 12"},
 		{Interaction: "002", Shape: "declared secret bearer", Pointer: "somewhere"},
 	})

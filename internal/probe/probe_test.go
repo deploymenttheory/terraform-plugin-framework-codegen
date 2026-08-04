@@ -56,7 +56,7 @@ func TestUnit_Probe_CatalogueIsWellFormed(t *testing.T) {
 		}
 		seen[e.Name] = true
 
-		if e.Kind != KindRead && e.Kind != KindMutating {
+		if e.Kind != ProbeKindRead && e.Kind != ProbeKindMutating {
 			t.Errorf("%s: kind = %q, want read or mutating", e.Name, e.Kind)
 		}
 		if e.Cost < 0 || e.Creates < 0 {
@@ -64,7 +64,7 @@ func TestUnit_Probe_CatalogueIsWellFormed(t *testing.T) {
 		}
 		// A read probe that reports creating something would be a registration error
 		// with real consequences: it would be run without the gate.
-		if e.Kind == KindRead && e.Creates != 0 {
+		if e.Kind == ProbeKindRead && e.Creates != 0 {
 			t.Errorf("%s is registered as read-only but claims %d creates", e.Name, e.Creates)
 		}
 	}
@@ -72,7 +72,7 @@ func TestUnit_Probe_CatalogueIsWellFormed(t *testing.T) {
 	// Read-first ordering, because that is the order they run in.
 	sawMutating := false
 	for _, e := range entries {
-		if e.Kind == KindMutating {
+		if e.Kind == ProbeKindMutating {
 			sawMutating = true
 		} else if sawMutating {
 			t.Errorf("%s (read) is listed after a mutating probe; the catalogue must be read-first", e.Name)
@@ -90,12 +90,12 @@ func TestUnit_Probe_KindMatchesRegistration(t *testing.T) {
 	t.Parallel()
 
 	for _, p := range ReadProbes("") {
-		if p.Kind() != KindRead {
+		if p.Kind() != ProbeKindRead {
 			t.Errorf("%s is registered as read-only but reports Kind %q", p.Name(), p.Kind())
 		}
 	}
 	for _, p := range MutatingProbes("") {
-		if p.Kind() != KindMutating {
+		if p.Kind() != ProbeKindMutating {
 			t.Errorf("%s is registered as mutating but reports Kind %q", p.Name(), p.Kind())
 		}
 	}

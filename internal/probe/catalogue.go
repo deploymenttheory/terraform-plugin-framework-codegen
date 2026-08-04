@@ -80,9 +80,9 @@ func init() {
 // bodies on its own.
 type unknownParamTolerance struct{}
 
-func (unknownParamTolerance) Name() string   { return "read.unknown-param" }
-func (unknownParamTolerance) Kind() Kind     { return KindRead }
-func (unknownParamTolerance) Cost(Scope) int { return 1 }
+func (unknownParamTolerance) Name() string    { return "read.unknown-param" }
+func (unknownParamTolerance) Kind() ProbeKind { return ProbeKindRead }
+func (unknownParamTolerance) Cost(Scope) int  { return 1 }
 
 // notFoundShape sends one GET for a well-formed but absent identifier, and observes the
 // status and body shape.
@@ -98,9 +98,9 @@ func (unknownParamTolerance) Cost(Scope) int { return 1 }
 // absence.
 type notFoundShape struct{}
 
-func (notFoundShape) Name() string   { return "read.not-found-shape" }
-func (notFoundShape) Kind() Kind     { return KindRead }
-func (notFoundShape) Cost(Scope) int { return 1 }
+func (notFoundShape) Name() string    { return "read.not-found-shape" }
+func (notFoundShape) Kind() ProbeKind { return ProbeKindRead }
+func (notFoundShape) Cost(Scope) int  { return 1 }
 
 // listShape sends one GET to the collection and observes the envelope key, whether a
 // next-page link is present, and the shape of an item.
@@ -114,9 +114,9 @@ func (notFoundShape) Cost(Scope) int { return 1 }
 // would make a clean sandbox look like a broken one.
 type listShape struct{}
 
-func (listShape) Name() string   { return "read.list-shape" }
-func (listShape) Kind() Kind     { return KindRead }
-func (listShape) Cost(Scope) int { return 1 }
+func (listShape) Name() string    { return "read.list-shape" }
+func (listShape) Kind() ProbeKind { return ProbeKindRead }
+func (listShape) Cost(Scope) int  { return 1 }
 
 // volatileOnRead reads the same item three times, spaced by an interval, and observes
 // which fields differ.
@@ -134,9 +134,9 @@ func (listShape) Cost(Scope) int { return 1 }
 // the prober created itself, where nothing else has a reason to touch it.
 type volatileOnRead struct{}
 
-func (volatileOnRead) Name() string   { return "read.volatile" }
-func (volatileOnRead) Kind() Kind     { return KindRead }
-func (volatileOnRead) Cost(Scope) int { return 3 }
+func (volatileOnRead) Name() string    { return "read.volatile" }
+func (volatileOnRead) Kind() ProbeKind { return ProbeKindRead }
+func (volatileOnRead) Cost(Scope) int  { return 3 }
 
 // errorEnvelope sends one deliberately malformed read -- a typed query parameter given a
 // bad value -- and observes which error shape comes back for which status.
@@ -152,9 +152,9 @@ func (volatileOnRead) Cost(Scope) int { return 3 }
 // is scoped to the status actually observed rather than generalised.
 type errorEnvelope struct{}
 
-func (errorEnvelope) Name() string   { return "read.error-envelope" }
-func (errorEnvelope) Kind() Kind     { return KindRead }
-func (errorEnvelope) Cost(Scope) int { return 1 }
+func (errorEnvelope) Name() string    { return "read.error-envelope" }
+func (errorEnvelope) Kind() ProbeKind { return ProbeKindRead }
+func (errorEnvelope) Cost(Scope) int  { return 1 }
 
 // returnedOnReadWeak reads one item and notes which of the schema's JSON paths are absent.
 //
@@ -170,9 +170,9 @@ func (errorEnvelope) Cost(Scope) int { return 1 }
 // merged. Its output is a prompt to look, not a conclusion.
 type returnedOnReadWeak struct{}
 
-func (returnedOnReadWeak) Name() string   { return "read.returned-weak" }
-func (returnedOnReadWeak) Kind() Kind     { return KindRead }
-func (returnedOnReadWeak) Cost(Scope) int { return 1 }
+func (returnedOnReadWeak) Name() string    { return "read.returned-weak" }
+func (returnedOnReadWeak) Kind() ProbeKind { return ProbeKindRead }
+func (returnedOnReadWeak) Cost(Scope) int  { return 1 }
 
 // ---------------------------------------------------------------------------
 // Mutating tier
@@ -196,8 +196,8 @@ func (returnedOnReadWeak) Cost(Scope) int { return 1 }
 // a Fact.
 type requiredByAPI struct{}
 
-func (requiredByAPI) Name() string { return "write.required" }
-func (requiredByAPI) Kind() Kind   { return KindMutating }
+func (requiredByAPI) Name() string    { return "write.required" }
+func (requiredByAPI) Kind() ProbeKind { return ProbeKindMutating }
 
 // Cost is one create for the baseline plus one per key the fixture sets, per fixture.
 //
@@ -229,8 +229,8 @@ func (requiredByAPI) Creates(sc Scope) int { return omissionCreates(sc) }
 // never as a property of the real system.
 type readYourWrites struct{}
 
-func (readYourWrites) Name() string { return "write.read-your-writes" }
-func (readYourWrites) Kind() Kind   { return KindMutating }
+func (readYourWrites) Name() string    { return "write.read-your-writes" }
+func (readYourWrites) Kind() ProbeKind { return ProbeKindMutating }
 
 // Nearly free: the first read after a create is one this probe would be doing anyway.
 // Cost is nothing at all: this probe reports the consistency window the session already
@@ -260,8 +260,8 @@ func (readYourWrites) Creates(Scope) int { return 0 }
 // refresh. So this reads back twice: bare, and with every expansion the plan lists.
 type writableAndReturned struct{}
 
-func (writableAndReturned) Name() string { return "write.writable-returned" }
-func (writableAndReturned) Kind() Kind   { return KindMutating }
+func (writableAndReturned) Name() string    { return "write.writable-returned" }
+func (writableAndReturned) Kind() ProbeKind { return ProbeKindMutating }
 
 // One create plus a bare read plus one read per expansion.
 // Cost is one create, read, expansion read and delete per fixture.
@@ -288,8 +288,8 @@ func (writableAndReturned) Creates(sc Scope) int { return fixtureCount(sc) }
 // cannot express the difference. That is why the prober builds bodies as maps.
 type updateStyle struct{}
 
-func (updateStyle) Name() string { return "write.update-style" }
-func (updateStyle) Kind() Kind   { return KindMutating }
+func (updateStyle) Name() string    { return "write.update-style" }
+func (updateStyle) Kind() ProbeKind { return ProbeKindMutating }
 
 // Cost is one create, then a full update, a partial update and a null update, each followed by a
 // read, then a delete.
@@ -327,8 +327,8 @@ func (updateStyle) Creates(sc Scope) int { return needsUpdate(sc, withFixture(sc
 // "derived from a field this plan did not vary" as standing alternatives.
 type serverDefault struct{}
 
-func (serverDefault) Name() string { return "write.server-default" }
-func (serverDefault) Kind() Kind   { return KindMutating }
+func (serverDefault) Name() string    { return "write.server-default" }
+func (serverDefault) Kind() ProbeKind { return ProbeKindMutating }
 
 // The most expensive probe in the catalogue: five creates and five reads per candidate
 // field. Worth every request, because this is the guess sitting in the committed blueprint.
@@ -378,8 +378,8 @@ func (serverDefault) Creates(sc Scope) int {
 // infrastructure; the toolkit's job is to put the evidence in front of the person making it.
 type immutability struct{}
 
-func (immutability) Name() string { return "write.immutability" }
-func (immutability) Kind() Kind   { return KindMutating }
+func (immutability) Name() string    { return "write.immutability" }
+func (immutability) Kind() ProbeKind { return ProbeKindMutating }
 
 // Cost is, per candidate field: two creates, three reads, three updates and two deletes.
 //
@@ -431,8 +431,8 @@ func (immutability) Creates(sc Scope) int { return needsUpdate(sc, 2*immutabilit
 // different from one that found nothing.
 type enumBoundary struct{}
 
-func (enumBoundary) Name() string { return "write.enum" }
-func (enumBoundary) Kind() Kind   { return KindMutating }
+func (enumBoundary) Name() string    { return "write.enum" }
+func (enumBoundary) Kind() ProbeKind { return ProbeKindMutating }
 
 // Cost is a create and a delete per value tried -- every documented value, two generated
 // negatives, and one case variant per enum field -- plus the escalation worst case: a
@@ -503,8 +503,8 @@ func documentedEnumValues(sc Scope) int {
 // trigger rather than just noticing the correlation once.
 type writeSideEffect struct{}
 
-func (writeSideEffect) Name() string { return "write.side-effect" }
-func (writeSideEffect) Kind() Kind   { return KindMutating }
+func (writeSideEffect) Name() string    { return "write.side-effect" }
+func (writeSideEffect) Kind() ProbeKind { return ProbeKindMutating }
 
 // Cost is three creates with their reads and deletes: two carrying the trigger, one without.
 //
@@ -540,8 +540,8 @@ func (writeSideEffect) Creates(sc Scope) int {
 // under-reports rather than reporting wrongly.
 type normalisation struct{}
 
-func (normalisation) Name() string { return "write.normalisation" }
-func (normalisation) Kind() Kind   { return KindMutating }
+func (normalisation) Name() string    { return "write.normalisation" }
+func (normalisation) Kind() ProbeKind { return ProbeKindMutating }
 
 // Three awkward values per writable string field, each needing a create and a read.
 // Cost is one create, read and delete per awkward value, with every string field carrying that
@@ -580,7 +580,7 @@ func (normalisation) Creates(sc Scope) int {
 // honest worst case is "any of them". Reporting zero unplanned would tell an operator the most
 // expensive probe in the catalogue is free.
 func immutabilityFields(sc Scope) int {
-	if !sc.Planned {
+	if !sc.HasScenario {
 		return len(sc.Sendable())
 	}
 
@@ -618,7 +618,7 @@ func withFixture(sc Scope, perFixture int) int { return fixtureCount(sc) * perFi
 // omissionCreates counts the requiredness protocol's creates: a baseline plus one omission per key
 // the fixture actually sets.
 func omissionCreates(sc Scope) int {
-	if !sc.Planned {
+	if !sc.HasScenario {
 		// No fixture, so no keys are known. The unnarrowed worst case is every sendable field,
 		// which is what -list should report rather than a small number that means nothing.
 		return 1 + len(sc.Sendable())
@@ -673,8 +673,8 @@ const negativeEnumCandidates = 2
 // the single-culprit bisection and is reported as the untested combination it is.
 type rehearsal struct{}
 
-func (rehearsal) Name() string { return "write.rehearsal" }
-func (rehearsal) Kind() Kind   { return KindMutating }
+func (rehearsal) Name() string    { return "write.rehearsal" }
+func (rehearsal) Kind() ProbeKind { return ProbeKindMutating }
 
 // rehearsalMaxRounds is the fixpoint cap when the config does not set one.
 const rehearsalMaxRounds = 3

@@ -30,16 +30,16 @@ type Scope struct {
 	// Subject is the resource, flattened to paths and JSON keys.
 	Subject Subject
 
-	// Plan is the operator-supplied knowledge a probe cannot discover.
-	Plan Plan
+	// Scenario is the operator-supplied knowledge a probe cannot discover.
+	Scenario Scenario
 
-	// Planned is false when no plan was supplied.
+	// HasScenario is false when no plan was supplied.
 	//
 	// It is what lets `probe -list` report the *unnarrowed* worst case honestly. Without it, a
 	// catalogue listing with no plan would report a small number -- not because the run is
 	// cheap but because nobody said which fields to exercise -- and an operator would budget
 	// against a figure that means nothing.
-	Planned bool
+	HasScenario bool
 
 	// The precomputed sets. Unexported with accessors, so a probe cannot append to one and
 	// thereby exercise a field the cost model never counted.
@@ -57,7 +57,7 @@ type Scope struct {
 // Validates the plan, because every set below is derived from it and a plan naming a field that
 // does not exist would silently produce an empty set -- which reads exactly like "this API has no
 // writable fields".
-func NewScope(subj Subject, plan Plan) (Scope, error) {
+func NewScope(subj Subject, plan Scenario) (Scope, error) {
 	if err := plan.Validate(subj); err != nil {
 		return Scope{}, err
 	}
@@ -66,7 +66,7 @@ func NewScope(subj Subject, plan Plan) (Scope, error) {
 	// -- or one carrying only a budget -- narrows nothing and cannot support a mutating probe, so
 	// treating it as a plan would report the narrowed cost of an empty narrowing: zero, for every
 	// mutating probe, which is the most misleading number this command could print.
-	sc := Scope{Subject: subj, Plan: plan, Planned: len(plan.Fixtures) > 0}
+	sc := Scope{Subject: subj, Scenario: plan, HasScenario: len(plan.Fixtures) > 0}
 	sc.compute()
 
 	return sc, nil
@@ -85,8 +85,8 @@ func UnplannedScope(subj Subject) Scope {
 
 // compute derives every set once.
 func (sc *Scope) compute() {
-	sc.denied = make(map[string]bool, len(sc.Plan.Deny))
-	for _, path := range sc.Plan.Deny {
+	sc.denied = make(map[string]bool, len(sc.Scenario.Deny))
+	for _, path := range sc.Scenario.Deny {
 		sc.denied[path] = true
 	}
 
@@ -102,7 +102,7 @@ func (sc *Scope) compute() {
 		// A field the fixture does not set is what the server-default protocol observes. Only
 		// meaningful with a fixture: with none, every field is "omitted" and the set says
 		// nothing.
-		if sc.Planned && !setByFixture[f.JSONPath] {
+		if sc.HasScenario && !setByFixture[f.JSONPath] {
 			sc.omitted = append(sc.omitted, f)
 		}
 
@@ -112,7 +112,7 @@ func (sc *Scope) compute() {
 		// two *distinct* values -- so a field with one alternative cannot reach the confidence
 		// the fact requires, and probing it would only produce a note. Making the candidate
 		// count the gate means the plan controls this field set precisely, with no new schema.
-		if len(sc.Plan.Candidates[f.JSONPath]) >= 2 {
+		if len(sc.Scenario.Candidates[f.JSONPath]) >= 2 {
 			sc.immutable = append(sc.immutable, f)
 		}
 
@@ -125,7 +125,7 @@ func (sc *Scope) compute() {
 		}
 	}
 
-	for _, path := range sc.Plan.DefaultInfluencers {
+	for _, path := range sc.Scenario.DefaultInfluencers {
 		if f, ok := sc.Subject.Field(path); ok {
 			sc.influencers = append(sc.influencers, f)
 		}
@@ -146,7 +146,7 @@ func (sc *Scope) compute() {
 func (sc Scope) fixtureKeys() map[string]bool {
 	out := map[string]bool{}
 
-	for _, f := range sc.Plan.Fixtures {
+	for _, f := range sc.Scenario.Fixtures {
 		for key := range f.Body {
 			out[key] = true
 		}
@@ -201,7 +201,7 @@ func (sc Scope) Normalisable() []Field { return sc.normalisable }
 func (sc Scope) Influencers() []Field { return sc.influencers }
 
 // Fixtures is the plan's fixtures.
-func (sc Scope) Fixtures() []Fixture { return sc.Plan.Fixtures }
+func (sc Scope) Fixtures() []Fixture { return sc.Scenario.Fixtures }
 
 // Fixture returns one fixture by index, with its body copied.
 //
@@ -213,11 +213,11 @@ func (sc Scope) Fixtures() []Fixture { return sc.Plan.Fixtures }
 // and a top-level copy would share every nested map with the plan, so a probe reaching one level
 // down would corrupt the plan just as surely as one mutating the top.
 func (sc Scope) Fixture(i int) (Fixture, bool) {
-	if i < 0 || i >= len(sc.Plan.Fixtures) {
+	if i < 0 || i >= len(sc.Scenario.Fixtures) {
 		return Fixture{}, false
 	}
 
-	src := sc.Plan.Fixtures[i]
+	src := sc.Scenario.Fixtures[i]
 
 	body, _ := deepCopyValue(src.Body).(map[string]any)
 
@@ -259,7 +259,7 @@ func (sc Scope) HostFixture(jsonPath string) (Fixture, bool) {
 	// body declares.
 	head, _, _ := strings.Cut(jsonPath, ".")
 
-	for i, f := range sc.Plan.Fixtures {
+	for i, f := range sc.Scenario.Fixtures {
 		if _, ok := f.Body[head]; ok {
 			return sc.Fixture(i)
 		}
@@ -294,7 +294,7 @@ func (sc Scope) Omittable(fixture Fixture) []string {
 
 // Candidates returns the alternative values declared for a path.
 func (sc Scope) Candidates(jsonPath string) []any {
-	src := sc.Plan.Candidates[jsonPath]
+	src := sc.Scenario.Candidates[jsonPath]
 	if len(src) == 0 {
 		return nil
 	}
@@ -311,7 +311,7 @@ func (sc Scope) CanMutate() (bool, string) {
 		return false, why
 	}
 
-	if !sc.Planned || len(sc.Plan.Fixtures) == 0 {
+	if !sc.HasScenario || len(sc.Scenario.Fixtures) == 0 {
 		return false, "no probe plan with a fixture was supplied, so there is no valid request " +
 			"body for a mutating probe to build on"
 	}
@@ -321,13 +321,13 @@ func (sc Scope) CanMutate() (bool, string) {
 
 // String describes the narrowing, for -list and for a report.
 func (sc Scope) String() string {
-	if !sc.Planned {
+	if !sc.HasScenario {
 		return fmt.Sprintf("no plan, so costs are the unnarrowed worst case over %d writable "+
 			"field(s)", len(sc.sendable))
 	}
 
 	return fmt.Sprintf("%d fixture(s), %d sendable, %d omitted by every fixture, "+
 		"%d with candidates, %d documented enum(s), %d denied",
-		len(sc.Plan.Fixtures), len(sc.sendable), len(sc.omitted),
+		len(sc.Scenario.Fixtures), len(sc.sendable), len(sc.omitted),
 		len(sc.immutable), len(sc.enums), len(sc.denied))
 }

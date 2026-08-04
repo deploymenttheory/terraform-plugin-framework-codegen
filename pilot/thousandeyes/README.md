@@ -19,31 +19,31 @@ generated, built, unit-tested and live-tested; publishing is out of scope.
 | `internal/services/common/{convert,crud,errors,schema}/` | shared helpers the generated code calls | hand-written |
 | `internal/acceptance/` | the acceptance harness (exists/destroy checks, logging) | hand-written |
 | `docs/` | registry documentation, rendered by tfplugindocs — **do not hand-edit**; `go generate .` rewrites it |
-| `examples/` | emit-scaffolded example configurations a human may enrich |
+| `examples/` | scaffolded example configurations a human may enrich |
 
 The full ownership story, including the per-file header that marks generated
 code, is in [docs/generated-boundary.md](../../docs/generated-boundary.md).
 The one rule: **fix the blueprint, not the Go** — every generated file here is
-overwritten by the next `emit`.
+overwritten by the next `provider generate`.
 
 ## The surface
 
 Every resource is backed by a committed blueprint in
 [`blueprints/thousandeyes/`](../../blueprints/thousandeyes/), and every probed
-resource by evidence in [`probe-evidence/thousandeyes/`](../../probe-evidence/thousandeyes/):
+resource by a recording in [`recordings/thousandeyes/`](../../recordings/thousandeyes/):
 the test lifecycles were rehearsed against the live API before this code was
 generated (see [docs/fixtures-and-rehearsal.md](../../docs/fixtures-and-rehearsal.md)).
 
-Some acceptance tests gate on environment variables rather than running
+Some acceptance tests are guarded by environment variables rather than running
 unconditionally, because a disposable tenant cannot hold every prerequisite:
 
-| Gate | Covers |
+| Variable | Covers |
 |---|---|
 | `TFPFGEN_ACC_ADMIN` | account groups, roles, users — need an admin-scoped token |
 | `TFPFGEN_ACC_ENTERPRISE` | agent-to-agent and voice tests — need enterprise agents (lab hardware) |
 | `TFPFGEN_ACC_SIP` | SIP server tests — need a reachable SIP target |
 
-The hardware-gated variables stay unset in CI, so those tests skip with a stated
+The hardware-dependent variables stay unset in CI, so those tests skip with a stated
 reason rather than failing. The dashboard `layout` attribute is dropped pending a
 widgets model.
 
@@ -64,8 +64,8 @@ TF_ACC=1 go test -count=1 -p 1 -run TestAcc ./...
 ```
 
 `-p 1` matters: packages otherwise run concurrently against one tenant. In CI,
-acceptance is a weekly and on-dispatch workflow gated on a GitHub environment —
-see [docs/gates.md](../../docs/gates.md).
+acceptance is a weekly and on-dispatch workflow, admitted through a GitHub
+environment — see [docs/checks.md](../../docs/checks.md).
 
 To try the provider against local Terraform configuration, build it and point
 Terraform at the binary with `dev_overrides` (no `terraform init`):
@@ -86,11 +86,12 @@ TF_CLI_CONFIG_FILE=/tmp/dev.tfrc terraform plan
 From the repository root:
 
 ```bash
-go run ./cmd/tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes
+go run ./cmd/tfpfgen provider generate -blueprint blueprints/thousandeyes -out pilot/thousandeyes
 ```
 
-`emit` finishes with the postcheck battery (compile, tfplugindocs,
+`provider generate` finishes with the postcheck battery (compile, tfplugindocs,
 `terraform fmt`), so the tree it leaves is the tree CI accepts. The SDK version
 everything is checked against is pinned in this module's `go.mod` and named in
-the provider blueprint; bump both together and re-run `bindings` with
-`-facts-check` (see the [onboarding runbook](../../docs/onboarding-a-new-api.md)).
+the provider blueprint; bump both together and re-run `bindings check` and
+`bindings facts -check` (see the
+[onboarding runbook](../../docs/onboarding-a-new-api.md)).

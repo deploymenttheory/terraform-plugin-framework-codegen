@@ -1,0 +1,409 @@
+{
+  "profile": {
+    "host": "api.thousandeyes.com",
+    "mode": "record",
+    "sandbox": true,
+    "assertionsPassed": [
+      "mode",
+      "allowMutations",
+      "sandbox",
+      "sandboxEvidence",
+      "namePrefix",
+      "tokenEnv",
+      "noCredentialInProfile",
+      "https",
+      "endpointHostSuffix",
+      "canMutate",
+      "plan",
+      "noSnapshotOverwrite",
+      "maxExistingObjects (15 < 25)"
+    ]
+  },
+  "facts": [
+    {
+      "resource": "alert_rule",
+      "jsonPath": "alertType",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "description",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "corroborated",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-alerts-rules-281474977454693",
+        "009-get-v7-alerts-rules-281474977454696"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "description",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "endpointAgentIds",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "corroborated",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-alerts-rules-281474977454693",
+        "009-get-v7-alerts-rules-281474977454696"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "endpointAgentIds",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response did not carry this field although the update sent it"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "endpointLabelIds",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "corroborated",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-alerts-rules-281474977454693",
+        "009-get-v7-alerts-rules-281474977454696"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "endpointLabelIds",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": false
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response did not carry this field although the update sent it"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "expression",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "includeCoveredPrefixes",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "corroborated",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-alerts-rules-281474977454693",
+        "009-get-v7-alerts-rules-281474977454696"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "includeCoveredPrefixes",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "isDefault",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "isDefault",
+      "field": "updateDefault",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "false"
+        }
+      },
+      "confidence": "corroborated",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "006-get-v7-alerts-rules-281474977454693",
+        "011-get-v7-alerts-rules-281474977454696"
+      ],
+      "rationale": "the constant an omitted-on-update field reverts to; a derived value remains the open alternative until a second downgrade agrees"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "isDefault",
+      "field": "updateResets",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "006-get-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "held true, was omitted from an update, and read back false rather than the held value"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "minimumSources",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "notifyOnClear",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "notifyOnClear",
+      "field": "updateDefault",
+      "value": {
+        "literal": {
+          "kind": "bool",
+          "raw": "true"
+        }
+      },
+      "confidence": "corroborated",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "006-get-v7-alerts-rules-281474977454693",
+        "011-get-v7-alerts-rules-281474977454696"
+      ],
+      "rationale": "the constant an omitted-on-update field reverts to; a derived value remains the open alternative until a second downgrade agrees"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "notifyOnClear",
+      "field": "updateResets",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "006-get-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "held false, was omitted from an update, and read back true rather than the held value"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "roundsViolatingOutOf",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "roundsViolatingRequired",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "severity",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "visitedSitesFilter",
+      "field": "returnedOnRead",
+      "value": {
+        "bool": false
+      },
+      "confidence": "corroborated",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "004-get-v7-alerts-rules-281474977454693",
+        "009-get-v7-alerts-rules-281474977454696"
+      ],
+      "rationale": "sent a value and read back null or nothing, so state must carry the configured value rather than flatten an empty read"
+    },
+    {
+      "resource": "alert_rule",
+      "jsonPath": "visitedSitesFilter",
+      "field": "returnedOnUpdate",
+      "value": {
+        "bool": true
+      },
+      "confidence": "observed",
+      "probe": "write.rehearsal",
+      "evidence": [
+        "003-put-v7-alerts-rules-281474977454693"
+      ],
+      "rationale": "the update response carried the field it was sent"
+    }
+  ],
+  "notes": [
+    {
+      "resource": "alert_rule",
+      "jsonPath": "description",
+      "probe": "write.rehearsal",
+      "message": "the bisection converged on \"visitedSitesFilter\", but the pair alone does not reproduce the suppression; the combination is untested"
+    }
+  ],
+  "probes": [
+    {
+      "name": "write.rehearsal",
+      "kind": "mutating",
+      "status": "ok",
+      "requests": 19,
+      "facts": 22
+    }
+  ],
+  "budget": {
+    "requests": 19,
+    "maxRequests": 320,
+    "creates": 3,
+    "maxCreates": 48,
+    "deletes": 3,
+    "sweepRequests": 1
+  },
+  "sweep": {
+    "ledgerDeletes": 0,
+    "prefixDeletes": 0,
+    "complete": true
+  },
+  "rehearsal": [
+    {
+      "minimal": {
+        "alertType": "http-server",
+        "expression": "((responseTime >= 1000 ms))",
+        "minimumSources": 1,
+        "roundsViolatingOutOf": 2,
+        "roundsViolatingRequired": 1,
+        "ruleName": "tfacc-rule-name"
+      },
+      "maximal": {
+        "alertType": "http-server",
+        "description": "tfacc-description",
+        "endpointAgentIds": [
+          "tfacc-endpoint-agent-ids-element"
+        ],
+        "endpointLabelIds": [
+          "tfacc-endpoint-label-ids-element"
+        ],
+        "expression": "((responseTime >= 1000 ms))",
+        "includeCoveredPrefixes": true,
+        "isDefault": false,
+        "minimumSources": 1,
+        "notifyOnClear": true,
+        "roundsViolatingOutOf": 2,
+        "roundsViolatingRequired": 1,
+        "ruleName": "tfacc-rule-name",
+        "severity": "info",
+        "visitedSitesFilter": [
+          "tfacc-visited-sites-filter-element"
+        ]
+      }
+    }
+  ]
+}

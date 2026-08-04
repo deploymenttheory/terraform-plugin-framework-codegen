@@ -227,8 +227,8 @@ func observeEcho(resp *Response, path string) createEcho {
 	value, outcome := resp.LookupField(path)
 
 	return createEcho{
-		echoed:    outcome == Present && value != nil,
-		ambiguous: outcome == Ambiguous,
+		echoed:    outcome == OutcomePresent && value != nil,
+		ambiguous: outcome == OutcomeAmbiguous,
 		evidence:  resp.Interaction,
 	}
 }
@@ -293,7 +293,7 @@ func (p writableAndReturned) concludeCreateEcho(
 			JSONPath:   path,
 			Field:      FactReturnedOnCreate,
 			Value:      BoolValue(rounds[0].echoed),
-			Confidence: Observed,
+			Confidence: ConfidenceObserved,
 			Probe:      p.Name(),
 			Evidence:   evidence,
 			Rationale:  rationale,
@@ -415,7 +415,7 @@ func (p writableAndReturned) readExpanded(
 func expansionQuery(sc Scope) url.Values {
 	query := url.Values{}
 
-	for _, raw := range sc.Plan.Expansions {
+	for _, raw := range sc.Scenario.Expansions {
 		key, value, found := strings.Cut(raw, "=")
 		if !found {
 			continue
@@ -437,14 +437,14 @@ func observe(fixture string, f Field, sent any, bare, expanded *Response) observ
 	value, outcome := bare.LookupField(f.JSONPath)
 	o.readBack, o.outcome = value, outcome
 
-	if outcome == Present || expanded == nil {
+	if outcome == OutcomePresent || expanded == nil {
 		return o
 	}
 
 	// Absent bare, so try the expansion. A field that appears only here is the trap this probe
 	// exists to catch, and it is recorded as gated rather than as returned: the generated
 	// provider has to ask for it.
-	if value, outcome := expanded.LookupField(f.JSONPath); outcome == Present {
+	if value, outcome := expanded.LookupField(f.JSONPath); outcome == OutcomePresent {
 		o.readBack, o.outcome, o.gated = value, outcome, true
 		o.evidence = expanded.Interaction
 	}
@@ -544,7 +544,7 @@ func (p writableAndReturned) concludeMixed(
 ) {
 	outcomes := make([]gatedOutcome, len(rounds))
 	for i, o := range rounds {
-		outcomes[i] = gatedOutcome{gates: o.gates, pass: o.outcome == Present}
+		outcomes[i] = gatedOutcome{gates: o.gates, pass: o.outcome == OutcomePresent}
 	}
 
 	separator, branches, ok := attributeToGate(outcomes)
@@ -630,7 +630,7 @@ func (p writableAndReturned) absentFact(sc Scope, path string, rounds []observat
 		JSONPath:   path,
 		Field:      FactReturnedOnRead,
 		Value:      BoolValue(false),
-		Confidence: Observed,
+		Confidence: ConfidenceObserved,
 		Probe:      p.Name(),
 		Evidence:   evidenceOf(rounds),
 		Rationale: fmt.Sprintf(
@@ -645,9 +645,9 @@ func (p writableAndReturned) absentFact(sc Scope, path string, rounds []observat
 
 // returnedFact records a field that came back.
 func (p writableAndReturned) returnedFact(sc Scope, path string, rounds []observation) Fact {
-	confidence := Observed
+	confidence := ConfidenceObserved
 	if len(rounds) > 1 && allPresent(rounds) {
-		confidence = Corroborated
+		confidence = ConfidenceCorroborated
 	}
 
 	return Fact{
@@ -693,7 +693,7 @@ func (p writableAndReturned) writableFact(
 			JSONPath:   path,
 			Field:      FactWritable,
 			Value:      BoolValue(false),
-			Confidence: Corroborated,
+			Confidence: ConfidenceCorroborated,
 			Probe:      p.Name(),
 			Evidence:   evidenceOf(rounds),
 			Rationale: fmt.Sprintf(
@@ -709,7 +709,7 @@ func (p writableAndReturned) writableFact(
 
 	echoed := allEchoed(rounds)
 
-	confidence := Corroborated
+	confidence := ConfidenceCorroborated
 	rationale := "two creates sent distinct values and each read back the value it sent"
 
 	if !echoed {
@@ -741,7 +741,7 @@ func (p writableAndReturned) writableFact(
 // field is denied -- it is writable and has consequences -- is exactly the reason its existing
 // guess deserves scrutiny.
 func (p writableAndReturned) noteDenied(sc Scope, out *Result) {
-	for _, path := range sc.Plan.Deny {
+	for _, path := range sc.Scenario.Deny {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, JSONPath: path, Probe: p.Name(),
 			Message: "the plan denies this field, so nothing was sent for it and whatever the " +
@@ -867,7 +867,7 @@ func (p updateStyle) Exercise(
 
 	// The interstitial read is what makes this settle anything: without it, "the field was never
 	// set" and "the field was cleared" are the same observation.
-	if _, outcome := before.LookupField(victim.JSONPath); outcome != Present {
+	if _, outcome := before.LookupField(victim.JSONPath); outcome != OutcomePresent {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, JSONPath: victim.JSONPath, Probe: p.Name(),
 			Message: "the field chosen to omit did not come back on the read before the update, " +
@@ -898,7 +898,7 @@ func (p updateStyle) Exercise(
 			Resource:   sc.Subject.Resource,
 			Field:      FactUpdateStyle,
 			Value:      TextValue(string(blueprint.UpdatePutFull)),
-			Confidence: Inferred,
+			Confidence: ConfidenceInferred,
 			Probe:      p.Name(),
 			Evidence:   []string{update.Interaction},
 			Rationale: fmt.Sprintf("an update carrying only %s was refused with %d (%s), so a "+
@@ -967,7 +967,7 @@ func (p updateStyle) styleFact(sc Scope, victim Field, before, after *Response) 
 	was, _ := before.LookupField(victim.JSONPath)
 	now, outcome := after.LookupField(victim.JSONPath)
 
-	survived := outcome == Present && reflect.DeepEqual(was, now)
+	survived := outcome == OutcomePresent && reflect.DeepEqual(was, now)
 
 	style := blueprint.UpdatePutFull
 	rationale := fmt.Sprintf(
@@ -975,7 +975,7 @@ func (p updateStyle) styleFact(sc Scope, victim Field, before, after *Response) 
 		victim.JSONPath)
 
 	if survived {
-		style = blueprint.UpdateMergePatch
+		style = blueprint.UpdatePatchMerge
 		rationale = fmt.Sprintf(
 			"an update omitting %s left it unchanged, so the API merges", victim.JSONPath)
 	}
@@ -984,7 +984,7 @@ func (p updateStyle) styleFact(sc Scope, victim Field, before, after *Response) 
 		Resource:   sc.Subject.Resource,
 		Field:      FactUpdateStyle,
 		Value:      TextValue(string(style)),
-		Confidence: Observed,
+		Confidence: ConfidenceObserved,
 		Probe:      p.Name(),
 		Evidence:   []string{before.Interaction, after.Interaction},
 		Rationale:  rationale,
@@ -1007,7 +1007,7 @@ func (p updateStyle) ignoredFact(sc Scope, sent string, after *Response) (Fact, 
 	// returning it -- while the fact below joins on the write field, because that is the
 	// schema attribute the finding is about.
 	got, outcome := after.LookupField(sc.Subject.SweepNameField())
-	if outcome != Present {
+	if outcome != OutcomePresent {
 		return Fact{}, false
 	}
 
@@ -1020,7 +1020,7 @@ func (p updateStyle) ignoredFact(sc Scope, sent string, after *Response) (Fact, 
 		JSONPath:   sc.Subject.NameField,
 		Field:      FactSilentlyIgnoredOnUpdate,
 		Value:      BoolValue(true),
-		Confidence: Observed,
+		Confidence: ConfidenceObserved,
 		Probe:      p.Name(),
 		Evidence:   []string{after.Interaction},
 		Rationale: fmt.Sprintf(
@@ -1066,13 +1066,13 @@ func (p readYourWrites) Exercise(
 	// enabled=false is only Inferred, because one fast success does not prove consistency. So
 	// merge may add a read-back and never remove one: a needless re-read costs a request, and a
 	// missing one costs a failed apply.
-	confidence := Inferred
+	confidence := ConfidenceInferred
 	rationale := fmt.Sprintf(
 		"%d object(s) were read immediately after creation and every first read succeeded",
 		measured.Objects)
 
 	if needed {
-		confidence = Observed
+		confidence = ConfidenceObserved
 		rationale = fmt.Sprintf(
 			"%d of %d object(s) were not readable on the first attempt (statuses %s) and became "+
 				"readable after up to %d retry(ies) at %s",
@@ -1137,7 +1137,7 @@ func statusList(statuses []int) string {
 
 func anyAmbiguous(rounds []observation) bool {
 	for _, o := range rounds {
-		if o.outcome == Ambiguous {
+		if o.outcome == OutcomeAmbiguous {
 			return true
 		}
 	}
@@ -1147,7 +1147,7 @@ func anyAmbiguous(rounds []observation) bool {
 
 func allAbsent(rounds []observation) bool {
 	for _, o := range rounds {
-		if o.outcome != Absent {
+		if o.outcome != OutcomeAbsent {
 			return false
 		}
 	}
@@ -1157,7 +1157,7 @@ func allAbsent(rounds []observation) bool {
 
 func allPresent(rounds []observation) bool {
 	for _, o := range rounds {
-		if o.outcome != Present {
+		if o.outcome != OutcomePresent {
 			return false
 		}
 	}
@@ -1168,7 +1168,7 @@ func allPresent(rounds []observation) bool {
 // allEchoed reports whether every round read back exactly what it sent.
 func allEchoed(rounds []observation) bool {
 	for _, o := range rounds {
-		if o.outcome != Present || !reflect.DeepEqual(o.sent, o.readBack) {
+		if o.outcome != OutcomePresent || !reflect.DeepEqual(o.sent, o.readBack) {
 			return false
 		}
 	}
@@ -1734,9 +1734,9 @@ func (p requiredByAPI) requiredFact(
 	}
 
 	if accepted {
-		confidence := Observed
+		confidence := ConfidenceObserved
 		if len(rounds) > 1 {
-			confidence = Corroborated
+			confidence = ConfidenceCorroborated
 		}
 
 		return Fact{
@@ -1760,15 +1760,15 @@ func (p requiredByAPI) requiredFact(
 		}
 	}
 
-	confidence := Inferred
+	confidence := ConfidenceInferred
 	rationale := fmt.Sprintf("a create omitting this field was refused with %d, but the error "+
 		"body did not name the field, so the refusal may have had another cause",
 		rounds[0].status)
 
 	if named {
-		confidence = Observed
+		confidence = ConfidenceObserved
 		if len(rounds) > 1 {
-			confidence = Corroborated
+			confidence = ConfidenceCorroborated
 		}
 		rationale = fmt.Sprintf("a create omitting this field was refused with %d and the error "+
 			"named the field", rounds[0].status)
@@ -1889,7 +1889,7 @@ func (p serverDefault) Exercise(
 // three outcomes applies.
 func (p serverDefault) concludeDefaults(
 	sc Scope,
-	findings *Findings,
+	findings *FactSet,
 	reads []*Response,
 	out *Result,
 ) {
@@ -1906,14 +1906,14 @@ func (p serverDefault) concludeDefaults(
 		}
 
 		switch {
-		case anyOutcome(outcomes, Ambiguous):
+		case anyOutcome(outcomes, OutcomeAmbiguous):
 			out.Notes = append(out.Notes, Note{
 				Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
 				Message: "the read crossed a collection holding more than one element, so no " +
 					"default could be attributed to this path",
 			})
 
-		case !anyOutcome(outcomes, Present):
+		case !anyOutcome(outcomes, OutcomePresent):
 			// Omitted and still absent: there is nothing to default to. Not a fact -- the API
 			// may simply not return the field, which write.writable-returned reports.
 			out.Notes = append(out.Notes, Note{
@@ -1941,7 +1941,7 @@ func (p serverDefault) concludeDefaults(
 // all because the field was never settable.
 func (p serverDefault) classify(
 	sc Scope,
-	findings *Findings,
+	findings *FactSet,
 	f Field,
 	values []any,
 	outcomes []FieldOutcome,
@@ -1972,7 +1972,7 @@ func (p serverDefault) classify(
 	}
 
 	stable := len(values) >= 2 && sameValue(values[0], values[1]) &&
-		outcomes[0] == Present && outcomes[1] == Present
+		outcomes[0] == OutcomePresent && outcomes[1] == OutcomePresent
 
 	if !stable {
 		out.Facts = append(out.Facts, Fact{
@@ -1980,7 +1980,7 @@ func (p serverDefault) classify(
 			JSONPath:   f.JSONPath,
 			Field:      FactDefaultIsDerived,
 			Value:      BoolValue(true),
-			Confidence: Observed,
+			Confidence: ConfidenceObserved,
 			Probe:      p.Name(),
 			Evidence:   evidence,
 			Rationale: "two byte-identical creates produced different values for this omitted " +
@@ -2003,7 +2003,7 @@ func (p serverDefault) classify(
 			JSONPath:   f.JSONPath,
 			Field:      FactDefaultIsDerived,
 			Value:      BoolValue(true),
-			Confidence: Corroborated,
+			Confidence: ConfidenceCorroborated,
 			Probe:      p.Name(),
 			Evidence:   evidence,
 			Rationale: "the value was identical across two byte-identical creates and different " +
@@ -2013,9 +2013,9 @@ func (p serverDefault) classify(
 		return
 	}
 
-	confidence := Observed
+	confidence := ConfidenceObserved
 	if len(values) > 2 {
-		confidence = Corroborated
+		confidence = ConfidenceCorroborated
 	}
 
 	out.Facts = append(out.Facts, Fact{
@@ -2039,14 +2039,14 @@ func (p serverDefault) classify(
 
 // notADefault reports whether an earlier fact rules this value out as a practitioner-settable
 // default, and says which fact did it.
-func notADefault(findings *Findings, jsonPath string) (string, bool) {
-	if fact, settled := findings.Settled(jsonPath, FactWritable, Observed); settled {
+func notADefault(findings *FactSet, jsonPath string) (string, bool) {
+	if fact, settled := findings.Settled(jsonPath, FactWritable, ConfidenceObserved); settled {
 		if fact.Value.Bool != nil && !*fact.Value.Bool {
 			return fact.Probe + " established that the API does not store what is sent for it", true
 		}
 	}
 
-	if fact, settled := findings.Settled(jsonPath, FactReturnedOnRead, Observed); settled {
+	if fact, settled := findings.Settled(jsonPath, FactReturnedOnRead, ConfidenceObserved); settled {
 		if fact.Value.Bool != nil && !*fact.Value.Bool {
 			return fact.Probe + " sent a value for it and never saw one come back, so the API " +
 				"assigns this field rather than accepting it", true
@@ -2208,7 +2208,7 @@ func (p immutability) probeField(
 	}
 
 	stored, outcome := before.LookupField(f.JSONPath)
-	if outcome != Present {
+	if outcome != OutcomePresent {
 		out.Notes = append(out.Notes, Note{
 			Resource: sc.Subject.Resource, JSONPath: f.JSONPath, Probe: p.Name(),
 			Message: "the field did not come back on the read after create, so a refused update " +
@@ -2296,13 +2296,13 @@ func (p immutability) attempt(
 	if first < 400 {
 		got, outcome := firstRead.LookupField(f.JSONPath)
 
-		if outcome == Present && sameValue(got, candidates[0]) {
+		if outcome == OutcomePresent && sameValue(got, candidates[0]) {
 			out.Facts = append(out.Facts, Fact{
 				Resource:   sc.Subject.Resource,
 				JSONPath:   f.JSONPath,
 				Field:      FactImmutable,
 				Value:      BoolValue(false),
-				Confidence: Observed,
+				Confidence: ConfidenceObserved,
 				Probe:      p.Name(),
 				Evidence:   []string{firstRead.Interaction},
 				Rationale: fmt.Sprintf("an update changed this field from %v to %v and the read "+
@@ -2319,7 +2319,7 @@ func (p immutability) attempt(
 			JSONPath:   f.JSONPath,
 			Field:      FactSilentlyIgnoredOnUpdate,
 			Value:      BoolValue(true),
-			Confidence: Observed,
+			Confidence: ConfidenceObserved,
 			Probe:      p.Name(),
 			Evidence:   []string{firstRead.Interaction},
 			Rationale: fmt.Sprintf("an update to %v answered %d and the field still read back "+
@@ -2355,7 +2355,7 @@ func (p immutability) attempt(
 			JSONPath:   f.JSONPath,
 			Field:      FactImmutable,
 			Value:      BoolValue(false),
-			Confidence: Observed,
+			Confidence: ConfidenceObserved,
 			Probe:      p.Name(),
 			Evidence:   []string{secondRead.Interaction},
 			Rationale: fmt.Sprintf("an update to %v was refused but an update to %v succeeded, "+
@@ -2378,7 +2378,7 @@ func (p immutability) attempt(
 		JSONPath:   f.JSONPath,
 		Field:      FactImmutable,
 		Value:      BoolValue(true),
-		Confidence: Corroborated,
+		Confidence: ConfidenceCorroborated,
 		Probe:      p.Name(),
 		Evidence:   []string{firstRead.Interaction, secondRead.Interaction},
 		Rationale: fmt.Sprintf("two distinct values were refused on update (%d and %d) after a "+
@@ -2752,7 +2752,7 @@ func (p enumBoundary) probeEnum(
 			fact := Fact{
 				Resource: sc.Subject.Resource, JSONPath: f.JSONPath,
 				Field: FactAcceptedValues, Value: ListValue(values),
-				Confidence: Observed, Probe: p.Name(), Evidence: evidence,
+				Confidence: ConfidenceObserved, Probe: p.Name(), Evidence: evidence,
 				When: branchWhen[key],
 			}
 			fact.Rationale = fmt.Sprintf(
@@ -2763,7 +2763,7 @@ func (p enumBoundary) probeEnum(
 			fact := Fact{
 				Resource: sc.Subject.Resource, JSONPath: f.JSONPath,
 				Field: FactRejectedValues, Value: ListValue(values),
-				Confidence: Observed, Probe: p.Name(), Evidence: evidence,
+				Confidence: ConfidenceObserved, Probe: p.Name(), Evidence: evidence,
 				When: branchWhen[key],
 			}
 			fact.Rationale = fmt.Sprintf(
@@ -2861,7 +2861,7 @@ func (p enumBoundary) concludeEnum(sc Scope, f Field, o enumOutcome, out *Result
 			JSONPath:   f.JSONPath,
 			Field:      FactAcceptedValues,
 			Value:      ListValue(o.accepted),
-			Confidence: Observed,
+			Confidence: ConfidenceObserved,
 			Probe:      p.Name(),
 			Evidence:   o.evidence,
 			Rationale: fmt.Sprintf("%d of the %d documented value(s) were accepted on create",
@@ -2877,7 +2877,7 @@ func (p enumBoundary) concludeEnum(sc Scope, f Field, o enumOutcome, out *Result
 			JSONPath:   f.JSONPath,
 			Field:      FactRejectedValues,
 			Value:      ListValue(o.rejected),
-			Confidence: Observed,
+			Confidence: ConfidenceObserved,
 			Probe:      p.Name(),
 			Evidence:   o.evidence,
 			Rationale: fmt.Sprintf("the specification documents %s but this API refused %s",
@@ -2921,7 +2921,7 @@ func (p enumBoundary) concludeEnum(sc Scope, f Field, o enumOutcome, out *Result
 		Value:    BoolValue(closed),
 		// Observed either way: both answers rest on what the API did with values this probe
 		// chose, and neither needs a second fixture to be believable.
-		Confidence: Observed,
+		Confidence: ConfidenceObserved,
 		Probe:      p.Name(),
 		Evidence:   o.evidence,
 		Rationale:  rationale,
@@ -3237,7 +3237,7 @@ func (p normalisation) compare(
 
 	for _, path := range paths {
 		got, outcome := read.LookupField(path)
-		if outcome != Present {
+		if outcome != OutcomePresent {
 			// Absent is write.writable-returned's finding, not this probe's.
 			continue
 		}
@@ -3248,12 +3248,12 @@ func (p normalisation) compare(
 
 		named, identified := t.recognise(sent[path], got)
 
-		confidence := Suspected
+		confidence := ConfidenceSuspected
 		description := fmt.Sprintf("the value came back changed by %q, in a way this probe could "+
 			"not identify", t.name)
 
 		if identified {
-			confidence = Observed
+			confidence = ConfidenceObserved
 			description = named
 		}
 
@@ -3491,10 +3491,10 @@ func (p writeSideEffect) compareCoupling(
 		b, bOutcome := second.LookupField(f.JSONPath)
 		c, cOutcome := without.LookupField(f.JSONPath)
 
-		if aOutcome == Ambiguous || bOutcome == Ambiguous || cOutcome == Ambiguous {
+		if aOutcome == OutcomeAmbiguous || bOutcome == OutcomeAmbiguous || cOutcome == OutcomeAmbiguous {
 			continue
 		}
-		if aOutcome == Absent && bOutcome == Absent && cOutcome == Absent {
+		if aOutcome == OutcomeAbsent && bOutcome == OutcomeAbsent && cOutcome == OutcomeAbsent {
 			continue
 		}
 
@@ -3540,7 +3540,7 @@ func (p writeSideEffect) compareCoupling(
 		JSONPath:   trigger.JSONPath,
 		Field:      FactSideEffect,
 		Value:      TextValue(strings.Join(affected, ", ")),
-		Confidence: Inferred,
+		Confidence: ConfidenceInferred,
 		Probe:      p.Name(),
 		Evidence:   []string{first.Interaction, second.Interaction, without.Interaction},
 		Rationale: fmt.Sprintf("%s was identical across two byte-identical creates carrying %s "+

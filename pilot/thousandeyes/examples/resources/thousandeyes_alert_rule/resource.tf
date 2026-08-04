@@ -1,0 +1,8 @@
+resource "thousandeyes_alert_rule" "example" {
+  alert_type                = "http-server"
+  expression                = "((responseTime >= 1000 ms))"
+  minimum_sources           = 1
+  rounds_violating_out_of   = 2
+  rounds_violating_required = 1
+  rule_name                 = "tfacc-rule-name"
+}

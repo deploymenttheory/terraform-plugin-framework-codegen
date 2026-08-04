@@ -4,7 +4,7 @@
 # are no reusable modules, and that distinction is what the one disabled rule below
 # turns on. Trivy and tflint both walk the tree rather than reading super-linter's
 # changed-file list, so FILTER_REGEX_EXCLUDE's `^pilot/.*` does not reach them --
-# the same reason openapi-specs is handled by trivy's scan.skip-dirs.
+# the same reason openapi is handled by trivy's scan.skip-dirs.
 
 config {
   # Nothing here is called as a module, so there are no variables to infer.

@@ -20,7 +20,7 @@ func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, 
 
 	if remote == nil {
 		tflog.Debug(ctx, "remote object is nil, leaving state untouched", map[string]any{
-			"dataSource": DataSourceName,
+			"dataSource": TypeName,
 		})
 		return diags
 	}
@@ -28,7 +28,7 @@ func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, 
 func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) {
 	if remote == nil {
 		tflog.Debug(ctx, "remote object is nil, leaving state untouched", map[string]any{
-			"dataSource": DataSourceName,
+			"dataSource": TypeName,
 		})
 		return
 	}
@@ -37,7 +37,7 @@ func mapRemoteStateToTerraform(ctx context.Context, data *{{ .ModelTypeName }}, 
 	{{ . }}
 {{- end }}
 
-	tflog.Debug(ctx, "mapped remote state", map[string]any{"dataSource": DataSourceName})
+	tflog.Debug(ctx, "mapped remote state", map[string]any{"dataSource": TypeName})
 {{- if .State.NeedsDiagnostics }}
 
 	return diags

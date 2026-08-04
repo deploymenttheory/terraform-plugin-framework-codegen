@@ -20,7 +20,7 @@ func (a *{{ $.GoTypeName }}) Invoke(ctx context.Context, req action.InvokeReques
 		return
 	}
 
-	tflog.Debug(ctx, "invoking action", map[string]any{"action": ActionName})
+	tflog.Debug(ctx, "invoking action", map[string]any{"action": TypeName})
 
 	// A nil client is a provider bug -- Configure must populate ActionData -- and the
 	// first live run proved the failure mode is a segfault that kills the whole provider
@@ -48,11 +48,11 @@ func (a *{{ $.GoTypeName }}) Invoke(ctx context.Context, req action.InvokeReques
 
 	{{ .Assign }} {{ .Call }}
 	if err != nil {
-		errors.Handle(&resp.Diagnostics, ActionName, {{ .ErrorOp }}, err)
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, err)
 
 		return
 	}
 
-	tflog.Debug(ctx, "action completed", map[string]any{"action": ActionName})
+	tflog.Debug(ctx, "action completed", map[string]any{"action": TypeName})
 }
 {{ end }}

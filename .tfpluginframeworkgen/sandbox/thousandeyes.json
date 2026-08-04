@@ -1,0 +1,14 @@
+{
+  "endpoint": "https://api.thousandeyes.com/v7",
+  "tokenEnv": "TFPFGEN_PROBE_TOKEN",
+  "sandbox": true,
+  "sandboxEvidence": "The deploymenttheory lab tenant: a disposable account group used only for provider development and acceptance runs; it holds one lab endpoint agent and the built-in tags, and nothing anybody depends on.",
+  "namePrefix": "tfpfgen-probe",
+  "assertions": {
+    "endpointHostSuffix": "thousandeyes.com",
+    "maxExistingObjects": 25,
+    "accountGroupId": "",
+    "accountGroupParam": "aid",
+    "accountGroupJsonPath": "aid"
+  }
+}

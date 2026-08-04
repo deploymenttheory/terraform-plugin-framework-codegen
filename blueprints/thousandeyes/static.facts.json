@@ -1,6 +1,6 @@
 [
   {
-    "resource": "alerts_rule",
+    "resource": "alert_rule",
     "jsonPath": "alertGroupType",
     "field": "zeroValueUnsendable",
     "value": {
@@ -14,7 +14,7 @@
     "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
   },
   {
-    "resource": "alerts_rule",
+    "resource": "alert_rule",
     "jsonPath": "direction",
     "field": "zeroValueUnsendable",
     "value": {
@@ -28,7 +28,7 @@
     "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
   },
   {
-    "resource": "alerts_rule",
+    "resource": "alert_rule",
     "jsonPath": "severity",
     "field": "zeroValueUnsendable",
     "value": {
@@ -42,7 +42,7 @@
     "rationale": "the SDK declares this field value-typed with omitempty, so its zero value is dropped by the encoder before any request is sent"
   },
   {
-    "resource": "dashboards_filter",
+    "resource": "dashboard_filter",
     "jsonPath": "description",
     "field": "zeroValueUnsendable",
     "value": {

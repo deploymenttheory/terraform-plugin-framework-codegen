@@ -5,9 +5,9 @@
       "key": "tests_dnssec",
       "name": "tests_dnssec",
       "goPackage": "tests_dnssec",
-      "goPackageAlias": "v7TestsDnssec",
-      "goTypeName": "TestsDnssecResource",
-      "modelTypeName": "TestsDnssecResourceModel",
+      "goPackageAlias": "v7TestsDNSSEC",
+      "goTypeName": "TestsDNSSECResource",
+      "modelTypeName": "TestsDNSSECResourceModel",
       "serviceGroup": "dnssec_tests",
       "apiVersionDir": "v7",
       "schema": {
@@ -18,12 +18,12 @@
             "type": {
               "kind": "set_nested",
               "nestedObject": {
-                "goTypeName": "TestsDnssecAlertRuleModel",
+                "goTypeName": "TestsDNSSECAlertRuleModel",
                 "sdkType": "dnssec_tests.AlertRule",
                 "attrTypesVar": "testsDnssecAlertRuleAttrTypes",
                 "objectTypeVar": "testsDnssecAlertRuleObjectType",
-                "expandFunc": "expandTestsDnssecAlertRules",
-                "flattenFunc": "flattenTestsDnssecAlertRules",
+                "expandFunc": "expandTestsDNSSECAlertRules",
+                "flattenFunc": "flattenTestsDNSSECAlertRules",
                 "attributes": [
                   {
                     "name": "alert_type",
@@ -335,12 +335,12 @@
               "sdkField": "AlertRules",
               "sdkGoType": "[]dnssec_tests.AlertRule",
               "expand": {
-                "func": "expandTestsDnssecAlertRules",
+                "func": "expandTestsDNSSECAlertRules",
                 "needsCtx": true,
                 "returnsError": true
               },
               "flatten": {
-                "func": "flattenTestsDnssecAlertRules",
+                "func": "flattenTestsDNSSECAlertRules",
                 "needsCtx": true,
                 "returnsError": true
               }
@@ -564,12 +564,12 @@
             "type": {
               "kind": "set_nested",
               "nestedObject": {
-                "goTypeName": "TestsDnssecTestLabelsModel",
+                "goTypeName": "TestsDNSSECTestLabelsModel",
                 "sdkType": "dnssec_tests.TestLabels",
                 "attrTypesVar": "testsDnssecTestLabelsAttrTypes",
                 "objectTypeVar": "testsDnssecTestLabelsObjectType",
-                "expandFunc": "expandTestsDnssecTestLabelses",
-                "flattenFunc": "flattenTestsDnssecTestLabelses",
+                "expandFunc": "expandTestsDNSSECTestLabelses",
+                "flattenFunc": "flattenTestsDNSSECTestLabelses",
                 "attributes": [
                   {
                     "name": "is_builtin",
@@ -635,7 +635,7 @@
               "sdkField": "Labels",
               "sdkGoType": "[]dnssec_tests.TestLabels",
               "flatten": {
-                "func": "flattenTestsDnssecTestLabelses",
+                "func": "flattenTestsDNSSECTestLabelses",
                 "needsCtx": true,
                 "returnsError": true
               },
@@ -755,12 +755,12 @@
             "type": {
               "kind": "set_nested",
               "nestedObject": {
-                "goTypeName": "TestsDnssecTestSharedAccountsModel",
+                "goTypeName": "TestsDNSSECTestSharedAccountsModel",
                 "sdkType": "dnssec_tests.TestSharedAccounts",
                 "attrTypesVar": "testsDnssecTestSharedAccountsAttrTypes",
                 "objectTypeVar": "testsDnssecTestSharedAccountsObjectType",
-                "expandFunc": "expandTestsDnssecTestSharedAccountses",
-                "flattenFunc": "flattenTestsDnssecTestSharedAccountses",
+                "expandFunc": "expandTestsDNSSECTestSharedAccountses",
+                "flattenFunc": "flattenTestsDNSSECTestSharedAccountses",
                 "attributes": [
                   {
                     "name": "aid",
@@ -808,7 +808,7 @@
               "sdkField": "SharedWithAccounts",
               "sdkGoType": "[]dnssec_tests.TestSharedAccounts",
               "flatten": {
-                "func": "flattenTestsDnssecTestSharedAccountses",
+                "func": "flattenTestsDNSSECTestSharedAccountses",
                 "needsCtx": true,
                 "returnsError": true
               },
@@ -822,12 +822,12 @@
             "type": {
               "kind": "set_nested",
               "nestedObject": {
-                "goTypeName": "TestsDnssecTestTagsModel",
+                "goTypeName": "TestsDNSSECTestTagsModel",
                 "sdkType": "dnssec_tests.TestTags",
                 "attrTypesVar": "testsDnssecTestTagsAttrTypes",
                 "objectTypeVar": "testsDnssecTestTagsObjectType",
-                "expandFunc": "expandTestsDnssecTestTagses",
-                "flattenFunc": "flattenTestsDnssecTestTagses",
+                "expandFunc": "expandTestsDNSSECTestTagses",
+                "flattenFunc": "flattenTestsDNSSECTestTagses",
                 "attributes": [
                   {
                     "name": "id",
@@ -893,7 +893,7 @@
               "sdkField": "Tags",
               "sdkGoType": "[]dnssec_tests.TestTags",
               "flatten": {
-                "func": "flattenTestsDnssecTestTagses",
+                "func": "flattenTestsDNSSECTestTagses",
                 "needsCtx": true,
                 "returnsError": true
               },

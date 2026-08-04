@@ -11,18 +11,18 @@ import "fmt"
 type BlockKind string
 
 const (
-	// BlockResource is a managed resource: Metadata, Schema, Create, Read, Update, Delete.
-	BlockResource BlockKind = "resource"
-	// BlockDataSource is a data source: Metadata, Schema, Read.
-	BlockDataSource BlockKind = "datasource"
-	// BlockEphemeral is an ephemeral resource: Metadata, Schema, Open.
-	BlockEphemeral BlockKind = "ephemeral"
-	// BlockAction is an action: Metadata, Schema, Invoke.
-	BlockAction BlockKind = "action"
-	// BlockList is a list resource, which is a facet of a managed resource rather than an
+	// BlockKindResource is a managed resource: Metadata, Schema, Create, Read, Update, Delete.
+	BlockKindResource BlockKind = "resource"
+	// BlockKindDataSource is a data source: Metadata, Schema, Read.
+	BlockKindDataSource BlockKind = "dataSource"
+	// BlockKindEphemeral is an ephemeral resource: Metadata, Schema, Open.
+	BlockKindEphemeral BlockKind = "ephemeral"
+	// BlockKindAction is an action: Metadata, Schema, Invoke.
+	BlockKindAction BlockKind = "action"
+	// BlockKindList is a list resource, which is a facet of a managed resource rather than an
 	// independent block: its type name must equal the resource's, and it requires that resource to
 	// declare an identity.
-	BlockList BlockKind = "list"
+	BlockKindList BlockKind = "list"
 )
 
 // SchemaPackage is the framework import path suffix this kind's schema types come from.
@@ -31,15 +31,15 @@ const (
 // this rather than duplicated per kind.
 func (k BlockKind) SchemaPackage() string {
 	switch k {
-	case BlockResource:
+	case BlockKindResource:
 		return "resource/schema"
-	case BlockDataSource:
+	case BlockKindDataSource:
 		return "datasource/schema"
-	case BlockEphemeral:
+	case BlockKindEphemeral:
 		return "ephemeral/schema"
-	case BlockAction:
+	case BlockKindAction:
 		return "action/schema"
-	case BlockList:
+	case BlockKindList:
 		return "list/schema"
 	default:
 		return ""
@@ -51,7 +51,7 @@ func (k BlockKind) SchemaPackage() string {
 // Action and list attributes may not. For a list resource that is the structural reason its config
 // schema is filter-only: there is nowhere to put a result.
 func (k BlockKind) SupportsComputed() bool {
-	return k == BlockResource || k == BlockDataSource || k == BlockEphemeral
+	return k == BlockKindResource || k == BlockKindDataSource || k == BlockKindEphemeral
 }
 
 // SupportsSensitive reports whether this kind's attributes may be Sensitive.
@@ -60,13 +60,13 @@ func (k BlockKind) SupportsSensitive() bool { return k.SupportsComputed() }
 // SupportsPlanModifiers reports whether this kind's attributes may carry plan modifiers.
 //
 // Only a managed resource has a plan to modify.
-func (k BlockKind) SupportsPlanModifiers() bool { return k == BlockResource }
+func (k BlockKind) SupportsPlanModifiers() bool { return k == BlockKindResource }
 
 // SupportsDefault reports whether this kind's attributes may carry a default.
-func (k BlockKind) SupportsDefault() bool { return k == BlockResource }
+func (k BlockKind) SupportsDefault() bool { return k == BlockKindResource }
 
 // SupportsWriteOnly reports whether this kind's attributes may be write-only.
-func (k BlockKind) SupportsWriteOnly() bool { return k == BlockResource || k == BlockAction }
+func (k BlockKind) SupportsWriteOnly() bool { return k == BlockKindResource || k == BlockKindAction }
 
 // Expands reports whether this kind sends attribute values to the API through a request
 // body, and so needs an expand conversion on every attribute a practitioner can set.
@@ -81,7 +81,7 @@ func (k BlockKind) SupportsWriteOnly() bool { return k == BlockResource || k == 
 // to build. An action that genuinely POSTs a payload is a deliberate extension rather than
 // something this should have quietly claimed to support.
 func (k BlockKind) Expands() bool {
-	return k == BlockResource
+	return k == BlockKindResource
 }
 
 // Flattens reports whether this kind reads values back from the API into Terraform.
@@ -90,7 +90,7 @@ func (k BlockKind) Expands() bool {
 // carry a result, so whatever the SDK returns is discarded, and a flatten conversion would be
 // a conversion into somewhere that does not exist.
 func (k BlockKind) Flattens() bool {
-	return k != BlockAction
+	return k != BlockKindAction
 }
 
 // validateForKind refuses a field the target block kind has no home for.

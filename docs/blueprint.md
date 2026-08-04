@@ -1,6 +1,7 @@
 # The blueprint
 
-A blueprint is the intermediate representation the generator emits from. It is
+A blueprint is the intermediate representation the generator builds a provider
+from. It is
 JSON, committed, and meant to be read like a code review — which is why it is not
 a compact binary format or an in-memory structure.
 
@@ -27,7 +28,7 @@ is not decidable — a probe that observed nothing would be indistinguishable fr
 a probe that observed `false`.
 
 **JSON keys are camelCase.** The house `.golangci.yml` enables `tagliatelle`,
-which defaults to camelCase. A consequence worth knowing: `internal/interop` must
+which defaults to camelCase. A consequence worth knowing: `internal/spec` must
 use HashiCorp's Go types *verbatim* rather than redeclaring them, because their
 JSON is snake_case and would trip the linter on every field.
 
@@ -37,12 +38,17 @@ would make the drift check useless.
 
 ## Layout
 
-One provider block and one file per resource:
+One provider block, one file per block, and the probe worksheets beside them:
 
 ```
 blueprints/thousandeyes/
-  provider.blueprint.json        the provider block: name, module, SDK, conventions
-  resources/tag.blueprint.json   one resource
+  provider.blueprint.json             the provider block: name, module, SDK, conventions
+  resources/tag.blueprint.json        one resource
+  datasources/tag.blueprint.json      one data source
+  actions/…, ephemerals/…             the other block kinds, one file each
+  tag.scenario.json                   the probe scenario for a resource
+  tests_voice.scenario.draft.json     a scenario not yet promoted
+  static.facts.json                   facts derived from the SDK's types, no HTTP
 ```
 
 `LoadDir` merges them and validates the result **as a whole**. That matters:
@@ -50,7 +56,7 @@ cross-resource collisions — two resources sharing a Terraform type, or an impo
 alias — are invisible to a per-file check and are exactly what stops a provider
 from starting.
 
-Exactly one file may carry a provider block. Two would mean the emitter silently
+Exactly one file may carry a provider block. Two would mean the generator silently
 picks one, and which one would depend on filename ordering.
 
 ## Provider
@@ -76,8 +82,8 @@ kind is a `Name`, a `Schema`, and then the operations that kind supports.
 `resource`, `datasource`, `action` and `list` (a facet of a resource) are built and in
 the pilot. `ephemeral` is declarable — `Blueprint.Ephemerals`, with an `open` binding
 that is required and `renew`/`close` modelled but refused until they render — and the
-emitter does not yet produce it; `emit` refuses a blueprint that declares one rather
-than silently skipping it.
+generator does not yet produce it; `provider generate` refuses a blueprint that
+declares one rather than silently skipping it.
 
 **An attribute's legal fields depend on the kind rendering it.** Every kind has its own
 schema package — `resource/schema`, `datasource/schema` and so on — and those packages
@@ -90,7 +96,7 @@ are structurally similar but deliberately not identical:
 | `writeOnly` | ✓ | ✗ | ✗ | ✓ | ✗ |
 
 `Validate` refuses a field the target kind has no home for, naming both the attribute
-and the kind. Without that refusal the generator emits
+and the kind. Without that refusal the generator writes
 `datasourceschema.StringAttribute{Default: ...}` and the failure surfaces as a compiler
 error in generated output, which names neither.
 
@@ -126,8 +132,8 @@ real action forced:
   made the first action unrepresentable. A flatten *on* an action attribute is now refused,
   because it would convert into somewhere that does not exist.
 - **No `computed`, no `sensitive`, no plan modifiers, no default.** There is no state for a
-  computed value to live in and no stored value to mark sensitive. `BlockAction` has encoded
-  this since format 3; the action is simply the first kind to exercise it.
+  computed value to live in and no stored value to mark sensitive. `BlockKindAction` has
+  encoded this since format 3; the action is simply the first kind to exercise it.
 
 The deadline is a generated constant with no timeouts block to override it, because the
 framework's action schema has no home for one.
@@ -181,7 +187,7 @@ violated rather than validated afterwards:
 
 - **The type name must equal the resource's.** That string is the entire linkage between the
   two — there is no import from one package to the other — and the framework returns an
-  error diagnostic from `GetMetadata` if they differ. Both read the same `ResourceName`.
+  error diagnostic from `GetMetadata` if they differ. Both read the same `TypeName`.
 - **The resource must declare an identity.** `ListResult.Identity` is mandatory, so a list
   facet on a resource without one is refused, naming both halves.
 - **`Metadata` and `Configure` take `resource.*` request types**, not list-specific ones. The
@@ -223,7 +229,7 @@ Two consequences follow from a data source sending nothing to the API:
   generator does not synthesise the `UseStateForUnknown` it adds for a resource's computed
   strings.
 
-Emitted as four files — `datasource.go`, `model.go`, `read.go`, `state.go` — against a
+Generated as four files — `datasource.go`, `model.go`, `read.go`, `state.go` — against a
 resource's five. There is no `construct.go` because there is nothing to construct.
 
 ## Resource
@@ -346,14 +352,14 @@ for `computedOptionalRequired` against `behaviour.requiredByApi`, and `default` 
 
 | field | meaning |
 |---|---|
-| `type.allowedValues` | what the **specification documents** |
+| `type.allowedValues` | what the **OpenAPI document declares** |
 | `behaviour.acceptedValues` | the documented values this API **took** |
 | `behaviour.rejectedValues` | the documented values this API **refused** |
 | `behaviour.valuesClosed` | whether values from *outside* the documented set were refused |
 
 **A generated `OneOf` comes from `allowedValues`**, the declared set — which reads backwards
 until you consider which way each errs. The documented set is a superset of what any single
-tenant accepts, so a validator built from it errs toward *permitting*: a stale specification
+tenant accepts, so a validator built from it errs toward *permitting*: a stale document
 surfaces as a real API error carrying the API's own message. Built from `acceptedValues` it
 would err toward *blocking*, and the pilot is the case in point — `access_type` documents
 `system`, this sandbox refused it, and another licence may well allow it.
@@ -378,10 +384,10 @@ diagnostic. Constraints live on `AttrType` rather than `Attribute` because they 
 of the type: a collection's **element type carries its own**, and those are lifted onto the
 collection as `ValueStringsAre(...)` — a bound on a set's elements is not a bound on the set.
 
-`constraints.format` carries the specification's declared string format (`date-time`, `uuid`,
+`constraints.format` carries the OpenAPI document's declared string format (`date-time`, `uuid`,
 `email`, …). It generates no validator — the framework has none for formats — but it drives
-fixture synthesis: a probe or acceptance fixture for a `date-time` field sends a real timestamp
-rather than a sentinel string an API would refuse (see
+payload and fixture derivation: a probe payload or acceptance fixture for a `date-time` field
+sends a real timestamp rather than a sentinel string an API would refuse (see
 [fixtures-and-rehearsal.md](fixtures-and-rehearsal.md)). Declared numeric bounds are also what
 keep the rehearsal's contrast values in range.
 
@@ -394,15 +400,15 @@ Three refusals, each because the framework has no validator to generate:
 - A range nothing can satisfy, such as `minLength` above `maxLength`.
 
 Two things worth knowing about the numbers. JSON Schema states every bound as a number, so an
-`int64` attribute's minimum arrives as a `float64` and is **narrowed** — emitting it as a float
+`int64` attribute's minimum arrives as a `float64` and is **narrowed** — writing it as a float
 would not compile against `int64validator`. And a whole-number float bound keeps its decimal
 point, so the literal's type is unambiguous where it reaches a float validator.
 
-Unlike allowed values there is **no observed counterpart**: the prober has no protocol for
+Unlike allowed values there is **no observed counterpart**: the prober has no probe for
 discovering a length limit or a numeric range, so there is no evidence that could suppress a
 constraint validator. Only the computed rule below applies.
 
-`ingest` reads these from the specification, and refuses a `pattern` Go's `regexp` cannot
+`blueprint draft` reads these from the OpenAPI document, and refuses a `pattern` Go's `regexp` cannot
 compile — reported by name rather than passed on, because the generated code calls
 `regexp.MustCompile` and an expression RE2 rejects would panic when the provider starts. JSON
 Schema permits ECMA constructs, lookahead most often, that RE2 does not.
@@ -412,8 +418,8 @@ Three things suppress the validator:
 - **`valuesClosed` is `false`.** The only case with direct evidence of harm — the API
   accepted a value from outside the documented set, so a `OneOf` would reject configurations
   it demonstrably takes. `valuesClosed` being *absent* is not the same thing: an unprobed
-  attribute keeps its validator, or ingesting a specification and emitting from it straight
-  away would produce none at all.
+  attribute keeps its validator, or drafting a blueprint from an OpenAPI document and
+  generating from it straight away would produce none at all.
 - **A purely `computed` attribute.** A validator runs against configuration, and a computed
   attribute is never configured, so one there could never run. `computed_optional` still
   gets it.
@@ -422,8 +428,8 @@ Three things suppress the validator:
 
 ## Attributes, continued
 
-`computedOptionalRequired` is spelled exactly as the official specification spells it —
-`required`, `optional`, `computed`, `computed_optional` — so interop needs no
+`computedOptionalRequired` is spelled exactly as the Provider Code Specification spells it —
+`required`, `optional`, `computed`, `computed_optional` — so the spec bridge needs no
 mapping table.
 
 **Type kinds.** Scalars: `bool`, `string`, `int32`, `int64`, `float32`, `float64`,
@@ -432,7 +438,7 @@ objects: `list_nested`, `set_nested`, `single_nested`, each with `nested`.
 
 Nested attributes, not blocks. The choice is permanent for a published provider, so it
 is recorded here to stay reviewable — and the evidence is one-sided. In
-`deploymenttheory/terraform-provider-microsoft365`, a 167-resource provider,
+`deploymenttheory/terraform-provider-microsoft365`, the ~168-resource reference provider,
 `schema.ListNestedBlock` appears three times across two files, of which one use is live
 and one is dead code; `SetNestedBlock` and `SingleNestedBlock` appear not at all. Against
 366 `SingleNestedAttribute`, 178 `ListNestedAttribute` and 110 `SetNestedAttribute`. The
@@ -444,7 +450,7 @@ in the reference provider. Each level gets its own model struct, `attr.Type` map
 type var and conversion helper pair, and an enclosing level refers to the one below it
 through that object type var rather than restating its shape.
 
-Two things are refused rather than half-emitted:
+Two things are refused rather than half-generated:
 
 - **Two nested objects that would declare the same Go identifier.** Every nested object
   contributes a package-level model, `attr.Type` map, object type var and helper pair, so
@@ -457,7 +463,7 @@ Two things are refused rather than half-emitted:
 
 ### Where an inferred nested object's names come from
 
-`ingest` infers nested objects, so the five generated identifiers are derived rather than
+`blueprint draft` infers nested objects, so the five generated identifiers are derived rather than
 authored. The rule, for a schema `Assignment` inside resource `tag`:
 
 | field | value | rule |
@@ -498,7 +504,7 @@ How one attribute crosses the boundary.
 
 A conversion with `returnsError` makes its caller fallible, which propagates:
 the helper returns diagnostics, so `constructResource` does, so its CRUD call site
-changes. That propagation is computed in `render`, so a resource with only
+changes. That propagation is computed in `internal/generate`, so a resource with only
 infallible scalars still gets the simpler signatures.
 
 An `expand` or `flatten` is a `ConvertCall`, and three small fields on it absorb
@@ -518,9 +524,9 @@ its own; absent, `expand` serves both.
 
 ## Binding
 
-The part the official specification has nothing for. The design goal is that a
-call is **data**, never a dialect the emitter branches on — adding an SDK whose
-methods look different should be a blueprint change, not an emitter change.
+The part the Provider Code Specification has nothing for. The design goal is that a
+call is **data**, never a dialect the generator branches on — adding an SDK whose
+methods look different should be a blueprint change, not a generator change.
 
 ```jsonc
 "read": {
@@ -536,11 +542,11 @@ methods look different should be a blueprint change, not an emitter change.
 
 `return` is recorded rather than inferred because it decides the arity of every
 error return in the generated body. Getting it wrong produces code that does not
-compile — `tfpluginframeworkgen bindings` checks it against the method's real signature.
+compile — `tfpfgen bindings check` verifies it against the method's real signature.
 
 An argument of kind `literal` carries an `expr` — a verbatim Go expression —
 plus the `imports` that expression references. It exists for constant request
-options: an expansion-gated read (`teclient.WithQueryParam("expand", "filters")`)
+options: an expansion-dependent read (`teclient.WithQueryParam("expand", "filters")`)
 needs the option repeated everywhere the read is generated, including the
 acceptance test helper, where the SDK's client package must be aliased because
 the helper's own `client` variable shadows it. A literal with no expression is
@@ -571,8 +577,8 @@ five more:
 | `updateDefault` | the value assigned when an update omits the field — kept separate from `serverDefault` because the pilot's APIs default differently on create and update |
 | `zeroValueUnsendable` | the SDK's wire encoding cannot express the zero value at all; derived statically from struct tags, not probed (see [probing.md](probing.md#static-facts)) |
 
-Populated by `merge` from probe facts — the pilot's tag blueprint carries values
-recorded from a live run — and consumed by `render`: an observed normalisation or
+Populated by `blueprint merge` from probe facts — the pilot's tag blueprint carries values
+recorded from a live run — and consumed by the generator: an observed normalisation or
 a `returnedOnRead: false` changes which assertions the generated acceptance test
 makes. Every field is a pointer, for the reason in *Absence is representable*
 above.
@@ -593,7 +599,7 @@ the API's own dispatch:
 }
 ```
 
-The semantics are a contract between merge (which writes variants) and emission
+The semantics are a contract between merge (which writes variants) and generation
 (which acts on them):
 
 - A base behaviour field holds unconditionally. A variant's non-zero fields
@@ -632,13 +638,13 @@ the knowledge no derivation can have.
 }
 ```
 
-- `dataBlocks` are emitted verbatim above the resource block, so a hint can
+- `dataBlocks` are written verbatim above the resource block, so a hint can
   reference live tenant data instead of a literal that goes stale.
 - A value's `hcl` is the fixture's right-hand side, verbatim and never salted.
   `wire` is the same value in wire-typed form, which the rehearsal sends; a data
-  reference has no wire form, a literal does. `source` marks a hint promoted from
-  a probe plan (`merge -promote-plans`), which refreshes its own hints on
-  re-merge and never touches hand-written ones.
+  reference has no wire form, a literal does. `source` marks a hint adopted from
+  a probe scenario (`blueprint merge -adopt-scenarios`), which refreshes its own
+  hints on re-merge and never touches hand-written ones.
 - `omit: true` is a **curated omission**: the attribute appears in no generated
   fixture and no rehearsal body. For values that are individually valid and
   jointly refused — a rule takes `minimumSources` or `minimumSourcesPct` but
@@ -647,14 +653,14 @@ the knowledge no derivation can have.
   an accident.
 
 **`sweep`** overrides the prober's name-field inference (`nameField`,
-`readNameField`). It lives on the resource rather than the probe plan because
-`probe -mode sweep` builds its subject from the blueprint alone — a sweep is
-exactly the situation where no plan may be to hand, and the field that finds
+`readNameField`). It lives on the resource rather than the probe scenario because
+`probe sweep` builds its subject from the blueprint alone — a sweep is
+exactly the situation where no scenario may be to hand, and the field that finds
 stranded objects cannot depend on one.
 
 **`accTest.skipUnlessEnv`** names an environment variable the generated test
-requires; unset, the test skips with a message naming it. The pilot gates its
-admin-scoped resources on `TFPFGEN_ACC_ADMIN` this way, so a contributor without
+requires; unset, the test skips with a message naming it. The pilot's
+admin-scoped resources require `TFPFGEN_ACC_ADMIN` this way, so a contributor without
 an admin token gets skips rather than failures.
 
 ## Validation
@@ -692,8 +698,16 @@ to learn a second vocabulary to read this repo.
 | the type kind | per-type attributes (`StringAttribute`, `SetNestedAttribute`) | one `AttrType` with a `Kind`, whose values spell theirs (`single_nested`, `set_nested`) |
 
 Spelling is British English, which is this project's own. It is a separate question from
-terminology: `ComputedOptionalRequired` is adopted because it is HashiCorp's *word* for the concept,
+terminology: `ComputedOptionalRequired` is taken up because it is HashiCorp's *word* for the concept,
 and `Behaviour` keeps its spelling because the concept is ours and so is the voice.
+
+The rule cuts the other way for words HashiCorp already owns. The probe worksheet is a
+**scenario**, never a plan, because *plan* is Terraform's word for something else and stays
+reserved for it (and for `planModifiers`, which is spelled their way). The evidence a probe
+run leaves behind is a **recording**, never a snapshot, because *snapshot* is the pinned copy
+of the OpenAPI document. Sandbox admission is a **guard** and a CI job is a **check**, because
+*gate* used to mean both and a word meaning two things is a word meaning neither. And the
+toolkit **generates** — *emit* is gone from this repository's prose.
 
 What stays American is only what an identifier outside this repo fixes, and the list is short enough
 to state: the HTTP `Authorization` header and `http.StatusUnauthorized`; the API's own field names
@@ -709,7 +723,7 @@ and the reason belongs next to the name rather than in a reviewer's head.
 - **Blueprint**, not `Specification`. Their `Specification` is a schema description; a blueprint is
   that plus everything CRUD generation needs — SDK bindings, wire mappings, observed behaviour. The
   two are not the same document, and calling ours theirs would promise interoperability we do not
-  have. `interop export` produces a real `Specification` from a blueprint, and that command is where
+  have. `spec export` produces a real `Specification` from a blueprint, and that command is where
   the equivalence is claimed.
 - **Behaviour**, on an attribute. What a probe observed about the API: writability, immutability,
   requiredness, server defaults. Their spec has nowhere to put an empirical finding.
@@ -723,5 +737,9 @@ and the reason belongs next to the name rather than in a reviewer's head.
 
 `AttrType` differs structurally as well as in name: their spec models the type by which pointer is
 non-nil, and ours by a `Kind` discriminant. That is a deliberate difference — a discriminant is what
-lets one code path walk every attribute — and it is the reason `interop` exists as a mapping layer
-rather than a cast.
+lets one code path walk every attribute — and it is the reason `internal/spec` exists as a mapping
+layer rather than a cast.
+
+This section is the doctrine — whose word wins for which concept, and why this project diverges
+where it does. The complete term inventory, one meaning per word, lives in
+[docs/glossary.md](glossary.md).

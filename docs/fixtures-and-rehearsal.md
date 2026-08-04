@@ -6,15 +6,15 @@ the live API will actually accept.
 
 ## The problem this solves
 
-The pipeline originally treated acceptance testing as a discovery mechanism: emit a
-provider, run its tests against the live API, and fix whatever failed — a
+The pipeline originally treated acceptance testing as a discovery mechanism: generate
+a provider, run its tests against the live API, and fix whatever failed — a
 server-populated field here, a refused zero value there, an update that silently
 reset a sibling. Every fix was real, but each one was discovered *after*
 generation, one failure at a time, against the most expensive oracle available.
 That is playing whack-a-mole with a live tenant.
 
 The correction is sequencing. Everything an acceptance test would discover is now
-discovered by the probe, **before emit**, and recorded as facts with evidence.
+discovered by the probe, **before generation**, and recorded as facts with evidence.
 Acceptance's job is confirmation: a red acceptance run means the evidence is
 incomplete or stale, and the fix is better probing — not a hand-edit to generated
 code.
@@ -80,14 +80,14 @@ blueprint (see [blueprint.md](blueprint.md)):
 - `omit` — the *curated omission*: this attribute must not appear in any fixture,
   recorded as a decision rather than left as an accident (the live case: a pair of
   fields the API refuses jointly, where the fixture keeps one);
-- `source` — provenance, so a promoted hint is distinguishable from a hand-written
+- `source` — provenance, so an adopted hint is distinguishable from a hand-written
   one.
 
-Hints can also be **promoted from probe plans**: `merge -promote-plans DIR` copies
-a plan's fixture values into wire hints, but only for attributes the derivation
-refuses to derive itself, only from the plan's *first* fixture (later fixtures
-exist to probe variants, and promoting one broke a real acceptance test), and never
-over a hand-written hint. The plan stays the place where probe-only knowledge
+Hints can also be **adopted from probe scenarios**: `blueprint merge -adopt-scenarios DIR`
+copies a scenario's payload values into wire hints, but only for attributes the derivation
+refuses to derive itself, only from the scenario's *first* payload (later payloads
+exist to probe variants, and adopting one broke a real acceptance test), and never
+over a hand-written hint. The scenario stays the place where probe-only knowledge
 lives; the blueprint accumulates only what generation actually needs.
 
 ## The rehearsal: `write.rehearsal`
@@ -116,7 +116,7 @@ refinements keep the comparison honest:
   time (budgeted), so the *culprit* is named instead of the whole body being
   written off. Single-culprit by design; two interacting culprits exceed the
   budget and are recorded as a refusal note.
-- **Read-back with expansions**: every read uses the plan's declared query
+- **Read-back with expansions**: every read uses the scenario's declared query
   expansions, because some APIs omit nested collections from a bare item read —
   concluding "not returned" from an unexpanded read was a real false fact.
 
@@ -133,7 +133,7 @@ Its facts are precisely the ones acceptance tests used to discover the hard way:
 | `zeroValueUnsendable` | the SDK cannot send the zero value at all | presence recommendation (static; see [probing.md](probing.md#static-facts)) |
 
 As with every probe, a fact carries its evidence (request indices into the
-cassette) and a confidence level, and `merge` only *acts* on corroborated facts —
+cassette) and a confidence level, and `blueprint merge` only *acts* on corroborated facts —
 a single observation annotates, it does not rewrite presence.
 
 ## The fixpoint
@@ -141,23 +141,23 @@ a single observation annotates, it does not rewrite presence.
 Facts change fixtures: learn that the server forces a value and the right fixture
 value *is* that value; learn a zero value is unsendable and the fixture must omit
 it. But the rehearsal that produced those facts ran with the old fixtures — so
-`probe -mode record` re-derives the bodies from the merged evidence and reruns the
+`probe record` re-derives the bodies from the merged evidence and reruns the
 rehearsal until **derivation converges** (bounded rounds; convergence is the
 normal case after one).
 
-The loop lives in the command layer (`cmd/tfpluginframeworkgen/rehearse.go`), not
-in the probe, because it needs `merge` — and the probe package must never depend
-on the package that interprets its output. The converged bodies are frozen as
-`rehearsal.json` in the evidence snapshot, so replay replays the fixpoint's
+The loop lives in the command layer (`cmd/tfpfgen/rehearse.go`), not
+in the probe, because it needs the merge stage — and the probe package must never
+depend on the package that interprets its output. The converged bodies are frozen
+as `rehearsal.json` in the recording, so replay replays the fixpoint's
 *outcome* rather than re-deriving from a blueprint that has since moved.
 
 ## `maximal.tf` is generated and policed
 
 The last piece is ownership. Acceptance fixtures (`testdata/minimal.tf`,
 `testdata/maximal.tf`) are **generated** from the same derivation, headered as
-generated, and drift-gated like every other emitted file. A hand-maintained
+generated, and drift-checked like every other generated file. A hand-maintained
 maximal fixture was the original design, and it desynchronised from the rehearsed
-bodies within one wave — the whole point of a shared derivation is defeated the
+bodies within one batch — the whole point of a shared derivation is defeated the
 moment one of its renderings is edited by hand. What used to be hand-tuning a
 fixture is now a curated `accFixture` hint, which both renderings honour. See
 [generated-boundary.md](generated-boundary.md).

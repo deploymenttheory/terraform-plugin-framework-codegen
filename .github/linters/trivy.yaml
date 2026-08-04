@@ -32,9 +32,9 @@ scan:
     # that as a leaked key. It is illustrative text in a vendor's documentation, and
     # the only way to satisfy the scanner would be to edit a pinned artefact -- which
     # would defeat the point of pinning it, and is why VALIDATE_OPENAPI is off too.
-    - openapi-specs
+    - openapi
 
-    # Deliberately NOT skipped: probe-evidence. Those cassettes are our own recorded
+    # Deliberately NOT skipped: recordings. Those cassettes are our own recorded
     # HTTP traffic against a live tenant, so a secret appearing there is exactly the
     # thing worth being told about. The Authorization header is absent by construction
     # -- it is not on the recorder's allow list -- but that is a property to keep

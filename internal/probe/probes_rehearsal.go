@@ -378,7 +378,7 @@ func (p rehearsal) contrast(
 		}
 
 		held, outcome := current.LookupField(k)
-		if outcome != Present || fmt.Sprint(held) != fmt.Sprint(v) {
+		if outcome != OutcomePresent || fmt.Sprint(held) != fmt.Sprint(v) {
 			continue
 		}
 
@@ -486,7 +486,7 @@ func (p rehearsal) concludeNeverRead(sc Scope, path string, a, b *hopSet, out *R
 			return false, ""
 		}
 		v, outcome := h.afterMax.LookupField(path)
-		return outcome == Absent || (outcome == Present && v == nil), h.afterMax.Interaction
+		return outcome == OutcomeAbsent || (outcome == OutcomePresent && v == nil), h.afterMax.Interaction
 	}
 
 	nulledA, evA := nulled(a)
@@ -494,10 +494,10 @@ func (p rehearsal) concludeNeverRead(sc Scope, path string, a, b *hopSet, out *R
 		return
 	}
 
-	confidence := Observed
+	confidence := ConfidenceObserved
 	evidence := []string{evA}
 	if nulledB, evB := nulled(b); nulledB {
-		confidence = Corroborated
+		confidence = ConfidenceCorroborated
 		evidence = appendUnique(evidence, evB)
 	}
 
@@ -521,11 +521,11 @@ func (p rehearsal) concludeUpdateEcho(sc Scope, path string, sent any, a *hopSet
 	}
 
 	value, outcome := a.updateEcho.LookupField(path)
-	if outcome == Ambiguous {
+	if outcome == OutcomeAmbiguous {
 		return
 	}
 
-	echoed := outcome == Present && value != nil
+	echoed := outcome == OutcomePresent && value != nil
 	rationale := "the update response carried the field it was sent"
 	if !echoed {
 		rationale = "the update response did not carry this field although the update sent it"
@@ -536,7 +536,7 @@ func (p rehearsal) concludeUpdateEcho(sc Scope, path string, sent any, a *hopSet
 		JSONPath:   path,
 		Field:      FactReturnedOnUpdate,
 		Value:      BoolValue(echoed),
-		Confidence: Observed,
+		Confidence: ConfidenceObserved,
 		Probe:      p.Name(),
 		Evidence:   []string{a.updateEcho.Interaction},
 		Rationale:  rationale,
@@ -560,7 +560,7 @@ func (p rehearsal) concludeForced(
 			return nil, false
 		}
 		v, outcome := h.afterMax.LookupField(path)
-		return v, outcome == Present && v != nil
+		return v, outcome == OutcomePresent && v != nil
 	}
 
 	va, okA := stored(a)
@@ -573,10 +573,10 @@ func (p rehearsal) concludeForced(
 	// separator: a transform of a string still contains or resembles it, but the
 	// decisive evidence is the second path storing the identical value.
 	evidence := []string{a.afterMax.Interaction}
-	confidence := Observed
+	confidence := ConfidenceObserved
 
 	if vb, okB := stored(b); okB && fmt.Sprint(vb) == fmt.Sprint(va) {
-		confidence = Corroborated
+		confidence = ConfidenceCorroborated
 		evidence = appendUnique(evidence, b.afterMax.Interaction)
 	}
 
@@ -599,7 +599,7 @@ func (p rehearsal) concludeForced(
 }
 
 func corroboratedSuffix(c Confidence) string {
-	if c == Corroborated {
+	if c == ConfidenceCorroborated {
 		return " and the create path stored the same value"
 	}
 	return ""
@@ -624,11 +624,11 @@ func (p rehearsal) concludeDowngrade(
 
 	before, outcomeBefore := a.afterMax.LookupField(path)
 	after, outcomeAfter := a.afterDown.LookupField(path)
-	if outcomeBefore != Present || outcomeAfter == Ambiguous {
+	if outcomeBefore != OutcomePresent || outcomeAfter == OutcomeAmbiguous {
 		return
 	}
 
-	held := outcomeAfter == Present && after != nil
+	held := outcomeAfter == OutcomePresent && after != nil
 	if held && fmt.Sprint(after) == fmt.Sprint(before) {
 		return // preserved: merge semantics, updateStyle's fact already covers it
 	}
@@ -637,12 +637,12 @@ func (p rehearsal) concludeDowngrade(
 	}
 
 	// Reverted to a constant that is neither the stored value nor absence.
-	confidence := Inferred
+	confidence := ConfidenceInferred
 	evidence := []string{a.afterDown.Interaction}
 	if b != nil && b.afterDown != nil {
-		if vb, outcome := b.afterDown.LookupField(path); outcome == Present &&
+		if vb, outcome := b.afterDown.LookupField(path); outcome == OutcomePresent &&
 			fmt.Sprint(vb) == fmt.Sprint(after) {
-			confidence = Corroborated
+			confidence = ConfidenceCorroborated
 			evidence = appendUnique(evidence, b.afterDown.Interaction)
 		}
 	}
@@ -652,7 +652,7 @@ func (p rehearsal) concludeDowngrade(
 		JSONPath:   path,
 		Field:      FactUpdateResets,
 		Value:      BoolValue(true),
-		Confidence: Observed,
+		Confidence: ConfidenceObserved,
 		Probe:      p.Name(),
 		Evidence:   []string{a.afterDown.Interaction},
 		Rationale: fmt.Sprintf("held %v, was omitted from an update, and read back %v "+
@@ -757,7 +757,7 @@ func (p rehearsal) suppressedCandidates(sc Scope, round RehearsalRound, a *hopSe
 		if f, ok := sc.Subject.Field(path); !ok || f.Kind.IsNested() || f.Kind.IsCollection() {
 			continue
 		}
-		if v, outcome := a.afterMax.LookupField(path); outcome == Present && v != nil {
+		if v, outcome := a.afterMax.LookupField(path); outcome == OutcomePresent && v != nil {
 			continue
 		}
 		out = append(out, path)
@@ -807,7 +807,7 @@ func (p rehearsal) bisectOne(
 			return false, "", nil
 		}
 		v, outcome := resp.LookupField(path)
-		return outcome == Present && v != nil, resp.Interaction, nil
+		return outcome == OutcomePresent && v != nil, resp.Interaction, nil
 	}
 
 	// Alone first: if the field does not come back even by itself, no sibling did
@@ -874,7 +874,7 @@ func (p rehearsal) bisectOne(
 		JSONPath:   path,
 		Field:      FactInteractionSuppressed,
 		Value:      TextValue(fmt.Sprintf("suppressed when %s is present", culprit)),
-		Confidence: Observed,
+		Confidence: ConfidenceObserved,
 		Probe:      p.Name(),
 		Evidence:   []string{interaction},
 		When: []Condition{{

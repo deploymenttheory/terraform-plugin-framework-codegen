@@ -20,6 +20,6 @@ cmd/** @ShocOne
 # blueprint or a template -- a diff here on its own usually means something was
 # hand-edited.
 blueprints/** @ShocOne
-probe-evidence/** @ShocOne
-openapi-specs/** @ShocOne
+recordings/** @ShocOne
+openapi/** @ShocOne
 pilot/** @ShocOne

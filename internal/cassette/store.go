@@ -15,14 +15,14 @@ import (
 	"time"
 )
 
-// The on-disk layout mirrors internal/specstore:
+// The on-disk layout mirrors internal/snapshot:
 //
-//	probe-evidence/<provider>/<resource>/<version>-t<epochMillis>/
+//	recordings/<provider>/<resource>/<version>-t<epochMillis>/
 //	  metadata.json
 //	  interactions/001-get-tags.json … NNN-*.json
 //
-// Copied rather than generalised from specstore. Two callers do not justify an
-// abstraction, specstore's doc comment is specifically about specifications, and the
+// Copied rather than generalised from the snapshot store. Two callers do not justify an
+// abstraction, the snapshot store's doc comment is specifically about specifications, and the
 // duplicated part is about 120 lines of directory handling -- against which the cost of a
 // shared abstraction is that neither caller can change its layout without considering the
 // other.
@@ -41,9 +41,9 @@ const (
 	FactsFileName = "facts.json"
 	// ReportFileName holds the run report.
 	ReportFileName = "report.json"
-	// PlanFileName holds the probe plan the recording was made with. Absent for a read-only
+	// ScenarioFileName holds the probe scenario the recording was made with. Absent for a read-only
 	// recording, which needs no plan.
-	PlanFileName = "plan.json"
+	ScenarioFileName = "scenario.json"
 	// SubjectFileName holds the flattened subject the recording was made with. Absent
 	// only for snapshots that predate freezing.
 	SubjectFileName = "subject.json"
@@ -58,7 +58,7 @@ var ErrNoSnapshot = errors.New("no cassette snapshot found")
 // ErrChecksumMismatch marks a snapshot whose interactions no longer match its metadata.
 var ErrChecksumMismatch = errors.New("cassette checksum does not match its metadata")
 
-// dirPattern matches "<version>-t<epochMillis>", the same shape specstore uses.
+// dirPattern matches "<version>-t<epochMillis>", the same shape the snapshot store uses.
 var dirPattern = regexp.MustCompile(`^(.+)-t(\d+)$`)
 
 // Snapshot is one recorded session on disk.
@@ -80,7 +80,7 @@ type Snapshot struct {
 //
 // No timestamp field beyond the one in the directory name, and no tool version: the
 // directory is committed and diffed, so a value that changed without an input changing
-// would make the drift check useless. Same rule as internal/blueprint and internal/emit.
+// would make the drift check useless. Same rule as internal/blueprint and internal/generate.
 type Metadata struct {
 	// Provider and Resource identify what was probed.
 	Provider string `json:"provider"`
@@ -141,14 +141,14 @@ func (s Snapshot) FactsPath() string { return filepath.Join(s.Dir, FactsFileName
 // ReportPath is the run report.
 func (s Snapshot) ReportPath() string { return filepath.Join(s.Dir, ReportFileName) }
 
-// PlanPath is the frozen copy of the probe plan the recording was made with.
+// ScenarioPath is the frozen copy of the probe plan the recording was made with.
 //
 // Frozen into the snapshot rather than read from the working tree at replay time, and the reason is
 // specific to the write tier. Facts are derived from the transcript, but *which requests exist in
 // the transcript* is a function of the plan: its fixtures are the request bodies. Editing a fixture
 // would then make replay fail with a body mismatch that looks exactly like a probe regression and
 // is nothing of the kind.
-func (s Snapshot) PlanPath() string { return filepath.Join(s.Dir, PlanFileName) }
+func (s Snapshot) ScenarioPath() string { return filepath.Join(s.Dir, ScenarioFileName) }
 
 // SubjectPath is the frozen copy of the flattened subject the recording was made with.
 //
@@ -239,12 +239,12 @@ func Find(root, name string) (Snapshot, error) {
 	return Snapshot{}, fmt.Errorf("%w: %s under %s", ErrNoSnapshot, name, root)
 }
 
-// Write creates a snapshot directory and writes its interactions and metadata.
+// Record creates a snapshot directory and writes its interactions and metadata.
 //
 // The fail-closed order is the important part: every interaction is scanned before
 // anything is written, and a finding writes nothing at all -- not a partial directory,
 // not a single file. So a leak cannot be committed; it can only fail the build.
-func Write(
+func Record(
 	root string,
 	meta Metadata,
 	interactions []Interaction,
@@ -259,7 +259,7 @@ func Write(
 	}
 
 	// Scan first, write second. Nothing below this point can leak.
-	var findings []Finding
+	var findings []Leak
 	for _, i := range interactions {
 		found, err := ScanInteraction(i, secrets)
 		if err != nil {
@@ -268,7 +268,7 @@ func Write(
 		findings = append(findings, found...)
 	}
 	if len(findings) > 0 {
-		return Snapshot{}, FindingsError(findings)
+		return Snapshot{}, LeaksError(findings)
 	}
 
 	encoded := make(map[string][]byte, len(interactions))

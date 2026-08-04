@@ -79,7 +79,7 @@ func TestUnit_Merge_NoServerDefaultConflictsWithComputedOptional(t *testing.T) {
 
 	facts := []probe.Fact{
 		// A server-default fact with no literal: the probe looked and found nothing.
-		fact("colour", probe.FactServerDefault, probe.Value{Text: "none observed"}, probe.Observed),
+		fact("colour", probe.FactServerDefault, probe.Value{Text: "none observed"}, probe.ConfidenceObserved),
 	}
 
 	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
@@ -129,10 +129,10 @@ func TestUnit_Merge_ConstantDefaultIsRecordedAndDescribed(t *testing.T) {
 	facts := []probe.Fact{
 		fact("colour", probe.FactServerDefault,
 			probe.LiteralValue(blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`}),
-			probe.Corroborated),
+			probe.ConfidenceCorroborated),
 	}
 
-	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "1.0-t1"})
+	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "1.0-t1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -184,10 +184,10 @@ func TestUnit_Merge_DerivedDefaultConfirmsTheGuess(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactDefaultIsDerived, probe.BoolValue(true), probe.Observed),
+		fact("colour", probe.FactDefaultIsDerived, probe.BoolValue(true), probe.ConfidenceObserved),
 	}
 
-	result, err := Apply(&bp, facts, Options{SnapshotID: "1.0-t1"})
+	result, err := Apply(&bp, facts, Options{RecordingID: "1.0-t1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -240,10 +240,10 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 		bp := testBlueprint()
 
 		facts := []probe.Fact{
-			fact("key", probe.FactRequiredByAPI, probe.BoolValue(true), probe.Observed),
+			fact("key", probe.FactRequiredByAPI, probe.BoolValue(true), probe.ConfidenceObserved),
 		}
 
-		result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "1.0-t1"})
+		result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "1.0-t1"})
 		if err != nil {
 			t.Fatalf("Apply: %v", err)
 		}
@@ -272,7 +272,7 @@ func TestUnit_Merge_RequiredByAPI(t *testing.T) {
 		bp := testBlueprint()
 
 		facts := []probe.Fact{
-			fact("key", probe.FactRequiredByAPI, probe.BoolValue(false), probe.Observed),
+			fact("key", probe.FactRequiredByAPI, probe.BoolValue(false), probe.ConfidenceObserved),
 		}
 
 		// Widening needs apply; annotate reports it instead.
@@ -332,7 +332,7 @@ func TestUnit_Merge_DangerousClaimsNeedCorroboration(t *testing.T) {
 			bp := testBlueprint()
 
 			// Observed is not enough.
-			result, err := Apply(&bp, []probe.Fact{fact("colour", tc.field, tc.value, probe.Observed)},
+			result, err := Apply(&bp, []probe.Fact{fact("colour", tc.field, tc.value, probe.ConfidenceObserved)},
 				Options{Strategy: StrategyApply})
 			if err != nil {
 				t.Fatalf("Apply: %v", err)
@@ -349,7 +349,7 @@ func TestUnit_Merge_DangerousClaimsNeedCorroboration(t *testing.T) {
 
 			// Corroborated is.
 			bp = testBlueprint()
-			result, err = Apply(&bp, []probe.Fact{fact("colour", tc.field, tc.value, probe.Corroborated)},
+			result, err = Apply(&bp, []probe.Fact{fact("colour", tc.field, tc.value, probe.ConfidenceCorroborated)},
 				Options{Strategy: StrategyApply})
 			if err != nil {
 				t.Fatalf("Apply: %v", err)
@@ -374,7 +374,7 @@ func TestUnit_Merge_ImmutableNeverSetsAPlanModifier(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactImmutable, probe.BoolValue(true), probe.Corroborated),
+		fact("colour", probe.FactImmutable, probe.BoolValue(true), probe.ConfidenceCorroborated),
 	}
 
 	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
@@ -415,8 +415,8 @@ func TestUnit_Merge_SuspectedFactsAreNeverApplied(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("colour", probe.FactWritable, probe.BoolValue(false), probe.Suspected),
-		fact("colour", probe.FactVolatile, probe.BoolValue(true), probe.Suspected),
+		fact("colour", probe.FactWritable, probe.BoolValue(false), probe.ConfidenceSuspected),
+		fact("colour", probe.FactVolatile, probe.BoolValue(true), probe.ConfidenceSuspected),
 	}
 
 	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
@@ -443,7 +443,7 @@ func TestUnit_Merge_ReadBackTurnsOnNeverOff(t *testing.T) {
 	t.Parallel()
 
 	on := probe.Fact{
-		Resource: "thing", Field: probe.FactReadBack, Confidence: probe.Observed, Probe: "test",
+		Resource: "thing", Field: probe.FactReadBack, Confidence: probe.ConfidenceObserved, Probe: "test",
 		Value:     probe.ReadBackValue(blueprint.ReadBack{Enabled: true, MaxRetries: 3, IntervalMS: 250}),
 		Evidence:  []string{"002-get-things-1"},
 		Rationale: "the first read after create answered 404",
@@ -506,8 +506,8 @@ func TestUnit_Merge_UpdateStyleIsNotOverwritten(t *testing.T) {
 	t.Parallel()
 
 	observed := probe.Fact{
-		Resource: "thing", Field: probe.FactUpdateStyle, Confidence: probe.Observed, Probe: "test",
-		Value:     probe.TextValue(string(blueprint.UpdateMergePatch)),
+		Resource: "thing", Field: probe.FactUpdateStyle, Confidence: probe.ConfidenceObserved, Probe: "test",
+		Value:     probe.TextValue(string(blueprint.UpdatePatchMerge)),
 		Evidence:  []string{"005-put-things-1"},
 		Rationale: "a field omitted from an update survived",
 	}
@@ -517,7 +517,7 @@ func TestUnit_Merge_UpdateStyleIsNotOverwritten(t *testing.T) {
 	if _, err := Apply(&bp, []probe.Fact{observed}, Options{}); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
-	if bp.Resources[0].Policy.UpdateStyle != blueprint.UpdateMergePatch {
+	if bp.Resources[0].Policy.UpdateStyle != blueprint.UpdatePatchMerge {
 		t.Errorf("updateStyle = %q, want it filled in", bp.Resources[0].Policy.UpdateStyle)
 	}
 
@@ -550,8 +550,8 @@ func TestUnit_Merge_AConditionalResourceLevelFactIsNotApplied(t *testing.T) {
 	t.Parallel()
 
 	conditional := probe.Fact{
-		Resource: "thing", Field: probe.FactUpdateStyle, Confidence: probe.Observed, Probe: "test",
-		Value:     probe.TextValue(string(blueprint.UpdateMergePatch)),
+		Resource: "thing", Field: probe.FactUpdateStyle, Confidence: probe.ConfidenceObserved, Probe: "test",
+		Value:     probe.TextValue(string(blueprint.UpdatePatchMerge)),
 		Evidence:  []string{"005-put-things-1"},
 		Rationale: "a field omitted from an update survived",
 		When:      []probe.Condition{{JSONPath: "type", Equals: "dynamic"}},
@@ -592,9 +592,9 @@ func TestUnit_Merge_AnIntegralFactIsARecommendationOnly(t *testing.T) {
 		t.Fatalf("Marshal: %v", err)
 	}
 
-	integral := fact("colour", probe.FactIntegral, probe.BoolValue(true), probe.Inferred)
+	integral := fact("colour", probe.FactIntegral, probe.BoolValue(true), probe.ConfidenceInferred)
 
-	res, err := Apply(&bp, []probe.Fact{integral}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{integral}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -625,7 +625,7 @@ func TestUnit_Merge_NestedFieldsAreReached(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("items.mode", probe.FactVolatile, probe.BoolValue(true), probe.Observed),
+		fact("items.mode", probe.FactVolatile, probe.BoolValue(true), probe.ConfidenceObserved),
 	}
 
 	result, err := Apply(&bp, facts, Options{})
@@ -653,10 +653,10 @@ func TestUnit_Merge_UnmatchedFactsAreReported(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{
-		fact("nonexistent", probe.FactVolatile, probe.BoolValue(true), probe.Observed),
+		fact("nonexistent", probe.FactVolatile, probe.BoolValue(true), probe.ConfidenceObserved),
 		{
 			Resource: "other", Field: probe.FactVolatile, Value: probe.BoolValue(true),
-			Confidence: probe.Observed, Probe: "test",
+			Confidence: probe.ConfidenceObserved, Probe: "test",
 			Evidence: []string{"x"}, Rationale: "y",
 		},
 	}
@@ -693,7 +693,7 @@ func TestUnit_Merge_UnrecognisedFactFieldIsReported(t *testing.T) {
 
 	bp := testBlueprint()
 
-	facts := []probe.Fact{fact("colour", "telepathy", probe.BoolValue(true), probe.Observed)}
+	facts := []probe.Fact{fact("colour", "telepathy", probe.BoolValue(true), probe.ConfidenceObserved)}
 
 	result, err := Apply(&bp, facts, Options{})
 	if err != nil {
@@ -719,13 +719,13 @@ func TestUnit_Merge_IsIdempotent(t *testing.T) {
 	facts := []probe.Fact{
 		fact("colour", probe.FactServerDefault,
 			probe.LiteralValue(blueprint.Literal{Kind: blueprint.KindString, Raw: `"blue"`}),
-			probe.Corroborated),
-		fact("colour", probe.FactVolatile, probe.BoolValue(false), probe.Observed),
-		fact("key", probe.FactRequiredByAPI, probe.BoolValue(true), probe.Observed),
+			probe.ConfidenceCorroborated),
+		fact("colour", probe.FactVolatile, probe.BoolValue(false), probe.ConfidenceObserved),
+		fact("key", probe.FactRequiredByAPI, probe.BoolValue(true), probe.ConfidenceObserved),
 	}
 
 	bp := testBlueprint()
-	opts := Options{Strategy: StrategyApply, SnapshotID: "1.0-t1785152261691"}
+	opts := Options{Strategy: StrategyApply, RecordingID: "1.0-t1785152261691"}
 
 	first, err := Apply(&bp, facts, opts)
 	if err != nil {
@@ -753,7 +753,7 @@ func TestUnit_Merge_IsIdempotent(t *testing.T) {
 
 	// Newer evidence *should* produce a visible one-line diff, so a reader can see which
 	// recording a description came from.
-	third, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "1.1-t9"})
+	third, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "1.1-t9"})
 	if err != nil {
 		t.Fatalf("third Apply: %v", err)
 	}
@@ -793,7 +793,7 @@ func TestUnit_Merge_DescriptionBlockHandling(t *testing.T) {
 	// The static channel owns its own block beside the live one: the SDK-type facts and a
 	// live recording are different evidence, and one overwriting the other is how re-merging
 	// a snapshot came to read as drift.
-	both := appendBlock(replaced, buildBlock([]string{"Static: z."}, StaticSnapshotID))
+	both := appendBlock(replaced, buildBlock([]string{"Static: z."}, StaticRecordingID))
 	if s, ok := channelBlock(both, true); !ok || !strings.Contains(s, "Static: z.") {
 		t.Errorf("the static block should be found beside the live one: %q", both)
 	}
@@ -841,7 +841,7 @@ func TestUnit_Merge_NotFoundIsSuccessMovesEitherWay(t *testing.T) {
 
 		f := probe.Fact{
 			Resource: "thing", Field: probe.FactNotFoundIsSuccess, Value: probe.BoolValue(want),
-			Confidence: probe.Observed, Probe: "test",
+			Confidence: probe.ConfidenceObserved, Probe: "test",
 			Evidence: []string{"001-get-things-999"}, Rationale: "observed",
 		}
 
@@ -862,12 +862,12 @@ func TestUnit_Merge_ObservedValueSetsAreStoredAsData(t *testing.T) {
 
 	facts := []probe.Fact{
 		fact("colour", probe.FactAcceptedValues,
-			probe.ListValue([]string{"blue", "red"}), probe.Observed),
+			probe.ListValue([]string{"blue", "red"}), probe.ConfidenceObserved),
 		fact("colour", probe.FactRejectedValues,
-			probe.ListValue([]string{"deprecated"}), probe.Observed),
+			probe.ListValue([]string{"deprecated"}), probe.ConfidenceObserved),
 	}
 
-	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "s1"})
+	result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "s1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -925,10 +925,10 @@ func TestUnit_Merge_ValuesClosedLandsOnTheAttribute(t *testing.T) {
 
 			bp := testBlueprint()
 			facts := []probe.Fact{
-				fact("colour", probe.FactValuesClosed, probe.BoolValue(tc.closed), probe.Observed),
+				fact("colour", probe.FactValuesClosed, probe.BoolValue(tc.closed), probe.ConfidenceObserved),
 			}
 
-			result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, SnapshotID: "s1"})
+			result, err := Apply(&bp, facts, Options{Strategy: StrategyApply, RecordingID: "s1"})
 			if err != nil {
 				t.Fatalf("Apply: %v", err)
 			}
@@ -1008,11 +1008,11 @@ func TestUnit_Merge_AConditionalFactBecomesABehaviourVariant(t *testing.T) {
 	bp := testBlueprint()
 
 	returned := conditional(
-		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.Corroborated),
+		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.ConfidenceCorroborated),
 		"objectType", "static",
 	)
 
-	res, err := Apply(&bp, []probe.Fact{returned}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{returned}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1080,11 +1080,11 @@ func TestUnit_Merge_AConditionalFactWithNoVariantHomeIsHeldBackAsProse(t *testin
 	bp := testBlueprint()
 
 	volatile := conditional(
-		fact("colour", probe.FactVolatile, probe.BoolValue(true), probe.Corroborated),
+		fact("colour", probe.FactVolatile, probe.BoolValue(true), probe.ConfidenceCorroborated),
 		"objectType", "static",
 	)
 
-	res, err := Apply(&bp, []probe.Fact{volatile}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{volatile}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1121,11 +1121,11 @@ func TestUnit_Merge_AConditionalFactContradictingTheBaseConflicts(t *testing.T) 
 	bp.Resources[0].Schema.Attributes[0].Behaviour.ReturnedOnRead = &staleFalse
 
 	branchTrue := conditional(
-		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(true), probe.Corroborated),
+		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(true), probe.ConfidenceCorroborated),
 		"objectType", "dynamic",
 	)
 
-	res, err := Apply(&bp, []probe.Fact{branchTrue}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{branchTrue}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1153,11 +1153,11 @@ func TestUnit_Merge_AConditionalWritableFalseStillNeedsCorroboration(t *testing.
 	bp := testBlueprint()
 
 	weak := conditional(
-		fact("colour", probe.FactWritable, probe.BoolValue(false), probe.Observed),
+		fact("colour", probe.FactWritable, probe.BoolValue(false), probe.ConfidenceObserved),
 		"objectType", "static",
 	)
 
-	res, err := Apply(&bp, []probe.Fact{weak}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{weak}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1179,19 +1179,19 @@ func TestUnit_Merge_VariantOrderDoesNotDependOnFactOrder(t *testing.T) {
 	t.Parallel()
 
 	forward := []probe.Fact{
-		conditional(fact("colour", probe.FactRequiredByAPI, probe.BoolValue(true), probe.Observed),
+		conditional(fact("colour", probe.FactRequiredByAPI, probe.BoolValue(true), probe.ConfidenceObserved),
 			"objectType", "dynamic"),
-		conditional(fact("colour", probe.FactRequiredByAPI, probe.BoolValue(false), probe.Observed),
+		conditional(fact("colour", probe.FactRequiredByAPI, probe.BoolValue(false), probe.ConfidenceObserved),
 			"objectType", "static"),
 	}
 	backward := []probe.Fact{forward[1], forward[0]}
 
 	one := testBlueprint()
-	if _, err := Apply(&one, forward, Options{SnapshotID: "snap-1"}); err != nil {
+	if _, err := Apply(&one, forward, Options{RecordingID: "snap-1"}); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	other := testBlueprint()
-	if _, err := Apply(&other, backward, Options{SnapshotID: "snap-1"}); err != nil {
+	if _, err := Apply(&other, backward, Options{RecordingID: "snap-1"}); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
@@ -1219,10 +1219,10 @@ func TestUnit_Merge_TheSameFactWithoutAConditionIsApplied(t *testing.T) {
 	bp := testBlueprint()
 
 	unconditional := fact(
-		"colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.Corroborated,
+		"colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.ConfidenceCorroborated,
 	)
 
-	res, err := Apply(&bp, []probe.Fact{unconditional}, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, []probe.Fact{unconditional}, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1253,16 +1253,16 @@ func TestUnit_Merge_ConditionalFactsFromBothBranchesBecomeSeparateVariants(t *te
 
 	facts := []probe.Fact{
 		conditional(
-			fact("colour", probe.FactRequiredByAPI, probe.BoolValue(true), probe.Observed),
+			fact("colour", probe.FactRequiredByAPI, probe.BoolValue(true), probe.ConfidenceObserved),
 			"objectType", "dynamic",
 		),
 		conditional(
-			fact("colour", probe.FactRequiredByAPI, probe.BoolValue(false), probe.Observed),
+			fact("colour", probe.FactRequiredByAPI, probe.BoolValue(false), probe.ConfidenceObserved),
 			"objectType", "static",
 		),
 	}
 
-	res, err := Apply(&bp, facts, Options{SnapshotID: "snap-1"})
+	res, err := Apply(&bp, facts, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -1313,15 +1313,15 @@ func TestUnit_Merge_AConditionalFactIsIdempotentOnASecondMerge(t *testing.T) {
 	bp := testBlueprint()
 
 	facts := []probe.Fact{conditional(
-		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.Corroborated),
+		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.ConfidenceCorroborated),
 		"objectType", "static",
 	)}
 
-	if _, err := Apply(&bp, facts, Options{SnapshotID: "snap-1"}); err != nil {
+	if _, err := Apply(&bp, facts, Options{RecordingID: "snap-1"}); err != nil {
 		t.Fatalf("first Apply: %v", err)
 	}
 
-	second, err := Apply(&bp, facts, Options{SnapshotID: "snap-1"})
+	second, err := Apply(&bp, facts, Options{RecordingID: "snap-1"})
 	if err != nil {
 		t.Fatalf("second Apply: %v", err)
 	}
@@ -1340,9 +1340,9 @@ func TestUnit_Merge_RehearsalEchoFactsLandOnTheAttribute(t *testing.T) {
 
 	bp := testBlueprint()
 	facts := []probe.Fact{
-		fact("colour", probe.FactReturnedOnCreate, probe.BoolValue(false), probe.Observed),
-		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.Observed),
-		fact("colour", probe.FactReturnedOnUpdate, probe.BoolValue(false), probe.Observed),
+		fact("colour", probe.FactReturnedOnCreate, probe.BoolValue(false), probe.ConfidenceObserved),
+		fact("colour", probe.FactReturnedOnRead, probe.BoolValue(false), probe.ConfidenceObserved),
+		fact("colour", probe.FactReturnedOnUpdate, probe.BoolValue(false), probe.ConfidenceObserved),
 	}
 
 	result, err := Apply(&bp, facts, Options{})
@@ -1378,7 +1378,7 @@ func TestUnit_Merge_AForcedValueNeedsCorroboration(t *testing.T) {
 
 	bp := testBlueprint()
 	result, err := Apply(&bp, []probe.Fact{
-		fact("colour", probe.FactServerForced, lit, probe.Observed),
+		fact("colour", probe.FactServerForced, lit, probe.ConfidenceObserved),
 	}, Options{})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
@@ -1392,7 +1392,7 @@ func TestUnit_Merge_AForcedValueNeedsCorroboration(t *testing.T) {
 
 	bp = testBlueprint()
 	result, err = Apply(&bp, []probe.Fact{
-		fact("colour", probe.FactServerForced, lit, probe.Corroborated),
+		fact("colour", probe.FactServerForced, lit, probe.ConfidenceCorroborated),
 	}, Options{})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
@@ -1423,7 +1423,7 @@ func TestUnit_Merge_AnUpdateDefaultDisagreeingWithTheCreateDefaultConflicts(t *t
 	result, err := Apply(&bp, []probe.Fact{
 		fact("colour", probe.FactUpdateDefault,
 			probe.LiteralValue(blueprint.Literal{Kind: blueprint.KindString, Raw: `"red"`}),
-			probe.Observed),
+			probe.ConfidenceObserved),
 	}, Options{})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
@@ -1449,7 +1449,7 @@ func TestUnit_Merge_UpdateResetsIsARecommendationAndProse(t *testing.T) {
 
 	bp := testBlueprint()
 	result, err := Apply(&bp, []probe.Fact{
-		fact("colour", probe.FactUpdateResets, probe.BoolValue(true), probe.Observed),
+		fact("colour", probe.FactUpdateResets, probe.BoolValue(true), probe.ConfidenceObserved),
 	}, Options{})
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
@@ -1472,7 +1472,7 @@ func TestUnit_Merge_ZeroValueUnsendableIsStaticEvidence(t *testing.T) {
 	t.Parallel()
 
 	bp := testBlueprint()
-	f := fact("colour", probe.FactZeroValueUnsendable, probe.BoolValue(true), probe.Corroborated)
+	f := fact("colour", probe.FactZeroValueUnsendable, probe.BoolValue(true), probe.ConfidenceCorroborated)
 	f.Evidence = []string{"static:things.CreateThingRequest.Colour json:\"colour,omitempty\""}
 
 	result, err := Apply(&bp, []probe.Fact{f}, Options{})

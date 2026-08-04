@@ -59,8 +59,8 @@ type ProfileSummary struct {
 
 // ProbeOutcome is what one probe did.
 type ProbeOutcome struct {
-	Name string `json:"name"`
-	Kind Kind   `json:"kind"`
+	Name string    `json:"name"`
+	Kind ProbeKind `json:"kind"`
 
 	// Status is one of "ok", "skipped", "abandoned" or "failed".
 	//
@@ -155,7 +155,7 @@ func (r *Report) Sort() {
 
 	sort.SliceStable(r.Probes, func(i, j int) bool {
 		if r.Probes[i].Kind != r.Probes[j].Kind {
-			return r.Probes[i].Kind == KindRead
+			return r.Probes[i].Kind == ProbeKindRead
 		}
 		return r.Probes[i].Name < r.Probes[j].Name
 	})

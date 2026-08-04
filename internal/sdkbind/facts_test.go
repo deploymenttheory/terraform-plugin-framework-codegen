@@ -40,7 +40,7 @@ func TestUnit_SDKBind_StaticFactsFindTheOmitemptyClass(t *testing.T) {
 	if f == nil {
 		t.Fatal("networkMeasurements on tests_api is the proven live case and must be found")
 	}
-	if f.Confidence != probe.Corroborated {
+	if f.Confidence != probe.ConfidenceCorroborated {
 		t.Errorf("a mechanical claim about the pinned SDK is Corroborated, got %s", f.Confidence)
 	}
 	if err := f.Validate(); err != nil {

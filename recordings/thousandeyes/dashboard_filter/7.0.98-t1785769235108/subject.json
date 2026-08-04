@@ -1,0 +1,167 @@
+{
+  "resource": "dashboard_filter",
+  "collectionTemplate": "/dashboards/filters",
+  "itemTemplate": "/dashboards/filters/{id}",
+  "create": {
+    "method": "POST",
+    "pathTemplate": "/dashboards/filters"
+  },
+  "read": {
+    "method": "GET",
+    "pathTemplate": "/dashboards/filters/{id}"
+  },
+  "update": {
+    "method": "PUT",
+    "pathTemplate": "/dashboards/filters/{id}"
+  },
+  "delete": {
+    "method": "DELETE",
+    "pathTemplate": "/dashboards/filters/{id}"
+  },
+  "fields": [
+    {
+      "jsonPath": "aid",
+      "attribute": "aid",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "context",
+      "attribute": "context",
+      "kind": "set_nested",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "context.dataSourceId",
+      "attribute": "data_source_id",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "context.filters",
+      "attribute": "filters",
+      "kind": "set_nested",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "context.filters.filterId",
+      "attribute": "filter_id",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "context.filters.metricIds",
+      "attribute": "metric_ids",
+      "kind": "set",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "context.filters.values",
+      "attribute": "values",
+      "kind": "set",
+      "computedOptionalRequired": "required",
+      "writable": true
+    },
+    {
+      "jsonPath": "createdBy",
+      "attribute": "created_by",
+      "kind": "single_nested",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "createdBy.name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "createdBy.uid",
+      "attribute": "uid",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "createdDate",
+      "attribute": "created_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false,
+      "constraints": {
+        "format": "date-time"
+      }
+    },
+    {
+      "jsonPath": "description",
+      "attribute": "description",
+      "kind": "string",
+      "computedOptionalRequired": "optional",
+      "writable": true,
+      "behaviour": {
+        "zeroValueUnsendable": true
+      }
+    },
+    {
+      "jsonPath": "id",
+      "attribute": "id",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedBy",
+      "attribute": "modified_by",
+      "kind": "single_nested",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedBy.name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedBy.uid",
+      "attribute": "uid",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false
+    },
+    {
+      "jsonPath": "modifiedDate",
+      "attribute": "modified_date",
+      "kind": "string",
+      "computedOptionalRequired": "computed",
+      "writable": false,
+      "constraints": {
+        "format": "date-time"
+      }
+    },
+    {
+      "jsonPath": "name",
+      "attribute": "name",
+      "kind": "string",
+      "computedOptionalRequired": "required",
+      "writable": true
+    }
+  ],
+  "policy": {
+    "updateStyle": "putFull",
+    "delete": {
+      "notFoundIsSuccess": true
+    }
+  },
+  "idField": "id",
+  "nameField": "name",
+  "evidenceRev": 1
+}

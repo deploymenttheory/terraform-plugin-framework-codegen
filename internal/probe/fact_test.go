@@ -14,7 +14,7 @@ func validFact() Fact {
 		JSONPath:   "colour",
 		Field:      FactWritable,
 		Value:      BoolValue(true),
-		Confidence: Observed,
+		Confidence: ConfidenceObserved,
 		Probe:      "write.writable-returned",
 		Evidence:   []string{"004-post-tags"},
 		Rationale:  "the value sent was read back unchanged",
@@ -78,19 +78,19 @@ func TestUnit_Probe_FactValidate(t *testing.T) {
 func TestUnit_Probe_ConfidenceOrdering(t *testing.T) {
 	t.Parallel()
 
-	if !Corroborated.AtLeast(Observed) {
+	if !ConfidenceCorroborated.AtLeast(ConfidenceObserved) {
 		t.Error("corroborated must be at least as strong as observed")
 	}
-	if Observed.AtLeast(Corroborated) {
+	if ConfidenceObserved.AtLeast(ConfidenceCorroborated) {
 		t.Error("observed must not satisfy a corroborated floor")
 	}
-	if !Observed.AtLeast(Inferred) {
+	if !ConfidenceObserved.AtLeast(ConfidenceInferred) {
 		t.Error("observed must be stronger than inferred")
 	}
-	if Suspected.AtLeast(Inferred) {
+	if ConfidenceSuspected.AtLeast(ConfidenceInferred) {
 		t.Error("suspected must be the weakest level")
 	}
-	if Confidence("invented").AtLeast(Suspected) {
+	if Confidence("invented").AtLeast(ConfidenceSuspected) {
 		t.Error("an unrecognised confidence must not satisfy any floor")
 	}
 }
@@ -225,7 +225,7 @@ func TestUnit_Probe_ValidateShapeChecksPreconditionsAtAnyConfidence(t *testing.T
 	t.Parallel()
 
 	f := validFact()
-	f.Confidence = Suspected
+	f.Confidence = ConfidenceSuspected
 	f.Evidence = nil
 	f.Rationale = ""
 

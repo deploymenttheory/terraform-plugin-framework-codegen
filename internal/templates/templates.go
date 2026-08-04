@@ -5,7 +5,7 @@
 // without reading the generator that drives it. That is the same reasoning the
 // sibling SDK generator uses, and it is the reason these files contain no logic:
 // every value they interpolate is a finished string precomputed in
-// internal/render, and the only conditionals are over presence.
+// internal/generate, and the only conditionals are over presence.
 //
 // If a template needs to decide something, the decision belongs in render.
 package templates

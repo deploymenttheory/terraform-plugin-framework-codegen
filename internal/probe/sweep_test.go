@@ -257,7 +257,7 @@ func TestUnit_Probe_SweepConfirmsA404BeforeBelievingIt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Intent: %v", err)
 	}
-	if err := l.Resolve(seq, KindCreated, "1", 201, ""); err != nil {
+	if err := l.Resolve(seq, EntryKindCreated, "1", 201, ""); err != nil {
 		t.Fatalf("Resolve: %v", err)
 	}
 

@@ -3,7 +3,7 @@
 //
 // An OpenAPI document does not record the facts that decide whether a provider
 // works: which fields are genuinely writable, which are immutable, what the server
-// normalises, what it defaults. internal/ingest is faithful to the specification and
+// normalises, what it defaults. internal/openapi is faithful to the specification and
 // therefore inherits its gaps, and the gaps are where perpetual diffs and spurious
 // replacements come from. This package settles them empirically and commits the HTTP
 // evidence.
@@ -51,19 +51,19 @@ import (
 // failure modes are reviewable before any request is issued.
 var errNotImplemented = errors.New("probe not implemented yet")
 
-// Kind separates probes that only read from probes that change things.
+// ProbeKind separates probes that only read from probes that change things.
 //
 // It exists for reporting and for -list. The actual enforcement is in the type
 // system: the two probe interfaces take different session types, so a read-only probe
 // cannot be given the means to mutate.
-type Kind string
+type ProbeKind string
 
 const (
-	// KindRead issues GET requests only. Safe against any API, including production.
-	KindRead Kind = "read"
-	// KindMutating creates, updates or deletes. Runs only behind the full gating
-	// conjunction in gate.go.
-	KindMutating Kind = "mutating"
+	// ProbeKindRead issues GET requests only. Safe against any API, including production.
+	ProbeKindRead ProbeKind = "read"
+	// ProbeKindMutating creates, updates or deletes. Runs only behind the full gating
+	// conjunction in guard.go.
+	ProbeKindMutating ProbeKind = "mutating"
 )
 
 // Response is one HTTP response, as much of it as a probe is allowed to see.
@@ -120,7 +120,7 @@ type ReadProbe interface {
 
 	// Kind is always KindRead. Stated rather than assumed so -list and the runner
 	// need no type switch.
-	Kind() Kind
+	Kind() ProbeKind
 
 	// Cost is the worst-case number of requests this probe will issue against the
 	// scope. It is what lets a plan be budgeted before anything is sent, and it is
@@ -146,7 +146,7 @@ type ReadProbe interface {
 // adding a call, and the session type it receives can only be constructed from a Grant.
 type MutatingProbe interface {
 	Name() string
-	Kind() Kind
+	Kind() ProbeKind
 	Cost(Scope) int
 
 	// Creates is the worst-case number of objects this probe brings into existence.
@@ -215,7 +215,7 @@ func mustBeNamed(name string) {
 // probe do not have to care which interface it implements.
 type Entry struct {
 	Name string
-	Kind Kind
+	Kind ProbeKind
 	// Cost is the worst-case request count against a given subject.
 	Cost int
 	// Creates is the worst-case number of objects created. Zero for every read probe,
@@ -232,12 +232,12 @@ func Catalogue(sc Scope) []Entry {
 	out := make([]Entry, 0, len(readProbes)+len(mutatingProbes))
 
 	for _, p := range readProbes {
-		out = append(out, Entry{Name: p.Name(), Kind: KindRead, Cost: p.Cost(sc)})
+		out = append(out, Entry{Name: p.Name(), Kind: ProbeKindRead, Cost: p.Cost(sc)})
 	}
 	for _, p := range mutatingProbes {
 		out = append(out, Entry{
 			Name:    p.Name(),
-			Kind:    KindMutating,
+			Kind:    ProbeKindMutating,
 			Cost:    p.Cost(sc),
 			Creates: p.Creates(sc),
 		})
@@ -245,7 +245,7 @@ func Catalogue(sc Scope) []Entry {
 
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].Kind != out[j].Kind {
-			return out[i].Kind == KindRead
+			return out[i].Kind == ProbeKindRead
 		}
 		return out[i].Name < out[j].Name
 	})
@@ -257,12 +257,12 @@ func Catalogue(sc Scope) []Entry {
 func Lookup(name string) (Entry, bool) {
 	for _, p := range readProbes {
 		if p.Name() == name {
-			return Entry{Name: p.Name(), Kind: KindRead}, true
+			return Entry{Name: p.Name(), Kind: ProbeKindRead}, true
 		}
 	}
 	for _, p := range mutatingProbes {
 		if p.Name() == name {
-			return Entry{Name: p.Name(), Kind: KindMutating}, true
+			return Entry{Name: p.Name(), Kind: ProbeKindMutating}, true
 		}
 	}
 	return Entry{}, false

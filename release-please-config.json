@@ -5,7 +5,7 @@
   "include-component-in-tag": false,
   "packages": {
     ".": {
-      "package-name": "tfpluginframeworkgen",
+      "package-name": "tfpfgen",
       "changelog-path": "CHANGELOG.md"
     }
   },

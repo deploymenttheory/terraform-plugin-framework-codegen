@@ -39,20 +39,20 @@ import (
 type EntryKind string
 
 const (
-	// KindIntent is written before a create request is sent.
-	KindIntent EntryKind = "intent"
-	// KindCreated resolves an intent: the object exists and we know its identifier.
-	KindCreated EntryKind = "created"
-	// KindRejected resolves an intent with no object having been made.
+	// EntryKindIntent is written before a create request is sent.
+	EntryKindIntent EntryKind = "intent"
+	// EntryKindCreated resolves an intent: the object exists and we know its identifier.
+	EntryKindCreated EntryKind = "created"
+	// EntryKindRejected resolves an intent with no object having been made.
 	//
 	// A 4xx is reliable evidence of that. A 5xx is not, which is why it resolves to nothing
 	// at all -- see MutatingSession.Create.
-	KindRejected EntryKind = "rejected"
-	// KindDeleted resolves a created object: it is gone.
-	KindDeleted EntryKind = "deleted"
-	// KindFailed records an attempt that neither created nor cleanly failed. The intent it
+	EntryKindRejected EntryKind = "rejected"
+	// EntryKindDeleted resolves a created object: it is gone.
+	EntryKindDeleted EntryKind = "deleted"
+	// EntryKindFailed records an attempt that neither created nor cleanly failed. The intent it
 	// belongs to stays outstanding, deliberately.
-	KindFailed EntryKind = "failed"
+	EntryKindFailed EntryKind = "failed"
 )
 
 // LedgerEntry is one ledger line.
@@ -100,7 +100,7 @@ func LedgerPath(root, provider, resource string) string {
 
 // OpenLedger reads any existing entries and then opens the file for appending.
 //
-// Reading first is what lets `probe -mode sweep` resume a previous run's ledger through the
+// Reading first is what lets `probe sweep` resume a previous run's ledger through the
 // same constructor: a sweep is not a fresh start, it is the continuation of a run that did
 // not finish.
 func OpenLedger(path string) (*Ledger, error) {
@@ -182,7 +182,7 @@ func ReadLedger(path string) ([]LedgerEntry, error) {
 			// unable to sweep, which is the one thing they need to be able to do.
 			if i == len(lines)-1 {
 				out = append(out, LedgerEntry{
-					Kind: KindIntent, Seq: nextSeq(out), Probe: "unknown",
+					Kind: EntryKindIntent, Seq: nextSeq(out), Probe: "unknown",
 					Reason: "the final ledger line was truncated, so this run may have created " +
 						"an object it never recorded",
 				})
@@ -220,7 +220,7 @@ func (l *Ledger) Intent(probe, path, name string) (int, error) {
 
 	l.seq++
 
-	e := LedgerEntry{Kind: KindIntent, Seq: l.seq, Probe: probe, Path: path, Name: name}
+	e := LedgerEntry{Kind: EntryKindIntent, Seq: l.seq, Probe: probe, Path: path, Name: name}
 
 	if err := l.append(e); err != nil {
 		// The sequence is not rolled back. A gap is harmless; a reused number would make two
@@ -274,7 +274,7 @@ func (l *Ledger) append(e LedgerEntry) error {
 
 func (l *Ledger) findLocked(seq int) (LedgerEntry, bool) {
 	for _, e := range l.entries {
-		if e.Seq == seq && e.Kind == KindIntent {
+		if e.Seq == seq && e.Kind == EntryKindIntent {
 			return e, true
 		}
 	}
@@ -354,7 +354,7 @@ func Unresolved(entries []LedgerEntry) []Outstanding {
 		}
 
 		switch e.Kind {
-		case KindIntent:
+		case EntryKindIntent:
 			s.intent = e
 			// An intent almost never carries a reason of its own. The exception is the
 			// synthetic one ReadLedger manufactures for a truncated final line, and that
@@ -363,13 +363,13 @@ func Unresolved(entries []LedgerEntry) []Outstanding {
 			if e.Reason != "" {
 				s.reason = e.Reason
 			}
-		case KindCreated:
-			s.resolved = KindCreated
+		case EntryKindCreated:
+			s.resolved = EntryKindCreated
 			s.id = e.ID
-		case KindDeleted, KindRejected:
+		case EntryKindDeleted, EntryKindRejected:
 			s.resolved = e.Kind
-		case KindFailed:
-			s.resolved = KindFailed
+		case EntryKindFailed:
+			s.resolved = EntryKindFailed
 			s.reason = e.Reason
 			if e.ID != "" {
 				s.id = e.ID
@@ -385,14 +385,14 @@ func Unresolved(entries []LedgerEntry) []Outstanding {
 		s := bySeq[seq]
 
 		switch s.resolved {
-		case KindDeleted, KindRejected:
+		case EntryKindDeleted, EntryKindRejected:
 			continue
 		}
 
 		reason := s.reason
 		switch {
 		case reason != "":
-		case s.resolved == KindCreated:
+		case s.resolved == EntryKindCreated:
 			reason = "created and not deleted"
 		default:
 			reason = "the create was issued and its outcome was never recorded, so an object " +
@@ -438,7 +438,7 @@ func DirtyError(path, resource string, outstanding []Outstanding) error {
 		}
 		fmt.Fprintf(&b, "  %s  %s  %s\n", id, o.Name, o.Reason)
 	}
-	fmt.Fprintf(&b, "\nsweep them first:\n  tfpluginframeworkgen probe -mode sweep -resource %s "+
+	fmt.Fprintf(&b, "\nsweep them first:\n  tfpfgen probe sweep -resource %s "+
 		"-profile <your profile>\n\nthe ledger is at %s", resource, path)
 
 	return fmt.Errorf("%w: %s", ErrDirtyLedger, b.String())

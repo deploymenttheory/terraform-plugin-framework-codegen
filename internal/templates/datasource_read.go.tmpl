@@ -19,7 +19,7 @@ func (d *{{ $.GoTypeName }}) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	tflog.Debug(ctx, "reading data source", map[string]any{"dataSource": DataSourceName})
+	tflog.Debug(ctx, "reading data source", map[string]any{"dataSource": TypeName})
 
 	ctx, cancel := crud.HandleTimeout(ctx, data.Timeouts.Read, ReadTimeout*time.Second, &resp.Diagnostics)
 	if cancel == nil {
@@ -33,7 +33,7 @@ func (d *{{ $.GoTypeName }}) Read(ctx context.Context, req datasource.ReadReques
 		// drop state: the practitioner named something that is not there, and silently
 		// returning nothing would leave whatever referenced it failing further on with
 		// no indication of why.
-		errors.Handle(&resp.Diagnostics, DataSourceName, {{ .ErrorOp }}, err)
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .ErrorOp }}, err)
 		return
 	}
 

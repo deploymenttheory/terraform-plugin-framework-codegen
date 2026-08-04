@@ -24,17 +24,17 @@ import (
 type Source string
 
 const (
-	// ObservedAccepted is a value the probe watched the API accept.
-	ObservedAccepted Source = "observed-accepted"
-	// ServerDefault is the value the API itself applied when the field was omitted.
-	ServerDefault Source = "server-default"
-	// Documented is a value the specification declares but nothing has exercised.
-	Documented Source = "documented"
-	// Synthesised is a value invented to be recognisable test debris.
-	Synthesised Source = "synthesised"
-	// Forced is the value the API substitutes whatever is sent. A fixture must carry
+	// SourceObservedAccepted is a value the probe watched the API accept.
+	SourceObservedAccepted Source = "observed-accepted"
+	// SourceServerDefault is the value the API itself applied when the field was omitted.
+	SourceServerDefault Source = "server-default"
+	// SourceDocumented is a value the specification declares but nothing has exercised.
+	SourceDocumented Source = "documented"
+	// SourceSynthesised is a value invented to be recognisable test debris.
+	SourceSynthesised Source = "synthesised"
+	// SourceForced is the value the API substitutes whatever is sent. A fixture must carry
 	// it: any other value plans a change the apply cannot deliver.
-	Forced Source = "forced"
+	SourceForced Source = "forced"
 )
 
 // Entry is one attribute's derived test value in wire-typed form, or the recorded
@@ -122,7 +122,7 @@ func Derive(a blueprint.Attribute, salt string) Entry {
 		return Entry{
 			Value:    parseLiteral(fv.Raw),
 			Verbatim: fv.Raw,
-			Source:   Forced,
+			Source:   SourceForced,
 			Note:     "the API forces this value, so no configured value can take effect",
 		}
 	}
@@ -160,13 +160,13 @@ func Derive(a blueprint.Attribute, salt string) Entry {
 		return stringEntry(a, salt)
 
 	case blueprint.KindBool:
-		return Entry{Value: true, Source: Synthesised}
+		return Entry{Value: true, Source: SourceSynthesised}
 
 	case blueprint.KindInt32, blueprint.KindInt64:
-		return Entry{Value: intWithinBounds(a.Type.Constraints), Source: Synthesised}
+		return Entry{Value: intWithinBounds(a.Type.Constraints), Source: SourceSynthesised}
 
 	case blueprint.KindFloat32, blueprint.KindFloat64, blueprint.KindNumber:
-		return Entry{Value: floatWithinBounds(a.Type.Constraints), Source: Synthesised}
+		return Entry{Value: floatWithinBounds(a.Type.Constraints), Source: SourceSynthesised}
 
 	case blueprint.KindList, blueprint.KindSet:
 		return collectionEntry(a)
@@ -194,11 +194,11 @@ func enumEntry(a blueprint.Attribute) (Entry, bool) {
 			)
 		}
 
-		return Entry{Value: accepted[0], Source: ObservedAccepted, Note: note}, true
+		return Entry{Value: accepted[0], Source: SourceObservedAccepted, Note: note}, true
 	}
 
 	if allowed := a.Type.AllowedValues; len(allowed) > 0 {
-		return Entry{Value: allowed[0], Source: Documented, Note: "documented; unprobed"}, true
+		return Entry{Value: allowed[0], Source: SourceDocumented, Note: "documented; unprobed"}, true
 	}
 
 	return Entry{}, false
@@ -240,7 +240,7 @@ func serverDefaultEntry(a blueprint.Attribute) (Entry, bool) {
 	return Entry{
 		Value:    parseLiteral(sd.Raw),
 		Verbatim: sd.Raw,
-		Source:   ServerDefault,
+		Source:   SourceServerDefault,
 		Note:     "the API's own default, so a value it is known to accept",
 	}, true
 }
@@ -307,7 +307,7 @@ func stringEntry(a blueprint.Attribute, salt string) Entry {
 	if v, ok := formatValue(c.Format); ok {
 		return Entry{
 			Value:  v,
-			Source: Synthesised,
+			Source: SourceSynthesised,
 			Note:   fmt.Sprintf("synthesised for the declared %s format", c.Format),
 		}
 	}
@@ -347,7 +347,7 @@ func stringEntry(a blueprint.Attribute, salt string) Entry {
 		value += strings.Repeat("x", int(*c.MinLength)-len(value))
 	}
 
-	return Entry{Value: value, Source: Synthesised}
+	return Entry{Value: value, Source: SourceSynthesised}
 }
 
 // collectionEntry derives a one-element list or set of scalars.
@@ -371,7 +371,7 @@ func collectionEntry(a blueprint.Attribute) Entry {
 		}
 	}
 
-	return Entry{Value: []any{elem.Value}, Source: Synthesised}
+	return Entry{Value: []any{elem.Value}, Source: SourceSynthesised}
 }
 
 // mapEntry derives a one-entry map of scalars.
@@ -392,7 +392,7 @@ func mapEntry(a blueprint.Attribute) Entry {
 		}
 	}
 
-	return Entry{Value: map[string]any{"tfacc": elem.Value}, Source: Synthesised}
+	return Entry{Value: map[string]any{"tfacc": elem.Value}, Source: SourceSynthesised}
 }
 
 // intWithinBounds picks an integer the declared range actually permits.

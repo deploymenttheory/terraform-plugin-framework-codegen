@@ -1,0 +1,200 @@
+package generate
+
+import (
+	"fmt"
+	"path"
+	"sort"
+	"strconv"
+	"strings"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+)
+
+// RegistrationView is the view for a provider registration file.
+//
+// These files are generated in full rather than patched. The archetype provider's
+// equivalent is 168 hand-maintained aliased imports, which is exactly the sort of
+// list a person should not be maintaining; owning the whole file also means the
+// drift check can police it, which a partially-generated file makes impossible.
+type RegistrationView struct {
+	Header  string
+	Package string
+	// Imports is the aliased import block for the registered packages.
+	Imports string
+	// Entries are the finished constructor references, e.g. "v7Tag.NewTagResource".
+	Entries []string
+}
+
+// Registration builds the view for the resource or data source registration file.
+func Registration(bp blueprint.Blueprint, kind RegistryKind, opts Options) RegistrationView {
+	v := RegistrationView{
+		Header:  GeneratedHeader(opts.BlueprintPath, opts.BlueprintSHA256),
+		Package: providerPackage(bp),
+	}
+
+	type entry struct{ alias, importPath, ctor string }
+	var entries []entry
+
+	switch kind {
+	case RegistryKindResources:
+		for _, r := range bp.Resources {
+			if r.Drop {
+				continue
+			}
+			entries = append(entries, entry{
+				alias:      r.GoPackageAlias,
+				importPath: resourcePackagePath(bp, r),
+				ctor:       "New" + r.GoTypeName,
+			})
+		}
+	case RegistryKindDataSources:
+		for _, d := range bp.DataSources {
+			if d.Drop {
+				continue
+			}
+			entries = append(entries, entry{
+				alias:      d.GoPackageAlias,
+				importPath: dataSourcePackagePath(bp, d),
+				ctor:       "New" + d.GoTypeName,
+			})
+		}
+	case RegistryKindActions:
+		for _, a := range bp.Actions {
+			if a.Drop {
+				continue
+			}
+			entries = append(entries, entry{
+				alias:      a.GoPackageAlias,
+				importPath: actionPackagePath(bp, a),
+				ctor:       "New" + a.GoTypeName,
+			})
+		}
+	case RegistryKindEphemerals:
+		for _, e := range bp.Ephemerals {
+			if e.Drop {
+				continue
+			}
+			entries = append(entries, entry{
+				alias:      e.GoPackageAlias,
+				importPath: ephemeralPackagePath(bp, e),
+				ctor:       "New" + e.GoTypeName,
+			})
+		}
+	case RegistryKindListResources:
+		// From the resources, not from a list of their own: a list resource is a facet, and
+		// it is registered because the resource it lists declares one. The import is the
+		// resource's package, since that is where the generated file lives.
+		for _, r := range bp.Resources {
+			if r.Drop || r.List == nil {
+				continue
+			}
+			entries = append(entries, entry{
+				alias:      r.GoPackageAlias,
+				importPath: resourcePackagePath(bp, r),
+				ctor:       "New" + r.List.GoTypeName,
+			})
+		}
+	}
+
+	// Sorted by alias so the file's contents do not depend on blueprint ordering.
+	// Without this the drift check would fire whenever a blueprint was reordered.
+	sort.Slice(entries, func(i, j int) bool { return entries[i].alias < entries[j].alias })
+
+	imports := make([]string, 0, len(entries))
+	for _, e := range entries {
+		imports = append(imports, fmt.Sprintf("%s %s", e.alias, strconv.Quote(e.importPath)))
+		v.Entries = append(v.Entries, e.alias+"."+e.ctor)
+	}
+	v.Imports = strings.Join(imports, "\n")
+
+	return v
+}
+
+// RegistryKind selects which registration file to render.
+type RegistryKind string
+
+const (
+	RegistryKindResources     RegistryKind = "resources"
+	RegistryKindDataSources   RegistryKind = "dataSources"
+	RegistryKindListResources RegistryKind = "listResources"
+	RegistryKindActions       RegistryKind = "actions"
+	RegistryKindEphemerals    RegistryKind = "ephemerals"
+)
+
+// providerPackage is the Go package name of the provider directory.
+func providerPackage(bp blueprint.Blueprint) string {
+	dir := bp.Provider.Conventions.ProviderPkgDir
+	if dir == "" {
+		return "provider"
+	}
+	return path.Base(dir)
+}
+
+// ResourceDir returns the repo-relative directory a resource is emitted into.
+func ResourceDir(bp blueprint.Blueprint, r blueprint.Resource) string {
+	return path.Join(
+		append([]string{root(bp.Provider.Conventions.ResourceRoot, "internal/services/resources")},
+			nonEmpty(r.ServiceGroup, r.APIVersionDir, r.GoPackage)...)...)
+}
+
+// DataSourceDir returns the repo-relative directory a data source is emitted into.
+func DataSourceDir(bp blueprint.Blueprint, d blueprint.DataSource) string {
+	return path.Join(
+		append(
+			[]string{root(bp.Provider.Conventions.DataSourceRoot, "internal/services/datasources")},
+			nonEmpty(d.ServiceGroup, d.APIVersionDir, d.GoPackage)...)...)
+}
+
+// ActionDir returns the repo-relative directory an action is emitted into.
+func ActionDir(bp blueprint.Blueprint, a blueprint.Action) string {
+	return path.Join(
+		append([]string{root(bp.Provider.Conventions.ActionRoot, "internal/services/actions")},
+			nonEmpty(a.ServiceGroup, a.APIVersionDir, a.GoPackage)...)...)
+}
+
+// EphemeralDir returns the repo-relative directory an ephemeral is emitted into.
+func EphemeralDir(bp blueprint.Blueprint, e blueprint.Ephemeral) string {
+	return path.Join(
+		append([]string{root(bp.Provider.Conventions.EphemeralRoot, "internal/services/ephemerals")},
+			nonEmpty(e.ServiceGroup, e.APIVersionDir, e.GoPackage)...)...)
+}
+
+// ProviderDir returns the repo-relative provider package directory.
+func ProviderDir(bp blueprint.Blueprint) string {
+	return root(bp.Provider.Conventions.ProviderPkgDir, "internal/provider")
+}
+
+func resourcePackagePath(bp blueprint.Blueprint, r blueprint.Resource) string {
+	return path.Join(bp.Provider.GoModule, ResourceDir(bp, r))
+}
+
+func dataSourcePackagePath(bp blueprint.Blueprint, d blueprint.DataSource) string {
+	return path.Join(bp.Provider.GoModule, DataSourceDir(bp, d))
+}
+
+func actionPackagePath(bp blueprint.Blueprint, a blueprint.Action) string {
+	return path.Join(bp.Provider.GoModule, ActionDir(bp, a))
+}
+
+func ephemeralPackagePath(bp blueprint.Blueprint, e blueprint.Ephemeral) string {
+	return path.Join(bp.Provider.GoModule, EphemeralDir(bp, e))
+}
+
+func root(configured, def string) string {
+	if configured != "" {
+		return configured
+	}
+	return def
+}
+
+// nonEmpty drops empty path components, so a resource with no service group does
+// not produce a doubled separator in its directory.
+func nonEmpty(parts ...string) []string {
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}

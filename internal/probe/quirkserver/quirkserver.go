@@ -26,26 +26,15 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe/apierr"
 )
 
-// EnvelopeKind is one of the error body shapes a real API uses.
-//
-// Four, because an API can genuinely use all four across one endpoint family -- see
-// internal/probe/apierr. A prober that assumed one shape could not tell "rejected because the
-// field is immutable" from "rejected because the token expired", and that distinction is what
-// makes the immutability protocol possible at all.
-type EnvelopeKind string
-
-const (
-	// EnvelopeProblem is RFC 7807 application/problem+json, used for validation failures.
-	EnvelopeProblem EnvelopeKind = "problem"
-	// EnvelopeOAuth is {"error","error_description"}, returned for an invalid token.
-	EnvelopeOAuth EnvelopeKind = "oauth"
-	// EnvelopeLegacy is {"errorMessage"}, returned when no credentials are supplied.
-	EnvelopeLegacy EnvelopeKind = "legacy"
-	// EnvelopeEmpty is no body at all, which is what a 404 returns.
-	EnvelopeEmpty EnvelopeKind = "empty"
-)
+// The error body shapes this server can answer with are apierr's Envelope enum:
+// the server and the classifier must agree on the shapes, so they are defined once,
+// in apierr. A prober that assumed one shape could not tell "rejected because the
+// field is immutable" from "rejected because the token expired", and that distinction
+// is what makes the immutability protocol possible at all.
 
 // Conditional describes a requirement that depends on another field's value.
 //
@@ -152,7 +141,7 @@ type Quirks struct {
 	EventuallyConsistentReads int
 
 	// ErrorEnvelope selects which shape errors take. Defaults to problem+json.
-	ErrorEnvelope EnvelopeKind
+	ErrorEnvelope apierr.Envelope
 
 	// ClosedEnum rejects values outside the listed set, per field.
 	ClosedEnum map[string][]string
@@ -844,12 +833,12 @@ func (s *Server) notFound(w http.ResponseWriter) {
 // fail writes an error in whichever envelope the quirks select.
 func (s *Server) fail(w http.ResponseWriter, status int, title, detail string) {
 	switch s.quirks.ErrorEnvelope {
-	case EnvelopeEmpty:
+	case apierr.EnvelopeEmpty:
 		// No body at all, which is what a real 404 returns and what the error classifier
 		// has to have a fallback for.
 		w.WriteHeader(status)
 
-	case EnvelopeOAuth:
+	case apierr.EnvelopeOAuth:
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		_ = json.NewEncoder(w).Encode(map[string]any{
@@ -857,14 +846,14 @@ func (s *Server) fail(w http.ResponseWriter, status int, title, detail string) {
 			"error_description": joinDetail(title, detail),
 		})
 
-	case EnvelopeLegacy:
+	case apierr.EnvelopeLegacy:
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"errorMessage": joinDetail(title, detail),
 		})
 
-	case EnvelopeProblem, "":
+	case apierr.EnvelopeProblem, "":
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(status)
 		body := map[string]any{

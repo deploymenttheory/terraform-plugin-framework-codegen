@@ -72,8 +72,8 @@ The document agrees — `readOnly: true` — and a fresh inference marks it `com
 blueprint has it `computed_optional`, which is wrong: nothing a practitioner writes there ever
 reaches the API. A tag is assigned to an object from the object's side.
 
-So the earlier plan to put `assignments` in a fixture was never going to work, and not because the
-identifier is unresolvable. It is not writable at all.
+So the earlier intention to put `assignments` in a payload was never going to work, and not
+because the identifier is unresolvable. It is not writable at all.
 
 ## What the prober is missing
 
@@ -91,23 +91,23 @@ consequences already visible in the pilot:
 
 ### What a probe would have to do
 
-1. **Vary a candidate gate field across its allowed values**, and re-run the existing per-field
-   probes under each — writability, requiredness, returned-on-read — rather than once against one
-   arbitrary fixture.
+1. **Vary a candidate dispatch field across its allowed values**, and re-run the existing
+   per-field probes under each — writability, requiredness, returned-on-read — rather than once
+   against one arbitrary payload.
 2. **Record the precondition with the fact.** A fact needs somewhere to say "when `objectType` is
    `endpoint-agent`", or the observation is a half-truth stored as a whole one.
 3. **Read the error body for co-requirements.** `filters: must not be empty` and
    `matchType: must not be null` arriving together, only under `type: dynamic`, is the API stating
    a conditional requirement outright. It is already in a response the prober receives.
-4. **Distinguish accepted-and-discarded from accepted-and-stored**, per gate value. `matchType` on
-   a static tag is the clearest case: 201, and the value is gone.
+4. **Distinguish accepted-and-discarded from accepted-and-stored**, per dispatch value.
+   `matchType` on a static tag is the clearest case: 201, and the value is gone.
 
 Until that exists, re-recording would only re-measure the same unconditional half-truths against a
 larger enum set. Which is why the re-record waits for the probe rather than the other way round.
 
-## The dynamic-branch fixture
+## The dynamic-branch payload
 
-Added to `blueprints/thousandeyes/probe.plan.json` as `endpoint-agent-tag`. Every field in it is
+Added to `blueprints/thousandeyes/tag.scenario.json` as `endpoint-agent-tag`. Every field in it is
 load-bearing, which is the point: this is the smallest body that reaches the dynamic branch at all,
 and each of the findings above is one of the reasons.
 
@@ -116,17 +116,17 @@ and each of the findings above is one of the reasons.
   "filters": [{ "key": "...", "mode": "in", "scope": "custom", "values": ["..."] }] }
 ```
 
-Cost, from `probe -list` before and after: 147 → 174 requests, 47 → 56 creates. Inside the plan's
-existing budget of 200 and 60, so no cap change. `write.required` is where the increase lands —
-16 → 30 requests — because it now omits fields from three fixtures instead of two, and that is
-exactly the probe whose disagreements become conditional facts.
+Cost, from `probe list` before and after: 147 → 174 requests, 47 → 56 creates. Inside the
+scenario's existing budget of 200 and 60, so no cap change. `write.required` is where the increase
+lands — 16 → 30 requests — because it now omits fields from three payloads instead of two, and
+that is exactly the probe whose disagreements become conditional facts.
 
-Verified by sending the fixture's own body: 201, and the response returns `matchType: "and"` where a
+Verified by sending the payload's own body: 201, and the response returns `matchType: "and"` where a
 static tag returned `null`. That is the conditional `returnedOnRead` finding confirmed from the
 other side, and it is what the re-record will now be able to observe.
 
 **One coverage consequence, stated rather than discovered.** `Scope.fixtureKeys` is deliberately
-cross-fixture — "a field one fixture sets is a field the operator has told us a valid value for, so
+cross-payload — "a field one payload sets is a field the operator has told us a valid value for, so
 it is not a candidate for what does the server do when this is omitted". Setting `matchType` and
 `filters` here therefore removes them from the omitted set, so the server-default protocol stops
 probing them. That is the design working: a valid dynamic body cannot omit either, so claiming to
@@ -135,11 +135,11 @@ know a valid value for them is simply true. Their omission behaviour is still co
 
 ## Consequences for the blueprint, as diagnosed at the time
 
-Each of these was a schema change whose evidence is above, and each changed the probe plan, so
+Each of these was a schema change whose evidence is above, and each changed the scenario, so
 they belonged with the re-record rather than before it. All are since applied — see the status
 section below.
 
-- `type`: must become writable, with its legal value gated on `object_type`.
+- `type`: must become writable, with its legal value decided by `object_type`.
 - `assignments`: must become `computed`. It is read-only in the document and discarded in practice.
 - `match_type`: `returnedOnRead` is conditional and currently applied unconditionally.
 - `object_type`: `endpoint-agent` is in `rejectedValues` and should not be.
@@ -156,7 +156,7 @@ conditional facts, and each finding above now lives in the blueprint as structur
 2. **A dynamic tag requires `matchType` and `filters`** — both carry
    `requiredByApi = true when objectType is "endpoint-agent" and type is "dynamic"`;
    the shared precondition *is* the co-requirement group. Conjunctive preconditions
-   have no single gate for a validator to read, so these two stay description-only.
+   have no single dispatch field for a validator to read, so these two stay description-only.
 3. **`matchType` is silently discarded on a static tag** — the unconditional
    `returnedOnRead: false` is gone; the truth is one variant per branch
    (`false when objectType is "test"`, `true when objectType is "endpoint-agent"`).
@@ -169,5 +169,5 @@ conditional facts, and each finding above now lives in the blueprint as structur
 
 `endpoint-agent` no longer appears in `objectType.rejectedValues`: its refusal blames
 `type`, and the error-attribution guard now declines to count it, while a documented
-value refused by its host fixture is retried in every other declared fixture before it
+value refused by its host payload is retried in every other declared payload before it
 is called rejected at all.

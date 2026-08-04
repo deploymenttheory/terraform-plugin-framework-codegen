@@ -166,9 +166,9 @@ func (r Result) Changed() bool { return len(r.Changes) > 0 }
 // Options configures a merge.
 type Options struct {
 	Strategy Strategy
-	// SnapshotID identifies the evidence, and goes into the regenerable description marker so
+	// RecordingID identifies the evidence, and goes into the regenerable description marker so
 	// re-merging the same snapshot is idempotent.
-	SnapshotID string
+	RecordingID string
 }
 
 // Apply folds facts into a blueprint, returning what changed and what was refused.
@@ -345,7 +345,7 @@ func applyConditionalFact(
 	// The same corroboration floor the unconditional path has, for the same reason: a branch
 	// observation still turns an attribute a practitioner can set into one they cannot.
 	if f.Field == probe.FactWritable {
-		if v := f.Value.Bool; v != nil && !*v && !f.Confidence.AtLeast(probe.Corroborated) {
+		if v := f.Value.Bool; v != nil && !*v && !f.Confidence.AtLeast(probe.ConfidenceCorroborated) {
 			result.Conflicts = append(result.Conflicts, needsCorroboration(res, path, f,
 				"writable=false "+f.Because()))
 			return true
@@ -490,7 +490,7 @@ func applyAttributeFacts(
 		// Suspected facts are report-only, by construction. A suspected fact is a prompt for
 		// somebody to look, not a conclusion, and letting one into the blueprint would put a
 		// claim there that no sequence actually supports.
-		if !f.Confidence.AtLeast(probe.Inferred) {
+		if !f.Confidence.AtLeast(probe.ConfidenceInferred) {
 			result.Ignored++
 			continue
 		}
@@ -522,7 +522,7 @@ func applyAttributeFacts(
 		case probe.FactWritable:
 			// Writable=false requires corroboration: it turns an attribute the practitioner
 			// can set into one they cannot, which they have no way to work around.
-			if v := f.Value.Bool; v != nil && !*v && !f.Confidence.AtLeast(probe.Corroborated) {
+			if v := f.Value.Bool; v != nil && !*v && !f.Confidence.AtLeast(probe.ConfidenceCorroborated) {
 				result.Conflicts = append(result.Conflicts, needsCorroboration(res, path, f,
 					"writable=false"))
 				continue
@@ -531,7 +531,7 @@ func applyAttributeFacts(
 			observations = append(observations, describeWritable(f))
 
 		case probe.FactImmutable:
-			if v := f.Value.Bool; v != nil && *v && !f.Confidence.AtLeast(probe.Corroborated) {
+			if v := f.Value.Bool; v != nil && *v && !f.Confidence.AtLeast(probe.ConfidenceCorroborated) {
 				result.Conflicts = append(result.Conflicts, needsCorroboration(res, path, f,
 					"immutable=true"))
 				continue
@@ -694,7 +694,7 @@ func applyAttributeFacts(
 
 		case probe.FactServerForced:
 			applyForcedValue(res, attr, path, f, result)
-			if f.Value.Literal != nil && f.Confidence.AtLeast(probe.Corroborated) {
+			if f.Value.Literal != nil && f.Confidence.AtLeast(probe.ConfidenceCorroborated) {
 				observations = append(observations, fmt.Sprintf(
 					"The API substitutes %s for whatever is sent here, so a configured "+
 						"value never takes effect.", f.Value.Literal.Raw))
@@ -755,13 +755,13 @@ func applyAttributeFacts(
 	}
 
 	if len(observations) > 0 {
-		rewriteDescription(attr, observations, opts.SnapshotID, res, path, result)
+		rewriteDescription(attr, observations, opts.RecordingID, res, path, result)
 	}
 }
 
 func applyResourceLevel(res *blueprint.Resource, facts []probe.Fact, result *Result) {
 	for _, f := range facts {
-		if !f.Confidence.AtLeast(probe.Inferred) {
+		if !f.Confidence.AtLeast(probe.ConfidenceInferred) {
 			result.Ignored++
 			continue
 		}
@@ -949,7 +949,7 @@ func applyServerDefault(
 	// *static* Default is not: it changes plan output for every existing configuration, which
 	// is a human's call.
 	if opts.Strategy == StrategyApply && attr.ComputedOptionalRequired == blueprint.Optional &&
-		f.Confidence.AtLeast(probe.Corroborated) {
+		f.Confidence.AtLeast(probe.ConfidenceCorroborated) {
 		result.Changes = append(result.Changes, Change{
 			Resource: res.Key,
 			JSONPath: path,
@@ -1028,7 +1028,7 @@ func applyForcedValue(
 		return
 	}
 
-	if !f.Confidence.AtLeast(probe.Corroborated) {
+	if !f.Confidence.AtLeast(probe.ConfidenceCorroborated) {
 		result.Conflicts = append(result.Conflicts, needsCorroboration(res, path, f,
 			"serverForced="+lit.Raw))
 		return

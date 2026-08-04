@@ -54,18 +54,18 @@ func validAction(mutate func(*Action)) Blueprint {
 func TestUnit_Blueprint_AnActionNeitherExpandsNorFlattens(t *testing.T) {
 	t.Parallel()
 
-	if BlockAction.Expands() {
+	if BlockKindAction.Expands() {
 		t.Error("an action sends arguments, not a request body, so it does not expand")
 	}
-	if BlockAction.Flattens() {
+	if BlockKindAction.Flattens() {
 		t.Error("an action writes nothing back, so it does not flatten")
 	}
 
 	// The kinds that do, still do.
-	if !BlockResource.Expands() {
+	if !BlockKindResource.Expands() {
 		t.Error("a resource expands")
 	}
-	for _, k := range []BlockKind{BlockResource, BlockDataSource, BlockEphemeral, BlockList} {
+	for _, k := range []BlockKind{BlockKindResource, BlockKindDataSource, BlockKindEphemeral, BlockKindList} {
 		if !k.Flattens() {
 			t.Errorf("%s reads values back, so it flattens", k)
 		}

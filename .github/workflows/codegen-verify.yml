@@ -1,7 +1,7 @@
 # Fails when the committed generated code no longer matches the blueprints it was
 # generated from.
 #
-# Everything under pilot/ is produced by cmd/tfpluginframeworkgen. Nothing stops a change
+# Everything under pilot/ is produced by cmd/tfpfgen. Nothing stops a change
 # to the generator, a template or a blueprint from landing without the output being
 # regenerated, and stale generated code compiles perfectly well -- so the drift
 # would be invisible. This regenerates and fails if anything moved.
@@ -16,8 +16,8 @@ on:
       - "blueprints/**"
       - "cmd/**"
       - "internal/**"
-      - "interop-specs/**"
-      - "probe-evidence/**"
+      - "specs/**"
+      - "recordings/**"
       - "pilot/**"
       - "go.mod"
       - "go.sum"
@@ -66,12 +66,12 @@ jobs:
       - name: Regenerate
         run: |
           echo "::group::🔁 Regenerating the pilot provider"
-          go run ./cmd/tfpluginframeworkgen emit \
+          go run ./cmd/tfpfgen provider generate \
             -blueprint blueprints/thousandeyes \
             -out pilot/thousandeyes
           echo "::endgroup::"
 
-      # git diff rather than `tfpluginframeworkgen verify`, deliberately. verify compares
+      # git diff rather than `tfpfgen provider generate -check`, deliberately. verify compares
       # the files the blueprints produce against disk, so it cannot see a stale file
       # the blueprints no longer produce. Diffing the worktree after a real
       # regeneration catches that too.
@@ -82,14 +82,14 @@ jobs:
             exit 0
           fi
 
-          echo "::error::Generated code is out of date. Run 'go run ./cmd/tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes' and commit the result."
+          echo "::error::Generated code is out of date. Run 'go run ./cmd/tfpfgen provider generate -blueprint blueprints/thousandeyes -out pilot/thousandeyes' and commit the result."
           {
             echo "### ❌ Generated code is out of date"
             echo ""
             echo "Run this locally and commit the result:"
             echo ""
             echo '```bash'
-            echo 'go run ./cmd/tfpluginframeworkgen emit -blueprint blueprints/thousandeyes -out pilot/thousandeyes'
+            echo 'go run ./cmd/tfpfgen provider generate -blueprint blueprints/thousandeyes -out pilot/thousandeyes'
             echo '```'
             echo ""
             echo "<details><summary>Files that differ</summary>"
@@ -196,10 +196,13 @@ jobs:
       - name: Verify bindings against the pinned SDK
         run: |
           echo "::group::🔗 Bindings"
-          go run ./cmd/tfpluginframeworkgen bindings \
+          go run ./cmd/tfpfgen bindings check \
+            -blueprint blueprints/thousandeyes \
+            -module pilot/thousandeyes
+          go run ./cmd/tfpfgen bindings facts \
             -blueprint blueprints/thousandeyes \
             -module pilot/thousandeyes \
-            -facts-check blueprints/thousandeyes/static.facts.json
+            -out blueprints/thousandeyes/static.facts.json -check
           echo "::endgroup::"
 
   interop:
@@ -231,17 +234,17 @@ jobs:
       - name: Re-export and diff
         run: |
           echo "::group::🔀 Exporting"
-          go run ./cmd/tfpluginframeworkgen interop export \
+          go run ./cmd/tfpfgen spec export \
             -blueprint blueprints/thousandeyes \
-            -out interop-specs/thousandeyes/provider-code-spec.json
+            -out specs/thousandeyes/provider-code-spec.json
           echo "::endgroup::"
 
-          if git diff --quiet -- interop-specs/; then
+          if git diff --quiet -- specs/; then
             echo "✅ The exported specification matches the blueprints."
             exit 0
           fi
 
-          echo "::error::interop-specs/ is out of date. Re-export it and commit the result."
+          echo "::error::specs/ is out of date. Re-export it and commit the result."
           {
             echo "### ❌ The exported specification is out of date"
             echo ""
@@ -249,16 +252,16 @@ jobs:
             # Double quotes with an escaped backslash, not a single-quoted string ending
             # in one: the latter reads as an attempt to escape the closing quote. The text
             # has no expansion in it, so the quoting style makes no other difference.
-            echo "go run ./cmd/tfpluginframeworkgen interop export \\"
+            echo "go run ./cmd/tfpfgen spec export \\"
             echo "  -blueprint blueprints/thousandeyes \\"
-            echo '  -out interop-specs/thousandeyes/provider-code-spec.json'
+            echo '  -out specs/thousandeyes/provider-code-spec.json'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-          git diff --stat -- interop-specs/
+          git diff --stat -- specs/
           exit 1
 
-      # This job is the reason internal/interop exists.
+      # This job is the reason internal/spec exists.
       #
       # Our own tests assert the export satisfies HashiCorp's embedded JSON schema,
       # which is a structural claim. It is not the same claim as "a tool can render
@@ -279,7 +282,7 @@ jobs:
 
           echo "::group::🏗️ Generating"
           tfplugingen-framework generate resources \
-            --input interop-specs/thousandeyes/provider-code-spec.json \
+            --input specs/thousandeyes/provider-code-spec.json \
             --output "$RUNNER_TEMP/gen"
           echo "::endgroup::"
 
@@ -362,22 +365,21 @@ jobs:
       - name: Verify facts reproduce with no network
         run: |
           echo "::group::🔬 Replaying committed cassettes"
-          go run ./cmd/tfpluginframeworkgen probe \
-            -blueprint blueprints/thousandeyes \
-            -mode verify
+          go run ./cmd/tfpfgen probe verify \
+            -blueprint blueprints/thousandeyes
           echo "::endgroup::"
 
       # Committed evidence that nobody has folded in is evidence nobody is acting on.
       - name: The blueprint reflects the recorded facts
         run: |
-          echo "::group::🔀 merge -check"
-          for facts in probe-evidence/*/*/*/facts.json; do
+          echo "::group::🔀 blueprint merge -check"
+          for facts in recordings/*/*/*/facts.json; do
             echo "checking $facts"
-            go run ./cmd/tfpluginframeworkgen merge \
+            go run ./cmd/tfpfgen blueprint merge \
               -blueprint blueprints/thousandeyes \
               -facts "$facts" \
               -check \
-              -accept-conflicts
+              -allow-conflicts
           done
           echo "::endgroup::"
 

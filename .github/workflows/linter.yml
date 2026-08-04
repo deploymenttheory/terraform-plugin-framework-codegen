@@ -142,7 +142,7 @@ jobs:
           #   ^pilot/.*        generated output. Third-party style opinions about
           #                    generated code are noise: the shape is decided by the
           #                    templates.
-          #   ^openapi-specs/. vendored third-party API documents, pinned verbatim
-          #   ^probe-evidence/ recorded HTTP cassettes and derived facts, replayed
+          #   ^openapi/. vendored third-party API documents, pinned verbatim
+          #   ^recordings/ recorded HTTP cassettes and derived facts, replayed
           #                    byte-for-byte by the probe verification job
-          FILTER_REGEX_EXCLUDE: '(.*\.md$|.*_test\.go$|.*/test/.*|.*\.json$|^pilot/.*|^openapi-specs/.*|^probe-evidence/.*)'
+          FILTER_REGEX_EXCLUDE: '(.*\.md$|.*_test\.go$|.*/test/.*|.*\.json$|^pilot/.*|^openapi/.*|^recordings/.*)'

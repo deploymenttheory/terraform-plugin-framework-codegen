@@ -184,7 +184,7 @@ func SubjectOf(bp blueprint.Blueprint, res blueprint.Resource) (Subject, error) 
 	item := res.Binding.Read.PathTemplate
 	if item == "" {
 		return Subject{}, fmt.Errorf("%w: %s records no path template on its read operation; "+
-			"run `tfpluginframeworkgen ingest` against a snapshot, or author binding.read.pathTemplate",
+			"run `tfpfgen blueprint draft` against a snapshot, or author binding.read.pathTemplate",
 			ErrNotProbeable, res.Key)
 	}
 

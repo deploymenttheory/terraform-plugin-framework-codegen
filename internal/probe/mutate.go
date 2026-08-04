@@ -123,7 +123,7 @@ func runMutatingProbes(
 	// Seeded with what the read tier established, so a mutating probe's precondition can be
 	// satisfied by a read-tier fact as readily as by an earlier mutating one -- and, later, by a
 	// committed facts document. The precondition is a fact, not a probe.
-	findings := NewFindings(report.Facts)
+	findings := NewFactSet(report.Facts)
 	s.cfg.Findings = findings
 
 	var halt error
@@ -134,7 +134,7 @@ func runMutatingProbes(
 			// finish and why. Silence would read as "these probes had nothing to say".
 			report.Probes = append(report.Probes, ProbeOutcome{
 				Name:   p.Name(),
-				Kind:   KindMutating,
+				Kind:   ProbeKindMutating,
 				Status: "skipped",
 				Reason: "the run stopped earlier: " + halt.Error(),
 			})
@@ -176,7 +176,7 @@ func runOneMutating(
 	sc Scope,
 	opts RunOptions,
 ) (ProbeOutcome, Result, error) {
-	outcome := ProbeOutcome{Name: p.Name(), Kind: KindMutating}
+	outcome := ProbeOutcome{Name: p.Name(), Kind: ProbeKindMutating}
 
 	result, err := exercise(ctx, s, p, sc)
 

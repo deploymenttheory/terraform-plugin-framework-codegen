@@ -18,7 +18,7 @@ import (
 // Grant is proof that mutating probes were authorised.
 //
 // It has no exported fields and exactly one constructor, which performs the whole
-// gating conjunction: record mode, the --allow-mutations flag, a profile declaring
+// gating conjunction: the record verb, the -allow-mutations flag, a profile declaring
 // sandbox with human-written evidence, every runtime assertion passing against the live
 // tenant, the token present in the environment, and nothing credential-shaped in the
 // profile itself.
@@ -176,7 +176,7 @@ type MutationConfig struct {
 	// probe's window onto the run -- it carries the ledger and the read-back measurement for the
 	// same reason. Read-only from a probe's side: the runner adds to it after each probe
 	// returns, so there is exactly one writer.
-	Findings *Findings
+	Findings *FactSet
 
 	// Rehearsal is write.rehearsal's configuration, carried the same way Findings is
 	// and for the same reason: the session is a probe's window onto the run.
@@ -275,13 +275,13 @@ func (s *MutatingSession) Create(
 		// A transport error is the ambiguous case, and it is left outstanding deliberately: a
 		// timeout is indistinguishable from a create that succeeded on a connection that then
 		// dropped.
-		_ = s.cfg.Ledger.Resolve(seq, KindFailed, "", 0, err.Error())
+		_ = s.cfg.Ledger.Resolve(seq, EntryKindFailed, "", 0, err.Error())
 		return nil, "", err
 	}
 
 	switch {
 	case resp.Status >= 400 && resp.Status < 500:
-		if rErr := s.cfg.Ledger.Resolve(seq, KindRejected, "", resp.Status, ""); rErr != nil {
+		if rErr := s.cfg.Ledger.Resolve(seq, EntryKindRejected, "", resp.Status, ""); rErr != nil {
 			return resp, "", rErr
 		}
 		// Not an error: a refused create is an observation, and several probes exist to
@@ -289,7 +289,7 @@ func (s *MutatingSession) Create(
 		return resp, "", nil
 
 	case resp.Status >= 500:
-		_ = s.cfg.Ledger.Resolve(seq, KindFailed, "", resp.Status, "server error")
+		_ = s.cfg.Ledger.Resolve(seq, EntryKindFailed, "", resp.Status, "server error")
 		return resp, "", nil
 	}
 
@@ -297,14 +297,14 @@ func (s *MutatingSession) Create(
 	if id == "" {
 		// The object exists and the intent stays outstanding with only a name, which is
 		// precisely the case the prefix pass of the sweeper is for.
-		_ = s.cfg.Ledger.Resolve(seq, KindFailed, "", resp.Status,
+		_ = s.cfg.Ledger.Resolve(seq, EntryKindFailed, "", resp.Status,
 			"created, but no identifier could be read from the response")
 
 		return resp, "", fmt.Errorf("%w: %s created an object but the response carried no %q; "+
 			"the prefix sweep will remove it", ErrNoIdentifier, probe, s.cfg.IDField)
 	}
 
-	if err := s.cfg.Ledger.Resolve(seq, KindCreated, id, resp.Status, ""); err != nil {
+	if err := s.cfg.Ledger.Resolve(seq, EntryKindCreated, id, resp.Status, ""); err != nil {
 		return resp, id, err
 	}
 
@@ -440,7 +440,7 @@ func (s *MutatingSession) failedDelete(id, why string) error {
 func (s *MutatingSession) markDeleted(id string, status int) error {
 	for _, o := range Unresolved(s.cfg.Ledger.Entries()) {
 		if o.ID == id {
-			return s.cfg.Ledger.Resolve(o.Seq, KindDeleted, id, status, "")
+			return s.cfg.Ledger.Resolve(o.Seq, EntryKindDeleted, id, status, "")
 		}
 	}
 
@@ -570,9 +570,9 @@ func (s *MutatingSession) ReadBack() ReadBackMeasurement { return s.readBack }
 //
 // Never nil, so a probe need not guard: a run with nothing established yet answers "not settled"
 // to every question, which is the correct answer.
-func (s *MutatingSession) Findings() *Findings {
+func (s *MutatingSession) Findings() *FactSet {
 	if s.cfg.Findings == nil {
-		return NewFindings(nil)
+		return NewFactSet(nil)
 	}
 
 	return s.cfg.Findings
@@ -589,7 +589,7 @@ func (s *MutatingSession) resolveByName(name, id string) {
 
 	for _, o := range Unresolved(s.cfg.Ledger.Entries()) {
 		if o.Name == name {
-			_ = s.cfg.Ledger.Resolve(o.Seq, KindDeleted, id, 0, "removed by the prefix sweep")
+			_ = s.cfg.Ledger.Resolve(o.Seq, EntryKindDeleted, id, 0, "removed by the prefix sweep")
 			return
 		}
 	}

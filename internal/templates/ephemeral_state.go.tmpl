@@ -19,7 +19,7 @@ func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote *
 
 	if remote == nil {
 		tflog.Debug(ctx, "remote object is nil, leaving the result untouched", map[string]any{
-			"ephemeral": EphemeralName,
+			"ephemeral": TypeName,
 		})
 		return diags
 	}
@@ -27,7 +27,7 @@ func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote *
 func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote *{{ .State.ResponseType }}) {
 	if remote == nil {
 		tflog.Debug(ctx, "remote object is nil, leaving the result untouched", map[string]any{
-			"ephemeral": EphemeralName,
+			"ephemeral": TypeName,
 		})
 		return
 	}
@@ -36,7 +36,7 @@ func mapRemoteToResult(ctx context.Context, data *{{ .ModelTypeName }}, remote *
 	{{ . }}
 {{- end }}
 
-	tflog.Debug(ctx, "mapped remote result", map[string]any{"ephemeral": EphemeralName})
+	tflog.Debug(ctx, "mapped remote result", map[string]any{"ephemeral": TypeName})
 {{- if .State.NeedsDiagnostics }}
 
 	return diags

@@ -12,4 +12,4 @@ skip-path:
   # See the note in trivy.yaml. The pinned ThousandEyes document's
   # client-certificate example is a sample PEM, not a credential, and the document is
   # committed verbatim so it cannot be edited to satisfy a scanner.
-  - openapi-specs
+  - openapi

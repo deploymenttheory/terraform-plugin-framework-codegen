@@ -182,7 +182,7 @@ func TestUnit_Probe_AConditionalFactValidatesLikeAnyOther(t *testing.T) {
 
 	sound := Fact{
 		Resource: "tag", JSONPath: "matchType", Field: FactRequiredByAPI,
-		Value: BoolValue(true), Confidence: Observed, Probe: "write.required",
+		Value: BoolValue(true), Confidence: ConfidenceObserved, Probe: "write.required",
 		Evidence: []string{"i-1"}, Rationale: "refused",
 		When: []Condition{{JSONPath: "objectType", Equals: "endpoint-agent"}},
 	}
@@ -245,7 +245,7 @@ func TestUnit_Probe_AnUnconditionalFactIsUnchanged(t *testing.T) {
 
 	f := Fact{
 		Resource: "tag", JSONPath: "colour", Field: FactServerDefault,
-		Value: TextValue("#A7EB10"), Confidence: Corroborated, Probe: "write.default",
+		Value: TextValue("#A7EB10"), Confidence: ConfidenceCorroborated, Probe: "write.default",
 		Evidence: []string{"i-1"}, Rationale: "observed",
 	}
 

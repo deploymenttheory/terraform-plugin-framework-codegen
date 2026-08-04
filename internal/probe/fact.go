@@ -16,35 +16,35 @@ import (
 type Confidence string
 
 const (
-	// Observed means the fact follows from the responses by one unambiguous reading,
+	// ConfidenceObserved means the fact follows from the responses by one unambiguous reading,
 	// and the sequence eliminated the alternatives named on the fact.
-	Observed Confidence = "observed"
+	ConfidenceObserved Confidence = "observed"
 
-	// Corroborated means observed twice, with independent fixtures or values. It is
+	// ConfidenceCorroborated means observed twice, with independent fixtures or values. It is
 	// *required* for Immutable=true and Writable=false, because both of those drive
 	// changes a practitioner cannot work around.
-	Corroborated Confidence = "corroborated"
+	ConfidenceCorroborated Confidence = "corroborated"
 
-	// Inferred means the fact follows from the responses plus an assumption, which is
+	// ConfidenceInferred means the fact follows from the responses plus an assumption, which is
 	// stated in Alternatives. Merge may write it into Behaviour but must never let it
 	// change an attribute's presence.
-	Inferred Confidence = "inferred"
+	ConfidenceInferred Confidence = "inferred"
 
-	// Suspected means one ambiguous observation. Reported, never written. A suspected
+	// ConfidenceSuspected means one ambiguous observation. Reported, never written. A suspected
 	// fact is a prompt for a human to look, not a conclusion.
-	Suspected Confidence = "suspected"
+	ConfidenceSuspected Confidence = "suspected"
 )
 
 // rank orders confidence, strongest first.
 func (c Confidence) rank() int {
 	switch c {
-	case Corroborated:
+	case ConfidenceCorroborated:
 		return 0
-	case Observed:
+	case ConfidenceObserved:
 		return 1
-	case Inferred:
+	case ConfidenceInferred:
 		return 2
-	case Suspected:
+	case ConfidenceSuspected:
 		return 3
 	default:
 		return 4
@@ -425,7 +425,7 @@ var knownFactFields = map[FactField]bool{
 }
 
 var knownConfidence = map[Confidence]bool{
-	Observed: true, Corroborated: true, Inferred: true, Suspected: true,
+	ConfidenceObserved: true, ConfidenceCorroborated: true, ConfidenceInferred: true, ConfidenceSuspected: true,
 }
 
 // SortFacts orders facts so a committed document is byte-stable.

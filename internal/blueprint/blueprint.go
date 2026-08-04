@@ -5,7 +5,7 @@
 // describe a schema and nothing else — it has no representation for CRUD wiring,
 // for the SDK symbols a resource calls, for observed API behaviour, or for test
 // scaffolding. Those are most of what a working provider is, so the blueprint
-// carries them and the official format is something internal/interop reads and
+// carries them and the official format is something internal/spec reads and
 // writes rather than this package's model.
 //
 // Three conventions run through the types and are worth knowing before reading
@@ -205,7 +205,7 @@ type Resource struct {
 
 	// Sweep overrides the prober's name-field inference for this resource.
 	//
-	// On the resource rather than the probe plan, because `probe -mode sweep` builds its
+	// On the resource rather than the probe plan, because `probe sweep` builds its
 	// subject from the blueprint alone -- a sweep is exactly the situation where no plan
 	// may be to hand, and the field that finds stranded objects cannot depend on one.
 	// Absent means the prober infers the field itself.
@@ -1111,8 +1111,8 @@ func (b Behaviour) IsZero() bool {
 type UpdateStyle string
 
 const (
-	// UpdateMergePatch leaves omitted fields alone.
-	UpdateMergePatch UpdateStyle = "patchMerge"
+	// UpdatePatchMerge leaves omitted fields alone.
+	UpdatePatchMerge UpdateStyle = "patchMerge"
 	// UpdatePutFull clears omitted fields, so the request must carry the whole
 	// object. The ThousandEyes tag endpoint is PUT, and getting this wrong
 	// silently erases attributes the practitioner did not mention.

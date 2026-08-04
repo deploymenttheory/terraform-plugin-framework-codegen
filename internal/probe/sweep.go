@@ -107,7 +107,7 @@ func SweepContext(parent context.Context, maxSeconds int) (context.Context, cont
 	)
 }
 
-// SweepRunOptions is what `probe -mode sweep` needs.
+// SweepRunOptions is what `probe sweep` needs.
 //
 // A separate entry point rather than an exported constructor, because newMutatingSession is
 // unexported on purpose: a caller that could build one could write to an API without a grant.
@@ -308,7 +308,7 @@ func (opts SweepOptions) sweepByPrefix(ctx context.Context, summary *SweepSummar
 			if o.ID != "" || present[o.Name] || !strings.HasPrefix(o.Name, opts.NamePrefix) {
 				continue
 			}
-			_ = opts.Session.cfg.Ledger.Resolve(o.Seq, KindRejected, "", 0,
+			_ = opts.Session.cfg.Ledger.Resolve(o.Seq, EntryKindRejected, "", 0,
 				"absent from a complete collection read: the create never took effect")
 			summary.Notes = append(summary.Notes, Note{
 				Probe: "sweep.prefix",
