@@ -19,6 +19,7 @@ order `help` prints them.
 | Command | Purpose | Verbs |
 |---|---|---|
 | `openapi` | fetch and pin upstream OpenAPI documents | `fetch` |
+| `sdk` | generate a Go SDK from a pinned OpenAPI snapshot | `generate` |
 | `blueprint` | draft, merge, validate, diff or list blueprints | `draft`, `merge`; `validate`, `diff`, `list` planned |
 | `probe` | exercise a resource's lifecycle; record or replay cassettes | `record`, `replay`, `verify`, `sweep`, `list` |
 | `provider` | generate a terraform-plugin-framework provider from blueprints | `generate`, `push`; `scaffold` planned |
@@ -117,6 +118,47 @@ upstream document identical to the latest snapshot pins nothing and exits `0` �
 the weekly refresh should be quiet when there is nothing to review. The fetch is
 bounded at two minutes: a document is a couple of megabytes, and anything slower
 is a network problem worth hearing about.
+
+## `sdk`
+
+### `sdk generate`
+
+Generates a Go SDK from a pinned OpenAPI snapshot with [Microsoft
+Kiota](https://github.com/microsoft/kiota), so a provider can bind to an SDK
+that is itself derived from the same document the blueprints were drafted from.
+
+```
+tfpfgen sdk generate [-openapi-dir DIR] [-snapshot NAME] -out DIR [-mode embed|external] [-module PATH] [-client-name NAME] [-check] [-dry-run]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-openapi-dir` | `openapi/thousandeyes` | directory holding pinned OpenAPI snapshots |
+| `-snapshot` | the newest | snapshot to read |
+| `-out` | — | SDK root to write into (required) |
+| `-mode` | `embed` | `embed` generates under the enclosing module; `external` emits a standalone tree with its own go.mod |
+| `-module` | derived / — | Go import path of the SDK root; derived from the enclosing go.mod under `embed`, required under `external` |
+| `-client-name` | `ApiClient` | root client type name |
+| `-include` | — | restrict to these API path globs, e.g. `/tags/**`; comma-separate several |
+| `-exclude` | — | drop these API path globs; comma-separate several |
+| `-clean` | `false` | delete files a previous generation produced that this one does not |
+| `-check` | `false` | write nothing and exit 1 if the committed SDK has drifted from the snapshot or the pinned kiota version |
+| `-dry-run` | `false` | print the resolved snapshot and invocation, run nothing |
+
+`kiota` is a PATH tool, like git and terraform — this command never downloads
+it. Determinism comes from a refusal instead: kiota's own `kiota-lock.json`,
+written into the output and committed, records the version that produced the
+tree, and `sdk generate` refuses to run a different one, naming both. Output is
+deterministic for a given (kiota version, snapshot, parameters) and is passed
+through the same gofumpt form the provider generator uses.
+
+Under `-mode embed` the SDK lands inside the provider's module (kiota's
+intended layout: the import path is the module path plus the output
+directory), so `bindings check`, the drift checks and `provider push` all see
+one module. Under `-mode external` the tree gets a minimal generated `go.mod`
+(then `go mod tidy` resolves the kiota runtime modules) and is ready for its
+own repository. `-check` regenerates into scratch and byte-compares — the only
+proof that the committed tree still follows from the pinned snapshot.
 
 ## `blueprint`
 
