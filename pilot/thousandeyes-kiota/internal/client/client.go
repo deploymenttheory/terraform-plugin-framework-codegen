@@ -79,7 +79,22 @@ func New(cfg Config) (*sdk.ThousandEyesClient, error) {
 		validator: validator,
 	})
 
-	adapter, err := kiotahttp.NewNetHttpRequestAdapter(authProvider)
+	// Request-body compression is off, and this is load-bearing rather than a
+	// preference: kiota's default middleware gzips every request body and sets
+	// Content-Encoding, which the ThousandEyes API answers with a bare 400 --
+	// the first live acceptance run of this pilot found exactly that. The
+	// resty pilot has always sent plain JSON; this client must match the wire
+	// behaviour the recorded evidence was gathered under.
+	middlewares, err := kiotahttp.GetDefaultMiddlewaresWithOptions(
+		kiotahttp.NewCompressionOptionsReference(false),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("building the HTTP middleware: %w", err)
+	}
+
+	adapter, err := kiotahttp.NewNetHttpRequestAdapterWithParseNodeFactoryAndSerializationWriterFactoryAndHttpClient(
+		authProvider, nil, nil, kiotahttp.GetDefaultClient(middlewares...),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("building the ThousandEyes client: %w", err)
 	}
