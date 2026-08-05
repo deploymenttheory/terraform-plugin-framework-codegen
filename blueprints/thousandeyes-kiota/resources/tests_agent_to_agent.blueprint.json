@@ -403,7 +403,7 @@
               "sdkField": "CreatedBy",
               "sdkGoType": "*string",
               "flatten": {
-                "func": "convert.PtrStringToFramework"
+                "func": "convert.PtrEnumToFramework"
               },
               "skipExpand": true
             }
@@ -497,7 +497,7 @@
               "sdkField": "Dscp",
               "sdkGoType": "*string",
               "flatten": {
-                "func": "convert.PtrStringToFramework"
+                "func": "convert.PtrEnumToFramework"
               },
               "skipExpand": true
             }
@@ -1278,7 +1278,7 @@
                 "func": "convert.FrameworkToPtrString"
               },
               "flatten": {
-                "func": "convert.PtrStringToFramework"
+                "func": "convert.PtrEnumToFramework"
               }
             }
           },
