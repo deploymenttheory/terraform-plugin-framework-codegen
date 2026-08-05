@@ -76,8 +76,6 @@ type Dashboards_API_ApiColorGridWidget struct {
 func NewDashboards_API_ApiColorGridWidget() *Dashboards_API_ApiColorGridWidget {
 	m := &Dashboards_API_ApiColorGridWidget{}
 	m.SetAdditionalData(make(map[string]any))
-	visualModeValue := FULL_DASHBOARDS_API_VISUALMODE
-	m.SetVisualMode(&visualModeValue)
 	return m
 }
 

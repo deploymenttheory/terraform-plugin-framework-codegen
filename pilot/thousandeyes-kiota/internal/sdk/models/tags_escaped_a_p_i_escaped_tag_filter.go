@@ -24,8 +24,6 @@ type Tags_API_TagFilter struct {
 func NewTags_API_TagFilter() *Tags_API_TagFilter {
 	m := &Tags_API_TagFilter{}
 	m.SetAdditionalData(make(map[string]any))
-	scopeValue := DEFAULT_TAGS_API_TAGFILTERSCOPE
-	m.SetScope(&scopeValue)
 	return m
 }
 

@@ -146,54 +146,6 @@ type Instant_Tests_API_PageLoadInstantTestRequest struct {
 func NewInstant_Tests_API_PageLoadInstantTestRequest() *Instant_Tests_API_PageLoadInstantTestRequest {
 	m := &Instant_Tests_API_PageLoadInstantTestRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	allowGeolocationValue := false
-	m.SetAllowGeolocation(&allowGeolocationValue)
-	allowMicAndCameraValue := false
-	m.SetAllowMicAndCamera(&allowMicAndCameraValue)
-	allowUnsafeLegacyRenegotiationValue := true
-	m.SetAllowUnsafeLegacyRenegotiation(&allowUnsafeLegacyRenegotiationValue)
-	authTypeValue := NONE_INSTANT_TESTS_API_TESTAUTHTYPE
-	m.SetAuthType(&authTypeValue)
-	chromePoliciesValue := "{}"
-	m.SetChromePolicies(&chromePoliciesValue)
-	collectProxyNetworkDataValue := false
-	m.SetCollectProxyNetworkData(&collectProxyNetworkDataValue)
-	desiredStatusCodeValue := "default"
-	m.SetDesiredStatusCode(&desiredStatusCodeValue)
-	disableScreenshotValue := false
-	m.SetDisableScreenshot(&disableScreenshotValue)
-	followRedirectsValue := true
-	m.SetFollowRedirects(&followRedirectsValue)
-	httpTimeLimitValue := int32(5)
-	m.SetHttpTimeLimit(&httpTimeLimitValue)
-	httpVersionValue := int32(2)
-	m.SetHttpVersion(&httpVersionValue)
-	identifyAgentTrafficWithUserAgentValue := false
-	m.SetIdentifyAgentTrafficWithUserAgent(&identifyAgentTrafficWithUserAgentValue)
-	includeHeadersValue := true
-	m.SetIncludeHeaders(&includeHeadersValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	overrideAgentProxyValue := false
-	m.SetOverrideAgentProxy(&overrideAgentProxyValue)
-	pageLoadingStrategyValue := NORMAL_INSTANT_TESTS_API_TESTPAGELOADINGSTRATEGY
-	m.SetPageLoadingStrategy(&pageLoadingStrategyValue)
-	pageLoadTimeLimitValue := int32(10)
-	m.SetPageLoadTimeLimit(&pageLoadTimeLimitValue)
-	pathTraceModeValue := CLASSIC_INSTANT_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_INSTANT_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_INSTANT_TESTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	sslVersionIdValue := ZERO_INSTANT_TESTS_API_TESTSSLVERSIONID
-	m.SetSslVersionId(&sslVersionIdValue)
-	verifyCertificateValue := false
-	m.SetVerifyCertificate(&verifyCertificateValue)
 	return m
 }
 

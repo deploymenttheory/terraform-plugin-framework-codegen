@@ -25,10 +25,6 @@ type ThousandEyes_for_OpenTelemetry_API_ExporterConfigSplunkHec struct {
 func NewThousandEyes_for_OpenTelemetry_API_ExporterConfigSplunkHec() *ThousandEyes_for_OpenTelemetry_API_ExporterConfigSplunkHec {
 	m := &ThousandEyes_for_OpenTelemetry_API_ExporterConfigSplunkHec{}
 	m.SetAdditionalData(make(map[string]any))
-	sourceValue := "ThousandEyesOTel"
-	m.SetSource(&sourceValue)
-	sourceTypeValue := "ThousandEyesOTel"
-	m.SetSourceType(&sourceTypeValue)
 	return m
 }
 

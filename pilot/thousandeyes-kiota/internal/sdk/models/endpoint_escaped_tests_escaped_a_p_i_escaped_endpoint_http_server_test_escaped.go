@@ -80,32 +80,6 @@ type Endpoint_Tests_API_EndpointHttpServerTest struct {
 func NewEndpoint_Tests_API_EndpointHttpServerTest() *Endpoint_Tests_API_EndpointHttpServerTest {
 	m := &Endpoint_Tests_API_EndpointHttpServerTest{}
 	m.SetAdditionalData(make(map[string]any))
-	authTypeValue := NONE_ENDPOINT_TESTS_API_ENDPOINTTESTAUTHTYPE
-	m.SetAuthType(&authTypeValue)
-	followRedirectsValue := true
-	m.SetFollowRedirects(&followRedirectsValue)
-	httpTimeLimitValue := int32(5000)
-	m.SetHttpTimeLimit(&httpTimeLimitValue)
-	httpVersionValue := int32(2)
-	m.SetHttpVersion(&httpVersionValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	isEnabledValue := true
-	m.SetIsEnabled(&isEnabledValue)
-	isPrioritizedValue := false
-	m.SetIsPrioritized(&isPrioritizedValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	portValue := int32(443)
-	m.SetPort(&portValue)
-	protocolValue := ICMP_ENDPOINT_TESTS_API_ENDPOINTTESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	sslVersionIdValue := ZERO_ENDPOINT_TESTS_API_TESTSSLVERSIONID
-	m.SetSslVersionId(&sslVersionIdValue)
-	tcpProbeModeValue := AUTO_ENDPOINT_TESTS_API_TESTPROBEMODERESPONSE
-	m.SetTcpProbeMode(&tcpProbeModeValue)
-	verifyCertificateValue := true
-	m.SetVerifyCertificate(&verifyCertificateValue)
 	return m
 }
 

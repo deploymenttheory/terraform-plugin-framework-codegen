@@ -32,10 +32,6 @@ type Endpoint_Instant_Scheduled_Tests_API_EndpointInstantTest struct {
 func NewEndpoint_Instant_Scheduled_Tests_API_EndpointInstantTest() *Endpoint_Instant_Scheduled_Tests_API_EndpointInstantTest {
 	m := &Endpoint_Instant_Scheduled_Tests_API_EndpointInstantTest{}
 	m.SetAdditionalData(make(map[string]any))
-	agentSelectorTypeValue := ALLAGENTS_ENDPOINT_INSTANT_SCHEDULED_TESTS_API_ENDPOINTTESTAGENTSELECTORTYPE
-	m.SetAgentSelectorType(&agentSelectorTypeValue)
-	maxMachinesValue := int32(25)
-	m.SetMaxMachines(&maxMachinesValue)
 	return m
 }
 

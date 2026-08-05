@@ -80,24 +80,6 @@ type Tests_API_VoiceTest struct {
 func NewTests_API_VoiceTest() *Tests_API_VoiceTest {
 	m := &Tests_API_VoiceTest{}
 	m.SetAdditionalData(make(map[string]any))
-	bgpMeasurementsValue := true
-	m.SetBgpMeasurements(&bgpMeasurementsValue)
-	dscpIdValue := ZERO_TESTS_API_TESTDSCPID
-	m.SetDscpId(&dscpIdValue)
-	durationValue := int32(5)
-	m.SetDuration(&durationValue)
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	jitterBufferValue := int32(40)
-	m.SetJitterBuffer(&jitterBufferValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
 	return m
 }
 

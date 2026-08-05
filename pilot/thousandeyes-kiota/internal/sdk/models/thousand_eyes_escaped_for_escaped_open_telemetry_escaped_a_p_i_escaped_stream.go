@@ -24,12 +24,6 @@ func NewThousandEyes_for_OpenTelemetry_API_Stream() *ThousandEyes_for_OpenTeleme
 	m := &ThousandEyes_for_OpenTelemetry_API_Stream{
 		ThousandEyes_for_OpenTelemetry_API_PutStream: *NewThousandEyes_for_OpenTelemetry_API_PutStream(),
 	}
-	dataModelVersionValue := V2_THOUSANDEYES_FOR_OPENTELEMETRY_API_DATAMODELVERSION
-	m.SetDataModelVersion(&dataModelVersionValue)
-	endpointTypeValue := GRPC_THOUSANDEYES_FOR_OPENTELEMETRY_API_ENDPOINTTYPE
-	m.SetEndpointType(&endpointTypeValue)
-	signalValue := METRIC_THOUSANDEYES_FOR_OPENTELEMETRY_API_SIGNAL
-	m.SetSignal(&signalValue)
 	return m
 }
 

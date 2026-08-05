@@ -47,10 +47,6 @@ type Alerts_API_SimpleTest struct {
 func NewAlerts_API_SimpleTest() *Alerts_API_SimpleTest {
 	m := &Alerts_API_SimpleTest{}
 	m.SetAdditionalData(make(map[string]any))
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
 	return m
 }
 

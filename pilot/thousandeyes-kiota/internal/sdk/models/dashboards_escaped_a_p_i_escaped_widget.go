@@ -45,8 +45,6 @@ type Dashboards_API_Widget struct {
 func NewDashboards_API_Widget() *Dashboards_API_Widget {
 	m := &Dashboards_API_Widget{}
 	m.SetAdditionalData(make(map[string]any))
-	visualModeValue := FULL_DASHBOARDS_API_VISUALMODE
-	m.SetVisualMode(&visualModeValue)
 	return m
 }
 

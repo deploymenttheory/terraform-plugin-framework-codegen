@@ -96,34 +96,6 @@ type Tests_API_SipServerTest struct {
 func NewTests_API_SipServerTest() *Tests_API_SipServerTest {
 	m := &Tests_API_SipServerTest{}
 	m.SetAdditionalData(make(map[string]any))
-	bgpMeasurementsValue := true
-	m.SetBgpMeasurements(&bgpMeasurementsValue)
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	ipv6PolicyValue := USEAGENTPOLICY_TESTS_API_TESTIPV6POLICY
-	m.SetIpv6Policy(&ipv6PolicyValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	pathTraceModeValue := CLASSIC_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	portValue := int32(49153)
-	m.SetPort(&portValue)
-	probeModeValue := AUTO_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_TESTS_API_SIPTESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	registerEnabledValue := false
-	m.SetRegisterEnabled(&registerEnabledValue)
-	sipTimeLimitValue := int32(5)
-	m.SetSipTimeLimit(&sipTimeLimitValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
 	return m
 }
 

@@ -9,6 +9,7 @@ import (
 	stderrors "errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 
@@ -79,7 +80,13 @@ func Handle(diags *diag.Diagnostics, resourceType string, op Operation, err erro
 	detail := err.Error()
 	if detail == "" || detail == "error status code received from the API" {
 		// Kiota's fallback message restates that there was an error without
-		// saying anything the status line does not, so it earns no second line.
+		// saying anything the status line does not. But the deserialized error
+		// model usually still holds the API's words -- ThousandEyes answers
+		// RFC 7807 problem documents whose title and detail kiota does not map
+		// into the message -- so quote those before conceding there is nothing.
+		detail = problemText(err)
+	}
+	if detail == "" {
 		detail = "The API offered no further explanation."
 	}
 
@@ -91,6 +98,28 @@ func Handle(diags *diag.Diagnostics, resourceType string, op Operation, err erro
 	}
 
 	diags.AddError(summary, msg)
+}
+
+// problemText quotes what an RFC 7807 problem document said, from whichever of
+// its fields the generated error model carries. Small single-method interfaces
+// rather than model types, so this package still names no generated model.
+func problemText(err error) string {
+	var parts []string
+
+	var titled interface{ GetTitle() *string }
+	if stderrors.As(err, &titled) {
+		if t := titled.GetTitle(); t != nil && *t != "" {
+			parts = append(parts, *t)
+		}
+	}
+	var detailed interface{ GetDetail() *string }
+	if stderrors.As(err, &detailed) {
+		if d := detailed.GetDetail(); d != nil && *d != "" {
+			parts = append(parts, *d)
+		}
+	}
+
+	return strings.Join(parts, "\n\n")
 }
 
 // hintFor returns advice for the statuses whose cause is not evident from the

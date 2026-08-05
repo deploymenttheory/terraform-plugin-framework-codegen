@@ -26,14 +26,6 @@ type Endpoint_Tests_API_TestUpdate struct {
 func NewEndpoint_Tests_API_TestUpdate() *Endpoint_Tests_API_TestUpdate {
 	m := &Endpoint_Tests_API_TestUpdate{}
 	m.SetAdditionalData(make(map[string]any))
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	isEnabledValue := true
-	m.SetIsEnabled(&isEnabledValue)
-	protocolValue := ICMP_ENDPOINT_TESTS_API_ENDPOINTTESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	tcpProbeModeValue := AUTO_ENDPOINT_TESTS_API_TESTPROBEMODE
-	m.SetTcpProbeMode(&tcpProbeModeValue)
 	return m
 }
 

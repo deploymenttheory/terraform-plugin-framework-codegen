@@ -52,8 +52,6 @@ type Instant_Tests_API_DnsSecInstantTest struct {
 func NewInstant_Tests_API_DnsSecInstantTest() *Instant_Tests_API_DnsSecInstantTest {
 	m := &Instant_Tests_API_DnsSecInstantTest{}
 	m.SetAdditionalData(make(map[string]any))
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
 	return m
 }
 

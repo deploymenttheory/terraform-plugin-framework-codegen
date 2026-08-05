@@ -74,24 +74,6 @@ type Instant_Tests_API_AgentToAgentInstantTest struct {
 func NewInstant_Tests_API_AgentToAgentInstantTest() *Instant_Tests_API_AgentToAgentInstantTest {
 	m := &Instant_Tests_API_AgentToAgentInstantTest{}
 	m.SetAdditionalData(make(map[string]any))
-	directionValue := TOTARGET_INSTANT_TESTS_API_TESTDIRECTION
-	m.SetDirection(&directionValue)
-	dscpIdValue := ZERO_INSTANT_TESTS_API_TESTDSCPID
-	m.SetDscpId(&dscpIdValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	pathTraceModeValue := CLASSIC_INSTANT_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	portValue := int32(49153)
-	m.SetPort(&portValue)
-	protocolValue := TCP_INSTANT_TESTS_API_AGENTTOAGENTTESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	throughputDurationValue := int32(10000)
-	m.SetThroughputDuration(&throughputDurationValue)
-	throughputMeasurementsValue := false
-	m.SetThroughputMeasurements(&throughputMeasurementsValue)
 	return m
 }
 

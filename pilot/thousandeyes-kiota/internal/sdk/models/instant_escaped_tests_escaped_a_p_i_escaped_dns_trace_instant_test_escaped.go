@@ -54,10 +54,6 @@ type Instant_Tests_API_DnsTraceInstantTest struct {
 func NewInstant_Tests_API_DnsTraceInstantTest() *Instant_Tests_API_DnsTraceInstantTest {
 	m := &Instant_Tests_API_DnsTraceInstantTest{}
 	m.SetAdditionalData(make(map[string]any))
-	dnsTransportProtocolValue := UDP_INSTANT_TESTS_API_TESTDNSTRANSPORTPROTOCOL
-	m.SetDnsTransportProtocol(&dnsTransportProtocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
 	return m
 }
 

@@ -46,10 +46,6 @@ type Test_Snapshots_API_SnapshotTest struct {
 func NewTest_Snapshots_API_SnapshotTest() *Test_Snapshots_API_SnapshotTest {
 	m := &Test_Snapshots_API_SnapshotTest{}
 	m.SetAdditionalData(make(map[string]any))
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
 	return m
 }
 

@@ -28,8 +28,6 @@ type Endpoint_Test_Results_API_EndpointAgentLabelsSelectorConfig struct {
 func NewEndpoint_Test_Results_API_EndpointAgentLabelsSelectorConfig() *Endpoint_Test_Results_API_EndpointAgentLabelsSelectorConfig {
 	m := &Endpoint_Test_Results_API_EndpointAgentLabelsSelectorConfig{}
 	m.SetAdditionalData(make(map[string]any))
-	maxMachinesValue := int32(25)
-	m.SetMaxMachines(&maxMachinesValue)
 	return m
 }
 

@@ -100,32 +100,6 @@ type Tests_API_FtpServerTestRequest struct {
 func NewTests_API_FtpServerTestRequest() *Tests_API_FtpServerTestRequest {
 	m := &Tests_API_FtpServerTestRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	bgpMeasurementsValue := true
-	m.SetBgpMeasurements(&bgpMeasurementsValue)
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	ftpTimeLimitValue := int32(10)
-	m.SetFtpTimeLimit(&ftpTimeLimitValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	ipv6PolicyValue := USEAGENTPOLICY_TESTS_API_TESTIPV6POLICY
-	m.SetIpv6Policy(&ipv6PolicyValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	pathTraceModeValue := CLASSIC_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_TESTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	useActiveFtpValue := false
-	m.SetUseActiveFtp(&useActiveFtpValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
 	return m
 }
 

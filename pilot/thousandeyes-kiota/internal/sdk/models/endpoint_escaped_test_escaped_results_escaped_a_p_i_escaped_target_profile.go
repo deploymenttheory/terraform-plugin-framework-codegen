@@ -22,8 +22,6 @@ type Endpoint_Test_Results_API_TargetProfile struct {
 func NewEndpoint_Test_Results_API_TargetProfile() *Endpoint_Test_Results_API_TargetProfile {
 	m := &Endpoint_Test_Results_API_TargetProfile{}
 	m.SetAdditionalData(make(map[string]any))
-	protocolValue := TCP_ENDPOINT_TEST_RESULTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
 	return m
 }
 

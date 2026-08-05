@@ -62,8 +62,6 @@ type Dashboards_API_ApiTimeseriesWidget struct {
 func NewDashboards_API_ApiTimeseriesWidget() *Dashboards_API_ApiTimeseriesWidget {
 	m := &Dashboards_API_ApiTimeseriesWidget{}
 	m.SetAdditionalData(make(map[string]any))
-	visualModeValue := FULL_DASHBOARDS_API_VISUALMODE
-	m.SetVisualMode(&visualModeValue)
 	return m
 }
 

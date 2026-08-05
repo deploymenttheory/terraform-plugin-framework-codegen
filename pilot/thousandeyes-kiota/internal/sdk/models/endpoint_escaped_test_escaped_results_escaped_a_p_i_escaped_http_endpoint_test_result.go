@@ -48,8 +48,6 @@ func NewEndpoint_Test_Results_API_HttpEndpointTestResult() *Endpoint_Test_Result
 	m := &Endpoint_Test_Results_API_HttpEndpointTestResult{
 		Endpoint_Test_Results_API_EndpointTestResult: *NewEndpoint_Test_Results_API_EndpointTestResult(),
 	}
-	errorTypeValue := CONNECT_ENDPOINT_TEST_RESULTS_API_HTTPERRORTYPE
-	m.SetErrorType(&errorTypeValue)
 	return m
 }
 

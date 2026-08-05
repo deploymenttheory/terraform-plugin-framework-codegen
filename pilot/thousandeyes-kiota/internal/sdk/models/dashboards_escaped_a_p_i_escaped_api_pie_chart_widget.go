@@ -54,10 +54,6 @@ type Dashboards_API_ApiPieChartWidget struct {
 func NewDashboards_API_ApiPieChartWidget() *Dashboards_API_ApiPieChartWidget {
 	m := &Dashboards_API_ApiPieChartWidget{}
 	m.SetAdditionalData(make(map[string]any))
-	showSubmetricsValue := true
-	m.SetShowSubmetrics(&showSubmetricsValue)
-	visualModeValue := FULL_DASHBOARDS_API_VISUALMODE
-	m.SetVisualMode(&visualModeValue)
 	return m
 }
 

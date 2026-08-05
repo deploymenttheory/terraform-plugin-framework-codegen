@@ -26,10 +26,6 @@ func NewTests_API_UnexpandedBgpTest() *Tests_API_UnexpandedBgpTest {
 	m := &Tests_API_UnexpandedBgpTest{
 		Tests_API_UnexpandedInstantTest: *NewTests_API_UnexpandedInstantTest(),
 	}
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
 	return m
 }
 

@@ -62,30 +62,6 @@ type Endpoint_Instant_Scheduled_Tests_API_EndpointHttpServerInstantTest struct {
 func NewEndpoint_Instant_Scheduled_Tests_API_EndpointHttpServerInstantTest() *Endpoint_Instant_Scheduled_Tests_API_EndpointHttpServerInstantTest {
 	m := &Endpoint_Instant_Scheduled_Tests_API_EndpointHttpServerInstantTest{}
 	m.SetAdditionalData(make(map[string]any))
-	agentSelectorTypeValue := ALLAGENTS_ENDPOINT_INSTANT_SCHEDULED_TESTS_API_ENDPOINTTESTAGENTSELECTORTYPE
-	m.SetAgentSelectorType(&agentSelectorTypeValue)
-	authTypeValue := NONE_ENDPOINT_INSTANT_SCHEDULED_TESTS_API_ENDPOINTTESTAUTHTYPE
-	m.SetAuthType(&authTypeValue)
-	hasPingValue := true
-	m.SetHasPing(&hasPingValue)
-	hasTracerouteValue := true
-	m.SetHasTraceroute(&hasTracerouteValue)
-	httpTimeLimitValue := int32(5000)
-	m.SetHttpTimeLimit(&httpTimeLimitValue)
-	maxMachinesValue := int32(25)
-	m.SetMaxMachines(&maxMachinesValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	protocolValue := ICMP_ENDPOINT_INSTANT_SCHEDULED_TESTS_API_ENDPOINTTESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	sslVersionIdValue := ZERO_ENDPOINT_INSTANT_SCHEDULED_TESTS_API_TESTSSLVERSIONID
-	m.SetSslVersionId(&sslVersionIdValue)
-	targetResponseTimeValue := int32(1000)
-	m.SetTargetResponseTime(&targetResponseTimeValue)
-	tcpProbeModeValue := AUTO_ENDPOINT_INSTANT_SCHEDULED_TESTS_API_TESTPROBEMODERESPONSE
-	m.SetTcpProbeMode(&tcpProbeModeValue)
-	verifyCertificateValue := true
-	m.SetVerifyCertificate(&verifyCertificateValue)
 	return m
 }
 

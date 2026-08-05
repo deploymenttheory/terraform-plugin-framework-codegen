@@ -166,64 +166,6 @@ type Tests_API_WebTransactionTestRequest struct {
 func NewTests_API_WebTransactionTestRequest() *Tests_API_WebTransactionTestRequest {
 	m := &Tests_API_WebTransactionTestRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	allowGeolocationValue := false
-	m.SetAllowGeolocation(&allowGeolocationValue)
-	allowMicAndCameraValue := false
-	m.SetAllowMicAndCamera(&allowMicAndCameraValue)
-	allowUnsafeLegacyRenegotiationValue := true
-	m.SetAllowUnsafeLegacyRenegotiation(&allowUnsafeLegacyRenegotiationValue)
-	authTypeValue := NONE_TESTS_API_TESTAUTHTYPE
-	m.SetAuthType(&authTypeValue)
-	bgpMeasurementsValue := true
-	m.SetBgpMeasurements(&bgpMeasurementsValue)
-	chromePoliciesValue := "{}"
-	m.SetChromePolicies(&chromePoliciesValue)
-	collectProxyNetworkDataValue := false
-	m.SetCollectProxyNetworkData(&collectProxyNetworkDataValue)
-	desiredStatusCodeValue := "default"
-	m.SetDesiredStatusCode(&desiredStatusCodeValue)
-	disableScreenshotValue := false
-	m.SetDisableScreenshot(&disableScreenshotValue)
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	followRedirectsValue := true
-	m.SetFollowRedirects(&followRedirectsValue)
-	httpTimeLimitValue := int32(5)
-	m.SetHttpTimeLimit(&httpTimeLimitValue)
-	httpVersionValue := int32(2)
-	m.SetHttpVersion(&httpVersionValue)
-	identifyAgentTrafficWithUserAgentValue := false
-	m.SetIdentifyAgentTrafficWithUserAgent(&identifyAgentTrafficWithUserAgentValue)
-	includeHeadersValue := true
-	m.SetIncludeHeaders(&includeHeadersValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	overrideAgentProxyValue := false
-	m.SetOverrideAgentProxy(&overrideAgentProxyValue)
-	pageLoadingStrategyValue := NORMAL_TESTS_API_TESTPAGELOADINGSTRATEGY
-	m.SetPageLoadingStrategy(&pageLoadingStrategyValue)
-	pathTraceModeValue := CLASSIC_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_TESTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	sslVersionIdValue := ZERO_TESTS_API_TESTSSLVERSIONID
-	m.SetSslVersionId(&sslVersionIdValue)
-	targetTimeValue := int32(10)
-	m.SetTargetTime(&targetTimeValue)
-	timeLimitValue := int32(30)
-	m.SetTimeLimit(&timeLimitValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
-	verifyCertificateValue := false
-	m.SetVerifyCertificate(&verifyCertificateValue)
 	return m
 }
 

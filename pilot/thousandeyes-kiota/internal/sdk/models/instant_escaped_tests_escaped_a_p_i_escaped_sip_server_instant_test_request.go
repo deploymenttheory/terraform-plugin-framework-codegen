@@ -74,22 +74,6 @@ type Instant_Tests_API_SipServerInstantTestRequest struct {
 func NewInstant_Tests_API_SipServerInstantTestRequest() *Instant_Tests_API_SipServerInstantTestRequest {
 	m := &Instant_Tests_API_SipServerInstantTestRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	ipv6PolicyValue := USEAGENTPOLICY_INSTANT_TESTS_API_TESTIPV6POLICY
-	m.SetIpv6Policy(&ipv6PolicyValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	pathTraceModeValue := CLASSIC_INSTANT_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_INSTANT_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	registerEnabledValue := false
-	m.SetRegisterEnabled(&registerEnabledValue)
-	sipTimeLimitValue := int32(5)
-	m.SetSipTimeLimit(&sipTimeLimitValue)
 	return m
 }
 

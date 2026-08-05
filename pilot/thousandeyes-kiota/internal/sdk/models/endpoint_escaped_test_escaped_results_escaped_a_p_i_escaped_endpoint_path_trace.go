@@ -30,12 +30,6 @@ type Endpoint_Test_Results_API_EndpointPathTrace struct {
 func NewEndpoint_Test_Results_API_EndpointPathTrace() *Endpoint_Test_Results_API_EndpointPathTrace {
 	m := &Endpoint_Test_Results_API_EndpointPathTrace{}
 	m.SetAdditionalData(make(map[string]any))
-	protocolValue := UNKNOWN_ENDPOINT_TEST_RESULTS_API_ENDPOINTTESTRESULTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	tcpPathTraceModeValue := AUTO_ENDPOINT_TEST_RESULTS_API_TCPPATHTRACEMODERESPONSE
-	m.SetTcpPathTraceMode(&tcpPathTraceModeValue)
-	udpPathTraceModeValue := UNKNOWN_ENDPOINT_TEST_RESULTS_API_UDPPATHTRACEMODERESPONSE
-	m.SetUdpPathTraceMode(&udpPathTraceModeValue)
 	return m
 }
 

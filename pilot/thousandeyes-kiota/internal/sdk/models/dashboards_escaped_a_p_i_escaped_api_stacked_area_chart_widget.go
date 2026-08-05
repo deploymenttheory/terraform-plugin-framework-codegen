@@ -60,10 +60,6 @@ type Dashboards_API_ApiStackedAreaChartWidget struct {
 func NewDashboards_API_ApiStackedAreaChartWidget() *Dashboards_API_ApiStackedAreaChartWidget {
 	m := &Dashboards_API_ApiStackedAreaChartWidget{}
 	m.SetAdditionalData(make(map[string]any))
-	showSubmetricsValue := true
-	m.SetShowSubmetrics(&showSubmetricsValue)
-	visualModeValue := FULL_DASHBOARDS_API_VISUALMODE
-	m.SetVisualMode(&visualModeValue)
 	return m
 }
 

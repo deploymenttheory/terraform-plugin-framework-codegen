@@ -58,10 +58,6 @@ type Tests_API_UpdateBgpTestRequest struct {
 func NewTests_API_UpdateBgpTestRequest() *Tests_API_UpdateBgpTestRequest {
 	m := &Tests_API_UpdateBgpTestRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
 	return m
 }
 

@@ -68,16 +68,6 @@ type Instant_Tests_API_VoiceInstantTestRequest struct {
 func NewInstant_Tests_API_VoiceInstantTestRequest() *Instant_Tests_API_VoiceInstantTestRequest {
 	m := &Instant_Tests_API_VoiceInstantTestRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	dscpIdValue := ZERO_INSTANT_TESTS_API_TESTDSCPID
-	m.SetDscpId(&dscpIdValue)
-	durationValue := int32(5)
-	m.SetDuration(&durationValue)
-	jitterBufferValue := int32(40)
-	m.SetJitterBuffer(&jitterBufferValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
 	return m
 }
 

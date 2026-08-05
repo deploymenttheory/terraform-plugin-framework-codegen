@@ -47,10 +47,6 @@ type Agents_API_SimpleTest struct {
 func NewAgents_API_SimpleTest() *Agents_API_SimpleTest {
 	m := &Agents_API_SimpleTest{}
 	m.SetAdditionalData(make(map[string]any))
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
 	return m
 }
 

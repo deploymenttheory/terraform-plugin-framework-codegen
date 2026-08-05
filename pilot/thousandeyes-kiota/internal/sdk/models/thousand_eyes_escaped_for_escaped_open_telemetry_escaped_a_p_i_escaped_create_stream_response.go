@@ -50,12 +50,6 @@ type ThousandEyes_for_OpenTelemetry_API_CreateStreamResponse struct {
 func NewThousandEyes_for_OpenTelemetry_API_CreateStreamResponse() *ThousandEyes_for_OpenTelemetry_API_CreateStreamResponse {
 	m := &ThousandEyes_for_OpenTelemetry_API_CreateStreamResponse{}
 	m.SetAdditionalData(make(map[string]any))
-	dataModelVersionValue := V2_THOUSANDEYES_FOR_OPENTELEMETRY_API_DATAMODELVERSION
-	m.SetDataModelVersion(&dataModelVersionValue)
-	endpointTypeValue := GRPC_THOUSANDEYES_FOR_OPENTELEMETRY_API_ENDPOINTTYPE
-	m.SetEndpointType(&endpointTypeValue)
-	signalValue := METRIC_THOUSANDEYES_FOR_OPENTELEMETRY_API_SIGNAL
-	m.SetSignal(&signalValue)
 	return m
 }
 

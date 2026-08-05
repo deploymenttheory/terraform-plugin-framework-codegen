@@ -22,12 +22,6 @@ func NewEndpoint_Tests_API_EndpointAgentToServerTestRequest() *Endpoint_Tests_AP
 	m := &Endpoint_Tests_API_EndpointAgentToServerTestRequest{
 		Endpoint_Tests_API_EndpointAgentToServerInstantTest: *NewEndpoint_Tests_API_EndpointAgentToServerInstantTest(),
 	}
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	isPrioritizedValue := false
-	m.SetIsPrioritized(&isPrioritizedValue)
-	protocolValue := ICMP_ENDPOINT_TESTS_API_ENDPOINTTESTPROTOCOL
-	m.SetProtocol(&protocolValue)
 	return m
 }
 
