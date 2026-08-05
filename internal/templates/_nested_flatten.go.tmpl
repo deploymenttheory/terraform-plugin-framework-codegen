@@ -49,7 +49,7 @@ func {{ .FuncName }}(ctx context.Context, in {{ .SDKSingleType }}) ({{ .Framewor
 		return types.ObjectNull({{ .ObjectTypeVar }}.AttrTypes), diags
 	}
 
-	item := *in
+	item := {{ .InRef }}
 
 	var m {{ .ModelType }}
 {{ range .Assignments }}

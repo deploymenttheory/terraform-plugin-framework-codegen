@@ -1,0 +1,6 @@
+resource "thousandeyes_user" "example" {
+  account_group_roles    = [{ account_group_id = "281474976742769", role_ids = ["281474976759598"] }]
+  email                  = "dafydd.watkins+tfacc@deploymenttheory.com"
+  login_account_group_id = "281474976742769"
+  name                   = "tfacc-name"
+}

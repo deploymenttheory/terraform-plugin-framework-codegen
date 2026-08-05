@@ -1,0 +1,498 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "endpoint_label",
+      "name": "endpoint_label",
+      "goPackage": "endpoint_label",
+      "goPackageAlias": "v7EndpointLabel",
+      "goTypeName": "EndpointLabelResource",
+      "modelTypeName": "EndpointLabelResourceModel",
+      "serviceGroup": "endpoint_agent_labels",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "color",
+            "goField": "Color",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "UI color\n\n<!-- probed:7.0.98-t1785833092712 -->\nObserved: the API assigns \"#d9d9d9\" when this is omitted.\n<!-- /probed -->",
+            "behaviour": {
+              "serverDefault": {
+                "kind": "",
+                "raw": "\"#d9d9d9\""
+              },
+              "returnedOnUpdate": true
+            },
+            "wire": {
+              "jsonPath": "color",
+              "sdkField": "Color",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "filters",
+            "goField": "Filters",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "EndpointLabelFilterModel",
+                "sdkType": "models.Endpoint_Agent_Labels_API_Filterable",
+                "attrTypesVar": "endpointLabelFilterAttrTypes",
+                "objectTypeVar": "endpointLabelFilterObjectType",
+                "expandFunc": "expandEndpointLabelFilters",
+                "flattenFunc": "flattenEndpointLabelFilters",
+                "attributes": [
+                  {
+                    "name": "key",
+                    "goField": "Key",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "agent-id",
+                        "public-network",
+                        "local-network",
+                        "connection",
+                        "gateway",
+                        "platform",
+                        "agent-type",
+                        "vpn-vendor",
+                        "vpn-gateway-address",
+                        "vpn-client-network",
+                        "vpn-client-address",
+                        "ip-address-family",
+                        "ssid",
+                        "bssid",
+                        "hostname",
+                        "username",
+                        "asn"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed_optional",
+                    "markdownDescription": "Type of filter - the data that will be used to filter.\n\n<!-- probed:7.0.98-t1785833092712 -->\nValues accepted here: `agent-id`, `public-network`, `local-network`, `connection`, `gateway`, `platform`, `agent-type`, `vpn-vendor`, `vpn-gateway-address`, `vpn-client-network`, `vpn-client-address`, `ip-address-family`, `ssid`, `bssid`, `hostname`, `username`, `asn`.\nObserved: the API assigns \"platform\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->",
+                    "behaviour": {
+                      "serverDefault": {
+                        "kind": "",
+                        "raw": "\"platform\""
+                      },
+                      "acceptedValues": [
+                        "agent-id",
+                        "public-network",
+                        "local-network",
+                        "connection",
+                        "gateway",
+                        "platform",
+                        "agent-type",
+                        "vpn-vendor",
+                        "vpn-gateway-address",
+                        "vpn-client-network",
+                        "vpn-client-address",
+                        "ip-address-family",
+                        "ssid",
+                        "bssid",
+                        "hostname",
+                        "username",
+                        "asn"
+                      ],
+                      "valuesClosed": false
+                    },
+                    "wire": {
+                      "jsonPath": "key",
+                      "sdkField": "Key",
+                      "sdkGoType": "*models.Endpoint_Agent_Labels_API_FilterType",
+                      "expand": {
+                        "func": "convert.FrameworkToKiotaEnum",
+                        "typeArgs": [
+                          "models.Endpoint_Agent_Labels_API_FilterType"
+                        ],
+                        "extraArgs": [
+                          "models.ParseEndpoint_Agent_Labels_API_FilterType"
+                        ],
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "mode",
+                    "goField": "Mode",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "in",
+                        "not-in"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed_optional",
+                    "markdownDescription": "Type of matching to be applied for the values:\n\n* `in`: The value on the agent must match one of the list of values provided.\n* `not-in`: The value on the agent must not match any of the list of values provided.\n\n<!-- probed:7.0.98-t1785833092712 -->\nValues accepted here: `in`, `not-in`.\nObserved: the API assigns \"in\" when this is omitted.\nThe API accepted a value from outside the documented set, so no OneOf validator is generated for this attribute.\n<!-- /probed -->",
+                    "behaviour": {
+                      "serverDefault": {
+                        "kind": "",
+                        "raw": "\"in\""
+                      },
+                      "acceptedValues": [
+                        "in",
+                        "not-in"
+                      ],
+                      "valuesClosed": false
+                    },
+                    "wire": {
+                      "jsonPath": "mode",
+                      "sdkField": "Mode",
+                      "sdkGoType": "*models.Endpoint_Agent_Labels_API_LabelFilterMode",
+                      "expand": {
+                        "func": "convert.FrameworkToKiotaEnum",
+                        "typeArgs": [
+                          "models.Endpoint_Agent_Labels_API_LabelFilterMode"
+                        ],
+                        "extraArgs": [
+                          "models.ParseEndpoint_Agent_Labels_API_LabelFilterMode"
+                        ],
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "values",
+                    "goField": "Values",
+                    "type": {
+                      "kind": "set",
+                      "elementType": {
+                        "kind": "string"
+                      }
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "values",
+                      "sdkField": "Values",
+                      "sdkGoType": "[]string",
+                      "expand": {
+                        "func": "convert.FrameworkSetToStringSlice",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "convert.StringSliceToFrameworkSet",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  }
+                ],
+                "constructorExpr": "models.NewEndpoint_Agent_Labels_API_Filter()"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "The filters combined using the matchType to determine the label's match.\n\nThe API refuses a label without at least one filter (live probe, 2026-08-04).\n\nOnly returned when the read asks for expand=filters; the generated read always does (live probe, 2026-08-04).\n\n<!-- probed:7.0.98-t1785833092712 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnUpdate": true
+            },
+            "wire": {
+              "jsonPath": "filters",
+              "sdkField": "Filters",
+              "sdkGoType": "[]models.Endpoint_Agent_Labels_API_Filterable",
+              "expand": {
+                "func": "expandEndpointLabelFilters",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenEndpointLabelFilters",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Label identifier.",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "match_type",
+            "goField": "MatchType",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "and",
+                "or"
+              ]
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Specifies how the filters are combined for matching this label.\n\n* `and`: All filters must be matched.\n* `or`: Any of the filters should match.\n\n<!-- probed:7.0.98-t1785833092712 -->\nValues accepted here: `and`, `or`.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnUpdate": true,
+              "acceptedValues": [
+                "and",
+                "or"
+              ],
+              "valuesClosed": true
+            },
+            "wire": {
+              "jsonPath": "matchType",
+              "sdkField": "MatchType",
+              "sdkGoType": "*models.Endpoint_Agent_Labels_API_MatchType",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.Endpoint_Agent_Labels_API_MatchType"
+                ],
+                "extraArgs": [
+                  "models.ParseEndpoint_Agent_Labels_API_MatchType"
+                ],
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "The label name.\n\nRequired-by-API by curation: the sweeper's field, unprobeable by omission.",
+            "behaviour": {
+              "requiredByApi": true
+            },
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "updateExpand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Retrieve label."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/models",
+          "alias": "models",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Endpoint"
+            },
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Endpoint_Agent_Labels_API_LabelResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/endpoint/labels"
+        },
+        "read": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Endpoint"
+            },
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Endpoint_Agent_Labels_API_LabelResponseable",
+          "httpMethod": "GET",
+          "pathTemplate": "/endpoint/labels/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Endpoint"
+            },
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Patch",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Endpoint_Agent_Labels_API_LabelResponseable",
+          "httpMethod": "PATCH",
+          "pathTemplate": "/endpoint/labels/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Endpoint"
+            },
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/endpoint/labels/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.Endpoint_Agent_Labels_API_LabelRequest",
+          "responseType": "models.Endpoint_Agent_Labels_API_LabelResponseable",
+          "constructorExpr": "models.NewEndpoint_Agent_Labels_API_LabelRequest()",
+          "accessStyle": "method",
+          "updateRequestType": "models.Endpoint_Agent_Labels_API_Label",
+          "updateConstructorExpr": "models.NewEndpoint_Agent_Labels_API_Label()"
+        }
+      },
+      "policy": {
+        "updateStyle": "patchMerge",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "filters",
+            "hcl": "[{ key = \"platform\", mode = \"in\", values = [\"windows\"] }]",
+            "wire": [
+              {
+                "key": "platform",
+                "mode": "in",
+                "values": [
+                  "windows"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

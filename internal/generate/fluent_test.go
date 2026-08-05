@@ -175,6 +175,19 @@ func TestUnit_Generate_FluentSingleNestedConstructs(t *testing.T) {
 	if !strings.Contains(joined, "item.SetNote(") {
 		t.Errorf("single-object assignments must go through setters:\n%s", joined)
 	}
+
+	var flatten *NestedFuncView
+	for i := range v.State.NestedObject {
+		if v.State.NestedObject[i].FuncName == "flattenTagDetails" {
+			flatten = &v.State.NestedObject[i]
+		}
+	}
+	if flatten == nil {
+		t.Fatal("the single-object flatten helper was not built")
+	}
+	if flatten.InRef != "in" {
+		t.Errorf("InRef = %q, want in (an interface cannot be dereferenced)", flatten.InRef)
+	}
 }
 
 func TestUnit_Generate_FluentTestHelperRebasesTheChain(t *testing.T) {
