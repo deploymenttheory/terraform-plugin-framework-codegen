@@ -1,0 +1,672 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "dashboard_filter",
+      "name": "dashboard_filter",
+      "goPackage": "dashboard_filter",
+      "goPackageAlias": "v7DashboardFilter",
+      "goTypeName": "DashboardFilterResource",
+      "modelTypeName": "DashboardFilterResourceModel",
+      "serviceGroup": "dashboards_filters",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "aid",
+            "goField": "AID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Account group ID of the filter.",
+            "wire": {
+              "jsonPath": "aid",
+              "sdkField": "Aid",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "context",
+            "goField": "Context",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "DashboardFilterApiContextFiltersModel",
+                "sdkType": "models.Dashboards_API_ApiDataSourceFiltersable",
+                "attrTypesVar": "dashboardsFilterApiContextFiltersAttrTypes",
+                "objectTypeVar": "dashboardsFilterApiContextFiltersObjectType",
+                "expandFunc": "expandDashboardFilterApiContextFilterses",
+                "flattenFunc": "flattenDashboardFilterApiContextFilterses",
+                "attributes": [
+                  {
+                    "name": "data_source_id",
+                    "goField": "DataSourceID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "markdownDescription": "Types of data source.\n\n<!-- probed:7.0.98-t1785769235108 -->\nObserved: the API assigns \"VIRTUAL_AGENT\" when this is omitted.\n<!-- /probed -->",
+                    "behaviour": {
+                      "serverDefault": {
+                        "kind": "",
+                        "raw": "\"VIRTUAL_AGENT\""
+                      },
+                      "returnedOnRead": true,
+                      "returnedOnCreate": true
+                    },
+                    "wire": {
+                      "jsonPath": "dataSourceId",
+                      "sdkField": "DataSourceId",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "filters",
+                    "goField": "Filters",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "DashboardFilterApiDataSourceFilterModel",
+                        "sdkType": "models.Dashboards_API_ApiDataSourceFilterable",
+                        "attrTypesVar": "dashboardsFilterApiDataSourceFilterAttrTypes",
+                        "objectTypeVar": "dashboardsFilterApiDataSourceFilterObjectType",
+                        "expandFunc": "expandDashboardFilterApiDataSourceFilters",
+                        "flattenFunc": "flattenDashboardFilterApiDataSourceFilters",
+                        "attributes": [
+                          {
+                            "name": "filter_id",
+                            "goField": "FilterID",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "required",
+                            "markdownDescription": "Data source property to filter by.\n\n<!-- probed:7.0.98-t1785769235108 -->\nObserved: the API assigns \"TEST\" when this is omitted.\n<!-- /probed -->",
+                            "behaviour": {
+                              "serverDefault": {
+                                "kind": "",
+                                "raw": "\"TEST\""
+                              },
+                              "returnedOnRead": true,
+                              "returnedOnCreate": true
+                            },
+                            "wire": {
+                              "jsonPath": "filterId",
+                              "sdkField": "FilterId",
+                              "sdkGoType": "*string",
+                              "expand": {
+                                "func": "convert.FrameworkToPtrString"
+                              },
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "metric_ids",
+                            "goField": "MetricIDs",
+                            "type": {
+                              "kind": "set",
+                              "elementType": {
+                                "kind": "string"
+                              }
+                            },
+                            "computedOptionalRequired": "required",
+                            "markdownDescription": "Dashboard metric associated with the filter property.",
+                            "behaviour": {
+                              "returnedOnRead": true,
+                              "returnedOnCreate": true
+                            },
+                            "wire": {
+                              "jsonPath": "metricIds",
+                              "sdkField": "MetricIds",
+                              "sdkGoType": "[]string",
+                              "expand": {
+                                "func": "convert.FrameworkSetToStringSlice",
+                                "needsCtx": true,
+                                "returnsError": true
+                              },
+                              "flatten": {
+                                "func": "convert.StringSliceToFrameworkSet",
+                                "needsCtx": true,
+                                "returnsError": true
+                              }
+                            }
+                          },
+                          {
+                            "name": "values",
+                            "goField": "Values",
+                            "type": {
+                              "kind": "set",
+                              "elementType": {
+                                "kind": "string"
+                              }
+                            },
+                            "computedOptionalRequired": "required",
+                            "markdownDescription": "Values to filter by based on the specified `filterId`.",
+                            "behaviour": {
+                              "returnedOnRead": true,
+                              "returnedOnCreate": true
+                            },
+                            "wire": {
+                              "jsonPath": "values",
+                              "sdkField": "Values",
+                              "sdkGoType": "[]string",
+                              "expand": {
+                                "func": "convert.FrameworkSetToStringSlice",
+                                "needsCtx": true,
+                                "returnsError": true
+                              },
+                              "flatten": {
+                                "func": "convert.StringSliceToFrameworkSet",
+                                "needsCtx": true,
+                                "returnsError": true
+                              }
+                            }
+                          }
+                        ],
+                        "constructorExpr": "models.NewDashboards_API_ApiDataSourceFilter()"
+                      }
+                    },
+                    "computedOptionalRequired": "required",
+                    "markdownDescription": "List of different filter properties.",
+                    "behaviour": {
+                      "returnedOnRead": true,
+                      "returnedOnCreate": true
+                    },
+                    "wire": {
+                      "jsonPath": "filters",
+                      "sdkField": "Filters",
+                      "sdkGoType": "[]models.Dashboards_API_ApiDataSourceFilterable",
+                      "expand": {
+                        "func": "expandDashboardFilterApiDataSourceFilters",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "flattenDashboardFilterApiDataSourceFilters",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  }
+                ],
+                "constructorExpr": "models.NewDashboards_API_ApiDataSourceFilters()"
+              }
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "List of filters to be applied to a dashboard.\n\n<!-- probed:7.0.98-t1785769235108 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "returnedOnCreate": true,
+              "returnedOnUpdate": true
+            },
+            "wire": {
+              "jsonPath": "context",
+              "sdkField": "Context",
+              "sdkGoType": "[]models.Dashboards_API_ApiDataSourceFiltersable",
+              "expand": {
+                "func": "expandDashboardFilterApiContextFilterses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenDashboardFilterApiContextFilterses",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "created_by",
+            "goField": "CreatedBy",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "DashboardFilterApiDashboardFilterUserDetailsModel",
+                "sdkType": "models.Dashboards_API_ApiDashboardFilterUserDetailsable",
+                "attrTypesVar": "dashboardsFilterApiDashboardFilterUserDetailsAttrTypes",
+                "objectTypeVar": "dashboardsFilterApiDashboardFilterUserDetailsObjectType",
+                "expandFunc": "expandDashboardFilterApiDashboardFilterUserDetails",
+                "flattenFunc": "flattenDashboardFilterApiDashboardFilterUserDetails",
+                "attributes": [
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Name of the user.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "uid",
+                    "goField": "Uid",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Unique ID of the user.",
+                    "wire": {
+                      "jsonPath": "uid",
+                      "sdkField": "Uid",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ],
+                "constructorExpr": "models.NewDashboards_API_ApiDashboardFilterUserDetails()"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Details of user who created or modified the filter.",
+            "wire": {
+              "jsonPath": "createdBy",
+              "sdkField": "CreatedBy",
+              "sdkGoType": "models.Dashboards_API_ApiDashboardFilterUserDetailsable",
+              "flatten": {
+                "func": "flattenDashboardFilterApiDashboardFilterUserDetails",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "created_date",
+            "goField": "CreatedDate",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Timestamp when the filter was created.",
+            "wire": {
+              "jsonPath": "createdDate",
+              "sdkField": "CreatedDate",
+              "sdkGoType": "*time.Time",
+              "flatten": {
+                "func": "convert.PtrTimeToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "description",
+            "goField": "Description",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "An optional description of the filter.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
+            "behaviour": {
+              "requiredByApi": false,
+              "returnedOnRead": true,
+              "returnedOnCreate": true,
+              "returnedOnUpdate": true,
+              "zeroValueUnsendable": true
+            },
+            "wire": {
+              "jsonPath": "description",
+              "sdkField": "Description",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Unique ID of the dashboard filter.",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "modified_by",
+            "goField": "ModifiedBy",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "DashboardFilterApiDashboardFilterUserDetailsModel2",
+                "sdkType": "models.Dashboards_API_ApiDashboardFilterUserDetailsable",
+                "attrTypesVar": "dashboardsFilterApiDashboardFilterUserDetailsAttrTypes2",
+                "objectTypeVar": "dashboardsFilterApiDashboardFilterUserDetailsObjectType2",
+                "expandFunc": "expandDashboardFilterApiDashboardFilterUserDetails2",
+                "flattenFunc": "flattenDashboardFilterApiDashboardFilterUserDetails2",
+                "attributes": [
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Name of the user.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "uid",
+                    "goField": "Uid",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Unique ID of the user.",
+                    "wire": {
+                      "jsonPath": "uid",
+                      "sdkField": "Uid",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ],
+                "constructorExpr": "models.NewDashboards_API_ApiDashboardFilterUserDetails()"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Details of user who created or modified the filter.",
+            "wire": {
+              "jsonPath": "modifiedBy",
+              "sdkField": "ModifiedBy",
+              "sdkGoType": "models.Dashboards_API_ApiDashboardFilterUserDetailsable",
+              "flatten": {
+                "func": "flattenDashboardFilterApiDashboardFilterUserDetails2",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "modified_date",
+            "goField": "ModifiedDate",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Timestamp when the filter was last modified.",
+            "wire": {
+              "jsonPath": "modifiedDate",
+              "sdkField": "ModifiedDate",
+              "sdkGoType": "*time.Time",
+              "flatten": {
+                "func": "convert.PtrTimeToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The name of the dashboard filter, this must be unique.",
+            "behaviour": {
+              "returnedOnRead": true,
+              "returnedOnCreate": true
+            },
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Get dashboard filter."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/models",
+          "alias": "models",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Dashboards"
+            },
+            {
+              "method": "Filters"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Dashboards_API_ApiContextFilterResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/dashboards/filters"
+        },
+        "read": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Dashboards"
+            },
+            {
+              "method": "Filters"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Dashboards_API_ApiContextFilterResponseable",
+          "httpMethod": "GET",
+          "pathTemplate": "/dashboards/filters/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Dashboards"
+            },
+            {
+              "method": "Filters"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Put",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Dashboards_API_ApiContextFilterResponseable",
+          "httpMethod": "PUT",
+          "pathTemplate": "/dashboards/filters/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Dashboards"
+            },
+            {
+              "method": "Filters"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/dashboards/filters/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.Dashboards_API_ApiContextFilterRequest",
+          "responseType": "models.Dashboards_API_ApiContextFilterResponseable",
+          "constructorExpr": "models.NewDashboards_API_ApiContextFilterRequest()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "context",
+            "hcl": "[{ data_source_id = \"VIRTUAL_AGENT\", filters = [{ filter_id = \"TEST\", metric_ids = [], values = [\"281474976977085\"] }] }]",
+            "wire": [
+              {
+                "dataSourceId": "VIRTUAL_AGENT",
+                "filters": [
+                  {
+                    "filterId": "TEST",
+                    "metricIds": [],
+                    "values": [
+                      "281474976977085"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
