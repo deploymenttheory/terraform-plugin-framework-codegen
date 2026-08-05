@@ -1,0 +1,8 @@
+resource "thousandeyes_tests_ftp_server" "example" {
+  interval     = 3600
+  password     = "guest"
+  request_type = "download"
+  url          = "ftp://speedtest.tele2.net"
+  username     = "anonymous"
+  agents       = [{ agent_id = "3" }]
+}
