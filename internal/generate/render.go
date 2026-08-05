@@ -1189,7 +1189,16 @@ func constructView(r blueprint.Resource, shapes []nestedShape) ConstructView {
 			continue
 		}
 
-		if v.Update != nil {
+		// An immutable attribute is create-authoritative: a split update body
+		// frequently cannot carry it at all -- the endpoint tests' update
+		// models declare a fraction of their create fields -- and even where
+		// it could, sending an unchangeable field on update invites the API to
+		// refuse what the plan already forbids. RequiresReplace (driven by the
+		// same Behaviour.Immutable) owns changes; the update body simply omits
+		// the field. The create body below keeps it.
+		immutable := a.Behaviour.Immutable != nil && *a.Behaviour.Immutable
+
+		if v.Update != nil && !immutable {
 			updateCall := a.Wire.Expand
 			if a.Wire.UpdateExpand != nil {
 				updateCall = a.Wire.UpdateExpand

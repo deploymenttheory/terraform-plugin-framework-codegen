@@ -643,7 +643,10 @@ func verifyWireFields(l *Loader, res blueprint.Resource, ok bodyTypesOK, r *Repo
 		if !a.Wire.SkipExpand && a.Wire.Expand != nil && request != "" {
 			checks[request] = "expand"
 		}
-		if !a.Wire.SkipExpand && a.Wire.Expand != nil && update != "" {
+		// An immutable attribute is create-authoritative: the emitter omits it
+		// from a split update body, so the update model owes it nothing.
+		immutable := a.Behaviour.Immutable != nil && *a.Behaviour.Immutable
+		if !a.Wire.SkipExpand && a.Wire.Expand != nil && update != "" && !immutable {
 			checks[update] = "expand (update body)"
 		}
 		if !a.Wire.SkipFlatten && a.Wire.Flatten != nil && response != "" {

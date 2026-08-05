@@ -204,3 +204,40 @@ func TestUnit_Generate_FluentTestHelperRebasesTheChain(t *testing.T) {
 		t.Errorf("helper call = %q, want %q", v.Call, want)
 	}
 }
+
+// TestUnit_Generate_ImmutableIsCreateAuthoritative proves an immutable
+// attribute reaches the create body and never a split update body: the
+// endpoint tests' update models declare a fraction of their create fields,
+// and RequiresReplace owns changes to the rest.
+func TestUnit_Generate_ImmutableIsCreateAuthoritative(t *testing.T) {
+	t.Parallel()
+
+	bp := fluentPilot(t)
+	r := &bp.Resources[0]
+	r.Binding.Body.UpdateRequestType = "models.Tags_API_TagUpdate"
+	r.Binding.Body.UpdateConstructorExpr = "models.NewTags_API_TagUpdate()"
+
+	yes := true
+	for i := range r.Schema.Attributes {
+		if r.Schema.Attributes[i].Name == "key" {
+			r.Schema.Attributes[i].Behaviour.Immutable = &yes
+		}
+	}
+
+	v, err := Resource(bp, bp.Resources[0], Options{})
+	if err != nil {
+		t.Fatalf("Resource: %v", err)
+	}
+	if v.Construct.Update == nil {
+		t.Fatal("a split update body must produce an update target")
+	}
+
+	create := strings.Join(v.Construct.Assignments, "\n")
+	update := strings.Join(v.Construct.Update.Assignments, "\n")
+	if !strings.Contains(create, "SetKey(") {
+		t.Errorf("the create body must keep the immutable field:\n%s", create)
+	}
+	if strings.Contains(update, "SetKey(") {
+		t.Errorf("a split update body must omit the immutable field:\n%s", update)
+	}
+}
