@@ -579,3 +579,15 @@ func FrameworkSetToKiotaEnumSlice[T any](ctx context.Context, v types.Set, parse
 	}
 	return out, diags
 }
+
+// PtrEnumToFramework converts an optional open-enum string -- one the API
+// echoes as "" when unset -- to types.String, treating empty as null exactly
+// as the resty dialect's EnumToFramework does. A blockDomains the
+// practitioner never wrote comes back from the API as "", and state must say
+// null, not "", or the first apply reports an inconsistency nobody caused.
+func PtrEnumToFramework[T ~string](p *T) types.String {
+	if p == nil || *p == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(string(*p))
+}

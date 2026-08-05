@@ -254,7 +254,7 @@
                       "sdkField": "Name",
                       "sdkGoType": "*string",
                       "flatten": {
-                        "func": "convert.PtrStringToFramework"
+                        "func": "convert.PtrEnumToFramework"
                       },
                       "skipExpand": true
                     }
@@ -339,7 +339,7 @@
                 "func": "convert.FrameworkToPtrString"
               },
               "flatten": {
-                "func": "convert.PtrStringToFramework"
+                "func": "convert.PtrEnumToFramework"
               }
             }
           },
@@ -387,7 +387,7 @@
                       "sdkField": "Name",
                       "sdkGoType": "*string",
                       "flatten": {
-                        "func": "convert.PtrStringToFramework"
+                        "func": "convert.PtrEnumToFramework"
                       },
                       "skipExpand": true
                     }
@@ -469,7 +469,7 @@
                 "func": "convert.FrameworkToPtrString"
               },
               "flatten": {
-                "func": "convert.PtrStringToFramework"
+                "func": "convert.PtrEnumToFramework"
               }
             }
           }
