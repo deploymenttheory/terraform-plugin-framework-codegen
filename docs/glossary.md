@@ -8,6 +8,7 @@ without adding it here first.
 |---|---|
 | OpenAPI document | The upstream API description as its vendor publishes it; never called a spec or a specification. |
 | snapshot | A pinned, committed copy of an OpenAPI document, fetched by `openapi fetch` and stored under `openapi/` so every derivation is reproducible. |
+| document patch | A curated, evidence-justified RFC 6902 correction under `openapi/<provider>/patches/`, applied to a copy of the snapshot before `sdk generate` reads it — for a document that is provably wrong about the live API, or shaped in a way that provably defeats deterministic generation. |
 | blueprint | The committed JSON intermediate representation the generator builds a provider from — schema plus bindings, wire mappings and observed behaviour. |
 | draft | A blueprint or scenario not yet fit for the pipeline, held under a `.draft.json` name the pipeline's loaders cannot open. |
 | promote | To rename a draft to its canonical filename, and nothing else — a git-visible act with no content change. |

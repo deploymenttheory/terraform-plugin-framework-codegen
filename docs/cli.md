@@ -160,6 +160,21 @@ one module. Under `-mode external` the tree gets a minimal generated `go.mod`
 own repository. `-check` regenerates into scratch and byte-compares — the only
 proof that the committed tree still follows from the pinned snapshot.
 
+**Document patches.** When a published document is provably wrong about the
+live API (a probe recording shows the API accepting and echoing an enum value
+the document omits), or shaped in a way that provably defeats deterministic
+generation (an anonymous schema kiota names unstably), a *document patch*
+records the divergence:
+`<openapi-dir>/patches/*.patch.json`, each holding a `justification` naming
+the evidence and RFC 6902 `operations` scoped to it. Patches apply to a copy
+(the snapshot's bytes and checksum never change; application preserves
+document order, which kiota's inline-schema naming depends on), generation
+reads the copy, and `-check` applies them identically, so a patch is part of
+what the committed tree provably follows from. When the vendor fixes the
+document, an `add` that finds its value already present refuses as *stale* —
+the prompt to delete the patch. With no patches directory, the snapshot is
+read directly.
+
 ## `blueprint`
 
 ### `blueprint draft`

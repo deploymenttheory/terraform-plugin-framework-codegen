@@ -10,7 +10,7 @@ import (
 type Endpoint_Agents_API_AgentTransferStatus struct {
 	Endpoint_Agents_API_Error
 	// The request property
-	request Proxiesable
+	request Endpoint_Agents_API_AgentTransferable
 }
 
 // NewEndpoint_Agents_API_AgentTransferStatus instantiates a new Endpoint_Agents_API_AgentTransferStatus and sets the default values.
@@ -32,12 +32,12 @@ func CreateEndpoint_Agents_API_AgentTransferStatusFromDiscriminatorValue(parseNo
 func (m *Endpoint_Agents_API_AgentTransferStatus) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 	res := m.Endpoint_Agents_API_Error.GetFieldDeserializers()
 	res["request"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreateProxiesFromDiscriminatorValue)
+		val, err := n.GetObjectValue(CreateEndpoint_Agents_API_AgentTransferFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			m.SetRequest(val.(Proxiesable))
+			m.SetRequest(val.(Endpoint_Agents_API_AgentTransferable))
 		}
 		return nil
 	}
@@ -45,8 +45,8 @@ func (m *Endpoint_Agents_API_AgentTransferStatus) GetFieldDeserializers() map[st
 }
 
 // GetRequest gets the request property value. The request property
-// returns a Proxiesable when successful
-func (m *Endpoint_Agents_API_AgentTransferStatus) GetRequest() Proxiesable {
+// returns a Endpoint_Agents_API_AgentTransferable when successful
+func (m *Endpoint_Agents_API_AgentTransferStatus) GetRequest() Endpoint_Agents_API_AgentTransferable {
 	return m.request
 }
 
@@ -66,13 +66,13 @@ func (m *Endpoint_Agents_API_AgentTransferStatus) Serialize(writer i878a80d2330e
 }
 
 // SetRequest sets the request property value. The request property
-func (m *Endpoint_Agents_API_AgentTransferStatus) SetRequest(value Proxiesable) {
+func (m *Endpoint_Agents_API_AgentTransferStatus) SetRequest(value Endpoint_Agents_API_AgentTransferable) {
 	m.request = value
 }
 
 type Endpoint_Agents_API_AgentTransferStatusable interface {
 	Endpoint_Agents_API_Errorable
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
-	GetRequest() Proxiesable
-	SetRequest(value Proxiesable)
+	GetRequest() Endpoint_Agents_API_AgentTransferable
+	SetRequest(value Endpoint_Agents_API_AgentTransferable)
 }

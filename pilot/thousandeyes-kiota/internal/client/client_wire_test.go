@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/models"
@@ -82,5 +83,37 @@ func TestUnit_Client_SendsPlainJSONBodies(t *testing.T) {
 		if decoded[field] != wantVal {
 			t.Errorf("body[%s] = %v, want %v (full body: %s)", field, decoded[field], wantVal, got.body)
 		}
+	}
+}
+
+// TestUnit_Client_DeleteAcceptsAJSONForm pins the Accept header of a delete.
+//
+// The credentials DELETE declares no success media type, so Kiota emits
+// `Accept: application/problem+json` alone -- and the ThousandEyes API
+// answers exactly that header with 406 Not Acceptable, which is how the
+// credential resource failed its first live acceptance run. The client's
+// acceptNormalizer widens the header to admit the API's real success forms;
+// this test fails if a delete ever goes out refusing them again.
+func TestUnit_Client_DeleteAcceptsAJSONForm(t *testing.T) {
+	t.Parallel()
+
+	var accept string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		accept = r.Header.Get("Accept")
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c, err := New(Config{BearerToken: "tok", APIEndpoint: srv.URL + "/v7"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := c.Credentials().ById("11111111-1111-1111-1111-111111111111").Delete(context.Background(), nil); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+
+	if !strings.Contains(accept, "application/json") || !strings.Contains(accept, "application/hal+json") {
+		t.Errorf("Accept = %q; a delete must admit the API's success media types or the server answers 406", accept)
 	}
 }

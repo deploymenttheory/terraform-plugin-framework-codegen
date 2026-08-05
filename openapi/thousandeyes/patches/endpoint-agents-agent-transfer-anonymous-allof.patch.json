@@ -1,0 +1,30 @@
+{
+  "justification": "Endpoint_Agents_API_AgentTransfer wraps its one object in a single-member allOf, leaving the member anonymous. kiota 1.34.1 synthesizes names for anonymous schemas and dedupes structurally identical ones with an unstable canonical winner: roughly one generation in five emits this model as models/agents.go and the rest as models/proxies.go (same shape, flipped name), which makes `sdk generate -check` fail on a tree that is not actually stale. allOf with a single member is definitionally identical to that member, so collapsing it changes no wire contract and gives the model its component's own stable name.",
+  "operations": [
+    {
+      "op": "test",
+      "path": "/components/schemas/Endpoint_Agents_API_AgentTransfer/allOf",
+      "value": [
+        {
+          "type": "object",
+          "properties": {
+            "agentId": { "$ref": "#/components/schemas/Endpoint_Agents_API_EndpointAgentId" },
+            "fromAid": { "$ref": "#/components/schemas/Endpoint_Agents_API_AccountId" },
+            "toAid": { "$ref": "#/components/schemas/Endpoint_Agents_API_AccountId" }
+          }
+        }
+      ]
+    },
+    { "op": "remove", "path": "/components/schemas/Endpoint_Agents_API_AgentTransfer/allOf" },
+    { "op": "add", "path": "/components/schemas/Endpoint_Agents_API_AgentTransfer/type", "value": "object" },
+    {
+      "op": "add",
+      "path": "/components/schemas/Endpoint_Agents_API_AgentTransfer/properties",
+      "value": {
+        "agentId": { "$ref": "#/components/schemas/Endpoint_Agents_API_EndpointAgentId" },
+        "fromAid": { "$ref": "#/components/schemas/Endpoint_Agents_API_AccountId" },
+        "toAid": { "$ref": "#/components/schemas/Endpoint_Agents_API_AccountId" }
+      }
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/docpatch"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/kiota"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
 )
@@ -97,6 +98,15 @@ func runSDKGenerate(args []string) error {
 		return err
 	}
 
+	// Document patches: curated, recording-justified corrections applied to a copy
+	// of the snapshot when the published document is provably wrong about the
+	// live API. The snapshot's own bytes never change; generation reads the
+	// patched copy, and with no patches present the snapshot is read directly.
+	patches, err := docpatch.Load(filepath.Join(o.openapiDir, docpatch.DirName))
+	if err != nil {
+		return err
+	}
+
 	module := o.module
 	if module == "" {
 		module, err = embedModulePath(o.out)
@@ -117,10 +127,23 @@ func runSDKGenerate(args []string) error {
 
 	if o.dryRun {
 		log.Printf("snapshot: %s", snap.SpecPath())
+		for _, p := range patches {
+			log.Printf("would apply %s: %s", p.File, p.Justification)
+		}
 		log.Printf("would run: kiota generate -l go -d %s -o %s -n %s -c %s --exclude-backward-compatible",
 			gen.Description, gen.Out, gen.Module, gen.ClientName)
 		log.Printf("dry run; nothing was generated")
 		return nil
+	}
+
+	if len(patches) > 0 {
+		patched, err := patchedDocument(snap, patches)
+		if err != nil {
+			return err
+		}
+		defer func() { _ = os.RemoveAll(filepath.Dir(patched)) }()
+		gen.Description = patched
+		log.Printf("applied %d document patch(es) from %s", len(patches), filepath.Join(o.openapiDir, docpatch.DirName))
 	}
 
 	// The version gate: a committed tree names the kiota that produced it, and
@@ -149,6 +172,19 @@ func runSDKGenerate(args []string) error {
 		return err
 	}
 
+	// A patched generation read a temporary copy, and a temp path must not
+	// reach the committed lock: point descriptionLocation back at the pinned
+	// snapshot the patched copy was derived from.
+	if gen.Description != snap.SpecPath() {
+		rel, err := relDescription(o.out, snap.SpecPath())
+		if err != nil {
+			return err
+		}
+		if err := kiota.SetDescriptionLocation(o.out, rel); err != nil {
+			return err
+		}
+	}
+
 	if o.mode == sdkModeExternal {
 		if err := ensureSDKModule(o.out, module); err != nil {
 			return err
@@ -156,6 +192,43 @@ func runSDKGenerate(args []string) error {
 	}
 
 	return sdkPostcheck(o.out)
+}
+
+// patchedDocument applies the loaded patches to the snapshot's document and
+// writes the result into a fresh temp directory, returning the file path.
+func patchedDocument(snap snapshot.Snapshot, patches []docpatch.Patch) (string, error) {
+	raw, err := os.ReadFile(snap.SpecPath()) //nolint:gosec // the verified snapshot's own path
+	if err != nil {
+		return "", err
+	}
+	patched, err := docpatch.Apply(raw, patches)
+	if err != nil {
+		return "", err
+	}
+
+	dir, err := os.MkdirTemp("", "tfpfgen-patched-spec-*")
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, "api.yaml")
+	if err := os.WriteFile(path, patched, 0o600); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// relDescription is the lock-file spelling of the snapshot's location: the
+// same relative-to-the-SDK-root form kiota itself writes.
+func relDescription(out, spec string) (string, error) {
+	absOut, err := filepath.Abs(out)
+	if err != nil {
+		return "", err
+	}
+	absSpec, err := filepath.Abs(spec)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Rel(absOut, absSpec)
 }
 
 // embedModulePath derives kiota's -n for an embedded SDK: the enclosing
