@@ -19,7 +19,7 @@ order `help` prints them.
 | Command | Purpose | Verbs |
 |---|---|---|
 | `openapi` | fetch and pin upstream OpenAPI documents | `fetch` |
-| `sdk` | generate a Go SDK from a pinned OpenAPI snapshot | `generate` |
+| `sdk` | generate a Go SDK from a pinned OpenAPI snapshot | `generate`, `push` |
 | `blueprint` | draft, merge, validate, diff or list blueprints | `draft`, `merge`; `validate`, `diff`, `list` planned |
 | `probe` | exercise a resource's lifecycle; record or replay cassettes | `record`, `replay`, `verify`, `sweep`, `list` |
 | `provider` | generate a terraform-plugin-framework provider from blueprints | `generate`, `push`; `scaffold` planned |
@@ -174,6 +174,37 @@ what the committed tree provably follows from. When the vendor fixes the
 document, an `add` that finds its value already present refuses as *stale* —
 the prompt to delete the patch. With no patches directory, the snapshot is
 read directly.
+
+### `sdk push`
+
+Publishes an external-mode SDK tree to its own repository, as a branch and a
+pull request — the SDK counterpart of `provider push`.
+
+```
+tfpfgen sdk push -out DIR -repo URL [-branch NAME] [-base NAME] [-dry-run]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-out` | — | SDK root to publish, as written by `sdk generate -mode external` (required) |
+| `-repo` | — | target repository: a clone URL or GitHub `owner/name` (required) |
+| `-branch` | `tfpfgen/sdk-<digest>` | branch to push; the digest is derived from `kiota-lock.json`, so the same generation always names the same branch |
+| `-base` | the repository's default branch | branch to diff and open the pull request against |
+| `-dry-run` | `false` | clone and compare, but push nothing and open nothing |
+
+The token doctrine, sync, prune and pull-request behaviour are `provider
+push`'s exactly, with the SDK's own provenance records in the provider's
+places. Push refuses a tree without a `kiota-lock.json` (nothing this pipeline
+generated) and a tree without a `go.mod` (an *embedded* SDK, whose import path
+only works inside the provider module — only `-mode external` output can live
+in its own repository). Because the SDK root itself carries no manifest — it
+is byte-compared against fresh kiota output, and a foreign file would fail
+that check — the inventory that makes pruning safe is written into the
+*target* repository as `.tfpfgen/manifest.json` by each push and read by the
+next, so the target's own files (its licence, its workflows) are never
+touched. Commits and pull requests land on the generator-owned
+`tfpfgen/sdk-*` branch namespace, naming the kiota version and the pinned
+document's hash.
 
 ## `blueprint`
 

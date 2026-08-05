@@ -33,6 +33,12 @@ var sdkVerbs = []command{
 		usage:   usageSDKGenerate,
 		run:     runSDKGenerate,
 	},
+	{
+		name:    "push",
+		summary: "publish an external-mode SDK tree to a git repository, via branch and pull request",
+		usage:   usageSDKPush,
+		run:     runSDKPush,
+	},
 }
 
 func runSDK(args []string) error {
