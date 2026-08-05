@@ -276,8 +276,6 @@ func TestUnit_CLI_Push_DryRunPushesNothing(t *testing.T) {
 func TestUnit_CLI_Push_PullRequest(t *testing.T) {
 	t.Parallel()
 
-	m := manifest.New("test", nil)
-
 	t.Run("created", func(t *testing.T) {
 		t.Parallel()
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -293,7 +291,7 @@ func TestUnit_CLI_Push_PullRequest(t *testing.T) {
 		defer srv.Close()
 
 		target := repoTarget{owner: "org", name: "prov", gitHub: true, apiBase: srv.URL}
-		url, err := openPullRequest(target, "tok", "tfpfgen/generate-abc", "main", m, 3)
+		url, err := openPullRequest(target, "tok", "tfpfgen/generate-abc", "main", "title", "body")
 		if err != nil {
 			t.Fatalf("openPullRequest: %v", err)
 		}
@@ -315,7 +313,7 @@ func TestUnit_CLI_Push_PullRequest(t *testing.T) {
 		defer srv.Close()
 
 		target := repoTarget{owner: "org", name: "prov", gitHub: true, apiBase: srv.URL}
-		url, err := openPullRequest(target, "tok", "tfpfgen/generate-abc", "main", m, 3)
+		url, err := openPullRequest(target, "tok", "tfpfgen/generate-abc", "main", "title", "body")
 		if err != nil {
 			t.Fatalf("openPullRequest: %v", err)
 		}

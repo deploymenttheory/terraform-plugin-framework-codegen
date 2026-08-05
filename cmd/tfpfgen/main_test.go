@@ -78,6 +78,9 @@ var builtCommands = map[string]bool{
 	// sdk generate shells out to kiota; the verb itself is built, and its
 	// no-argument invocation fails on required flags, not errNotImplemented.
 	"sdk generate": true,
+	// sdk push publishes an external-mode SDK tree the way provider push
+	// publishes a provider tree.
+	"sdk push": true,
 	// blueprint draft infers resource blueprints from a pinned snapshot. Data
 	// sources, actions and the provider block are still hand-authored, and every
 	// skip is printed as a note rather than being silent.
