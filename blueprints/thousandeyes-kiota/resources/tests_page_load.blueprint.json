@@ -752,7 +752,8 @@
             "computedOptionalRequired": "computed_optional",
             "markdownDescription": "Indicates whether network data to the proxy should be collected.\n\nComputed as well as optional: the 2026-08-03 dispatched acceptance run (#12) observed the API applying its own value when this is omitted.\n\n<!-- probed:static -->\nThe SDK's encoding drops this type's zero value (omitempty), so configuring false, 0 or \"\" silently becomes an omission.\n<!-- /probed -->",
             "behaviour": {
-              "zeroValueUnsendable": true
+              "zeroValueUnsendable": true,
+              "returnedOnRead": false
             },
             "wire": {
               "jsonPath": "collectProxyNetworkData",
@@ -761,7 +762,9 @@
               "expand": {
                 "func": "convert.FrameworkToPtrBool"
               },
-              "skipFlatten": true
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
             }
           },
           {
