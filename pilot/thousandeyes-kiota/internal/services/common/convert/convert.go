@@ -29,12 +29,14 @@ package convert
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
 // -----------------------------------------------------------------------------
@@ -460,4 +462,120 @@ func FrameworkToKiotaEnum[T any](v types.String, parse func(string) (any, error)
 	}
 
 	return typed, diags
+}
+
+// PtrInt32ToFrameworkInt64 widens an optional int32 -- the Kiota SDK types
+// every plain integer property as *int32 -- into the types.Int64 the curated
+// schema declares, so the schema does not have to change shape with the SDK.
+func PtrInt32ToFrameworkInt64[T ~int32](p *T) types.Int64 {
+	if p == nil {
+		return types.Int64Null()
+	}
+	return types.Int64Value(int64(*p))
+}
+
+// FrameworkInt64ToPtrInt32 is the write-side mirror of PtrInt32ToFrameworkInt64.
+// Not generic: a setter parameter gives Go no way to infer a type argument, and
+// the Kiota SDK types every plain integer as exactly *int32.
+func FrameworkInt64ToPtrInt32(v types.Int64) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	out := int32(v.ValueInt64())
+	return &out
+}
+
+// PtrInt32ToFrameworkString renders an optional int32 as a string attribute --
+// for a property the curated schema models as a string (a test interval) where
+// the Kiota SDK carries the raw integer.
+func PtrInt32ToFrameworkString[T ~int32](p *T) types.String {
+	if p == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strconv.FormatInt(int64(*p), 10))
+}
+
+// FrameworkToPtrTime parses an RFC 3339 string attribute into the *time.Time a
+// Kiota write model wants. RFC 3339 is the only accepted spelling because it is
+// the shape the API echoes back -- accepting a looser format here would create
+// a value the read side can never render identically, which Terraform reports
+// as a permanent diff.
+func FrameworkToPtrTime(v types.String) (*time.Time, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if v.IsNull() || v.IsUnknown() {
+		return nil, diags
+	}
+
+	t, err := time.Parse(time.RFC3339, v.ValueString())
+	if err != nil {
+		diags.AddError(
+			"Invalid timestamp",
+			fmt.Sprintf("%q is not an RFC 3339 timestamp (2027-06-01T00:00:00Z): %s", v.ValueString(), err),
+		)
+		return nil, diags
+	}
+	return &t, diags
+}
+
+// PtrDateOnlyToFramework converts an optional date-only value to types.String
+// in the yyyy-mm-dd shape it arrived in on the wire.
+func PtrDateOnlyToFramework(p *serialization.DateOnly) types.String {
+	if p == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(p.String())
+}
+
+// FrameworkToPtrDateOnly parses a yyyy-mm-dd string attribute into the
+// *serialization.DateOnly a Kiota write model wants.
+func FrameworkToPtrDateOnly(v types.String) (*serialization.DateOnly, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	if v.IsNull() || v.IsUnknown() {
+		return nil, diags
+	}
+
+	d, err := serialization.ParseDateOnly(v.ValueString())
+	if err != nil {
+		diags.AddError(
+			"Invalid date",
+			fmt.Sprintf("%q is not a yyyy-mm-dd date: %s", v.ValueString(), err),
+		)
+		return nil, diags
+	}
+	return d, diags
+}
+
+// KiotaEnumSliceToFrameworkSet renders a slice of Kiota enumeration values as
+// a set of their wire strings -- a suppression window's daysOfWeek.
+func KiotaEnumSliceToFrameworkSet[T fmt.Stringer](ctx context.Context, v []T) (types.Set, diag.Diagnostics) {
+	if v == nil {
+		return StringSliceToFrameworkSet(ctx, nil)
+	}
+	raw := make([]string, len(v))
+	for i, e := range v {
+		raw[i] = e.String()
+	}
+	return StringSliceToFrameworkSet(ctx, raw)
+}
+
+// FrameworkSetToKiotaEnumSlice converts a set of strings into a slice of Kiota
+// enumeration values through the SDK's ParseX companion, refusing any string
+// outside the closed set for the same reason FrameworkToKiotaEnum does.
+func FrameworkSetToKiotaEnumSlice[T any](ctx context.Context, v types.Set, parse func(string) (any, error)) ([]T, diag.Diagnostics) {
+	raw, diags := FrameworkSetToStringSlice(ctx, v)
+	if raw == nil {
+		return nil, diags
+	}
+
+	out := make([]T, 0, len(raw))
+	for _, s := range raw {
+		one, oneDiags := FrameworkToKiotaEnum[T](types.StringValue(s), parse)
+		diags.Append(oneDiags...)
+		if one != nil {
+			out = append(out, *one)
+		}
+	}
+	return out, diags
 }

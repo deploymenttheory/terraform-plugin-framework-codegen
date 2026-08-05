@@ -384,11 +384,23 @@ func nestedItemRef(s nestedShape) string {
 	return "&item"
 }
 
+// nestedInRef is the flatten twin of nestedItemRef: how the single-object
+// parameter becomes the local the assignments read. A struct-access helper
+// receives *Model and dereferences it; a method-access helper receives the
+// interface, which cannot be dereferenced and does not need to be.
+func nestedInRef(s nestedShape) string {
+	if s.access == blueprint.AccessMethod {
+		return "in"
+	}
+	return "*in"
+}
+
 // nestedFlattenView builds the helper converting SDK structs into a framework
 // collection.
 func nestedFlattenView(s nestedShape) NestedFuncView {
 	v := NestedFuncView{
 		SDKSingleType: nestedSingleType(s),
+		InRef:         nestedInRef(s),
 		FuncName:      s.nested.FlattenFunc,
 		FrameworkType: frameworkModelType[s.attr.Type.Kind],
 		SDKType:       s.nested.SDKType,

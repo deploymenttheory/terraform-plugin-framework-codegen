@@ -285,6 +285,9 @@ type NestedFuncView struct {
 	// ItemRef is how a finished single element is returned: "&item" when item
 	// is a value, "item" when the constructor already yielded the interface.
 	ItemRef string
+	// InRef is how a single-object flatten reads its parameter: "*in" when the
+	// helper receives *Model, "in" when it receives the bare interface.
+	InRef string
 	// SharedDiag is true when an assignment uses the enclosing shared d, which
 	// is what makes declaring `var d` outside a loop body load-bearing; the
 	// temp forms declare their own.
