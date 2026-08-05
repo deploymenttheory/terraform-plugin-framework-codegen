@@ -4,7 +4,36 @@
 package sdk
 
 import (
+	i7ca1e85d2f3b9e56e4fe84b7cda39003f613a40a77d37618a87a86de6a33bf48 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/accountgroups"
+	i3e2ae1ee832e6ad2b75ae2b266357a1004c902ded934f1c5b603d58cc43ec2d6 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/agents"
+	i8da6513cbbb2ed4191e5c546381b15ee3cb3cde1f85c4bdf98e3f313e00a1d30 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/alerts"
+	id545290c208f09e579ddfe73a342eda6af56af83f6dfdb60f72ee8f942681b98 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/alertsuppressionwindows"
+	ibe73d6d2bd4dacc9939c6d64b8e07627ce6a1775704ebdfc055327cce4996eba "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/apitokens"
+	i446584654c8b80f952e87ebc0ace8a11c8bb7e716edfb05bd3b0ec3d4ce62f8d "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/audituserevents"
+	i2cbfd70aaa265f5d185421c0be9befd19b369ef26b0c7742a4c5c01430737184 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/autonomoussystems"
+	i26075659b754bc91fc4a37d47db6efe673fcd05dd71f0e653554ccd377b81a2a "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/cloudinsights"
+	i3e4f5660e4d17c574102cd4961ac00207138d516a7ab874026d4964b9d9c9076 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/connectors"
+	i4cefd2def7669efaf950acc119951e73f33b52cd79e9b919b1b37c768bce8e3d "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/credentials"
+	ie931bd4f8881cad8679119fb93b081481c58e3d32b664f55a7bd444126dee334 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/dashboards"
+	i3f9ce1739a8d155d026253a6f52cb3f8e9dbb1922e481df33f156166b3262944 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/dashboardsnapshots"
+	i80e84db484756693f1072451e9ecb7a709c5f9f46cf0d3e2ed5a291a3ce19282 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/emulateddevices"
+	i8491455b2a2a14eeb422008085c051001a99a40c5e92e183a40b5d6ce660d272 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/endpoint"
+	i73fbf62405c9a13fa1a65a06ee2102be9cfbe972a427232d0e174eb2fd0c6e71 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/events"
+	ifc45ef67db91c4bc72c761138ecbeca3c75ee09ea7e87b6f864f7e67f35c9798 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/internetinsights"
+	id23498f91a7eb83d4a9da2515e4997d7dff024cc19e74490e584c17617012f75 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/monitors"
+	iab7921796b715b6df292bde94d73681969900c75ef47168f518dfa44bafcd799 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/network"
+	ia5da65fc2a12efefe99eb6e7b03c6de6280b5c26d334f24b20126a99dbd7acf8 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/operations"
+	i383133023d248d4d1b9c2b8c4b1e88df1dd2014f09c028ec7afd1443bcd7e465 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/permissions"
+	ib2cb5a556a9bc2dc1ab88a2c37cbd838c775bf637ff78d4a717f510c623322fa "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/quotas"
+	i5e57ccf7492372816d07654cab1e3f5c6dd4aa598f03c50df5dbc677029a361c "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/roles"
+	i877404919e9b253384960315b08e78ce528d812427e540e32d51d70d553479c6 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/streams"
 	i25c7329e78df1c2b1e358f58900ea34a06ae6af9ccdcfa45e661044f2de29a6f "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/tags"
+	i03822f2e6a07e0e88f7a774eabb9fe24865fedf21a915ad553f948391a9e3e5a "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/templates"
+	ice3d1c34f159389d70834c5a8ed58734e75eab23d24b97849d172aaad435af8f "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/testresults"
+	iecf0ff78519ea23e6726c8a9e90a3d4f9d0a2a1e25b59008398f2cd3f79b3247 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/tests"
+	if6a09cec24318527dde2258bc59a79e55fdd000f60be58d59205c0d154c561a6 "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/usage"
+	i4d948385fbafff5d2909b33b705950d7518d2099604887ab6f85bedaa07e602a "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/useragents"
+	ide9c415ed3218d1b14be0fef78a0223cf15a064be67749cdc208fde32475c8df "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/users"
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 	i4bcdc892e61ac17e2afc10b5e2b536b29f4fd6c1ad30f4a5a68df47495db3347 "github.com/microsoft/kiota-serialization-form-go"
@@ -16,6 +45,60 @@ import (
 // ThousandEyesClient the main entry point of the SDK, exposes the configuration and the fluent API.
 type ThousandEyesClient struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
+}
+
+// AccountGroups the accountGroups property
+// returns a *AccountGroupsRequestBuilder when successful
+func (m *ThousandEyesClient) AccountGroups() *i7ca1e85d2f3b9e56e4fe84b7cda39003f613a40a77d37618a87a86de6a33bf48.AccountGroupsRequestBuilder {
+	return i7ca1e85d2f3b9e56e4fe84b7cda39003f613a40a77d37618a87a86de6a33bf48.NewAccountGroupsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Agents the agents property
+// returns a *AgentsRequestBuilder when successful
+func (m *ThousandEyesClient) Agents() *i3e2ae1ee832e6ad2b75ae2b266357a1004c902ded934f1c5b603d58cc43ec2d6.AgentsRequestBuilder {
+	return i3e2ae1ee832e6ad2b75ae2b266357a1004c902ded934f1c5b603d58cc43ec2d6.NewAgentsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Alerts the alerts property
+// returns a *AlertsRequestBuilder when successful
+func (m *ThousandEyesClient) Alerts() *i8da6513cbbb2ed4191e5c546381b15ee3cb3cde1f85c4bdf98e3f313e00a1d30.AlertsRequestBuilder {
+	return i8da6513cbbb2ed4191e5c546381b15ee3cb3cde1f85c4bdf98e3f313e00a1d30.NewAlertsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// AlertSuppressionWindows the alertSuppressionWindows property
+// returns a *AlertSuppressionWindowsRequestBuilder when successful
+func (m *ThousandEyesClient) AlertSuppressionWindows() *id545290c208f09e579ddfe73a342eda6af56af83f6dfdb60f72ee8f942681b98.AlertSuppressionWindowsRequestBuilder {
+	return id545290c208f09e579ddfe73a342eda6af56af83f6dfdb60f72ee8f942681b98.NewAlertSuppressionWindowsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// ApiTokens the apiTokens property
+// returns a *ApiTokensRequestBuilder when successful
+func (m *ThousandEyesClient) ApiTokens() *ibe73d6d2bd4dacc9939c6d64b8e07627ce6a1775704ebdfc055327cce4996eba.ApiTokensRequestBuilder {
+	return ibe73d6d2bd4dacc9939c6d64b8e07627ce6a1775704ebdfc055327cce4996eba.NewApiTokensRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// AuditUserEvents the auditUserEvents property
+// returns a *AuditUserEventsRequestBuilder when successful
+func (m *ThousandEyesClient) AuditUserEvents() *i446584654c8b80f952e87ebc0ace8a11c8bb7e716edfb05bd3b0ec3d4ce62f8d.AuditUserEventsRequestBuilder {
+	return i446584654c8b80f952e87ebc0ace8a11c8bb7e716edfb05bd3b0ec3d4ce62f8d.NewAuditUserEventsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// AutonomousSystems the autonomousSystems property
+// returns a *AutonomousSystemsRequestBuilder when successful
+func (m *ThousandEyesClient) AutonomousSystems() *i2cbfd70aaa265f5d185421c0be9befd19b369ef26b0c7742a4c5c01430737184.AutonomousSystemsRequestBuilder {
+	return i2cbfd70aaa265f5d185421c0be9befd19b369ef26b0c7742a4c5c01430737184.NewAutonomousSystemsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// CloudInsights the cloudInsights property
+// returns a *CloudInsightsRequestBuilder when successful
+func (m *ThousandEyesClient) CloudInsights() *i26075659b754bc91fc4a37d47db6efe673fcd05dd71f0e653554ccd377b81a2a.CloudInsightsRequestBuilder {
+	return i26075659b754bc91fc4a37d47db6efe673fcd05dd71f0e653554ccd377b81a2a.NewCloudInsightsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Connectors the connectors property
+// returns a *ConnectorsRequestBuilder when successful
+func (m *ThousandEyesClient) Connectors() *i3e4f5660e4d17c574102cd4961ac00207138d516a7ab874026d4964b9d9c9076.ConnectorsRequestBuilder {
+	return i3e4f5660e4d17c574102cd4961ac00207138d516a7ab874026d4964b9d9c9076.NewConnectorsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // NewThousandEyesClient instantiates a new ThousandEyesClient and sets the default values.
@@ -51,8 +134,128 @@ func NewThousandEyesClient(requestAdapter i2ae4187f7daee263371cb1c977df639813ab5
 	return m
 }
 
+// Credentials the credentials property
+// returns a *CredentialsRequestBuilder when successful
+func (m *ThousandEyesClient) Credentials() *i4cefd2def7669efaf950acc119951e73f33b52cd79e9b919b1b37c768bce8e3d.CredentialsRequestBuilder {
+	return i4cefd2def7669efaf950acc119951e73f33b52cd79e9b919b1b37c768bce8e3d.NewCredentialsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Dashboards the dashboards property
+// returns a *DashboardsRequestBuilder when successful
+func (m *ThousandEyesClient) Dashboards() *ie931bd4f8881cad8679119fb93b081481c58e3d32b664f55a7bd444126dee334.DashboardsRequestBuilder {
+	return ie931bd4f8881cad8679119fb93b081481c58e3d32b664f55a7bd444126dee334.NewDashboardsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// DashboardSnapshots the dashboardSnapshots property
+// returns a *DashboardSnapshotsRequestBuilder when successful
+func (m *ThousandEyesClient) DashboardSnapshots() *i3f9ce1739a8d155d026253a6f52cb3f8e9dbb1922e481df33f156166b3262944.DashboardSnapshotsRequestBuilder {
+	return i3f9ce1739a8d155d026253a6f52cb3f8e9dbb1922e481df33f156166b3262944.NewDashboardSnapshotsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// EmulatedDevices the emulatedDevices property
+// returns a *EmulatedDevicesRequestBuilder when successful
+func (m *ThousandEyesClient) EmulatedDevices() *i80e84db484756693f1072451e9ecb7a709c5f9f46cf0d3e2ed5a291a3ce19282.EmulatedDevicesRequestBuilder {
+	return i80e84db484756693f1072451e9ecb7a709c5f9f46cf0d3e2ed5a291a3ce19282.NewEmulatedDevicesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Endpoint the endpoint property
+// returns a *EndpointRequestBuilder when successful
+func (m *ThousandEyesClient) Endpoint() *i8491455b2a2a14eeb422008085c051001a99a40c5e92e183a40b5d6ce660d272.EndpointRequestBuilder {
+	return i8491455b2a2a14eeb422008085c051001a99a40c5e92e183a40b5d6ce660d272.NewEndpointRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Events the events property
+// returns a *EventsRequestBuilder when successful
+func (m *ThousandEyesClient) Events() *i73fbf62405c9a13fa1a65a06ee2102be9cfbe972a427232d0e174eb2fd0c6e71.EventsRequestBuilder {
+	return i73fbf62405c9a13fa1a65a06ee2102be9cfbe972a427232d0e174eb2fd0c6e71.NewEventsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// InternetInsights the internetInsights property
+// returns a *InternetInsightsRequestBuilder when successful
+func (m *ThousandEyesClient) InternetInsights() *ifc45ef67db91c4bc72c761138ecbeca3c75ee09ea7e87b6f864f7e67f35c9798.InternetInsightsRequestBuilder {
+	return ifc45ef67db91c4bc72c761138ecbeca3c75ee09ea7e87b6f864f7e67f35c9798.NewInternetInsightsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Monitors the monitors property
+// returns a *MonitorsRequestBuilder when successful
+func (m *ThousandEyesClient) Monitors() *id23498f91a7eb83d4a9da2515e4997d7dff024cc19e74490e584c17617012f75.MonitorsRequestBuilder {
+	return id23498f91a7eb83d4a9da2515e4997d7dff024cc19e74490e584c17617012f75.NewMonitorsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Network the network property
+// returns a *NetworkRequestBuilder when successful
+func (m *ThousandEyesClient) Network() *iab7921796b715b6df292bde94d73681969900c75ef47168f518dfa44bafcd799.NetworkRequestBuilder {
+	return iab7921796b715b6df292bde94d73681969900c75ef47168f518dfa44bafcd799.NewNetworkRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Operations the operations property
+// returns a *OperationsRequestBuilder when successful
+func (m *ThousandEyesClient) Operations() *ia5da65fc2a12efefe99eb6e7b03c6de6280b5c26d334f24b20126a99dbd7acf8.OperationsRequestBuilder {
+	return ia5da65fc2a12efefe99eb6e7b03c6de6280b5c26d334f24b20126a99dbd7acf8.NewOperationsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Permissions the permissions property
+// returns a *PermissionsRequestBuilder when successful
+func (m *ThousandEyesClient) Permissions() *i383133023d248d4d1b9c2b8c4b1e88df1dd2014f09c028ec7afd1443bcd7e465.PermissionsRequestBuilder {
+	return i383133023d248d4d1b9c2b8c4b1e88df1dd2014f09c028ec7afd1443bcd7e465.NewPermissionsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Quotas the quotas property
+// returns a *QuotasRequestBuilder when successful
+func (m *ThousandEyesClient) Quotas() *ib2cb5a556a9bc2dc1ab88a2c37cbd838c775bf637ff78d4a717f510c623322fa.QuotasRequestBuilder {
+	return ib2cb5a556a9bc2dc1ab88a2c37cbd838c775bf637ff78d4a717f510c623322fa.NewQuotasRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Roles the roles property
+// returns a *RolesRequestBuilder when successful
+func (m *ThousandEyesClient) Roles() *i5e57ccf7492372816d07654cab1e3f5c6dd4aa598f03c50df5dbc677029a361c.RolesRequestBuilder {
+	return i5e57ccf7492372816d07654cab1e3f5c6dd4aa598f03c50df5dbc677029a361c.NewRolesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Streams the streams property
+// returns a *StreamsRequestBuilder when successful
+func (m *ThousandEyesClient) Streams() *i877404919e9b253384960315b08e78ce528d812427e540e32d51d70d553479c6.StreamsRequestBuilder {
+	return i877404919e9b253384960315b08e78ce528d812427e540e32d51d70d553479c6.NewStreamsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Tags the tags property
 // returns a *TagsRequestBuilder when successful
 func (m *ThousandEyesClient) Tags() *i25c7329e78df1c2b1e358f58900ea34a06ae6af9ccdcfa45e661044f2de29a6f.TagsRequestBuilder {
 	return i25c7329e78df1c2b1e358f58900ea34a06ae6af9ccdcfa45e661044f2de29a6f.NewTagsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Templates the templates property
+// returns a *TemplatesRequestBuilder when successful
+func (m *ThousandEyesClient) Templates() *i03822f2e6a07e0e88f7a774eabb9fe24865fedf21a915ad553f948391a9e3e5a.TemplatesRequestBuilder {
+	return i03822f2e6a07e0e88f7a774eabb9fe24865fedf21a915ad553f948391a9e3e5a.NewTemplatesRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// TestResults the testResults property
+// returns a *TestResultsRequestBuilder when successful
+func (m *ThousandEyesClient) TestResults() *ice3d1c34f159389d70834c5a8ed58734e75eab23d24b97849d172aaad435af8f.TestResultsRequestBuilder {
+	return ice3d1c34f159389d70834c5a8ed58734e75eab23d24b97849d172aaad435af8f.NewTestResultsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Tests the tests property
+// returns a *TestsRequestBuilder when successful
+func (m *ThousandEyesClient) Tests() *iecf0ff78519ea23e6726c8a9e90a3d4f9d0a2a1e25b59008398f2cd3f79b3247.TestsRequestBuilder {
+	return iecf0ff78519ea23e6726c8a9e90a3d4f9d0a2a1e25b59008398f2cd3f79b3247.NewTestsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Usage the usage property
+// returns a *UsageRequestBuilder when successful
+func (m *ThousandEyesClient) Usage() *if6a09cec24318527dde2258bc59a79e55fdd000f60be58d59205c0d154c561a6.UsageRequestBuilder {
+	return if6a09cec24318527dde2258bc59a79e55fdd000f60be58d59205c0d154c561a6.NewUsageRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// UserAgents the userAgents property
+// returns a *UserAgentsRequestBuilder when successful
+func (m *ThousandEyesClient) UserAgents() *i4d948385fbafff5d2909b33b705950d7518d2099604887ab6f85bedaa07e602a.UserAgentsRequestBuilder {
+	return i4d948385fbafff5d2909b33b705950d7518d2099604887ab6f85bedaa07e602a.NewUserAgentsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Users the users property
+// returns a *UsersRequestBuilder when successful
+func (m *ThousandEyesClient) Users() *ide9c415ed3218d1b14be0fef78a0223cf15a064be67749cdc208fde32475c8df.UsersRequestBuilder {
+	return ide9c415ed3218d1b14be0fef78a0223cf15a064be67749cdc208fde32475c8df.NewUsersRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

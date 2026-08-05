@@ -4,82 +4,272 @@
   "files": [
     {
       "path": "internal/provider/actions.go",
-      "sha256": "85b73066bc9298847a9fb9d925c2c1ef4859bb3ab803c2f5cc37d3b0db6c5e85",
+      "sha256": "f93b411834bc1eac6eb562032eebc37b1be29cc2ae9de7e4de4f1a10b25c19ec",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/provider/datasources.go",
-      "sha256": "3307b81156907a7893cd550d52454e6a081e59b5595a4bc4334544593084626b",
+      "sha256": "045c5fcabd27221824e90315d06544cfd7732cce0fb3de0f21c7666bb2a4348b",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/provider/ephemerals.go",
-      "sha256": "2a06ad565ca50d2005285f4d6f9bf441a41eae3e2fb8cd8b4e40047589922189",
+      "sha256": "76b6dcb214300117db7d0e991d5f40364c8df5d96f13520725b22804641c4142",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/provider/list_resources.go",
-      "sha256": "b35ad541ba4235ce9f8808dd0f260be32b2ed666c6f5009b70d26d5e1317e57e",
+      "sha256": "20658b43631011b9c12b847a1caf70d111159928f4cc04757006815675fec810",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/provider/resources.go",
-      "sha256": "1934955d5707d0fa56ad0e2f9bd64e972ce0385ead92ae51a6888ca26e7e4c9b",
+      "sha256": "f5fc87f9bd232ab154ae48213faa36ea89a892282bb0d0be798d7d4b9e868f47",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/action.go",
+      "sha256": "1d780007ab1192aa03d938b77b7e483d1fdb3b2a34e98718ab4bbe086d063261",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/action_acceptance_test.go",
+      "sha256": "8bea8690a76989ffcde993129ed5681a4628d43366f43fcfe3d870a81e271a6d",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/invoke.go",
+      "sha256": "81cccc5882471dda322c3581f9dfacdfd9b2c6b10ccd6de95cfc0ea805af2f3b",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/model.go",
+      "sha256": "38012938b519360d5189009416855224891c0bb363380c8d9bed33bf94719d59",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/actions/endpoint_agents/v7/disable_endpoint_agent/testdata/action.tf",
+      "sha256": "2b55944dbfb8d4a8eea5ac28e48d970cd5f5bb65c812dae835b1a00aca5c325a",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tag/datasource.go",
+      "sha256": "c0dc61370be23690e790ad3333281717e2f34b51321238f9588770a07ff55eca",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tag/datasource_acceptance_test.go",
+      "sha256": "1d535baac88ce31fedd552bc47d848d2fb668eb3a44fd5822169ccfb709f4e9c",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tag/model.go",
+      "sha256": "255d17450a623cc949cb2b6e761ea1b4a3fdb08b15a2fe38765c7c8d4b940b2a",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tag/read.go",
+      "sha256": "b467ab6a89571bdf9dedde4e0bedf9ce16869532864105a0d90ec93612add899",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tag/seed_helper_test.go",
+      "sha256": "8a7de4a5702469c284035dde0e79d82bc3cb5ce9b7d3b65ca149c5f3d19b70a0",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tag/state.go",
+      "sha256": "a5106e29b16790eeeaa9afa831e85f38e4df4a1b031364e39f93e9877d01f798",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tag/testdata/datasource.tf",
+      "sha256": "8c559685a909f2ae481fa283561d9936db29a131168dd83e93ae50a348ae1b43",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tags/datasource.go",
+      "sha256": "c1d18ef08add74715dc1fda31360c5531b1ea9f6b7b7c8f41462ff5729145553",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tags/datasource_acceptance_test.go",
+      "sha256": "222ae6b9725d463522d268920ca32f4a8bda85b6439576617b76fd31c72605ba",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tags/model.go",
+      "sha256": "f1c3f87863e429b8a305089e4699fcd103f663f8d63635c531ea30b8cd761d3b",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tags/read.go",
+      "sha256": "e797084cb105ece0dd126f6002c09c7aabe51d9c4abe79107bfc64283e706141",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tags/seed_helper_test.go",
+      "sha256": "dc4f744f8381c5456c9f5de9e476fff84b8bc6424fb2335817c7d2a40443eb75",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tags/state.go",
+      "sha256": "d1bb32859bba8d61218140ed1f2c4f6e74311d1028ac2f4f08e5d41a6571c1b1",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/datasources/tags/v7/tags/testdata/datasource.tf",
+      "sha256": "4432fc63955ff622ad867b7e97d89154be1ea8ec8816c198908b937e40318ca1",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/ephemerals/credentials/v7/credential/ephemeral.go",
+      "sha256": "159baf87b45e1d36ffcbefb82eac008674826b8bfed34badb1a7a9c52acf6e94",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/ephemerals/credentials/v7/credential/ephemeral_acceptance_test.go",
+      "sha256": "579f76bf9ec83a363babf0142e44a15d9e6fe17f1a96a05619b076fcf889cb9f",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/ephemerals/credentials/v7/credential/model.go",
+      "sha256": "7e2e3701c171f224c9cab1ec2e7318f1b516ffd48c76debcde5cfd29f3b3a299",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/ephemerals/credentials/v7/credential/open.go",
+      "sha256": "e3a1524ccaf6638e827407e09e4aca58e93da7171cbe3813138c8df48682e7b5",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/ephemerals/credentials/v7/credential/seed_helper_test.go",
+      "sha256": "7006d05ffe3c7264fb64d64e8892a911e53e462e69f307168ad3b1a8fc05d1b2",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/ephemerals/credentials/v7/credential/state.go",
+      "sha256": "51027435f53ee949f9d44c5bc57aa75e48aba037bb47aa70d18d05e542af5d3d",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/ephemerals/credentials/v7/credential/testdata/ephemeral.tf",
+      "sha256": "f058c5294c9853b5ef309ce8ca4427743d62e56147192b42ea9d1c86c60c5e15",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/credentials/v7/credential/construct.go",
+      "sha256": "a4761b45813ab58bbac28157e83ae0ad3d6502edbeaf05e0aa18ad364d2332ca",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/credentials/v7/credential/crud.go",
+      "sha256": "4f20da4d48ec2f88a3642d4e8b8985300bacf49d3093369d1bcffa2d2cbdf2ea",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/credentials/v7/credential/model.go",
+      "sha256": "d902a12ffc2a29f6eac3f05abe5d7bf689cea96cc376d62fdf9966d6c6d2bbdf",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/credentials/v7/credential/resource.go",
+      "sha256": "e06992b1f1ed4fa5d85b57ef005dcf467241e9776e56efba0ed35444a4bef547",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/credentials/v7/credential/resource_acceptance_test.go",
+      "sha256": "cb566bb29488a70fe4e59dee47d36dd5173e51a46a48562ae6176c2dc181878a",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/credentials/v7/credential/state.go",
+      "sha256": "e7ea8e952ed8376a6e727dafbc60ccc4f39cd26519e46b4f92a3d904268ab851",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/credentials/v7/credential/test_helper_test.go",
+      "sha256": "7006d05ffe3c7264fb64d64e8892a911e53e462e69f307168ad3b1a8fc05d1b2",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/credentials/v7/credential/testdata/maximal.tf",
+      "sha256": "c3bf18d11becf67c946612686f10d6d33f12bfaf9a0563d9e8a694684ff5e442",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/credentials/v7/credential/testdata/minimal.tf",
+      "sha256": "3774300d163ddaef9585a6dfec23717105683634e706e5c6034b48b21a5b8d69",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/conditional_validators.go",
-      "sha256": "b75e9275c114aa77870b25b6c9637281db33486129daab7a646cf3f3dcd9c1ef",
+      "sha256": "04849f04315f211f09c2af06c14eb674273b5069d46c9b47eb8e2fc9d725a0f9",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/construct.go",
-      "sha256": "1d87d8118e1cc68d8ac93917d677c56cc61a2fb40bf7eb488ca903955469dbbc",
+      "sha256": "77fbea94f37047fb6aadc1a31192f89946b03a418601061f23a0c4bd1f8293d7",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/crud.go",
-      "sha256": "5b61e322e805800425506619053a1db2e276737f306eaf0aa6f9af72c081cf37",
+      "sha256": "3746d0788aabb50cc3e7993ee307cad28afd51f0d09b6a11419f8e7e1389fa45",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/list_acceptance_test.go",
+      "sha256": "3a74d84cf51b6e132ce4320b376609ea96e4ac81e88f777dfdb44f57f2438b76",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/list_resource.go",
+      "sha256": "cbdc47d0fac378b055923c248fbdea255e21f930ea455701968f6bf3da1f5286",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/model.go",
-      "sha256": "2a357c92554730d5689d9da14f1034d7e825b0f890fd98dc23c4054c4f02455d",
+      "sha256": "2e4761077da6f39284f994523b0c73d5503da77983d269427e2a8b9e05afe317",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/resource.go",
-      "sha256": "338fff4afedd5827b68e345be84787124fb5d456e3b9a5d6a1a4a1efc0621489",
+      "sha256": "4cba7bce84251c1e3eef35cea27ec4b5158af785161a6b61964eef3d5d8f4a47",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/resource_acceptance_test.go",
-      "sha256": "e11a6ffa158ef7fd0e3bbe5c512ce5e8a335c62f3b48854fb703c4c2005759ee",
+      "sha256": "f75f0f1c76bd78885b2ea4acaf3c693792d1f07bdefc5e57b66eb34d6b619421",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/state.go",
-      "sha256": "9b995385270ce354fd676bb64c46d5209244db32385a076e73d272566e029e5c",
+      "sha256": "c400efddb3b54ba4f12c60d8103ec3ed50355ac0420dcd463af48cb81d29dd5b",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/test_helper_test.go",
-      "sha256": "5b42e685d55baebe81601b3dc2db7ec7b209931f124c9484ccd8137461ec8f1a",
+      "sha256": "8a7de4a5702469c284035dde0e79d82bc3cb5ce9b7d3b65ca149c5f3d19b70a0",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/testdata/maximal.tf",
-      "sha256": "b358c10fd995af29108c0e675ba07378296eff4d4771b8397da4688ed533f091",
+      "sha256": "6a2c9f8699d0538db1a64e7ea8618f96e8f85d72203245eb6a329bea3253b10b",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/testdata/minimal.tf",
-      "sha256": "ee635e3c5e43d7f6fe5565eb5917882328ae13ad2689ec1431f5942f09b09488",
+      "sha256": "3615f0fd07006619258a6035c19b8cf73b34bb2044d564fe9a1d6953bf3f9316",
+      "blueprint": "blueprints/thousandeyes-kiota"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/testdata/query.tf",
+      "sha256": "69aa217c0d67226eee78f0b218ceb99402f3695421872835b04541910c0a92fe",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
       "path": "internal/services/resources/tags/v7/tag/testdata/replace.tf",
-      "sha256": "26b263dc7175ea611376b3be1e3562add3ce454546322314932590757b5e38a2",
+      "sha256": "d48b074259fdae92f1fdca4ef3a67ace072fe32b6d05f0323f1039d5c87d629f",
       "blueprint": "blueprints/thousandeyes-kiota"
     }
   ]

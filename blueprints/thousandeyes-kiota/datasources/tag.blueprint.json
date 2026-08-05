@@ -1,0 +1,520 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "tag",
+      "name": "tag",
+      "goPackage": "tag",
+      "goPackageAlias": "v7TagData",
+      "goTypeName": "TagDataSource",
+      "modelTypeName": "TagDataSourceModel",
+      "serviceGroup": "tags",
+      "apiVersionDir": "v7",
+      "docRefUrl": "https://developer.cisco.com/docs/thousandeyes/get-tag/",
+      "schema": {
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The identifier of the tag to look up.",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*uuid.UUID",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "key",
+            "goField": "Key",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The tag's key. Together with `value` this forms the label applied to assigned objects.",
+            "wire": {
+              "jsonPath": "key",
+              "sdkField": "Key",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "value",
+            "goField": "Value",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The tag's value.\n\n<!-- probed:7.0.97-t1785295713598 -->\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "wire": {
+              "jsonPath": "value",
+              "sdkField": "Value",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "color",
+            "goField": "Color",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The tag's display colour as a hex string. Computed as well as optional because the API assigns one when it is omitted; this has not yet been confirmed by probing.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"#A7EB10\" when this is omitted.\n<!-- /probed -->",
+            "wire": {
+              "jsonPath": "color",
+              "sdkField": "Color",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "description",
+            "goField": "Description",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "A human-readable description of the tag.",
+            "wire": {
+              "jsonPath": "description",
+              "sdkField": "Description",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "icon",
+            "goField": "Icon",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The tag's icon.\n\n<!-- probed:7.0.97-t1785295713598 -->\nObserved: the API assigns \"LABEL\" when this is omitted.\n<!-- /probed -->",
+            "wire": {
+              "jsonPath": "icon",
+              "sdkField": "Icon",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "object_type",
+            "goField": "ObjectType",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "test",
+                "dashboard",
+                "endpoint-test",
+                "v-agent",
+                "connected-devices-test",
+                "endpoint-agent"
+              ]
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The kind of object the tag may be assigned to. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`. The generated validator permits the whole documented set, which is wider than what any one tenant accepts, so a stale specification surfaces as the API's own error rather than as a plan failure.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `test`, `dashboard`, `endpoint-test`, `v-agent`, `connected-devices-test`.\nThe specification documents `endpoint-agent`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "wire": {
+              "jsonPath": "objectType",
+              "sdkField": "ObjectType",
+              "sdkGoType": "*models.Tags_API_ObjectType",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "access_type",
+            "goField": "AccessType",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "all",
+                "partner",
+                "system"
+              ]
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The tag's access level. Documented values are `all`, `partner` and `system`.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `all`.\nThe specification documents `system`, which the API rejected.\nThe API enforces this field's presence, which the specification does not declare.\n<!-- /probed -->",
+            "wire": {
+              "jsonPath": "accessType",
+              "sdkField": "AccessType",
+              "sdkGoType": "*models.Tags_API_AccessType",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "match_type",
+            "goField": "MatchType",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "and",
+                "or"
+              ]
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "How the tag's filters combine when it is assigned dynamically.\n\n<!-- probed:7.0.97-t1785295713598 -->\nValues accepted here: `and`, `or`.\n<!-- /probed -->",
+            "wire": {
+              "jsonPath": "matchType",
+              "sdkField": "MatchType",
+              "sdkGoType": "*models.Tags_API_TagMatchType",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "type",
+            "goField": "Type",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "static",
+                "dynamic"
+              ]
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The tag's type, assigned by the API.",
+            "wire": {
+              "jsonPath": "type",
+              "sdkField": "TypeEscaped",
+              "sdkGoType": "*models.Tags_API_Type",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "built_in",
+            "goField": "BuiltIn",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Whether the tag is built in rather than user-created.",
+            "wire": {
+              "jsonPath": "builtIn",
+              "sdkField": "BuiltIn",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "account_group_id",
+            "goField": "AccountGroupID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The account group the tag belongs to. Computed rather than configurable: the provider scopes every request through its own `account_group_id` setting, so accepting a second value here would let the two disagree.",
+            "wire": {
+              "jsonPath": "aid",
+              "sdkField": "Aid",
+              "sdkGoType": "*int64",
+              "flatten": {
+                "func": "convert.PtrInt64ToFramework"
+              }
+            }
+          },
+          {
+            "name": "create_date",
+            "goField": "CreateDate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "When the tag was created.",
+            "wire": {
+              "jsonPath": "createDate",
+              "sdkField": "CreateDate",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "modified_date",
+            "goField": "ModifiedDate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "When the tag was last modified.",
+            "wire": {
+              "jsonPath": "modifiedDate",
+              "sdkField": "ModifiedDate",
+              "sdkGoType": "*time.Time",
+              "flatten": {
+                "func": "convert.PtrTimeToFramework"
+              }
+            }
+          },
+          {
+            "name": "legacy_id",
+            "goField": "LegacyID",
+            "type": {
+              "kind": "float64"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The tag's identifier in the v6 API. Typed as a number because the specification declares it as one, although observed values are integral; probing will settle whether this should be an integer.",
+            "wire": {
+              "jsonPath": "legacyId",
+              "sdkField": "LegacyId",
+              "sdkGoType": "*float64",
+              "flatten": {
+                "func": "convert.PtrFloat64ToFramework"
+              }
+            }
+          },
+          {
+            "name": "assignments",
+            "goField": "Assignments",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TagAssignmentModel",
+                "sdkType": "models.Tags_API_Assignmentable",
+                "attrTypesVar": "tagAssignmentAttrTypes",
+                "objectTypeVar": "tagAssignmentObjectType",
+                "expandFunc": "",
+                "flattenFunc": "flattenTagAssignments",
+                "attributes": [
+                  {
+                    "name": "id",
+                    "goField": "ID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The identifier of the object the tag is assigned to.",
+                    "wire": {
+                      "jsonPath": "id",
+                      "sdkField": "Id",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "goField": "Type",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The kind of object assigned. Documented values are `test`, `v-agent`, `endpoint-test`, `dashboard` and `connected-devices-test`.",
+                    "wire": {
+                      "jsonPath": "type",
+                      "sdkField": "TypeEscaped",
+                      "sdkGoType": "*models.Tags_API_AssignmentType",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      }
+                    }
+                  }
+                ],
+                "constructorExpr": "models.NewTags_API_Assignment()"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Objects this tag is assigned to. The API returns assignments only when the request asks for them to be expanded, which this data source does not, so this is null rather than empty.",
+            "wire": {
+              "jsonPath": "assignments",
+              "sdkField": "Assignments",
+              "sdkGoType": "[]models.Tags_API_Assignmentable",
+              "flatten": {
+                "func": "flattenTagAssignments",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "filters",
+            "goField": "Filters",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "TagFilterModel",
+                "sdkType": "models.Tags_API_TagFilterable",
+                "attrTypesVar": "tagFilterAttrTypes",
+                "objectTypeVar": "tagFilterObjectType",
+                "expandFunc": "",
+                "flattenFunc": "flattenTagFilters",
+                "attributes": [
+                  {
+                    "name": "key",
+                    "goField": "Key",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The filter key used for matching.",
+                    "wire": {
+                      "jsonPath": "key",
+                      "sdkField": "Key",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "mode",
+                    "goField": "Mode",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "How the filter values are matched.",
+                    "wire": {
+                      "jsonPath": "mode",
+                      "sdkField": "Mode",
+                      "sdkGoType": "*models.Tags_API_TagFilterMode",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "scope",
+                    "goField": "Scope",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The scope the filter applies within.",
+                    "wire": {
+                      "jsonPath": "scope",
+                      "sdkField": "Scope",
+                      "sdkGoType": "*models.Tags_API_TagFilterScope",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "values",
+                    "goField": "Values",
+                    "type": {
+                      "kind": "set",
+                      "elementType": {
+                        "kind": "string"
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The values the filter matches against.",
+                    "wire": {
+                      "jsonPath": "values",
+                      "sdkField": "Values",
+                      "sdkGoType": "[]string",
+                      "flatten": {
+                        "func": "convert.StringSliceToFrameworkSet",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  }
+                ],
+                "constructorExpr": "models.NewTags_API_TagFilter()"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Filters that dynamically assign this tag to endpoint agents.",
+            "wire": {
+              "jsonPath": "filters",
+              "sdkField": "Filters",
+              "sdkGoType": "[]models.Tags_API_TagFilterable",
+              "flatten": {
+                "func": "flattenTagFilters",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Looks up a single ThousandEyes tag by its identifier."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/models",
+          "alias": "models",
+          "accessor": "d.client"
+        },
+        "read": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Tags"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Tags_API_Tagable",
+          "httpMethod": "GET",
+          "pathTemplate": "/tags/{id}",
+          "successCodes": [
+            200
+          ]
+        },
+        "response": {
+          "type": "models.Tags_API_Tagable",
+          "accessStyle": "method"
+        }
+      },
+      "accTest": {
+        "seedResourceKey": "tag",
+        "args": [
+          {
+            "attr": "id",
+            "fromSeedAttr": "id"
+          }
+        ]
+      }
+    }
+  ]
+}

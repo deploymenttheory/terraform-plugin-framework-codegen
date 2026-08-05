@@ -51,7 +51,7 @@ func flattenTagSummaries(ctx context.Context, in []tags.Tag) (types.List, diag.D
 		return types.ListNull(tagSummaryObjectType), diags
 	}
 
-	models := make([]TagSummaryModel, 0, len(in))
+	elements := make([]TagSummaryModel, 0, len(in))
 	for _, item := range in {
 		var m TagSummaryModel
 
@@ -74,10 +74,10 @@ func flattenTagSummaries(ctx context.Context, in []tags.Tag) (types.List, diag.D
 		diags.Append(d...)
 		m.Filters, d = flattenTagSummaryFilters(ctx, item.Filters)
 		diags.Append(d...)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.ListValueFrom(ctx, tagSummaryObjectType, models)
+	out, d2 := types.ListValueFrom(ctx, tagSummaryObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -93,16 +93,16 @@ func flattenTagSummaryAssignments(ctx context.Context, in []tags.Assignment) (ty
 		return types.SetNull(tagSummaryAssignmentObjectType), diags
 	}
 
-	models := make([]TagSummaryAssignmentModel, 0, len(in))
+	elements := make([]TagSummaryAssignmentModel, 0, len(in))
 	for _, item := range in {
 		var m TagSummaryAssignmentModel
 
 		m.ID = convert.PtrStringToFramework(item.ID)
 		m.Type = convert.EnumToFramework(item.Type)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, tagSummaryAssignmentObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, tagSummaryAssignmentObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -119,7 +119,7 @@ func flattenTagSummaryFilters(ctx context.Context, in []tags.TagFilter) (types.S
 		return types.SetNull(tagSummaryFilterObjectType), diags
 	}
 
-	models := make([]TagSummaryFilterModel, 0, len(in))
+	elements := make([]TagSummaryFilterModel, 0, len(in))
 	for _, item := range in {
 		var m TagSummaryFilterModel
 
@@ -128,10 +128,10 @@ func flattenTagSummaryFilters(ctx context.Context, in []tags.TagFilter) (types.S
 		m.Scope = convert.EnumToFramework(item.Scope)
 		m.Values, d = convert.StringSliceToFrameworkSet(ctx, item.Values)
 		diags.Append(d...)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, tagSummaryFilterObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, tagSummaryFilterObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags

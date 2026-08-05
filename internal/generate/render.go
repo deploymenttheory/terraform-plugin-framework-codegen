@@ -278,6 +278,13 @@ type NestedFuncView struct {
 	// ConstructorExpr builds one element under a setter-based SDK; empty means
 	// a zero-value declaration of SDKType, the struct-field dialect.
 	ConstructorExpr string
+	// SDKSingleType is the single-object form handed around: a pointer to the
+	// model for a struct-field SDK, the bare interface for a method-access one
+	// -- pointering an interface would break every call site.
+	SDKSingleType string
+	// ItemRef is how a finished single element is returned: "&item" when item
+	// is a value, "item" when the constructor already yielded the interface.
+	ItemRef string
 	// SharedDiag is true when an assignment uses the enclosing shared d, which
 	// is what makes declaring `var d` outside a loop body load-bearing; the
 	// temp forms declare their own.

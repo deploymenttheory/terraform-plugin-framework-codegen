@@ -1,0 +1,141 @@
+{
+  "formatVersion": "4",
+  "actions": [
+    {
+      "key": "disable_endpoint_agent",
+      "name": "disable_endpoint_agent",
+      "goPackage": "disable_endpoint_agent",
+      "goPackageAlias": "v7DisableEndpointAgent",
+      "goTypeName": "DisableEndpointAgentAction",
+      "modelTypeName": "DisableEndpointAgentConfig",
+      "serviceGroup": "endpoint_agents",
+      "apiVersionDir": "v7",
+      "docRefUrl": "https://developer.cisco.com/docs/thousandeyes/disable-endpoint-agent/",
+      "schema": {
+        "attributes": [
+          {
+            "name": "agent_id",
+            "goField": "AgentID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The identifier of the endpoint agent to disable. Disabling an agent stops it running tests without deleting it, so the operation is reversible by the matching enable action.",
+            "wire": {
+              "jsonPath": "agentId",
+              "sdkField": "AgentID",
+              "sdkGoType": "string"
+            }
+          }
+        ],
+        "markdownDescription": "Disables a ThousandEyes endpoint agent. An action rather than a resource: it is a one-shot operation with nothing for Terraform to reconcile, and the agent's enabled state is not something this manages over time."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/models",
+          "alias": "models",
+          "accessor": "a.client"
+        },
+        "invoke": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Endpoint"
+            },
+            {
+              "method": "Agents"
+            },
+            {
+              "method": "ByAgentId",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "AgentID",
+                  "expr": "convert.ParseUUID(data.AgentID.ValueString())",
+                  "imports": [
+                    {
+                      "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/services/common/convert"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "method": "Disable"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Endpoint_Agents_API_EndpointAgentable",
+          "httpMethod": "POST",
+          "pathTemplate": "/endpoint/agents/{agentId}/disable",
+          "successCodes": [
+            200
+          ]
+        }
+      },
+      "accTest": {
+        "envArgs": [
+          {
+            "attr": "agent_id",
+            "envVar": "THOUSANDEYES_TEST_ENDPOINT_AGENT_ID"
+          }
+        ],
+        "cleanup": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Endpoint"
+            },
+            {
+              "method": "Agents"
+            },
+            {
+              "method": "ByAgentId",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "AgentID",
+                  "expr": "convert.ParseUUID(agentID)",
+                  "imports": [
+                    {
+                      "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/services/common/convert"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "method": "Enable"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Endpoint_Agents_API_EndpointAgentable"
+        }
+      }
+    }
+  ]
+}

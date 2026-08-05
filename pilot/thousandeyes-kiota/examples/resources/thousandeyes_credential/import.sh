@@ -1,0 +1,1 @@
+terraform import thousandeyes_credential.example 1234

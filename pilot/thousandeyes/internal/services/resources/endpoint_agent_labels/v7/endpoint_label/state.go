@@ -55,7 +55,7 @@ func flattenEndpointLabelFilters(ctx context.Context, in []endpoint_agent_labels
 		return types.SetNull(endpointLabelFilterObjectType), diags
 	}
 
-	models := make([]EndpointLabelFilterModel, 0, len(in))
+	elements := make([]EndpointLabelFilterModel, 0, len(in))
 	for _, item := range in {
 		var m EndpointLabelFilterModel
 
@@ -63,10 +63,10 @@ func flattenEndpointLabelFilters(ctx context.Context, in []endpoint_agent_labels
 		m.Mode = convert.EnumToFramework(item.Mode)
 		m.Values, d = convert.StringSliceToFrameworkSet(ctx, item.Values)
 		diags.Append(d...)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, endpointLabelFilterObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, endpointLabelFilterObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags

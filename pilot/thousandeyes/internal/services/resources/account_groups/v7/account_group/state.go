@@ -57,7 +57,7 @@ func flattenAccountGroupUserAccountGroups(ctx context.Context, in []account_grou
 		return types.SetNull(accountGroupUserAccountGroupObjectType), diags
 	}
 
-	models := make([]AccountGroupUserAccountGroupModel, 0, len(in))
+	elements := make([]AccountGroupUserAccountGroupModel, 0, len(in))
 	for _, item := range in {
 		var m AccountGroupUserAccountGroupModel
 
@@ -68,10 +68,10 @@ func flattenAccountGroupUserAccountGroups(ctx context.Context, in []account_grou
 		m.Roles, d = flattenAccountGroupRoles(ctx, item.Roles)
 		diags.Append(d...)
 		m.Uid = convert.PtrStringToFramework(item.Uid)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, accountGroupUserAccountGroupObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, accountGroupUserAccountGroupObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -87,7 +87,7 @@ func flattenAccountGroupRoles(ctx context.Context, in []account_groups.Role) (ty
 		return types.SetNull(accountGroupRoleObjectType), diags
 	}
 
-	models := make([]AccountGroupRoleModel, 0, len(in))
+	elements := make([]AccountGroupRoleModel, 0, len(in))
 	for _, item := range in {
 		var m AccountGroupRoleModel
 
@@ -95,10 +95,10 @@ func flattenAccountGroupRoles(ctx context.Context, in []account_groups.Role) (ty
 		m.IsBuiltin = convert.PtrBoolToFramework(item.IsBuiltin)
 		m.Name = convert.PtrStringToFramework(item.Name)
 		m.RoleID = convert.PtrStringToFramework(item.RoleID)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, accountGroupRoleObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, accountGroupRoleObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags

@@ -23,6 +23,7 @@ import (
 	"regexp"
 	"strings"
 
+	"golang.org/x/tools/imports"
 	"mvdan.cc/gofumpt/format"
 )
 
@@ -142,6 +143,12 @@ func Generate(opts GenerateOptions) error {
 		return err
 	}
 
+	// kiota drops a timestamped log file into the output; a timestamp is the
+	// one thing a reproducible tree must not carry.
+	if err := os.Remove(filepath.Join(opts.Out, ".kiota.log")); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
 	return formatTree(opts.Out)
 }
 
@@ -166,9 +173,13 @@ func run(dir string, args ...string) (string, error) {
 	return out.String(), nil
 }
 
-// formatTree runs gofumpt over every generated Go file. Kiota's output is
-// deterministic but not gofmt-shaped; one canonical form keeps the repository
-// formatter from thrashing the tree on every lint run.
+// formatTree runs goimports then gofumpt over every generated Go file.
+//
+// Kiota's output is deterministic but not gofmt-shaped, and it occasionally
+// emits a file whose imports it does not use -- a generator bug that would
+// otherwise fail the build for the whole tree. goimports repairs the import
+// block deterministically; gofumpt then applies the same canonical form the
+// provider generator writes, so the repository formatter never thrashes.
 func formatTree(root string) error {
 	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() || !strings.HasSuffix(path, ".go") {
@@ -179,7 +190,11 @@ func formatTree(root string) error {
 		if err != nil {
 			return err
 		}
-		formatted, err := format.Source(src, format.Options{})
+		repaired, err := imports.Process(path, src, nil)
+		if err != nil {
+			return fmt.Errorf("repairing imports in %s: %w", path, err)
+		}
+		formatted, err := format.Source(repaired, format.Options{})
 		if err != nil {
 			return fmt.Errorf("formatting %s: %w", path, err)
 		}

@@ -107,16 +107,16 @@ func flattenTestsAPIAPIPredefinedVariables(ctx context.Context, in []api_tests.A
 		return types.SetNull(testsApiapiPredefinedVariableObjectType), diags
 	}
 
-	models := make([]TestsAPIAPIPredefinedVariableModel, 0, len(in))
+	elements := make([]TestsAPIAPIPredefinedVariableModel, 0, len(in))
 	for _, item := range in {
 		var m TestsAPIAPIPredefinedVariableModel
 
 		m.Name = convert.PtrStringToFramework(item.Name)
 		m.Value = convert.PtrStringToFramework(item.Value)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, testsApiapiPredefinedVariableObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, testsApiapiPredefinedVariableObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -133,7 +133,7 @@ func flattenTestsAPIAPIRequests(ctx context.Context, in []api_tests.ApiRequest) 
 		return types.SetNull(testsApiapiRequestObjectType), diags
 	}
 
-	models := make([]TestsAPIAPIRequestModel, 0, len(in))
+	elements := make([]TestsAPIAPIRequestModel, 0, len(in))
 	for _, item := range in {
 		var m TestsAPIAPIRequestModel
 
@@ -159,10 +159,10 @@ func flattenTestsAPIAPIRequests(ctx context.Context, in []api_tests.ApiRequest) 
 		diags.Append(d...)
 		m.VerifyCertificate = convert.NamedBoolToFramework(item.VerifyCertificate)
 		m.WaitTimeMs = convert.PtrInt64ToFramework(item.WaitTimeMs)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, testsApiapiRequestObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, testsApiapiRequestObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -178,17 +178,17 @@ func flattenTestsAPIAPIRequestAssertions(ctx context.Context, in []api_tests.Api
 		return types.SetNull(testsApiapiRequestAssertionObjectType), diags
 	}
 
-	models := make([]TestsAPIAPIRequestAssertionModel, 0, len(in))
+	elements := make([]TestsAPIAPIRequestAssertionModel, 0, len(in))
 	for _, item := range in {
 		var m TestsAPIAPIRequestAssertionModel
 
 		m.Name = convert.EnumToFramework(item.Name)
 		m.Operator = convert.EnumToFramework(item.Operator)
 		m.Value = convert.PtrStringToFramework(item.Value)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, testsApiapiRequestAssertionObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, testsApiapiRequestAssertionObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -204,16 +204,16 @@ func flattenTestsAPIAPIRequestHeaders(ctx context.Context, in []api_tests.ApiReq
 		return types.SetNull(testsApiapiRequestHeaderObjectType), diags
 	}
 
-	models := make([]TestsAPIAPIRequestHeaderModel, 0, len(in))
+	elements := make([]TestsAPIAPIRequestHeaderModel, 0, len(in))
 	for _, item := range in {
 		var m TestsAPIAPIRequestHeaderModel
 
 		m.Key = convert.PtrStringToFramework(item.Key)
 		m.Value = convert.PtrStringToFramework(item.Value)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, testsApiapiRequestHeaderObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, testsApiapiRequestHeaderObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -229,16 +229,16 @@ func flattenTestsAPIAPIRequestVariables(ctx context.Context, in []api_tests.ApiR
 		return types.SetNull(testsApiapiRequestVariableObjectType), diags
 	}
 
-	models := make([]TestsAPIAPIRequestVariableModel, 0, len(in))
+	elements := make([]TestsAPIAPIRequestVariableModel, 0, len(in))
 	for _, item := range in {
 		var m TestsAPIAPIRequestVariableModel
 
 		m.Name = convert.PtrStringToFramework(item.Name)
 		m.Value = convert.PtrStringToFramework(item.Value)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, testsApiapiRequestVariableObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, testsApiapiRequestVariableObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
@@ -254,16 +254,16 @@ func flattenTestsAPITestVaultCredentials(ctx context.Context, in []api_tests.Tes
 		return types.SetNull(testsAPITestVaultCredentialObjectType), diags
 	}
 
-	models := make([]TestsAPITestVaultCredentialModel, 0, len(in))
+	elements := make([]TestsAPITestVaultCredentialModel, 0, len(in))
 	for _, item := range in {
 		var m TestsAPITestVaultCredentialModel
 
 		m.SecretID = convert.PtrStringToFramework(item.SecretID)
 		m.Target = convert.EnumToFramework(item.Target)
-		models = append(models, m)
+		elements = append(elements, m)
 	}
 
-	out, d2 := types.SetValueFrom(ctx, testsAPITestVaultCredentialObjectType, models)
+	out, d2 := types.SetValueFrom(ctx, testsAPITestVaultCredentialObjectType, elements)
 	diags.Append(d2...)
 
 	return out, diags
