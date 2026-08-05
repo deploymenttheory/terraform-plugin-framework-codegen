@@ -426,6 +426,25 @@ func (d DataSource) validate(at string, p *problems) {
 		dup(p, seenNames, a.Name, aat+".name", "attribute name")
 		dup(p, seenFields, a.GoField, aat+".goField", "model field")
 	}
+
+	// A selector is configuration: it must name a declared attribute the
+	// practitioner can actually set.
+	for i, s := range d.Binding.Selectors {
+		sat := fmt.Sprintf("%s.binding.selectors[%d]", at, i)
+		found := false
+		for _, a := range d.Schema.Attributes {
+			if a.Name != s.Attribute {
+				continue
+			}
+			found = true
+			if a.ComputedOptionalRequired == Computed {
+				p.add(sat+".attribute", "%q is computed, which a practitioner cannot set", s.Attribute)
+			}
+		}
+		if !found && s.Attribute != "" {
+			p.add(sat+".attribute", "names attribute %q, which the data source does not declare", s.Attribute)
+		}
+	}
 }
 
 func dup(p *problems, seen map[string]bool, value, path, what string) {
@@ -1548,12 +1567,53 @@ func (b DataSourceBinding) validate(at string, p *problems) {
 		p.add(at+".response.accessStyle", "%q is not a known access style", b.Response.AccessStyle)
 	}
 
-	if b.Read == nil {
+	if b.Read == nil && b.List == nil {
 		p.add(at+".read", "is required: a data source with no read operation has nothing to do")
 		return
 	}
+	if b.Read != nil {
+		b.Read.validate(at+".read", p)
+	}
 
-	b.Read.validate(at+".read", p)
+	// The list-resolver contract: selectors narrow the list to exactly one
+	// element, so a lookup stays predictable. Whatever needs the list must
+	// bring the list, and the pieces that reach inside it.
+	needsList := b.Read == nil
+	for _, s := range b.Selectors {
+		if !s.ViaRead {
+			needsList = true
+		}
+	}
+	if needsList && b.List == nil {
+		p.add(at+".list", "is required: a selector that is not viaRead resolves through the list")
+	}
+	if b.List != nil {
+		b.List.validate(at+".list", p)
+		required(p, at+".collectionField", b.CollectionField)
+		required(p, at+".elementType", b.ElementType)
+		if len(b.Selectors) == 0 && b.Read != nil {
+			p.add(at+".selectors", "a list with a direct read wants selectors; without any, the list is never consulted")
+		}
+		if b.Read != nil {
+			// A matched element only supplies the identifier; the direct read
+			// does the fetching. That handoff needs the id spelled out.
+			required(p, at+".elementIdField", b.ElementIDField)
+			if b.ElementIDFlatten == nil {
+				p.add(at+".elementIdFlatten", "is required with both list and read: it converts the matched element's identifier into the id attribute")
+			}
+		}
+	}
+	for i, s := range b.Selectors {
+		sat := fmt.Sprintf("%s.selectors[%d]", at, i)
+		required(p, sat+".attribute", s.Attribute)
+		required(p, sat+".goField", s.GoField)
+		if s.ViaRead && b.Read == nil {
+			p.add(sat+".viaRead", "names the direct read, which this binding does not declare")
+		}
+		if !s.ViaRead && s.SDKField == "" {
+			p.add(sat+".sdkField", "is required: a list-resolved selector names the element field it matches")
+		}
+	}
 }
 
 func (o Operation) validate(at string, p *problems) {

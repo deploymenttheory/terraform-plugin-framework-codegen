@@ -71,9 +71,14 @@ func kiotaAccessorBase(jsonName string) string {
 //
 //	/tags/{tagId} + GET  ->  Tags().ByTagId(id).Get(ctx, nil)
 func kiotaChain(pathTemplate, verb string, verbArgs []blueprint.Argument) []blueprint.ChainSegment {
-	var chain []blueprint.ChainSegment
+	return kiotaChainWith(pathTemplate, verb,
+		blueprint.Argument{Kind: blueprint.ArgStateField, Field: "ID"}, verbArgs)
+}
 
-	idArg := blueprint.Argument{Kind: blueprint.ArgStateField, Field: "ID"}
+// kiotaChainWith is kiotaChain with the identifier argument chosen by the
+// caller: a resource reads it from state, a data source from configuration.
+func kiotaChainWith(pathTemplate, verb string, idArg blueprint.Argument, verbArgs []blueprint.Argument) []blueprint.ChainSegment {
+	var chain []blueprint.ChainSegment
 
 	for _, segment := range strings.Split(strings.Trim(pathTemplate, "/"), "/") {
 		if segment == "" {
