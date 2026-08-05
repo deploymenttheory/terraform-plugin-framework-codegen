@@ -214,7 +214,7 @@ Infers draft blueprints (and optionally scenario worksheets) from a pinned
 OpenAPI snapshot.
 
 ```
-tfpfgen blueprint draft [-openapi-dir DIR] [-snapshot NAME] [-tag TAG] [-sdk-dialect restyService|kiotaFluent] [-out DIR] [-dry-run]
+tfpfgen blueprint draft [-openapi-dir DIR] [-snapshot NAME] [-tag TAG] [-sdk-dialect restyService|kiotaFluent] [-exclusions FILE] [-out DIR] [-dry-run]
 ```
 
 | Flag | Default | Purpose |
@@ -233,6 +233,7 @@ tfpfgen blueprint draft [-openapi-dir DIR] [-snapshot NAME] [-tag TAG] [-sdk-dia
 | `-scenario-drafts` | — | also scaffold a `KEY.scenario.draft.json` scenario worksheet per resource under this directory |
 | `-sdk-dialect` | `restyService` | binding shape to infer: `restyService`, or `kiotaFluent` for a kiota-generated SDK |
 | `-sdk-models-package` | — | import path of the kiota SDK's models package (required with `-sdk-dialect kiotaFluent`; the resty `-sdk-service-root`/`-sdk-accessor` knobs are refused under it) |
+| `-exclusions` | `<openapi-dir>/draft-exclusions.json` | curated sidecar of families drafting must skip, each entry carrying its reason; the run repeats every exclusion as a named skip |
 
 `blueprint draft -dry-run` is the survey: it reports every candidate the
 document offers and why the ineligible ones are ineligible. The write path

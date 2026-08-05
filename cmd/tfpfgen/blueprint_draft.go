@@ -18,7 +18,7 @@ import (
 )
 
 const usageBlueprintDraft = "blueprint draft [-openapi-dir DIR] [-snapshot NAME] [-tag TAG] " +
-	"[-sdk-dialect restyService|kiotaFluent] [-out DIR] [-dry-run]"
+	"[-sdk-dialect restyService|kiotaFluent] [-exclusions FILE] [-out DIR] [-dry-run]"
 
 func runBlueprintDraft(args []string) error {
 	fs, _ := newFlagSet("blueprint draft", usageBlueprintDraft)
@@ -44,6 +44,8 @@ func runBlueprintDraft(args []string) error {
 			"binding shape to infer: restyService, or kiotaFluent for a kiota-generated SDK")
 		sdkModels = fs.String("sdk-models-package", "",
 			"import path of the kiota SDK's models package (required with -sdk-dialect kiotaFluent)")
+		exclusions = fs.String("exclusions", "",
+			"exclusions sidecar; defaults to <openapi-dir>/"+openapi.ExclusionsFileName+" when present")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -88,6 +90,15 @@ func runBlueprintDraft(args []string) error {
 
 	log.Printf("specification: %s (%s %s)", path, doc.Title, doc.Version)
 
+	exclusionsPath := *exclusions
+	if exclusionsPath == "" {
+		exclusionsPath = filepath.Join(*openapiDir, openapi.ExclusionsFileName)
+	}
+	excluded, err := openapi.LoadExclusions(exclusionsPath)
+	if err != nil {
+		return err
+	}
+
 	candidates := filterCandidates(doc.Discover(), *tag, *includeUnusable)
 	if len(candidates) == 0 {
 		return fmt.Errorf("%w: no candidates matched", errNothingToDo)
@@ -111,12 +122,13 @@ func runBlueprintDraft(args []string) error {
 		SDKModelsImport:   *sdkModels,
 	}
 
-	return inferAll(doc, candidates, opts, *out, *scenarioDrafts)
+	return inferAll(doc, candidates, excluded, opts, *out, *scenarioDrafts)
 }
 
 func inferAll(
 	doc *openapi.Document,
 	candidates []openapi.Candidate,
+	excluded openapi.Exclusions,
 	opts openapi.InferOptions,
 	out string,
 	planDrafts string,
@@ -128,10 +140,39 @@ func inferAll(
 	)
 
 	for _, c := range candidates {
-		if kind, why := c.Classify(); kind != openapi.CandidateKindResource {
+		// The sidecar speaks first: a curated exclusion is a decision already
+		// made, and the run repeats its reason as a named skip.
+		if reason, is := excluded.Match(c); is {
+			log.Printf("excluded  %s: %s", c.Key, reason)
+			skipped++
+			continue
+		}
+
+		kind, why := c.Classify()
+
+		if kind == openapi.CandidateKindDataSource {
+			ds, dsNotes, err := doc.InferDataSource(c, opts)
+			notes = append(notes, dsNotes...)
+			if err != nil {
+				log.Printf("skipped   %s: %v", c.Key, err)
+				skipped++
+				continue
+			}
+			bp := blueprint.Blueprint{FormatVersion: blueprint.FormatVersion, DataSources: []blueprint.DataSource{ds}}
+			path := filepath.Join(out, "datasources", ds.Key+blueprint.Ext)
+			if err := blueprint.Save(path, bp); err != nil {
+				return err
+			}
+			log.Printf("wrote     %s (dataSource, %d attributes, %d selector(s))",
+				path, len(ds.Schema.Attributes), len(ds.Binding.Selectors))
+			written++
+			continue
+		}
+
+		if kind != openapi.CandidateKindResource {
 			// Said out loud rather than silently skipped: silence reads as agreement,
-			// and a data source or action the spec offers deserves at least a line
-			// saying inference does not reach it yet.
+			// and an action the spec offers deserves at least a line saying inference
+			// does not reach it yet.
 			log.Printf("skipped   %s: %s inference is not implemented (%s)", c.Key, kind, why)
 			skipped++
 			continue

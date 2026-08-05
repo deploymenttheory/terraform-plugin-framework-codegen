@@ -33,12 +33,52 @@ type ResourceBinding struct {
 type DataSourceBinding struct {
 	Service ServiceRef `json:"service"`
 
-	// Read is the only operation. It is a pointer for symmetry with ResourceBinding's
+	// Read is the direct fetch. It is a pointer for symmetry with ResourceBinding's
 	// operations and so that "not yet authored" is distinguishable from an empty call,
-	// which is what an imported draft needs; Validate requires it.
+	// which is what an imported draft needs; Validate requires it unless the binding
+	// is list-resolved with no direct fetch at all.
 	Read *Operation `json:"read,omitempty"`
 
+	// List is the resolver: when the practitioner selects by anything other than
+	// the direct identifier, the list is fetched and the selectors narrow it to
+	// exactly one element -- a lookup must be predictable, so zero matches and
+	// several matches are both errors, never a guess. With Read present the
+	// matched element only supplies the identifier and the direct fetch runs as
+	// usual, so state always maps from one response shape; without Read the
+	// matched element itself is that shape.
+	List *Operation `json:"list,omitempty"`
+	// CollectionField reaches the elements inside the list response, e.g.
+	// "GetTags()" under method access.
+	CollectionField string `json:"collectionField,omitempty"`
+	// ElementType is the list element's Go type, e.g. "models.Tags_API_Tagable".
+	ElementType string `json:"elementType,omitempty"`
+
+	// Selectors are the configuration attributes a practitioner may look up by.
+	// Exactly one must be set per read, which the generated code enforces.
+	Selectors []Selector `json:"selectors,omitempty"`
+
+	// ElementIDField reads the direct identifier off a matched element -- the
+	// accessor base, e.g. "Id" -- and ElementIDFlatten converts it into the
+	// identifier attribute, after which the direct Read runs exactly as if the
+	// practitioner had supplied the id. Required when both List and Read exist.
+	ElementIDField   string       `json:"elementIdField,omitempty"`
+	ElementIDFlatten *ConvertCall `json:"elementIdFlatten,omitempty"`
+
 	Response ResponseModel `json:"response"`
+}
+
+// Selector is one attribute a data source can be looked up by.
+type Selector struct {
+	// Attribute is the schema attribute acting as the selector.
+	Attribute string `json:"attribute"`
+	// GoField is the model field the attribute lives in.
+	GoField string `json:"goField"`
+	// SDKField is the accessor base on the list element the selector matches
+	// against, e.g. "TestName". Empty when ViaRead.
+	SDKField string `json:"sdkField,omitempty"`
+	// ViaRead marks the direct identifier: no list resolution, the value feeds
+	// the Read chain as-is.
+	ViaRead bool `json:"viaRead,omitempty"`
 }
 
 // EphemeralBinding wires an ephemeral resource to the SDK.

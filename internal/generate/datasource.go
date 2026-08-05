@@ -2,6 +2,7 @@ package generate
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 )
@@ -45,6 +46,56 @@ type DataSourceView struct {
 	// Read is the SDK call, and State is the flatten function it feeds.
 	Read  *OpView
 	State StateView
+
+	// Resolve is the selector machinery: the list call that narrows a lookup to
+	// exactly one element. Nil for a plain single-operation data source.
+	Resolve *ResolveView
+}
+
+// ResolveView renders the list-then-match resolver.
+//
+// The contract it renders: exactly one selector must be set; anything other
+// than the direct identifier fetches the list and filters it, and zero or
+// several matches are both errors -- a lookup must be predictable, never a
+// guess. With a direct read present the matched element only supplies the
+// identifier; without one the matched element is the state source itself.
+type ResolveView struct {
+	// IDGoField is the identifier attribute's model field, e.g. "ID". Empty in
+	// MapsElement mode, which has no direct read to feed.
+	IDGoField string
+
+	// AllSelectorGoFields drive the exactly-one count; SelectorList names
+	// the attributes in the diagnostic, comma-joined.
+	AllSelectorGoFields []string
+	SelectorList        string
+
+	// Matchers are the non-identifier selectors: each compares a configured
+	// attribute against a getter on the list element.
+	Matchers []MatcherView
+
+	// List is the list call, bound to the "listing" variable.
+	List *OpView
+	// CollectionField reaches the elements, e.g. "GetTags()".
+	CollectionField string
+	// ElementType is the element's Go type, for the matches slice.
+	ElementType string
+
+	// ElementIDExpr converts the matched element's identifier into the id
+	// attribute, e.g. `convert.PtrStringToFramework(match.GetId())`.
+	ElementIDExpr string
+	// MapsElement is the no-direct-read mode: the matched element maps to
+	// state directly and the function returns inside the resolver.
+	MapsElement bool
+}
+
+// MatcherView is one selector comparison.
+type MatcherView struct {
+	// GoField is the configured attribute's model field.
+	GoField string
+	// Getter is the element access expression, e.g. `el.GetTestName()`.
+	Getter string
+	// AttrName names the attribute in diagnostics.
+	AttrName string
 }
 
 // DataSourceImports holds the rendered import block for each emitted file.
@@ -164,27 +215,111 @@ func DataSource(
 		impState.add(pkgTypes, "")
 	}
 
-	if d.Binding.Read == nil {
+	if d.Binding.Read == nil && d.Binding.List == nil {
 		return DataSourceView{}, &ErrUnsupported{
 			What: sc.what,
 			Why:  "a data source with no read operation has nothing to generate",
 		}
 	}
 
-	read, err := opView(
-		sc.what, d.Binding.Service.Accessor,
-		*d.Binding.Read, "crud.PhaseRead", "errors.OpRead", "ReadTimeout", bindsResult,
-	)
-	if err != nil {
-		return DataSourceView{}, err
+	if d.Binding.Read != nil {
+		read, err := opView(
+			sc.what, d.Binding.Service.Accessor,
+			*d.Binding.Read, "crud.PhaseRead", "errors.OpRead", "ReadTimeout", bindsResult,
+		)
+		if err != nil {
+			return DataSourceView{}, err
+		}
+		v.Read = read
 	}
-	v.Read = read
+
+	if d.Binding.List != nil {
+		resolve, err := resolveView(sc.what, d)
+		if err != nil {
+			return DataSourceView{}, err
+		}
+		v.Resolve = resolve
+		// The resolver's diagnostics count matches and quote selectors.
+		impRead.add("fmt", "")
+		if resolve.ElementIDExpr != "" {
+			impRead.add(sup.Convert.Path, sup.Convert.Alias)
+		}
+		impRead.add(d.Binding.Service.ImportPath, d.Binding.Service.Alias)
+	}
 
 	org := bp.Provider.GoModule
 	v.Imports = DataSourceImports{
 		DataSource: impDataSource.render(org),
 		Read:       impRead.render(org),
 		State:      impState.render(org),
+	}
+
+	return v, nil
+}
+
+// resolveView builds the selector resolver from the binding.
+func resolveView(what string, d blueprint.DataSource) (*ResolveView, error) {
+	b := d.Binding
+
+	list, err := opView(
+		what, b.Service.Accessor,
+		*b.List, "crud.PhaseRead", "errors.OpRead", "ReadTimeout", bindsResult,
+	)
+	if err != nil {
+		return nil, err
+	}
+	// The direct read owns "remote"; the resolver's fetch is the listing.
+	list.ResultVar = "listing"
+	list.Assign = "listing, err :="
+
+	v := &ResolveView{
+		List:            list,
+		CollectionField: b.CollectionField,
+		ElementType:     b.ElementType,
+		MapsElement:     b.Read == nil,
+	}
+
+	var names []string
+
+	goFieldOf := func(attr string) string {
+		for _, a := range d.Schema.Attributes {
+			if a.Name == attr {
+				return a.GoField
+			}
+		}
+		return ""
+	}
+
+	for _, s := range b.Selectors {
+		goField := s.GoField
+		if goField == "" {
+			goField = goFieldOf(s.Attribute)
+		}
+		v.AllSelectorGoFields = append(v.AllSelectorGoFields, goField)
+		names = append(names, s.Attribute)
+
+		if s.ViaRead {
+			v.IDGoField = goField
+			continue
+		}
+		v.Matchers = append(v.Matchers, MatcherView{
+			GoField:  goField,
+			Getter:   readExpr(b.Response.AccessStyle, "el", s.SDKField),
+			AttrName: s.Attribute,
+		})
+	}
+
+	v.SelectorList = strings.Join(names, ", ")
+
+	if !v.MapsElement {
+		if v.IDGoField == "" {
+			return nil, &ErrUnsupported{
+				What: what,
+				Why:  "a list-resolved data source with a direct read declares no viaRead selector, so the resolver has nowhere to put the identifier",
+			}
+		}
+		v.ElementIDExpr = convertExpr(*b.ElementIDFlatten,
+			readExpr(b.Response.AccessStyle, "match", b.ElementIDField))
 	}
 
 	return v, nil

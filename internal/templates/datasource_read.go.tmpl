@@ -6,13 +6,12 @@ import (
 {{ .Imports.Read }}
 )
 
-{{ with .Read }}
-// Read fetches {{ $.DataSourceName }} from the API.
+// Read fetches {{ .DataSourceName }} from the API.
 //
 // A data source reads its arguments from configuration rather than from prior state:
 // there is no prior state to read, because nothing here was created by Terraform.
-func (d *{{ $.GoTypeName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data {{ $.ModelTypeName }}
+func (d *{{ .GoTypeName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data {{ .ModelTypeName }}
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -26,7 +25,117 @@ func (d *{{ $.GoTypeName }}) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 	defer cancel()
+{{- with .Resolve }}
 
+	// A lookup must be predictable: exactly one selector chooses the object,
+	// and the resolver below refuses zero matches and several matches alike.
+	selectorsSet := 0
+{{- range .AllSelectorGoFields }}
+	if !data.{{ . }}.IsNull() {
+		selectorsSet++
+	}
+{{- end }}
+	if selectorsSet != 1 {
+		resp.Diagnostics.AddError(
+			"Exactly one selector is required",
+			"Set exactly one of: {{ .SelectorList }}.",
+		)
+		return
+	}
+
+	{{ if .MapsElement }}{{ .List.Assign }} {{ .List.Call }}{{ else }}if data.{{ .IDGoField }}.IsNull() {
+		{{ .List.Assign }} {{ .List.Call }}{{ end }}
+{{- if .MapsElement }}
+	if err != nil {
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .List.ErrorOp }}, err)
+		return
+	}
+{{- if .List.NilResultGuard }}
+	if listing == nil {
+		errors.Handle(&resp.Diagnostics, TypeName, {{ .List.ErrorOp }}, errors.ErrEmptyResponse)
+		return
+	}
+{{- end }}
+	var matches []{{ .ElementType }}
+	for _, el := range listing.{{ .CollectionField }} {
+{{- range .Matchers }}
+		if !data.{{ .GoField }}.IsNull() && ({{ .Getter }} == nil || *{{ .Getter }} != data.{{ .GoField }}.ValueString()) {
+			continue
+		}
+{{- end }}
+		matches = append(matches, el)
+	}
+	switch len(matches) {
+	case 1:
+	case 0:
+		resp.Diagnostics.AddError(
+			"No match",
+			"The configured selector matched nothing. The object may not exist, or may be invisible to this account group.",
+		)
+		return
+	default:
+		resp.Diagnostics.AddError(
+			"Ambiguous match",
+			fmt.Sprintf("The configured selector matched %d objects; a lookup must resolve to exactly one. Narrow the selector.", len(matches)),
+		)
+		return
+	}
+
+{{- if $.State.NeedsDiagnostics }}
+	resp.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &data, matches[0])...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- else }}
+	mapRemoteStateToTerraform(ctx, &data, matches[0])
+{{- end }}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	return
+{{- else }}
+		if err != nil {
+			errors.Handle(&resp.Diagnostics, TypeName, {{ .List.ErrorOp }}, err)
+			return
+		}
+{{- if .List.NilResultGuard }}
+		if listing == nil {
+			errors.Handle(&resp.Diagnostics, TypeName, {{ .List.ErrorOp }}, errors.ErrEmptyResponse)
+			return
+		}
+{{- end }}
+		var matches []{{ .ElementType }}
+		for _, el := range listing.{{ .CollectionField }} {
+{{- range .Matchers }}
+			if !data.{{ .GoField }}.IsNull() && ({{ .Getter }} == nil || *{{ .Getter }} != data.{{ .GoField }}.ValueString()) {
+				continue
+			}
+{{- end }}
+			matches = append(matches, el)
+		}
+		switch len(matches) {
+		case 1:
+		case 0:
+			resp.Diagnostics.AddError(
+				"No match",
+				"The configured selector matched nothing. The object may not exist, or may be invisible to this account group.",
+			)
+			return
+		default:
+			resp.Diagnostics.AddError(
+				"Ambiguous match",
+				fmt.Sprintf("The configured selector matched %d objects; a lookup must resolve to exactly one. Narrow the selector.", len(matches)),
+			)
+			return
+		}
+
+		// The matched element only supplies the identifier; the direct read
+		// below does the fetching, so state always maps from one shape.
+		match := matches[0]
+		data.{{ .IDGoField }} = {{ .ElementIDExpr }}
+	}
+{{- end }}
+{{- end }}
+{{ with .Read }}
 	{{ .Assign }} {{ .Call }}
 	if err != nil {
 		// Unlike a resource read, a missing object is an error rather than a signal to
@@ -56,5 +165,5 @@ func (d *{{ $.GoTypeName }}) Read(ctx context.Context, req datasource.ReadReques
 {{- end }}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+{{- end }}
 }
-{{ end }}

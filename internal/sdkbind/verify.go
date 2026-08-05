@@ -194,6 +194,46 @@ func verifyDataSource(
 		verifyOperation(l, clientType, d.Key, svc, "read", *d.Binding.Read, r)
 	}
 
+	// The selector resolver: the list operation, the accessor reaching its
+	// elements, and every field a selector matches against are all names the
+	// generated code will spell, so each is checked against the SDK here.
+	if d.Binding.List != nil {
+		verifyOperation(l, clientType, d.Key, svc, "list", *d.Binding.List, r)
+
+		if verifyNamedType(l, d.Key, "binding.elementType", d.Binding.ElementType, svc, r) {
+			element := typeNameOf(d.Binding.ElementType)
+
+			if d.Binding.List.ResultType != "" &&
+				verifyNamedType(l, d.Key, "binding.list.resultType", d.Binding.List.ResultType, svc, r) {
+				field := strings.TrimSuffix(strings.TrimSuffix(d.Binding.CollectionField, "()"), "()")
+				field = strings.TrimPrefix(field, "Get")
+				verifyFieldOn(
+					l, d.Binding.Response.AccessStyle, d.Key,
+					"binding.collectionField",
+					typeNameOf(d.Binding.List.ResultType), field, svc, r,
+				)
+			}
+
+			for i, s := range d.Binding.Selectors {
+				if s.ViaRead || s.SDKField == "" {
+					continue
+				}
+				verifyFieldOn(
+					l, d.Binding.Response.AccessStyle, d.Key,
+					fmt.Sprintf("binding.selectors[%d].sdkField", i),
+					element, s.SDKField, svc, r,
+				)
+			}
+			if d.Binding.ElementIDField != "" {
+				verifyFieldOn(
+					l, d.Binding.Response.AccessStyle, d.Key,
+					"binding.elementIdField",
+					element, d.Binding.ElementIDField, svc, r,
+				)
+			}
+		}
+	}
+
 	if !responseOK {
 		// The type is already reported once; checking fields against it would repeat that
 		// one cause per attribute.
