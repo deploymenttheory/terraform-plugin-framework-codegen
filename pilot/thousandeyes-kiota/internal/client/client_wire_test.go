@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	jsonserialization "github.com/microsoft/kiota-serialization-json-go"
+
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/models"
 )
 
@@ -115,5 +117,40 @@ func TestUnit_Client_DeleteAcceptsAJSONForm(t *testing.T) {
 
 	if !strings.Contains(accept, "application/json") || !strings.Contains(accept, "application/hal+json") {
 		t.Errorf("Accept = %q; a delete must admit the API's success media types or the server answers 406", accept)
+	}
+}
+
+// TestUnit_Client_BodiesCarryOnlySetFields pins that a freshly constructed
+// request model serializes nothing the caller did not set.
+//
+// Kiota constructors used to stamp every spec-declared default onto the model,
+// and a defaulted field the provider never wires then leaked into every create
+// -- which is how five tests_* resources failed their first live acceptance
+// run: the API refuses a Cloud Agent create carrying the spec-default
+// networkMeasurements:true. The SDK is generated from a document with its
+// schema defaults stripped (see openapi/thousandeyes/patches/); this test
+// fails if a regeneration ever brings the defaults back.
+func TestUnit_Client_BodiesCarryOnlySetFields(t *testing.T) {
+	t.Parallel()
+
+	body := models.NewTests_API_DnsServerTestRequest()
+	domain := "example.com"
+	body.SetDomain(&domain)
+
+	w := jsonserialization.NewJsonSerializationWriter()
+	if err := w.WriteObjectValue("", body); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := w.GetSerializedContent()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var decoded map[string]any
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("not JSON (%v): %q", err, raw)
+	}
+	if len(decoded) != 1 || decoded["domain"] != domain {
+		t.Errorf("a fresh model must serialize only what was set, got: %s", raw)
 	}
 }

@@ -66,8 +66,6 @@ type Dashboards_API_ApiGeoMapWidget struct {
 func NewDashboards_API_ApiGeoMapWidget() *Dashboards_API_ApiGeoMapWidget {
 	m := &Dashboards_API_ApiGeoMapWidget{}
 	m.SetAdditionalData(make(map[string]any))
-	visualModeValue := FULL_DASHBOARDS_API_VISUALMODE
-	m.SetVisualMode(&visualModeValue)
 	return m
 }
 

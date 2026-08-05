@@ -23,8 +23,6 @@ func NewEndpoint_Instant_Scheduled_Tests_API_EndpointAgentToServerInstantTest() 
 	m := &Endpoint_Instant_Scheduled_Tests_API_EndpointAgentToServerInstantTest{
 		Endpoint_Instant_Scheduled_Tests_API_EndpointInstantTest: *NewEndpoint_Instant_Scheduled_Tests_API_EndpointInstantTest(),
 	}
-	portValue := int32(443)
-	m.SetPort(&portValue)
 	return m
 }
 

@@ -94,30 +94,6 @@ type Tests_API_AgentToServerTestRequest struct {
 func NewTests_API_AgentToServerTestRequest() *Tests_API_AgentToServerTestRequest {
 	m := &Tests_API_AgentToServerTestRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	bgpMeasurementsValue := true
-	m.SetBgpMeasurements(&bgpMeasurementsValue)
-	dscpIdValue := ZERO_TESTS_API_TESTDSCPID
-	m.SetDscpId(&dscpIdValue)
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	ipv6PolicyValue := USEAGENTPOLICY_TESTS_API_TESTIPV6POLICY
-	m.SetIpv6Policy(&ipv6PolicyValue)
-	networkMeasurementsValue := false
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	pathTraceModeValue := CLASSIC_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_TESTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
 	return m
 }
 

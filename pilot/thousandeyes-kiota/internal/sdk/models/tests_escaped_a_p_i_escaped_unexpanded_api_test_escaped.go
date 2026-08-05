@@ -90,36 +90,6 @@ type Tests_API_UnexpandedApiTest struct {
 func NewTests_API_UnexpandedApiTest() *Tests_API_UnexpandedApiTest {
 	m := &Tests_API_UnexpandedApiTest{}
 	m.SetAdditionalData(make(map[string]any))
-	bgpMeasurementsValue := true
-	m.SetBgpMeasurements(&bgpMeasurementsValue)
-	collectProxyNetworkDataValue := false
-	m.SetCollectProxyNetworkData(&collectProxyNetworkDataValue)
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	followRedirectsValue := true
-	m.SetFollowRedirects(&followRedirectsValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	overrideAgentProxyValue := false
-	m.SetOverrideAgentProxy(&overrideAgentProxyValue)
-	pathTraceModeValue := CLASSIC_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_TESTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	sslVersionIdValue := ZERO_TESTS_API_TESTSSLVERSIONID
-	m.SetSslVersionId(&sslVersionIdValue)
-	timeLimitValue := int32(30)
-	m.SetTimeLimit(&timeLimitValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
 	return m
 }
 

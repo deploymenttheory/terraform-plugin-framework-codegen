@@ -47,10 +47,6 @@ type Tests_API_SimpleTest struct {
 func NewTests_API_SimpleTest() *Tests_API_SimpleTest {
 	m := &Tests_API_SimpleTest{}
 	m.SetAdditionalData(make(map[string]any))
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
 	return m
 }
 

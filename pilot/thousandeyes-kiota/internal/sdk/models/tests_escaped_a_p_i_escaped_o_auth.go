@@ -31,8 +31,6 @@ type Tests_API_OAuth struct {
 func NewTests_API_OAuth() *Tests_API_OAuth {
 	m := &Tests_API_OAuth{}
 	m.SetAdditionalData(make(map[string]any))
-	authTypeValue := NONE_TESTS_API_OAUTHAUTHTYPE
-	m.SetAuthType(&authTypeValue)
 	return m
 }
 

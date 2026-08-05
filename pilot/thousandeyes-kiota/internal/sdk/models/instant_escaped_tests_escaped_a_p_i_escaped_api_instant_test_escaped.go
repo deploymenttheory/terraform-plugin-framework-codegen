@@ -90,28 +90,6 @@ type Instant_Tests_API_ApiInstantTest struct {
 func NewInstant_Tests_API_ApiInstantTest() *Instant_Tests_API_ApiInstantTest {
 	m := &Instant_Tests_API_ApiInstantTest{}
 	m.SetAdditionalData(make(map[string]any))
-	collectProxyNetworkDataValue := false
-	m.SetCollectProxyNetworkData(&collectProxyNetworkDataValue)
-	followRedirectsValue := true
-	m.SetFollowRedirects(&followRedirectsValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	overrideAgentProxyValue := false
-	m.SetOverrideAgentProxy(&overrideAgentProxyValue)
-	pathTraceModeValue := CLASSIC_INSTANT_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_INSTANT_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_INSTANT_TESTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	sslVersionIdValue := ZERO_INSTANT_TESTS_API_TESTSSLVERSIONID
-	m.SetSslVersionId(&sslVersionIdValue)
-	timeLimitValue := int32(30)
-	m.SetTimeLimit(&timeLimitValue)
 	return m
 }
 

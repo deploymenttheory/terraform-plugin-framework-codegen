@@ -28,8 +28,6 @@ type Endpoint_Instant_Scheduled_Tests_API_EndpointAgentLabelsSelectorConfig stru
 func NewEndpoint_Instant_Scheduled_Tests_API_EndpointAgentLabelsSelectorConfig() *Endpoint_Instant_Scheduled_Tests_API_EndpointAgentLabelsSelectorConfig {
 	m := &Endpoint_Instant_Scheduled_Tests_API_EndpointAgentLabelsSelectorConfig{}
 	m.SetAdditionalData(make(map[string]any))
-	maxMachinesValue := int32(25)
-	m.SetMaxMachines(&maxMachinesValue)
 	return m
 }
 

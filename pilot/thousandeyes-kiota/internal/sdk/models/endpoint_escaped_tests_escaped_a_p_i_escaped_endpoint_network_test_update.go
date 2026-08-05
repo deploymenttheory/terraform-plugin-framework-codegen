@@ -20,8 +20,6 @@ func NewEndpoint_Tests_API_EndpointNetworkTestUpdate() *Endpoint_Tests_API_Endpo
 	m := &Endpoint_Tests_API_EndpointNetworkTestUpdate{
 		Endpoint_Tests_API_TestUpdate: *NewEndpoint_Tests_API_TestUpdate(),
 	}
-	portValue := int32(49153)
-	m.SetPort(&portValue)
 	return m
 }
 

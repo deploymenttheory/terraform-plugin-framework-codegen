@@ -54,12 +54,6 @@ type Instant_Tests_API_ApiRequest struct {
 func NewInstant_Tests_API_ApiRequest() *Instant_Tests_API_ApiRequest {
 	m := &Instant_Tests_API_ApiRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	authTypeValue := NONE_INSTANT_TESTS_API_APIREQUESTAUTHTYPE
-	m.SetAuthType(&authTypeValue)
-	collectApiResponseValue := true
-	m.SetCollectApiResponse(&collectApiResponseValue)
-	verifyCertificateValue := false
-	m.SetVerifyCertificate(&verifyCertificateValue)
 	return m
 }
 

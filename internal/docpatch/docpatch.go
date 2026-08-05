@@ -134,9 +134,13 @@ func Apply(specYAML []byte, patches []Patch) ([]byte, error) {
 // apply performs one operation against the document's top node.
 func apply(top *yaml.Node, op Operation) error {
 	switch op.Op {
+	case "strip-schema-defaults":
+		// Not expressible in RFC 6902: every schema in the document loses its
+		// `default`, wherever schemas nest. Whole-document by definition.
+		return stripSchemaDefaults(top)
 	case "add", "replace", "remove", "test":
 	default:
-		return fmt.Errorf("unsupported op %q (add, replace, remove and test exist)", op.Op)
+		return fmt.Errorf("unsupported op %q (add, replace, remove, test and strip-schema-defaults exist)", op.Op)
 	}
 
 	tokens, err := pointerTokens(op.Path)
@@ -245,6 +249,108 @@ func applyToSequence(node *yaml.Node, token string, op Operation) error {
 	case "test":
 		if !nodeEqual(node.Content[idx], op.Value) {
 			return fmt.Errorf("test failed: index %d does not hold the expected value", idx)
+		}
+	}
+	return nil
+}
+
+// stripSchemaDefaults removes the `default` key from every schema in the
+// document: the named schemas under components, and every inline `schema`
+// under paths. It walks the schema grammar rather than matching keys blindly,
+// because "default" is also a legitimate property *name* and a legitimate key
+// inside an example -- both of which must survive.
+//
+// Exists because a Kiota constructor stamps every spec-declared default onto
+// the model it builds. On a request model, defaults on fields the provider
+// never wires leak into every create and update body -- and an API that
+// treats an absent field differently from its documented default then refuses
+// bodies the practitioner never wrote. On a response model, the default masks
+// absence: the getter answers the default where the wire said nothing. A
+// wire-faithful provider needs neither, in either direction.
+func stripSchemaDefaults(top *yaml.Node) error {
+	stripped := 0
+
+	if schemas := childValue(childValue(top, "components"), "schemas"); schemas != nil {
+		for i := 1; i < len(schemas.Content); i += 2 {
+			stripFromSchema(schemas.Content[i], &stripped)
+		}
+	}
+	if paths := childValue(top, "paths"); paths != nil {
+		stripUnderPaths(paths, &stripped)
+	}
+
+	if stripped == 0 {
+		return fmt.Errorf("the document declares no schema defaults; the patch is stale -- delete it")
+	}
+	return nil
+}
+
+// stripFromSchema removes `default` from one schema node and recurses into
+// the positions of its grammar that hold further schemas.
+func stripFromSchema(schema *yaml.Node, stripped *int) {
+	if schema == nil || schema.Kind != yaml.MappingNode {
+		return
+	}
+
+	for i := 0; i+1 < len(schema.Content); i += 2 {
+		if schema.Content[i].Value == "default" {
+			schema.Content = append(schema.Content[:i], schema.Content[i+2:]...)
+			*stripped++
+			break
+		}
+	}
+
+	for i := 0; i+1 < len(schema.Content); i += 2 {
+		key, value := schema.Content[i].Value, schema.Content[i+1]
+		switch key {
+		case "properties", "patternProperties":
+			// A map of property NAME to schema: the names are data (one may
+			// literally be "default"), the values are schemas.
+			for j := 1; j < len(value.Content); j += 2 {
+				stripFromSchema(value.Content[j], stripped)
+			}
+		case "items", "additionalProperties", "not":
+			stripFromSchema(value, stripped)
+		case "allOf", "anyOf", "oneOf":
+			for _, member := range value.Content {
+				stripFromSchema(member, stripped)
+			}
+		}
+	}
+}
+
+// stripUnderPaths finds every `schema` key beneath paths -- request bodies,
+// responses, parameters -- and strips its value as a schema. Examples are
+// data, not schemas, and are not entered.
+func stripUnderPaths(node *yaml.Node, stripped *int) {
+	switch node.Kind {
+	case yaml.MappingNode:
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			key, value := node.Content[i].Value, node.Content[i+1]
+			switch key {
+			case "schema":
+				stripFromSchema(value, stripped)
+			case "example", "examples":
+				continue
+			default:
+				stripUnderPaths(value, stripped)
+			}
+		}
+	case yaml.SequenceNode:
+		for _, member := range node.Content {
+			stripUnderPaths(member, stripped)
+		}
+	}
+}
+
+// childValue returns the value node of a mapping entry, or nil.
+func childValue(node *yaml.Node, key string) *yaml.Node {
+	if node == nil || node.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		if node.Content[i].Value == key {
+			return node.Content[i+1]
 		}
 	}
 	return nil

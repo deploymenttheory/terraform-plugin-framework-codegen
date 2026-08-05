@@ -21,10 +21,6 @@ type Templates_API_SchemaVersionConfig struct {
 func NewTemplates_API_SchemaVersionConfig() *Templates_API_SchemaVersionConfig {
 	m := &Templates_API_SchemaVersionConfig{}
 	m.SetAdditionalData(make(map[string]any))
-	alertRulesValue := V6_TEMPLATES_API_ALERTRULESSCHEMAVERSION
-	m.SetAlertRules(&alertRulesValue)
-	testsValue := V6_TEMPLATES_API_TESTSSCHEMAVERSION
-	m.SetTests(&testsValue)
 	return m
 }
 

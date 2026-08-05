@@ -28,10 +28,6 @@ type Tests_API_TestSipCredentials struct {
 func NewTests_API_TestSipCredentials() *Tests_API_TestSipCredentials {
 	m := &Tests_API_TestSipCredentials{}
 	m.SetAdditionalData(make(map[string]any))
-	portValue := int32(49153)
-	m.SetPort(&portValue)
-	protocolValue := TCP_TESTS_API_SIPTESTPROTOCOL
-	m.SetProtocol(&protocolValue)
 	return m
 }
 

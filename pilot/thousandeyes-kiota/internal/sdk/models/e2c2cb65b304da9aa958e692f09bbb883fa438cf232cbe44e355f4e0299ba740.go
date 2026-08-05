@@ -24,8 +24,6 @@ type Endpoint_Instant_Scheduled_Tests_API_EndpointSpecificAgentsSelectorConfig s
 func NewEndpoint_Instant_Scheduled_Tests_API_EndpointSpecificAgentsSelectorConfig() *Endpoint_Instant_Scheduled_Tests_API_EndpointSpecificAgentsSelectorConfig {
 	m := &Endpoint_Instant_Scheduled_Tests_API_EndpointSpecificAgentsSelectorConfig{}
 	m.SetAdditionalData(make(map[string]any))
-	maxMachinesValue := int32(25)
-	m.SetMaxMachines(&maxMachinesValue)
 	return m
 }
 

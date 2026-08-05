@@ -58,8 +58,6 @@ type Dashboards_API_ApiBoxAndWhiskersWidget struct {
 func NewDashboards_API_ApiBoxAndWhiskersWidget() *Dashboards_API_ApiBoxAndWhiskersWidget {
 	m := &Dashboards_API_ApiBoxAndWhiskersWidget{}
 	m.SetAdditionalData(make(map[string]any))
-	visualModeValue := FULL_DASHBOARDS_API_VISUALMODE
-	m.SetVisualMode(&visualModeValue)
 	return m
 }
 

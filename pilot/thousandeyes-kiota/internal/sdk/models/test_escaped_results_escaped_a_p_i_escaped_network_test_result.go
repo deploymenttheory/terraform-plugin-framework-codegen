@@ -66,8 +66,6 @@ type Test_Results_API_NetworkTestResult struct {
 func NewTest_Results_API_NetworkTestResult() *Test_Results_API_NetworkTestResult {
 	m := &Test_Results_API_NetworkTestResult{}
 	m.SetAdditionalData(make(map[string]any))
-	directionValue := TOTARGET_TEST_RESULTS_API_TESTDIRECTION
-	m.SetDirection(&directionValue)
 	return m
 }
 

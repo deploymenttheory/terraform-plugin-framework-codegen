@@ -154,3 +154,83 @@ func TestUnit_SpecPatch_LoadToleratesAMissingDirectory(t *testing.T) {
 		t.Errorf("a missing patches directory is simply no patches, got %v, %v", patches, err)
 	}
 }
+
+func TestUnit_DocPatch_StripSchemaDefaults(t *testing.T) {
+	t.Parallel()
+
+	doc := `
+openapi: 3.0.1
+paths:
+  /things:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                inline:
+                  type: boolean
+                  default: true
+              example:
+                default: kept-in-example
+components:
+  schemas:
+    Thing:
+      type: object
+      default: whole-schema-default
+      properties:
+        enabled:
+          type: boolean
+          default: true
+        default:
+          type: string
+          description: a property literally named default, which must survive
+      allOf:
+        - type: object
+          properties:
+            nested:
+              type: integer
+              default: 7
+      items:
+        type: string
+        default: x
+`
+	out, err := Apply([]byte(doc), []Patch{{
+		Justification: "live 400",
+		Operations:    []Operation{{Op: "strip-schema-defaults", Path: "/"}},
+	}})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	var decoded map[string]any
+	if err := yaml.Unmarshal(out, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	text := string(out)
+	for _, gone := range []string{"default: true", "default: 7", "default: x", "default: whole-schema-default"} {
+		if strings.Contains(text, gone) {
+			t.Errorf("a schema default survived: %q", gone)
+		}
+	}
+	if !strings.Contains(text, "a property literally named default") {
+		t.Error("the property named default was lost")
+	}
+	if !strings.Contains(text, "kept-in-example") {
+		t.Error("an example's default key was stripped; examples are data")
+	}
+}
+
+func TestUnit_DocPatch_StripSchemaDefaultsRefusesWhenNoneExist(t *testing.T) {
+	t.Parallel()
+
+	doc := "openapi: 3.0.1\ncomponents:\n  schemas:\n    Thing:\n      type: object\n"
+	_, err := Apply([]byte(doc), []Patch{{
+		Justification: "live 400",
+		Operations:    []Operation{{Op: "strip-schema-defaults", Path: "/"}},
+	}})
+	if err == nil || !strings.Contains(err.Error(), "stale") {
+		t.Errorf("a document with no defaults must refuse the strip as stale, got: %v", err)
+	}
+}

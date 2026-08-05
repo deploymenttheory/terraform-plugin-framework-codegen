@@ -88,32 +88,6 @@ type Tests_API_AgentToAgentTest struct {
 func NewTests_API_AgentToAgentTest() *Tests_API_AgentToAgentTest {
 	m := &Tests_API_AgentToAgentTest{}
 	m.SetAdditionalData(make(map[string]any))
-	bgpMeasurementsValue := true
-	m.SetBgpMeasurements(&bgpMeasurementsValue)
-	directionValue := TOTARGET_TESTS_API_TESTDIRECTION
-	m.SetDirection(&directionValue)
-	dscpIdValue := ZERO_TESTS_API_TESTDSCPID
-	m.SetDscpId(&dscpIdValue)
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	pathTraceModeValue := CLASSIC_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	portValue := int32(49153)
-	m.SetPort(&portValue)
-	protocolValue := TCP_TESTS_API_AGENTTOAGENTTESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	throughputDurationValue := int32(10000)
-	m.SetThroughputDuration(&throughputDurationValue)
-	throughputMeasurementsValue := false
-	m.SetThroughputMeasurements(&throughputMeasurementsValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
 	return m
 }
 

@@ -20,12 +20,6 @@ func NewEndpoint_Tests_API_EndpointHttpServerTestRequest() *Endpoint_Tests_API_E
 	m := &Endpoint_Tests_API_EndpointHttpServerTestRequest{
 		Endpoint_Tests_API_EndpointHttpServerInstantTest: *NewEndpoint_Tests_API_EndpointHttpServerInstantTest(),
 	}
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	isPrioritizedValue := false
-	m.SetIsPrioritized(&isPrioritizedValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
 	return m
 }
 

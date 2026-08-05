@@ -142,50 +142,6 @@ type Tests_API_HttpServerTest struct {
 func NewTests_API_HttpServerTest() *Tests_API_HttpServerTest {
 	m := &Tests_API_HttpServerTest{}
 	m.SetAdditionalData(make(map[string]any))
-	allowUnsafeLegacyRenegotiationValue := true
-	m.SetAllowUnsafeLegacyRenegotiation(&allowUnsafeLegacyRenegotiationValue)
-	authTypeValue := NONE_TESTS_API_TESTAUTHTYPE
-	m.SetAuthType(&authTypeValue)
-	bgpMeasurementsValue := true
-	m.SetBgpMeasurements(&bgpMeasurementsValue)
-	collectProxyNetworkDataValue := false
-	m.SetCollectProxyNetworkData(&collectProxyNetworkDataValue)
-	desiredStatusCodeValue := "default"
-	m.SetDesiredStatusCode(&desiredStatusCodeValue)
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	followRedirectsValue := true
-	m.SetFollowRedirects(&followRedirectsValue)
-	httpTimeLimitValue := int32(5)
-	m.SetHttpTimeLimit(&httpTimeLimitValue)
-	httpVersionValue := int32(2)
-	m.SetHttpVersion(&httpVersionValue)
-	includeHeadersValue := true
-	m.SetIncludeHeaders(&includeHeadersValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	ipv6PolicyValue := USEAGENTPOLICY_TESTS_API_TESTIPV6POLICY
-	m.SetIpv6Policy(&ipv6PolicyValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	overrideAgentProxyValue := false
-	m.SetOverrideAgentProxy(&overrideAgentProxyValue)
-	pathTraceModeValue := CLASSIC_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_TESTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	sslVersionIdValue := ZERO_TESTS_API_TESTSSLVERSIONID
-	m.SetSslVersionId(&sslVersionIdValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
-	verifyCertificateValue := false
-	m.SetVerifyCertificate(&verifyCertificateValue)
 	return m
 }
 

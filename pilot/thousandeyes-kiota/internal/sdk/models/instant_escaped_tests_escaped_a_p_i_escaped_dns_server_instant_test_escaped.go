@@ -76,22 +76,6 @@ type Instant_Tests_API_DnsServerInstantTest struct {
 func NewInstant_Tests_API_DnsServerInstantTest() *Instant_Tests_API_DnsServerInstantTest {
 	m := &Instant_Tests_API_DnsServerInstantTest{}
 	m.SetAdditionalData(make(map[string]any))
-	dnsTransportProtocolValue := UDP_INSTANT_TESTS_API_TESTDNSTRANSPORTPROTOCOL
-	m.SetDnsTransportProtocol(&dnsTransportProtocolValue)
-	ipv6PolicyValue := USEAGENTPOLICY_INSTANT_TESTS_API_TESTIPV6POLICY
-	m.SetIpv6Policy(&ipv6PolicyValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	pathTraceModeValue := CLASSIC_INSTANT_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_INSTANT_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_INSTANT_TESTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
 	return m
 }
 

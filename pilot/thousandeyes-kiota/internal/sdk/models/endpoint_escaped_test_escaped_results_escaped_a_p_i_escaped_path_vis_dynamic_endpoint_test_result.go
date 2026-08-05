@@ -65,12 +65,6 @@ type Endpoint_Test_Results_API_PathVisDynamicEndpointTestResult struct {
 func NewEndpoint_Test_Results_API_PathVisDynamicEndpointTestResult() *Endpoint_Test_Results_API_PathVisDynamicEndpointTestResult {
 	m := &Endpoint_Test_Results_API_PathVisDynamicEndpointTestResult{}
 	m.SetAdditionalData(make(map[string]any))
-	protocolValue := UNKNOWN_ENDPOINT_TEST_RESULTS_API_ENDPOINTTESTRESULTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	tcpProbeModeValue := AUTO_ENDPOINT_TEST_RESULTS_API_TESTPROBEMODERESPONSE
-	m.SetTcpProbeMode(&tcpProbeModeValue)
-	udpProbeModeValue := UNKNOWN_ENDPOINT_TEST_RESULTS_API_UDPPROBEMODERESPONSE
-	m.SetUdpProbeMode(&udpProbeModeValue)
 	return m
 }
 

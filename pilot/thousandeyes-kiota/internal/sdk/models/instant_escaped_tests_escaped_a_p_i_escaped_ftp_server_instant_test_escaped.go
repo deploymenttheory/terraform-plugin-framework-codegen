@@ -84,24 +84,6 @@ type Instant_Tests_API_FtpServerInstantTest struct {
 func NewInstant_Tests_API_FtpServerInstantTest() *Instant_Tests_API_FtpServerInstantTest {
 	m := &Instant_Tests_API_FtpServerInstantTest{}
 	m.SetAdditionalData(make(map[string]any))
-	ftpTimeLimitValue := int32(10)
-	m.SetFtpTimeLimit(&ftpTimeLimitValue)
-	ipv6PolicyValue := USEAGENTPOLICY_INSTANT_TESTS_API_TESTIPV6POLICY
-	m.SetIpv6Policy(&ipv6PolicyValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	numPathTracesValue := int32(3)
-	m.SetNumPathTraces(&numPathTracesValue)
-	pathTraceModeValue := CLASSIC_INSTANT_TESTS_API_TESTPATHTRACEMODE
-	m.SetPathTraceMode(&pathTraceModeValue)
-	probeModeValue := AUTO_INSTANT_TESTS_API_TESTPROBEMODE
-	m.SetProbeMode(&probeModeValue)
-	protocolValue := TCP_INSTANT_TESTS_API_TESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
-	useActiveFtpValue := false
-	m.SetUseActiveFtp(&useActiveFtpValue)
 	return m
 }
 

@@ -62,12 +62,6 @@ type Tests_API_DnsSecTestRequest struct {
 func NewTests_API_DnsSecTestRequest() *Tests_API_DnsSecTestRequest {
 	m := &Tests_API_DnsSecTestRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
 	return m
 }
 

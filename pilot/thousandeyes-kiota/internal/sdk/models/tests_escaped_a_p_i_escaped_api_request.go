@@ -54,12 +54,6 @@ type Tests_API_ApiRequest struct {
 func NewTests_API_ApiRequest() *Tests_API_ApiRequest {
 	m := &Tests_API_ApiRequest{}
 	m.SetAdditionalData(make(map[string]any))
-	authTypeValue := NONE_TESTS_API_APIREQUESTAUTHTYPE
-	m.SetAuthType(&authTypeValue)
-	collectApiResponseValue := true
-	m.SetCollectApiResponse(&collectApiResponseValue)
-	verifyCertificateValue := false
-	m.SetVerifyCertificate(&verifyCertificateValue)
 	return m
 }
 

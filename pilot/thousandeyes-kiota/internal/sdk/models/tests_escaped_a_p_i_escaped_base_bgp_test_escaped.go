@@ -28,10 +28,6 @@ func NewTests_API_BaseBgpTest() *Tests_API_BaseBgpTest {
 	m := &Tests_API_BaseBgpTest{
 		Tests_API_InstantTest: *NewTests_API_InstantTest(),
 	}
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	usePublicBgpValue := true
-	m.SetUsePublicBgp(&usePublicBgpValue)
 	return m
 }
 

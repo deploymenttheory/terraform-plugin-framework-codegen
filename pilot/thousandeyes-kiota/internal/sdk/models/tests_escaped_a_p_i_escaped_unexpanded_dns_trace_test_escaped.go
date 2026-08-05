@@ -54,14 +54,6 @@ type Tests_API_UnexpandedDnsTraceTest struct {
 func NewTests_API_UnexpandedDnsTraceTest() *Tests_API_UnexpandedDnsTraceTest {
 	m := &Tests_API_UnexpandedDnsTraceTest{}
 	m.SetAdditionalData(make(map[string]any))
-	dnsTransportProtocolValue := UDP_TESTS_API_TESTDNSTRANSPORTPROTOCOL
-	m.SetDnsTransportProtocol(&dnsTransportProtocolValue)
-	enabledValue := true
-	m.SetEnabled(&enabledValue)
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	randomizedStartTimeValue := false
-	m.SetRandomizedStartTime(&randomizedStartTimeValue)
 	return m
 }
 

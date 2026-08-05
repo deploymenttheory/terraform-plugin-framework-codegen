@@ -58,20 +58,6 @@ type Endpoint_Tests_API_EndpointTest struct {
 func NewEndpoint_Tests_API_EndpointTest() *Endpoint_Tests_API_EndpointTest {
 	m := &Endpoint_Tests_API_EndpointTest{}
 	m.SetAdditionalData(make(map[string]any))
-	intervalValue := int32(60)
-	m.SetInterval(&intervalValue)
-	isEnabledValue := true
-	m.SetIsEnabled(&isEnabledValue)
-	isPrioritizedValue := false
-	m.SetIsPrioritized(&isPrioritizedValue)
-	networkMeasurementsValue := true
-	m.SetNetworkMeasurements(&networkMeasurementsValue)
-	portValue := int32(443)
-	m.SetPort(&portValue)
-	protocolValue := ICMP_ENDPOINT_TESTS_API_ENDPOINTTESTPROTOCOL
-	m.SetProtocol(&protocolValue)
-	tcpProbeModeValue := AUTO_ENDPOINT_TESTS_API_TESTPROBEMODERESPONSE
-	m.SetTcpProbeMode(&tcpProbeModeValue)
 	return m
 }
 
