@@ -367,7 +367,19 @@
                 },
                 {
                   "kind": "literal",
-                  "expr": "nil"
+                  "expr": "&abstractions.RequestConfiguration[endpoint.LabelsLabelsItemRequestBuilderGetQueryParameters]{QueryParameters: &endpoint.LabelsLabelsItemRequestBuilderGetQueryParameters{Expand: []models.Endpoint_Agent_Labels_API_ExpandLabelOptions{models.FILTERS_ENDPOINT_AGENT_LABELS_API_EXPANDLABELOPTIONS}}}",
+                  "imports": [
+                    {
+                      "path": "github.com/microsoft/kiota-abstractions-go",
+                      "alias": "abstractions"
+                    },
+                    {
+                      "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/endpoint"
+                    },
+                    {
+                      "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota/internal/sdk/models"
+                    }
+                  ]
                 }
               ]
             }

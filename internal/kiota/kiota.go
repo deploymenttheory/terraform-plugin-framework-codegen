@@ -57,6 +57,32 @@ func ReadLock(dir string) (Lock, bool, error) {
 	return l, true, nil
 }
 
+// descriptionLocation matches the lock's one path-dependent field, for the
+// targeted rewrite SetDescriptionLocation performs.
+var descriptionLocation = regexp.MustCompile(`("descriptionLocation"\s*:\s*)"[^"]*"`)
+
+// SetDescriptionLocation rewrites the lock's descriptionLocation in place,
+// touching no other byte. A generation that read a patched temporary copy of
+// the snapshot calls this so the committed lock names the pinned document the
+// copy was derived from rather than a path that no longer exists.
+func SetDescriptionLocation(dir, location string) error {
+	path := filepath.Join(dir, LockFileName)
+	data, err := os.ReadFile(path) //nolint:gosec // fixed name under an operator-supplied dir
+	if err != nil {
+		return err
+	}
+
+	if !descriptionLocation.Match(data) {
+		return fmt.Errorf("%s carries no descriptionLocation to rewrite", path)
+	}
+	rewritten := descriptionLocation.ReplaceAll(data,
+		[]byte(`${1}"`+strings.ReplaceAll(location, `\`, `/`)+`"`))
+	if bytes.Equal(data, rewritten) {
+		return nil
+	}
+	return os.WriteFile(path, rewritten, 0o600)
+}
+
 // semver matches the leading version in `kiota --version` output, which
 // carries build metadata after a plus (e.g. "1.34.1+heads/main...").
 var semver = regexp.MustCompile(`\d+\.\d+\.\d+`)

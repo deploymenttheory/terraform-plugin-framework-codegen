@@ -11,10 +11,11 @@ const (
 	WEEK_ALERTS_API_REPEATTYPE
 	MONTH_ALERTS_API_REPEATTYPE
 	CUSTOM_ALERTS_API_REPEATTYPE
+	NONE_ALERTS_API_REPEATTYPE
 )
 
 func (i Alerts_API_RepeatType) String() string {
-	return []string{"day", "week", "month", "custom"}[i]
+	return []string{"day", "week", "month", "custom", "none"}[i]
 }
 
 func ParseAlerts_API_RepeatType(v string) (any, error) {
@@ -28,6 +29,8 @@ func ParseAlerts_API_RepeatType(v string) (any, error) {
 		result = MONTH_ALERTS_API_REPEATTYPE
 	case "custom":
 		result = CUSTOM_ALERTS_API_REPEATTYPE
+	case "none":
+		result = NONE_ALERTS_API_REPEATTYPE
 	default:
 		return nil, nil
 	}

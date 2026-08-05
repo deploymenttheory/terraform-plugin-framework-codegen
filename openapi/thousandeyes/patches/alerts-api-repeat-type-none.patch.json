@@ -1,0 +1,15 @@
+{
+  "justification": "The live API accepts and echoes repeat.type=\"none\" for alert suppression windows -- recordings/thousandeyes/alert_suppression_window/7.0.98-t1785764488786, where the accepted create request and its response both carry \"type\": \"none\" -- but the published enum declares only day, week, month and custom. A closed Kiota enumeration makes the missing value unrepresentable in both directions: refused on write, silently dropped on read.",
+  "operations": [
+    {
+      "op": "test",
+      "path": "/components/schemas/Alerts_API_RepeatType/enum",
+      "value": ["day", "week", "month", "custom"]
+    },
+    {
+      "op": "add",
+      "path": "/components/schemas/Alerts_API_RepeatType/enum/-",
+      "value": "none"
+    }
+  ]
+}

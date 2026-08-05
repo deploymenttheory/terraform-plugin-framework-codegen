@@ -8,7 +8,9 @@ package client
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -54,6 +56,28 @@ func (p *staticTokenProvider) GetAllowedHostsValidator() *authentication.Allowed
 	return p.validator
 }
 
+// acceptNormalizer widens a degenerate Accept header before the request
+// leaves.
+//
+// For an operation whose specification declares no success media type -- a
+// DELETE whose only documented bodies are errors -- Kiota emits
+// `Accept: application/problem+json` alone, and the ThousandEyes API answers
+// that with 406 Not Acceptable before considering the request. The API's
+// actual success responses are hal+json or plain json, so both are added in
+// front whenever the emitted header would otherwise refuse them; a header
+// that already accepts a json form passes through untouched.
+type acceptNormalizer struct{}
+
+func (acceptNormalizer) Intercept(pipeline kiotahttp.Pipeline, middlewareIndex int, req *http.Request) (*http.Response, error) {
+	accept := req.Header.Get("Accept")
+	if accept != "" &&
+		!strings.Contains(accept, "application/json") &&
+		!strings.Contains(accept, "application/hal+json") {
+		req.Header.Set("Accept", "application/hal+json, application/json, "+accept)
+	}
+	return pipeline.Next(req, middlewareIndex)
+}
+
 // New builds an SDK client.
 func New(cfg Config) (*sdk.ThousandEyesClient, error) {
 	endpoint := cfg.APIEndpoint
@@ -91,6 +115,7 @@ func New(cfg Config) (*sdk.ThousandEyesClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("building the HTTP middleware: %w", err)
 	}
+	middlewares = append(middlewares, acceptNormalizer{})
 
 	adapter, err := kiotahttp.NewNetHttpRequestAdapterWithParseNodeFactoryAndSerializationWriterFactoryAndHttpClient(
 		authProvider, nil, nil, kiotahttp.GetDefaultClient(middlewares...),
