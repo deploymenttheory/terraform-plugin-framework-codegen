@@ -3,6 +3,141 @@
   "toolVersion": "dev",
   "files": [
     {
+      "path": "examples/data-sources/thousandeyes_tag/data-source.tf",
+      "sha256": "c818bf99bad2532fae3fd30132c1f189d5b084b689b21c6b020476ec3f65a1bd",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/data-sources/thousandeyes_tags/data-source.tf",
+      "sha256": "e440b3f0206ab100fa1c7c2044ccfaaf88385cf81b714a3d1681d68c93113a84",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/ephemeral-resources/thousandeyes_credential/ephemeral-resource.tf",
+      "sha256": "a8af4ccdc856ae3ece83a28d87e4c604b641ac7fedb752e6fca2f7b58b97bf25",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/provider/provider.tf",
+      "sha256": "5fa149dfc071d8adf9903550413cc75ade0059c64f06c1aee534d80b327189e1",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_account_group/resource.tf",
+      "sha256": "70ee660622bca08372f2b31517264ea040e79ba714cc8d7d13fd0a7e27012082",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_alert_rule/resource.tf",
+      "sha256": "c97c9911597f6331aec52234133c3894f33a229218e62bb110c04f36a9f3bc31",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_alert_suppression_window/resource.tf",
+      "sha256": "fddf2ae5edcfaafe68bc8a29914e58be1c9c3aeed43d676aa2536695962e3693",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_credential/import.sh",
+      "sha256": "8773186d57e8217c2197874108f4763bd913e75ceea00cebc133006f88b1a80f",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_credential/resource.tf",
+      "sha256": "783a01f3410a14b315f22055943317ec3426896dbf4d044047d43812de170d68",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_dashboard/resource.tf",
+      "sha256": "5bc8978f1f8aae809711259432364b74ebae48d05ddeebe21e35b2d0fec1452b",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_dashboard_filter/resource.tf",
+      "sha256": "09ed2e147fdf220ce54d240efa1a1b5f2621d4bbb45a6ea0e79ece5dfd954a95",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_endpoint_label/resource.tf",
+      "sha256": "5473a4c9e9be8c59f3f5c5db32cc6f0b9cf0b7a590688781831b033b1d23f63c",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_role/resource.tf",
+      "sha256": "49adb1c750289f55a5abfc136a459ad54ea6f12b61d249991493457accd66ade",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tag/import.sh",
+      "sha256": "f105786022e429bd5730276854dc325e805979eab5eb030043f7bafd57cfff8b",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tag/resource.tf",
+      "sha256": "a464bd3d556b467fe89e50a1c628c0aae5fcc56d4a48665f08d127b177b004f9",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_agent_to_server/resource.tf",
+      "sha256": "19787338ba5c2e96a9ffcd495507adfa9cf01df7fcef04cab38a87e8d1a30f5c",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_api/resource.tf",
+      "sha256": "766796bb5078e85c94939f9ce0de0305f477973dd1fb2e69e63b511c9e6300c1",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_bgp/resource.tf",
+      "sha256": "0fcbf480ca0f8c07176998234b74ef9cbe6979f0c008a12f676ec4749eff8e55",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_dns_server/resource.tf",
+      "sha256": "f1cfc16d2a9f61b39ef4ace0063c680a652febf893feec8072e31a37644f0ba1",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_dns_trace/resource.tf",
+      "sha256": "79c096c68bbb63418b045e6bc11a83829e7fa7dd219c334b1650ccc08b500e74",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_dnssec/resource.tf",
+      "sha256": "a5bae87d5d396269fcbf6b5a7df95cd62bb1b279f48b12837877f744ba1da8f5",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_ftp_server/resource.tf",
+      "sha256": "92ce04af504d60a4ecd40d5590fcd49c5984e34085e413ae4a6a1799eddfd388",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_http_server/resource.tf",
+      "sha256": "059c779eb372e7dabb10e3247d0daf574fb3f4ec1cb560ef91243893d44e9905",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_page_load/resource.tf",
+      "sha256": "cb046face0ffece1a093f0266c936f18c843546b0735e400ef03c59b780a02b2",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_sip_server/resource.tf",
+      "sha256": "eb1a3f957ef65f7328e05f9ba75544d5d62f21bb2056831485f460d5664c3ede",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_tests_web_transaction/resource.tf",
+      "sha256": "a969342ef4bdb9fb753da0105b632d7e1405d4a9a54209e30483d5132f608015",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "examples/resources/thousandeyes_user/resource.tf",
+      "sha256": "c58884c117c73358f007d4be075062733da48910f4f7d650237a2e66201ae7e7",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
       "path": "internal/provider/actions.go",
       "sha256": "0ef058453af609404381b9fbe84bfba5f43fb8ecd77c8ceb9120dc32830c3968",
       "blueprint": "blueprints/thousandeyes"
@@ -1025,6 +1160,16 @@
     {
       "path": "internal/services/resources/tags/v7/tag/model.go",
       "sha256": "8e308bb571670e28aac1eeacb4b912d1885a9dd74d0365eeea01f519537d445a",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/modify_plan.go",
+      "sha256": "cdcc88a50f87974e2c78dedd71dfaed174f5a8144a31761a43f365bd5c6519de",
+      "blueprint": "blueprints/thousandeyes"
+    },
+    {
+      "path": "internal/services/resources/tags/v7/tag/predicate.go",
+      "sha256": "1fb12e66a7342ebfe2882cc84d335f2bc9be0ceb25616d3df8a968740a7aeeb3",
       "blueprint": "blueprints/thousandeyes"
     },
     {

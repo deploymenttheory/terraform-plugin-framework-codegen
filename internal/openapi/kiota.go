@@ -55,6 +55,29 @@ func kiotaName(name string) string {
 	return b.String()
 }
 
+// kiotaModelName renders a component schema name the way kiota's Go generator
+// does: the name is kept verbatim -- underscores included, so Tags_API_TagInfo
+// stays Tags_API_TagInfo -- with the first letter upper-cased and separator
+// characters Go cannot carry in an identifier replaced by underscores.
+//
+// This is deliberately not kiotaName: that renders property names, where kiota
+// collapses word separators into capitalisation. Schema names pass through
+// whole, and collapsing their underscores names types that do not exist.
+func kiotaModelName(schemaName string) string {
+	var b strings.Builder
+	for i, r := range schemaName {
+		switch {
+		case r == '.' || r == '-' || r == ' ':
+			b.WriteRune('_')
+		case i == 0:
+			b.WriteString(strings.ToUpper(string(r)))
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 // kiotaAccessorBase is the Get/Set base for one JSON property, including the
 // keyword mangling: a property named "error" is reached as GetErrorEscaped.
 func kiotaAccessorBase(jsonName string) string {
@@ -98,10 +121,25 @@ func kiotaChainWith(pathTemplate, verb string, idArg blueprint.Argument, verbArg
 	return append(chain, blueprint.ChainSegment{Method: verb, Args: verbArgs})
 }
 
+// opResultTypes carries each operation's own result model.
+type opResultTypes struct {
+	create, read, update string
+}
+
+// kiotaOpResult names one operation's own response model, falling back to the
+// shared response type when the operation declares none of its own.
+func kiotaOpResult(d *Document, op *Operation, fallback string) string {
+	name := schemaNameOf(d.operationResponseProxy(op))
+	if name == "" {
+		return fallback
+	}
+	return "models." + kiotaModelName(name) + "able"
+}
+
 // bindOperationsKiota is bindOperations for the fluent dialect: the call is a
 // chain, the identifier rides mid-chain, and the trailing argument is the
 // per-verb request configuration, nil until somebody curates one.
-func bindOperationsKiota(r *blueprint.Resource, c Candidate, responseType string) {
+func bindOperationsKiota(r *blueprint.Resource, c Candidate, results opResultTypes) {
 	ctxArg := blueprint.Argument{Kind: blueprint.ArgContext}
 	bodyArg := blueprint.Argument{Kind: blueprint.ArgBody}
 	nilCfg := blueprint.Argument{Kind: blueprint.ArgLiteral, Expr: "nil"}
@@ -111,7 +149,7 @@ func bindOperationsKiota(r *blueprint.Resource, c Candidate, responseType string
 			Style: blueprint.CallStyleFluent,
 			Chain: kiotaChain(c.Create.Path, "Post",
 				[]blueprint.Argument{ctxArg, bodyArg, nilCfg}),
-			Return: blueprint.ReturnResultError, ResultType: responseType,
+			Return: blueprint.ReturnResultError, ResultType: results.create,
 			HTTPMethod: c.Create.Method, PathTemplate: c.Create.Path,
 		}
 	}
@@ -120,7 +158,7 @@ func bindOperationsKiota(r *blueprint.Resource, c Candidate, responseType string
 			Style: blueprint.CallStyleFluent,
 			Chain: kiotaChain(c.Read.Path, "Get",
 				[]blueprint.Argument{ctxArg, nilCfg}),
-			Return: blueprint.ReturnResultError, ResultType: responseType,
+			Return: blueprint.ReturnResultError, ResultType: results.read,
 			HTTPMethod: c.Read.Method, PathTemplate: c.Read.Path,
 		}
 	}
@@ -130,7 +168,7 @@ func bindOperationsKiota(r *blueprint.Resource, c Candidate, responseType string
 			Style: blueprint.CallStyleFluent,
 			Chain: kiotaChain(c.Update.Path, verb,
 				[]blueprint.Argument{ctxArg, bodyArg, nilCfg}),
-			Return: blueprint.ReturnResultError, ResultType: responseType,
+			Return: blueprint.ReturnResultError, ResultType: results.update,
 			HTTPMethod: c.Update.Method, PathTemplate: c.Update.Path,
 		}
 	}

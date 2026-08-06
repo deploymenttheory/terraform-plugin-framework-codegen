@@ -49,7 +49,7 @@ func TestUnit_CLI_Dispatch_ExitCodes(t *testing.T) {
 		// A malformed flag must not be reported as an internal failure: exit 1
 		// would tell a caller the tool broke rather than that they mistyped.
 		{"undefined flag is a usage error", []string{"version", "-nope"}, exitInvalidInput},
-		{"unbuilt verb reports a plain failure", []string{"provider", "scaffold"}, exitError},
+		{"unbuilt verb reports a plain failure", []string{"blueprint", "validate"}, exitError},
 		// A built subcommand missing a required flag is the caller's mistake, and
 		// must not be reported the same way as a subcommand that does not exist yet.
 		{"built verb missing a required flag is a usage error", []string{"provider", "generate"}, exitInvalidInput},
@@ -89,12 +89,16 @@ var builtCommands = map[string]bool{
 	"blueprint merge": true,
 	// probe records, replays, verifies and sweeps; the mutating tier ran live
 	// against a sandbox and its recordings are committed under recordings/.
-	"probe record":      true,
-	"probe replay":      true,
-	"probe verify":      true,
-	"probe sweep":       true,
-	"probe list":        true,
+	"probe record": true,
+	"probe replay": true,
+	"probe verify": true,
+	"probe sweep":  true,
+	"probe list":   true,
+	// provider init derives the provider block from the module's own files.
+	"provider init":     true,
 	"provider generate": true,
+	// provider scaffold emits the shell from the embedded templates.
+	"provider scaffold": true,
 	"provider push":     true,
 	"bindings check":    true,
 	"bindings facts":    true,

@@ -383,3 +383,47 @@ func TestUnit_SDKBind_ArityOf(t *testing.T) {
 		})
 	}
 }
+
+// TestUnit_SDKBind_ChecksFromCreate covers the one binding string that used to
+// escape verification: a wrong identifier read off the create result surfaced
+// as a compile error in generated code rather than as a named problem here.
+func TestUnit_SDKBind_ChecksFromCreate(t *testing.T) {
+	t.Parallel()
+
+	bp, l := loadPilot(t)
+	res(&bp, "tag").Binding.ID.FromCreate = "created.Missing"
+
+	report := Verify(l, bp)
+
+	found := false
+	for _, p := range report.Problems {
+		if p.Resource == "tag" && p.Path == "binding.id.fromCreate" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a fromCreate naming a missing field must be reported, got: %v", report.Problems)
+	}
+}
+
+// TestUnit_SDKBind_ChecksFromCreateMethodForm proves the accessor-call form is
+// walked as a method rather than a field.
+func TestUnit_SDKBind_ChecksFromCreateMethodForm(t *testing.T) {
+	t.Parallel()
+
+	bp, l := loadPilot(t)
+	res(&bp, "tag").Binding.ID.FromCreate = "created.GetMissing()"
+
+	report := Verify(l, bp)
+
+	found := false
+	for _, p := range report.Problems {
+		if p.Resource == "tag" && p.Path == "binding.id.fromCreate" &&
+			strings.Contains(p.Detail, "no method") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("a fromCreate calling a missing method must be reported, got: %v", report.Problems)
+	}
+}

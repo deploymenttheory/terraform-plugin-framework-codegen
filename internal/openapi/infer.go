@@ -122,8 +122,8 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 		// <Type>able interfaces, bodies are built by constructor and setter,
 		// and the chain starts at the bare client.
 		sdkPkg = "models"
-		reqT := kiotaName(requestType)
-		respT := kiotaName(responseType)
+		reqT := kiotaModelName(requestType)
+		respT := kiotaModelName(responseType)
 
 		body := blueprint.BodyModels{
 			RequestType:     "models." + reqT,
@@ -132,7 +132,7 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 			AccessStyle:     blueprint.AccessMethod,
 		}
 		if updateType := d.updateBodyTypeName(c); updateType != "" && updateType != requestType {
-			upT := kiotaName(updateType)
+			upT := kiotaModelName(updateType)
 			body.UpdateRequestType = "models." + upT
 			body.UpdateConstructorExpr = "models.New" + upT + "()"
 		}
@@ -150,12 +150,24 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 			},
 		}
 
-		bindOperationsKiota(&r, c, body.ResponseType)
+		// Each operation names its own result: an API routinely gives create a
+		// model of its own -- ThousandEyes' user create returns CreatedUser where
+		// read returns UserDetail -- and declaring read's model on create fails
+		// the bindings check against the SDK's real signature.
+		results := opResultTypes{
+			create: kiotaOpResult(d, c.Create, body.ResponseType),
+			read:   kiotaOpResult(d, c.Read, body.ResponseType),
+			update: kiotaOpResult(d, c.Update, body.ResponseType),
+		}
+		bindOperationsKiota(&r, c, results)
 	} else {
+		reqT := namingOpts.GoTypeName(requestType)
+		respT := namingOpts.GoTypeName(responseType)
+
 		body := blueprint.BodyModels{
-			RequestType:     sdkPkg + "." + requestType,
-			ResponseType:    sdkPkg + "." + responseType,
-			ConstructorExpr: "&" + sdkPkg + "." + requestType + "{}",
+			RequestType:     sdkPkg + "." + reqT,
+			ResponseType:    sdkPkg + "." + respT,
+			ConstructorExpr: "&" + sdkPkg + "." + reqT + "{}",
 			AccessStyle:     blueprint.AccessStructField,
 		}
 
@@ -165,8 +177,9 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 		// emitter reuses one assignment list against both types, which sdkbind proves
 		// safe field by field.
 		if updateType := d.updateBodyTypeName(c); updateType != "" && updateType != requestType {
-			body.UpdateRequestType = sdkPkg + "." + updateType
-			body.UpdateConstructorExpr = "&" + sdkPkg + "." + updateType + "{}"
+			upT := namingOpts.GoTypeName(updateType)
+			body.UpdateRequestType = sdkPkg + "." + upT
+			body.UpdateConstructorExpr = "&" + sdkPkg + "." + upT + "{}"
 		}
 
 		r.Binding = blueprint.ResourceBinding{
@@ -197,14 +210,89 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 	}
 
 	// Without an identifier there is nothing to read, import or delete by.
-	if !hasAttribute(r.Schema.Attributes, "id") {
-		notes = append(notes, Caveat{
-			Resource: c.Key,
-			Message:  "no id attribute in the schemas, so the resource cannot be imported or refreshed",
-		})
+	if why := adoptIdentifier(&r, c, opts.SDKDialect); why != "" {
+		notes = append(notes, Caveat{Resource: c.Key, Message: why})
 	}
 
 	return r, notes, nil
+}
+
+// adoptIdentifier settles the resource's identifier on the import convention's name.
+//
+// The convention is that a resource is read, imported and deleted by an attribute
+// named "id", but most families spell theirs after the object -- testId, roleId,
+// uid -- and the hardcoded binding used to name an attribute that did not exist.
+// The item path names the field the API is keyed by, so when the schemas carry no
+// literal "id" the parameter's attribute is renamed to "id" while its wire binding
+// keeps the API's spelling, and fromCreate reads the same field off the create
+// response. This is exactly the shape curation used to produce by hand.
+func adoptIdentifier(r *blueprint.Resource, c Candidate, dialect blueprint.SDKDialect) string {
+	if hasAttribute(r.Schema.Attributes, "id") {
+		return ""
+	}
+
+	missing := "no id attribute in the schemas, so the resource cannot be imported or refreshed"
+
+	param := ""
+	if i := strings.LastIndex(c.ItemPath, "{"); i >= 0 {
+		param = strings.Trim(c.ItemPath[i:], "{}")
+	}
+
+	// The path parameter is the strongest signal. After it, the spellings APIs
+	// use when the parameter is a generic {id} and the schema is not: the
+	// resource's own name plus Id (roles/{id} returning roleId), then the
+	// identifier idioms observed live -- /users/{id} returns uid, and an
+	// account group's own identifier is aid.
+	var want []string
+	if param != "" {
+		want = append(want, naming.TerraformName(param))
+	}
+	want = append(want, naming.TerraformName(c.Key)+"_id", "uid", "guid", "aid")
+
+	idx := -1
+	for _, name := range want {
+		for i := range r.Schema.Attributes {
+			if r.Schema.Attributes[i].Name == name {
+				idx = i
+				break
+			}
+		}
+		if idx >= 0 {
+			break
+		}
+	}
+	if idx < 0 {
+		return missing
+	}
+
+	a := &r.Schema.Attributes[idx]
+
+	jsonName := a.Wire.JSONPath
+	if jsonName == "" {
+		jsonName = param
+	}
+
+	a.Name = "id"
+	a.GoField = "ID"
+	if a.MarkdownDescription != "" {
+		a.MarkdownDescription += " "
+	}
+	a.MarkdownDescription += fmt.Sprintf(
+		"Named `id` per the import convention; the wire field stays %s.", jsonName)
+
+	if dialect == blueprint.DialectKiotaFluent {
+		r.Binding.ID.FromCreate = "created.Get" + kiotaAccessorBase(jsonName) + "()"
+	} else {
+		r.Binding.ID.FromCreate = "created." + namingOpts.GoFieldName(jsonName)
+	}
+
+	// The rename moves the attribute out of alphabetical position, and drafting
+	// promises deterministic, ordered output.
+	sort.SliceStable(r.Schema.Attributes, func(x, y int) bool {
+		return r.Schema.Attributes[x].Name < r.Schema.Attributes[y].Name
+	})
+
+	return ""
 }
 
 // updateStyleOf reads the update semantics off the HTTP verb.
@@ -419,6 +507,16 @@ func (ctx *inferCtx) attributeOf(
 	path string,
 	inWrite bool,
 ) (blueprint.Attribute, string) {
+	// A free-form map -- an object schema that is only additionalProperties -- is
+	// held by the generated SDKs as opaque additional data, and no conversion is
+	// generated for that shape. Both pilots curated these fields as dropped, so
+	// the draft omits them by name rather than emitting an attribute whose wire
+	// binding could never round-trip.
+	if f.Kind == blueprint.KindMap {
+		return blueprint.Attribute{}, "a free-form map has no generated conversion; " +
+			"the SDK holds it as opaque additional data, so the field is omitted"
+	}
+
 	goField := namingOpts.GoFieldName(f.Name)
 
 	// The wire join key is the SDK's spelling of the field, which differs by
@@ -513,6 +611,57 @@ func (ctx *inferCtx) attributeOf(
 		return a, ""
 	}
 
+	// kiota reads format: uuid literally and holds the field as *uuid.UUID, so a
+	// string conversion against it does not compile. The attribute stays a
+	// framework string; the flatten renders the UUID. No writable uuid field
+	// exists in any curated set, and inventing an unproven parse direction here
+	// would be guessing -- so a writable one is refused by name instead.
+	// A collection of uuid elements is []uuid.UUID in the SDK. The read
+	// direction renders each element through its Stringer; no expand helper
+	// parses the other way, so a writable one is refused by name.
+	if ctx.dialect == blueprint.DialectKiotaFluent &&
+		f.Kind == blueprint.KindSet && f.ElemFormat == "uuid" {
+		if writable {
+			return blueprint.Attribute{}, "a writable set of uuid elements has no generated " +
+				"conversion; the SDK holds it as []uuid.UUID and no expand direction is proven"
+		}
+		a.Wire = blueprint.WireBinding{
+			JSONPath:  f.Name,
+			SDKField:  sdkField,
+			SDKGoType: "[]uuid.UUID",
+			Flatten: &blueprint.ConvertCall{
+				Func: "convert.KiotaEnumSliceToFrameworkSet", NeedsCtx: true, ReturnsError: true,
+			},
+			SkipExpand: true,
+		}
+		return a, ""
+	}
+
+	// kiota holds format: float as *float32, and no convert helper bridges that
+	// width; the field is refused by name rather than wired to a function that
+	// does not exist.
+	if ctx.dialect == blueprint.DialectKiotaFluent &&
+		(f.Kind == blueprint.KindFloat64 || f.Kind == blueprint.KindNumber) && f.Format == "float" {
+		return blueprint.Attribute{}, "a float32 field has no generated conversion in the " +
+			"kiota dialect, so the field is omitted"
+	}
+
+	if ctx.dialect == blueprint.DialectKiotaFluent &&
+		f.Kind == blueprint.KindString && f.Format == "uuid" {
+		if writable {
+			return blueprint.Attribute{}, "a writable uuid field has no generated conversion; " +
+				"the SDK holds it as *uuid.UUID and no expand direction is proven"
+		}
+		a.Wire = blueprint.WireBinding{
+			JSONPath:   f.Name,
+			SDKField:   sdkField,
+			SDKGoType:  "*uuid.UUID",
+			Flatten:    &blueprint.ConvertCall{Func: "convert.PtrStringerToFramework"},
+			SkipExpand: true,
+		}
+		return a, ""
+	}
+
 	sdkType, convertFlatten, convertExpand := conversionsFor(f, ctx.sdkPkg, ctx.dialect)
 
 	a.Wire = blueprint.WireBinding{
@@ -564,12 +713,12 @@ func conversionsFor(
 			// with a Parse function; the attribute stays a string driven by the
 			// OpenAPI members, and the parse failure a validator missed becomes
 			// a diagnostic rather than a silent nil.
-			named := "models." + kiotaName(f.EnumTypeName)
+			named := "models." + kiotaModelName(f.EnumTypeName)
 			return "*" + named,
-				&blueprint.ConvertCall{Func: "convert.KiotaEnumToFramework"},
+				&blueprint.ConvertCall{Func: "convert.PtrStringerToFramework"},
 				&blueprint.ConvertCall{
 					Func: "convert.FrameworkToKiotaEnum", TypeArgs: []string{named},
-					ExtraArgs: []string{"models.Parse" + kiotaName(f.EnumTypeName)}, ReturnsError: true,
+					ExtraArgs: []string{"models.Parse" + kiotaModelName(f.EnumTypeName)}, ReturnsError: true,
 				}
 		}
 		// Generated SDKs hold enumerations by value as a named string type.
@@ -585,17 +734,45 @@ func conversionsFor(
 	// converters bridge the width.
 	if dialect == blueprint.DialectKiotaFluent {
 		switch f.Kind {
+		case blueprint.KindString:
+			// kiota reads temporal formats literally: date-time is *time.Time and
+			// date is a serialization.DateOnly, where a string conversion against
+			// either does not compile. A custom format string -- ThousandEyes
+			// documents yyyy-MM-ddTHH:mm:ssZ on some fields -- is not a format
+			// kiota recognises, and those stay strings.
+			switch f.Format {
+			case "date-time":
+				return "*time.Time",
+					&blueprint.ConvertCall{Func: "convert.PtrTimeToFramework"},
+					&blueprint.ConvertCall{Func: "convert.FrameworkToPtrTime", ReturnsError: true}
+			case "date":
+				return "*serialization.DateOnly",
+					&blueprint.ConvertCall{Func: "convert.PtrDateOnlyToFramework"},
+					&blueprint.ConvertCall{Func: "convert.FrameworkToPtrDateOnly", ReturnsError: true}
+			}
 		case blueprint.KindInt64:
 			if f.Format != "int64" {
+				// The model field is types.Int64 -- the attribute kind decides that --
+				// so the pair has to bridge the width, not assume a types.Int32 model
+				// that generation never produces.
 				return "*int32",
-					&blueprint.ConvertCall{Func: "convert.PtrInt32ToFramework"},
-					&blueprint.ConvertCall{Func: "convert.FrameworkToPtrInt32"}
+					&blueprint.ConvertCall{Func: "convert.PtrInt32ToFrameworkInt64"},
+					&blueprint.ConvertCall{Func: "convert.FrameworkInt64ToPtrInt32"}
 			}
-		case blueprint.KindFloat64, blueprint.KindNumber:
-			if f.Format == "float" {
-				return "*float32",
-					&blueprint.ConvertCall{Func: "convert.PtrFloat32ToFramework"},
-					&blueprint.ConvertCall{Func: "convert.FrameworkToPtrFloat32"}
+		case blueprint.KindSet:
+			// A set of enum members: the SDK holds a slice of the named enum type,
+			// and the plain string-slice conversion against it does not compile.
+			if f.ElemEnumTypeName != "" {
+				named := "models." + kiotaModelName(f.ElemEnumTypeName)
+				return "[]" + named,
+					&blueprint.ConvertCall{
+						Func: "convert.KiotaEnumSliceToFrameworkSet", NeedsCtx: true, ReturnsError: true,
+					},
+					&blueprint.ConvertCall{
+						Func: "convert.FrameworkSetToKiotaEnumSlice", TypeArgs: []string{named},
+						ExtraArgs: []string{"models.Parse" + kiotaModelName(f.ElemEnumTypeName)},
+						NeedsCtx:  true, ReturnsError: true,
+					}
 			}
 		}
 	}
@@ -639,11 +816,15 @@ func conversionsFor(
 	}
 }
 
-// bodyTypeNames names the SDK request and response models.
+// bodyTypeNames names the SDK request and response models, as the raw schema
+// names the document declares.
 //
 // A generated SDK routinely splits them -- ThousandEyes takes a TagInfo and
 // returns a Tag -- so modelling them as one type produces a construct function
-// that does not compile.
+// that does not compile. The names come back unmangled because each dialect
+// spells its Go types differently: the resty SDK applies Go initialism
+// conventions where kiota keeps the schema name verbatim, and mangling here
+// would lose the underscores kiota preserves.
 func (d *Document) bodyTypeNames(c Candidate) (request, response string) {
 	request = schemaNameOf(d.requestBodyProxy(c))
 	response = schemaNameOf(d.responseProxy(c))
@@ -655,7 +836,7 @@ func (d *Document) bodyTypeNames(c Candidate) (request, response string) {
 		response = request
 	}
 
-	return namingOpts.GoTypeName(request), namingOpts.GoTypeName(response)
+	return request, response
 }
 
 func (d *Document) requestBodyProxy(c Candidate) *base.SchemaProxy {
@@ -666,11 +847,7 @@ func (d *Document) requestBodyProxy(c Candidate) *base.SchemaProxy {
 // update body is anonymous or absent. The caller compares it against create's: only a
 // *different* named type is a split worth recording.
 func (d *Document) updateBodyTypeName(c Candidate) string {
-	name := schemaNameOf(d.operationBodyProxy(c.Update))
-	if name == "" {
-		return ""
-	}
-	return namingOpts.GoTypeName(name)
+	return schemaNameOf(d.operationBodyProxy(c.Update))
 }
 
 func (d *Document) operationBodyProxy(o *Operation) *base.SchemaProxy {

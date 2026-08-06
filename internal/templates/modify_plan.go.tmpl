@@ -1,23 +1,13 @@
-// This file is yours.
-//
-// It was scaffolded once, carries no generated marker, and `emit` will not write over it
-// again -- so the drift check does not police it and your edits survive regeneration. Deleting
-// it means removing `hooks.modifyPlan` from the blueprint too, because the generated resource
-// asserts resource.ResourceWithModifyPlan when that flag is set.
-//
-// # What belongs here
-//
-// Plan-time judgement no specification carries. The usual cases:
-//
-//   - marking a resource for replacement on a change the API cannot apply in place, when
-//     RequiresReplace on one attribute is too blunt because it depends on another
-//   - suppressing a diff the API creates by normalising a value, which is what the probe's
-//     write.normalisation fact reports
-//   - enforcing a cardinality or a dependency that spans attributes in a way
-//     configValidators cannot state
-//
-// A stub that does nothing is a perfectly good state for this file. The reference provider
-// carries one in 93 of its 167 resource packages, and many are exactly that.
+{{ .Header }}
+
+// ModifyPlan below is the generated default: no adjustment. The hook exists for
+// plan-time judgement no specification carries -- replacement decisions that
+// depend on another attribute, diffs the API's own normalisation creates,
+// cross-attribute rules configValidators cannot state. Those decisions belong
+// in the blueprint, carried as declared facts the emitter renders; an edit made
+// here directly is drift the check reports. Removing hooks.modifyPlan removes
+// this file, because the generated resource asserts
+// resource.ResourceWithModifyPlan while the flag is set.
 
 package {{ .Package }}
 

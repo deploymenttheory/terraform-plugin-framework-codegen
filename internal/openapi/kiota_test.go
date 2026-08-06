@@ -90,7 +90,10 @@ func TestUnit_OpenAPI_KiotaEnumWiring(t *testing.T) {
 	if sdkType != "*models.MatchType" {
 		t.Errorf("enum sdk type = %q", sdkType)
 	}
-	if flatten.Func != "convert.KiotaEnumToFramework" {
+	// A kiota enum is a Stringer behind a pointer; the flatten renders it. The
+	// name this used to assert, convert.KiotaEnumToFramework, exists in no
+	// convert package -- the curated sets always corrected it by hand.
+	if flatten.Func != "convert.PtrStringerToFramework" {
 		t.Errorf("flatten = %+v", flatten)
 	}
 	if expand.Func != "convert.FrameworkToKiotaEnum" || !expand.ReturnsError ||

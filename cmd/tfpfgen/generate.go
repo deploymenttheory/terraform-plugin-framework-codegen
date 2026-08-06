@@ -19,6 +19,12 @@ const usageProviderGenerate = "provider generate -blueprint DIR -out DIR [-resou
 // providerVerbs is the provider group's verb table.
 var providerVerbs = []command{
 	{
+		name:    "init",
+		summary: "derive the provider block from go.mod, the SDK lock and the pinned snapshot",
+		usage:   usageProviderInit,
+		run:     runProviderInit,
+	},
+	{
 		name:    "generate",
 		summary: "generate the provider Go tree from blueprints; -check fails on drift",
 		usage:   usageProviderGenerate,
@@ -32,9 +38,9 @@ var providerVerbs = []command{
 	},
 	{
 		name:    "scaffold",
-		summary: "write a blank resource from the scaffold template, registered and compiling",
-		usage:   "provider scaffold <resource|data-source> -name NAME",
-		run:     notImplemented("provider scaffold"),
+		summary: "write the provider shell -- client, provider server, support and acceptance packages -- from templates",
+		usage:   usageProviderScaffold,
+		run:     runProviderScaffold,
 	},
 }
 
@@ -266,6 +272,17 @@ func writeFileset(plan generate.Fileset, o generateOptions) error {
 		// no record of what to delete.
 		entries = append(entries, remaining...)
 
+		// Entries other verbs recorded -- the scaffolded shell -- are carried
+		// forward unchanged. Generate replaces only its own inventory, so a
+		// generation run cannot orphan the shell out of the drift check.
+		prior, havePrior, err := manifest.Load(o.out)
+		if err != nil {
+			return err
+		}
+		if havePrior {
+			entries = append(entries, prior.EntriesNotOf("")...)
+		}
+
 		if err := manifest.Save(o.out, manifest.New(version.Version, entries)); err != nil {
 			return err
 		}
@@ -281,15 +298,7 @@ func writeFileset(plan generate.Fileset, o generateOptions) error {
 	for _, p := range res.Unchanged {
 		log.Printf("unchanged %s", p)
 	}
-	// Kept scaffolds are named, not just counted: a practitioner who has edited one should see
-	// that the generator noticed it and left it alone, rather than wonder whether it was
-	// overwritten.
-	for _, p := range res.Kept {
-		log.Printf("kept      %s (yours; scaffolded once and not regenerated)", p)
-	}
-
-	log.Printf("%d written, %d unchanged, %d kept",
-		len(res.Written), len(res.Unchanged), len(res.Kept))
+	log.Printf("%d written, %d unchanged", len(res.Written), len(res.Unchanged))
 
 	return nil
 }
@@ -314,9 +323,6 @@ func handleOrphans(root string, plan generate.Fileset, clean bool) ([]manifest.E
 
 	produced := make(map[string]bool, len(plan.Files))
 	for _, f := range plan.Files {
-		if f.Scaffold {
-			continue
-		}
 		produced[filepath.ToSlash(f.Path)] = true
 	}
 
@@ -353,16 +359,9 @@ func handleOrphans(root string, plan generate.Fileset, clean bool) ([]manifest.E
 // files it used to produce and no longer does.
 // manifestEntries records what the generator owns.
 //
-// Scaffolds are excluded, and that exclusion is the whole escape hatch: the manifest is what
-// the drift check reads, so a file listed there is one the practitioner may not edit. Leaving a
-// scaffold out is what makes it theirs -- and it also keeps it from being reported as an orphan
-// once it stops appearing in a later plan.
 func manifestEntries(plan generate.Fileset, blueprintPath string) []manifest.Entry {
 	out := make([]manifest.Entry, 0, len(plan.Files))
 	for _, f := range plan.Files {
-		if f.Scaffold {
-			continue
-		}
 		out = append(out, manifest.Entry{
 			Path:      filepath.ToSlash(f.Path),
 			SHA256:    f.SHA256(),

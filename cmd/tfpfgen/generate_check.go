@@ -64,17 +64,12 @@ func runGenerateCheck(o generateOptions) error {
 		return err
 	}
 
-	res, err := compareAgainstDisk(plan, *out)
+	res, err := compareAgainstDisk(plan, *out, "")
 	if err != nil {
 		return err
 	}
 
-	checked := 0
-	for _, f := range plan.Files {
-		if !f.Scaffold {
-			checked++
-		}
-	}
+	checked := len(plan.Files)
 
 	if res.clean() {
 		if !res.checkedOrphans {
@@ -105,20 +100,17 @@ func runGenerateCheck(o generateOptions) error {
 }
 
 // compareAgainstDisk checks what the blueprints produce against what is there.
-func compareAgainstDisk(plan generate.Fileset, out string) (verifyResult, error) {
+//
+// origin names the verb whose manifest entries the orphan check reads:
+// "" for provider generate, manifest.OriginScaffold for provider scaffold.
+// Each verb polices only its own inventory, so the two can share a manifest
+// without either reporting the other's files as orphans.
+func compareAgainstDisk(plan generate.Fileset, out, origin string) (verifyResult, error) {
 	var res verifyResult
 
 	produced := make(map[string]bool, len(plan.Files))
 
 	for _, f := range plan.Files {
-		// A scaffold is not compared and not counted as produced. It belongs to whoever edits
-		// it, so an edit is not drift and its absence from a later plan is not an orphan --
-		// which is exactly the difference between an escape hatch and a file the generator
-		// merely has not overwritten yet.
-		if f.Scaffold {
-			continue
-		}
-
 		produced[filepath.ToSlash(f.Path)] = true
 
 		target := filepath.Join(out, f.Path)
@@ -144,7 +136,7 @@ func compareAgainstDisk(plan generate.Fileset, out string) (verifyResult, error)
 	res.checkedOrphans = haveManifest
 
 	if haveManifest {
-		res.orphaned, err = m.Orphans(out, produced)
+		res.orphaned, err = m.OrphansOf(out, origin, produced)
 		if err != nil {
 			return verifyResult{}, err
 		}
