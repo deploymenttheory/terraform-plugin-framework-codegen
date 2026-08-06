@@ -227,11 +227,45 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 // keeps the API's spelling, and fromCreate reads the same field off the create
 // response. This is exactly the shape curation used to produce by hand.
 func adoptIdentifier(r *blueprint.Resource, c Candidate, dialect blueprint.SDKDialect) string {
-	if hasAttribute(r.Schema.Attributes, "id") {
-		return ""
+	jsonName, ok := adoptIDAttribute(r.Schema.Attributes, c)
+	if !ok {
+		if hasAttribute(r.Schema.Attributes, "id") {
+			return ""
+		}
+		return "no id attribute in the schemas, so the resource cannot be imported or refreshed"
 	}
 
-	missing := "no id attribute in the schemas, so the resource cannot be imported or refreshed"
+	if dialect == blueprint.DialectKiotaFluent {
+		r.Binding.ID.FromCreate = "created.Get" + kiotaAccessorBase(jsonName) + "()"
+	} else {
+		r.Binding.ID.FromCreate = "created." + namingOpts.GoFieldName(jsonName)
+	}
+
+	return ""
+}
+
+// adoptIDAttribute renames a family's identifier attribute to "id" in place,
+// returning the API's own spelling of the field.
+//
+// Shared by both block kinds because the convention is: the identifier an
+// object is fetched by is named "id" whatever the API calls it, and the wire
+// binding carries the real spelling. A resource additionally needs the
+// identifier read off its create response, which is the caller's part.
+//
+// ok is false when the attributes already declare "id" -- nothing to do -- or
+// when no candidate spelling is present at all.
+func adoptIDAttribute(attrs []blueprint.Attribute, c Candidate) (jsonName string, ok bool) {
+	if hasAttribute(attrs, "id") {
+		for _, a := range attrs {
+			if a.Name == "id" {
+				json := a.Wire.JSONPath
+				if json == "" {
+					json = "id"
+				}
+				return json, true
+			}
+		}
+	}
 
 	param := ""
 	if i := strings.LastIndex(c.ItemPath, "{"); i >= 0 {
@@ -240,7 +274,7 @@ func adoptIdentifier(r *blueprint.Resource, c Candidate, dialect blueprint.SDKDi
 
 	// The path parameter is the strongest signal. After it, the spellings APIs
 	// use when the parameter is a generic {id} and the schema is not: the
-	// resource's own name plus Id (roles/{id} returning roleId), then the
+	// family's own name plus Id (roles/{id} returning roleId), then the
 	// identifier idioms observed live -- /users/{id} returns uid, and an
 	// account group's own identifier is aid.
 	var want []string
@@ -251,8 +285,8 @@ func adoptIdentifier(r *blueprint.Resource, c Candidate, dialect blueprint.SDKDi
 
 	idx := -1
 	for _, name := range want {
-		for i := range r.Schema.Attributes {
-			if r.Schema.Attributes[i].Name == name {
+		for i := range attrs {
+			if attrs[i].Name == name {
 				idx = i
 				break
 			}
@@ -262,12 +296,12 @@ func adoptIdentifier(r *blueprint.Resource, c Candidate, dialect blueprint.SDKDi
 		}
 	}
 	if idx < 0 {
-		return missing
+		return "", false
 	}
 
-	a := &r.Schema.Attributes[idx]
+	a := &attrs[idx]
 
-	jsonName := a.Wire.JSONPath
+	jsonName = a.Wire.JSONPath
 	if jsonName == "" {
 		jsonName = param
 	}
@@ -280,19 +314,11 @@ func adoptIdentifier(r *blueprint.Resource, c Candidate, dialect blueprint.SDKDi
 	a.MarkdownDescription += fmt.Sprintf(
 		"Named `id` per the import convention; the wire field stays %s.", jsonName)
 
-	if dialect == blueprint.DialectKiotaFluent {
-		r.Binding.ID.FromCreate = "created.Get" + kiotaAccessorBase(jsonName) + "()"
-	} else {
-		r.Binding.ID.FromCreate = "created." + namingOpts.GoFieldName(jsonName)
-	}
-
 	// The rename moves the attribute out of alphabetical position, and drafting
 	// promises deterministic, ordered output.
-	sort.SliceStable(r.Schema.Attributes, func(x, y int) bool {
-		return r.Schema.Attributes[x].Name < r.Schema.Attributes[y].Name
-	})
+	sort.SliceStable(attrs, func(x, y int) bool { return attrs[x].Name < attrs[y].Name })
 
-	return ""
+	return jsonName, true
 }
 
 // updateStyleOf reads the update semantics off the HTTP verb.

@@ -198,6 +198,21 @@ func inferAll(
 
 		res.GoPackageAlias = naming.Unique(takenAliases, res.GoPackageAlias)
 		resources = append(resources, res)
+
+		// A manageable family gets a lookup companion as well. Looking up an
+		// object somebody else created is the most useful data source there
+		// is, and the two live in separate Terraform namespaces, so the family
+		// name carries both. A family the data-source shape cannot serve --
+		// no list to resolve through, nothing selectable -- says so once and
+		// keeps its resource.
+		ds, dsNotes, err := doc.InferDataSource(c, opts)
+		notes = append(notes, dsNotes...)
+		if err != nil {
+			log.Printf("no lookup %s: %v", c.Key, err)
+			continue
+		}
+		ds.GoPackageAlias = naming.Unique(takenAliases, ds.GoPackageAlias)
+		dataSources = append(dataSources, ds)
 	}
 
 	// The document promises; the SDK disposes. With a module to check against,

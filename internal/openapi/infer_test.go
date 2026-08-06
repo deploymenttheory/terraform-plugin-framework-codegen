@@ -950,3 +950,264 @@ paths:
 	}
 	t.Fatalf("no id attribute inferred")
 }
+
+// TestUnit_OpenAPI_DataSourceAdoptsTheIdentifier covers the convention parity
+// that was missing: a data source's identifier is named "id" like a resource's,
+// with the wire binding keeping the API's own spelling.
+func TestUnit_OpenAPI_DataSourceAdoptsTheIdentifier(t *testing.T) {
+	t.Parallel()
+
+	doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: Widgets, version: "1"}
+paths:
+  /widgets:
+    get:
+      operationId: listWidgets
+      tags: [Widgets]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WidgetList'}
+  /widgets/{widgetId}:
+    get:
+      operationId: getWidget
+      tags: [Widgets]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Widget'}
+components:
+  schemas:
+    WidgetList:
+      type: object
+      properties:
+        widgets:
+          type: array
+          items: {$ref: '#/components/schemas/Widget'}
+    Widget:
+      type: object
+      properties:
+        widgetId: {type: string, readOnly: true}
+        widgetName: {type: string}
+`)
+
+	opts := InferOptions{
+		Provider:        "example",
+		APIVersionDir:   "v1",
+		SDKDialect:      blueprint.DialectKiotaFluent,
+		SDKModelsImport: "example.com/sdk/models",
+	}
+
+	ds, notes, err := doc.InferDataSource(find(t, doc.Discover(), "widget"), opts)
+	if err != nil {
+		t.Fatalf("InferDataSource: %v (notes: %v)", err, noteStrings(notes))
+	}
+
+	var id *blueprint.Attribute
+	for i := range ds.Schema.Attributes {
+		if ds.Schema.Attributes[i].Name == "id" {
+			id = &ds.Schema.Attributes[i]
+		}
+		if ds.Schema.Attributes[i].Name == "widget_id" {
+			t.Errorf("the identifier must be renamed, but widget_id survives")
+		}
+	}
+	if id == nil {
+		t.Fatalf("no id attribute was adopted: %v", ds.Schema.Attributes)
+	}
+	if id.Wire.JSONPath != "widgetId" {
+		t.Errorf("id.wire.jsonPath = %q, want the API's spelling widgetId", id.Wire.JSONPath)
+	}
+
+	// The by-identifier selector reads that attribute, and the element's id
+	// field carries the API's spelling.
+	var viaRead *blueprint.Selector
+	for i := range ds.Binding.Selectors {
+		if ds.Binding.Selectors[i].ViaRead {
+			viaRead = &ds.Binding.Selectors[i]
+		}
+	}
+	if viaRead == nil {
+		t.Fatalf("a family with a by-id read should offer an id selector: %+v", ds.Binding.Selectors)
+	}
+	if viaRead.Attribute != "id" || viaRead.GoField != "ID" {
+		t.Errorf("the id selector reads %q/%q, want id/ID", viaRead.Attribute, viaRead.GoField)
+	}
+	if ds.Binding.ElementIDField != "WidgetId" {
+		t.Errorf("elementIdField = %q, want WidgetId", ds.Binding.ElementIDField)
+	}
+}
+
+// TestUnit_OpenAPI_ManageableFamilyAlsoYieldsALookup: being creatable must not
+// disqualify a family from having a data source. Looking up an object somebody
+// else created is the most useful lookup there is, and the two block kinds live
+// in separate Terraform namespaces.
+func TestUnit_OpenAPI_ManageableFamilyAlsoYieldsALookup(t *testing.T) {
+	t.Parallel()
+
+	doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: Widgets, version: "1"}
+paths:
+  /widgets:
+    get:
+      operationId: listWidgets
+      tags: [Widgets]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WidgetList'}
+    post:
+      operationId: createWidget
+      tags: [Widgets]
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Widget'}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Widget'}
+  /widgets/{widgetId}:
+    get:
+      operationId: getWidget
+      tags: [Widgets]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Widget'}
+    put:
+      operationId: updateWidget
+      tags: [Widgets]
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Widget'}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Widget'}
+    delete:
+      operationId: deleteWidget
+      tags: [Widgets]
+      responses:
+        '204': {description: gone}
+components:
+  schemas:
+    WidgetList:
+      type: object
+      properties:
+        widgets:
+          type: array
+          items: {$ref: '#/components/schemas/Widget'}
+    Widget:
+      type: object
+      properties:
+        widgetId: {type: string, readOnly: true}
+        widgetName: {type: string}
+`)
+
+	c := find(t, doc.Discover(), "widget")
+	if kind, _ := c.Classify(); kind != CandidateKindResource {
+		t.Fatalf("the fixture should classify as a resource, got %q", kind)
+	}
+
+	opts := InferOptions{
+		Provider:        "example",
+		APIVersionDir:   "v1",
+		SDKDialect:      blueprint.DialectKiotaFluent,
+		SDKModelsImport: "example.com/sdk/models",
+	}
+
+	ds, notes, err := doc.InferDataSource(c, opts)
+	if err != nil {
+		t.Fatalf("a manageable family should still yield a lookup: %v (notes: %v)",
+			err, noteStrings(notes))
+	}
+	if len(ds.Binding.Selectors) == 0 {
+		t.Errorf("the lookup should offer at least one selector")
+	}
+
+	// The two block kinds must not collide in the generated package namespace.
+	res, _, err := doc.Infer(c, opts)
+	if err != nil {
+		t.Fatalf("Infer: %v", err)
+	}
+	if res.GoPackageAlias == ds.GoPackageAlias {
+		t.Errorf("the resource and its lookup share the import alias %q", res.GoPackageAlias)
+	}
+}
+
+// TestUnit_OpenAPI_ComposedPropertiesAreMergedNotRepeated pins the allOf fix: a
+// property two composed members both declare is one attribute, not two.
+func TestUnit_OpenAPI_ComposedPropertiesAreMergedNotRepeated(t *testing.T) {
+	t.Parallel()
+
+	doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: Things, version: "1"}
+paths:
+  /things:
+    post:
+      operationId: createThing
+      tags: [Things]
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Thing'}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Thing'}
+  /things/{id}:
+    get:
+      operationId: getThing
+      tags: [Things]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Thing'}
+    delete:
+      operationId: deleteThing
+      tags: [Things]
+      responses:
+        '204': {description: gone}
+components:
+  schemas:
+    Base:
+      type: object
+      properties:
+        kind: {type: string}
+    Extra:
+      type: object
+      properties:
+        kind: {type: string}
+        id: {type: string, readOnly: true}
+    Thing:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+        - $ref: '#/components/schemas/Extra'
+`)
+
+	res, _, err := doc.Infer(find(t, doc.Discover(), "thing"), inferOptions())
+	if err != nil {
+		t.Fatalf("Infer: %v", err)
+	}
+
+	seen := map[string]int{}
+	for _, a := range res.Schema.Attributes {
+		seen[a.Name]++
+	}
+	if seen["kind"] != 1 {
+		t.Errorf("a property both composed members declare should appear once, got %d", seen["kind"])
+	}
+}

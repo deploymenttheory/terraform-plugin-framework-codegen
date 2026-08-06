@@ -226,12 +226,20 @@ func fieldsWithin(s *base.Schema, path []string) []Field {
 	var out []Field
 
 	// allOf first, so a property the schema restates overrides the composed one.
+	//
+	// Merged rather than concatenated: two composed members legitimately declare
+	// the same property, and appending both yields an attribute set with a
+	// duplicate name -- which validation refuses, and which only ever surfaced
+	// downstream because the resource path collapses fields through a map on the
+	// way past.
 	for _, member := range s.AllOf {
 		m := resolve(member)
 		if m == nil {
 			continue
 		}
-		out = append(out, fieldsWithin(m, path)...)
+		for _, f := range fieldsWithin(m, path) {
+			out = mergeComposed(out, f)
+		}
 	}
 
 	if s.Properties != nil {
@@ -528,3 +536,39 @@ func enumValues(s *base.Schema) []string {
 }
 
 func boolValue(p *bool) bool { return p != nil && *p }
+
+// mergeComposed folds one composed member's field into the set built so far.
+//
+// The later member wins, which is what composition means -- except that it may
+// not erase a named schema with an anonymous restatement. ThousandEyes' tests
+// are the case in point: one composed member declares `type` as a $ref to the
+// test-type enumeration and another restates it as a bare string, and the SDK
+// generator honours the enum. Taking the bare restatement would bind a
+// *models.Tests_API_TestType field as a plain string, which does not compile.
+func mergeComposed(in []Field, f Field) []Field {
+	for i := range in {
+		if in[i].Name != f.Name {
+			continue
+		}
+
+		if f.EnumTypeName == "" && in[i].EnumTypeName != "" {
+			f.EnumTypeName = in[i].EnumTypeName
+			f.EnumValues = in[i].EnumValues
+			f.Kind = in[i].Kind
+		}
+		if f.ObjectTypeName == "" && in[i].ObjectTypeName != "" {
+			f.ObjectTypeName = in[i].ObjectTypeName
+			f.Object = in[i].Object
+			f.Kind = in[i].Kind
+		}
+		// A restatement that documents nothing keeps the documented text.
+		if f.Description == "" {
+			f.Description = in[i].Description
+		}
+
+		in[i] = f
+		return in
+	}
+
+	return append(in, f)
+}

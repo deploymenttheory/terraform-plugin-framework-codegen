@@ -28,8 +28,14 @@ var ErrNotADataSource = fmt.Errorf("not a data source candidate")
 // Implemented for the kiotaFluent dialect only: the resty pilot's data
 // sources were hand-authored, and no resty consumer is asking.
 func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.DataSource, []Caveat, error) {
+	// A creatable family gets a data source too. Being manageable does not stop
+	// a practitioner needing to look one up they did not create -- that is the
+	// most useful lookup there is -- and the resource and the data source are
+	// separate Terraform namespaces, so both may carry the family's name. What
+	// a data source needs is a resolver and a shape to map, which is the list
+	// operation, whatever else the family offers.
 	kind, why := c.Classify()
-	if kind != CandidateKindDataSource {
+	if kind != CandidateKindDataSource && kind != CandidateKindResource {
 		return blueprint.DataSource{}, nil, fmt.Errorf("%w: %s: %s", ErrNotADataSource, c.Key, why)
 	}
 	if opts.SDKDialect != blueprint.DialectKiotaFluent {
@@ -162,20 +168,35 @@ func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.Da
 		}
 	}
 
+	// The identifier takes the conventional name whatever the API spells it,
+	// exactly as a resource's does -- a practitioner reaching for
+	// data.<type>.<name>.id should find it, and the read chain the emitter
+	// renders passes the configuration's ID field by that name.
+	idJSON, adopted := adoptIDAttribute(attrs, c)
+
 	var selectors []blueprint.Selector
 	if c.Read != nil {
-		idAttr, idJSON := d.identifierOf(c, attrs)
-		if idAttr == "" {
+		if !adopted {
 			return blueprint.DataSource{}, ictx.notes, fmt.Errorf(
 				"%w: %s: no identifier attribute to feed the direct read", ErrNotADataSource, c.Key)
 		}
 		selectors = append(selectors, blueprint.Selector{
-			Attribute: idAttr, GoField: goFieldOf(attrs, idAttr), ViaRead: true,
+			Attribute: "id", GoField: goFieldOf(attrs, "id"), ViaRead: true,
 		})
-		markSelector(attrs, idAttr)
+		markSelector(attrs, "id")
 
+		// The element's identifier is the same field the id attribute maps, so
+		// it takes the same conversion. Assuming a plain string here was wrong
+		// the moment an API keyed a family by uuid: the SDK hands back a
+		// uuid.UUID, and a string conversion against it does not compile.
 		binding.ElementIDField = kiotaAccessorBase(idJSON)
 		binding.ElementIDFlatten = &blueprint.ConvertCall{Func: "convert.PtrStringToFramework"}
+		for _, a := range attrs {
+			if a.Name == "id" && a.Wire.Flatten != nil {
+				call := *a.Wire.Flatten
+				binding.ElementIDFlatten = &call
+			}
+		}
 	}
 
 	for _, f := range elementFields {
@@ -236,32 +257,6 @@ func goFieldOf(attrs []blueprint.Attribute, name string) string {
 		}
 	}
 	return ""
-}
-
-// identifierOf picks the attribute the direct read is keyed by: the item
-// path's parameter, matched against the state schema's fields.
-func (d *Document) identifierOf(c Candidate, attrs []blueprint.Attribute) (attrName, jsonName string) {
-	param := ""
-	if i := strings.LastIndex(c.ItemPath, "{"); i >= 0 {
-		param = strings.Trim(c.ItemPath[i:], "{}")
-	}
-
-	for _, cand := range []string{param, "id"} {
-		if cand == "" {
-			continue
-		}
-		name := naming.TerraformName(cand)
-		if hasAttribute(attrs, name) {
-			return name, cand
-		}
-	}
-	// The API frequently names the parameter what the schema abbreviates:
-	// {testId} against a schema field "testId" is covered above; a schema that
-	// only carries "id" against a parameter "tagId" lands here.
-	if hasAttribute(attrs, "id") {
-		return "id", "id"
-	}
-	return "", ""
 }
 
 // operationResponseProxy is responseProxy for one operation.
