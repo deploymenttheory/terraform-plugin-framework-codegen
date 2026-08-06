@@ -11,8 +11,20 @@
 {{- end }}
 }
 
+# The propagation wait. An API that accepts a create does not always serve the object
+# to the next reader immediately, and a data source is the next reader: without this the
+# test races the tenant's own consistency and fails intermittently, which is worse than
+# failing always. Expressed as a resource rather than a sleep in Go so the dependency is
+# something Terraform orders, not something the test framework hopes for.
+resource "time_sleep" "{{ .WaitLabel }}" {
+  depends_on      = [{{ .Seed.TerraformType }}.{{ .Seed.Label }}]
+  create_duration = "{{ .WaitDuration }}"
+}
+
 data "{{ .TerraformType }}" "{{ .Label }}" {
 {{- range .Args }}
   {{ .Name }}{{ .Padding }} = {{ .HCL }}
 {{- end }}
+
+  depends_on = [time_sleep.{{ .WaitLabel }}]
 }

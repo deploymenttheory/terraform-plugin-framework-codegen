@@ -38,6 +38,11 @@ func TestAccDataSourceTags_01_Read(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acceptance.PreCheck(t) },
 		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,
+		// hashicorp/time supplies the propagation wait the fixture declares between
+		// creating the seed and reading it back.
+		ExternalProviders: map[string]resource.ExternalProvider{
+			"time": {Source: "hashicorp/time", VersionConstraint: ">= 0.14.0"},
+		},
 		// The data source owns nothing; destroy verification is the seed's.
 		//
 		// The wait is the built-in default; this API's consistency after delete was never measured,

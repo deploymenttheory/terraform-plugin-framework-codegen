@@ -225,6 +225,25 @@ func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.Da
 	ds.Binding = binding
 	ds.Schema.Attributes = attrs
 
+	// A lookup companion knows its own seed: the family it looks up is the family
+	// the resource creates, and the selector it is looked up by is the argument.
+	// Nothing is inferred that a person would have to check -- the resource key is
+	// this key, because both were inferred from one candidate.
+	//
+	// Left unset for a read-only family, where the seed genuinely is judgement: no
+	// resource in the blueprint creates what it reads, so there is nothing to
+	// point at and the generated test would read whatever the tenant happens to
+	// hold.
+	if kind == CandidateKindResource && len(selectors) > 0 {
+		ds.AccTest = &blueprint.AccSeed{
+			SeedResourceKey: c.Key,
+			Args: []blueprint.SeedArg{{
+				Attr:         selectors[0].Attribute,
+				FromSeedAttr: selectors[0].Attribute,
+			}},
+		}
+	}
+
 	return ds, ictx.notes, nil
 }
 

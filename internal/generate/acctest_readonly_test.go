@@ -247,3 +247,103 @@ func TestUnit_Render_AnActionTestFillsItsArgsFromTheEnvironmentAndReversesItself
 		t.Errorf("a missing accTest must be a stated refusal: %v", err)
 	}
 }
+
+// TestUnit_Generate_DataSourceFixtureWaitsForPropagation pins the create-then-read
+// gap the generated fixture has to bridge.
+//
+// An API that accepts a create does not always serve the object to the next reader,
+// and the data source is the next reader. Without the wait the test races the
+// tenant's own consistency: it passes on a fast day and fails on a slow one, which
+// is the worst kind of test. The wait is a time_sleep resource rather than a sleep
+// in Go so Terraform orders it.
+func TestUnit_Generate_DataSourceFixtureWaitsForPropagation(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	var subject blueprint.DataSource
+	for _, d := range bp.DataSources {
+		if !d.Drop && d.AccTest != nil {
+			subject = d
+			break
+		}
+	}
+	if subject.Key == "" {
+		t.Skip("the committed pilot blueprint declares no seeded data source")
+	}
+
+	_, fixture, err := DataSourceAccTest(bp, subject, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("DataSourceAccTest: %v", err)
+	}
+
+	if fixture.WaitLabel == "" {
+		t.Errorf("the fixture declares no wait between the seed and the read")
+	}
+	if fixture.WaitDuration != dataSourcePropagationWait {
+		t.Errorf("wait duration = %q, want %q", fixture.WaitDuration, dataSourcePropagationWait)
+	}
+
+	g, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	body, err := g.renderFile("fixture_datasource.tf.tmpl", fixture)
+	if err != nil {
+		t.Fatalf("rendering the fixture: %v", err)
+	}
+	hcl := string(body)
+
+	// The three things that make the wait real: the sleep exists, it waits on the
+	// seed, and the data block waits on it. Any one of them missing and the
+	// configuration still applies -- in the wrong order.
+	for _, want := range []string{
+		`resource "time_sleep" "` + fixture.WaitLabel + `"`,
+		`depends_on      = [` + fixture.Seed.TerraformType + `.` + fixture.Seed.Label + `]`,
+		`create_duration = "` + dataSourcePropagationWait + `"`,
+		`depends_on = [time_sleep.` + fixture.WaitLabel + `]`,
+	} {
+		if !strings.Contains(hcl, want) {
+			t.Errorf("the fixture is missing %q:\n%s", want, hcl)
+		}
+	}
+}
+
+// TestUnit_Generate_DataSourceTestRegistersTheTimeProvider: the fixture's time_sleep
+// comes from hashicorp/time, which the test framework only installs when the case
+// declares it. Without the declaration every generated data source test fails at
+// init with a provider it cannot find.
+func TestUnit_Generate_DataSourceTestRegistersTheTimeProvider(t *testing.T) {
+	t.Parallel()
+
+	bp := pilotBlueprint(t)
+
+	var subject blueprint.DataSource
+	for _, d := range bp.DataSources {
+		if !d.Drop && d.AccTest != nil {
+			subject = d
+			break
+		}
+	}
+	if subject.Key == "" {
+		t.Skip("the committed pilot blueprint declares no seeded data source")
+	}
+
+	view, _, err := DataSourceAccTest(bp, subject, Options{BlueprintPath: "blueprints/thousandeyes"})
+	if err != nil {
+		t.Fatalf("DataSourceAccTest: %v", err)
+	}
+
+	g, err := New()
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	body, err := g.renderFile("datasource_acceptance_test.go.tmpl", view)
+	if err != nil {
+		t.Fatalf("rendering the test: %v", err)
+	}
+
+	if !strings.Contains(string(body), `"time": {Source: "hashicorp/time"`) {
+		t.Errorf("the generated test does not register hashicorp/time:\n%s", body)
+	}
+}
