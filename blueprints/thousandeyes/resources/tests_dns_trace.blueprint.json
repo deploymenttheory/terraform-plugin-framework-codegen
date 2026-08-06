@@ -976,7 +976,22 @@
             "name": "type",
             "goField": "Type",
             "type": {
-              "kind": "string"
+              "kind": "string",
+              "allowedValues": [
+                "api",
+                "agent-to-agent",
+                "agent-to-server",
+                "bgp",
+                "http-server",
+                "page-load",
+                "web-transactions",
+                "ftp-server",
+                "dns-trace",
+                "dns-server",
+                "dnssec",
+                "sip-server",
+                "voice"
+              ]
             },
             "computedOptionalRequired": "computed",
             "wire": {
