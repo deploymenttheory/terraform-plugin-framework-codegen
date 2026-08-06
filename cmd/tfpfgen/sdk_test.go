@@ -66,7 +66,7 @@ func (t *Thing) SetValue(v *string) { t.value = v }
 EOF
   hash=$(cksum "$desc" | cut -d' ' -f1)
   cat > "$out/kiota-lock.json" <<EOF
-{"descriptionHash":"$hash","kiotaVersion":"` + fakeKiotaVersion + `","clientClassName":"$class","clientNamespaceName":"$ns"}
+{"descriptionHash":"$hash","descriptionLocation":"$desc","kiotaVersion":"` + fakeKiotaVersion + `","clientClassName":"$class","clientNamespaceName":"$ns"}
 EOF
   ;;
 esac

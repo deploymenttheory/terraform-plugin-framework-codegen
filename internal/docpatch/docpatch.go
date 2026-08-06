@@ -268,6 +268,16 @@ func applyToSequence(node *yaml.Node, token string, op Operation) error {
 // absence: the getter answers the default where the wire said nothing. A
 // wire-faithful provider needs neither, in either direction.
 func stripSchemaDefaults(top *yaml.Node) error {
+	if stripAllDefaults(top) == 0 {
+		return fmt.Errorf("the document declares no schema defaults; the patch is stale -- delete it")
+	}
+	return nil
+}
+
+// stripAllDefaults is the lenient core of strip-schema-defaults: zero hits is
+// a fine answer when it runs as a built-in normalisation rather than as a
+// patch somebody committed.
+func stripAllDefaults(top *yaml.Node) int {
 	stripped := 0
 
 	if schemas := childValue(childValue(top, "components"), "schemas"); schemas != nil {
@@ -279,10 +289,115 @@ func stripSchemaDefaults(top *yaml.Node) error {
 		stripUnderPaths(paths, &stripped)
 	}
 
-	if stripped == 0 {
-		return fmt.Errorf("the document declares no schema defaults; the patch is stale -- delete it")
+	return stripped
+}
+
+// Normalize applies the corrections every kiota generation needs, whatever the
+// API: they answer kiota's own behaviour, not any one document's mistakes, so
+// they are built in rather than committed as patches.
+//
+// Two passes. Schema defaults are stripped because a kiota constructor stamps
+// every spec-declared default onto the model it builds, so a defaulted field
+// the provider never wires leaks into every request body -- and response-side,
+// a constructor default masks field absence. A single-member anonymous allOf
+// is collapsed into its parent because kiota synthesizes names for anonymous
+// schemas and dedupes structurally identical ones with an unstable canonical
+// winner -- roughly one generation in five picks a different name, which makes
+// byte-identical regeneration a coin flip.
+//
+// Both passes accept zero hits: a document without the shapes needs no
+// correcting, which is not an error.
+func Normalize(specYAML []byte) (out []byte, stripped, collapsed int, err error) {
+	var root yaml.Node
+	if err := yaml.Unmarshal(specYAML, &root); err != nil {
+		return nil, 0, 0, fmt.Errorf("the snapshot is not usable YAML: %w", err)
 	}
-	return nil
+	if root.Kind != yaml.DocumentNode || len(root.Content) == 0 {
+		return nil, 0, 0, fmt.Errorf("the snapshot is not a single YAML document")
+	}
+
+	top := root.Content[0]
+	stripped = stripAllDefaults(top)
+	collapsed = collapseAnonymousAllOfs(top)
+
+	out, err = yaml.Marshal(&root)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	return out, stripped, collapsed, nil
+}
+
+// collapseAnonymousAllOfs hoists every single-member anonymous allOf in the
+// document's component schemas.
+func collapseAnonymousAllOfs(top *yaml.Node) int {
+	collapsed := 0
+	if schemas := childValue(childValue(top, "components"), "schemas"); schemas != nil {
+		for i := 1; i < len(schemas.Content); i += 2 {
+			collapsed += collapseAllOf(schemas.Content[i])
+		}
+	}
+	return collapsed
+}
+
+// collapseAllOf merges a schema's allOf into the schema itself when the list
+// has exactly one member, that member is inline rather than a $ref, and none
+// of its keys are already declared on the parent. Anything else is left alone:
+// a $ref member is a real composition, and an overlapping key would force a
+// merge decision this pass must not guess.
+func collapseAllOf(schema *yaml.Node) int {
+	if schema == nil || schema.Kind != yaml.MappingNode {
+		return 0
+	}
+
+	count := 0
+
+	for i := 0; i+1 < len(schema.Content); i += 2 {
+		if schema.Content[i].Value != "allOf" {
+			continue
+		}
+		seq := schema.Content[i+1]
+		if seq.Kind != yaml.SequenceNode || len(seq.Content) != 1 {
+			break
+		}
+		member := seq.Content[0]
+		if member.Kind != yaml.MappingNode || childValue(member, "$ref") != nil {
+			break
+		}
+		overlap := false
+		for j := 0; j+1 < len(member.Content); j += 2 {
+			if childValue(schema, member.Content[j].Value) != nil {
+				overlap = true
+				break
+			}
+		}
+		if overlap {
+			break
+		}
+		schema.Content = append(schema.Content[:i], schema.Content[i+2:]...)
+		schema.Content = append(schema.Content, member.Content...)
+		count++
+		break
+	}
+
+	// The same shape nests: an inline property schema carries its own allOf,
+	// and kiota synthesizes a model for it all the same.
+	for i := 0; i+1 < len(schema.Content); i += 2 {
+		key, value := schema.Content[i].Value, schema.Content[i+1]
+		switch key {
+		case "properties", "patternProperties":
+			for j := 1; j < len(value.Content); j += 2 {
+				count += collapseAllOf(value.Content[j])
+			}
+		case "items", "additionalProperties", "not":
+			count += collapseAllOf(value)
+		case "allOf", "anyOf", "oneOf":
+			for _, m := range value.Content {
+				count += collapseAllOf(m)
+			}
+		}
+	}
+
+	return count
 }
 
 // stripFromSchema removes `default` from one schema node and recurses into

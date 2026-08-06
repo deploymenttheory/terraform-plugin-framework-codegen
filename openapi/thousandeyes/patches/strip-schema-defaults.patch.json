@@ -1,6 +1,0 @@
-{
-  "justification": "A Kiota constructor stamps every spec-declared default onto the model it builds, so a defaulted field the provider never wires leaks into every create and update body -- and the live API treats absent and default-present differently. Proven 2026-08-05 against the lab tenant: the acceptance minimal body for tests/dns-server with the constructor-leaked networkMeasurements:true is refused 400 ('Cloud Agents are not supported for bandwidth measurements'); the identical body without it -- byte-for-byte what the recorded probe evidence sent -- is accepted 201. Five of the thirteen tests_* resources failed live on exactly this class (acceptance-kiota run #7). Response models suffer the mirror defect: a constructor default masks field absence, so a getter answers the default where the wire said nothing, corrupting state fidelity. A wire-faithful provider wants neither, so the SDK is generated from a document with no schema defaults.",
-  "operations": [
-    { "op": "strip-schema-defaults", "path": "/" }
-  ]
-}

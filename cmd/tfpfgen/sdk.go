@@ -142,13 +142,19 @@ func runSDKGenerate(args []string) error {
 		return nil
 	}
 
+	// Generation always reads a prepared copy: built-in normalisations first
+	// (schema defaults stripped, single-member anonymous allOfs collapsed --
+	// both answer kiota's own behaviour, not this document's mistakes), then
+	// whatever recording-justified patches remain committed.
+	prepared, stripped, collapsed, err := preparedDocument(snap, patches)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(filepath.Dir(prepared)) }()
+	gen.Description = prepared
+	log.Printf("normalised the document: %d schema default(s) stripped, %d anonymous allOf(s) collapsed",
+		stripped, collapsed)
 	if len(patches) > 0 {
-		patched, err := patchedDocument(snap, patches)
-		if err != nil {
-			return err
-		}
-		defer func() { _ = os.RemoveAll(filepath.Dir(patched)) }()
-		gen.Description = patched
 		log.Printf("applied %d document patch(es) from %s", len(patches), filepath.Join(o.openapiDir, docpatch.DirName))
 	}
 
@@ -200,27 +206,35 @@ func runSDKGenerate(args []string) error {
 	return sdkPostcheck(o.out)
 }
 
-// patchedDocument applies the loaded patches to the snapshot's document and
-// writes the result into a fresh temp directory, returning the file path.
-func patchedDocument(snap snapshot.Snapshot, patches []docpatch.Patch) (string, error) {
+// preparedDocument normalises the snapshot's document, applies the loaded
+// patches on top, and writes the result into a fresh temp directory,
+// returning the file path and what normalisation did.
+func preparedDocument(
+	snap snapshot.Snapshot,
+	patches []docpatch.Patch,
+) (path string, stripped, collapsed int, err error) {
 	raw, err := os.ReadFile(snap.SpecPath()) //nolint:gosec // the verified snapshot's own path
 	if err != nil {
-		return "", err
+		return "", 0, 0, err
 	}
-	patched, err := docpatch.Apply(raw, patches)
+	normalized, stripped, collapsed, err := docpatch.Normalize(raw)
 	if err != nil {
-		return "", err
+		return "", 0, 0, err
+	}
+	patched, err := docpatch.Apply(normalized, patches)
+	if err != nil {
+		return "", 0, 0, err
 	}
 
 	dir, err := os.MkdirTemp("", "tfpfgen-patched-spec-*")
 	if err != nil {
-		return "", err
+		return "", 0, 0, err
 	}
-	path := filepath.Join(dir, "api.yaml")
+	path = filepath.Join(dir, "api.yaml")
 	if err := os.WriteFile(path, patched, 0o600); err != nil {
-		return "", err
+		return "", 0, 0, err
 	}
-	return path, nil
+	return path, stripped, collapsed, nil
 }
 
 // relDescription is the lock-file spelling of the snapshot's location: the
