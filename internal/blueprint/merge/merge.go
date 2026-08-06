@@ -935,6 +935,23 @@ func applyServerDefault(
 		return
 	}
 
+	// A recorded server default and an optional presence contradict each other,
+	// and validation refuses the pair -- an optional attribute the API fills in
+	// fails every apply that omits it. So the behaviour write and the widening
+	// travel together: under apply both land (optional -> computed_optional is
+	// widening, which apply owns), and under annotate, where presence must not
+	// change, a default that would need the widening lands as a recommendation
+	// instead of as a blueprint the next load rejects.
+	needsWidening := attr.ComputedOptionalRequired == blueprint.Optional
+
+	if needsWidening && opts.Strategy != StrategyApply {
+		result.Recommendations = append(result.Recommendations, fmt.Sprintf(
+			"%s.%s: the API applies %s when the attribute is omitted; run merge -strategy apply "+
+				"to record the default and widen presence to computed_optional together",
+			res.Key, path, lit.Raw))
+		return
+	}
+
 	if attr.Behaviour.ServerDefault == nil ||
 		attr.Behaviour.ServerDefault.Raw != lit.Raw {
 		result.Changes = append(result.Changes, Change{
@@ -945,11 +962,7 @@ func applyServerDefault(
 		attr.Behaviour.ServerDefault = &copied
 	}
 
-	// optional -> computed_optional is widening, so it is automatic under apply. Adding a
-	// *static* Default is not: it changes plan output for every existing configuration, which
-	// is a human's call.
-	if opts.Strategy == StrategyApply && attr.ComputedOptionalRequired == blueprint.Optional &&
-		f.Confidence.AtLeast(probe.ConfidenceCorroborated) {
+	if needsWidening {
 		result.Changes = append(result.Changes, Change{
 			Resource: res.Key,
 			JSONPath: path,

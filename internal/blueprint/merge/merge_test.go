@@ -1491,3 +1491,108 @@ func TestUnit_Merge_ZeroValueUnsendableIsStaticEvidence(t *testing.T) {
 		t.Error("the description should explain the encoding limit")
 	}
 }
+
+// TestUnit_Merge_ServerDefaultWidensPresenceTogether pins the pairing that the
+// first live fact-folding run broke on.
+//
+// A recorded server default and an optional presence contradict each other --
+// validation refuses the pair, because an optional attribute the API fills in
+// fails every apply that omits it. Writing the behaviour without the widening
+// produced a blueprint the next load rejected, so the two travel together.
+func TestUnit_Merge_ServerDefaultWidensPresenceTogether(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+	// "items.mode" is the optional attribute in the fixture; the fixture's
+	// "colour" is already computed_optional and would not exercise widening.
+	facts := []probe.Fact{fact(
+		"items.mode", probe.FactServerDefault,
+		probe.LiteralValue(blueprint.Literal{Raw: `"auto"`}),
+		probe.ConfidenceCorroborated,
+	)}
+
+	got, err := Apply(&bp, facts, Options{Strategy: StrategyApply})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	attr := nestedModeAttr(t, bp)
+	if attr.ComputedOptionalRequired != blueprint.ComputedOptional {
+		t.Errorf("presence = %q, want computed_optional beside the recorded default",
+			attr.ComputedOptionalRequired)
+	}
+	if attr.Behaviour.ServerDefault == nil {
+		t.Fatalf("the server default was not recorded; changes: %+v", got.Changes)
+	}
+
+	// The pair the run produced must be one a loader accepts. The fixture is a
+	// resource without a provider block, so validation legitimately complains
+	// about that; what must not appear is the presence-versus-default rule.
+	assertNoDefaultPresenceConflict(t, bp)
+}
+
+// TestUnit_Merge_ServerDefaultUnderAnnotateRecommends: annotate must not change
+// presence, so a default needing the widening is a recommendation rather than a
+// blueprint the next load rejects.
+func TestUnit_Merge_ServerDefaultUnderAnnotateRecommends(t *testing.T) {
+	t.Parallel()
+
+	bp := testBlueprint()
+	facts := []probe.Fact{fact(
+		"items.mode", probe.FactServerDefault,
+		probe.LiteralValue(blueprint.Literal{Raw: `"auto"`}),
+		probe.ConfidenceCorroborated,
+	)}
+
+	got, err := Apply(&bp, facts, Options{Strategy: StrategyAnnotate})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+
+	attr := nestedModeAttr(t, bp)
+	if attr.ComputedOptionalRequired != blueprint.Optional {
+		t.Errorf("annotate must not change presence, got %q", attr.ComputedOptionalRequired)
+	}
+	if attr.Behaviour.ServerDefault != nil {
+		t.Errorf("recording the default without the widening leaves an invalid pair")
+	}
+	if len(got.Recommendations) == 0 {
+		t.Errorf("the deferred widening should be recommended, not silent")
+	}
+	assertNoDefaultPresenceConflict(t, bp)
+}
+
+// nestedModeAttr returns the fixture's items.mode attribute, by name rather
+// than by position so a fixture edit cannot silently retarget the assertion.
+func nestedModeAttr(t *testing.T, bp blueprint.Blueprint) blueprint.Attribute {
+	t.Helper()
+
+	for _, a := range bp.Resources[0].Schema.Attributes {
+		if a.Name != "items" || a.Type.NestedObject == nil {
+			continue
+		}
+		for _, n := range a.Type.NestedObject.Attributes {
+			if n.Name == "mode" {
+				return n
+			}
+		}
+	}
+
+	t.Fatal("the fixture no longer carries items.mode")
+	return blueprint.Attribute{}
+}
+
+// assertNoDefaultPresenceConflict fails if validation reports the rule that an
+// attribute the API fills in must not be plain optional. The fixture carries no
+// provider block, so the rest of validation's complaints are expected noise.
+func assertNoDefaultPresenceConflict(t *testing.T, bp blueprint.Blueprint) {
+	t.Helper()
+
+	err := bp.Validate()
+	if err == nil {
+		return
+	}
+	if strings.Contains(err.Error(), "was observed applying its own value") {
+		t.Errorf("the merged blueprint pairs a server default with an optional presence: %v", err)
+	}
+}
