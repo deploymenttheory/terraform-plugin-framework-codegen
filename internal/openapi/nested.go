@@ -82,7 +82,7 @@ func (ctx *inferCtx) nestedObject(
 	if ctx.dialect == blueprint.DialectKiotaFluent {
 		// Builders traffic in the <Type>able interface; elements are built by
 		// constructor and filled through setters.
-		kn := kiotaName(f.ObjectTypeName)
+		kn := kiotaModelName(f.ObjectTypeName)
 		if kn == "" {
 			kn = ctx.resourceBase + "Object"
 		}

@@ -70,6 +70,22 @@ func (l *Loader) MethodChain(start types.Type, chain []blueprint.ChainSegment) (
 				ErrBindings, seg.Method, got, want, methodFrom(seg.Method, sig).Signature())
 		}
 
+		// An identifier hop passes the state or configuration field as a string,
+		// because that is the only thing generated code renders there. An indexer
+		// typed on anything else -- kiota mints uuid.UUID indexers from a uuid
+		// path parameter -- would need a conversion no emitter produces yet, and
+		// waving it through here is a compile error in generated code.
+		for j, arg := range seg.Args {
+			if arg.Kind != blueprint.ArgStateField && arg.Kind != blueprint.ArgConfigField {
+				continue
+			}
+			if p := shortType(sig.Params().At(j).Type()); p != "string" {
+				return Method{}, fmt.Errorf(
+					"%w: chain segment %s takes %s, and the generated chain passes the %s field as a string",
+					ErrBindings, seg.Method, p, arg.Field)
+			}
+		}
+
 		if i == len(chain)-1 {
 			return methodFrom(seg.Method, sig), nil
 		}

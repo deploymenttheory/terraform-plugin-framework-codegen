@@ -41,6 +41,12 @@ func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.Da
 			"%w: %s: no list operation; a lookup with no resolver would be a bare item read, which curation can author directly",
 			ErrNotADataSource, c.Key)
 	}
+	if strings.Contains(c.List.Path, "{") {
+		return blueprint.DataSource{}, nil, fmt.Errorf(
+			"%w: %s: the list path %s rides under a parent identifier, and the selector shape has "+
+				"no input to carry one; the generated chain would read state that does not exist",
+			ErrNotADataSource, c.Key, c.List.Path)
+	}
 
 	goType := namingOpts.GoTypeName(c.Key) + "DataSource"
 
@@ -71,7 +77,7 @@ func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.Da
 			"%w: %s: the list response declares no element collection this can resolve through",
 			ErrNotADataSource, c.Key)
 	}
-	elementType := "models." + kiotaName(elementName) + "able"
+	elementType := "models." + kiotaModelName(elementName) + "able"
 
 	binding := blueprint.DataSourceBinding{
 		Service: blueprint.ServiceRef{
@@ -82,7 +88,7 @@ func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.Da
 		List: &blueprint.Operation{
 			Style:  blueprint.CallStyleFluent,
 			Chain:  kiotaChain(c.List.Path, "Get", []blueprint.Argument{ctxArg, nilCfg}),
-			Return: blueprint.ReturnResultError, ResultType: "models." + kiotaName(listRespName) + "able",
+			Return: blueprint.ReturnResultError, ResultType: "models." + kiotaModelName(listRespName) + "able",
 			HTTPMethod: c.List.Method, PathTemplate: c.List.Path,
 		},
 		CollectionField: "Get" + kiotaAccessorBase(collectionJSON) + "()",
@@ -102,11 +108,11 @@ func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.Da
 		binding.Read = &blueprint.Operation{
 			Style:  blueprint.CallStyleFluent,
 			Chain:  kiotaChainWith(c.Read.Path, "Get", cfgID, []blueprint.Argument{ctxArg, nilCfg}),
-			Return: blueprint.ReturnResultError, ResultType: "models." + kiotaName(respName) + "able",
+			Return: blueprint.ReturnResultError, ResultType: "models." + kiotaModelName(respName) + "able",
 			HTTPMethod: c.Read.Method, PathTemplate: c.Read.Path,
 		}
 		binding.Response = blueprint.ResponseModel{
-			Type: "models." + kiotaName(respName) + "able", AccessStyle: blueprint.AccessMethod,
+			Type: "models." + kiotaModelName(respName) + "able", AccessStyle: blueprint.AccessMethod,
 		}
 	} else {
 		stateSchema = d.elementSchemaOf(c.List)

@@ -368,3 +368,19 @@ func didYouMean(want string, have []string) string {
 		return fmt.Sprintf(" (did you mean: %s?)", strings.Join(close, ", "))
 	}
 }
+
+// functionExists reports whether a package declares a function by this name.
+// Used by draft reconciliation to prove a minted enum's Parse companion exists
+// before naming it in a converter.
+func (l *Loader) functionExists(importPath, name string) bool {
+	pkg, err := l.load(importPath)
+	if err != nil {
+		return false
+	}
+	obj := pkg.Types.Scope().Lookup(name)
+	if obj == nil {
+		return false
+	}
+	_, isFunc := obj.Type().(*types.Signature)
+	return isFunc
+}

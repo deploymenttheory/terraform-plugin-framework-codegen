@@ -214,6 +214,12 @@ func DataSource(
 	if v.State.NeedsTypes {
 		impState.add(pkgTypes, "")
 	}
+	// The fallible mapping declares diag.Diagnostics whatever nested shapes
+	// exist; without this, a flat data source whose conversions can fail
+	// imported everything but the package its own signature names.
+	if v.State.NeedsDiagnostics {
+		impState.add(pkgDiag, "")
+	}
 
 	if d.Binding.Read == nil && d.Binding.List == nil {
 		return DataSourceView{}, &ErrUnsupported{

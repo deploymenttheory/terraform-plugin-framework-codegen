@@ -485,6 +485,7 @@ func verifyResource(
 
 	ok := verifyBodyModels(l, res, r)
 	verifyWireFields(l, res, ok, r)
+	verifyFromCreate(l, res, r)
 }
 
 func verifyOperation(
@@ -854,4 +855,81 @@ func importPathsOf(bp blueprint.Blueprint) []string {
 	sort.Strings(out)
 
 	return out
+}
+
+// verifyFromCreate type-checks the binding.id.fromCreate expression against the
+// create result.
+//
+// The expression was the one free-form string in the binding: blueprint
+// validation checks only that it is non-empty, so a wrong spelling surfaced as
+// a compile error inside the generated crud.go rather than here. The grammar
+// checked is the one the emitter produces -- "created" followed by method
+// calls and field selections -- and anything else is refused by name rather
+// than waved through.
+func verifyFromCreate(l *Loader, res blueprint.Resource, r *Report) {
+	id := res.Binding.ID
+	if id.FromCreate == "" || res.Binding.Create == nil {
+		return
+	}
+
+	const path = "binding.id.fromCreate"
+
+	problem := func(format string, args ...any) {
+		r.Problems = append(r.Problems, Problem{
+			Resource: res.Key, Path: path, Detail: fmt.Sprintf(format, args...),
+		})
+	}
+
+	expr := id.FromCreate
+	if !strings.HasPrefix(expr, "created.") {
+		problem("%q does not start at \"created.\", so it cannot be checked against the create result", expr)
+		return
+	}
+
+	resultType := res.Binding.Create.ResultType
+	if resultType == "" {
+		resultType = res.Binding.Body.ResponseType
+	}
+	named, err := l.LookupType(res.Binding.Service.ImportPath, typeNameOf(resultType))
+	if err != nil {
+		// An unresolvable result type is already reported by the operation and
+		// body checks; repeating the same cause here would double it.
+		return
+	}
+
+	t := types.Type(named)
+	for _, seg := range strings.Split(strings.TrimPrefix(expr, "created."), ".") {
+		if mname, isCall := strings.CutSuffix(seg, "()"); isCall {
+			sig, ok := methodOn(t, mname)
+			if !ok {
+				problem("%s has no method %s%s", shortType(t), mname, didYouMean(mname, methodNamesOf(t)))
+				return
+			}
+			if sig.Results().Len() != 1 {
+				problem("%s.%s returns %d values, and an identifier read needs exactly one",
+					shortType(t), mname, sig.Results().Len())
+				return
+			}
+			t = sig.Results().At(0).Type()
+			continue
+		}
+
+		st, err := structUnder(t)
+		if err != nil {
+			problem("%q selects a field on %s, which is not a struct", seg, shortType(t))
+			return
+		}
+		v, ok := fieldByName(st, seg)
+		if !ok {
+			problem("%s has no field %s%s", shortType(t), seg, didYouMean(seg, fieldNames(st)))
+			return
+		}
+		t = v.Type()
+	}
+
+	// fromCreateIsPointer is deliberately not held against the resolved type:
+	// nothing in generation consumes the flag today, and the committed resty set
+	// records it loosely. The check that matters -- every selected symbol exists
+	// and yields exactly one value -- has already passed by here.
+	r.Checked++
 }

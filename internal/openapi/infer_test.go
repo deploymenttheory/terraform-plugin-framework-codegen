@@ -718,3 +718,235 @@ func TestUnit_Infer_NoteString(t *testing.T) {
 		t.Errorf("String = %q", got)
 	}
 }
+
+// TestUnit_OpenAPI_AdoptsThePathParameterAsID covers the identifier adoption:
+// an API that spells its identifier widgetId is still imported and refreshed
+// through an attribute named id, whose wire binding keeps the API's spelling.
+func TestUnit_OpenAPI_AdoptsThePathParameterAsID(t *testing.T) {
+	t.Parallel()
+
+	doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: Widgets, version: "1"}
+paths:
+  /widgets:
+    post:
+      operationId: createWidget
+      tags: [Widgets]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  widgetId: {type: string, readOnly: true}
+                  name: {type: string}
+  /widgets/{widgetId}:
+    get:
+      operationId: getWidget
+      tags: [Widgets]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  widgetId: {type: string, readOnly: true}
+                  name: {type: string}
+    delete:
+      operationId: deleteWidget
+      tags: [Widgets]
+      responses:
+        '204': {description: gone}
+`)
+
+	res, notes, err := doc.Infer(find(t, doc.Discover(), "widget"), inferOptions())
+	if err != nil {
+		t.Fatalf("Infer: %v", err)
+	}
+
+	var id *blueprint.Attribute
+	for i := range res.Schema.Attributes {
+		if res.Schema.Attributes[i].Name == "id" {
+			id = &res.Schema.Attributes[i]
+		}
+		if res.Schema.Attributes[i].Name == "widget_id" {
+			t.Errorf("the identifier attribute must be renamed, but widget_id survives")
+		}
+	}
+	if id == nil {
+		t.Fatalf("no id attribute was adopted; attributes: %v, notes: %v",
+			res.Schema.Attributes, noteStrings(notes))
+	}
+
+	if id.GoField != "ID" {
+		t.Errorf("id.goField = %q, want ID", id.GoField)
+	}
+	if id.Wire.JSONPath != "widgetId" {
+		t.Errorf("id.wire.jsonPath = %q, want the API's spelling widgetId", id.Wire.JSONPath)
+	}
+	if res.Binding.ID.FromCreate != "created.WidgetID" {
+		t.Errorf("binding.id.fromCreate = %q, want created.WidgetID", res.Binding.ID.FromCreate)
+	}
+
+	for _, n := range noteStrings(notes) {
+		if strings.Contains(n, "cannot be imported") {
+			t.Errorf("the adopted identifier must clear the no-id caveat, got: %s", n)
+		}
+	}
+}
+
+// TestUnit_OpenAPI_AdoptsThePathParameterAsIDKiota is the kiota spelling of the
+// same adoption: the create read is an accessor call.
+func TestUnit_OpenAPI_AdoptsThePathParameterAsIDKiota(t *testing.T) {
+	t.Parallel()
+
+	doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: Widgets, version: "1"}
+paths:
+  /widgets:
+    post:
+      operationId: createWidget
+      tags: [Widgets]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  widgetId: {type: string, readOnly: true}
+                  name: {type: string}
+  /widgets/{widgetId}:
+    get:
+      operationId: getWidget
+      tags: [Widgets]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  widgetId: {type: string, readOnly: true}
+                  name: {type: string}
+    delete:
+      operationId: deleteWidget
+      tags: [Widgets]
+      responses:
+        '204': {description: gone}
+`)
+
+	opts := InferOptions{
+		Provider:        "example",
+		APIVersionDir:   "v1",
+		SDKDialect:      blueprint.DialectKiotaFluent,
+		SDKModelsImport: "example.com/sdk/models",
+	}
+
+	res, _, err := doc.Infer(find(t, doc.Discover(), "widget"), opts)
+	if err != nil {
+		t.Fatalf("Infer: %v", err)
+	}
+
+	if res.Binding.ID.FromCreate != "created.GetWidgetId()" {
+		t.Errorf("binding.id.fromCreate = %q, want created.GetWidgetId()", res.Binding.ID.FromCreate)
+	}
+}
+
+// TestUnit_OpenAPI_UUIDFormatMapsToStringer covers the kiota uuid shape: the
+// SDK holds format: uuid as *uuid.UUID, and a string conversion against it
+// would not compile.
+func TestUnit_OpenAPI_UUIDFormatMapsToStringer(t *testing.T) {
+	t.Parallel()
+
+	doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: Keys, version: "1"}
+paths:
+  /keys:
+    post:
+      operationId: createKey
+      tags: [Keys]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: {type: string, format: uuid, readOnly: true}
+                  name: {type: string}
+  /keys/{id}:
+    get:
+      operationId: getKey
+      tags: [Keys]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: {type: string, format: uuid, readOnly: true}
+                  name: {type: string}
+    delete:
+      operationId: deleteKey
+      tags: [Keys]
+      responses:
+        '204': {description: gone}
+`)
+
+	opts := InferOptions{
+		Provider:        "example",
+		APIVersionDir:   "v1",
+		SDKDialect:      blueprint.DialectKiotaFluent,
+		SDKModelsImport: "example.com/sdk/models",
+	}
+
+	res, _, err := doc.Infer(find(t, doc.Discover(), "key"), opts)
+	if err != nil {
+		t.Fatalf("Infer: %v", err)
+	}
+
+	for _, a := range res.Schema.Attributes {
+		if a.Name != "id" {
+			continue
+		}
+		if a.Wire.SDKGoType != "*uuid.UUID" {
+			t.Errorf("id.wire.sdkGoType = %q, want *uuid.UUID", a.Wire.SDKGoType)
+		}
+		if a.Wire.Flatten == nil || a.Wire.Flatten.Func != "convert.PtrStringerToFramework" {
+			t.Errorf("id.wire.flatten = %+v, want convert.PtrStringerToFramework", a.Wire.Flatten)
+		}
+		if !a.Wire.SkipExpand {
+			t.Errorf("a computed uuid must not expand")
+		}
+		return
+	}
+	t.Fatalf("no id attribute inferred")
+}

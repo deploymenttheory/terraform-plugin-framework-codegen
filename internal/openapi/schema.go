@@ -44,6 +44,12 @@ type Field struct {
 	// enumeration. Generated SDKs turn those into named string types held by
 	// value, which changes how the field is converted.
 	EnumTypeName string
+	// ElemEnumTypeName is EnumTypeName for a collection's element schema: a set
+	// of $ref'd enum members is held by the SDK as a slice of the named type.
+	ElemEnumTypeName string
+	// ElemFormat is the element schema's format string; a uuid element makes
+	// the SDK hold the collection as []uuid.UUID.
+	ElemFormat string
 	// ObjectTypeName is the schema name of a nested object, or of an array's item
 	// schema.
 	ObjectTypeName string
@@ -279,16 +285,25 @@ func fieldOf(name string, proxy *base.SchemaProxy, path []string) (Field, bool) 
 		Deprecated:  boolValue(s.Deprecated),
 	}
 
-	// A $ref to a schema that is an enumeration becomes a named string type in a
-	// generated SDK, held by value rather than by pointer.
+	// A $ref to a schema that is a string enumeration becomes a named type in a
+	// generated SDK, held by value rather than by pointer. An integer
+	// enumeration does not: kiota inlines it at the integer's width and
+	// generates no named type at all, so treating it as an enum names a model
+	// that does not exist. It travels on as a plain number, its members kept
+	// for documentation.
+	stringEnum := len(s.Enum) > 0 && (primaryType(s) == "string" || primaryType(s) == "")
 	if refName := refTypeName(proxy); refName != "" {
-		if len(s.Enum) > 0 {
+		if stringEnum {
 			f.Kind = blueprint.KindString
 			f.EnumTypeName = refName
 			f.EnumValues = enumValues(s)
 			return f, true
 		}
 		f.ObjectTypeName = refName
+	}
+	if len(s.Enum) > 0 && !stringEnum {
+		f.EnumValues = enumValues(s)
+		f.ObjectTypeName = ""
 	}
 
 	// An unmapped shape keeps its empty Kind and travels on, to be reported.
@@ -308,6 +323,13 @@ func fieldOf(name string, proxy *base.SchemaProxy, path []string) (Field, bool) 
 
 	if kind.IsCollection() && f.ElemKind != "" {
 		if item := itemSchema(s); item != nil {
+			// A $ref'd string enumeration as the element: the SDK holds the
+			// collection as a slice of the named enum type.
+			if len(item.Enum) > 0 && (primaryType(item) == "string" || primaryType(item) == "") &&
+				s.Items != nil && s.Items.IsA() {
+				f.ElemEnumTypeName = refTypeName(s.Items.A)
+			}
+			f.ElemFormat = item.Format
 			// A bad pattern on an element is reported against the attribute, so the second
 			// return is folded in rather than tracked separately -- there is one note either
 			// way and it names the same field.

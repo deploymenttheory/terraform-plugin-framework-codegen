@@ -379,8 +379,11 @@ paths:
 		byName[a.Name] = a.Type.Kind
 	}
 
-	if got := byName["plain_map"]; got != blueprint.KindMap {
-		t.Errorf("an object with only additionalProperties should be a map, got %q", got)
+	// A free-form map is refused by name rather than drafted: no conversion is
+	// generated for the additional-data shape, and both curated pilots dropped
+	// every such field.
+	if _, drafted := byName["plain_map"]; drafted {
+		t.Errorf("an object with only additionalProperties must be skipped, but plain_map was drafted")
 	}
 	// OpenAPI 3.0 nullability must not turn a string into an unmappable type.
 	if got := byName["nullable_name"]; got != blueprint.KindString {
@@ -392,6 +395,9 @@ paths:
 
 	// Shapes with no mapping are reported rather than dropped in silence.
 	reported := strings.Join(noteStrings(notes), "\n")
+	if !strings.Contains(reported, "plainMap") {
+		t.Errorf("the skipped map should be reported by name:\n%s", reported)
+	}
 	for _, field := range []string{"empty_array", "emptyArray", "untyped", "untypedThing"} {
 		if strings.Contains(reported, field) {
 			return

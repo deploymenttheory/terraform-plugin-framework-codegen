@@ -11,9 +11,11 @@ import (
 	"text/tabwriter"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
 )
 
@@ -46,6 +48,9 @@ func runBlueprintDraft(args []string) error {
 			"import path of the kiota SDK's models package (required with -sdk-dialect kiotaFluent)")
 		exclusions = fs.String("exclusions", "",
 			"exclusions sidecar; defaults to <openapi-dir>/"+openapi.ExclusionsFileName+" when present")
+		pruneModule = fs.String("prune-module", "",
+			"module root holding the pinned SDK; drafted bindings the SDK cannot carry are "+
+				"pruned by name instead of written (requires a provider block in -out)")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -122,7 +127,7 @@ func runBlueprintDraft(args []string) error {
 		SDKModelsImport:   *sdkModels,
 	}
 
-	return inferAll(doc, candidates, excluded, opts, *out, *scenarioDrafts)
+	return inferAll(doc, candidates, excluded, opts, *out, *scenarioDrafts, *pruneModule)
 }
 
 func inferAll(
@@ -132,12 +137,21 @@ func inferAll(
 	opts openapi.InferOptions,
 	out string,
 	planDrafts string,
+	pruneModule string,
 ) error {
 	var (
-		notes   []openapi.Caveat
-		written int
-		skipped int
+		notes       []openapi.Caveat
+		resources   []blueprint.Resource
+		dataSources []blueprint.DataSource
+		written     int
+		skipped     int
 	)
+
+	// Import aliases share one namespace across every block kind, because all of
+	// them register into the same generated provider package -- validation refuses
+	// a duplicate. Nested identifiers are already deduplicated inside each
+	// resource; this is the same rule one level up, across the whole drafted set.
+	takenAliases := map[string]bool{}
 
 	for _, c := range candidates {
 		// The sidecar speaks first: a curated exclusion is a decision already
@@ -158,14 +172,8 @@ func inferAll(
 				skipped++
 				continue
 			}
-			bp := blueprint.Blueprint{FormatVersion: blueprint.FormatVersion, DataSources: []blueprint.DataSource{ds}}
-			path := filepath.Join(out, "datasources", ds.Key+blueprint.Ext)
-			if err := blueprint.Save(path, bp); err != nil {
-				return err
-			}
-			log.Printf("wrote     %s (dataSource, %d attributes, %d selector(s))",
-				path, len(ds.Schema.Attributes), len(ds.Binding.Selectors))
-			written++
+			ds.GoPackageAlias = naming.Unique(takenAliases, ds.GoPackageAlias)
+			dataSources = append(dataSources, ds)
 			continue
 		}
 
@@ -188,6 +196,34 @@ func inferAll(
 			continue
 		}
 
+		res.GoPackageAlias = naming.Unique(takenAliases, res.GoPackageAlias)
+		resources = append(resources, res)
+	}
+
+	// The document promises; the SDK disposes. With a module to check against,
+	// every drafted binding is resolved against the real SDK before anything is
+	// written, and what does not resolve is pruned by name -- the computed form
+	// of the drop a curator used to write by hand.
+	if pruneModule != "" {
+		pruned, err := pruneAgainstSDK(out, pruneModule, &resources, &dataSources)
+		if err != nil {
+			return err
+		}
+		skipped += pruned
+	}
+
+	for _, ds := range dataSources {
+		bp := blueprint.Blueprint{FormatVersion: blueprint.FormatVersion, DataSources: []blueprint.DataSource{ds}}
+		path := filepath.Join(out, "datasources", ds.Key+blueprint.Ext)
+		if err := blueprint.Save(path, bp); err != nil {
+			return err
+		}
+		log.Printf("wrote     %s (dataSource, %d attributes, %d selector(s))",
+			path, len(ds.Schema.Attributes), len(ds.Binding.Selectors))
+		written++
+	}
+
+	for _, res := range resources {
 		bp := blueprint.Blueprint{FormatVersion: blueprint.FormatVersion, Resources: []blueprint.Resource{res}}
 
 		path := filepath.Join(out, "resources", res.Key+blueprint.Ext)
@@ -214,6 +250,53 @@ func inferAll(
 	log.Printf("%d blueprint(s) written, %d candidate(s) skipped, %d note(s)", written, skipped, len(notes))
 
 	return nil
+}
+
+// pruneAgainstSDK verifies drafted bindings against the pinned SDK and removes
+// what cannot be generated, reporting each removal. The provider block is read
+// from the output directory, because pruning resolves fluent chains from the
+// client type it declares.
+func pruneAgainstSDK(
+	out, module string,
+	resources *[]blueprint.Resource,
+	dataSources *[]blueprint.DataSource,
+) (skipped int, err error) {
+	providerPath := filepath.Join(out, "provider"+blueprint.Ext)
+	pbp, err := blueprint.Load(providerPath)
+	if err != nil {
+		return 0, fmt.Errorf("-prune-module needs the provider block at %s: %w", providerPath, err)
+	}
+
+	combined := blueprint.Blueprint{
+		FormatVersion: blueprint.FormatVersion,
+		Provider:      pbp.Provider,
+		Resources:     *resources,
+		DataSources:   *dataSources,
+	}
+
+	removals := sdkbind.Prune(sdkbind.NewLoader(module), &combined)
+	for _, p := range removals {
+		log.Printf("pruned    %s", p)
+	}
+
+	*resources = nil
+	for _, r := range combined.Resources {
+		if !r.Drop {
+			*resources = append(*resources, r)
+		} else {
+			skipped++
+		}
+	}
+	*dataSources = nil
+	for _, d := range combined.DataSources {
+		if !d.Drop {
+			*dataSources = append(*dataSources, d)
+		} else {
+			skipped++
+		}
+	}
+
+	return skipped, nil
 }
 
 // writeScenarioDraft scaffolds one resource's probe-plan worksheet.
