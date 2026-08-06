@@ -160,11 +160,18 @@ one module. Under `-mode external` the tree gets a minimal generated `go.mod`
 own repository. `-check` regenerates into scratch and byte-compares — the only
 proof that the committed tree still follows from the pinned snapshot.
 
+**Built-in normalisation.** Two corrections answer kiota's own behaviour
+rather than any one document's mistakes, so generation always applies them
+before any patch: every schema `default` is stripped (a kiota constructor
+stamps defaults onto the models it builds, leaking fields the provider never
+wired into every request body and masking absence on responses), and every
+single-member anonymous `allOf` is collapsed into its parent (kiota synthesizes
+names for anonymous schemas and dedupes structurally identical ones with an
+unstable canonical winner). Both accept a document with nothing to correct.
+
 **Document patches.** When a published document is provably wrong about the
 live API (a probe recording shows the API accepting and echoing an enum value
-the document omits), or shaped in a way that provably defeats deterministic
-generation (an anonymous schema kiota names unstably), a *document patch*
-records the divergence:
+the document omits), a *document patch* records the divergence:
 `<openapi-dir>/patches/*.patch.json`, each holding a `justification` naming
 the evidence and RFC 6902 `operations` scoped to it. Patches apply to a copy
 (the snapshot's bytes and checksum never change; application preserves

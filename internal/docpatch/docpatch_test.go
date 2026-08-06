@@ -234,3 +234,91 @@ func TestUnit_DocPatch_StripSchemaDefaultsRefusesWhenNoneExist(t *testing.T) {
 		t.Errorf("a document with no defaults must refuse the strip as stale, got: %v", err)
 	}
 }
+
+// TestUnit_DocPatch_NormalizeStripsAndCollapses covers the built-in
+// normalisations: defaults gone everywhere, a single-member anonymous allOf
+// hoisted into its parent, and both counted.
+func TestUnit_DocPatch_NormalizeStripsAndCollapses(t *testing.T) {
+	t.Parallel()
+
+	doc := []byte(`openapi: 3.0.3
+components:
+  schemas:
+    Transfer:
+      allOf:
+        - type: object
+          properties:
+            agentId: {type: string, default: abc}
+    Composed:
+      allOf:
+        - $ref: '#/components/schemas/Transfer'
+    Wide:
+      allOf:
+        - type: object
+        - type: object
+`)
+
+	out, stripped, collapsed, err := Normalize(doc)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if stripped != 1 {
+		t.Errorf("stripped = %d, want 1", stripped)
+	}
+	if collapsed != 1 {
+		t.Errorf("collapsed = %d, want 1", collapsed)
+	}
+
+	s := string(out)
+	if strings.Contains(s, "default:") {
+		t.Errorf("a default survived:\n%s", s)
+	}
+	// The anonymous member was hoisted: its property survives on Transfer.
+	if !strings.Contains(s, "agentId") {
+		t.Errorf("the hoisted member lost its properties:\n%s", s)
+	}
+	// A $ref member is a real composition and stays; a multi-member list stays.
+	if got := strings.Count(s, "allOf:"); got != 2 {
+		t.Errorf("allOf count = %d, want the $ref and multi-member compositions kept (2):\n%s", got, s)
+	}
+}
+
+// TestUnit_DocPatch_NormalizeAcceptsAQuietDocument pins the difference from the
+// patch form of the same operations: zero hits is a fine answer for a built-in.
+func TestUnit_DocPatch_NormalizeAcceptsAQuietDocument(t *testing.T) {
+	t.Parallel()
+
+	out, stripped, collapsed, err := Normalize([]byte("openapi: 3.0.3\npaths: {}\n"))
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if stripped != 0 || collapsed != 0 {
+		t.Errorf("counts = %d, %d, want 0, 0", stripped, collapsed)
+	}
+	if len(out) == 0 {
+		t.Errorf("the document should round-trip")
+	}
+}
+
+// TestUnit_DocPatch_CollapseRefusesAnOverlap: a member key already declared on
+// the parent would force a merge decision the pass must not guess.
+func TestUnit_DocPatch_CollapseRefusesAnOverlap(t *testing.T) {
+	t.Parallel()
+
+	doc := []byte(`openapi: 3.0.3
+components:
+  schemas:
+    Clash:
+      type: string
+      allOf:
+        - type: object
+`)
+
+	_, _, collapsed, err := Normalize(doc)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+	if collapsed != 0 {
+		t.Errorf("collapsed = %d, want the overlapping member left alone", collapsed)
+	}
+}
