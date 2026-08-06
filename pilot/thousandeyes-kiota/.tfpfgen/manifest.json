@@ -302,7 +302,7 @@
     },
     {
       "path": "internal/services/datasources/tags/v7/tag/datasource_acceptance_test.go",
-      "sha256": "158d610c8bf5fc7af17f373437d7a309912c4bc68dc1952126e2d5d9d3db065d",
+      "sha256": "312585d672adb25dd05af7ae2ad06fa9e4bba5b97e35d1c862b52f7a5f629957",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
@@ -327,7 +327,7 @@
     },
     {
       "path": "internal/services/datasources/tags/v7/tag/testdata/datasource.tf",
-      "sha256": "55f3ffc1ccb9b085ba3deb185a81b5566662257d4c9f282472a12fcdde5ab7f5",
+      "sha256": "ab1c659e903cd302038839779b39ec3c8bcbc965f638c44b494f7fc72269d052",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
@@ -337,7 +337,7 @@
     },
     {
       "path": "internal/services/datasources/tags/v7/tags/datasource_acceptance_test.go",
-      "sha256": "54f84b29383b608f82c59332e581499c4e9493bb7b9bd37eec3a2baf3ed52f7d",
+      "sha256": "bae041634d061b0a9254f66c80ae53588c9d4e27070a798be4ed516ba5d5cdd8",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {
@@ -362,7 +362,7 @@
     },
     {
       "path": "internal/services/datasources/tags/v7/tags/testdata/datasource.tf",
-      "sha256": "044bb00fec47de7da15fd3f0b560fde279da870d90a72665201ffc20b953efa3",
+      "sha256": "59c85e680c3b40af2fd993798cde9826221be6bc12263a43962038e7b0c97dba",
       "blueprint": "blueprints/thousandeyes-kiota"
     },
     {

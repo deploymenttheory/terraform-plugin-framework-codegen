@@ -51,6 +51,10 @@ type DataSourceFixtureView struct {
 	// TerraformType and Label name the data block.
 	TerraformType string
 	Label         string
+	// WaitLabel names the time_sleep resource that holds the data block back until
+	// the seed has propagated, and WaitDuration is how long it waits.
+	WaitLabel    string
+	WaitDuration string
 	// Args are the data block's arguments, each an HCL reference into the seed.
 	Args []fixtureValue
 }
@@ -117,6 +121,8 @@ func DataSourceAccTest(
 		TerraformType: dsType,
 		Label:         fixtureLabel,
 		Args:          seedArgValues(d, seedType),
+		WaitLabel:     "wait_for_" + naming.SnakeDirName(seed.Key),
+		WaitDuration:  dataSourcePropagationWait,
 	}
 	// The seed fixture renders inside this file, which carries its own header.
 	fixture.Seed.Header = ""
@@ -276,3 +282,14 @@ func trimDataSourceSuffix(goTypeName string) string {
 	}
 	return goTypeName
 }
+
+// dataSourcePropagationWait is how long the generated fixture holds a data source
+// back after its seed applies.
+//
+// An API that accepts a create does not always serve the object to the next reader,
+// and the data source is the next reader. Fifteen seconds is the house figure: long
+// enough for the eventual consistency observed in practice, short enough that a
+// suite of them stays runnable. A family needing longer says so by widening this in
+// the generator rather than by a hand edit to the emitted fixture, because every
+// fixture is regenerated.
+const dataSourcePropagationWait = "15s"
