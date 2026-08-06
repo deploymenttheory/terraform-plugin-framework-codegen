@@ -31,6 +31,16 @@ const FormatVersion = "1"
 // ErrUnsupportedFormat reports a manifest this build cannot read.
 var ErrUnsupportedFormat = errors.New("unsupported manifest format version")
 
+// OriginScaffold marks an entry written by `provider scaffold` -- the provider
+// shell -- rather than by `provider generate`. The two verbs share one manifest
+// so the drift check covers everything the toolkit owns, and the origin is what
+// lets each verb replace its own inventory without orphaning the other's.
+//
+// Generate's own entries carry no origin, deliberately: an empty value is what
+// every manifest written before scaffolding existed already contains, so those
+// manifests keep their meaning unchanged.
+const OriginScaffold = "scaffold"
+
 // Entry is one generated file.
 type Entry struct {
 	// Path is relative to the provider root, always with forward slashes so the
@@ -42,6 +52,9 @@ type Entry struct {
 	// Blueprint is the source the file was generated from, so a reviewer looking
 	// at a generated file can find what to edit instead.
 	Blueprint string `json:"blueprint"`
+	// Origin names the verb that wrote the file. Empty means `provider
+	// generate`; OriginScaffold means `provider scaffold`.
+	Origin string `json:"origin,omitempty"`
 }
 
 // Manifest is the inventory of a generation run.
@@ -76,6 +89,19 @@ func (m Manifest) Paths() map[string]bool {
 	out := make(map[string]bool, len(m.Files))
 	for _, f := range m.Files {
 		out[f.Path] = true
+	}
+	return out
+}
+
+// EntriesNotOf returns the entries other verbs recorded. A verb rewriting the
+// manifest carries these forward unchanged, so replacing its own inventory
+// cannot silently drop another's.
+func (m Manifest) EntriesNotOf(origin string) []Entry {
+	var out []Entry
+	for _, f := range m.Files {
+		if f.Origin != origin {
+			out = append(out, f)
+		}
 	}
 	return out
 }
@@ -142,16 +168,23 @@ func Save(root string, m Manifest) error {
 	return nil
 }
 
-// Orphans returns the manifest paths that the current run no longer produces and
-// which still exist on disk.
+// Orphans returns the manifest paths that the current generate run no longer
+// produces and which still exist on disk.
 //
 // A path recorded but already deleted is not an orphan: somebody removed it, the
 // blueprints agree it should not exist, and there is nothing to report.
 func (m Manifest) Orphans(root string, produced map[string]bool) ([]string, error) {
+	return m.OrphansOf(root, "", produced)
+}
+
+// OrphansOf is Orphans restricted to one verb's entries. A run only ever
+// replaces its own inventory, so a file another verb recorded is not an orphan
+// merely because this run did not produce it.
+func (m Manifest) OrphansOf(root, origin string, produced map[string]bool) ([]string, error) {
 	var out []string
 
 	for _, f := range m.Files {
-		if produced[f.Path] {
+		if f.Origin != origin || produced[f.Path] {
 			continue
 		}
 

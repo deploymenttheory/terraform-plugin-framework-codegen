@@ -1,26 +1,14 @@
-// This file is yours.
-//
-// It was scaffolded once, carries no generated marker, and `emit` will not write over it again.
-// Deleting it means setting schema.version back to 0 and removing hooks.stateUpgrade, because the
-// generated resource asserts resource.ResourceWithUpgradeState when that flag is set.
-//
-// # Why this is not generated
-//
-// The generator knows the schema changed. It cannot know what the old fields meant.
-//
-// A version bump says "state written by an earlier version of this provider needs translating".
-// Whether a renamed attribute is the same value under a new name, whether a string that became a
-// list should be wrapped or split, whether a removed field's value belongs anywhere at all -- none
-// of that is in a specification, and getting it wrong corrupts real state that practitioners
-// cannot recover from without editing state files by hand.
-//
-// # What the framework does with this
-//
-// fwserver calls UpgradeState only when the version stored in state differs from the schema's.
-// When they match, state is passed through untouched and this method is never reached. So the map
-// below is keyed by the version being upgraded *from*, and every version a practitioner might
-// still be holding needs an entry -- a missing one produces "Terraform was expecting an
-// implementation for version N upgrade" and blocks them entirely.
+{{ .Header }}
+
+// The upgraders below are the generated default: each prior schema version is
+// refused by name. A version bump says state written by an earlier provider
+// needs translating, and what the old fields *meant* is not in any
+// specification -- so until the mapping is declared in the blueprint and
+// generated, refusing loudly beats guessing with state practitioners cannot
+// recover. An edit made here directly is drift the check reports. Removing
+// hooks.stateUpgrade means setting schema.version back to 0, because the
+// generated resource asserts resource.ResourceWithUpgradeState while the flag
+// is set.
 
 package {{ .Package }}
 

@@ -22,7 +22,7 @@ order `help` prints them.
 | `sdk` | generate a Go SDK from a pinned OpenAPI snapshot | `generate`, `push` |
 | `blueprint` | draft, merge, validate, diff or list blueprints | `draft`, `merge`; `validate`, `diff`, `list` planned |
 | `probe` | exercise a resource's lifecycle; record or replay cassettes | `record`, `replay`, `verify`, `sweep`, `list` |
-| `provider` | generate a terraform-plugin-framework provider from blueprints | `generate`, `push`; `scaffold` planned |
+| `provider` | derive the provider block, generate the provider tree and its shell | `init`, `generate`, `push`, `scaffold` |
 | `bindings` | check blueprint SDK bindings against the pinned SDK | `check`, `facts` |
 | `spec` | export or import Provider Code Specification v0.1 JSON | `export`, `import` |
 | `version` | print the toolkit version and exit | — |
@@ -385,6 +385,27 @@ budgets.
 
 ## `provider`
 
+### `provider init`
+
+Derive the provider block -- `provider.blueprint.json` -- from what the repository
+already states. Nothing in the block is a choice: the module path is go.mod's, the
+client type is the generated SDK's own `kiota-lock.json`, the directory layout is
+the one convention every emitted tree uses, and the `source` block restates the
+pinned snapshot. It used to be the one hand-authored file gating the pipeline;
+run after `sdk generate`, before `blueprint draft -prune-module`.
+
+```
+provider init [-module DIR] [-name NAME] [-openapi-dir DIR] [-out DIR] [-force]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-module` | `.` | provider module root holding go.mod and the embedded SDK |
+| `-name` | module basename minus `terraform-provider-` | provider registry name |
+| `-openapi-dir` | `openapi/<name>` | directory holding pinned OpenAPI snapshots |
+| `-out` | `blueprints/<name>` | blueprint directory the block is written into |
+| `-force` | | overwrite an existing provider block; without it an existing block is kept and reported |
+
 ### `provider generate`
 
 Generates the provider Go tree from blueprints, then runs the postcheck battery
@@ -451,6 +472,40 @@ generating into a scratch directory for inspection stays cheap.
 `-skip-postcheck` exists for tight inner loops; CI and any run before a commit
 should keep the battery on — a skipped battery just moves the same failures to
 the CI checks.
+
+### `provider scaffold`
+
+Writes the provider shell — the support packages generated code calls into:
+`main.go`, the provider server, the SDK client, the `convert`/`crud`/`errors`/
+`schema` support packages and the acceptance harness — from templates embedded
+in the toolkit, parameterised by the provider block alone. The shell was
+hand-written once, in the kiota pilot, and proven there by live acceptance
+runs; scaffolding re-emits that proven tree, so a shell fix lands in every
+provider by regeneration rather than by hand.
+
+```
+provider scaffold -blueprint DIR -out DIR [-check]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-blueprint` | — | blueprint directory holding `provider.blueprint.json` (required) |
+| `-out` | — | provider root to write into (required) |
+| `-check` | `false` | write nothing and exit 1 if the committed shell has drifted from the templates |
+
+Only `provider.blueprint.json` is read, not the whole blueprint directory: the
+shell depends on nothing a resource declares, so a resource edit never rewrites
+a shell file's header digest.
+
+Scaffold always overwrites, including files that carry no generated header —
+adopting a hand-written shell is the point of the verb, and the write is the
+transition. `provider generate` keeps its refusal semantics unchanged.
+
+The emitted files carry the standard generated header and are recorded in
+`.tfpfgen/manifest.json` under their own origin, beside `provider generate`'s
+entries. Each verb replaces and polices only its own inventory, so the two
+drift checks coexist: a generation run cannot orphan the shell, and a scaffold
+run cannot orphan a resource.
 
 ### `provider push`
 

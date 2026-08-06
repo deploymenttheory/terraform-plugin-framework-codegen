@@ -1,0 +1,59 @@
+{{ .Header }}
+
+package exists
+
+import (
+	"fmt"
+	"os"
+	"sync"
+
+	"{{ .Module }}/internal/sdk"
+
+	teclient "{{ .Module }}/internal/client"
+)
+
+// Environment variables an acceptance run reads.
+//
+// The same names the provider itself reads, deliberately: a test that authenticated differently
+// from the provider under test could pass while the provider was misconfigured.
+const (
+	envBearerToken    = "{{ .EnvPrefix }}_BEARER_TOKEN"
+	envAccountGroupID = "{{ .EnvPrefix }}_ACCOUNT_GROUP_ID"
+	envAPIEndpoint    = "{{ .EnvPrefix }}_API_ENDPOINT"
+)
+
+var (
+	clientOnce sync.Once
+	clientRef  *sdk.{{ .ClientClass }}
+	clientErr  error
+)
+
+// Client returns a client for checking objects out of band.
+//
+// Out of band is the point: the provider's own client is not reachable from a test check, and
+// reaching for it would mean the assertion and the code under test shared a code path. A
+// separate client asks the API directly, so "the resource exists" is not merely "the provider
+// believes it does".
+//
+// Built once per run, because a test case can hold dozens of checks and each building its own
+// client would spend the run authenticating.
+func Client() (*sdk.{{ .ClientClass }}, error) {
+	clientOnce.Do(func() {
+		token := os.Getenv(envBearerToken)
+		if token == "" {
+			clientErr = fmt.Errorf(
+				"%s is not set, so no acceptance check can reach the API", envBearerToken,
+			)
+
+			return
+		}
+
+		clientRef, clientErr = teclient.New(teclient.Config{
+			BearerToken:    token,
+			AccountGroupID: os.Getenv(envAccountGroupID),
+			APIEndpoint:    os.Getenv(envAPIEndpoint),
+		})
+	})
+
+	return clientRef, clientErr
+}

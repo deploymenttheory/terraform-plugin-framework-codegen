@@ -1,0 +1,166 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"golang.org/x/mod/modfile"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
+)
+
+const usageProviderInit = "provider init [-module DIR] [-name NAME] [-openapi-dir DIR] " +
+	"[-out DIR] [-force]"
+
+// runProviderInit derives the provider block from what the repository already
+// states.
+//
+// The block used to be the one hand-authored file that gated the whole
+// pipeline: nothing in it is a choice. The module path is go.mod's, the client
+// type is the generated SDK's own lock, the layout is the fixed convention
+// every emitted tree uses, and the source block restates the pinned snapshot.
+// Deriving it makes the first pipeline run self-sufficient.
+func runProviderInit(args []string) error {
+	fs, _ := newFlagSet("provider init", usageProviderInit)
+
+	var (
+		module = fs.String("module", ".", "provider module root holding go.mod and the embedded SDK")
+		name   = fs.String("name", "",
+			"provider registry name (default: the module basename minus terraform-provider-)")
+		openapiDir = fs.String("openapi-dir", "",
+			"directory holding pinned OpenAPI snapshots (default openapi/<name>)")
+		out = fs.String("out", "",
+			"blueprint directory to write the provider block into (default blueprints/<name>)")
+		force = fs.Bool("force", false, "overwrite an existing provider block")
+	)
+
+	if err := parse(fs, args); err != nil {
+		return err
+	}
+
+	goModule, err := goModulePath(filepath.Join(*module, "go.mod"))
+	if err != nil {
+		return err
+	}
+
+	if *name == "" {
+		*name = strings.TrimPrefix(filepath.Base(goModule), "terraform-provider-")
+	}
+	if *openapiDir == "" {
+		*openapiDir = filepath.Join("openapi", *name)
+	}
+	if *out == "" {
+		*out = filepath.Join("blueprints", *name)
+	}
+
+	// The client type is the generated SDK's own statement, not a guess: kiota
+	// records the class name it emitted in its lock. Requiring the lock also
+	// enforces the pipeline order -- the SDK exists before anything binds to it.
+	clientClass, err := kiotaClientClass(filepath.Join(*module, "internal", "sdk", "kiota-lock.json"))
+	if err != nil {
+		return err
+	}
+
+	snap, err := snapshot.Find(*openapiDir, "")
+	if err != nil {
+		return err
+	}
+	if err := snap.Verify(); err != nil {
+		return err
+	}
+	meta, err := snap.LoadMetadata()
+	if err != nil {
+		return err
+	}
+
+	bp := blueprint.Blueprint{
+		FormatVersion: blueprint.FormatVersion,
+		Provider: blueprint.Provider{
+			Name:       *name,
+			GoModule:   goModule,
+			TypePrefix: *name,
+			SDK: blueprint.SDKModule{
+				Dialect:    blueprint.DialectKiotaFluent,
+				Mode:       blueprint.SDKModeEmbed,
+				Generator:  "kiota",
+				ModulePath: goModule,
+				ClientType: "*sdk." + clientClass,
+				ClientImport: blueprint.Import{
+					Path:  goModule + "/internal/sdk",
+					Alias: "sdk",
+				},
+			},
+			Conventions: blueprint.Conventions{
+				ResourceRoot:   "internal/services/resources",
+				DataSourceRoot: "internal/services/datasources",
+				ProviderPkgDir: "internal/provider",
+				DefaultTimeouts: blueprint.Timeouts{
+					CreateSeconds: 180, ReadSeconds: 180, UpdateSeconds: 180, DeleteSeconds: 180,
+				},
+			},
+			Support: blueprint.SupportPkgs{
+				Convert:      blueprint.Import{Path: goModule + "/internal/services/common/convert"},
+				CRUD:         blueprint.Import{Path: goModule + "/internal/services/common/crud"},
+				CommonSchema: blueprint.Import{Path: goModule + "/internal/services/common/schema", Alias: "commonschema"},
+				Errors:       blueprint.Import{Path: goModule + "/internal/services/common/errors"},
+				Client:       blueprint.Import{Path: goModule + "/internal/client"},
+			},
+		},
+		Source: blueprint.SourceInfo{
+			SpecFile:    snapshot.SpecFileName,
+			SpecVersion: meta.Version,
+			SpecSHA256:  meta.SHA256,
+			SnapshotDir: snap.Name,
+		},
+	}
+
+	path := filepath.Join(*out, "provider"+blueprint.Ext)
+	if _, err := os.Stat(path); err == nil && !*force {
+		log.Printf("kept      %s (already exists; -force overwrites)", path)
+		return nil
+	}
+
+	if err := blueprint.Save(path, bp); err != nil {
+		return err
+	}
+
+	log.Printf("wrote     %s (module %s, client %s, snapshot %s)", path, goModule, clientClass, snap.Name)
+
+	return nil
+}
+
+// goModulePath reads the module path go.mod declares.
+func goModulePath(path string) (string, error) {
+	data, err := os.ReadFile(path) //nolint:gosec // operator-supplied path by design
+	if err != nil {
+		return "", fmt.Errorf("reading the provider module: %w", err)
+	}
+	mp := modfile.ModulePath(data)
+	if mp == "" {
+		return "", fmt.Errorf("%s declares no module path", path)
+	}
+	return mp, nil
+}
+
+// kiotaClientClass reads the root client type name off the SDK's own lock.
+func kiotaClientClass(path string) (string, error) {
+	data, err := os.ReadFile(path) //nolint:gosec // operator-supplied path by design
+	if err != nil {
+		return "", fmt.Errorf("reading the SDK lock (run sdk generate first): %w", err)
+	}
+	var lock struct {
+		ClientClassName string `json:"clientClassName"`
+	}
+	if err := json.Unmarshal(data, &lock); err != nil {
+		return "", fmt.Errorf("%s: %w", path, err)
+	}
+	if lock.ClientClassName == "" {
+		return "", fmt.Errorf("%s names no clientClassName", path)
+	}
+	return lock.ClientClassName, nil
+}

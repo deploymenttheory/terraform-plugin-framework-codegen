@@ -105,7 +105,6 @@ func loadBindingsBlueprint(blueprintPath, module string) (blueprint.Blueprint, e
 
 // checkBindings verifies every declared binding against the pinned SDK.
 func checkBindings(bp blueprint.Blueprint, module string) error {
-
 	// Counted per kind rather than as one number, because this said "resource binding
 	// set(s)" while verifying only resources -- so a blueprint whose data sources and actions
 	// were entirely unchecked still reported a reassuring count.

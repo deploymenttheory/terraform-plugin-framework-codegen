@@ -16,3 +16,16 @@ import "embed"
 //
 //go:embed *.tmpl
 var FS embed.FS
+
+// ShellFS holds the provider shell templates -- the support packages generated
+// code calls into, promoted from the kiota pilot's proven tree. Each template's
+// path under shell/ mirrors the path it is emitted to, with .tmpl appended, so
+// finding the template for an emitted file needs no lookup table.
+//
+// A separate FS rather than more patterns in FS, because the shell tree
+// contains several base names more than once (crud/errors.go.tmpl and
+// errors/errors.go.tmpl); parsed into one template set, the later would
+// silently shadow the former.
+//
+//go:embed shell
+var ShellFS embed.FS

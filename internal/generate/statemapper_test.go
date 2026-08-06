@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -272,92 +271,15 @@ func TestUnit_Generate_AListFacetEmitsItsFileAndRegistration(t *testing.T) {
 	}
 }
 
-// TestUnit_Generate_AScaffoldIsWrittenOnceAndThenKept is the escape hatch's defining property.
+// TestUnit_Generate_HookFilesAreGeneratedDefaults pins the hook files' new
+// contract.
 //
-// A scaffold is not "a file the generator has not overwritten yet" -- it is one it will never
-// overwrite. Without that, a practitioner's ModifyPlan would be replaced by the stub on the next
-// emit, or worse, the run would fail with the overwrite refusal and there would be no way to
-// keep the file at all.
-func TestUnit_Generate_AScaffoldIsWrittenOnceAndThenKept(t *testing.T) {
-	t.Parallel()
-
-	g, err := New()
-	if err != nil {
-		t.Fatalf("New: %v", err)
-	}
-
-	bp := pilotBlueprint(t)
-
-	plan, err := g.Build(bp, BuildOptions{BlueprintPath: "blueprints/thousandeyes"})
-	if err != nil {
-		t.Fatalf("Build: %v", err)
-	}
-
-	var scaffolds []string
-	for _, f := range plan.Files {
-		if f.Scaffold {
-			scaffolds = append(scaffolds, f.Path)
-		}
-	}
-	if len(scaffolds) == 0 {
-		t.Skip("the committed pilot blueprint declares no hooks")
-	}
-
-	root := t.TempDir()
-
-	// First write: everything lands, nothing is kept.
-	first, err := Write(plan, WriteOptions{Root: root})
-	if err != nil {
-		t.Fatalf("first Write: %v", err)
-	}
-	if len(first.Kept) != 0 {
-		t.Errorf("nothing exists yet, so nothing should be kept: %v", first.Kept)
-	}
-
-	// Edit one, as a practitioner would.
-	target := filepath.Join(root, scaffolds[0])
-
-	edited := []byte("package tag\n\n// mine\n")
-	if err := os.WriteFile(target, edited, 0o600); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	// Second write: the edit survives, and the run says so rather than staying silent.
-	second, err := Write(plan, WriteOptions{Root: root})
-	if err != nil {
-		t.Fatalf("second Write: %v", err)
-	}
-
-	got, err := os.ReadFile(target) //nolint:gosec // the path is a test temp dir
-	if err != nil {
-		t.Fatalf("ReadFile: %v", err)
-	}
-	if !bytes.Equal(got, edited) {
-		t.Errorf("the edit was overwritten:\n%s", got)
-	}
-
-	var reported bool
-	for _, p := range second.Kept {
-		if p == scaffolds[0] {
-			reported = true
-		}
-	}
-	if !reported {
-		t.Errorf("%s should be reported as kept, got %v", scaffolds[0], second.Kept)
-	}
-	for _, p := range second.Written {
-		if p == scaffolds[0] {
-			t.Errorf("%s was rewritten", p)
-		}
-	}
-}
-
-// TestUnit_Generate_AScaffoldCarriesNoGeneratedMarker.
-//
-// The marker is what the drift check and the overwrite refusal both key on. A scaffold carrying
-// one would be policed as generated code, which is the opposite of the point -- and the
-// manifest excluding it is only half the job if the file still announces itself as generated.
-func TestUnit_Generate_AScaffoldCarriesNoGeneratedMarker(t *testing.T) {
+// modify_plan.go and predicate.go were scaffold-once-then-owned; they are now
+// generated defaults like every other file -- headered, manifest-policed, and
+// rewritten on every emit. Behaviour beyond the default belongs in the
+// blueprint, so an edit made to these files directly must be drift the check
+// reports, which requires them to carry the marker.
+func TestUnit_Generate_HookFilesAreGeneratedDefaults(t *testing.T) {
 	t.Parallel()
 
 	g, err := New()
@@ -370,36 +292,22 @@ func TestUnit_Generate_AScaffoldCarriesNoGeneratedMarker(t *testing.T) {
 		t.Fatalf("Build: %v", err)
 	}
 
-	var checked int
-
+	var hooks int
 	for _, f := range plan.Files {
-		if !f.Scaffold {
-			// And the converse: everything the generator owns must carry it.
-			if !bytes.Contains(f.Content, []byte(generatedMarker)) {
-				t.Errorf("%s is generated but carries no marker", f.Path)
-			}
-
+		base := filepath.Base(f.Path)
+		if base != "modify_plan.go" && base != "predicate.go" && base != "state_upgrade.go" {
 			continue
 		}
-
-		checked++
-
-		if bytes.Contains(f.Content, []byte(generatedMarker)) {
-			t.Errorf("%s is a scaffold and must not carry the generated marker", f.Path)
+		hooks++
+		if !bytes.Contains(f.Content, []byte(generatedMarker)) {
+			t.Errorf("%s is a generated default and must carry the marker", f.Path)
 		}
-		if strings.HasPrefix(f.Path, "examples/") {
-			// Documentation payload: tfplugindocs copies these verbatim into the
-			// rendered pages, so an ownership note here would leak into every
-			// Example Usage block. The write-once behaviour still holds; the note
-			// lives on the mechanism instead of in the user-facing file.
-			continue
-		}
-		if !bytes.Contains(f.Content, []byte("This file is yours")) {
-			t.Errorf("%s should say plainly that it is not regenerated", f.Path)
+		if bytes.Contains(f.Content, []byte("This file is yours")) {
+			t.Errorf("%s still claims the retired hand-ownership contract", f.Path)
 		}
 	}
 
-	if checked == 0 {
+	if hooks == 0 {
 		t.Skip("the committed pilot blueprint declares no hooks")
 	}
 }

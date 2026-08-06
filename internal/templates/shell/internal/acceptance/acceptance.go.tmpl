@@ -1,0 +1,59 @@
+{{ .Header }}
+
+// Package acceptance holds what every acceptance test needs before it can run: the provider
+// under test, and the check that it is safe to run at all.
+//
+// It is generated from the provider blueprint by `tfpfgen provider scaffold`, like
+// internal/client. Authentication and the decision to touch a live tenant are policy, so they
+// live here in one reviewable place; a change to either belongs in the generator's shell
+// templates, not in an edit here.
+package acceptance
+
+import (
+	"os"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-testing/echoprovider"
+
+	tfprovider "{{ .Module }}/internal/provider"
+)
+
+// envBearerToken is the credential an acceptance run needs.
+//
+// Read from the environment and never from a flag: a flag lands in shell history and in the
+// process table, where a token that cannot be revoked through the ThousandEyes API would stay
+// valid until somebody deleted it by hand.
+const envBearerToken = "{{ .EnvPrefix }}_BEARER_TOKEN"
+
+// TestVersion is the version string the provider under test reports.
+const TestVersion = "acc"
+
+// ProtoV6ProviderFactories is what a resource.TestCase needs to serve the provider in process.
+//
+// The provider under test is named as it is in HCL, so a generated `.tf` fixture needs no
+// provider block of its own. The echo provider rides beside it for ephemeral tests only:
+// it is HashiCorp's fixture for observing an ephemeral value, which by design never
+// reaches state where an ordinary check could read it.
+var ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	"{{ .Name }}": providerserver.NewProtocol6WithError(tfprovider.New(TestVersion)()),
+	"echo":         echoprovider.NewProviderServer(),
+}
+
+// PreCheck skips or fails a test that cannot possibly pass.
+//
+// terraform-plugin-testing already requires TF_ACC, so this is only about credentials. Fatal
+// rather than a skip: if somebody has set TF_ACC they have asked for a live run, and silently
+// skipping would let a CI job report success having tested nothing.
+func PreCheck(t *testing.T) {
+	t.Helper()
+
+	if os.Getenv(envBearerToken) == "" {
+		t.Fatalf(
+			"%s must be set for an acceptance run. It is read from the environment only -- "+
+				"never pass it as a flag.",
+			envBearerToken,
+		)
+	}
+}

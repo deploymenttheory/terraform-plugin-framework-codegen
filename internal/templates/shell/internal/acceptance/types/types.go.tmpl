@@ -1,0 +1,30 @@
+{{ .Header }}
+
+// Package types declares what an acceptance test needs to know about a resource.
+//
+// It is one interface, in its own package, for an import-cycle reason: the per-resource test
+// helper lives in the resource's own package and implements this, while `check` and `destroy`
+// consume it. If the interface lived in either of those, the resource package would import the
+// checker and the checker would import the resource package.
+package types
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+)
+
+// TestResource is how an acceptance test asks the API whether an object is really there.
+//
+// Every resource gets one, and it is generated rather than hand-written: the question "does
+// this object exist" is answered by the resource's own read operation, which the blueprint
+// already describes.
+type TestResource interface {
+	// Exists reports whether the object named by the state is present in the API.
+	//
+	// The tri-state return is the point. A nil *bool with an error means the check itself
+	// failed -- a network problem, a bad token -- which is not the same as the object being
+	// absent, and a test that conflated the two would report a passing destroy for an API
+	// that was simply unreachable.
+	Exists(ctx context.Context, state *terraform.InstanceState) (*bool, error)
+}

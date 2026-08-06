@@ -1,54 +1,48 @@
 # The generated boundary
 
-The most important thing to understand about a generated provider is which files
-you may edit. This describes how that line is drawn, how it is enforced, and what
-to do when a file genuinely cannot be generated.
+There is no hand-written side of a generated provider any more: every file the
+tree carries is produced by the toolkit, and the only way to change one is to
+change its input -- the blueprint, the provider block, or the toolkit's own
+templates. This describes what produces each file and how that ownership is
+enforced.
 
 ## Who owns what
 
-| Path | Owner | Change it by |
+| Path | Produced by | Change it by |
 |---|---|---|
-| `internal/services/resources/**/{resource,model,construct,state,crud,list_resource}.go` | toolkit | editing the blueprint, then `provider generate` |
-| `internal/services/**/predicate.go` | **you** | editing it — see the note on the consistency predicate |
-| `internal/services/datasources/**/{datasource,model,read,state}.go` | toolkit | editing the blueprint, then `provider generate` |
-| `internal/services/**/{modify_plan,validate}.go` | **you** | editing them; `provider generate` never touches them again |
-| `internal/provider/{resources,datasources,list_resources,actions}.go` | toolkit | adding a blueprint, then `provider generate` |
-| `internal/services/actions/**/{action,model,invoke}.go` | toolkit | editing the blueprint, then `provider generate` |
-| `internal/services/**/testdata/{minimal,maximal}.tf` | toolkit | editing the blueprint's `accFixture` hints, then `provider generate` — see the note on fixtures |
-| `internal/provider/interfaces.go` | **you** | it pins that the generated registries are what satisfy each `ProviderWith*` |
-| `internal/provider/provider.go` | **you** | editing it — authentication is always bespoke |
-| `internal/client/` | **you** | editing it |
-| `internal/services/common/{crud,errors,schema}/` | **you** | editing them |
-| `internal/services/common/convert/` | **you**, for now | see the note below |
-| `internal/acceptance/` | **you** | editing it — see the note on the acceptance harness |
-| `go.mod`, `go.sum` | **you**, for now | `go get`; see the note below |
-| `.tfpfgen/manifest.json` | toolkit | it is written by `provider generate` |
+| `blueprints/<name>/provider.blueprint.json` | `provider init` | re-running init (`-force`), or fixing what it derives from |
+| `blueprints/<name>/**.blueprint.json` | `blueprint draft -prune-module` (+ `blueprint merge` folding probe facts) | re-drafting, re-probing, or fixing inference upstream |
+| `internal/services/{resources,datasources,actions,ephemerals}/**` | `provider generate` | editing the blueprint, then regenerating |
+| `internal/services/**/{modify_plan,predicate,state_upgrade}.go` | `provider generate` -- generated defaults, present when the blueprint declares `hooks` | declaring the behaviour in the blueprint; the emitter renders it |
+| `internal/provider/{resources,datasources,list_resources,actions,ephemerals}.go` | `provider generate` | adding or removing a blueprint |
+| `internal/services/**/testdata/*.tf`, `examples/**` | `provider generate` | editing `accFixture` hints or the example templates |
+| `internal/provider/{provider,interfaces}.go`, `internal/client/`, `internal/services/common/{convert,crud,errors,schema}/`, `internal/acceptance/**`, `main.go` | `provider scaffold`, from the shell templates | improving the templates in the toolkit, then re-scaffolding |
+| `internal/sdk/**` | `sdk generate` (kiota) | refreshing the snapshot or its patches |
+| `go.mod`, `go.sum` | the provider template repository, then `go mod tidy` inside the pipeline | template repository changes; tidy is a pipeline step |
+| `.tfpfgen/manifest.json` | `provider generate` and `provider scaffold`, each policing its own entries | never by hand |
 
-The `convert` package is hand-written today. It was expected to be generated, and
-may be later, but the resty-dialect version turned out to be sixteen functions
-rather than the fifty a Kiota-shaped SDK needs — small enough that generating it
-would be more machinery than it saves.
-
-`go.mod` is hand-maintained for now, which is why it appears in the table at all —
-its ownership was previously undocumented, and an undocumented owner is the one a
-generator eventually overwrites. It becomes partly generated when a blueprint
-starts declaring where its SDK comes from, since the SDK requirement and any
-`replace` for local development are then facts the blueprint holds.
+The `convert` package was the last "yours, for now" entry: it is now a shell
+template like the rest of the support packages. A conversion the templates lack
+is a toolkit feature request, not a hand edit -- the draft run refuses the field
+by name until the helper exists.
 
 The acceptance fixtures (`testdata/minimal.tf`, `testdata/maximal.tf`) moved from
-"yours" to generated, and the reversal is worth recording. A hand-maintained
-maximal fixture desynchronised from the bodies the probe had rehearsed within one
-batch of resources — the values acceptance ran were no longer the values the
-evidence vouched for. Both renderings of a fixture now come from one derivation
+"yours" to generated well before the rest, and the reversal that prompted it is
+worth keeping on record. A hand-maintained maximal fixture desynchronised from
+the bodies the probe had rehearsed within one batch of resources -- the values
+acceptance ran were no longer the values the evidence vouched for. Both
+renderings of a fixture come from one derivation
 (see [fixtures-and-rehearsal.md](fixtures-and-rehearsal.md)); what used to be a
-hand edit to the fixture is now an `accFixture` hint in the blueprint, which the
-probe honours too.
+hand edit to the fixture is an `accFixture` hint in the blueprint, which the
+probe honours too. The same argument, run to completion, is why the rest of the
+tree followed.
 
 ## The acceptance harness
 
-`internal/acceptance/{check,destroy,exists,testlog,types}` is hand-written and
-owned, on the same principle as `internal/client`: it decides how to authenticate
-and whether it is safe to touch a live tenant, and neither is a generator's call.
+`internal/acceptance/{check,destroy,exists,testlog,types}` is emitted by
+`provider scaffold` from the shell templates, parameterised by the provider
+block -- how it authenticates and which tenant it touches are facts the
+templates render, not decisions a person re-makes per provider.
 
 It is deliberately thin, because two things it would otherwise reimplement already
 exist and must not be duplicated:
@@ -170,58 +164,41 @@ That belongs in a hand-written file per the section below, and is why the ~168-r
 reference provider carries a `predicate.go` in 28 of its resource packages rather than in
 all of them.
 
-## The escape hatch
+## The hook files
 
-Some files cannot be generated. A resource may need a `ModifyPlan` that encodes
-judgement no document carries, or a read-back predicate that knows which
-field this particular API touches on write.
-
-Those files are **scaffolded once and then yours**. Declaring `hooks` on a
-resource asks for them:
+Some behaviour is declared per resource rather than following from the schema: a
+`ModifyPlan`, a read-back predicate that knows which field this particular API
+touches on write, a state upgrader. Declaring `hooks` on a resource asks for the
+files:
 
 ```json
 "hooks": { "modifyPlan": true, "readBackPredicate": true }
 ```
 
-`modifyPlan: true` scaffolds `modify_plan.go` and makes the resource assert
-`resource.ResourceWithModifyPlan`. `readBackPredicate: true` scaffolds
-`predicate.go` and adds the call site in the generated `crud.go`, so the
-predicate is wired in rather than being a file nobody reads.
-`stateUpgrade: true` scaffolds `state_upgrade.go` and asserts
+`modifyPlan: true` emits `modify_plan.go` and makes the resource assert
+`resource.ResourceWithModifyPlan`. `readBackPredicate: true` emits
+`predicate.go` and adds the call site in the generated `crud.go`.
+`stateUpgrade: true` emits `state_upgrade.go` and asserts
 `resource.ResourceWithUpgradeState`; it is required once `schema.version` is
 past zero, and refused when it is not.
 
-The state upgrader is the clearest case of the whole principle. The generator
-knows the schema changed and cannot know what the old fields *meant* — whether
-a renamed attribute is the same value, whether a string that became a list
-should be wrapped or split, whether a removed field's value belongs anywhere.
-Get that wrong and you corrupt state a practitioner cannot recover without
-hand-editing state files. So each scaffolded version key returns an error
-rather than passing state through: an error tells somebody to stay on the older
-provider until the migration is written, which is recoverable, and a
-passthrough would silently reinterpret every old field under the new schema.
+These were once scaffolded and then hand-owned. They are now generated defaults
+like every other file: headered, manifest-policed, and rewritten on each emit.
+The default bodies are deliberately conservative -- ModifyPlan adjusts nothing,
+the predicate treats readable as consistent, and each prior schema version is
+refused by name rather than passed through, because an error tells somebody to
+stay on the older provider until the migration is declared, which is
+recoverable, where a passthrough would silently reinterpret every old field
+under the new schema.
 
-Four things make the ownership real rather than a convention:
-
-1. **`provider generate` writes the file only if it is absent.** It stats the path before
-   reading it, because the content is irrelevant — the only question is whether
-   somebody already owns this file.
-2. **It reports what it kept**, rather than staying quiet:
-   `kept internal/services/.../modify_plan.go (yours; scaffolded once and not regenerated)`.
-   A silent skip is indistinguishable from a file the generator forgot.
-3. **The scaffold carries no generated marker**, and is absent from the manifest.
-   Both are what the drift check keys on, so `-check` does not report your edit
-   as drift or the file as an orphan.
-4. **The refusal is not what protects it.** `provider generate` already refuses to
-   overwrite an unmarked file, but that is a safety net for a collision nobody intended.
-   Relying on it here would mean every regeneration *failed* once you edited a
-   scaffold: `TestUnit_Generate_AScaffoldIsWrittenOnceAndThenKept` fails with exactly
-   that error if the skip is removed.
+Behaviour beyond the defaults is expressed in the blueprint -- observed
+normalisations, probe-established consistency signals, declared migrations --
+and rendered by the emitter. A hand edit to the emitted file is drift the check
+reports on the next run.
 
 There is deliberately **no** preserved-region mechanism inside a generated file.
-Ownership is all-or-nothing per file. Partial ownership means a merge on every
-regeneration, and a merge that can conflict is a merge that will, at which point
-nobody trusts the generator.
+Partial ownership means a merge on every regeneration, and a merge that can
+conflict is a merge that will, at which point nobody trusts the generator.
 
 ## Cross-attribute rules
 

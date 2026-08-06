@@ -1,0 +1,225 @@
+{{ .Header }}
+
+// Package client builds the ThousandEyes SDK client and hands it to resources.
+//
+// It is generated from the provider blueprint by `tfpfgen provider scaffold`.
+// Authentication is the most provider-specific part of the shell, which is why it
+// lives in this one package rather than being restated per resource: a generated
+// resource only ever asks this package for a configured client. A behaviour change
+// belongs in the generator's shell templates, not in an edit here, which the next
+// scaffold run would overwrite.
+package client
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-framework/action"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+
+	"github.com/microsoft/kiota-abstractions-go/authentication"
+	kiotahttp "github.com/microsoft/kiota-http-go"
+
+	"{{ .Module }}/internal/sdk"
+)
+
+// defaultAPIEndpoint is the v7 base URL the SDK itself defaults to, restated
+// here because the allowed-hosts validator needs the host before the SDK's
+// default has been applied.
+const defaultAPIEndpoint = "https://api.thousandeyes.com/v7"
+
+// Config is what the provider block resolves to, independent of the framework's
+// value types, so building a client is testable without a Terraform plan.
+type Config struct {
+	BearerToken    string
+	AccountGroupID string
+	APIEndpoint    string
+}
+
+// staticTokenProvider hands Kiota's authentication pipeline a token that never
+// changes. ThousandEyes tokens are created by hand and do not expire, so there
+// is nothing to refresh and no flow to run.
+//
+// The token must never reach a log file: it cannot be revoked through the API,
+// so one that leaks stays valid until somebody deletes it by hand in the UI.
+// Nothing here or in the Kiota pipeline prints it.
+type staticTokenProvider struct {
+	token     string
+	validator *authentication.AllowedHostsValidator
+}
+
+func (p *staticTokenProvider) GetAuthorizationToken(_ context.Context, _ *url.URL, _ map[string]any) (string, error) {
+	return p.token, nil
+}
+
+func (p *staticTokenProvider) GetAllowedHostsValidator() *authentication.AllowedHostsValidator {
+	return p.validator
+}
+
+// acceptNormalizer widens a degenerate Accept header before the request
+// leaves.
+//
+// For an operation whose specification declares no success media type -- a
+// DELETE whose only documented bodies are errors -- Kiota emits
+// `Accept: application/problem+json` alone, and the ThousandEyes API answers
+// that with 406 Not Acceptable before considering the request. The API's
+// actual success responses are hal+json or plain json, so both are added in
+// front whenever the emitted header would otherwise refuse them; a header
+// that already accepts a json form passes through untouched.
+type acceptNormalizer struct{}
+
+func (acceptNormalizer) Intercept(pipeline kiotahttp.Pipeline, middlewareIndex int, req *http.Request) (*http.Response, error) {
+	accept := req.Header.Get("Accept")
+	if accept != "" &&
+		!strings.Contains(accept, "application/json") &&
+		!strings.Contains(accept, "application/hal+json") {
+		req.Header.Set("Accept", "application/hal+json, application/json, "+accept)
+	}
+	return pipeline.Next(req, middlewareIndex)
+}
+
+// New builds an SDK client.
+func New(cfg Config) (*sdk.{{ .ClientClass }}, error) {
+	endpoint := cfg.APIEndpoint
+	if endpoint == "" {
+		endpoint = defaultAPIEndpoint
+	}
+
+	parsed, err := url.Parse(endpoint)
+	if err != nil || parsed.Hostname() == "" {
+		return nil, fmt.Errorf("the API endpoint %q is not a usable URL", endpoint)
+	}
+
+	// The validator pins the bearer token to the configured host, so a redirect
+	// or a mis-set endpoint cannot leak the credential to a host it was never
+	// meant for.
+	validator, err := authentication.NewAllowedHostsValidatorErrorCheck([]string{parsed.Hostname()})
+	if err != nil {
+		return nil, fmt.Errorf("building the allowed-hosts validator: %w", err)
+	}
+
+	authProvider := authentication.NewBaseBearerTokenAuthenticationProvider(&staticTokenProvider{
+		token:     cfg.BearerToken,
+		validator: validator,
+	})
+
+	// Request-body compression is off, and this is load-bearing rather than a
+	// preference: kiota's default middleware gzips every request body and sets
+	// Content-Encoding, which the ThousandEyes API answers with a bare 400 --
+	// the first live acceptance run of this pilot found exactly that. The
+	// resty pilot has always sent plain JSON; this client must match the wire
+	// behaviour the recorded evidence was gathered under.
+	middlewares, err := kiotahttp.GetDefaultMiddlewaresWithOptions(
+		kiotahttp.NewCompressionOptionsReference(false),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("building the HTTP middleware: %w", err)
+	}
+	middlewares = append(middlewares, acceptNormalizer{})
+
+	adapter, err := kiotahttp.NewNetHttpRequestAdapterWithParseNodeFactoryAndSerializationWriterFactoryAndHttpClient(
+		authProvider, nil, nil, kiotahttp.GetDefaultClient(middlewares...),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("building the ThousandEyes client: %w", err)
+	}
+	adapter.SetBaseUrl(endpoint)
+
+	// AccountGroupID is deliberately unused here. The resty SDK attached it to
+	// every request as the aid query parameter; Kiota models aid per request
+	// instead, so generated code applies it where an operation declares it
+	// rather than this package inventing request middleware.
+	_ = cfg.AccountGroupID
+
+	return sdk.New{{ .ClientClass }}(adapter), nil
+}
+
+// ForResource retrieves the configured client during a resource's Configure.
+//
+// It tolerates a nil ProviderData because the framework calls Configure once with
+// no data, before the provider itself has been configured. Treating that as an
+// error produces a spurious diagnostic on every run.
+func ForResource(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse, resourceType string) *sdk.{{ .ClientClass }} {
+	if req.ProviderData == nil {
+		return nil
+	}
+
+	client, ok := req.ProviderData.(*sdk.{{ .ClientClass }})
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected provider data",
+			fmt.Sprintf("%s expected a *sdk.{{ .ClientClass }} but got %T. This is a bug in the provider.",
+				resourceType, req.ProviderData),
+		)
+		return nil
+	}
+
+	return client
+}
+
+// ForAction is the action counterpart of ForResource.
+//
+// A third near-identical function rather than one generic helper, because the three
+// ConfigureRequest types are distinct structs with no common interface -- the framework gives
+// each block kind its own. A generic version would need a type parameter per field it reads,
+// which is more machinery than the duplication costs.
+func ForAction(_ context.Context, req action.ConfigureRequest, resp *action.ConfigureResponse, actionType string) *sdk.{{ .ClientClass }} {
+	if req.ProviderData == nil {
+		return nil
+	}
+
+	client, ok := req.ProviderData.(*sdk.{{ .ClientClass }})
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected provider data",
+			fmt.Sprintf("%s expected a *sdk.{{ .ClientClass }} but got %T. This is a bug in the provider.",
+				actionType, req.ProviderData),
+		)
+		return nil
+	}
+
+	return client
+}
+
+// ForDataSource is the data source counterpart of ForResource.
+func ForDataSource(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse, resourceType string) *sdk.{{ .ClientClass }} {
+	if req.ProviderData == nil {
+		return nil
+	}
+
+	client, ok := req.ProviderData.(*sdk.{{ .ClientClass }})
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected provider data",
+			fmt.Sprintf("%s expected a *sdk.{{ .ClientClass }} but got %T. This is a bug in the provider.",
+				resourceType, req.ProviderData),
+		)
+		return nil
+	}
+
+	return client
+}
+
+// ForEphemeral is the ephemeral resource counterpart of ForResource.
+func ForEphemeral(_ context.Context, req ephemeral.ConfigureRequest, resp *ephemeral.ConfigureResponse, ephemeralType string) *sdk.{{ .ClientClass }} {
+	if req.ProviderData == nil {
+		return nil
+	}
+
+	client, ok := req.ProviderData.(*sdk.{{ .ClientClass }})
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected provider data",
+			fmt.Sprintf("%s expected a *sdk.{{ .ClientClass }} but got %T. This is a bug in the provider.",
+				ephemeralType, req.ProviderData),
+		)
+		return nil
+	}
+
+	return client
+}
