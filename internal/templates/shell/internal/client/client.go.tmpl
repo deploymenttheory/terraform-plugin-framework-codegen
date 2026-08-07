@@ -1,6 +1,6 @@
 {{ .Header }}
 
-// Package client builds the ThousandEyes SDK client and hands it to resources.
+// Package client builds the {{ .DisplayName }} SDK client and hands it to resources.
 //
 // It is generated from the provider blueprint by `tfpfgen provider scaffold`.
 // Authentication is the most provider-specific part of the shell, which is why it
@@ -12,17 +12,31 @@ package client
 
 import (
 	"context"
+{{- if .IsUsernamePassword }}
+	"encoding/base64"
+{{- end }}
+{{- if .IsClientCredentials }}
+	"encoding/json"
+{{- end }}
 	"fmt"
+{{- if .IsClientCredentials }}
+	"io"
+{{- end }}
 	"net/http"
 	"net/url"
 	"strings"
+{{- if .IsClientCredentials }}
+	"sync"
+	"time"
+{{- end }}
 
 	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 
-	"github.com/microsoft/kiota-abstractions-go/authentication"
+{{ if .IsUsernamePassword }}	abs "github.com/microsoft/kiota-abstractions-go"
+{{ end }}	"github.com/microsoft/kiota-abstractions-go/authentication"
 	kiotahttp "github.com/microsoft/kiota-http-go"
 
 	"{{ .Module }}/internal/sdk"
@@ -36,18 +50,33 @@ const defaultAPIEndpoint = "https://api.thousandeyes.com/v7"
 // Config is what the provider block resolves to, independent of the framework's
 // value types, so building a client is testable without a Terraform plan.
 type Config struct {
-	BearerToken    string
+{{- if .IsBearer }}
+	BearerToken string
+{{- end }}
+{{- if .IsClientCredentials }}
+	ClientID     string
+	ClientSecret string
+	// TokenURL overrides the token endpoint the blueprint declared. Empty for
+	// every ordinary caller; a test sets it to reach a stub rather than the
+	// real authorization server.
+	TokenURL string
+{{- end }}
+{{- if .IsUsernamePassword }}
+	Username string
+	Password string
+{{- end }}
 	AccountGroupID string
 	APIEndpoint    string
 }
-
+{{ if .IsBearer }}
 // staticTokenProvider hands Kiota's authentication pipeline a token that never
-// changes. ThousandEyes tokens are created by hand and do not expire, so there
-// is nothing to refresh and no flow to run.
+// changes. A bearer token is issued out of band, so there is nothing to refresh
+// and no flow to run.
 //
-// The token must never reach a log file: it cannot be revoked through the API,
-// so one that leaks stays valid until somebody deletes it by hand in the UI.
-// Nothing here or in the Kiota pipeline prints it.
+// The token must never reach a log file. Some APIs -- ThousandEyes among them --
+// issue tokens that cannot be revoked through the API at all, so one that leaks
+// stays valid until somebody deletes it by hand. Nothing here or in the Kiota
+// pipeline prints it.
 type staticTokenProvider struct {
 	token     string
 	validator *authentication.AllowedHostsValidator
@@ -60,17 +89,203 @@ func (p *staticTokenProvider) GetAuthorizationToken(_ context.Context, _ *url.UR
 func (p *staticTokenProvider) GetAllowedHostsValidator() *authentication.AllowedHostsValidator {
 	return p.validator
 }
+{{- end }}
+{{- if .IsClientCredentials }}
+// defaultTokenURL is the token endpoint the blueprint declared. It is a
+// constant rather than a Config default, because the grant is part of how this
+// API is described and not something a practitioner chooses.
+const defaultTokenURL = {{ printf "%q" .TokenURL }}
+
+const (
+	// tokenRefreshMargin is how long before its stated expiry a cached token is
+	// treated as spent. A token that expires while a request is in flight fails
+	// that request for no reason a practitioner can act on, so the client stops
+	// trusting it slightly early instead.
+	tokenRefreshMargin = 30 * time.Second
+	// unstatedTokenLifetime is how long a token whose response carried no
+	// expires_in is cached for. Short, because nothing promised more; not zero,
+	// because a fresh grant per request would spend the run authenticating.
+	unstatedTokenLifetime = time.Minute
+	// tokenRequestTimeout bounds the grant. The authorization server is a
+	// different host from the API and gets no retry middleware, so an
+	// unreachable one must fail rather than hang a plan.
+	tokenRequestTimeout = 30 * time.Second
+)
+
+// clientCredentialsTokenProvider obtains access tokens with the OAuth 2.0
+// client-credentials grant and caches the one it holds until shortly before it
+// expires.
+//
+// Caching is the reason this type exists rather than a closure: a plan makes
+// hundreds of requests, and a grant per request would both be slow and invite
+// the authorization server's own rate limit. The mutex is held across the
+// refresh so that concurrent resources -- Terraform walks the graph in parallel
+// -- produce one grant between them rather than one each.
+type clientCredentialsTokenProvider struct {
+	tokenURL     string
+	clientID     string
+	clientSecret string
+	scopes       []string
+	httpClient   *http.Client
+	validator    *authentication.AllowedHostsValidator
+
+	mu      sync.Mutex
+	token   string
+	expires time.Time
+}
+
+func (p *clientCredentialsTokenProvider) GetAuthorizationToken(ctx context.Context, uri *url.URL, _ map[string]any) (string, error) {
+	// An empty token rather than an error for a host the provider was not
+	// configured for: Kiota then sends the request without an Authorization
+	// header instead of handing the access token to whatever host a redirect
+	// named.
+	if p.validator != nil && !p.validator.IsUrlHostValid(uri) {
+		return "", nil
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.token != "" && time.Now().Before(p.expires) {
+		return p.token, nil
+	}
+
+	token, lifetime, err := p.grant(ctx)
+	if err != nil {
+		return "", err
+	}
+	if lifetime > tokenRefreshMargin {
+		lifetime -= tokenRefreshMargin
+	}
+
+	p.token = token
+	p.expires = time.Now().Add(lifetime)
+
+	return p.token, nil
+}
+
+func (p *clientCredentialsTokenProvider) GetAllowedHostsValidator() *authentication.AllowedHostsValidator {
+	return p.validator
+}
+
+// grant runs one client-credentials exchange and reports the token and the
+// lifetime the server stated for it.
+//
+// The credentials go in the form body rather than in a Basic header: RFC 6749
+// permits both, but the body form is what every server accepts, and a server
+// that wants the header accepts the body too.
+func (p *clientCredentialsTokenProvider) grant(ctx context.Context) (string, time.Duration, error) {
+	form := url.Values{}
+	form.Set("grant_type", "client_credentials")
+	form.Set("client_id", p.clientID)
+	form.Set("client_secret", p.clientSecret)
+	if len(p.scopes) > 0 {
+		form.Set("scope", strings.Join(p.scopes, " "))
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.tokenURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", 0, fmt.Errorf("building the token request for %s: %w", p.tokenURL, err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return "", 0, fmt.Errorf("requesting an access token from %s: %w", p.tokenURL, err)
+	}
+	defer resp.Body.Close()
+
+	// Bounded, because an endpoint answering with something other than a token
+	// response can answer with anything at all, including a login page.
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return "", 0, fmt.Errorf("reading the token response from %s: %w", p.tokenURL, err)
+	}
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		// The body is quoted because an OAuth failure states its reason in
+		// error_description and nowhere else. It carries no credential: the
+		// secret travelled in the request, not the response.
+		return "", 0, fmt.Errorf("the token endpoint %s answered %s: %s",
+			p.tokenURL, resp.Status, strings.TrimSpace(string(body)))
+	}
+
+	var payload struct {
+		AccessToken string `json:"access_token"`
+		ExpiresIn   int64  `json:"expires_in"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return "", 0, fmt.Errorf("the token endpoint %s did not answer with JSON: %w", p.tokenURL, err)
+	}
+	if payload.AccessToken == "" {
+		return "", 0, fmt.Errorf("the token endpoint %s returned no access_token", p.tokenURL)
+	}
+
+	if payload.ExpiresIn <= 0 {
+		return payload.AccessToken, unstatedTokenLifetime, nil
+	}
+
+	return payload.AccessToken, time.Duration(payload.ExpiresIn) * time.Second, nil
+}
+{{- end }}
+{{- if .IsUsernamePassword }}
+// basicAuthProvider authenticates every request with HTTP Basic credentials.
+//
+// It implements Kiota's AuthenticationProvider directly rather than sitting
+// behind the bearer-token base class, because Basic is not a bearer scheme:
+// there is no token to obtain, only a header computed once from credentials
+// that do not change for the life of the provider.
+type basicAuthProvider struct {
+	header    string
+	validator *authentication.AllowedHostsValidator
+}
+
+func newBasicAuthProvider(username, password string, validator *authentication.AllowedHostsValidator) *basicAuthProvider {
+	return &basicAuthProvider{
+		header:    "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password)),
+		validator: validator,
+	}
+}
+
+func (p *basicAuthProvider) AuthenticateRequest(_ context.Context, request *abs.RequestInformation, _ map[string]any) error {
+	if request == nil {
+		return fmt.Errorf("the request is nil")
+	}
+	if request.Headers == nil {
+		request.Headers = abs.NewRequestHeaders()
+	}
+
+	uri, err := request.GetUri()
+	if err != nil {
+		return err
+	}
+
+	// The host check is the same protection the bearer path's validator gives,
+	// and it matters more here: base64 is an encoding and not encryption, so a
+	// Basic header handed to a host a redirect named is the password itself
+	// given away. A request to any other host goes out unauthenticated.
+	if p.validator != nil && !p.validator.IsUrlHostValid(uri) {
+		return nil
+	}
+
+	request.Headers.TryAdd("Authorization", p.header)
+
+	return nil
+}
+{{- end }}
 
 // acceptNormalizer widens a degenerate Accept header before the request
 // leaves.
 //
 // For an operation whose specification declares no success media type -- a
 // DELETE whose only documented bodies are errors -- Kiota emits
-// `Accept: application/problem+json` alone, and the ThousandEyes API answers
-// that with 406 Not Acceptable before considering the request. The API's
-// actual success responses are hal+json or plain json, so both are added in
-// front whenever the emitted header would otherwise refuse them; a header
-// that already accepts a json form passes through untouched.
+// `Accept: application/problem+json` alone, and an API that takes the header
+// at its word answers 406 Not Acceptable before considering the request; the
+// ThousandEyes API does exactly that. Real success responses are hal+json or
+// plain json, so both are added in front whenever the emitted header would
+// otherwise refuse them; a header that already accepts a json form passes
+// through untouched.
 type acceptNormalizer struct{}
 
 func (acceptNormalizer) Intercept(pipeline kiotahttp.Pipeline, middlewareIndex int, req *http.Request) (*http.Response, error) {
@@ -95,25 +310,61 @@ func New(cfg Config) (*sdk.{{ .ClientClass }}, error) {
 		return nil, fmt.Errorf("the API endpoint %q is not a usable URL", endpoint)
 	}
 
-	// The validator pins the bearer token to the configured host, so a redirect
-	// or a mis-set endpoint cannot leak the credential to a host it was never
-	// meant for.
+	// The validator pins the credential to the configured host, so a redirect
+	// or a mis-set endpoint cannot leak it to a host it was never meant for.
 	validator, err := authentication.NewAllowedHostsValidatorErrorCheck([]string{parsed.Hostname()})
 	if err != nil {
 		return nil, fmt.Errorf("building the allowed-hosts validator: %w", err)
 	}
-
+{{ if .IsBearer }}
 	authProvider := authentication.NewBaseBearerTokenAuthenticationProvider(&staticTokenProvider{
 		token:     cfg.BearerToken,
 		validator: validator,
 	})
+{{- end }}
+{{- if .IsClientCredentials }}
+	tokenURL := cfg.TokenURL
+	if tokenURL == "" {
+		tokenURL = defaultTokenURL
+	}
+
+	// A specification is entitled to describe its token endpoint as a path
+	// rather than a URL -- Jamf Pro declares /api/v1/oauth/token -- and it
+	// means "on this same server". Resolved against the configured endpoint so
+	// the grant reaches the tenant the practitioner named, rather than being
+	// posted to a relative path no HTTP client can dial.
+	if strings.HasPrefix(tokenURL, "/") {
+		base := *parsed
+		base.Path = tokenURL
+		base.RawQuery = ""
+		base.Fragment = ""
+		tokenURL = base.String()
+	}
+
+	// The grant gets its own HTTP client rather than the API's: the token
+	// endpoint is a different service, and running it through the API client's
+	// middleware would send it the API's Accept handling and, worse, the
+	// authentication pipeline that is trying to obtain the token.
+	authProvider := authentication.NewBaseBearerTokenAuthenticationProvider(&clientCredentialsTokenProvider{
+		tokenURL:     tokenURL,
+		clientID:     cfg.ClientID,
+		clientSecret: cfg.ClientSecret,
+		scopes:       {{ .Scopes }},
+		httpClient:   &http.Client{Timeout: tokenRequestTimeout},
+		validator:    validator,
+	})
+{{- end }}
+{{- if .IsUsernamePassword }}
+	authProvider := newBasicAuthProvider(cfg.Username, cfg.Password, validator)
+{{- end }}
 
 	// Request-body compression is off, and this is load-bearing rather than a
 	// preference: kiota's default middleware gzips every request body and sets
-	// Content-Encoding, which the ThousandEyes API answers with a bare 400 --
-	// the first live acceptance run of this pilot found exactly that. The
-	// resty pilot has always sent plain JSON; this client must match the wire
-	// behaviour the recorded evidence was gathered under.
+	// Content-Encoding, and an API that does not read compressed bodies answers
+	// that with a bare 400 naming nothing. The ThousandEyes API is one such, and
+	// the first live acceptance run against it found exactly that. Probe
+	// evidence is recorded over plain JSON, so plain JSON is the wire behaviour
+	// a generated client must match.
 	middlewares, err := kiotahttp.GetDefaultMiddlewaresWithOptions(
 		kiotahttp.NewCompressionOptionsReference(false),
 	)
@@ -126,7 +377,7 @@ func New(cfg Config) (*sdk.{{ .ClientClass }}, error) {
 		authProvider, nil, nil, kiotahttp.GetDefaultClient(middlewares...),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("building the ThousandEyes client: %w", err)
+		return nil, fmt.Errorf("building the {{ .DisplayName }} client: %w", err)
 	}
 	adapter.SetBaseUrl(endpoint)
 

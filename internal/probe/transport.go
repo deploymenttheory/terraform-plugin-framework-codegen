@@ -31,9 +31,10 @@ type httpSession struct {
 	client *http.Client
 	// base is the API root, e.g. "https://api.example.com".
 	base string
-	// token is the bearer credential. Held here and nowhere else: it is not in the
+	// authorization is the finished Authorization header value, e.g.
+	// "Bearer x" or "Basic y". Held here and nowhere else: it is not in the
 	// profile, not in a flag, and not in anything written to disk.
-	token string
+	authorization string
 
 	collection string
 	item       string
@@ -66,8 +67,9 @@ type SessionConfig struct {
 	Transport http.RoundTripper
 	// BaseURL is the API root.
 	BaseURL string
-	// Token is the bearer credential, or empty in replay where none is needed.
-	Token string
+	// Authorization is the finished Authorization header value, or empty in
+	// replay where no credential is needed.
+	Authorization string
 
 	// CollectionTemplate and ItemTemplate come from the subject.
 	CollectionTemplate string
@@ -105,13 +107,13 @@ func newHTTPSession(cfg SessionConfig) (*httpSession, error) {
 	}
 
 	return &httpSession{
-		client:     &http.Client{Transport: cfg.Transport, Timeout: timeout},
-		base:       strings.TrimSuffix(cfg.BaseURL, "/"),
-		token:      cfg.Token,
-		collection: cfg.CollectionTemplate,
-		item:       cfg.ItemTemplate,
-		budget:     &budgetCounter{limits: cfg.Budget.WithDefaults()},
-		pace:       &pacer{},
+		client:        &http.Client{Transport: cfg.Transport, Timeout: timeout},
+		base:          strings.TrimSuffix(cfg.BaseURL, "/"),
+		authorization: cfg.Authorization,
+		collection:    cfg.CollectionTemplate,
+		item:          cfg.ItemTemplate,
+		budget:        &budgetCounter{limits: cfg.Budget.WithDefaults()},
+		pace:          &pacer{},
 	}, nil
 }
 
@@ -188,8 +190,12 @@ func (s *httpSession) do(
 		return nil, fmt.Errorf("building a %s request for %s: %w", method, path, err)
 	}
 
-	if s.token != "" {
-		req.Header.Set("Authorization", "Bearer "+s.token)
+	// One finished header, built once by whoever knew the method. A new auth
+	// method is a new way to compute this string and nothing else in the
+	// transport: the request path, the budget, the redaction and the cassette
+	// are all indifferent to how the caller proved who it was.
+	if s.authorization != "" {
+		req.Header.Set("Authorization", s.authorization)
 	}
 	req.Header.Set("Accept", "application/json")
 	if body != nil {

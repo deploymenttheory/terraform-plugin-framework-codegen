@@ -927,9 +927,37 @@ func verifyFromCreate(l *Loader, res blueprint.Resource, r *Report) {
 		t = v.Type()
 	}
 
+	// The resolved type is fed through the identifier attribute's own flatten,
+	// because that is exactly what the emitter renders: plan.ID = <flatten>(created.…).
+	// So the two sides agreeing is not pedantry. It holds wherever an API creates
+	// and reads the same model, and Jamf's Venafi CA is where it stops: the POST
+	// answers with an href object whose id is a string, while the record's own id
+	// is an int32, and the converter drafted for one does not compile against the
+	// other. Nothing smaller can be removed -- a resource that cannot store its
+	// identifier after create cannot be read back at all -- so this is reported
+	// against the binding and takes the resource with it.
+	if idAttr, ok := attributeNamed(res.Schema.Attributes, id.Attribute); ok &&
+		idAttr.Wire.SDKGoType != "" && idAttr.Wire.SDKGoType != "any" &&
+		!typeMatches(t, idAttr.Wire.SDKGoType) {
+		problem("%s yields %s, but attribute %q is mapped from %s, and the identifier is "+
+			"stored through that attribute's own conversion",
+			expr, shortType(t), id.Attribute, idAttr.Wire.SDKGoType)
+		return
+	}
+
 	// fromCreateIsPointer is deliberately not held against the resolved type:
 	// nothing in generation consumes the flag today, and the committed resty set
 	// records it loosely. The check that matters -- every selected symbol exists
 	// and yields exactly one value -- has already passed by here.
 	r.Checked++
+}
+
+// attributeNamed finds a top-level attribute by its tfsdk name.
+func attributeNamed(attrs []blueprint.Attribute, name string) (blueprint.Attribute, bool) {
+	for _, a := range attrs {
+		if a.Name == name {
+			return a, true
+		}
+	}
+	return blueprint.Attribute{}, false
 }

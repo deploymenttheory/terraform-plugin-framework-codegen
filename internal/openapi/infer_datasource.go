@@ -211,6 +211,10 @@ func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.Da
 			Attribute: attrName,
 			GoField:   goFieldOf(attrs, attrName),
 			SDKField:  kiotaAccessorBase(f.Name),
+			// A documented value set reaches the element as the SDK's own named
+			// type. The attribute stays a string either way -- what changes is
+			// how the resolver may compare the two.
+			SDKEnum: f.IsEnum(),
 		})
 		markSelector(attrs, attrName)
 	}

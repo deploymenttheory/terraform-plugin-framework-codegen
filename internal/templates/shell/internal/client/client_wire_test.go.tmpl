@@ -16,14 +16,30 @@ import (
 	"{{ .Module }}/internal/sdk/models"
 )
 
+{{- if .IsClientCredentials }}
+// tokenServer answers the client-credentials grant, so a wire test can build a
+// client without reaching the real authorization server.
+func tokenServer(t *testing.T) *httptest.Server {
+	t.Helper()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"access_token":"tok","expires_in":3600}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	return srv
+}
+{{ end }}
 // TestUnit_Client_SendsPlainJSONBodies pins the wire shape of a write.
 //
 // Kiota's default middleware gzips every request body and sets
-// Content-Encoding, and the ThousandEyes API answers that with a bare 400 --
-// which is exactly how the first live acceptance run of this pilot failed,
-// with nothing in the error naming the cause. The recorded probe evidence was
-// gathered over plain JSON, so plain JSON is the contract this client must
-// keep; this test fails if the compression middleware ever comes back.
+// Content-Encoding, and an API that does not read compressed bodies answers
+// that with a bare 400 -- which is exactly how the first live acceptance run
+// of the ThousandEyes pilot failed, with nothing in the error naming the
+// cause. Recorded probe evidence is gathered over plain JSON, so plain JSON is
+// the contract this client must keep; this test fails if the compression
+// middleware ever comes back.
 func TestUnit_Client_SendsPlainJSONBodies(t *testing.T) {
 	t.Parallel()
 
@@ -48,8 +64,21 @@ func TestUnit_Client_SendsPlainJSONBodies(t *testing.T) {
 		_, _ = w.Write([]byte(`{"id":"11111111-1111-1111-1111-111111111111","key":"k","value":"v"}`))
 	}))
 	defer srv.Close()
+{{- if .IsBearer }}
 
 	c, err := New(Config{BearerToken: "tok", APIEndpoint: srv.URL + "/v7"})
+{{- end }}
+{{- if .IsClientCredentials }}
+
+	c, err := New(Config{
+		ClientID: "id", ClientSecret: "secret",
+		TokenURL: tokenServer(t).URL, APIEndpoint: srv.URL + "/v7",
+	})
+{{- end }}
+{{- if .IsUsernamePassword }}
+
+	c, err := New(Config{Username: "user", Password: "pass", APIEndpoint: srv.URL + "/v7"})
+{{- end }}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +97,13 @@ func TestUnit_Client_SendsPlainJSONBodies(t *testing.T) {
 	if got.method != http.MethodPost || got.path != "/v7/tags" {
 		t.Errorf("request = %s %s, want POST /v7/tags", got.method, got.path)
 	}
+{{- if .IsUsernamePassword }}
+	// base64("user:pass"), the header the Basic scheme computes from the
+	// credentials the client was configured with.
+	if got.auth != "Basic dXNlcjpwYXNz" {
+{{- else }}
 	if got.auth != "Bearer tok" {
+{{- end }}
 		t.Errorf("Authorization = %q", got.auth)
 	}
 	if got.contentType != "application/json" {
@@ -93,11 +128,11 @@ func TestUnit_Client_SendsPlainJSONBodies(t *testing.T) {
 // TestUnit_Client_DeleteAcceptsAJSONForm pins the Accept header of a delete.
 //
 // The credentials DELETE declares no success media type, so Kiota emits
-// `Accept: application/problem+json` alone -- and the ThousandEyes API
-// answers exactly that header with 406 Not Acceptable, which is how the
-// credential resource failed its first live acceptance run. The client's
-// acceptNormalizer widens the header to admit the API's real success forms;
-// this test fails if a delete ever goes out refusing them again.
+// `Accept: application/problem+json` alone -- and an API that takes that
+// header at its word answers 406 Not Acceptable, which is how the credential
+// resource failed its first live acceptance run against ThousandEyes. The
+// client's acceptNormalizer widens the header to admit the API's real success
+// forms; this test fails if a delete ever goes out refusing them again.
 func TestUnit_Client_DeleteAcceptsAJSONForm(t *testing.T) {
 	t.Parallel()
 
@@ -107,8 +142,21 @@ func TestUnit_Client_DeleteAcceptsAJSONForm(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
+{{- if .IsBearer }}
 
 	c, err := New(Config{BearerToken: "tok", APIEndpoint: srv.URL + "/v7"})
+{{- end }}
+{{- if .IsClientCredentials }}
+
+	c, err := New(Config{
+		ClientID: "id", ClientSecret: "secret",
+		TokenURL: tokenServer(t).URL, APIEndpoint: srv.URL + "/v7",
+	})
+{{- end }}
+{{- if .IsUsernamePassword }}
+
+	c, err := New(Config{Username: "user", Password: "pass", APIEndpoint: srv.URL + "/v7"})
+{{- end }}
 	if err != nil {
 		t.Fatal(err)
 	}

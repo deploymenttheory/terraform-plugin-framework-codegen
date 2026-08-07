@@ -106,6 +106,11 @@ paths:
                   id: {type: string, readOnly: true}
                   name: {type: string}
   /things/{id}:
+    delete:
+      operationId: deleteThing
+      tags: [Things]
+      responses:
+        '204': {description: gone}
     get:
       operationId: getThing
       tags: [Things]
@@ -166,6 +171,11 @@ paths:
                   base: {type: string}
                   name: {type: string}
   /things/{id}:
+    delete:
+      operationId: deleteThing
+      tags: [Things]
+      responses:
+        '204': {description: gone}
     get:
       operationId: getThing
       tags: [Things]
@@ -250,6 +260,11 @@ paths:
       responses:
         '201': {}
   /things/{id}:
+    delete:
+      operationId: deleteThing
+      tags: [Things]
+      responses:
+        '204': {description: gone}
     get:
       operationId: getThing
       tags: [Things]
@@ -295,6 +310,11 @@ paths:
                 properties:
                   name: {type: string}
   /things/{id}:
+    delete:
+      operationId: deleteThing
+      tags: [Things]
+      responses:
+        '204': {description: gone}
     get:
       operationId: getThing
       tags: [Things]
@@ -356,6 +376,11 @@ paths:
                 properties:
                   id: {type: string, readOnly: true}
   /things/{id}:
+    delete:
+      operationId: deleteThing
+      tags: [Things]
+      responses:
+        '204': {description: gone}
     get:
       operationId: getThing
       tags: [Things]

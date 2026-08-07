@@ -76,6 +76,12 @@ type Selector struct {
 	// SDKField is the accessor base on the list element the selector matches
 	// against, e.g. "TestName". Empty when ViaRead.
 	SDKField string `json:"sdkField,omitempty"`
+	// SDKEnum records that the accessor yields a generated enumeration rather
+	// than a plain scalar -- a documented value set the SDK mints a named type
+	// for. It is a fact about the SDK, not about the attribute, which stays a
+	// string: the emitter needs it because the comparison against a configured
+	// value has to go through the enumeration's String() to typecheck at all.
+	SDKEnum bool `json:"sdkEnum,omitempty"`
 	// ViaRead marks the direct identifier: no list resolution, the value feeds
 	// the Read chain as-is.
 	ViaRead bool `json:"viaRead,omitempty"`

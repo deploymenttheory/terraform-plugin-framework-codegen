@@ -118,8 +118,8 @@ type SweepRunOptions struct {
 
 	Subject Subject
 
-	BaseURL string
-	Token   string
+	BaseURL       string
+	Authorization string
 
 	// Ledger is the previous run's ledger, opened for append so this sweep's deletes are
 	// recorded too. A sweep is the continuation of a run that did not finish.
@@ -153,7 +153,7 @@ func RunSweep(ctx context.Context, opts SweepRunOptions) (SweepSummary, error) {
 	live, err := newHTTPSession(SessionConfig{
 		Transport:          transport,
 		BaseURL:            opts.BaseURL,
-		Token:              opts.Token,
+		Authorization:      opts.Authorization,
 		CollectionTemplate: opts.Subject.CollectionTemplate,
 		ItemTemplate:       opts.Subject.ItemTemplate,
 		// The reserve is what a sweep spends from, and it is derived from MaxCreates -- so a

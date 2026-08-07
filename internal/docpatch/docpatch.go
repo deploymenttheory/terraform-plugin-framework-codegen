@@ -319,6 +319,7 @@ func Normalize(specYAML []byte) (out []byte, stripped, collapsed int, err error)
 	top := root.Content[0]
 	stripped = stripAllDefaults(top)
 	collapsed = collapseAnonymousAllOfs(top)
+	widenByteArrayCollections(top)
 
 	out, err = yaml.Marshal(&root)
 	if err != nil {
@@ -548,4 +549,65 @@ func pointerTokens(pointer string) ([]string, error) {
 		parts[i] = p
 	}
 	return parts, nil
+}
+
+// widenByteArrayCollections drops the byte format from an array's item schema.
+//
+// kiota generates WriteCollectionOfByteArrayValues for an array of
+// format: byte strings, and its own runtime does not implement that method --
+// the generated SDK does not compile. Jamf Pro's Certificate.data is the case
+// that found it; ThousandEyes has no such field, which is why a second API was
+// needed to see it at all.
+//
+// Widening the element to a plain string is the honest repair: the wire
+// carries base64 text either way, so nothing about the request or the response
+// changes, and a Terraform practitioner handling a list of base64 strings
+// wants strings rather than an opaque byte slice. A single format: byte
+// string is left alone -- that shape generates WriteByteArrayValue, which the
+// runtime does implement.
+func widenByteArrayCollections(top *yaml.Node) {
+	if schemas := childValue(childValue(top, "components"), "schemas"); schemas != nil {
+		for i := 1; i < len(schemas.Content); i += 2 {
+			widenByteArrays(schemas.Content[i])
+		}
+	}
+	if paths := childValue(top, "paths"); paths != nil {
+		widenByteArrays(paths)
+	}
+}
+
+// widenByteArrays walks a node, removing `format: byte` from any schema that
+// is the `items` of an array.
+func widenByteArrays(node *yaml.Node) {
+	if node == nil {
+		return
+	}
+
+	switch node.Kind {
+	case yaml.MappingNode:
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			key, value := node.Content[i].Value, node.Content[i+1]
+			if key == "items" {
+				dropByteFormat(value)
+			}
+			widenByteArrays(value)
+		}
+	case yaml.SequenceNode:
+		for _, member := range node.Content {
+			widenByteArrays(member)
+		}
+	}
+}
+
+// dropByteFormat removes `format: byte` from one schema node.
+func dropByteFormat(schema *yaml.Node) {
+	if schema == nil || schema.Kind != yaml.MappingNode {
+		return
+	}
+	for i := 0; i+1 < len(schema.Content); i += 2 {
+		if schema.Content[i].Value == "format" && schema.Content[i+1].Value == "byte" {
+			schema.Content = append(schema.Content[:i], schema.Content[i+2:]...)
+			return
+		}
+	}
 }

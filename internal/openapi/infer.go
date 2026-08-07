@@ -210,7 +210,7 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 	}
 
 	// Without an identifier there is nothing to read, import or delete by.
-	if why := adoptIdentifier(&r, c, opts.SDKDialect); why != "" {
+	if why := adoptIdentifier(&r, c, opts.SDKDialect, d.createOnlyFields(c)); why != "" {
 		notes = append(notes, Caveat{Resource: c.Key, Message: why})
 	}
 
@@ -226,13 +226,67 @@ func (d *Document) Infer(c Candidate, opts InferOptions) (blueprint.Resource, []
 // literal "id" the parameter's attribute is renamed to "id" while its wire binding
 // keeps the API's spelling, and fromCreate reads the same field off the create
 // response. This is exactly the shape curation used to produce by hand.
-func adoptIdentifier(r *blueprint.Resource, c Candidate, dialect blueprint.SDKDialect) string {
+func adoptIdentifier(
+	r *blueprint.Resource,
+	c Candidate,
+	dialect blueprint.SDKDialect,
+	createOnly []Field,
+) string {
 	jsonName, ok := adoptIDAttribute(r.Schema.Attributes, c)
 	if !ok {
 		if hasAttribute(r.Schema.Attributes, "id") {
 			return ""
 		}
-		return "no id attribute in the schemas, so the resource cannot be imported or refreshed"
+
+		// The state schema carries no identifier under any spelling. An API
+		// may still hand one back once, on create, and never mention it again
+		// -- Jamf Pro answers a create with {id, href} and its read response
+		// has no id at all. That identifier is the only thing a later read or
+		// delete can address the object by, so it is adopted as a computed
+		// attribute that create fills and no read flattens.
+		f, found := identifierAmong(createOnly, c)
+		if !found {
+			return "no id attribute in the schemas, so the resource cannot be imported or refreshed"
+		}
+
+		sdkField := namingOpts.GoFieldName(f.Name)
+		if dialect == blueprint.DialectKiotaFluent {
+			sdkField = kiotaAccessorBase(f.Name)
+		}
+
+		r.Schema.Attributes = append(r.Schema.Attributes, blueprint.Attribute{
+			Name:                     "id",
+			GoField:                  "ID",
+			Type:                     blueprint.AttrType{Kind: blueprint.KindString},
+			ComputedOptionalRequired: blueprint.Computed,
+			MarkdownDescription: fmt.Sprintf(
+				"The object's identifier. The API returns it when the object is created, as %s, "+
+					"and does not repeat it on read; Terraform keeps it in state and addresses "+
+					"the object by it thereafter.", f.Name),
+			Wire: blueprint.WireBinding{
+				JSONPath:  f.Name,
+				SDKField:  sdkField,
+				SDKGoType: "*string",
+				// The conversion is named because the create path needs it to
+				// store what the API just handed back, and skipped because the
+				// read path has no such field to map from. The two directions
+				// genuinely differ here, which is exactly what the pair says.
+				Flatten:     &blueprint.ConvertCall{Func: "convert.PtrStringToFramework"},
+				SkipFlatten: true,
+				SkipExpand:  true,
+			},
+		})
+		sort.SliceStable(r.Schema.Attributes, func(x, y int) bool {
+			return r.Schema.Attributes[x].Name < r.Schema.Attributes[y].Name
+		})
+
+		if dialect == blueprint.DialectKiotaFluent {
+			r.Binding.ID.FromCreate = "created.Get" + kiotaAccessorBase(f.Name) + "()"
+		} else {
+			r.Binding.ID.FromCreate = "created." + namingOpts.GoFieldName(f.Name)
+		}
+
+		return ""
 	}
 
 	if dialect == blueprint.DialectKiotaFluent {
@@ -923,4 +977,38 @@ func summaryOf(c Candidate) string {
 		}
 	}
 	return ""
+}
+
+// createOnlyFields lists the fields the create response carries.
+//
+// Distinct from the merged attribute set, which prefers the read response:
+// an identifier an API states once at creation and never repeats is invisible
+// there, and it is exactly what the resource needs to address itself later.
+func (d *Document) createOnlyFields(c Candidate) []Field {
+	return Fields(responseSchema(d.operation(c.Create)))
+}
+
+// identifierAmong picks the identifier-shaped field out of a set, using the
+// same spellings adoptIDAttribute prefers.
+func identifierAmong(fields []Field, c Candidate) (Field, bool) {
+	param := ""
+	if i := strings.LastIndex(c.ItemPath, "{"); i >= 0 {
+		param = strings.Trim(c.ItemPath[i:], "{}")
+	}
+
+	want := []string{"id"}
+	if param != "" {
+		want = append([]string{param}, want...)
+	}
+	want = append(want, naming.TerraformName(c.Key)+"Id", "uid", "guid", "aid")
+
+	for _, name := range want {
+		for _, f := range fields {
+			if f.Name == name && f.Kind == blueprint.KindString {
+				return f, true
+			}
+		}
+	}
+
+	return Field{}, false
 }

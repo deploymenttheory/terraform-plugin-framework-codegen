@@ -3,7 +3,10 @@ package openapi
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 )
 
 // miniSpec is a small document exercising the shapes discovery has to get right:
@@ -159,25 +162,41 @@ func TestUnit_Discover_Classify(t *testing.T) {
 	}
 }
 
-// TestUnit_Discover_ClassifyReportsPartialLifecycles: a resource with no update
-// is still a resource, but the reason has to reach the operator, because it
-// implies RequiresReplace on everything.
+// TestUnit_Discover_ClassifyReportsPartialLifecycles: the two halves of a
+// partial lifecycle are not the same kind of gap, and the classification says
+// so.
+//
+// No update is survivable -- every change becomes a replacement, which
+// policy.updateStyle already records -- so it stays a resource, and the reason
+// has to reach the operator because it implies RequiresReplace on everything.
+// No delete is not: Terraform owns a resource until destroy ends it, and one
+// that cannot be destroyed leaves state describing something no plan can
+// remove. It is still readable, so it comes back as a lookup rather than being
+// lost.
 func TestUnit_Discover_ClassifyReportsPartialLifecycles(t *testing.T) {
 	t.Parallel()
 
 	op := &Operation{Method: "GET"}
 
-	kind, why := Candidate{Create: op, Read: op}.Classify()
+	kind, why := Candidate{Create: op, Read: op, Delete: op}.Classify()
 	if kind != CandidateKindResource {
-		t.Fatalf("kind = %s, want resource", kind)
+		t.Fatalf("kind = %s (%s), want resource: no update is survivable", kind, why)
 	}
-	if why != "no update or delete" {
-		t.Errorf("why = %q, want it to name both gaps", why)
+	if why != "no update" {
+		t.Errorf("why = %q, want it to name the gap", why)
 	}
 
-	_, why = Candidate{Create: op, Read: op, Delete: op}.Classify()
-	if why != "no update" {
-		t.Errorf("why = %q", why)
+	kind, why = Candidate{Create: op, Read: op}.Classify()
+	if kind != CandidateKindDataSource {
+		t.Fatalf("kind = %s, want dataSource: Terraform cannot own what it cannot destroy", kind)
+	}
+	if !strings.Contains(why, "deletable") {
+		t.Errorf("why = %q, want it to name the missing delete", why)
+	}
+
+	kind, why = Candidate{Create: op, Read: op, Update: op, Delete: op}.Classify()
+	if kind != CandidateKindResource || why != "full lifecycle" {
+		t.Errorf("Classify() = %s (%s), want resource (full lifecycle)", kind, why)
 	}
 }
 
@@ -322,5 +341,77 @@ func TestUnit_Discover_AgainstTheCommittedSpecification(t *testing.T) {
 	// which the blueprint records as putFull. Discovery must see the same verb.
 	if tag.Update != nil && tag.Update.Method != "PUT" {
 		t.Errorf("tag update is %s; the blueprint's putFull update style assumes PUT", tag.Update.Method)
+	}
+}
+
+// TestUnit_OpenAPI_AuthFromSecuritySchemes covers reading the auth method off
+// the document, using the shapes a real second API declares: Jamf Pro offers
+// bearer, basic and an OAuth client-credentials flow whose token endpoint is a
+// path rather than a URL.
+func TestUnit_OpenAPI_AuthFromSecuritySchemes(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		schemes  string
+		want     blueprint.AuthMethod
+		tokenURL string
+		ok       bool
+	}{
+		{
+			name: "client credentials wins, and carries its token endpoint",
+			schemes: `
+    Bearer: {type: http, scheme: bearer}
+    BasicAuth: {type: http, scheme: basic}
+    ApiClient:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /api/v1/oauth/token
+          scopes: {}`,
+			want: blueprint.AuthClientCredentials, tokenURL: "/api/v1/oauth/token", ok: true,
+		},
+		{
+			name:    "bearer where there is no grant to run",
+			schemes: "\n    Bearer: {type: http, scheme: bearer}",
+			want:    blueprint.AuthBearerToken, ok: true,
+		},
+		{
+			name:    "basic alone",
+			schemes: "\n    BasicAuth: {type: http, scheme: basic}",
+			want:    blueprint.AuthUsernamePassword, ok: true,
+		},
+		{
+			name:    "an api-key scheme is not one of the three",
+			schemes: "\n    ApiKey: {type: apiKey, in: header, name: X-Key}",
+			ok:      false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: T, version: "1"}
+paths: {}
+components:
+  securitySchemes:`+tc.schemes+"\n")
+
+			got, ok := doc.Auth()
+			if ok != tc.ok {
+				t.Fatalf("ok = %v, want %v (got %+v)", ok, tc.ok, got)
+			}
+			if !tc.ok {
+				return
+			}
+			if got.Resolved() != tc.want {
+				t.Errorf("method = %q, want %q", got.Resolved(), tc.want)
+			}
+			if got.TokenURL != tc.tokenURL {
+				t.Errorf("tokenUrl = %q, want %q", got.TokenURL, tc.tokenURL)
+			}
+		})
 	}
 }

@@ -71,12 +71,13 @@ func (l *Loader) MethodChain(start types.Type, chain []blueprint.ChainSegment) (
 		}
 
 		// An identifier hop passes the state or configuration field as a string,
-		// because that is what generated code renders there by default. An
-		// indexer typed on anything else -- kiota mints uuid.UUID indexers from
-		// a uuid path parameter -- needs the argument to declare its own
-		// expression (convert.ParseUUID(...) is the proven shape), and one that
-		// does is taken at its word; without one, waving the hop through here
-		// is a compile error in generated code.
+		// because that is what generated code renders there whatever the
+		// attribute's own kind: an int64 identifier is formatted on the way in
+		// rather than handed over as an int64. An indexer typed on anything but
+		// string -- kiota mints uuid.UUID indexers from a uuid path parameter --
+		// needs the argument to declare its own expression (convert.ParseUUID(...)
+		// is the proven shape), and one that does is taken at its word; without
+		// one, waving the hop through here is a compile error in generated code.
 		for j, arg := range seg.Args {
 			if arg.Kind != blueprint.ArgStateField && arg.Kind != blueprint.ArgConfigField {
 				continue

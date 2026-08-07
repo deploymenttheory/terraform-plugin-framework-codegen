@@ -4,6 +4,7 @@
     "name": "thousandeyes",
     "goModule": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes-kiota",
     "typePrefix": "thousandeyes",
+    "displayName": "ThousandEyes",
     "sdk": {
       "dialect": "kiotaFluent",
       "mode": "embed",

@@ -20,12 +20,26 @@ import (
 	tfprovider "{{ .Module }}/internal/provider"
 )
 
-// envBearerToken is the credential an acceptance run needs.
+// The credentials an acceptance run needs.
 //
 // Read from the environment and never from a flag: a flag lands in shell history and in the
-// process table, where a token that cannot be revoked through the ThousandEyes API would stay
-// valid until somebody deleted it by hand.
+// process table, and a credential an API cannot revoke on demand -- a hand-issued token, for
+// one -- would stay valid there until somebody deleted it by hand.
+{{- if .IsBearer }}
 const envBearerToken = "{{ .EnvPrefix }}_BEARER_TOKEN"
+{{- end }}
+{{- if .IsClientCredentials }}
+const (
+	envClientID     = "{{ .EnvPrefix }}_CLIENT_ID"
+	envClientSecret = "{{ .EnvPrefix }}_CLIENT_SECRET"
+)
+{{- end }}
+{{- if .IsUsernamePassword }}
+const (
+	envUsername = "{{ .EnvPrefix }}_USERNAME"
+	envPassword = "{{ .EnvPrefix }}_PASSWORD"
+)
+{{- end }}
 
 // TestVersion is the version string the provider under test reports.
 const TestVersion = "acc"
@@ -48,6 +62,7 @@ var ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, erro
 // skipping would let a CI job report success having tested nothing.
 func PreCheck(t *testing.T) {
 	t.Helper()
+{{- if .IsBearer }}
 
 	if os.Getenv(envBearerToken) == "" {
 		t.Fatalf(
@@ -56,4 +71,22 @@ func PreCheck(t *testing.T) {
 			envBearerToken,
 		)
 	}
+{{- else }}
+{{- if .IsClientCredentials }}
+
+	for _, name := range []string{envClientID, envClientSecret} {
+{{- end }}
+{{- if .IsUsernamePassword }}
+
+	for _, name := range []string{envUsername, envPassword} {
+{{- end }}
+		if os.Getenv(name) == "" {
+			t.Fatalf(
+				"%s must be set for an acceptance run. It is read from the environment only -- "+
+					"never pass it as a flag.",
+				name,
+			)
+		}
+	}
+{{- end }}
 }

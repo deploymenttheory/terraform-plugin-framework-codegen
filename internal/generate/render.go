@@ -24,6 +24,7 @@ import (
 const (
 	pkgContext   = "context"
 	pkgFmt       = "fmt"
+	pkgStrconv   = "strconv"
 	pkgTime      = "time"
 	pkgPath      = "github.com/hashicorp/terraform-plugin-framework/path"
 	pkgResource  = "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -572,11 +573,44 @@ func Resource(bp blueprint.Blueprint, r blueprint.Resource, opts Options) (Resou
 	// which changes the shape of the generated CRUD call sites. crud.go needs no
 	// extra import for that: it appends to resp.Diagnostics.
 
-	crud, err := crudView(bp, r)
+	crud, err := crudView(bp, r, newArgScope(r.Schema.Attributes, impCRUD))
 	if err != nil {
 		return ResourceView{}, err
 	}
 	v.CRUD = crud
+
+	// Three shapes that cannot be rendered into a package that compiles, refused
+	// by name here rather than emitted.
+	//
+	// construct.go and state.go are skipped when there is nothing to put in
+	// them, while crud.go calls into both unconditionally -- so a resource with
+	// no expandable or no flattenable attribute produces a package referring to
+	// functions nobody wrote. A resource whose whole schema is its own computed
+	// identifier is also one no HCL can configure.
+	//
+	// Delete is the framework's requirement, not this toolkit's: resource.Resource
+	// declares it, so a generated type without one does not implement the
+	// interface it asserts. Terraform owns a resource until destroy ends it, and
+	// there is no honest Delete to synthesise for an API that offers none.
+	switch {
+	case len(v.Construct.Assignments) == 0:
+		return ResourceView{}, &ErrUnsupported{
+			What: sc.what,
+			Why: "no attribute expands into a request body, so there is nothing to construct " +
+				"and nothing an operator could configure",
+		}
+	case len(v.State.Assignments) == 0:
+		return ResourceView{}, &ErrUnsupported{
+			What: sc.what,
+			Why:  "no attribute flattens from a response, so there is nothing to map into state",
+		}
+	case crud.Delete == nil:
+		return ResourceView{}, &ErrUnsupported{
+			What: sc.what,
+			Why: "it binds no delete operation, and resource.Resource requires Delete; " +
+				"Terraform cannot own what it cannot destroy",
+		}
+	}
 
 	// An argument's verbatim expression can name packages crud.go never otherwise
 	// imports -- a request option for an expansion-gated read is the live case.
@@ -1398,7 +1432,7 @@ func needsTemp(c blueprint.ConvertCall) bool {
 	return c.ReturnsError && (c.Deref || c.Cast != "")
 }
 
-func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
+func crudView(bp blueprint.Blueprint, r blueprint.Resource, sc argScope) (CRUDView, error) {
 	v := CRUDView{
 		ReadBackMeasured: r.Policy.ReadBack.Enabled,
 		ReadBackReason:   r.Policy.ReadBack.Reason,
@@ -1456,7 +1490,7 @@ func crudView(bp blueprint.Blueprint, r blueprint.Resource) (CRUDView, error) {
 		}
 		view, err := opView(
 			fmt.Sprintf("resource %q", r.Key), r.Binding.Service.Accessor,
-			*o.op, o.phase, o.errOp, o.timeout, o.bind,
+			*o.op, o.phase, o.errOp, o.timeout, o.bind, sc,
 		)
 		if err != nil {
 			return CRUDView{}, err
@@ -1509,13 +1543,14 @@ func opView(
 	op blueprint.Operation,
 	phase, errOp, timeout string,
 	bind bindResult,
+	sc argScope,
 ) (*OpView, error) {
 	var call string
 	switch op.Style {
 	case blueprint.CallStyleMethod:
 		args := make([]string, 0, len(op.Args))
 		for _, a := range op.Args {
-			expr, err := argExpr(what, a)
+			expr, err := argExpr(what, a, sc)
 			if err != nil {
 				return nil, err
 			}
@@ -1535,7 +1570,7 @@ func opView(
 		}
 		var err error
 		call, err = chainCall(accessor, op, func(a blueprint.Argument) (string, error) {
-			return argExpr(what, a)
+			return argExpr(what, a, sc)
 		})
 		if err != nil {
 			return nil, err
@@ -1626,7 +1661,93 @@ func resultVarFor(phase string) string {
 	}
 }
 
-func argExpr(what string, a blueprint.Argument) (string, error) {
+// argScope is what a call argument needs beyond the argument itself: the kinds
+// of the schema attributes the call can draw on, and the import set of the file
+// the call lands in so a conversion can declare the package it needs.
+//
+// It exists because the emitter used to render every identifier as
+// .ValueString(). That was true of every API the toolkit had met and false the
+// moment one keyed its objects by integer: types.Int64 carries no ValueString,
+// and the generated file did not compile. The kind is the attribute's own,
+// carried in the blueprint, so the emitter reads it rather than assuming it.
+//
+// The zero value is usable and renders what the toolkit rendered before: a
+// caller with no schema to hand states no claim about any field's kind.
+type argScope struct {
+	kinds   map[string]blueprint.TypeKind
+	imports *importSet
+}
+
+// newArgScope indexes a schema's top-level attributes by model field, which is
+// what an Argument names. Nested attributes are deliberately absent: an
+// argument reaches a field on the model struct, and a nested one lives on a
+// different struct entirely.
+func newArgScope(attrs []blueprint.Attribute, imp *importSet) argScope {
+	kinds := make(map[string]blueprint.TypeKind, len(attrs))
+	for _, a := range attrs {
+		kinds[a.GoField] = a.Type.Kind
+	}
+	return argScope{kinds: kinds, imports: imp}
+}
+
+func (s argScope) addImport(path string) {
+	if s.imports != nil {
+		s.imports.add(path, "")
+	}
+}
+
+// kindOf reports an attribute's kind, and whether the schema carries it at all.
+func (s argScope) kindOf(field string) (blueprint.TypeKind, bool) {
+	k, ok := s.kinds[field]
+	return k, ok
+}
+
+// valueExpr reads a framework value out of the model at its own type:
+// types.String yields a string, types.Int64 an int64. It is the half of
+// identifier rendering that does no conversion, so a comparison against an SDK
+// scalar can use it directly.
+func (s argScope) valueExpr(what, recv, field string) (string, error) {
+	kind, known := s.kindOf(field)
+	if !known {
+		// A field the schema does not carry keeps the rendering the toolkit has
+		// always emitted. Whether the blueprint may name it at all is the
+		// blueprint's own validation to answer; inventing a conversion here
+		// would only bury that.
+		return fmt.Sprintf("%s.%s.ValueString()", recv, field), nil
+	}
+	switch kind {
+	case blueprint.KindString:
+		return fmt.Sprintf("%s.%s.ValueString()", recv, field), nil
+	case blueprint.KindInt64:
+		return fmt.Sprintf("%s.%s.ValueInt64()", recv, field), nil
+	default:
+		return "", &ErrUnsupported{
+			What: fmt.Sprintf("argument %s of %s", field, what),
+			Why: fmt.Sprintf(
+				"attribute kind %q has no scalar reading; only string and int64 do", kind),
+		}
+	}
+}
+
+// idArgExpr renders a state, plan or configuration field where the SDK expects
+// an identifier.
+//
+// The identifier reaches the SDK as a string whatever the attribute's kind,
+// because that is what the request builders take: kiota mints ById(id string)
+// from an integer path parameter as readily as from a string one, and
+// sdkbind's chain check holds the same invariant -- it refuses a hop typed on
+// anything but string unless the argument declares its own expression. So the
+// attribute's kind decides how the string is produced, never whether one is.
+func (s argScope) idArgExpr(what, recv, field string) (string, error) {
+	kind, known := s.kindOf(field)
+	if known && kind == blueprint.KindInt64 {
+		s.addImport(pkgStrconv)
+		return fmt.Sprintf("strconv.FormatInt(%s.%s.ValueInt64(), 10)", recv, field), nil
+	}
+	return s.valueExpr(what, recv, field)
+}
+
+func argExpr(what string, a blueprint.Argument, sc argScope) (string, error) {
 	if a.Expr != "" {
 		return a.Expr, nil
 	}
@@ -1637,14 +1758,14 @@ func argExpr(what string, a blueprint.Argument) (string, error) {
 	case blueprint.ArgBody:
 		return "body", nil
 	case blueprint.ArgStateField:
-		return fmt.Sprintf("state.%s.ValueString()", a.Field), nil
+		return sc.idArgExpr(what, "state", a.Field)
 	case blueprint.ArgPlanField:
-		return fmt.Sprintf("plan.%s.ValueString()", a.Field), nil
+		return sc.idArgExpr(what, "plan", a.Field)
 	case blueprint.ArgConfigField:
 		// A data source reads its arguments from configuration: it has no prior state
 		// and no plan. The variable is named for what it holds rather than reusing
 		// "state", which would read as a lie in a generated data source body.
-		return fmt.Sprintf("data.%s.ValueString()", a.Field), nil
+		return sc.idArgExpr(what, "data", a.Field)
 	case blueprint.ArgLiteral:
 		return "", &ErrUnsupported{
 			What: fmt.Sprintf("argument of %s", what),

@@ -82,9 +82,61 @@ type Provider struct {
 	// TypePrefix prefixes every resource type name. Usually equal to Name.
 	TypePrefix string `json:"typePrefix"`
 
+	// DisplayName is the API's name as a person writes it, e.g. "ThousandEyes".
+	// It appears in the provider's schema documentation and in the diagnostics
+	// a practitioner reads. Defaults to Name when absent.
+	DisplayName string `json:"displayName,omitempty"`
+
 	SDK         SDKModule   `json:"sdk"`
+	Auth        Auth        `json:"auth,omitzero"`
 	Conventions Conventions `json:"conventions,omitzero"`
 	Support     SupportPkgs `json:"support,omitzero"`
+}
+
+// AuthMethod names how the generated provider proves who it is.
+//
+// Three, because they are what the APIs this toolkit has met actually use.
+// A fourth belongs here rather than in a hand-written client: an auth method
+// nobody can express is the one thing that would force a provider back to
+// being written by hand.
+type AuthMethod string
+
+const (
+	// AuthBearerToken sends a static token: Authorization: Bearer <token>.
+	// The zero value, because it is much the most common.
+	AuthBearerToken AuthMethod = "bearerToken"
+	// AuthClientCredentials exchanges a client id and secret for a token at a
+	// token endpoint, then sends that -- the OAuth 2.0 client-credentials
+	// grant. The exchange is the provider's, not the practitioner's.
+	AuthClientCredentials AuthMethod = "clientCredentials"
+	// AuthUsernamePassword sends HTTP Basic credentials.
+	AuthUsernamePassword AuthMethod = "usernamePassword"
+)
+
+// Auth describes how the generated provider authenticates.
+//
+// It carries no credential and never will: what is recorded here is the
+// *method* and the endpoints it needs, and the values arrive at runtime from
+// the practitioner's configuration or their environment. A blueprint is a
+// committed file, and a committed file is the wrong place for a secret.
+type Auth struct {
+	// Method is how to authenticate. Empty means AuthBearerToken.
+	Method AuthMethod `json:"method,omitempty"`
+
+	// TokenURL is the token endpoint the client-credentials grant posts to.
+	// Required for AuthClientCredentials and meaningless otherwise.
+	TokenURL string `json:"tokenUrl,omitempty"`
+	// Scopes are requested alongside the client-credentials grant. Optional:
+	// an API that scopes by client registration needs none.
+	Scopes []string `json:"scopes,omitempty"`
+}
+
+// Resolved returns the method, treating the zero value as bearer.
+func (a Auth) Resolved() AuthMethod {
+	if a.Method == "" {
+		return AuthBearerToken
+	}
+	return a.Method
 }
 
 // TerraformType composes the registry-visible type name for a block from its short

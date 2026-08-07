@@ -191,3 +191,46 @@ func TestUnit_SDKBind_FluentOperationVerifies(t *testing.T) {
 		}
 	})
 }
+
+// TestUnit_SDKBind_ASelectorRecordsWhetherTheElementHoldsAnEnumeration.
+//
+// The list element is a different model from the by-id read's response and can
+// carry the same field at a different type, so the attribute's own reconciled
+// spelling says nothing about the selector. Whether the getter yields a kiota
+// enumeration decides whether the generated comparison may read the value
+// directly or has to go through String(), which is why it is settled against
+// the loaded SDK rather than guessed from the document.
+func TestUnit_SDKBind_ASelectorRecordsWhetherTheElementHoldsAnEnumeration(t *testing.T) {
+	t.Parallel()
+
+	const models = "example.com/kiotasdk/models"
+
+	d := &blueprint.DataSource{
+		Key: "tag",
+		Binding: blueprint.DataSourceBinding{
+			Service:     blueprint.ServiceRef{ImportPath: models, Alias: "models"},
+			ElementType: "models.TagSummaryable",
+			Response: blueprint.ResponseModel{
+				Type: "models.Tagable", AccessStyle: blueprint.AccessMethod,
+			},
+			Selectors: []blueprint.Selector{
+				{Attribute: "id", GoField: "ID", ViaRead: true},
+				{Attribute: "name", GoField: "Name", SDKField: "Name"},
+				{Attribute: "kind", GoField: "Kind", SDKField: "Kind"},
+			},
+		},
+	}
+
+	reconcileSelectors(kiotaLoader, d)
+
+	sel := d.Binding.Selectors
+	if sel[0].SDKEnum {
+		t.Error("the identifier selector reaches no element getter, so it claims nothing")
+	}
+	if sel[1].SDKEnum {
+		t.Error("a *string getter is not an enumeration")
+	}
+	if !sel[2].SDKEnum {
+		t.Error("a pointer to an int-backed named type with a Parse function is an enumeration")
+	}
+}

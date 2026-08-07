@@ -59,7 +59,7 @@ func (d *{{ .GoTypeName }}) Read(ctx context.Context, req datasource.ReadRequest
 	var matches []{{ .ElementType }}
 	for _, el := range listing.{{ .CollectionField }} {
 {{- range .Matchers }}
-		if !data.{{ .GoField }}.IsNull() && ({{ .Getter }} == nil || *{{ .Getter }} != data.{{ .GoField }}.ValueString()) {
+		if !data.{{ .GoField }}.IsNull() && ({{ .Getter }} == nil || {{ .Mismatch }}) {
 			continue
 		}
 {{- end }}
@@ -106,7 +106,7 @@ func (d *{{ .GoTypeName }}) Read(ctx context.Context, req datasource.ReadRequest
 		var matches []{{ .ElementType }}
 		for _, el := range listing.{{ .CollectionField }} {
 {{- range .Matchers }}
-			if !data.{{ .GoField }}.IsNull() && ({{ .Getter }} == nil || *{{ .Getter }} != data.{{ .GoField }}.ValueString()) {
+			if !data.{{ .GoField }}.IsNull() && ({{ .Getter }} == nil || {{ .Mismatch }}) {
 				continue
 			}
 {{- end }}
