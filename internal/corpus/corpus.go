@@ -1,0 +1,366 @@
+// Package corpus acquires the real third-party API documents the tests run
+// against, without committing any of them to this repository.
+//
+// This repository generates Terraform providers; it is not the home of any
+// particular vendor's artefacts. Those belong in the provider repositories the
+// pipeline produces. But the tests still need real documents to run against --
+// inference bugs are found by documents that disagree with each other, not by
+// synthetic ones that agree with the code -- so the documents are fetched at
+// test time and pinned here rather than vendored.
+//
+// Pinned means pinned. corpus.lock.json records a version, a SHA-256 and the
+// path and operation counts for every document, and a fetch that does not match
+// all of them fails loudly. That matters more than it looks: several tests
+// assert facts about these documents -- enum members, candidate counts, inferred
+// bindings -- so a vendor editing their specification silently changes what
+// those tests mean. The lock turns that from an inexplicable failure into a
+// deliberate review, and `tfpfgen corpus refresh` is how the review is taken.
+//
+// The cache is an ordinary snapshot store, the same layout `openapi fetch`
+// writes and every consumer already reads. Nothing here reimplements pinning; it
+// reuses internal/snapshot and adds only the deterministic directory name that
+// makes a pin findable again.
+package corpus
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+
+	_ "embed"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
+)
+
+// lockBytes is the pin set, embedded so a test binary run from any directory
+// resolves it identically. It is the reviewable artefact of this whole scheme:
+// every change to what the tests read against shows up as a diff here.
+//
+//go:embed corpus.lock.json
+var lockBytes []byte
+
+// EnvCacheDir relocates the cache. CI sets it so the cache lands somewhere
+// actions/cache can restore.
+const EnvCacheDir = "TFPFGEN_CORPUS_DIR"
+
+// EnvRequired makes a missing document a failure rather than a skip. Set in CI,
+// unset on a developer's machine: see Ensure.
+const EnvRequired = "TFPFGEN_CORPUS_REQUIRED"
+
+// DefaultCacheDir is where documents are materialised. Under .tfpfgen/cache,
+// which is already gitignored, so a warm cache never reaches a commit.
+const DefaultCacheDir = ".tfpfgen/cache/corpus"
+
+// ErrOffline reports that a document is not cached and could not be fetched.
+// Callers decide whether that is fatal; Ensure applies the policy.
+var ErrOffline = errors.New("the document is not cached and could not be fetched")
+
+// Lock is corpus.lock.json.
+type Lock struct {
+	FormatVersion string         `json:"formatVersion"`
+	OpenAPI       map[string]Pin `json:"openapi"`
+}
+
+// Pin is one document, identified precisely enough that a fetch either
+// reproduces it or fails.
+type Pin struct {
+	// Version is the document's own declared version.
+	Version string `json:"version"`
+	// SHA256 is of the exact bytes. The whole scheme rests on this.
+	SHA256 string `json:"sha256"`
+	// PinnedAt seeds the snapshot directory name, which is what makes a cached
+	// document findable again rather than merely present.
+	PinnedAt time.Time `json:"pinnedAt"`
+	// UpstreamURL is where the vendor publishes it.
+	UpstreamURL string `json:"upstreamUrl"`
+	// MirrorURL holds the exact pinned bytes under our own control, and is
+	// tried first.
+	//
+	// Not a nicety. Several of these upstreams serve "current" rather than a
+	// version: ThousandEyes' unified-oas path and GitHub's description on main
+	// both change under you, so the pinned bytes become unfetchable the moment
+	// the vendor publishes again, and every refresh is forced on their
+	// schedule. A mirror cannot alter test meaning -- the SHA-256 is checked
+	// identically whichever source answered -- so it is a CDN, not a source of
+	// truth.
+	MirrorURL string `json:"mirrorUrl,omitempty"`
+	// PathCount and OperationCount catch a truncated download that happens to
+	// parse. Without them a half-fetched document produces a nonsense test
+	// failure a long way from its cause.
+	PathCount      int `json:"pathCount"`
+	OperationCount int `json:"operationCount"`
+	// Large marks a document big enough that -short should skip work using it.
+	Large bool `json:"large,omitempty"`
+}
+
+// IDs are the documents this corpus pins.
+const (
+	ThousandEyes = "thousandeyes"
+	JamfPro      = "jamfpro"
+	GitHub       = "github"
+)
+
+var (
+	lockOnce sync.Once
+	lock     Lock
+	lockErr  error
+)
+
+// LoadLock parses the embedded pin set.
+func LoadLock() (Lock, error) {
+	lockOnce.Do(func() {
+		if err := json.Unmarshal(lockBytes, &lock); err != nil {
+			lockErr = fmt.Errorf("parsing corpus.lock.json: %w", err)
+			return
+		}
+		if len(lock.OpenAPI) == 0 {
+			lockErr = errors.New("corpus.lock.json pins no documents")
+		}
+	})
+	return lock, lockErr
+}
+
+// PinFor returns one document's pin.
+func PinFor(id string) (Pin, error) {
+	l, err := LoadLock()
+	if err != nil {
+		return Pin{}, err
+	}
+	p, ok := l.OpenAPI[id]
+	if !ok {
+		known := make([]string, 0, len(l.OpenAPI))
+		for k := range l.OpenAPI {
+			known = append(known, k)
+		}
+		return Pin{}, fmt.Errorf("corpus.lock.json pins no document %q (it pins %v)", id, known)
+	}
+	return p, nil
+}
+
+// IDs lists every pinned document.
+func IDs() ([]string, error) {
+	l, err := LoadLock()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(l.OpenAPI))
+	for k := range l.OpenAPI {
+		out = append(out, k)
+	}
+	return out, nil
+}
+
+// CacheDir is the corpus cache root.
+func CacheDir() string {
+	if d := os.Getenv(EnvCacheDir); d != "" {
+		return d
+	}
+	return DefaultCacheDir
+}
+
+// Root is a document's snapshot root, the directory a -openapi-dir flag wants.
+func Root(id string) string {
+	return filepath.Join(CacheDir(), "openapi", id)
+}
+
+// Required reports whether a document that cannot be obtained is fatal.
+func Required() bool { return os.Getenv(EnvRequired) != "" }
+
+// perID serialises materialisation so parallel tests in one process do not race.
+var (
+	mu    sync.Mutex
+	onces = map[string]*sync.Once{}
+	got   = map[string]snapshot.Snapshot{}
+	errs  = map[string]error{}
+)
+
+// Ensure returns the pinned document, fetching it if the cache is cold.
+//
+// Lazily and per id rather than from a TestMain: a TestMain cannot skip, so an
+// offline developer would get a package-wide bail-out instead of a skip on the
+// few tests that needed the network, and `go test -run` of one unrelated test
+// would still pull megabytes it has no use for.
+func Ensure(id string) (snapshot.Snapshot, error) {
+	mu.Lock()
+	once, ok := onces[id]
+	if !ok {
+		once = &sync.Once{}
+		onces[id] = once
+	}
+	mu.Unlock()
+
+	once.Do(func() {
+		s, err := materialise(id)
+		mu.Lock()
+		got[id], errs[id] = s, err
+		mu.Unlock()
+	})
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	return got[id], errs[id]
+}
+
+// materialise resolves a document from the cache, or fetches and pins it.
+func materialise(id string) (snapshot.Snapshot, error) {
+	pin, err := PinFor(id)
+	if err != nil {
+		return snapshot.Snapshot{}, err
+	}
+
+	return materialisePin(id, Root(id), pin)
+}
+
+// materialisePin is materialise with the pin and destination supplied, so the
+// cache, fetch and verification paths are testable without the embedded lock
+// or the network.
+func materialisePin(id, root string, pin Pin) (snapshot.Snapshot, error) {
+	name := snapshot.DirName(pin.Version, pin.PinnedAt)
+
+	// Two gates on a cache hit, deliberately. Verify catches a corrupted or
+	// edited cache; comparing against the lock catches a cache written by an
+	// older lock, which would otherwise be silently reused under a new pin.
+	if snap, fErr := snapshot.Find(root, name); fErr == nil {
+		if vErr := snap.Verify(); vErr == nil {
+			if sum, cErr := snap.Checksum(); cErr == nil && sum == pin.SHA256 {
+				return snap, nil
+			}
+		}
+		// A cached copy that fails either gate is not repairable in place --
+		// snapshots are immutable by design -- so it is removed and refetched.
+		if rErr := os.RemoveAll(snap.Dir); rErr != nil {
+			return snapshot.Snapshot{}, fmt.Errorf("removing the unusable cached %s: %w", id, rErr)
+		}
+	}
+
+	doc, source, err := fetch(pin)
+	if err != nil {
+		return snapshot.Snapshot{}, fmt.Errorf("%w: %s: %w", ErrOffline, id, err)
+	}
+
+	if err := verifyAgainstPin(id, doc, pin, source); err != nil {
+		return snapshot.Snapshot{}, err
+	}
+
+	return publish(root, name, doc, pin, source)
+}
+
+// publish writes the document into a private directory and renames it into
+// place.
+//
+// `go test ./...` runs packages as separate processes, so several can race to
+// materialise the same document on a cold cache. snapshot.Pin refuses to
+// overwrite -- immutability is the property it exists to defend -- so without
+// atomic publication the first run after a lock change fails spuriously in
+// whichever packages lost the race. A rename is atomic, and losing the race
+// means somebody else already published the identical bytes.
+func publish(root, name string, doc []byte, pin Pin, source string) (snapshot.Snapshot, error) {
+	// Staged as a sibling of the destination so the publishing rename stays
+	// within one filesystem, which is what makes it atomic.
+	if err := os.MkdirAll(filepath.Dir(root), 0o750); err != nil {
+		return snapshot.Snapshot{}, fmt.Errorf("creating %s: %w", filepath.Dir(root), err)
+	}
+
+	staging, err := os.MkdirTemp(filepath.Dir(root), ".corpus-staging-*")
+	if err != nil {
+		return snapshot.Snapshot{}, fmt.Errorf("creating a staging directory: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(staging) }()
+
+	if _, err := snapshot.Pin(staging, doc, snapshot.Metadata{
+		Version:        pin.Version,
+		SHA256:         pin.SHA256,
+		SourceURL:      source,
+		FetchedAt:      pin.PinnedAt,
+		PathCount:      pin.PathCount,
+		OperationCount: pin.OperationCount,
+	}); err != nil {
+		return snapshot.Snapshot{}, err
+	}
+
+	if err := os.MkdirAll(root, 0o750); err != nil {
+		return snapshot.Snapshot{}, fmt.Errorf("creating %s: %w", root, err)
+	}
+
+	final := filepath.Join(root, name)
+	if err := os.Rename(filepath.Join(staging, name), final); err != nil && !os.IsExist(err) {
+		// A concurrent publisher may have won between the check and the rename.
+		if _, sErr := os.Stat(final); sErr != nil {
+			return snapshot.Snapshot{}, fmt.Errorf("publishing %s: %w", final, err)
+		}
+	}
+
+	snap, err := snapshot.Find(root, name)
+	if err != nil {
+		return snapshot.Snapshot{}, err
+	}
+
+	return snap, snap.Verify()
+}
+
+// verifyAgainstPin refuses a document that is not the one the lock names.
+//
+// Never a skip and never a silent re-pin. Tests assert facts about these
+// documents, so a changed document is a change in what they mean.
+func verifyAgainstPin(id string, doc []byte, pin Pin, source string) error {
+	sum := sha256.Sum256(doc)
+	digest := hex.EncodeToString(sum[:])
+	if digest == pin.SHA256 {
+		return nil
+	}
+
+	// Parsed only to describe the mismatch. What a reviewer needs is what
+	// changed, not that a hash differed.
+	version, paths, operations := describe(doc)
+
+	return fmt.Errorf(`the pinned %s document is not what %s served.
+  pinned  sha256:%s  version %s  %d path(s) / %d operation(s)
+  fetched sha256:%s  version %s  %d path(s) / %d operation(s)
+Tests assert facts about the pinned document -- enum members, candidate counts,
+inferred bindings -- so this changes what they mean rather than merely failing a
+transport check. Review it deliberately:
+  tfpfgen corpus refresh -id %s`,
+		id, source,
+		shortSHA(pin.SHA256), pin.Version, pin.PathCount, pin.OperationCount,
+		shortSHA(digest), version, paths, operations,
+		id)
+}
+
+// describe reports what a document says about itself, best effort.
+func describe(doc []byte) (version string, paths, operations int) {
+	tmp, err := os.CreateTemp("", "tfpfgen-corpus-*.yaml")
+	if err != nil {
+		return "unparsed", 0, 0
+	}
+	defer func() { _ = os.Remove(tmp.Name()) }()
+
+	if _, err := tmp.Write(doc); err != nil {
+		return "unparsed", 0, 0
+	}
+	if err := tmp.Close(); err != nil {
+		return "unparsed", 0, 0
+	}
+
+	parsed, err := openapi.Load(tmp.Name())
+	if err != nil {
+		return "unparsed", 0, 0
+	}
+	paths, operations = parsed.Stats()
+
+	return parsed.Version, paths, operations
+}
+
+func shortSHA(s string) string {
+	if len(s) <= 12 {
+		return s
+	}
+	return s[:12]
+}

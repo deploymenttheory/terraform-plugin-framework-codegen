@@ -19,6 +19,7 @@ order `help` prints them.
 | Command | Purpose | Verbs |
 |---|---|---|
 | `openapi` | fetch and pin upstream OpenAPI documents | `fetch` |
+| `corpus` | materialise, check or refresh the pinned API documents the tests read | `sync`, `check`, `refresh` |
 | `sdk` | generate a Go SDK from a pinned OpenAPI snapshot | `generate`, `push` |
 | `blueprint` | draft, merge, validate, diff or list blueprints | `draft`, `merge`; `validate`, `diff`, `list` planned |
 | `probe` | exercise a resource's lifecycle; record or replay cassettes | `record`, `replay`, `verify`, `sweep`, `list` |
@@ -118,6 +119,98 @@ upstream document identical to the latest snapshot pins nothing and exits `0` �
 the weekly refresh should be quiet when there is nothing to review. The fetch is
 bounded at two minutes: a document is a couple of megabytes, and anything slower
 is a network problem worth hearing about.
+
+## `corpus`
+
+The real third-party API documents this repository's tests run against, fetched
+rather than committed.
+
+This repository generates providers; it is not the home of any vendor's
+artefacts, so no specification is checked in. But the tests still need real
+documents — inference bugs are found by documents that disagree with each other,
+not by synthetic ones that agree with the code — so they are pinned in
+`internal/corpus/corpus.lock.json` and fetched on demand into a local cache.
+
+Pinned means pinned. The lock records a version, a SHA-256 and the path and
+operation counts, and a fetch matching none of them fails rather than proceeding.
+That matters because several tests assert facts about these documents — enum
+members, candidate counts, inferred bindings — so a vendor editing their
+specification changes what those tests *mean*. The lock turns that from an
+inexplicable failure into a deliberate review.
+
+The cache lives under `.tfpfgen/cache/corpus` (gitignored), relocatable with
+`TFPFGEN_CORPUS_DIR` so CI can restore it. It is an ordinary snapshot store, the
+same layout `openapi fetch` writes.
+
+A document that cannot be fetched **skips** the tests that need it, unless
+`TFPFGEN_CORPUS_REQUIRED` is set, when it fails. CI sets it. The split is
+deliberate: a suite that goes red on a developer's flaky connection teaches
+people to ignore red, and a CI job that skips its way to green is a standing lie
+about coverage. After one warm run neither applies — the cache is keyed by
+content and only a lock change invalidates it.
+
+### `corpus sync`
+
+Materialises the pinned documents into the cache.
+
+```
+tfpfgen corpus sync [-id ID]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-id` | all of them | sync only this document |
+
+A no-op against a warm cache, which is what makes it safe in front of every job.
+Run it while online to prepare for working offline.
+
+### `corpus check`
+
+Reports whether upstream still serves what is pinned. Exits `1` when it does not.
+
+```
+tfpfgen corpus check [-id ID]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-id` | all of them | check only this document |
+
+Deliberately separate from `sync`, and the reason a vendor's release does not
+break a pull request. "The tests have their reproducible input" and "upstream has
+moved" are different questions: the first is answered by the cache and must
+block, the second belongs on a schedule where it opens an issue. A source that
+cannot be reached is reported as unchecked, not as moved — a scheduled run should
+not file an issue about somebody's DNS.
+
+### `corpus refresh`
+
+Takes an upstream change deliberately: reports the delta and restates the pin.
+
+```
+tfpfgen corpus refresh [-id ID] [-dry-run]
+```
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `-id` | all of them | refresh only this document |
+| `-dry-run` | `false` | report the delta and write nothing |
+
+The delta is printed before anything is written, because the delta is the thing
+being reviewed — a document that gained forty paths is a different input to every
+test that asserts on inference, and the number is what tells you whether to
+expect those tests to move.
+
+`pinnedAt` advances, which changes the cache directory name, so the new bytes are
+always materialised rather than an old cache being reused under a new digest.
+
+Note the warning when a pin has no `mirrorUrl`. Several of these upstreams serve
+*current* rather than a version — ThousandEyes' `unified-oas` path and GitHub's
+description on `main` both do — so their pinned bytes stop being fetchable the
+moment the vendor publishes again, and refreshes become forced on the vendor's
+schedule rather than yours. A mirror holding the exact pinned bytes fixes that
+and cannot alter test meaning, since the digest is checked identically whichever
+source answered.
 
 ## `sdk`
 
