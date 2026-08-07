@@ -322,3 +322,45 @@ components:
 		t.Errorf("collapsed = %d, want the overlapping member left alone", collapsed)
 	}
 }
+
+// TestUnit_DocPatch_NormalizeWidensByteArrayCollections covers the shape a
+// second API found: kiota generates WriteCollectionOfByteArrayValues for an
+// array of format: byte strings, and its own runtime does not implement that
+// method, so the generated SDK does not compile.
+func TestUnit_DocPatch_NormalizeWidensByteArrayCollections(t *testing.T) {
+	t.Parallel()
+
+	doc := []byte(`openapi: 3.0.3
+components:
+  schemas:
+    Certificate:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {type: string, format: byte}
+        single:
+          type: string
+          format: byte
+`)
+
+	out, _, _, err := Normalize(doc)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+
+	s := string(out)
+
+	// The element of the collection loses its byte format...
+	if strings.Contains(s, "items:") && strings.Contains(s, "items:\n                    type: string\n                    format: byte") {
+		t.Errorf("the array element kept format: byte:\n%s", s)
+	}
+	if strings.Count(s, "format: byte") != 1 {
+		t.Errorf("exactly the standalone byte string should keep its format, got %d occurrence(s):\n%s",
+			strings.Count(s, "format: byte"), s)
+	}
+	// ...and the standalone one keeps it, because WriteByteArrayValue exists.
+	if !strings.Contains(s, "single:") {
+		t.Errorf("the standalone byte field was lost entirely:\n%s", s)
+	}
+}

@@ -62,7 +62,43 @@ func Prune(l *Loader, bp *blueprint.Blueprint) []Removal {
 		}
 	}
 
+	// A lookup companion's seed is the resource it looks up, and pruning may
+	// have just removed that resource -- leaving the data source pointing at a
+	// key the blueprint no longer declares, which validation refuses. The
+	// lookup itself is still good; only its acceptance seed is gone.
+	removals = append(removals, dropDanglingSeeds(bp)...)
+
 	return removals
+}
+
+// dropDanglingSeeds clears an accTest seed naming a resource that is absent or
+// dropped, so a surviving data source does not carry a reference to something
+// pruning removed.
+func dropDanglingSeeds(bp *blueprint.Blueprint) []Removal {
+	live := make(map[string]bool, len(bp.Resources))
+	for _, r := range bp.Resources {
+		if !r.Drop {
+			live[r.Key] = true
+		}
+	}
+
+	var out []Removal
+	for i := range bp.DataSources {
+		d := &bp.DataSources[i]
+		if d.Drop || d.AccTest == nil || live[d.AccTest.SeedResourceKey] {
+			continue
+		}
+		out = append(out, Removal{
+			Kind: "dataSource", Key: d.Key, Attribute: "accTest",
+			Reason: fmt.Sprintf(
+				"its acceptance seed named resource %q, which is not in the blueprint; the "+
+					"lookup stands, but nothing generated can create an object for it to find",
+				d.AccTest.SeedResourceKey),
+		})
+		d.AccTest = nil
+	}
+
+	return out
 }
 
 var attrPath = regexp.MustCompile(`attributes\[([^\]]+)\]`)
