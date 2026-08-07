@@ -183,6 +183,64 @@ func TerraformName(s string) string {
 	return strings.Join(SplitWords(s), "_")
 }
 
+// reservedRootAttributeNames are the names Terraform gives its own meta-arguments, which
+// a schema may therefore not use for an attribute at the root of a resource or data source.
+//
+// The set is terraform-plugin-framework's ReservedResourceAttributeNames verbatim, which it
+// applies to resources and data sources alike. A schema that declares one of them is not a
+// compile error and not a generation error: it fails when the framework validates the schema,
+// which is the provider's first run and tfplugindocs' first read of it --
+//
+//	"count" is a reserved root attribute/block name.
+//
+// Root is the whole of the rule. A meta-argument only exists at the top level of a block, so
+// an attribute named count inside a nested object is ordinary configuration and must be left
+// exactly as the API spells it.
+var reservedRootAttributeNames = map[string]bool{
+	"connection":  true,
+	"count":       true,
+	"depends_on":  true,
+	"for_each":    true,
+	"lifecycle":   true,
+	"provider":    true,
+	"provisioner": true,
+}
+
+// IsReservedRootAttributeName reports whether Terraform reserves s at the root of a resource
+// or data source.
+func IsReservedRootAttributeName(s string) bool { return reservedRootAttributeNames[s] }
+
+// reservedRootPrefix is what a reserved root name is prefixed with to make it usable.
+//
+// A prefix rather than a suffix or a synonym, and the same prefix every time, because the
+// rename has to be predictable from the API's field name alone: a practitioner who reads
+// count in the vendor's documentation should be able to guess what this provider calls it.
+// It also cannot itself be mistaken for a meta-argument, which "count_" or "the_count" could.
+// Nothing is lost by it -- the API's own spelling survives in the attribute's wire binding,
+// so the request still carries count.
+const reservedRootPrefix = "api_"
+
+// UnreserveRootAttributeName returns the name a root attribute may safely take.
+//
+// A name Terraform does not reserve comes back unchanged, which is nearly every name. A
+// reserved one comes back prefixed.
+//
+// The false return is the collision: an API that documents both count and api_count would
+// have the rename land on a sibling, and a second attribute quietly taking the first one's
+// name is a worse outcome than either -- the schema would be rejected for a duplicate, or one
+// field would silently stop round-tripping. taken holds the sibling names, so the caller can
+// refuse the field instead. The name that could not be taken is returned with it, because the
+// refusal is only useful if it says which name was wanted.
+func UnreserveRootAttributeName(name string, taken map[string]bool) (string, bool) {
+	if !IsReservedRootAttributeName(name) {
+		return name, true
+	}
+
+	out := reservedRootPrefix + name
+
+	return out, !taken[out]
+}
+
 // exported joins words into an exported Go identifier, upper-casing any word
 // that is an initialism. It never returns the empty string, and never returns an
 // identifier beginning with a digit.

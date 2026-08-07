@@ -344,6 +344,16 @@ There is no `blocks`. See the note below.
 }
 ```
 
+A root attribute may not be named for one of Terraform's meta-arguments — `count`,
+`depends_on`, `for_each`, `lifecycle`, `provider`, `provisioner`, `connection` — because the
+framework rejects the whole schema the first time anything reads it, which is the provider's
+own start-up and `tfplugindocs` before that. Inference renames such a field by prefixing it
+with `api_` (Jamf Pro's mobile device groups publish a membership `count`, so this is not
+hypothetical), leaving `wire.jsonPath` alone so the API still sees its own field name;
+validation refuses one that reaches a blueprint any other way. The rule is root-only: an
+attribute named `count` inside a nested object is ordinary configuration, because there is no
+meta-argument down there for it to collide with.
+
 ### Values, declared and observed
 
 An attribute's value set appears twice, and the pair is the same shape the IR already uses
@@ -682,6 +692,8 @@ Checks worth knowing about:
 - a writable attribute with `skipExpand`, whose value could never reach the API
 - a default on a non-computed attribute, which is dead configuration
 - a resource with no read operation, which cannot refresh state
+- a root attribute named for a Terraform meta-argument, which the framework refuses at run
+  time with nothing saying which blueprint it came from
 
 ## Terminology: whose word for what
 

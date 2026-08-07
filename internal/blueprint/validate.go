@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
 )
 
 // Sentinel errors. The house lint configuration enables err113, so every error
@@ -191,6 +193,7 @@ func (e Ephemeral) validate(at string, p *problems) {
 
 		a.validate(aat, p)
 		a.validateForKind(BlockKindEphemeral, aat, p)
+		reservedRootName(p, aat, a.Name)
 
 		dup(p, seenNames, a.Name, aat+".name", "attribute name")
 		dup(p, seenFields, a.GoField, aat+".goField", "model field")
@@ -361,6 +364,7 @@ func (a Action) validate(at string, p *problems) {
 
 		attr.validate(aat, p)
 		attr.validateForKind(BlockKindAction, aat, p)
+		reservedRootName(p, aat, attr.Name)
 
 		dup(p, seenNames, attr.Name, aat+".name", "attribute name")
 		dup(p, seenFields, attr.GoField, aat+".goField", "model field")
@@ -422,6 +426,7 @@ func (d DataSource) validate(at string, p *problems) {
 
 		a.validate(aat, p)
 		a.validateForKind(BlockKindDataSource, aat, p)
+		reservedRootName(p, aat, a.Name)
 
 		dup(p, seenNames, a.Name, aat+".name", "attribute name")
 		dup(p, seenFields, a.GoField, aat+".goField", "model field")
@@ -445,6 +450,30 @@ func (d DataSource) validate(at string, p *problems) {
 			p.add(sat+".attribute", "names attribute %q, which the data source does not declare", s.Attribute)
 		}
 	}
+}
+
+// reservedRootName refuses an attribute named for one of Terraform's meta-arguments.
+//
+// Only at the root of a block, which is the only place the collision exists: an attribute
+// named count inside a nested object is ordinary configuration, and refusing it would refuse
+// something that works.
+//
+// Inference already renames these, so a blueprint reaching here with one has been hand-edited
+// or drafted by an older generator. It is worth refusing anyway, because of where the failure
+// lands otherwise: the emitted schema compiles, and the framework rejects it the first time
+// anything reads it -- the provider's own start-up, and tfplugindocs before that, with
+// "Reserved Root Attribute/Block Name" and no mention of which resource it came from.
+func reservedRootName(p *problems, at, name string) {
+	if !naming.IsReservedRootAttributeName(name) {
+		return
+	}
+
+	p.add(at+".name",
+		"%q is a Terraform meta-argument, which a block may not declare as a root attribute: "+
+			"the framework rejects the schema with \"Reserved Root Attribute/Block Name\" the "+
+			"first time it is read. Rename the attribute -- inference prefixes it with api_ -- "+
+			"and leave wire.jsonPath alone, so the API still sees %q",
+		name, name)
 }
 
 func dup(p *problems, seen map[string]bool, value, path, what string) {
@@ -635,6 +664,7 @@ func (r Resource) validate(at string, p *problems) {
 
 		a.validate(aat, p)
 		a.validateForKind(BlockKindResource, aat, p)
+		reservedRootName(p, aat, a.Name)
 
 		dup(p, seenNames, a.Name, aat+".name", "attribute name")
 		// A duplicated Go field is the subtler failure: the schema is fine and
@@ -1301,6 +1331,7 @@ func (ri ResourceIdentity) validate(r Resource, at string, p *problems) {
 
 		required(p, aat+".name", a.Name)
 		required(p, aat+".goField", a.GoField)
+		reservedRootName(p, aat, a.Name)
 
 		dup(p, seenNames, a.Name, aat+".name", "identity attribute name")
 		dup(p, seenFields, a.GoField, aat+".goField", "identity model field")
@@ -1443,6 +1474,7 @@ func (lf ListFacet) validateFilterSchema(at string, p *problems) {
 
 			a.validate(aat, p)
 			a.validateForKind(BlockKindList, aat, p)
+			reservedRootName(p, aat, a.Name)
 
 			dup(p, seenNames, a.Name, aat+".name", "filter attribute name")
 			dup(p, seenFields, a.GoField, aat+".goField", "filter model field")

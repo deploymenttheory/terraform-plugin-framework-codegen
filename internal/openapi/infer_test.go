@@ -69,6 +69,8 @@ components:
       properties:
         partId:
           type: string
+        count:
+          type: integer
     Widgets_API_WidgetInfo:
       type: object
       required: [name]
@@ -333,7 +335,9 @@ func TestUnit_Infer_TypeAndConversionAgree(t *testing.T) {
 	}{
 		{"name", blueprint.KindString, "*string", "convert.PtrStringToFramework"},
 		{"enabled", blueprint.KindBool, "*bool", "convert.PtrBoolToFramework"},
-		{"count", blueprint.KindInt64, "*int64", "convert.PtrInt64ToFramework"},
+		// Named api_count rather than count: Terraform reserves the latter at a
+		// resource's root. Nothing about the type or the conversion moves with the name.
+		{"api_count", blueprint.KindInt64, "*int64", "convert.PtrInt64ToFramework"},
 		// An unformatted "number" maps to float64 because that is what the SDK
 		// dialect represents it as. Inferring types.Number here would pair a
 		// Number model field with a Float64 conversion, which does not compile.
@@ -494,6 +498,205 @@ func TestUnit_Infer_ReportsWhatItSkipped(t *testing.T) {
 	}
 	if a := attrByName(t, res, "parts"); a.Type.NestedObject == nil {
 		t.Error("parts should have become a nested attribute")
+	}
+}
+
+// TestUnit_Infer_ReservedRootNamesAreRenamed covers the rename that keeps a generated schema
+// loadable at all. The framework validates root attribute names against Terraform's
+// meta-arguments, so a resource declaring `count` is rejected the first time anything reads
+// its schema -- the provider's own start-up, and tfplugindocs before that. Jamf Pro's mobile
+// device groups publish a membership `count`, which is what made this a real defect rather
+// than a hypothetical one.
+func TestUnit_Infer_ReservedRootNamesAreRenamed(t *testing.T) {
+	t.Parallel()
+
+	res, notes := inferWidget(t)
+
+	for _, a := range res.Schema.Attributes {
+		if a.Name == "count" {
+			t.Fatal("count survived as a root attribute name, which Terraform reserves")
+		}
+	}
+
+	renamed := attrByName(t, res, "api_count")
+
+	// Only the practitioner-facing name moves. Everything that addresses the API keeps the
+	// API's own spelling, which is what makes the rename safe to apply mechanically.
+	if renamed.Wire.JSONPath != "count" {
+		t.Errorf("wire.jsonPath = %q, want the API's own field name", renamed.Wire.JSONPath)
+	}
+	if renamed.Wire.SDKField != "Count" || renamed.GoField != "Count" {
+		t.Errorf("goField/sdkField = %q/%q, want Count", renamed.GoField, renamed.Wire.SDKField)
+	}
+
+	// A nested count is ordinary configuration: there is no meta-argument inside an object
+	// for it to collide with, and renaming one would change a practitioner's configuration
+	// for no reason at all.
+	part := attrByName(t, res, "parts").Type.NestedObject
+	if part == nil {
+		t.Fatal("parts has no nested object")
+	}
+	found := false
+	for _, a := range part.Attributes {
+		if a.Name == "api_count" {
+			t.Error("parts.count was renamed; the reserved-name rule applies to root attributes only")
+		}
+		if a.Name == "count" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("parts should still declare count; got %+v", part.Attributes)
+	}
+
+	// The rename is reported, because a practitioner reading the vendor's documentation has
+	// to be able to find out what happened to the field they were looking for.
+	all := strings.Join(noteStrings(notes), "\n")
+	if !strings.Contains(all, "api_count") || !strings.Contains(all, "reserves") {
+		t.Errorf("the rename should be reported as a note:\n%s", all)
+	}
+}
+
+// TestUnit_Infer_ReservedRootNameCollisionIsRefused pins the one case the rename cannot
+// serve: a document carrying both the reserved name and the name it would be renamed to.
+// Taking the sibling's name would either be refused as a duplicate attribute or silently
+// stop one of the two fields round-tripping, so the field is dropped and said out loud.
+func TestUnit_Infer_ReservedRootNameCollisionIsRefused(t *testing.T) {
+	t.Parallel()
+
+	doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: Widgets, version: "1"}
+paths:
+  /widgets:
+    post:
+      operationId: createWidget
+      tags: [Widgets]
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Widget'}
+  /widgets/{widgetId}:
+    get:
+      operationId: getWidget
+      tags: [Widgets]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Widget'}
+    delete:
+      operationId: deleteWidget
+      tags: [Widgets]
+      responses:
+        '204': {description: gone}
+components:
+  schemas:
+    Widget:
+      type: object
+      properties:
+        id: {type: string, readOnly: true}
+        count: {type: integer}
+        apiCount: {type: integer}
+`)
+
+	res, notes, err := doc.Infer(find(t, doc.Discover(), "widget"), inferOptions())
+	if err != nil {
+		t.Fatalf("Infer: %v", err)
+	}
+
+	for _, a := range res.Schema.Attributes {
+		if a.Name == "count" {
+			t.Error("count survived as a root attribute name, which Terraform reserves")
+		}
+	}
+	// The sibling that already held the name keeps it, and keeps its own wire path.
+	if got := attrByName(t, res, "api_count"); got.Wire.JSONPath != "apiCount" {
+		t.Errorf("api_count.wire.jsonPath = %q, want apiCount", got.Wire.JSONPath)
+	}
+
+	all := strings.Join(noteStrings(notes), "\n")
+	if !strings.Contains(all, "count") || !strings.Contains(all, "reserves") {
+		t.Errorf("the refusal should name the field and say why:\n%s", all)
+	}
+}
+
+// TestUnit_Infer_ReservedRootNamesAreRenamedInADataSource: the framework applies the same
+// reserved list to a data source's root, so the same document field fails there too. Data
+// sources are inferred down a separate path, which is exactly why this is asserted rather
+// than assumed from the resource case.
+func TestUnit_Infer_ReservedRootNamesAreRenamedInADataSource(t *testing.T) {
+	t.Parallel()
+
+	doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: Widgets, version: "1"}
+paths:
+  /widgets:
+    get:
+      operationId: listWidgets
+      tags: [Widgets]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WidgetList'}
+  /widgets/{widgetId}:
+    get:
+      operationId: getWidget
+      tags: [Widgets]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Widget'}
+components:
+  schemas:
+    WidgetList:
+      type: object
+      properties:
+        widgets:
+          type: array
+          items: {$ref: '#/components/schemas/Widget'}
+    Widget:
+      type: object
+      properties:
+        widgetId: {type: string, readOnly: true}
+        widgetName: {type: string}
+        count: {type: integer}
+`)
+
+	opts := InferOptions{
+		Provider:        "example",
+		APIVersionDir:   "v1",
+		SDKDialect:      blueprint.DialectKiotaFluent,
+		SDKModelsImport: "example.com/sdk/models",
+	}
+
+	ds, notes, err := doc.InferDataSource(find(t, doc.Discover(), "widget"), opts)
+	if err != nil {
+		t.Fatalf("InferDataSource: %v (notes: %v)", err, noteStrings(notes))
+	}
+
+	var renamed *blueprint.Attribute
+	for i := range ds.Schema.Attributes {
+		if ds.Schema.Attributes[i].Name == "count" {
+			t.Error("count survived as a root attribute name, which Terraform reserves")
+		}
+		if ds.Schema.Attributes[i].Name == "api_count" {
+			renamed = &ds.Schema.Attributes[i]
+		}
+	}
+	if renamed == nil {
+		t.Fatalf("no api_count attribute: %v", ds.Schema.Attributes)
+	}
+	if renamed.Wire.JSONPath != "count" {
+		t.Errorf("api_count.wire.jsonPath = %q, want the API's own field name", renamed.Wire.JSONPath)
+	}
+
+	if all := strings.Join(noteStrings(notes), "\n"); !strings.Contains(all, "api_count") {
+		t.Errorf("the rename should be reported as a note:\n%s", all)
 	}
 }
 

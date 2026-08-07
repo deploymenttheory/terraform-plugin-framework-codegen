@@ -473,6 +473,7 @@ func (d *Document) attributes(c Candidate, sdkPkg string, dialect blueprint.SDKD
 	sort.Strings(names)
 
 	ctx := newInferCtx(c.Key, sdkPkg, dialect)
+	siblings := terraformNamesOf(names)
 
 	var out []blueprint.Attribute
 
@@ -503,10 +504,63 @@ func (d *Document) attributes(c Candidate, sdkPkg string, dialect blueprint.SDKD
 			ctx.note(name, why)
 			continue
 		}
+		if !ctx.unreserveRootName(&attr, name, siblings) {
+			continue
+		}
 		out = append(out, attr)
 	}
 
 	return out, ctx.notes
+}
+
+// terraformNamesOf is the set of attribute names a set of JSON field names would produce.
+//
+// It is the sibling set unreserveRootName renames against, and it is built from the field
+// names rather than from the attributes actually emitted so that the answer does not depend
+// on which siblings inference happened to skip: a rename must land on the same name whether
+// or not the field it would have collided with survived.
+func terraformNamesOf(fields []string) map[string]bool {
+	out := make(map[string]bool, len(fields))
+	for _, f := range fields {
+		out[naming.TerraformName(f)] = true
+	}
+	return out
+}
+
+// unreserveRootName applies Terraform's reserved-name rule to one root attribute, reporting
+// what it did, and returns whether the attribute may be kept.
+//
+// Root only, and called from the two places that build a root attribute set. A nested
+// attribute goes nowhere near this: count inside a nested object is ordinary configuration,
+// and renaming it would change a practitioner's configuration for no reason.
+//
+// Only the Terraform-facing name moves. The wire binding still carries the API's own field
+// name, so the request and the response are unchanged by this -- which is what makes the
+// rename safe to apply mechanically.
+func (ctx *inferCtx) unreserveRootName(a *blueprint.Attribute, path string, siblings map[string]bool) bool {
+	renamed, ok := naming.UnreserveRootAttributeName(a.Name, siblings)
+	if !ok {
+		ctx.note(path, fmt.Sprintf(
+			"Terraform reserves %q as a meta-argument at the root of a resource or data source, "+
+				"and it cannot be renamed to %q because another field of this schema already "+
+				"claims that name, so the field is omitted rather than shadowing its sibling",
+			a.Name, renamed,
+		))
+		return false
+	}
+	if renamed == a.Name {
+		return true
+	}
+
+	ctx.note(path, fmt.Sprintf(
+		"Terraform reserves %q as a meta-argument at the root of a resource or data source, so "+
+			"the framework rejects a schema declaring it; the attribute is named %q instead, and "+
+			"its wire path is unchanged, so the API still sees %q",
+		a.Name, renamed, a.Wire.JSONPath,
+	))
+	a.Name = renamed
+
+	return true
 }
 
 func (d *Document) requestSchema(c Candidate) *base.Schema {

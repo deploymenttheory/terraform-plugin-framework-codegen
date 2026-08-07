@@ -473,3 +473,78 @@ func TestUnit_Naming_GoVarName(t *testing.T) {
 		t.Errorf("PackageAlias() = %q, want pkg", got)
 	}
 }
+
+// TestUnit_Naming_UnreserveRootAttributeName covers the rule that stops a generated schema
+// being rejected the first time the framework validates it. Every name in the reserved list
+// is asserted individually, because the list is a copy of terraform-plugin-framework's own
+// and a dropped entry would be invisible until a document happened to use it.
+func TestUnit_Naming_UnreserveRootAttributeName(t *testing.T) {
+	t.Parallel()
+
+	reserved := []string{
+		"connection", "count", "depends_on", "for_each", "lifecycle", "provider", "provisioner",
+	}
+
+	for _, in := range reserved {
+		t.Run("renamed/"+in, func(t *testing.T) {
+			t.Parallel()
+
+			if !IsReservedRootAttributeName(in) {
+				t.Fatalf("IsReservedRootAttributeName(%q) = false; Terraform reserves it", in)
+			}
+
+			got, ok := UnreserveRootAttributeName(in, nil)
+			if !ok {
+				t.Fatalf("UnreserveRootAttributeName(%q) refused with no sibling to collide with", in)
+			}
+			if want := "api_" + in; got != want {
+				t.Errorf("UnreserveRootAttributeName(%q) = %q, want %q", in, got, want)
+			}
+			// The renamed form must itself be usable, or the rule would not terminate.
+			if IsReservedRootAttributeName(got) {
+				t.Errorf("UnreserveRootAttributeName(%q) = %q, which is itself reserved", in, got)
+			}
+		})
+	}
+
+	// Everything else passes through untouched. A rename nobody needs would move an
+	// attribute a practitioner already has in their configuration.
+	unchanged := []string{
+		"name", "id", "display_name", "counts", "account_count", "provider_id",
+		"for_each_item", "lifecycle_state", "api_count",
+	}
+
+	for _, in := range unchanged {
+		t.Run("unchanged/"+in, func(t *testing.T) {
+			t.Parallel()
+
+			if IsReservedRootAttributeName(in) {
+				t.Fatalf("IsReservedRootAttributeName(%q) = true; Terraform reserves no such name", in)
+			}
+
+			got, ok := UnreserveRootAttributeName(in, map[string]bool{"api_" + in: true})
+			if !ok || got != in {
+				t.Errorf("UnreserveRootAttributeName(%q) = (%q, %v), want it unchanged", in, got, ok)
+			}
+		})
+	}
+}
+
+// TestUnit_Naming_UnreserveRootAttributeName_RefusesACollision pins the one case where the
+// rename cannot be applied: a document that carries both count and api_count. Shadowing the
+// sibling would either be refused as a duplicate attribute or silently stop one of the two
+// fields round-tripping, so the caller is told to refuse the field instead.
+func TestUnit_Naming_UnreserveRootAttributeName_RefusesACollision(t *testing.T) {
+	t.Parallel()
+
+	siblings := map[string]bool{"count": true, "api_count": true}
+
+	got, ok := UnreserveRootAttributeName("count", siblings)
+	if ok {
+		t.Errorf("UnreserveRootAttributeName(%q) = %q with api_count already taken; want a refusal", "count", got)
+	}
+	// The wanted name comes back with the refusal, so the caller's message can name it.
+	if got != "api_count" {
+		t.Errorf("UnreserveRootAttributeName(%q) = %q, want the name it could not take", "count", got)
+	}
+}
