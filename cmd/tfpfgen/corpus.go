@@ -3,10 +3,47 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"sort"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/corpus"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
 )
+
+// The corpus describes a mismatched document through a hook rather than by
+// importing the parser, so that internal/openapi's own in-package tests can use
+// it without an import cycle. The binary has no such constraint, so it installs
+// the real parser and its messages carry the version and counts that make a
+// delta reviewable.
+func init() {
+	corpus.Describer = describeDocument
+}
+
+// describeDocument reports what a document says about itself, best effort: it
+// runs while something else is already failing, so it degrades rather than
+// adding a second error on top of the first.
+func describeDocument(doc []byte) (version string, paths, operations int) {
+	tmp, err := os.CreateTemp("", "tfpfgen-corpus-*.yaml")
+	if err != nil {
+		return "unparsed", 0, 0
+	}
+	defer func() { _ = os.Remove(tmp.Name()) }()
+
+	if _, err := tmp.Write(doc); err != nil {
+		return "unparsed", 0, 0
+	}
+	if err := tmp.Close(); err != nil {
+		return "unparsed", 0, 0
+	}
+
+	parsed, err := openapi.Load(tmp.Name())
+	if err != nil {
+		return "unparsed", 0, 0
+	}
+	paths, operations = parsed.Stats()
+
+	return parsed.Version, paths, operations
+}
 
 const (
 	usageCorpusSync    = "corpus sync [-id ID]"

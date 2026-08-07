@@ -35,7 +35,6 @@ import (
 
 	_ "embed"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
 )
 
@@ -54,9 +53,18 @@ const EnvCacheDir = "TFPFGEN_CORPUS_DIR"
 // unset on a developer's machine: see Ensure.
 const EnvRequired = "TFPFGEN_CORPUS_REQUIRED"
 
-// DefaultCacheDir is where documents are materialised. Under .tfpfgen/cache,
-// which is already gitignored, so a warm cache never reaches a commit.
-const DefaultCacheDir = ".tfpfgen/cache/corpus"
+// cacheSubdir is the corpus's place within the user cache directory.
+//
+// Deliberately outside the repository, and this is not a preference. A relative
+// default is resolved against the working directory, and `go test` runs every
+// package in its own directory -- so one suite run scatters a copy of every
+// document through the tree, in package directories no root-anchored .gitignore
+// pattern reaches. That is not theoretical: it put 19 MB of specifications into
+// a commit whose entire purpose was removing artefacts from this repository.
+//
+// A cache belongs where the operating system puts caches. CI overrides it with
+// TFPFGEN_CORPUS_DIR to somewhere its cache action can restore.
+var cacheSubdir = filepath.Join("tfpfgen", "corpus")
 
 // ErrOffline reports that a document is not cached and could not be fetched.
 // Callers decide whether that is fatal; Ensure applies the policy.
@@ -162,7 +170,16 @@ func CacheDir() string {
 	if d := os.Getenv(EnvCacheDir); d != "" {
 		return d
 	}
-	return DefaultCacheDir
+
+	base, err := os.UserCacheDir()
+	if err != nil {
+		// No user cache directory is unusual but survivable: fall back to the
+		// system temp directory, which is still outside any repository. What
+		// must not happen is a relative path, for the reason cacheSubdir gives.
+		base = os.TempDir()
+	}
+
+	return filepath.Join(base, cacheSubdir)
 }
 
 // Root is a document's snapshot root, the directory a -openapi-dir flag wants.
@@ -334,28 +351,22 @@ transport check. Review it deliberately:
 		id)
 }
 
+// Describer parses a document enough to say what it is, for failure messages.
+//
+// A hook rather than a direct call on internal/openapi, because that package's
+// own tests are in-package and are among this package's most important
+// consumers: importing it here would make them an import cycle and force them
+// back onto hand-written relative paths, which is the very thing that let two
+// "real document" tests silently skip for months. The CLI installs the real
+// parser; anything that has not is describing a failure it is already reporting
+// by digest.
+var Describer = func([]byte) (version string, paths, operations int) {
+	return "unparsed", 0, 0
+}
+
 // describe reports what a document says about itself, best effort.
 func describe(doc []byte) (version string, paths, operations int) {
-	tmp, err := os.CreateTemp("", "tfpfgen-corpus-*.yaml")
-	if err != nil {
-		return "unparsed", 0, 0
-	}
-	defer func() { _ = os.Remove(tmp.Name()) }()
-
-	if _, err := tmp.Write(doc); err != nil {
-		return "unparsed", 0, 0
-	}
-	if err := tmp.Close(); err != nil {
-		return "unparsed", 0, 0
-	}
-
-	parsed, err := openapi.Load(tmp.Name())
-	if err != nil {
-		return "unparsed", 0, 0
-	}
-	paths, operations = parsed.Stats()
-
-	return parsed.Version, paths, operations
+	return Describer(doc)
 }
 
 func shortSHA(s string) string {
