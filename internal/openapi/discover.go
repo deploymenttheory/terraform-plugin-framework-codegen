@@ -22,6 +22,8 @@ import (
 
 	"github.com/pb33f/libopenapi"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 )
 
 // Document is a parsed specification.
@@ -352,4 +354,77 @@ func firstTag(c Candidate) string {
 		}
 	}
 	return ""
+}
+
+// Auth reads how the document says a caller proves who it is.
+//
+// A specification that declares its security schemes has already answered the
+// question, so asking a person to restate it in configuration invites them to
+// state it differently. Jamf Pro is the case in point: it declares bearer,
+// basic and an OAuth client-credentials flow, and the flow carries its own
+// token endpoint.
+//
+// The order of preference is the order of least ceremony for a machine:
+// client credentials where offered, because the provider can obtain its own
+// token and the practitioner supplies a durable pair; then a bearer token;
+// then basic. ok is false when the document declares nothing usable, which
+// leaves the choice to whoever configures the provider.
+func (d *Document) Auth() (auth blueprint.Auth, ok bool) {
+	if d.model == nil || d.model.Components == nil || d.model.Components.SecuritySchemes == nil {
+		return blueprint.Auth{}, false
+	}
+
+	var bearer, basic bool
+
+	for pair := d.model.Components.SecuritySchemes.First(); pair != nil; pair = pair.Next() {
+		s := pair.Value()
+		if s == nil {
+			continue
+		}
+
+		switch strings.ToLower(s.Type) {
+		case "http":
+			switch strings.ToLower(s.Scheme) {
+			case "bearer":
+				bearer = true
+			case "basic":
+				basic = true
+			}
+		case "oauth2":
+			if s.Flows == nil || s.Flows.ClientCredentials == nil {
+				continue
+			}
+			// The flow states its own token endpoint, which may be a path
+			// meaning "on this same server"; the generated client resolves
+			// that against the configured API endpoint.
+			return blueprint.Auth{
+				Method:   blueprint.AuthClientCredentials,
+				TokenURL: s.Flows.ClientCredentials.TokenUrl,
+				Scopes:   scopeNames(s.Flows.ClientCredentials),
+			}, true
+		}
+	}
+
+	switch {
+	case bearer:
+		return blueprint.Auth{Method: blueprint.AuthBearerToken}, true
+	case basic:
+		return blueprint.Auth{Method: blueprint.AuthUsernamePassword}, true
+	default:
+		return blueprint.Auth{}, false
+	}
+}
+
+// scopeNames lists a flow's declared scopes, sorted so the blueprint it lands
+// in is byte-stable across runs.
+func scopeNames(flow *v3.OAuthFlow) []string {
+	if flow == nil || flow.Scopes == nil {
+		return nil
+	}
+	var out []string
+	for pair := flow.Scopes.First(); pair != nil; pair = pair.Next() {
+		out = append(out, pair.Key())
+	}
+	sort.Strings(out)
+	return out
 }

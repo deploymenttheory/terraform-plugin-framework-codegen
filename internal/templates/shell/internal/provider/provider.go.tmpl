@@ -25,14 +25,24 @@ import (
 // Environment variables the provider falls back to, matching the SDK's own
 // names so a practitioner does not have to learn two sets.
 const (
-	envBearerToken    = "{{ .EnvPrefix }}_BEARER_TOKEN"
+{{- if .IsBearer }}
+	envBearerToken = "{{ .EnvPrefix }}_BEARER_TOKEN"
+{{- end }}
+{{- if .IsClientCredentials }}
+	envClientID     = "{{ .EnvPrefix }}_CLIENT_ID"
+	envClientSecret = "{{ .EnvPrefix }}_CLIENT_SECRET"
+{{- end }}
+{{- if .IsUsernamePassword }}
+	envUsername = "{{ .EnvPrefix }}_USERNAME"
+	envPassword = "{{ .EnvPrefix }}_PASSWORD"
+{{- end }}
 	envAccountGroupID = "{{ .EnvPrefix }}_ACCOUNT_GROUP_ID"
 	envAPIEndpoint    = "{{ .EnvPrefix }}_API_ENDPOINT"
 )
 
 var _ provider.Provider = (*Provider)(nil)
 
-// Provider is the ThousandEyes provider.
+// Provider is the {{ .DisplayName }} provider.
 type Provider struct {
 	// version is set at build time and reported to Terraform.
 	version string
@@ -64,24 +74,69 @@ func (p *Provider) Metadata(_ context.Context, _ provider.MetadataRequest, resp 
 
 // Model is the provider block's configuration.
 type Model struct {
-	BearerToken    types.String `tfsdk:"bearer_token"`
+{{- if .IsBearer }}
+	BearerToken types.String `tfsdk:"bearer_token"`
+{{- end }}
+{{- if .IsClientCredentials }}
+	ClientID     types.String `tfsdk:"client_id"`
+	ClientSecret types.String `tfsdk:"client_secret"`
+{{- end }}
+{{- if .IsUsernamePassword }}
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
+{{- end }}
 	AccountGroupID types.String `tfsdk:"account_group_id"`
 	APIEndpoint    types.String `tfsdk:"api_endpoint"`
 }
 
 func (p *Provider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages ThousandEyes resources through the v7 API.",
+		MarkdownDescription: "Manages {{ .DisplayName }} resources.",
 		Attributes: map[string]schema.Attribute{
+{{- if .IsBearer }}
 			"bearer_token": schema.StringAttribute{
-				MarkdownDescription: "A ThousandEyes user API token, created under " +
-					"**Account Settings > Users and Roles > Profile**. May also be set with the `" +
-					envBearerToken + "` environment variable.\n\n" +
-					"ThousandEyes has no service-account identity type: this token belongs to a " +
-					"user, does not expire, and cannot be revoked through the API.",
+				MarkdownDescription: "A bearer token for the {{ .DisplayName }} API, sent as " +
+					"`Authorization: Bearer`. May also be set with the `" + envBearerToken +
+					"` environment variable.\n\n" +
+					"How the token is issued and revoked is the API's own business: see the " +
+					"{{ .DisplayName }} documentation. The provider never logs it.",
 				Optional:  true,
 				Sensitive: true,
 			},
+{{- end }}
+{{- if .IsClientCredentials }}
+			"client_id": schema.StringAttribute{
+				MarkdownDescription: "The OAuth 2.0 client identifier the provider presents to the " +
+					"{{ .DisplayName }} token endpoint. May also be set with the `" + envClientID +
+					"` environment variable.",
+				Optional: true,
+			},
+			"client_secret": schema.StringAttribute{
+				MarkdownDescription: "The secret paired with `client_id`. May also be set with the `" +
+					envClientSecret + "` environment variable.\n\n" +
+					"The provider runs the client-credentials grant itself and holds the resulting " +
+					"access token in memory only, so no token is ever written to configuration or " +
+					"to state.",
+				Optional:  true,
+				Sensitive: true,
+			},
+{{- end }}
+{{- if .IsUsernamePassword }}
+			"username": schema.StringAttribute{
+				MarkdownDescription: "The user the provider authenticates to the {{ .DisplayName }} " +
+					"API as, sent as HTTP Basic credentials. May also be set with the `" + envUsername +
+					"` environment variable.",
+				Optional: true,
+			},
+			"password": schema.StringAttribute{
+				MarkdownDescription: "The password for `username`. May also be set with the `" +
+					envPassword + "` environment variable.\n\n" +
+					"HTTP Basic sends the password itself on every request, base64-encoded rather " +
+					"than encrypted, so the API endpoint must be HTTPS.",
+				Optional:  true,
+				Sensitive: true,
+			},
+{{- end }}
 			"account_group_id": schema.StringAttribute{
 				MarkdownDescription: "Scopes every request to an account group, sent as the `aid` " +
 					"query parameter. When unset, the API uses the token owner's default account " +
@@ -90,8 +145,9 @@ func (p *Provider) Schema(_ context.Context, _ provider.SchemaRequest, resp *pro
 				Optional: true,
 			},
 			"api_endpoint": schema.StringAttribute{
-				MarkdownDescription: "Overrides the API base URL. Defaults to the SDK's v7 endpoint. " +
-					"May also be set with the `" + envAPIEndpoint + "` environment variable.",
+				MarkdownDescription: "Overrides the API base URL. Defaults to the endpoint the SDK " +
+					"was generated against. May also be set with the `" + envAPIEndpoint +
+					"` environment variable.",
 				Optional: true,
 			},
 		},
@@ -113,28 +169,80 @@ func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest,
 	}
 
 	resolved := teclient.Config{
-		BearerToken:    firstNonEmpty(cfg.BearerToken, envBearerToken),
+{{- if .IsBearer }}
+		BearerToken: firstNonEmpty(cfg.BearerToken, envBearerToken),
+{{- end }}
+{{- if .IsClientCredentials }}
+		ClientID:     firstNonEmpty(cfg.ClientID, envClientID),
+		ClientSecret: firstNonEmpty(cfg.ClientSecret, envClientSecret),
+{{- end }}
+{{- if .IsUsernamePassword }}
+		Username: firstNonEmpty(cfg.Username, envUsername),
+		Password: firstNonEmpty(cfg.Password, envPassword),
+{{- end }}
 		AccountGroupID: firstNonEmpty(cfg.AccountGroupID, envAccountGroupID),
 		APIEndpoint:    firstNonEmpty(cfg.APIEndpoint, envAPIEndpoint),
 	}
 
+	// Missing credentials are refused here rather than at the first request,
+	// because a diagnostic naming the attribute is the only thing that tells a
+	// practitioner which of the two halves they left out.
+{{- if .IsBearer }}
 	if resolved.BearerToken == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("bearer_token"),
-			"Missing ThousandEyes bearer token",
-			"Set the bearer_token provider attribute or the "+envBearerToken+" environment variable. "+
-				"Create a token under Account Settings > Users and Roles > Profile.",
+			"Missing {{ .DisplayName }} bearer token",
+			"Set the bearer_token provider attribute or the "+envBearerToken+" environment variable.",
 		)
 		return
 	}
+{{- end }}
+{{- if .IsClientCredentials }}
+	if resolved.ClientID == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("client_id"),
+			"Missing {{ .DisplayName }} client id",
+			"Set the client_id provider attribute or the "+envClientID+" environment variable.",
+		)
+	}
+	if resolved.ClientSecret == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("client_secret"),
+			"Missing {{ .DisplayName }} client secret",
+			"Set the client_secret provider attribute or the "+envClientSecret+" environment variable.",
+		)
+	}
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
+{{- if .IsUsernamePassword }}
+	if resolved.Username == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("username"),
+			"Missing {{ .DisplayName }} username",
+			"Set the username provider attribute or the "+envUsername+" environment variable.",
+		)
+	}
+	if resolved.Password == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("password"),
+			"Missing {{ .DisplayName }} password",
+			"Set the password provider attribute or the "+envPassword+" environment variable.",
+		)
+	}
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
 
 	client, err := teclient.New(resolved)
 	if err != nil {
-		resp.Diagnostics.AddError("Unable to configure the ThousandEyes client", err.Error())
+		resp.Diagnostics.AddError("Unable to configure the {{ .DisplayName }} client", err.Error())
 		return
 	}
 
-	tflog.Debug(ctx, "configured the ThousandEyes client", map[string]any{
+	tflog.Debug(ctx, "configured the {{ .DisplayName }} client", map[string]any{
 		"account_group_id_set": resolved.AccountGroupID != "",
 		"custom_endpoint":      resolved.APIEndpoint != "",
 	})

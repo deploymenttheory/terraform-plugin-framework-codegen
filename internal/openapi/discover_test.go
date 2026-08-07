@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 )
 
 // miniSpec is a small document exercising the shapes discovery has to get right:
@@ -322,5 +324,77 @@ func TestUnit_Discover_AgainstTheCommittedSpecification(t *testing.T) {
 	// which the blueprint records as putFull. Discovery must see the same verb.
 	if tag.Update != nil && tag.Update.Method != "PUT" {
 		t.Errorf("tag update is %s; the blueprint's putFull update style assumes PUT", tag.Update.Method)
+	}
+}
+
+// TestUnit_OpenAPI_AuthFromSecuritySchemes covers reading the auth method off
+// the document, using the shapes a real second API declares: Jamf Pro offers
+// bearer, basic and an OAuth client-credentials flow whose token endpoint is a
+// path rather than a URL.
+func TestUnit_OpenAPI_AuthFromSecuritySchemes(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		schemes  string
+		want     blueprint.AuthMethod
+		tokenURL string
+		ok       bool
+	}{
+		{
+			name: "client credentials wins, and carries its token endpoint",
+			schemes: `
+    Bearer: {type: http, scheme: bearer}
+    BasicAuth: {type: http, scheme: basic}
+    ApiClient:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: /api/v1/oauth/token
+          scopes: {}`,
+			want: blueprint.AuthClientCredentials, tokenURL: "/api/v1/oauth/token", ok: true,
+		},
+		{
+			name:    "bearer where there is no grant to run",
+			schemes: "\n    Bearer: {type: http, scheme: bearer}",
+			want:    blueprint.AuthBearerToken, ok: true,
+		},
+		{
+			name:    "basic alone",
+			schemes: "\n    BasicAuth: {type: http, scheme: basic}",
+			want:    blueprint.AuthUsernamePassword, ok: true,
+		},
+		{
+			name:    "an api-key scheme is not one of the three",
+			schemes: "\n    ApiKey: {type: apiKey, in: header, name: X-Key}",
+			ok:      false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc := loadSpec(t, `
+openapi: 3.0.3
+info: {title: T, version: "1"}
+paths: {}
+components:
+  securitySchemes:`+tc.schemes+"\n")
+
+			got, ok := doc.Auth()
+			if ok != tc.ok {
+				t.Fatalf("ok = %v, want %v (got %+v)", ok, tc.ok, got)
+			}
+			if !tc.ok {
+				return
+			}
+			if got.Resolved() != tc.want {
+				t.Errorf("method = %q, want %q", got.Resolved(), tc.want)
+			}
+			if got.TokenURL != tc.tokenURL {
+				t.Errorf("tokenUrl = %q, want %q", got.TokenURL, tc.tokenURL)
+			}
+		})
 	}
 }

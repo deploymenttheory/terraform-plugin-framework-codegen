@@ -581,6 +581,31 @@ func (pr Provider) validate(p *problems) {
 	default:
 		p.add("provider.sdk.mode", "%q is not embed or external", pr.SDK.Mode)
 	}
+
+	pr.Auth.validate(p)
+}
+
+// validate holds an auth declaration to what its method actually needs.
+//
+// The point is to refuse here rather than emit a client that cannot obtain a
+// token: a clientCredentials provider with no token endpoint compiles, runs,
+// and fails on the practitioner's first apply with nothing naming the cause.
+func (a Auth) validate(p *problems) {
+	switch a.Resolved() {
+	case AuthBearerToken, AuthUsernamePassword:
+		if a.TokenURL != "" {
+			p.add("provider.auth.tokenUrl",
+				"is set, but %q obtains no token: it sends the credential directly", a.Resolved())
+		}
+		if len(a.Scopes) > 0 {
+			p.add("provider.auth.scopes", "are set, but %q requests no scopes", a.Resolved())
+		}
+	case AuthClientCredentials:
+		required(p, "provider.auth.tokenUrl", a.TokenURL)
+	default:
+		p.add("provider.auth.method",
+			"%q is not one of bearerToken, clientCredentials or usernamePassword", a.Method)
+	}
 }
 
 func (r Resource) validate(at string, p *problems) {

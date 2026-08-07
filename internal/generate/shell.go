@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io/fs"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 	"unicode"
@@ -41,6 +42,31 @@ type ShellParams struct {
 	RegistryOrg string
 	// ClientClass is the SDK client's type name, e.g. "ThousandEyesClient".
 	ClientClass string
+	// DisplayName is the API's name as a person writes it, e.g. "ThousandEyes".
+	// Every sentence a practitioner reads names the API through this, so a
+	// provider for some other API does not describe itself as the pilot's.
+	DisplayName string
+
+	// AuthMethod is the resolved authentication method, for the one place a
+	// template states which it is rather than branching on it.
+	AuthMethod string
+	// IsBearer, IsClientCredentials and IsUsernamePassword select the auth
+	// branch. Three booleans rather than one method string a template compares
+	// against, because a template that compares is a template that can compare
+	// wrongly, and a misspelt method name in an {{ if eq }} silently emits the
+	// other branch.
+	IsBearer            bool
+	IsClientCredentials bool
+	IsUsernamePassword  bool
+	// TokenURL is the client-credentials token endpoint, empty for every other
+	// method. Validation has already refused a clientCredentials block without
+	// one.
+	TokenURL string
+	// Scopes is the requested scopes already rendered as the Go expression the
+	// template drops into a struct literal: `[]string{"a", "b"}`, or `nil` when
+	// none are declared. Rendered here rather than in the template, because
+	// quoting a string list is code and templates in this repo carry none.
+	Scopes string
 }
 
 // ShellParamsFrom derives the template parameters from a provider block.
@@ -69,13 +95,54 @@ func ShellParamsFrom(p blueprint.Provider) (ShellParams, error) {
 		return ShellParams{}, fmt.Errorf("the provider block's sdk.clientType is empty")
 	}
 
+	displayName := p.DisplayName
+	if displayName == "" {
+		displayName = titleCase(p.Name)
+	}
+
+	method := p.Auth.Resolved()
+
 	return ShellParams{
 		Module:      p.GoModule,
 		Name:        p.Name,
 		EnvPrefix:   envPrefix(p.Name),
 		RegistryOrg: segments[1],
 		ClientClass: clientClass,
+		DisplayName: displayName,
+
+		AuthMethod:          string(method),
+		IsBearer:            method == blueprint.AuthBearerToken,
+		IsClientCredentials: method == blueprint.AuthClientCredentials,
+		IsUsernamePassword:  method == blueprint.AuthUsernamePassword,
+		TokenURL:            p.Auth.TokenURL,
+		Scopes:              goStringSlice(p.Auth.Scopes),
 	}, nil
+}
+
+// titleCase upper-cases the first letter, which is the whole of the fallback:
+// a provider whose blueprint states no display name gets "Thousandeyes" from
+// "thousandeyes", and the blueprint's displayName is how it gets "ThousandEyes".
+// Guessing harder would only produce a different wrong answer more confidently.
+func titleCase(name string) string {
+	for i, r := range name {
+		return string(unicode.ToUpper(r)) + name[i+len(string(r)):]
+	}
+	return name
+}
+
+// goStringSlice renders a string list as the Go expression for it, so the
+// template that needs one drops in a value rather than quoting anything.
+func goStringSlice(values []string) string {
+	if len(values) == 0 {
+		return "nil"
+	}
+
+	quoted := make([]string, 0, len(values))
+	for _, v := range values {
+		quoted = append(quoted, strconv.Quote(v))
+	}
+
+	return "[]string{" + strings.Join(quoted, ", ") + "}"
 }
 
 // envPrefix upper-cases a provider name into an environment-variable prefix,

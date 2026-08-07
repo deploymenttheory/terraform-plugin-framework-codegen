@@ -11,6 +11,7 @@ import (
 	"golang.org/x/mod/modfile"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
 )
 
@@ -78,12 +79,28 @@ func runProviderInit(args []string) error {
 		return err
 	}
 
+	// What the document says about proving who you are. A specification that
+	// declares its security schemes has already answered this, and asking a
+	// person to restate it invites them to state it differently.
+	auth := blueprint.Auth{Method: blueprint.AuthBearerToken}
+	if doc, dErr := openapi.Load(snap.SpecPath()); dErr == nil {
+		if derived, ok := doc.Auth(); ok {
+			auth = derived
+			log.Printf("auth: %s, derived from the document's security schemes", auth.Resolved())
+		} else {
+			log.Printf("auth: the document declares no usable security scheme; defaulting to %s",
+				auth.Resolved())
+		}
+	}
+
 	bp := blueprint.Blueprint{
 		FormatVersion: blueprint.FormatVersion,
 		Provider: blueprint.Provider{
-			Name:       *name,
-			GoModule:   goModule,
-			TypePrefix: *name,
+			Name:        *name,
+			GoModule:    goModule,
+			TypePrefix:  *name,
+			DisplayName: displayName(*name),
+			Auth:        auth,
 			SDK: blueprint.SDKModule{
 				Dialect:    blueprint.DialectKiotaFluent,
 				Mode:       blueprint.SDKModeEmbed,
@@ -163,4 +180,15 @@ func kiotaClientClass(path string) (string, error) {
 		return "", fmt.Errorf("%s names no clientClassName", path)
 	}
 	return lock.ClientClassName, nil
+}
+
+// displayName renders a provider name the way prose wants it: thousandeyes
+// becomes Thousandeyes, which a person then corrects to ThousandEyes in the
+// blueprint if the capitalisation matters to them. Guessing the house
+// capitalisation of an arbitrary vendor is not something a generator can do.
+func displayName(name string) string {
+	if name == "" {
+		return ""
+	}
+	return strings.ToUpper(name[:1]) + name[1:]
 }

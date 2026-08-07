@@ -357,8 +357,6 @@ func handleOrphans(root string, plan generate.Fileset, clean bool) ([]manifest.E
 
 // manifestEntries records what the run produced, so a later run can tell which
 // files it used to produce and no longer does.
-// manifestEntries records what the generator owns.
-//
 func manifestEntries(plan generate.Fileset, blueprintPath string) []manifest.Entry {
 	out := make([]manifest.Entry, 0, len(plan.Files))
 	for _, f := range plan.Files {

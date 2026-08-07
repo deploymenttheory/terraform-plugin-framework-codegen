@@ -17,7 +17,17 @@ import (
 // The same names the provider itself reads, deliberately: a test that authenticated differently
 // from the provider under test could pass while the provider was misconfigured.
 const (
-	envBearerToken    = "{{ .EnvPrefix }}_BEARER_TOKEN"
+{{- if .IsBearer }}
+	envBearerToken = "{{ .EnvPrefix }}_BEARER_TOKEN"
+{{- end }}
+{{- if .IsClientCredentials }}
+	envClientID     = "{{ .EnvPrefix }}_CLIENT_ID"
+	envClientSecret = "{{ .EnvPrefix }}_CLIENT_SECRET"
+{{- end }}
+{{- if .IsUsernamePassword }}
+	envUsername = "{{ .EnvPrefix }}_USERNAME"
+	envPassword = "{{ .EnvPrefix }}_PASSWORD"
+{{- end }}
 	envAccountGroupID = "{{ .EnvPrefix }}_ACCOUNT_GROUP_ID"
 	envAPIEndpoint    = "{{ .EnvPrefix }}_API_ENDPOINT"
 )
@@ -39,6 +49,7 @@ var (
 // client would spend the run authenticating.
 func Client() (*sdk.{{ .ClientClass }}, error) {
 	clientOnce.Do(func() {
+{{- if .IsBearer }}
 		token := os.Getenv(envBearerToken)
 		if token == "" {
 			clientErr = fmt.Errorf(
@@ -53,6 +64,43 @@ func Client() (*sdk.{{ .ClientClass }}, error) {
 			AccountGroupID: os.Getenv(envAccountGroupID),
 			APIEndpoint:    os.Getenv(envAPIEndpoint),
 		})
+{{- end }}
+{{- if .IsClientCredentials }}
+		clientID, clientSecret := os.Getenv(envClientID), os.Getenv(envClientSecret)
+		if clientID == "" || clientSecret == "" {
+			clientErr = fmt.Errorf(
+				"%s and %s must both be set for an acceptance check to reach the API",
+				envClientID, envClientSecret,
+			)
+
+			return
+		}
+
+		clientRef, clientErr = teclient.New(teclient.Config{
+			ClientID:       clientID,
+			ClientSecret:   clientSecret,
+			AccountGroupID: os.Getenv(envAccountGroupID),
+			APIEndpoint:    os.Getenv(envAPIEndpoint),
+		})
+{{- end }}
+{{- if .IsUsernamePassword }}
+		username, password := os.Getenv(envUsername), os.Getenv(envPassword)
+		if username == "" || password == "" {
+			clientErr = fmt.Errorf(
+				"%s and %s must both be set for an acceptance check to reach the API",
+				envUsername, envPassword,
+			)
+
+			return
+		}
+
+		clientRef, clientErr = teclient.New(teclient.Config{
+			Username:       username,
+			Password:       password,
+			AccountGroupID: os.Getenv(envAccountGroupID),
+			APIEndpoint:    os.Getenv(envAPIEndpoint),
+		})
+{{- end }}
 	})
 
 	return clientRef, clientErr
