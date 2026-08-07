@@ -1,0 +1,188 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_onboarding",
+      "name": "v1_onboarding",
+      "goPackage": "v1_onboarding",
+      "goPackageAlias": "v7V1OnboardingDs",
+      "goTypeName": "V1OnboardingDataSource",
+      "modelTypeName": "V1OnboardingDataSourceModel",
+      "serviceGroup": "onboarding",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "entity_id",
+            "goField": "EntityID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The id of the Jamf Pro object that should be added to the onboarding workflow for end users.\nUse this in conjunction with the selfServiceEntityType. For example, if the policy with id 132\nshould be added to onboarding, then entityId should be 132 and selfServiceEntityType should be \nOS_X_POLICY.",
+            "wire": {
+              "jsonPath": "entityId",
+              "sdkField": "EntityId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "entity_name",
+            "goField": "EntityName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "entityName",
+              "sdkField": "EntityName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "priority",
+            "goField": "Priority",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "priority",
+              "sdkField": "Priority",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "scope_description",
+            "goField": "ScopeDescription",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "scopeDescription",
+              "sdkField": "ScopeDescription",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "self_service_entity_type",
+            "goField": "SelfServiceEntityType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "selfServiceEntityType",
+              "sdkField": "SelfServiceEntityType",
+              "sdkGoType": "*models.OnboardingItem_selfServiceEntityType",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "site_description",
+            "goField": "SiteDescription",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "siteDescription",
+              "sdkField": "SiteDescription",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Onboarding"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.OnboardingConfigurationable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/onboarding"
+        },
+        "collectionField": "GetOnboardingItems()",
+        "elementType": "models.OnboardingItemable",
+        "selectors": [
+          {
+            "attribute": "entity_name",
+            "goField": "EntityName",
+            "sdkField": "EntityName"
+          }
+        ],
+        "response": {
+          "type": "models.OnboardingItemable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

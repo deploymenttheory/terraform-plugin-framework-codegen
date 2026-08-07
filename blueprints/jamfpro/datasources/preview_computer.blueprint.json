@@ -1,0 +1,460 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "preview_computer",
+      "name": "preview_computer",
+      "goPackage": "preview_computer",
+      "goPackageAlias": "v7PreviewComputerDs",
+      "goTypeName": "PreviewComputerDataSource",
+      "modelTypeName": "PreviewComputerDataSourceModel",
+      "serviceGroup": "computers_preview",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "asset_tag",
+            "goField": "AssetTag",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "assetTag",
+              "sdkField": "AssetTag",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 1
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "ip_address",
+            "goField": "IPAddress",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "ipAddress",
+              "sdkField": "IpAddress",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "is_managed",
+            "goField": "IsManaged",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "isManaged",
+              "sdkField": "IsManaged",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "last_contact_date",
+            "goField": "LastContactDate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "lastContactDate",
+              "sdkField": "LastContactDate",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "last_enrolled_date",
+            "goField": "LastEnrolledDate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "lastEnrolledDate",
+              "sdkField": "LastEnrolledDate",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "last_report_date",
+            "goField": "LastReportDate",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "lastReportDate",
+              "sdkField": "LastReportDate",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "location",
+            "goField": "Location",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "PreviewComputerComputerLocationModel",
+                "sdkType": "models.ComputerLocationable",
+                "constructorExpr": "models.NewComputerLocation()",
+                "attrTypesVar": "previewComputerComputerLocationAttrTypes",
+                "objectTypeVar": "previewComputerComputerLocationObjectType",
+                "expandFunc": "expandPreviewComputerComputerLocation",
+                "flattenFunc": "flattenPreviewComputerComputerLocation",
+                "attributes": [
+                  {
+                    "name": "position",
+                    "goField": "Position",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "position",
+                      "sdkField": "Position",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "room",
+                    "goField": "Room",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "room",
+                      "sdkField": "Room",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "username",
+                    "goField": "Username",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "username",
+                      "sdkField": "Username",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "location",
+              "sdkField": "Location",
+              "sdkGoType": "models.ComputerLocationable",
+              "flatten": {
+                "func": "flattenPreviewComputerComputerLocation",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "mac_address",
+            "goField": "MacAddress",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "macAddress",
+              "sdkField": "MacAddress",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "management_id",
+            "goField": "ManagementID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "managementId",
+              "sdkField": "ManagementId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "mdm_access_rights",
+            "goField": "MdmAccessRights",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "mdmAccessRights",
+              "sdkField": "MdmAccessRights",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "model_identifier",
+            "goField": "ModelIdentifier",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "modelIdentifier",
+              "sdkField": "ModelIdentifier",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "operating_system_build",
+            "goField": "OperatingSystemBuild",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "operatingSystemBuild",
+              "sdkField": "OperatingSystemBuild",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "operating_system_rapid_security_response",
+            "goField": "OperatingSystemRapidSecurityResponse",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Collected for macOS 13.0 or later",
+            "wire": {
+              "jsonPath": "operatingSystemRapidSecurityResponse",
+              "sdkField": "OperatingSystemRapidSecurityResponse",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "operating_system_supplemental_build_version",
+            "goField": "OperatingSystemSupplementalBuildVersion",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Collected for macOS 13.0 or later",
+            "wire": {
+              "jsonPath": "operatingSystemSupplementalBuildVersion",
+              "sdkField": "OperatingSystemSupplementalBuildVersion",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "operating_system_version",
+            "goField": "OperatingSystemVersion",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "operatingSystemVersion",
+              "sdkField": "OperatingSystemVersion",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "serial_number",
+            "goField": "SerialNumber",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "serialNumber",
+              "sdkField": "SerialNumber",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "udid",
+            "goField": "Udid",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "udid",
+              "sdkField": "Udid",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "Preview"
+            },
+            {
+              "method": "Computers"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.ComputersSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/preview/computers"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.ComputerOverviewable",
+        "selectors": [
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "response": {
+          "type": "models.ComputerOverviewable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

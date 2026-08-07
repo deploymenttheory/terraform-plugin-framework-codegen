@@ -1,0 +1,139 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_onboarding_eligible_app",
+      "name": "v1_onboarding_eligible_app",
+      "goPackage": "v1_onboarding_eligible_app",
+      "goPackageAlias": "v7V1OnboardingEligibleAppDs",
+      "goTypeName": "V1OnboardingEligibleAppDataSource",
+      "modelTypeName": "V1OnboardingEligibleAppDataSourceModel",
+      "serviceGroup": "onboarding",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "scope_description",
+            "goField": "ScopeDescription",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "scopeDescription",
+              "sdkField": "ScopeDescription",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "site_description",
+            "goField": "SiteDescription",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "siteDescription",
+              "sdkField": "SiteDescription",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Onboarding"
+            },
+            {
+              "method": "EligibleApps"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.OnboardingEligibleItemsSearchResultable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/onboarding/eligible-apps"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.OnboardingEligibleItemable",
+        "selectors": [
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "response": {
+          "type": "models.OnboardingEligibleItemable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v2_enrollment_history",
+      "name": "v2_enrollment_history",
+      "goPackage": "v2_enrollment_history",
+      "goPackageAlias": "v7V2EnrollmentHistoryDs",
+      "goTypeName": "V2EnrollmentHistoryDataSource",
+      "modelTypeName": "V2EnrollmentHistoryDataSourceModel",
+      "serviceGroup": "enrollment",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "date",
+            "goField": "Date",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "date",
+              "sdkField": "Date",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "details",
+            "goField": "Details",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "details",
+              "sdkField": "Details",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "int64",
+              "constraints": {
+                "minimum": 1
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "note",
+            "goField": "Note",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "note",
+              "sdkField": "Note",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "username",
+            "goField": "Username",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "username",
+              "sdkField": "Username",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Add Enrollment history object notes."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V2"
+            },
+            {
+              "method": "Enrollment"
+            },
+            {
+              "method": "History"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HistorySearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v2/enrollment/history"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.ObjectHistoryable",
+        "selectors": [
+          {
+            "attribute": "username",
+            "goField": "Username",
+            "sdkField": "Username"
+          }
+        ],
+        "response": {
+          "type": "models.ObjectHistoryable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

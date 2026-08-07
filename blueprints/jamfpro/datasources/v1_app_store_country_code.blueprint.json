@@ -1,0 +1,102 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_app_store_country_code",
+      "name": "v1_app_store_country_code",
+      "goPackage": "v1_app_store_country_code",
+      "goPackageAlias": "v7V1AppStoreCountryCodeDs",
+      "goTypeName": "V1AppStoreCountryCodeDataSource",
+      "modelTypeName": "V1AppStoreCountryCodeDataSourceModel",
+      "serviceGroup": "app_store_country_codes_preview",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "code",
+            "goField": "Code",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "code",
+              "sdkField": "Code",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "AppStoreCountryCodes"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.CountryCodesable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/app-store-country-codes"
+        },
+        "collectionField": "GetCountryCodes()",
+        "elementType": "models.Countryable",
+        "selectors": [
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "response": {
+          "type": "models.Countryable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

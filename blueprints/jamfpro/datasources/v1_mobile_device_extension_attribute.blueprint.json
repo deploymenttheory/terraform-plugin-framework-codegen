@@ -1,0 +1,294 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_mobile_device_extension_attribute",
+      "name": "v1_mobile_device_extension_attribute",
+      "goPackage": "v1_mobile_device_extension_attribute",
+      "goPackageAlias": "v7V1MobileDeviceExtensionAttributeDs",
+      "goTypeName": "V1MobileDeviceExtensionAttributeDataSource",
+      "modelTypeName": "V1MobileDeviceExtensionAttributeDataSourceModel",
+      "serviceGroup": "mobile_device_extension_attributes",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "data_type",
+            "goField": "DataType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Type of data being collected.",
+            "wire": {
+              "jsonPath": "dataType",
+              "sdkField": "DataType",
+              "sdkGoType": "*models.ExtensionAttributes_dataType",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "description",
+            "goField": "Description",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Description for the extension attribute.",
+            "wire": {
+              "jsonPath": "description",
+              "sdkField": "Description",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Unique Id for Mobile Device Extension Attribute.",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "input_type",
+            "goField": "InputType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Extension attributes collect inventory data by using an input type.The type of the Input used to populate the extension attribute.",
+            "wire": {
+              "jsonPath": "inputType",
+              "sdkField": "InputType",
+              "sdkGoType": "*models.MobileDeviceExtensionAttributes_inputType",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "inventory_display_type",
+            "goField": "InventoryDisplayType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Category in which to display the extension attribute in Jamf Pro.",
+            "wire": {
+              "jsonPath": "inventoryDisplayType",
+              "sdkField": "InventoryDisplayType",
+              "sdkGoType": "*models.MobileDeviceExtensionAttributes_inventoryDisplayType",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "ldap_attribute_mapping",
+            "goField": "LdapAttributeMapping",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Directory Service attribute use to populate the extension attribute. <br/> Required when inputType is \"DIRECTORY_SERVICE_ATTRIBUTE_MAPPING\"",
+            "wire": {
+              "jsonPath": "ldapAttributeMapping",
+              "sdkField": "LdapAttributeMapping",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "ldap_extension_attribute_allowed",
+            "goField": "LdapExtensionAttributeAllowed",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Collect multiple values for this extension attribute. ldapExtensionAttributeAllowed is disabled by default, only for inputType 'DIRECTORY_SERVICE_ATTRIBUTE_MAPPING' it can be enabled. It's value cannot be modified during edit operation.<br/> Possible values are:<br/> false <br/> true <br/>",
+            "wire": {
+              "jsonPath": "ldapExtensionAttributeAllowed",
+              "sdkField": "LdapExtensionAttributeAllowed",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Display name for the extension attribute.",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "popup_menu_choices",
+            "goField": "PopupMenuChoices",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string"
+              },
+              "constraints": {
+                "minItems": 0
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "When added with list of choices while creating mobile device extension attributes these Pop-up menu can be displayed in inventory information. User can choose a value from the pop-up menu list when enrolling a mobile device any time using Jamf Pro. Provide popupMenuChoices only when inputType is 'POPUP'.",
+            "wire": {
+              "jsonPath": "popupMenuChoices",
+              "sdkField": "PopupMenuChoices",
+              "sdkGoType": "[]string",
+              "flatten": {
+                "func": "convert.StringSliceToFrameworkSet",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Get specified Mobile Device Extension Attribute object.."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "MobileDeviceExtensionAttributes"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.MobileDeviceExtensionAttributesable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/mobile-device-extension-attributes/{id}"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "MobileDeviceExtensionAttributes"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.MobileDeviceExtensionAttributeSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/mobile-device-extension-attributes"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.MobileDeviceExtensionAttributesable",
+        "selectors": [
+          {
+            "attribute": "id",
+            "goField": "ID",
+            "viaRead": true
+          },
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "elementIdField": "Id",
+        "elementIdFlatten": {
+          "func": "convert.PtrStringToFramework"
+        },
+        "response": {
+          "type": "models.MobileDeviceExtensionAttributesable",
+          "accessStyle": "method"
+        }
+      },
+      "accTest": {
+        "seedResourceKey": "v1_mobile_device_extension_attribute",
+        "args": [
+          {
+            "attr": "id",
+            "fromSeedAttr": "id"
+          }
+        ]
+      }
+    }
+  ]
+}

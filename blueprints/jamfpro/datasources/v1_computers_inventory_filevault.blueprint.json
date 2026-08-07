@@ -1,0 +1,272 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_computers_inventory_filevault",
+      "name": "v1_computers_inventory_filevault",
+      "goPackage": "v1_computers_inventory_filevault",
+      "goPackageAlias": "v7V1ComputersInventoryFilevaultDs",
+      "goTypeName": "V1ComputersInventoryFilevaultDataSource",
+      "modelTypeName": "V1ComputersInventoryFilevaultDataSourceModel",
+      "serviceGroup": "computer_inventory",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "boot_partition_encryption_details",
+            "goField": "BootPartitionEncryptionDetails",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "V1ComputersInventoryFilevaultComputerPartitionEncryptionModel",
+                "sdkType": "models.ComputerPartitionEncryptionable",
+                "constructorExpr": "models.NewComputerPartitionEncryption()",
+                "attrTypesVar": "v1ComputersInventoryFilevaultComputerPartitionEncryptionAttrTypes",
+                "objectTypeVar": "v1ComputersInventoryFilevaultComputerPartitionEncryptionObjectType",
+                "expandFunc": "expandV1ComputersInventoryFilevaultComputerPartitionEncryption",
+                "flattenFunc": "flattenV1ComputersInventoryFilevaultComputerPartitionEncryption",
+                "attributes": [
+                  {
+                    "name": "partition_file_vault2_percent",
+                    "goField": "PartitionFileVault2Percent",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "partitionFileVault2Percent",
+                      "sdkField": "PartitionFileVault2Percent",
+                      "sdkGoType": "*int32",
+                      "flatten": {
+                        "func": "convert.PtrInt32ToFrameworkInt64"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "partition_file_vault2_state",
+                    "goField": "PartitionFileVault2State",
+                    "type": {
+                      "kind": "string",
+                      "allowedValues": [
+                        "UNKNOWN",
+                        "UNENCRYPTED",
+                        "INELIGIBLE",
+                        "DECRYPTED",
+                        "DECRYPTING",
+                        "ENCRYPTED",
+                        "ENCRYPTING",
+                        "RESTART_NEEDED",
+                        "OPTIMIZING",
+                        "DECRYPTING_PAUSED",
+                        "ENCRYPTING_PAUSED"
+                      ]
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "partitionFileVault2State",
+                      "sdkField": "PartitionFileVault2State",
+                      "sdkGoType": "*models.ComputerPartitionFileVault2State",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "partition_name",
+                    "goField": "PartitionName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "partitionName",
+                      "sdkField": "PartitionName",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "bootPartitionEncryptionDetails",
+              "sdkField": "BootPartitionEncryptionDetails",
+              "sdkGoType": "models.ComputerPartitionEncryptionable",
+              "flatten": {
+                "func": "flattenV1ComputersInventoryFilevaultComputerPartitionEncryption",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "computer_id",
+            "goField": "ComputerID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "computerId",
+              "sdkField": "ComputerId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "disk_encryption_configuration_name",
+            "goField": "DiskEncryptionConfigurationName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "diskEncryptionConfigurationName",
+              "sdkField": "DiskEncryptionConfigurationName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "individual_recovery_key_validity_status",
+            "goField": "IndividualRecoveryKeyValidityStatus",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "individualRecoveryKeyValidityStatus",
+              "sdkField": "IndividualRecoveryKeyValidityStatus",
+              "sdkGoType": "*models.ComputerInventoryFileVault_individualRecoveryKeyValidityStatus",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "institutional_recovery_key_present",
+            "goField": "InstitutionalRecoveryKeyPresent",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "institutionalRecoveryKeyPresent",
+              "sdkField": "InstitutionalRecoveryKeyPresent",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "personal_recovery_key",
+            "goField": "PersonalRecoveryKey",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "personalRecoveryKey",
+              "sdkField": "PersonalRecoveryKey",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "ComputersInventory"
+            },
+            {
+              "method": "Filevault"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.ComputerInventoryFileVaultSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/computers-inventory/filevault"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.ComputerInventoryFileVaultable",
+        "selectors": [
+          {
+            "attribute": "disk_encryption_configuration_name",
+            "goField": "DiskEncryptionConfigurationName",
+            "sdkField": "DiskEncryptionConfigurationName"
+          },
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "response": {
+          "type": "models.ComputerInventoryFileVaultable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

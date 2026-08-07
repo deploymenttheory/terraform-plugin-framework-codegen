@@ -75,6 +75,16 @@ jobs:
             -blueprint blueprints/thousandeyes-kiota \
             -out pilot/thousandeyes-kiota
           echo "::endgroup::"
+          # A second API, and the reason it is here: every assumption the
+          # generator made about ThousandEyes -- string identifiers, an id on
+          # the read response, a bearer token, a default host -- was invisible
+          # until a different vendor's document disagreed. Regenerating Jamf on
+          # every change is what stops those assumptions quietly returning.
+          echo "::group::🔁 Regenerating the Jamf Pro pilot provider"
+          go run ./cmd/tfpfgen provider generate \
+            -blueprint blueprints/jamfpro \
+            -out pilot/jamfpro
+          echo "::endgroup::"
 
       # git diff rather than `tfpfgen provider generate -check`, deliberately. verify compares
       # the files the blueprints produce against disk, so it cannot see a stale file
@@ -213,6 +223,11 @@ jobs:
           go run ./cmd/tfpfgen bindings check \
             -blueprint blueprints/thousandeyes-kiota \
             -module pilot/thousandeyes-kiota
+          echo "::endgroup::"
+          echo "::group::🔗 bindings check (Jamf Pro)"
+          go run ./cmd/tfpfgen bindings check \
+            -blueprint blueprints/jamfpro \
+            -module pilot/jamfpro
           echo "::endgroup::"
 
   interop:

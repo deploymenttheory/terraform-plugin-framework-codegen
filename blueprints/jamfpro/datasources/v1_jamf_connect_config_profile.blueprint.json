@@ -1,0 +1,176 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_jamf_connect_config_profile",
+      "name": "v1_jamf_connect_config_profile",
+      "goPackage": "v1_jamf_connect_config_profile",
+      "goPackageAlias": "v7V1JamfConnectConfigProfileDs",
+      "goTypeName": "V1JamfConnectConfigProfileDataSource",
+      "modelTypeName": "V1JamfConnectConfigProfileDataSourceModel",
+      "serviceGroup": "jamf_connect",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "auto_deployment_type",
+            "goField": "AutoDeploymentType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Determines how the server will behave regarding application updates and installs on the devices that have the configuration profile installed. * `PATCH_UPDATES` - Server handles initial installation of the application and any patch updates. * `MINOR_AND_PATCH_UPDATES` - Server handles initial installation of the application and any patch and minor updates. * `INITIAL_INSTALLATION_ONLY` - Server only handles initial installation of the application. Updates will have to be done manually. * `NONE` - Server does not handle any installations or updates for the application. Version is ignored for this type.",
+            "wire": {
+              "jsonPath": "autoDeploymentType",
+              "sdkField": "AutoDeploymentType",
+              "sdkGoType": "*models.LinkedConnectProfile_autoDeploymentType",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "profile_id",
+            "goField": "ProfileID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "profileId",
+              "sdkField": "ProfileId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "profile_name",
+            "goField": "ProfileName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "profileName",
+              "sdkField": "ProfileName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "profile_scope_description",
+            "goField": "ProfileScopeDescription",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "profileScopeDescription",
+              "sdkField": "ProfileScopeDescription",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "uuid",
+            "goField": "UUID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "uuid",
+              "sdkField": "Uuid",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "version",
+            "goField": "Version",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Must be a valid Jamf Connect version 2.3.0 or higher. Versions are listed here `https://www.jamf.com/resources/product-documentation/jamf-connect-administrators-guide/`",
+            "wire": {
+              "jsonPath": "version",
+              "sdkField": "Version",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Update the way the Jamf Connect app gets updated on computers within scope of the associated configuration profile.."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "JamfConnect"
+            },
+            {
+              "method": "ConfigProfiles"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.LinkedConnectProfileSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/jamf-connect/config-profiles"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.LinkedConnectProfileable",
+        "selectors": [
+          {
+            "attribute": "profile_name",
+            "goField": "ProfileName",
+            "sdkField": "ProfileName"
+          }
+        ],
+        "response": {
+          "type": "models.LinkedConnectProfileable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,403 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v1_mobile_device_extension_attribute",
+      "name": "v1_mobile_device_extension_attribute",
+      "goPackage": "v1_mobile_device_extension_attribute",
+      "goPackageAlias": "v7V1MobileDeviceExtensionAttribute",
+      "goTypeName": "V1MobileDeviceExtensionAttributeResource",
+      "modelTypeName": "V1MobileDeviceExtensionAttributeResourceModel",
+      "serviceGroup": "mobile_device_extension_attributes",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "data_type",
+            "goField": "DataType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "Type of data being collected.",
+            "wire": {
+              "jsonPath": "dataType",
+              "sdkField": "DataType",
+              "sdkGoType": "*models.ExtensionAttributes_dataType",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.ExtensionAttributes_dataType"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseExtensionAttributes_dataType"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "description",
+            "goField": "Description",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Description for the extension attribute.",
+            "wire": {
+              "jsonPath": "description",
+              "sdkField": "Description",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Unique Id for Mobile Device Extension Attribute.",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "input_type",
+            "goField": "InputType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "Extension attributes collect inventory data by using an input type.The type of the Input used to populate the extension attribute.",
+            "wire": {
+              "jsonPath": "inputType",
+              "sdkField": "InputType",
+              "sdkGoType": "*models.MobileDeviceExtensionAttributes_inputType",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.MobileDeviceExtensionAttributes_inputType"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseMobileDeviceExtensionAttributes_inputType"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "inventory_display_type",
+            "goField": "InventoryDisplayType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "Category in which to display the extension attribute in Jamf Pro.",
+            "wire": {
+              "jsonPath": "inventoryDisplayType",
+              "sdkField": "InventoryDisplayType",
+              "sdkGoType": "*models.MobileDeviceExtensionAttributes_inventoryDisplayType",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.MobileDeviceExtensionAttributes_inventoryDisplayType"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseMobileDeviceExtensionAttributes_inventoryDisplayType"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "ldap_attribute_mapping",
+            "goField": "LdapAttributeMapping",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Directory Service attribute use to populate the extension attribute. <br/> Required when inputType is \"DIRECTORY_SERVICE_ATTRIBUTE_MAPPING\"",
+            "wire": {
+              "jsonPath": "ldapAttributeMapping",
+              "sdkField": "LdapAttributeMapping",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "ldap_extension_attribute_allowed",
+            "goField": "LdapExtensionAttributeAllowed",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Collect multiple values for this extension attribute. ldapExtensionAttributeAllowed is disabled by default, only for inputType 'DIRECTORY_SERVICE_ATTRIBUTE_MAPPING' it can be enabled. It's value cannot be modified during edit operation.<br/> Possible values are:<br/> false <br/> true <br/>",
+            "wire": {
+              "jsonPath": "ldapExtensionAttributeAllowed",
+              "sdkField": "LdapExtensionAttributeAllowed",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "Display name for the extension attribute.",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "popup_menu_choices",
+            "goField": "PopupMenuChoices",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string"
+              },
+              "constraints": {
+                "minItems": 0
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "When added with list of choices while creating mobile device extension attributes these Pop-up menu can be displayed in inventory information. User can choose a value from the pop-up menu list when enrolling a mobile device any time using Jamf Pro. Provide popupMenuChoices only when inputType is 'POPUP'.",
+            "wire": {
+              "jsonPath": "popupMenuChoices",
+              "sdkField": "PopupMenuChoices",
+              "sdkGoType": "[]string",
+              "expand": {
+                "func": "convert.FrameworkSetToStringSlice",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "convert.StringSliceToFrameworkSet",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Get specified Mobile Device Extension Attribute object.."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "MobileDeviceExtensionAttributes"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HrefResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v1/mobile-device-extension-attributes"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "MobileDeviceExtensionAttributes"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.MobileDeviceExtensionAttributesable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/mobile-device-extension-attributes/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "MobileDeviceExtensionAttributes"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Put",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.MobileDeviceExtensionAttributesable",
+          "httpMethod": "PUT",
+          "pathTemplate": "/v1/mobile-device-extension-attributes/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "MobileDeviceExtensionAttributes"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v1/mobile-device-extension-attributes/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.MobileDeviceExtensionAttributes",
+          "responseType": "models.MobileDeviceExtensionAttributesable",
+          "constructorExpr": "models.NewMobileDeviceExtensionAttributes()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}

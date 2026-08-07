@@ -1,0 +1,130 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_service_discovery_enrollment_well_known_setting",
+      "name": "v1_service_discovery_enrollment_well_known_setting",
+      "goPackage": "v1_service_discovery_enrollment_well_known_setting",
+      "goPackageAlias": "v7V1ServiceDiscoveryEnrollmentWellKnownSettingDs",
+      "goTypeName": "V1ServiceDiscoveryEnrollmentWellKnownSettingDataSource",
+      "modelTypeName": "V1ServiceDiscoveryEnrollmentWellKnownSettingDataSourceModel",
+      "serviceGroup": "service_discovery_enrollment",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "enrollment_type",
+            "goField": "EnrollmentType",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "none",
+                "mdm-byod",
+                "mdm-adde"
+              ]
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Service discovery enrollment version",
+            "wire": {
+              "jsonPath": "enrollmentType",
+              "sdkField": "EnrollmentType",
+              "sdkGoType": "*models.ServiceDiscoveryVersion",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "org_name",
+            "goField": "OrgName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "Organization display name",
+            "wire": {
+              "jsonPath": "orgName",
+              "sdkField": "OrgName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "server_uuid",
+            "goField": "ServerUUID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Server UUID identifier",
+            "wire": {
+              "jsonPath": "serverUuid",
+              "sdkField": "ServerUuid",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "ServiceDiscoveryEnrollment"
+            },
+            {
+              "method": "WellKnownSettings"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.WellKnownSettingsResponseable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/service-discovery-enrollment/well-known-settings"
+        },
+        "collectionField": "GetWellKnownSettings()",
+        "elementType": "models.WellKnownSettingable",
+        "selectors": [
+          {
+            "attribute": "org_name",
+            "goField": "OrgName",
+            "sdkField": "OrgName"
+          }
+        ],
+        "response": {
+          "type": "models.WellKnownSettingable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}
