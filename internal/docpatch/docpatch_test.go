@@ -364,3 +364,51 @@ components:
 		t.Errorf("the standalone byte field was lost entirely:\n%s", s)
 	}
 }
+
+// TestUnit_DocPatch_JSONSourceComesBackAsBlockYAML covers the shape that broke
+// a third API silently.
+//
+// A JSON document is valid YAML in flow style, so a parse-then-emit round trip
+// reproduces it as flow -- one line, however large the document. GitHub's
+// description is 7 MB and emerged as a single 7-million-character line, which
+// kiota read, accepted, and generated nothing from. Nothing about the tree was
+// wrong; only the shape it was written back in.
+func TestUnit_DocPatch_JSONSourceComesBackAsBlockYAML(t *testing.T) {
+	t.Parallel()
+
+	// JSON in, deliberately: this is what openapi fetch pins when the vendor
+	// publishes JSON, which GitHub and Jamf Pro both do.
+	doc := []byte(`{"openapi": "3.0.3", "info": {"title": "T", "version": "1"},
+      "paths": {"/a": {"get": {"responses": {"200": {"description": "ok"}}}},
+                "/b": {"get": {"responses": {"200": {"description": "ok"}}}}},
+      "components": {"schemas": {"S": {"type": "object",
+        "properties": {"x": {"type": "string"}, "y": {"type": "integer"}}}}}}`)
+
+	out, _, _, err := Normalize(doc)
+	if err != nil {
+		t.Fatalf("Normalize: %v", err)
+	}
+
+	s := string(out)
+
+	// The whole point: many lines, none of them the entire document.
+	lines := strings.Count(s, "\n")
+	if lines < 10 {
+		t.Errorf("output has %d line(s); a flow-style document was emitted as one line:\n%s", lines, s)
+	}
+	for _, line := range strings.Split(s, "\n") {
+		if len(line) > 200 {
+			t.Errorf("a line is %d characters long, which is flow style leaking through:\n%s", len(line), line)
+		}
+	}
+
+	// And it still says the same thing.
+	var got map[string]any
+	if err := yaml.Unmarshal(out, &got); err != nil {
+		t.Fatalf("the emitted document does not parse: %v", err)
+	}
+	paths, _ := got["paths"].(map[string]any)
+	if len(paths) != 2 {
+		t.Errorf("paths = %d, want the 2 that went in", len(paths))
+	}
+}

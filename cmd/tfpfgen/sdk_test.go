@@ -249,3 +249,41 @@ func TestUnit_CLI_SDK_DryRunRunsNothing(t *testing.T) {
 		t.Error("a dry run must generate nothing")
 	}
 }
+
+// TestUnit_CLI_SDK_RefusesAGenerationThatWroteNothing covers the failure that
+// reported success.
+//
+// kiota accepted GitHub's description, wrote its lock file and not one line of
+// Go, and exited zero. The postcheck then compiled an empty tree, which builds
+// perfectly, so the pipeline carried on to bind a provider against an SDK that
+// did not exist. Counting what was written is the only thing that can tell the
+// two apart.
+func TestUnit_CLI_SDK_RefusesAGenerationThatWroteNothing(t *testing.T) {
+	t.Parallel()
+
+	empty := t.TempDir()
+
+	n, err := countGoFiles(empty)
+	if err != nil {
+		t.Fatalf("countGoFiles: %v", err)
+	}
+	if n != 0 {
+		t.Fatalf("an empty directory holds %d Go file(s)", n)
+	}
+
+	// A lock file alone is exactly what the failure left behind, and must not
+	// count as generated code.
+	if err := os.WriteFile(filepath.Join(empty, "kiota-lock.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := countGoFiles(empty); n != 0 {
+		t.Errorf("a lock file counted as %d generated file(s)", n)
+	}
+
+	if err := os.WriteFile(filepath.Join(empty, "client.go"), []byte("package sdk\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := countGoFiles(empty); n != 1 {
+		t.Errorf("one Go file counted as %d", n)
+	}
+}

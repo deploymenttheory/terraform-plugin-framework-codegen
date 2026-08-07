@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -477,6 +478,24 @@ func toolchainGoVersion() (string, error) {
 // sdkPostcheck compiles the generated tree; nothing else matters if it does
 // not build.
 func sdkPostcheck(out string) error {
+	// An empty tree compiles perfectly, so the build below cannot tell a
+	// generated SDK from a generation that produced nothing. kiota reports
+	// success either way -- it did so against GitHub's document, writing its
+	// lock file and not one line of Go -- and without this the pipeline
+	// carried on to bind a provider against an SDK that was not there.
+	count, err := countGoFiles(out)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return fmt.Errorf(
+			"the generator wrote no Go files to %s: it reported success and produced "+
+				"only its lock file, which means the document was accepted and nothing "+
+				"came of it -- run kiota against the snapshot by hand to see what it says",
+			out)
+	}
+	log.Printf("postcheck: %d generated file(s)", count)
+
 	log.Printf("postcheck: go build ./...")
 	build := exec.Command("go", "build", "./...")
 	build.Dir = out
@@ -485,4 +504,22 @@ func sdkPostcheck(out string) error {
 	}
 	log.Printf("✅ SDK generated at %s", out)
 	return nil
+}
+
+// countGoFiles counts the Go files beneath a directory.
+func countGoFiles(root string) (int, error) {
+	n := 0
+	err := filepath.WalkDir(root, func(_ string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".go") {
+			n++
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("counting the generated files under %s: %w", root, err)
+	}
+	return n, nil
 }
