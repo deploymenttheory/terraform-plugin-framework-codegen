@@ -175,6 +175,7 @@ func Action(bp blueprint.Blueprint, a blueprint.Action, opts Options) (ActionVie
 	invoke, err := opView(
 		sc.what, a.Binding.Service.Accessor,
 		*a.Binding.Invoke, "crud.PhaseCreate", "errors.OpCreate", "InvokeTimeout", discardResult,
+		newArgScope(a.Schema.Attributes, impInvoke),
 	)
 	if err != nil {
 		return ActionView{}, err

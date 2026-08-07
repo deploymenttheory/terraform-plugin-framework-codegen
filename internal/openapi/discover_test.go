@@ -3,6 +3,7 @@ package openapi
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
@@ -161,25 +162,41 @@ func TestUnit_Discover_Classify(t *testing.T) {
 	}
 }
 
-// TestUnit_Discover_ClassifyReportsPartialLifecycles: a resource with no update
-// is still a resource, but the reason has to reach the operator, because it
-// implies RequiresReplace on everything.
+// TestUnit_Discover_ClassifyReportsPartialLifecycles: the two halves of a
+// partial lifecycle are not the same kind of gap, and the classification says
+// so.
+//
+// No update is survivable -- every change becomes a replacement, which
+// policy.updateStyle already records -- so it stays a resource, and the reason
+// has to reach the operator because it implies RequiresReplace on everything.
+// No delete is not: Terraform owns a resource until destroy ends it, and one
+// that cannot be destroyed leaves state describing something no plan can
+// remove. It is still readable, so it comes back as a lookup rather than being
+// lost.
 func TestUnit_Discover_ClassifyReportsPartialLifecycles(t *testing.T) {
 	t.Parallel()
 
 	op := &Operation{Method: "GET"}
 
-	kind, why := Candidate{Create: op, Read: op}.Classify()
+	kind, why := Candidate{Create: op, Read: op, Delete: op}.Classify()
 	if kind != CandidateKindResource {
-		t.Fatalf("kind = %s, want resource", kind)
+		t.Fatalf("kind = %s (%s), want resource: no update is survivable", kind, why)
 	}
-	if why != "no update or delete" {
-		t.Errorf("why = %q, want it to name both gaps", why)
+	if why != "no update" {
+		t.Errorf("why = %q, want it to name the gap", why)
 	}
 
-	_, why = Candidate{Create: op, Read: op, Delete: op}.Classify()
-	if why != "no update" {
-		t.Errorf("why = %q", why)
+	kind, why = Candidate{Create: op, Read: op}.Classify()
+	if kind != CandidateKindDataSource {
+		t.Fatalf("kind = %s, want dataSource: Terraform cannot own what it cannot destroy", kind)
+	}
+	if !strings.Contains(why, "deletable") {
+		t.Errorf("why = %q, want it to name the missing delete", why)
+	}
+
+	kind, why = Candidate{Create: op, Read: op, Update: op, Delete: op}.Classify()
+	if kind != CandidateKindResource || why != "full lifecycle" {
+		t.Errorf("Classify() = %s (%s), want resource (full lifecycle)", kind, why)
 	}
 }
 

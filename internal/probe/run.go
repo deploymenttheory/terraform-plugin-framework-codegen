@@ -35,9 +35,9 @@ type RunOptions struct {
 	// Only restricts the run to one probe by name.
 	Only string
 
-	// BaseURL and Token are needed only for ModeRecord.
-	BaseURL string
-	Token   string
+	// BaseURL and Authorization are needed only for ModeRecord.
+	BaseURL       string
+	Authorization string
 
 	// Interactions is the committed transcript, for replay and verify.
 	Interactions []cassette.Interaction
@@ -140,7 +140,7 @@ func Run(ctx context.Context, opts RunOptions) (RunResult, error) {
 	session, err := newHTTPSession(SessionConfig{
 		Transport:          transport,
 		BaseURL:            baseURLFor(opts),
-		Token:              opts.Token,
+		Authorization:      opts.Authorization,
 		CollectionTemplate: opts.Subject.CollectionTemplate,
 		ItemTemplate:       opts.Subject.ItemTemplate,
 		Budget:             opts.Scenario.Budget,

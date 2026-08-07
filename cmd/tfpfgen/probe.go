@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -26,8 +27,12 @@ import (
 // Not a flag: a flag puts the token in shell history and in the process table. Not a profile
 // file: that gets committed. See probe.Profile's doc comment.
 const (
-	tokenEnv    = "TFPFGEN_PROBE_TOKEN"
-	endpointEnv = "TFPFGEN_PROBE_ENDPOINT"
+	tokenEnv = "TFPFGEN_PROBE_TOKEN"
+
+	// probeTokenTimeout bounds the client-credentials exchange, which happens
+	// once before a run and must not hang it.
+	probeTokenTimeout = 30 * time.Second
+	endpointEnv       = "TFPFGEN_PROBE_ENDPOINT"
 )
 
 // defaultRecordingRoot is where committed cassettes live, matching the repository layout.
@@ -568,15 +573,16 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 	// Before the redactor, so an operator with an unusable profile reads about the profile
 	// rather than about a detail of how recordings are scrubbed.
 	var (
-		grant      *probe.Grant
-		assertions []string
-		ledger     *probe.Ledger
+		grant         *probe.Grant
+		assertions    []string
+		authorization string
+		ledger        *probe.Ledger
 	)
 
 	if opts.allowMutate {
 		var err error
 
-		grant, assertions, err = authoriseMutations(ctx, opts, subj, endpoint, token, root)
+		grant, assertions, authorization, err = authoriseMutations(ctx, opts, subj, endpoint, token, root)
 		if err != nil {
 			return err
 		}
@@ -593,15 +599,21 @@ func recordProbe(opts probeRun, subj probe.Subject, root string) error {
 		return err
 	}
 
+	// A read-only run has no profile to declare a method, so it authenticates
+	// the way every run did before methods existed.
+	if authorization == "" {
+		authorization = "Bearer " + token
+	}
+
 	runOpts := probe.RunOptions{
-		Mode:     probe.ModeRecord,
-		Subject:  subj,
-		Scenario: opts.scenario,
-		Only:     opts.only,
-		BaseURL:  endpoint,
-		Token:    token,
-		Redactor: redactor,
-		Secrets:  map[string]string{"bearer": token},
+		Mode:          probe.ModeRecord,
+		Subject:       subj,
+		Scenario:      opts.scenario,
+		Only:          opts.only,
+		BaseURL:       endpoint,
+		Authorization: authorization,
+		Redactor:      redactor,
+		Secrets:       map[string]string{"bearer": token},
 
 		AllowMutations: opts.allowMutate,
 
@@ -711,17 +723,24 @@ func authoriseMutations(
 	opts probeRun,
 	subj probe.Subject,
 	endpoint, token, root string,
-) (*probe.Grant, []string, error) {
+) (*probe.Grant, []string, string, error) {
 	profile, err := loadProfile(opts.profilePath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
+	}
+
+	// The profile declares how to authenticate; the environment holds the
+	// values. Resolved here because this is the first point that has both.
+	authorization, err := profile.Authorization(ctx, probe.OSEnviron{}, &http.Client{Timeout: probeTokenTimeout})
+	if err != nil {
+		return nil, nil, "", err
 	}
 
 	// The profile says where; the environment says with what. A profile pointing somewhere
 	// other than TFPFGEN_PROBE_ENDPOINT is a mistake worth refusing rather than resolving,
 	// because whichever one loses would be a surprise.
 	if profile.Endpoint != "" && profile.Endpoint != endpoint {
-		return nil, nil, fmt.Errorf("%w: the profile's endpoint %q is not %s (%q); one of the "+
+		return nil, nil, "", fmt.Errorf("%w: the profile's endpoint %q is not %s (%q); one of the "+
 			"two is pointed somewhere it was not meant to be",
 			probe.ErrRefused, profile.Endpoint, endpointEnv, endpoint)
 	}
@@ -729,17 +748,17 @@ func authoriseMutations(
 	read, err := probe.NewReadSession(probe.SessionConfig{
 		Transport:          probe.UnrecordedTransport(),
 		BaseURL:            endpoint,
-		Token:              token,
+		Authorization:      authorization,
 		CollectionTemplate: subj.CollectionTemplate,
 		ItemTemplate:       subj.ItemTemplate,
 		// Only the gate's own reads come through here, and there are at most two.
 		Budget: probe.Budget{MaxRequests: 4, MaxCreates: 0},
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 
-	return probe.Authorise(ctx, read, profile, probe.GuardOptions{
+	grant, assertions, err := probe.Authorise(ctx, read, profile, probe.GuardOptions{
 		Mode:                      probe.ModeRecord,
 		AllowMutations:            opts.allowMutate,
 		Subject:                   subj,
@@ -747,6 +766,8 @@ func authoriseMutations(
 		EquivalentRecordingExists: equivalentRecordingExists(root, opts.scenario),
 		Force:                     opts.force,
 	}, probe.OSEnviron{})
+
+	return grant, assertions, authorization, err
 }
 
 // equivalentSnapshotExists reports whether the newest committed snapshot was recorded with an
@@ -830,13 +851,23 @@ func sweepEverything(opts probeRun) error {
 
 		ctx, cancel := probe.SweepContext(context.Background(), plan.Budget.MaxSweepSeconds)
 
+		// The sweep reaches the same tenant the same way the record did, so it
+		// resolves its credential from the same profile rather than assuming a
+		// bearer token the API may not issue.
+		authorization, authErr := profile.Authorization(ctx, probe.OSEnviron{}, &http.Client{Timeout: probeTokenTimeout})
+		if authErr != nil {
+			cancel()
+			_ = ledger.Close()
+			return authErr
+		}
+
 		summary, sweepErr := probe.RunSweep(ctx, probe.SweepRunOptions{
-			Grant:      grant,
-			Subject:    subj,
-			BaseURL:    endpoint,
-			Token:      token,
-			Ledger:     ledger,
-			MaxSeconds: plan.Budget.MaxSweepSeconds,
+			Grant:         grant,
+			Subject:       subj,
+			BaseURL:       endpoint,
+			Authorization: authorization,
+			Ledger:        ledger,
+			MaxSeconds:    plan.Budget.MaxSweepSeconds,
 		})
 
 		cancel()

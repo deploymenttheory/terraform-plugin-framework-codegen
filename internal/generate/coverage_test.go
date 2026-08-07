@@ -10,22 +10,38 @@ import (
 func TestUnit_Render_ArgExpr(t *testing.T) {
 	t.Parallel()
 
+	// A schema whose identifier is an integer, beside one whose identifier is a
+	// string, so the same argument renders both ways from the blueprint alone.
+	stringID := newArgScope([]blueprint.Attribute{
+		{Name: "id", GoField: "ID", Type: blueprint.AttrType{Kind: blueprint.KindString}},
+		{Name: "name", GoField: "Name", Type: blueprint.AttrType{Kind: blueprint.KindString}},
+	}, newImportSet())
+	int64ID := newArgScope([]blueprint.Attribute{
+		{Name: "id", GoField: "ID", Type: blueprint.AttrType{Kind: blueprint.KindInt64}},
+	}, newImportSet())
+	boolID := newArgScope([]blueprint.Attribute{
+		{Name: "id", GoField: "ID", Type: blueprint.AttrType{Kind: blueprint.KindBool}},
+	}, newImportSet())
+
 	tests := []struct {
 		name    string
 		arg     blueprint.Argument
+		scope   argScope
 		want    string
 		wantErr bool
 	}{
-		{"context", blueprint.Argument{Kind: blueprint.ArgContext}, "ctx", false},
-		{"body", blueprint.Argument{Kind: blueprint.ArgBody}, "body", false},
+		{"context", blueprint.Argument{Kind: blueprint.ArgContext}, argScope{}, "ctx", false},
+		{"body", blueprint.Argument{Kind: blueprint.ArgBody}, argScope{}, "body", false},
 		{
 			"state field",
 			blueprint.Argument{Kind: blueprint.ArgStateField, Field: "ID"},
+			argScope{},
 			"state.ID.ValueString()", false,
 		},
 		{
 			"plan field",
 			blueprint.Argument{Kind: blueprint.ArgPlanField, Field: "Name"},
+			argScope{},
 			"plan.Name.ValueString()", false,
 		},
 		{
@@ -33,6 +49,7 @@ func TestUnit_Render_ArgExpr(t *testing.T) {
 			// configuration. The variable name differs accordingly.
 			"config field",
 			blueprint.Argument{Kind: blueprint.ArgConfigField, Field: "ID"},
+			argScope{},
 			"data.ID.ValueString()", false,
 		},
 		{
@@ -40,17 +57,51 @@ func TestUnit_Render_ArgExpr(t *testing.T) {
 			// escape hatch for an argument the convention does not cover.
 			"explicit expression wins",
 			blueprint.Argument{Kind: blueprint.ArgStateField, Field: "ID", Expr: "custom()"},
+			argScope{},
 			"custom()", false,
 		},
-		{"literal with no expression", blueprint.Argument{Kind: blueprint.ArgLiteral}, "", true},
-		{"unknown kind", blueprint.Argument{Kind: "telepathy"}, "", true},
+		{
+			// A string identifier reads exactly as it always did, which is the
+			// whole point: every provider generated before the kinds existed
+			// must render byte for byte the same.
+			"string identifier is unchanged",
+			blueprint.Argument{Kind: blueprint.ArgStateField, Field: "ID"},
+			stringID,
+			"state.ID.ValueString()", false,
+		},
+		{
+			// types.Int64 has no ValueString. The identifier still reaches the
+			// SDK as a string, because that is what a request builder's indexer
+			// takes, so the conversion is rendered rather than the accessor
+			// guessed.
+			"int64 identifier converts to a string",
+			blueprint.Argument{Kind: blueprint.ArgStateField, Field: "ID"},
+			int64ID,
+			"strconv.FormatInt(state.ID.ValueInt64(), 10)", false,
+		},
+		{
+			"int64 identifier from configuration",
+			blueprint.Argument{Kind: blueprint.ArgConfigField, Field: "ID"},
+			int64ID,
+			"strconv.FormatInt(data.ID.ValueInt64(), 10)", false,
+		},
+		{
+			// A kind with no honest identifier reading is refused, rather than
+			// emitting something that will not compile.
+			"unsupported kind is refused",
+			blueprint.Argument{Kind: blueprint.ArgStateField, Field: "ID"},
+			boolID,
+			"", true,
+		},
+		{"literal with no expression", blueprint.Argument{Kind: blueprint.ArgLiteral}, argScope{}, "", true},
+		{"unknown kind", blueprint.Argument{Kind: "telepathy"}, argScope{}, "", true},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := argExpr(`resource "tag"`, tc.arg)
+			got, err := argExpr(`resource "tag"`, tc.arg, tc.scope)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatal("expected an error")

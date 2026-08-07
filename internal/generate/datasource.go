@@ -92,8 +92,15 @@ type ResolveView struct {
 type MatcherView struct {
 	// GoField is the configured attribute's model field.
 	GoField string
-	// Getter is the element access expression, e.g. `el.GetTestName()`.
+	// Getter is the element access expression, e.g. `el.GetTestName()`, and the
+	// thing the presence guard nil-checks.
 	Getter string
+	// Mismatch is the finished "this element is not the one" expression, e.g.
+	// `*el.GetTestName() != data.TestName.ValueString()`. It is computed here
+	// rather than assembled in the template because what reads correctly
+	// depends on both sides' types, and a template that branched on those would
+	// be the type switch this toolkit keeps in Go.
+	Mismatch string
 	// AttrName names the attribute in diagnostics.
 	AttrName string
 }
@@ -228,10 +235,14 @@ func DataSource(
 		}
 	}
 
+	// Every call a data source renders lands in read.go, so one scope serves the
+	// direct read and the resolver's list alike.
+	as := newArgScope(d.Schema.Attributes, impRead)
+
 	if d.Binding.Read != nil {
 		read, err := opView(
 			sc.what, d.Binding.Service.Accessor,
-			*d.Binding.Read, "crud.PhaseRead", "errors.OpRead", "ReadTimeout", bindsResult,
+			*d.Binding.Read, "crud.PhaseRead", "errors.OpRead", "ReadTimeout", bindsResult, as,
 		)
 		if err != nil {
 			return DataSourceView{}, err
@@ -240,7 +251,7 @@ func DataSource(
 	}
 
 	if d.Binding.List != nil {
-		resolve, err := resolveView(sc.what, d)
+		resolve, err := resolveView(sc.what, d, as)
 		if err != nil {
 			return DataSourceView{}, err
 		}
@@ -264,12 +275,12 @@ func DataSource(
 }
 
 // resolveView builds the selector resolver from the binding.
-func resolveView(what string, d blueprint.DataSource) (*ResolveView, error) {
+func resolveView(what string, d blueprint.DataSource, as argScope) (*ResolveView, error) {
 	b := d.Binding
 
 	list, err := opView(
 		what, b.Service.Accessor,
-		*b.List, "crud.PhaseRead", "errors.OpRead", "ReadTimeout", bindsResult,
+		*b.List, "crud.PhaseRead", "errors.OpRead", "ReadTimeout", bindsResult, as,
 	)
 	if err != nil {
 		return nil, err
@@ -308,9 +319,15 @@ func resolveView(what string, d blueprint.DataSource) (*ResolveView, error) {
 			v.IDGoField = goField
 			continue
 		}
+		getter := readExpr(b.Response.AccessStyle, "el", s.SDKField)
+		mismatch, err := matcherMismatch(what, getter, goField, s, as)
+		if err != nil {
+			return nil, err
+		}
 		v.Matchers = append(v.Matchers, MatcherView{
 			GoField:  goField,
-			Getter:   readExpr(b.Response.AccessStyle, "el", s.SDKField),
+			Getter:   getter,
+			Mismatch: mismatch,
 			AttrName: s.Attribute,
 		})
 	}
@@ -329,6 +346,42 @@ func resolveView(what string, d blueprint.DataSource) (*ResolveView, error) {
 	}
 
 	return v, nil
+}
+
+// matcherMismatch renders one selector's "this element is not the one" test.
+//
+// The configured value is read at the attribute's own framework type, and the
+// element's value at whatever the SDK actually hands back. Those two agree only
+// for a plain scalar field: a generated SDK holds a documented enumeration as a
+// named type of its own, and comparing that against a string is not a wrong
+// answer but a compile error.
+//
+// A kiota enumeration is int-backed and carries String(), so the comparison
+// goes through it -- the same reading the attribute's own flatten already
+// takes, convert.PtrStringerToFramework. The nil guard the template renders
+// beside this expression short-circuits first, so reaching String() through the
+// pointer is safe.
+func matcherMismatch(
+	what, getter, goField string,
+	s blueprint.Selector,
+	as argScope,
+) (string, error) {
+	configured, err := as.valueExpr(what, "data", goField)
+	if err != nil {
+		return "", err
+	}
+	if !s.SDKEnum {
+		return fmt.Sprintf("*%s != %s", getter, configured), nil
+	}
+	if kind, known := as.kindOf(goField); known && kind != blueprint.KindString {
+		return "", &ErrUnsupported{
+			What: fmt.Sprintf("selector %q of %s", s.Attribute, what),
+			Why: fmt.Sprintf(
+				"the SDK holds it as an enumeration, whose String() yields a string, "+
+					"but the attribute is %q", kind),
+		}
+	}
+	return fmt.Sprintf("%s.String() != %s", getter, configured), nil
 }
 
 // dataSourceInterfaces are the framework interfaces a generated data source asserts.

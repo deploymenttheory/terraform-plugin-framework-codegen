@@ -2,13 +2,17 @@ package probe
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
 )
 
 // This file declares the two session types and the Grant that authorises the mutating
@@ -69,15 +73,36 @@ func ReplayGrant(namePrefix string) *Grant {
 
 // Profile is where and how a mutating run is allowed to reach an API.
 //
-// The token is deliberately absent: TokenEnv names an environment variable, and the
-// value never enters the profile, a flag, a cassette or a report. A profile is a
-// committed or at least a written file, and the one thing that must never be in it is
-// the credential.
+// No credential is present under any method: every field ending Env names an
+// environment variable, and the value never enters the profile, a flag, a
+// cassette or a report. A profile is a written file, and the one thing that
+// must never be in it is the credential.
 type Profile struct {
 	// Endpoint is the API base URL.
 	Endpoint string `json:"endpoint"`
-	// TokenEnv names the environment variable holding the bearer token.
-	TokenEnv string `json:"tokenEnv"`
+
+	// AuthMethod is how the probe proves who it is, matching the methods a
+	// generated provider supports. Empty means bearerToken, which is what
+	// every profile written before this field meant.
+	AuthMethod blueprint.AuthMethod `json:"authMethod,omitempty"`
+
+	// TokenEnv names the environment variable holding the bearer token, under
+	// bearerToken.
+	TokenEnv string `json:"tokenEnv,omitempty"`
+
+	// ClientIDEnv and ClientSecretEnv name the variables holding the client
+	// credentials, under clientCredentials. TokenURL is where they are
+	// exchanged; a path is resolved against Endpoint, exactly as the generated
+	// client resolves it.
+	ClientIDEnv     string   `json:"clientIdEnv,omitempty"`
+	ClientSecretEnv string   `json:"clientSecretEnv,omitempty"`
+	TokenURL        string   `json:"tokenUrl,omitempty"`
+	Scopes          []string `json:"scopes,omitempty"`
+
+	// UsernameEnv and PasswordEnv name the variables holding HTTP Basic
+	// credentials, under usernamePassword.
+	UsernameEnv string `json:"usernameEnv,omitempty"`
+	PasswordEnv string `json:"passwordEnv,omitempty"`
 
 	// Sandbox is the operator's claim. A claim in a file is not evidence, which is why
 	// the assertions below exist.
@@ -632,3 +657,132 @@ func (r readOnly) ItemPath(id string) string { return resolvePath(r.item, id) }
 func resolvePath(template, id string) string {
 	return pathParam.ReplaceAllString(template, id)
 }
+
+// CredentialEnvs lists every environment variable this profile's method reads.
+//
+// One place that knows the mapping, so the guard, the redaction scanner and
+// the header builder cannot disagree about which variables hold secrets.
+func (p Profile) CredentialEnvs() []string {
+	switch p.ResolvedAuthMethod() {
+	case blueprint.AuthClientCredentials:
+		return []string{p.ClientIDEnv, p.ClientSecretEnv}
+	case blueprint.AuthUsernamePassword:
+		return []string{p.UsernameEnv, p.PasswordEnv}
+	default:
+		return []string{p.TokenEnv}
+	}
+}
+
+// ResolvedAuthMethod treats the zero value as bearer, which is what every
+// profile written before the field existed meant.
+func (p Profile) ResolvedAuthMethod() blueprint.AuthMethod {
+	if p.AuthMethod == "" {
+		return blueprint.AuthBearerToken
+	}
+	return p.AuthMethod
+}
+
+// Authorization builds the finished header value for this profile's method.
+//
+// The client-credentials grant is performed here, once, before any probe runs:
+// a probe is a bounded sequence of requests against a sandbox, so a token
+// obtained up front and held for the run is simpler than a refresh loop, and
+// the budget already bounds how long that run can be.
+func (p Profile) Authorization(ctx context.Context, env Environ, client *http.Client) (string, error) {
+	switch p.ResolvedAuthMethod() {
+	case blueprint.AuthBearerToken:
+		token, _ := env.Lookup(p.TokenEnv)
+		if token == "" {
+			return "", fmt.Errorf("%w: %s is unset", ErrRefused, p.TokenEnv)
+		}
+		return "Bearer " + token, nil
+
+	case blueprint.AuthUsernamePassword:
+		user, _ := env.Lookup(p.UsernameEnv)
+		password, _ := env.Lookup(p.PasswordEnv)
+		if user == "" || password == "" {
+			return "", fmt.Errorf("%w: %s and %s must both be set",
+				ErrRefused, p.UsernameEnv, p.PasswordEnv)
+		}
+		return "Basic " + base64.StdEncoding.EncodeToString([]byte(user+":"+password)), nil
+
+	case blueprint.AuthClientCredentials:
+		id, _ := env.Lookup(p.ClientIDEnv)
+		secret, _ := env.Lookup(p.ClientSecretEnv)
+		if id == "" || secret == "" {
+			return "", fmt.Errorf("%w: %s and %s must both be set",
+				ErrRefused, p.ClientIDEnv, p.ClientSecretEnv)
+		}
+		token, err := p.exchange(ctx, id, secret, client)
+		if err != nil {
+			return "", err
+		}
+		return "Bearer " + token, nil
+
+	default:
+		return "", fmt.Errorf("%w: %q is not a known auth method", ErrRefused, p.AuthMethod)
+	}
+}
+
+// exchange runs the client-credentials grant.
+func (p Profile) exchange(ctx context.Context, id, secret string, client *http.Client) (string, error) {
+	target := p.TokenURL
+	// A specification may state the token endpoint as a path, meaning "on this
+	// same server" -- Jamf Pro declares /api/v1/oauth/token. Resolved against
+	// the endpoint exactly as the generated client resolves it, so the probe
+	// and the provider authenticate the same way.
+	if strings.HasPrefix(target, "/") {
+		base, err := url.Parse(p.Endpoint)
+		if err != nil {
+			return "", fmt.Errorf("%w: the endpoint %q is not a usable URL", ErrRefused, p.Endpoint)
+		}
+		base.Path = target
+		base.RawQuery, base.Fragment = "", ""
+		target = base.String()
+	}
+	if target == "" {
+		return "", fmt.Errorf("%w: clientCredentials needs a tokenUrl", ErrRefused)
+	}
+
+	form := url.Values{
+		"grant_type":    {"client_credentials"},
+		"client_id":     {id},
+		"client_secret": {secret},
+	}
+	if len(p.Scopes) > 0 {
+		form.Set("scope", strings.Join(p.Scopes, " "))
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target, strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", fmt.Errorf("building the token request for %s: %w", target, err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("requesting an access token from %s: %w", target, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return "", fmt.Errorf("%w: the token endpoint %s answered %d", ErrRefused, target, resp.StatusCode)
+	}
+
+	var body struct {
+		AccessToken string `json:"access_token"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, tokenResponseLimit)).Decode(&body); err != nil {
+		return "", fmt.Errorf("reading the token response from %s: %w", target, err)
+	}
+	if body.AccessToken == "" {
+		return "", fmt.Errorf("%w: the token endpoint %s returned no access_token", ErrRefused, target)
+	}
+
+	return body.AccessToken, nil
+}
+
+// tokenResponseLimit bounds the token response read, so a misdirected request
+// to something that is not a token endpoint cannot exhaust memory.
+const tokenResponseLimit = 1 << 20

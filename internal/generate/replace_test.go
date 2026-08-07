@@ -98,7 +98,7 @@ func TestUnit_Render_ReplaceOnlyWithAnUpdateBindingIsRefused(t *testing.T) {
 		Return: blueprint.ReturnTransportError,
 	}
 
-	_, err := crudView(bp, r)
+	_, err := crudView(bp, r, newArgScope(r.Schema.Attributes, newImportSet()))
 	if err == nil || !strings.Contains(err.Error(), "replaceOnly") {
 		t.Fatalf("the contradiction must be refused naming both halves: %v", err)
 	}
@@ -307,5 +307,79 @@ func TestUnit_Render_ConditionalRequirementsAreRefusedWithoutACarrier(t *testing
 
 	if rules := requiredWhenRules(r); len(rules) != 0 {
 		t.Errorf("none of these can carry a rule: %+v", rules)
+	}
+}
+
+// TestUnit_Render_AResourceThatCannotBeGeneratedIsRefusedByName.
+//
+// construct.go and state.go are skipped when there is nothing to put in them,
+// while crud.go calls into both unconditionally -- so a resource with no live
+// conversion one way produced a package referring to functions nobody wrote.
+// Delete is the framework's own requirement: resource.Resource declares it, and
+// a generated type without one does not implement the interface it asserts.
+//
+// All three are refused here rather than emitted, because the alternative is a
+// provider that does not compile and an error message pointing at generated
+// code instead of at the blueprint that asked for it.
+func TestUnit_Render_AResourceThatCannotBeGeneratedIsRefusedByName(t *testing.T) {
+	t.Parallel()
+
+	bp := pilot(t)
+
+	if _, err := Resource(bp, bp.Resources[0], Options{}); err != nil {
+		t.Fatalf("the committed pilot resource must still render: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		damage  func(r *blueprint.Resource)
+		wantWhy string
+	}{
+		{
+			// A schema of nothing but its own server-assigned identifier: no
+			// HCL can configure it and no request body can carry it.
+			"nothing to send",
+			func(r *blueprint.Resource) {
+				for i := range r.Schema.Attributes {
+					r.Schema.Attributes[i].Wire.SkipExpand = true
+				}
+			},
+			"request body",
+		},
+		{
+			"nothing to read back",
+			func(r *blueprint.Resource) {
+				for i := range r.Schema.Attributes {
+					r.Schema.Attributes[i].Wire.SkipFlatten = true
+				}
+			},
+			"map into state",
+		},
+		{
+			"nothing to destroy",
+			func(r *blueprint.Resource) { r.Binding.Delete = nil },
+			"Terraform cannot own what it cannot destroy",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := pilot(t).Resources[0]
+			r.Schema.Attributes = append([]blueprint.Attribute(nil), r.Schema.Attributes...)
+			tc.damage(&r)
+
+			_, err := Resource(bp, r, Options{})
+			if err == nil {
+				t.Fatal("expected a refusal")
+			}
+			if !strings.Contains(err.Error(), tc.wantWhy) {
+				t.Errorf("the refusal must say why: %v", err)
+			}
+			if !strings.Contains(err.Error(), r.Key) {
+				t.Errorf("the refusal must name the resource: %v", err)
+			}
+		})
 	}
 }

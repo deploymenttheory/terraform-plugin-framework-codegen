@@ -118,6 +118,10 @@ func listView(
 	read, err := opView(
 		fmt.Sprintf("list facet of resource %q", r.Key), lf.Service.Accessor,
 		*lf.Read, "crud.PhaseRead", "errors.OpRead", "ReadTimeout", bindsResult,
+		// A list facet reads the resource's own schema: its query has no
+		// identifier of its own, and any state field the read names is the
+		// resource's.
+		newArgScope(r.Schema.Attributes, imports),
 	)
 	if err != nil {
 		return nil, err

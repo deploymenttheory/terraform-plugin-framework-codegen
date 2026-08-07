@@ -138,16 +138,20 @@ const (
 // correct.
 func (c Candidate) Classify() (CandidateKind, string) {
 	switch {
+	case c.Create != nil && c.Read != nil && c.Delete == nil:
+		// Creatable and readable but never destroyable. Terraform owns a
+		// resource for its whole life, and `terraform destroy` has to be able to
+		// end it; a managed resource with no delete leaves state describing
+		// something no plan can remove. It is still readable, so the family
+		// survives as a lookup rather than being lost.
+		//
+		// Update is the opposite case and stays a resource: no update means
+		// every change is a replacement, which policy.updateStyle already says.
+		return CandidateKindDataSource, "creatable but not deletable, which Terraform cannot own"
+
 	case c.Create != nil && c.Read != nil:
-		var missing []string
 		if c.Update == nil {
-			missing = append(missing, "update")
-		}
-		if c.Delete == nil {
-			missing = append(missing, "delete")
-		}
-		if len(missing) > 0 {
-			return CandidateKindResource, "no " + strings.Join(missing, " or ")
+			return CandidateKindResource, "no update"
 		}
 		return CandidateKindResource, "full lifecycle"
 
