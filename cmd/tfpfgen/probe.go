@@ -32,7 +32,7 @@ const (
 	// probeTokenTimeout bounds the client-credentials exchange, which happens
 	// once before a run and must not hang it.
 	probeTokenTimeout = 30 * time.Second
-	endpointEnv       = "TFPFGEN_PROBE_ENDPOINT"
+	endpointEnv       = "TFPFGEN_PROBE_API_URL"
 )
 
 // defaultRecordingRoot is where committed cassettes live, matching the repository layout.
@@ -737,7 +737,7 @@ func authoriseMutations(
 	}
 
 	// The profile says where; the environment says with what. A profile pointing somewhere
-	// other than TFPFGEN_PROBE_ENDPOINT is a mistake worth refusing rather than resolving,
+	// other than TFPFGEN_PROBE_API_URL is a mistake worth refusing rather than resolving,
 	// because whichever one loses would be a surprise.
 	if profile.Endpoint != "" && profile.Endpoint != endpoint {
 		return nil, nil, "", fmt.Errorf("%w: the profile's endpoint %q is not %s (%q); one of the "+

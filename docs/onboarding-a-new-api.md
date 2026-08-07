@@ -163,7 +163,7 @@ taught, both now load-bearing:
 
 ```sh
 TFPFGEN_PROBE_BEARER_TOKEN=$(security find-generic-password -s tfpfgen-probe -w) \
-TFPFGEN_PROBE_ENDPOINT=https://api.PROVIDER.com/v7 \
+TFPFGEN_PROBE_API_URL=https://api.PROVIDER.com/v7 \
 tfpfgen probe record -blueprint blueprints/PROVIDER -resource THING \
   -allow-mutations \
   -profile .tfpfgen/sandbox/PROVIDER.json

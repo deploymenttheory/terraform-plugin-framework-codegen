@@ -380,7 +380,7 @@ rehearsal facts. See [fixtures-and-rehearsal.md](fixtures-and-rehearsal.md).
 the committed cassettes are re-read and `facts.json` files are rewritten without
 touching the network, so better inference never requires re-probing a live API.
 
-Credentials come from the environment and nowhere else — `TFPFGEN_PROBE_ENDPOINT`
+Credentials come from the environment and nowhere else — `TFPFGEN_PROBE_API_URL`
 and `TFPFGEN_PROBE_BEARER_TOKEN`. A flag would put the token in shell history and in the
 process table; the profile is a file that gets written down, and the guard
 refuses one that contains the token's value.

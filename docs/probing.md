@@ -141,7 +141,7 @@ carries a rule about what `blueprint merge` may do with it:
 The token and the endpoint come from the environment and nowhere else:
 
 ```bash
-export TFPFGEN_PROBE_ENDPOINT=https://api.example.com/v7
+export TFPFGEN_PROBE_API_URL=https://api.example.com/v7
 export TFPFGEN_PROBE_BEARER_TOKEN=…
 ```
 
