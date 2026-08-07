@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/draft"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
@@ -545,12 +546,12 @@ func TestUnit_CLI_Matches(t *testing.T) {
 	c := Candidate{Key: "tag", Tag: "Tags", CollectionPath: "/tags"}
 
 	for _, want := range []string{"tag", "TAG", "Tags", "/tags"} {
-		if !matches(c, want) {
-			t.Errorf("matches(%q) = false", want)
+		if !draft.Matches(c, want) {
+			t.Errorf("Matches(%q) = false", want)
 		}
 	}
-	if matches(c, "widget") {
-		t.Error("matches should be false for an unrelated term")
+	if draft.Matches(c, "widget") {
+		t.Error("Matches should be false for an unrelated term")
 	}
 }
 

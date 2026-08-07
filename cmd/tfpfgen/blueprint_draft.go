@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -11,11 +11,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/naming"
-
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/draft"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/openapi"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/probe"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/snapshot"
 )
 
@@ -104,7 +101,7 @@ func runBlueprintDraft(args []string) error {
 		return err
 	}
 
-	candidates := filterCandidates(doc.Discover(), *tag, *includeUnusable)
+	candidates := draft.FilterCandidates(doc.Discover(), *tag, *includeUnusable)
 	if len(candidates) == 0 {
 		return fmt.Errorf("%w: no candidates matched", errNothingToDo)
 	}
@@ -118,240 +115,30 @@ func runBlueprintDraft(args []string) error {
 		return usagef("-out is required unless -dry-run is given")
 	}
 
-	opts := openapi.InferOptions{
-		Provider:          *provider,
-		SDKServiceRoot:    *sdkRoot,
-		SDKAccessorPrefix: *accessor,
-		APIVersionDir:     *apiVersionDir,
-		SDKDialect:        dialect,
-		SDKModelsImport:   *sdkModels,
+	err = draft.Run(doc, candidates, draft.Options{
+		Infer: openapi.InferOptions{
+			Provider:          *provider,
+			SDKServiceRoot:    *sdkRoot,
+			SDKAccessorPrefix: *accessor,
+			APIVersionDir:     *apiVersionDir,
+			SDKDialect:        dialect,
+			SDKModelsImport:   *sdkModels,
+		},
+		Out:            *out,
+		ScenarioDrafts: *scenarioDrafts,
+		PruneModule:    *pruneModule,
+		Excluded:       excluded,
+		Notes:          printNotes,
+	})
+
+	// A run that drafted nothing is this command's "nothing to do", and the CLI
+	// owns that vocabulary: the package states the drafting fact, and the wrapping
+	// gives it the exit code every other subcommand uses for the same situation.
+	if errors.Is(err, draft.ErrNothingInferred) {
+		return fmt.Errorf("%w: %w", errNothingToDo, err)
 	}
 
-	return inferAll(doc, candidates, excluded, opts, *out, *scenarioDrafts, *pruneModule)
-}
-
-func inferAll(
-	doc *openapi.Document,
-	candidates []openapi.Candidate,
-	excluded openapi.Exclusions,
-	opts openapi.InferOptions,
-	out string,
-	planDrafts string,
-	pruneModule string,
-) error {
-	var (
-		notes       []openapi.Caveat
-		resources   []blueprint.Resource
-		dataSources []blueprint.DataSource
-		written     int
-		skipped     int
-	)
-
-	// Import aliases share one namespace across every block kind, because all of
-	// them register into the same generated provider package -- validation refuses
-	// a duplicate. Nested identifiers are already deduplicated inside each
-	// resource; this is the same rule one level up, across the whole drafted set.
-	takenAliases := map[string]bool{}
-
-	for _, c := range candidates {
-		// The sidecar speaks first: a curated exclusion is a decision already
-		// made, and the run repeats its reason as a named skip.
-		if reason, is := excluded.Match(c); is {
-			log.Printf("excluded  %s: %s", c.Key, reason)
-			skipped++
-			continue
-		}
-
-		kind, why := c.Classify()
-
-		if kind == openapi.CandidateKindDataSource {
-			ds, dsNotes, err := doc.InferDataSource(c, opts)
-			notes = append(notes, dsNotes...)
-			if err != nil {
-				log.Printf("skipped   %s: %v", c.Key, err)
-				skipped++
-				continue
-			}
-			ds.GoPackageAlias = naming.Unique(takenAliases, ds.GoPackageAlias)
-			dataSources = append(dataSources, ds)
-			continue
-		}
-
-		if kind != openapi.CandidateKindResource {
-			// Said out loud rather than silently skipped: silence reads as agreement,
-			// and an action the spec offers deserves at least a line saying inference
-			// does not reach it yet.
-			log.Printf("skipped   %s: %s inference is not implemented (%s)", c.Key, kind, why)
-			skipped++
-			continue
-		}
-
-		res, resNotes, err := doc.Infer(c, opts)
-		notes = append(notes, resNotes...)
-		if err != nil {
-			// One resource that cannot be inferred must not stop the rest: the
-			// output is a starting point for curation, not an all-or-nothing build.
-			log.Printf("skipped   %s: %v", c.Key, err)
-			skipped++
-			continue
-		}
-
-		res.GoPackageAlias = naming.Unique(takenAliases, res.GoPackageAlias)
-		resources = append(resources, res)
-
-		// A manageable family gets a lookup companion as well. Looking up an
-		// object somebody else created is the most useful data source there
-		// is, and the two live in separate Terraform namespaces, so the family
-		// name carries both. A family the data-source shape cannot serve --
-		// no list to resolve through, nothing selectable -- says so once and
-		// keeps its resource.
-		ds, dsNotes, err := doc.InferDataSource(c, opts)
-		notes = append(notes, dsNotes...)
-		if err != nil {
-			log.Printf("no lookup %s: %v", c.Key, err)
-			continue
-		}
-		ds.GoPackageAlias = naming.Unique(takenAliases, ds.GoPackageAlias)
-		dataSources = append(dataSources, ds)
-	}
-
-	// The document promises; the SDK disposes. With a module to check against,
-	// every drafted binding is resolved against the real SDK before anything is
-	// written, and what does not resolve is pruned by name -- the computed form
-	// of the drop a curator used to write by hand.
-	if pruneModule != "" {
-		pruned, err := pruneAgainstSDK(out, pruneModule, &resources, &dataSources)
-		if err != nil {
-			return err
-		}
-		skipped += pruned
-	}
-
-	for _, ds := range dataSources {
-		bp := blueprint.Blueprint{FormatVersion: blueprint.FormatVersion, DataSources: []blueprint.DataSource{ds}}
-		path := filepath.Join(out, "datasources", ds.Key+blueprint.Ext)
-		if err := blueprint.Save(path, bp); err != nil {
-			return err
-		}
-		log.Printf("wrote     %s (dataSource, %d attributes, %d selector(s))",
-			path, len(ds.Schema.Attributes), len(ds.Binding.Selectors))
-		written++
-	}
-
-	for _, res := range resources {
-		bp := blueprint.Blueprint{FormatVersion: blueprint.FormatVersion, Resources: []blueprint.Resource{res}}
-
-		path := filepath.Join(out, "resources", res.Key+blueprint.Ext)
-		if err := blueprint.Save(path, bp); err != nil {
-			return err
-		}
-
-		log.Printf("wrote     %s (%d attributes)", path, len(res.Schema.Attributes))
-		written++
-
-		if planDrafts != "" {
-			if err := writeScenarioDraft(planDrafts, bp, res); err != nil {
-				return err
-			}
-		}
-	}
-
-	printNotes(notes)
-
-	if written == 0 {
-		return fmt.Errorf("%w: nothing could be inferred", errNothingToDo)
-	}
-
-	log.Printf("%d blueprint(s) written, %d candidate(s) skipped, %d note(s)", written, skipped, len(notes))
-
-	return nil
-}
-
-// pruneAgainstSDK verifies drafted bindings against the pinned SDK and removes
-// what cannot be generated, reporting each removal. The provider block is read
-// from the output directory, because pruning resolves fluent chains from the
-// client type it declares.
-func pruneAgainstSDK(
-	out, module string,
-	resources *[]blueprint.Resource,
-	dataSources *[]blueprint.DataSource,
-) (skipped int, err error) {
-	providerPath := filepath.Join(out, "provider"+blueprint.Ext)
-	pbp, err := blueprint.Load(providerPath)
-	if err != nil {
-		return 0, fmt.Errorf("-prune-module needs the provider block at %s: %w", providerPath, err)
-	}
-
-	combined := blueprint.Blueprint{
-		FormatVersion: blueprint.FormatVersion,
-		Provider:      pbp.Provider,
-		Resources:     *resources,
-		DataSources:   *dataSources,
-	}
-
-	removals := sdkbind.Prune(sdkbind.NewLoader(module), &combined)
-	for _, p := range removals {
-		log.Printf("pruned    %s", p)
-	}
-
-	*resources = nil
-	for _, r := range combined.Resources {
-		if !r.Drop {
-			*resources = append(*resources, r)
-		} else {
-			skipped++
-		}
-	}
-	*dataSources = nil
-	for _, d := range combined.DataSources {
-		if !d.Drop {
-			*dataSources = append(*dataSources, d)
-		} else {
-			skipped++
-		}
-	}
-
-	return skipped, nil
-}
-
-// writeScenarioDraft scaffolds one resource's probe-plan worksheet.
-//
-// The .draft.json suffix is the whole mechanism, borrowed from interop's drafts: no
-// loader resolves it -- the bulk record driver reads only KEY.scenario.json -- so a
-// scaffold nobody has curated can never be recorded against by accident. Promotion is
-// a rename, which is a diff a reviewer sees. An existing draft is never overwritten:
-// a worksheet somebody has started marking up is theirs.
-func writeScenarioDraft(dir string, bp blueprint.Blueprint, res blueprint.Resource) error {
-	subj, err := probe.SubjectOf(bp, res)
-	if err != nil {
-		// A resource the prober cannot subject at all gets no worksheet; the probe
-		// run will state the same refusal in full when it matters.
-		log.Printf("no draft  %s: %v", res.Key, err)
-		return nil
-	}
-
-	path := filepath.Join(dir, res.Key+".scenario.draft.json")
-	if _, err := os.Stat(path); err == nil {
-		log.Printf("kept      %s (already exists; drafts are never overwritten)", path)
-		return nil
-	}
-
-	data, err := json.MarshalIndent(probe.DraftScenario(subj), "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshalling the %s plan draft: %w", res.Key, err)
-	}
-
-	if err := os.MkdirAll(dir, 0o750); err != nil {
-		return err
-	}
-	if err := os.WriteFile(path, append(data, '\n'), 0o600); err != nil {
-		return err
-	}
-
-	log.Printf("drafted   %s (curate every %q, then rename away the .draft)",
-		path, probe.CurateMe)
-
-	return nil
+	return err
 }
 
 // printNotes reports what inference could not do.
@@ -391,44 +178,6 @@ func resolveOpenAPIPath(openapiPath, openapiDir, snapshotName string) (string, e
 	}
 
 	return snap.SpecPath(), nil
-}
-
-func filterCandidates(in []openapi.Candidate, tag string, includeUnusable bool) []openapi.Candidate {
-	out := make([]openapi.Candidate, 0, len(in))
-
-	for _, c := range in {
-		kind, _ := c.Classify()
-		if kind == openapi.CandidateKindNeither && !includeUnusable {
-			continue
-		}
-		if tag != "" && !matches(c, tag) {
-			continue
-		}
-		out = append(out, c)
-	}
-
-	return out
-}
-
-// matches reports whether a candidate matches any of the comma-separated terms.
-//
-// Any-of rather than all-of, because the flag's job is selecting a batch: `-tag
-// tests,alerts,dashboards` names three areas, and no candidate belongs to all three.
-func matches(c openapi.Candidate, want string) bool {
-	for _, term := range strings.Split(want, ",") {
-		term = strings.ToLower(strings.TrimSpace(term))
-		if term == "" {
-			continue
-		}
-
-		if strings.Contains(strings.ToLower(c.Tag), term) ||
-			strings.Contains(strings.ToLower(c.Key), term) ||
-			strings.Contains(strings.ToLower(c.CollectionPath), term) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // printCandidates reports what the document offers.
