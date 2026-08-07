@@ -132,6 +132,12 @@ func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.Da
 	fields := Fields(stateSchema)
 	sort.Slice(fields, func(i, j int) bool { return fields[i].Name < fields[j].Name })
 
+	fieldNames := make([]string, 0, len(fields))
+	for _, f := range fields {
+		fieldNames = append(fieldNames, f.Name)
+	}
+	siblings := terraformNamesOf(fieldNames)
+
 	var attrs []blueprint.Attribute
 	for _, f := range fields {
 		if skip, why := skipField(f); skip {
@@ -141,6 +147,9 @@ func (d *Document) InferDataSource(c Candidate, opts InferOptions) (blueprint.Da
 		attr, why := ictx.attributeOf(f, f.Name, false)
 		if why != "" {
 			ictx.note(f.Name, why)
+			continue
+		}
+		if !ictx.unreserveRootName(&attr, f.Name, siblings) {
 			continue
 		}
 		attr.ComputedOptionalRequired = blueprint.Computed

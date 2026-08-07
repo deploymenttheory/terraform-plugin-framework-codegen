@@ -677,6 +677,118 @@ func TestUnit_Blueprint_Validate_AcceptsTheNewKinds(t *testing.T) {
 	}
 }
 
+// TestUnit_Blueprint_Validate_ReservedRootAttributeNames refuses a schema Terraform would
+// reject at run time.
+//
+// The failure this replaces is a bad one to inherit: the emitted provider compiles, and the
+// framework rejects the schema the first time anything reads it -- tfplugindocs, or the
+// practitioner's first plan -- with "Reserved Root Attribute/Block Name" and nothing saying
+// which resource or which blueprint it came from. Jamf Pro's mobile device groups publish a
+// membership count, which is how it was found.
+func TestUnit_Blueprint_Validate_ReservedRootAttributeNames(t *testing.T) {
+	t.Parallel()
+
+	reserved := []string{
+		"connection", "count", "depends_on", "for_each", "lifecycle", "provider", "provisioner",
+	}
+
+	for _, name := range reserved {
+		t.Run("resource/"+name, func(t *testing.T) {
+			t.Parallel()
+
+			b := validBlueprint()
+			b.Resources[0].Schema.Attributes[1].Name = name
+
+			err := b.Validate()
+			if err == nil {
+				t.Fatalf("a resource declaring a root %q attribute must be refused", name)
+			}
+			if !errors.Is(err, ErrInvalid) {
+				t.Fatalf("error should wrap ErrInvalid: %v", err)
+			}
+			// The message has to name the attribute and what it collides with, or it
+			// reads as arbitrary.
+			for _, want := range []string{
+				"resources[tag].schema.attributes[" + name + "].name",
+				"meta-argument",
+				"Reserved Root Attribute/Block Name",
+			} {
+				if !strings.Contains(err.Error(), want) {
+					t.Errorf("error does not mention %q:\n%v", want, err)
+				}
+			}
+		})
+
+		t.Run("dataSource/"+name, func(t *testing.T) {
+			t.Parallel()
+
+			b := validBlueprint()
+			ds := validDataSourceWithSeed("tag")
+			ds.Schema.Attributes[0].Name = name
+			b.DataSources = []DataSource{ds}
+
+			err := b.Validate()
+			if err == nil {
+				t.Fatalf("a data source declaring a root %q attribute must be refused", name)
+			}
+			if !strings.Contains(err.Error(), "dataSources[") ||
+				!strings.Contains(err.Error(), name) {
+				t.Errorf("error does not name the data source attribute:\n%v", err)
+			}
+		})
+	}
+}
+
+// TestUnit_Blueprint_Validate_ReservedNamesAreARootRule is the other half, and the more
+// important one: Terraform's meta-arguments exist only at the top level of a block, so an
+// attribute named count inside a nested object is ordinary configuration. Refusing one would
+// refuse a schema that works, and force a rename onto a field that never needed it.
+func TestUnit_Blueprint_Validate_ReservedNamesAreARootRule(t *testing.T) {
+	t.Parallel()
+
+	b := validBlueprint()
+	b.Resources[0].Schema.Attributes = append(b.Resources[0].Schema.Attributes, Attribute{
+		Name:                     "membership",
+		GoField:                  "Membership",
+		ComputedOptionalRequired: Optional,
+		Type: AttrType{
+			Kind: KindSingleNested,
+			NestedObject: &NestedAttributeObject{
+				GoTypeName:    "TagMembershipModel",
+				SDKType:       "tags.Membership",
+				AttrTypesVar:  "tagMembershipAttrTypes",
+				ObjectTypeVar: "tagMembershipObjectType",
+				ExpandFunc:    "expandTagMembership",
+				FlattenFunc:   "flattenTagMembership",
+				Attributes: []Attribute{{
+					Name:                     "count",
+					GoField:                  "Count",
+					Type:                     AttrType{Kind: KindInt64},
+					ComputedOptionalRequired: Computed,
+					Wire: WireBinding{
+						JSONPath:   "count",
+						SDKField:   "Count",
+						SDKGoType:  "*int64",
+						SkipExpand: true,
+						Flatten:    &ConvertCall{Func: "convert.PtrInt64ToFramework"},
+					},
+				}},
+			},
+		},
+		Wire: WireBinding{
+			JSONPath:  "membership",
+			SDKField:  "Membership",
+			SDKGoType: "*tags.Membership",
+			Expand:    &ConvertCall{Func: "expandTagMembership", NeedsCtx: true, ReturnsError: true},
+			Flatten:   &ConvertCall{Func: "flattenTagMembership", NeedsCtx: true, ReturnsError: true},
+		},
+	})
+
+	if err := b.Validate(); err != nil {
+		t.Fatalf("a nested attribute named count is ordinary configuration and must validate: %v", err)
+	}
+}
+
 // TestUnit_Blueprint_Validate_SweepNaming holds an override to the same rules the
 // prober's own inference follows: a field that could not carry the prefix live must be
 // refused here, where the message names the blueprint node to fix.
