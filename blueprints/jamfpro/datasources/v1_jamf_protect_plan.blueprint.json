@@ -1,0 +1,229 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_jamf_protect_plan",
+      "name": "v1_jamf_protect_plan",
+      "goPackage": "v1_jamf_protect_plan",
+      "goPackageAlias": "v7V1JamfProtectPlanDs",
+      "goTypeName": "V1JamfProtectPlanDataSource",
+      "modelTypeName": "V1JamfProtectPlanDataSourceModel",
+      "serviceGroup": "jamf_protect",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "description",
+            "goField": "Description",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "description",
+              "sdkField": "Description",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "profile_id",
+            "goField": "ProfileID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "profileId",
+              "sdkField": "ProfileId",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "profile_name",
+            "goField": "ProfileName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "profileName",
+              "sdkField": "ProfileName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "profile_version",
+            "goField": "ProfileVersion",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "profileVersion",
+              "sdkField": "ProfileVersion",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "scope_description",
+            "goField": "ScopeDescription",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "scopeDescription",
+              "sdkField": "ScopeDescription",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "site_id",
+            "goField": "SiteID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "siteId",
+              "sdkField": "SiteId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "uuid",
+            "goField": "UUID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "uuid",
+              "sdkField": "Uuid",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "JamfProtect"
+            },
+            {
+              "method": "Plans"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.PlanSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/jamf-protect/plans"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.JamfProtectPlanable",
+        "selectors": [
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          },
+          {
+            "attribute": "profile_name",
+            "goField": "ProfileName",
+            "sdkField": "ProfileName"
+          }
+        ],
+        "response": {
+          "type": "models.JamfProtectPlanable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

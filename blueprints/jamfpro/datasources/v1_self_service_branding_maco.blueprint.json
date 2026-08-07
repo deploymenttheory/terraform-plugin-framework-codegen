@@ -1,0 +1,277 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_self_service_branding_maco",
+      "name": "v1_self_service_branding_maco",
+      "goPackage": "v1_self_service_branding_maco",
+      "goPackageAlias": "v7V1SelfServiceBrandingMacoDs",
+      "goTypeName": "V1SelfServiceBrandingMacoDataSource",
+      "modelTypeName": "V1SelfServiceBrandingMacoDataSourceModel",
+      "serviceGroup": "self_service_branding_macos",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "application_name",
+            "goField": "ApplicationName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "applicationName",
+              "sdkField": "ApplicationName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "branding_header_image_id",
+            "goField": "BrandingHeaderImageID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "brandingHeaderImageId",
+              "sdkField": "BrandingHeaderImageId",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "branding_name",
+            "goField": "BrandingName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "brandingName",
+              "sdkField": "BrandingName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "branding_name_secondary",
+            "goField": "BrandingNameSecondary",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "brandingNameSecondary",
+              "sdkField": "BrandingNameSecondary",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "home_heading",
+            "goField": "HomeHeading",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "homeHeading",
+              "sdkField": "HomeHeading",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "home_subheading",
+            "goField": "HomeSubheading",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "homeSubheading",
+              "sdkField": "HomeSubheading",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "icon_id",
+            "goField": "IconID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "iconId",
+              "sdkField": "IconId",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Read a single Self Service macOS branding configuration indicated by the provided id."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "SelfService"
+            },
+            {
+              "method": "Branding"
+            },
+            {
+              "method": "Macos"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.MacOsBrandingConfigurationable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/self-service/branding/macos/{id}"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "SelfService"
+            },
+            {
+              "method": "Branding"
+            },
+            {
+              "method": "Macos"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.MacOsBrandingSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/self-service/branding/macos"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.MacOsBrandingConfigurationable",
+        "selectors": [
+          {
+            "attribute": "id",
+            "goField": "ID",
+            "viaRead": true
+          },
+          {
+            "attribute": "application_name",
+            "goField": "ApplicationName",
+            "sdkField": "ApplicationName"
+          },
+          {
+            "attribute": "branding_name",
+            "goField": "BrandingName",
+            "sdkField": "BrandingName"
+          }
+        ],
+        "elementIdField": "Id",
+        "elementIdFlatten": {
+          "func": "convert.PtrStringToFramework"
+        },
+        "response": {
+          "type": "models.MacOsBrandingConfigurationable",
+          "accessStyle": "method"
+        }
+      },
+      "accTest": {
+        "seedResourceKey": "v1_self_service_branding_maco",
+        "args": [
+          {
+            "attr": "id",
+            "fromSeedAttr": "id"
+          }
+        ]
+      }
+    }
+  ]
+}

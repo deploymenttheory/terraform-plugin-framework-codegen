@@ -1,0 +1,160 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_gsx_connection_history",
+      "name": "v1_gsx_connection_history",
+      "goPackage": "v1_gsx_connection_history",
+      "goPackageAlias": "v7V1GsxConnectionHistoryDs",
+      "goTypeName": "V1GsxConnectionHistoryDataSource",
+      "modelTypeName": "V1GsxConnectionHistoryDataSourceModel",
+      "serviceGroup": "gsx_connection",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "date",
+            "goField": "Date",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "date",
+              "sdkField": "Date",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "details",
+            "goField": "Details",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "details",
+              "sdkField": "Details",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 1
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "note",
+            "goField": "Note",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "note",
+              "sdkField": "Note",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "username",
+            "goField": "Username",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "username",
+              "sdkField": "Username",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Add specified GSX Connection history object notes."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "GsxConnection"
+            },
+            {
+              "method": "History"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HistorySearchResultsV1able",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/gsx-connection/history"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.ObjectHistoryV1able",
+        "selectors": [
+          {
+            "attribute": "username",
+            "goField": "Username",
+            "sdkField": "Username"
+          }
+        ],
+        "response": {
+          "type": "models.ObjectHistoryV1able",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

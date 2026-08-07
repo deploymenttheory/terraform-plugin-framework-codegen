@@ -1,0 +1,172 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_cloud_idp",
+      "name": "v1_cloud_idp",
+      "goPackage": "v1_cloud_idp",
+      "goPackageAlias": "v7V1CloudIdpDs",
+      "goTypeName": "V1CloudIdpDataSource",
+      "modelTypeName": "V1CloudIdpDataSourceModel",
+      "serviceGroup": "cloud_idp",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "display_name",
+            "goField": "DisplayName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "displayName",
+              "sdkField": "DisplayName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "provider_name",
+            "goField": "ProviderName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "providerName",
+              "sdkField": "ProviderName",
+              "sdkGoType": "*models.CloudIdPCommon_providerName",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Get Cloud Identity Provider configuration with given ID.."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "CloudIdp"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.CloudIdPCommonable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/cloud-idp/{id}"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "CloudIdp"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.ConfigurationSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/cloud-idp"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.CloudIdPCommonResponseable",
+        "selectors": [
+          {
+            "attribute": "id",
+            "goField": "ID",
+            "viaRead": true
+          },
+          {
+            "attribute": "display_name",
+            "goField": "DisplayName",
+            "sdkField": "DisplayName"
+          },
+          {
+            "attribute": "provider_name",
+            "goField": "ProviderName",
+            "sdkField": "ProviderName",
+            "sdkEnum": true
+          }
+        ],
+        "elementIdField": "Id",
+        "elementIdFlatten": {
+          "func": "convert.PtrStringToFramework"
+        },
+        "response": {
+          "type": "models.CloudIdPCommonable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,618 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_volume_purchasing_location",
+      "name": "v1_volume_purchasing_location",
+      "goPackage": "v1_volume_purchasing_location",
+      "goPackageAlias": "v7V1VolumePurchasingLocationDs",
+      "goTypeName": "V1VolumePurchasingLocationDataSource",
+      "modelTypeName": "V1VolumePurchasingLocationDataSourceModel",
+      "serviceGroup": "volume_purchasing_locations",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "apple_id",
+            "goField": "AppleID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "appleId",
+              "sdkField": "AppleId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "auto_register_managed_users",
+            "goField": "AutoRegisterManagedUsers",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "autoRegisterManagedUsers",
+              "sdkField": "AutoRegisterManagedUsers",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "automatically_populate_purchased_content",
+            "goField": "AutomaticallyPopulatePurchasedContent",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "automaticallyPopulatePurchasedContent",
+              "sdkField": "AutomaticallyPopulatePurchasedContent",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "client_context_mismatch",
+            "goField": "ClientContextMismatch",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "If this is \"true\", the clientContext used by this server does not match the clientContext returned by the Volume Purchasing API.",
+            "wire": {
+              "jsonPath": "clientContextMismatch",
+              "sdkField": "ClientContextMismatch",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "content",
+            "goField": "Content",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V1VolumePurchasingLocationVolumePurchasingContentModel",
+                "sdkType": "models.VolumePurchasingContentable",
+                "constructorExpr": "models.NewVolumePurchasingContent()",
+                "attrTypesVar": "v1VolumePurchasingLocationVolumePurchasingContentAttrTypes",
+                "objectTypeVar": "v1VolumePurchasingLocationVolumePurchasingContentObjectType",
+                "expandFunc": "expandV1VolumePurchasingLocationVolumePurchasingContents",
+                "flattenFunc": "flattenV1VolumePurchasingLocationVolumePurchasingContents",
+                "attributes": [
+                  {
+                    "name": "adam_id",
+                    "goField": "AdamID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "adamId",
+                      "sdkField": "AdamId",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "content_type",
+                    "goField": "ContentType",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "contentType",
+                      "sdkField": "ContentType",
+                      "sdkGoType": "*models.VolumePurchasingContent_contentType",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "device_types",
+                    "goField": "DeviceTypes",
+                    "type": {
+                      "kind": "set",
+                      "elementType": {
+                        "kind": "string"
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "deviceTypes",
+                      "sdkField": "DeviceTypes",
+                      "sdkGoType": "[]models.VolumePurchasingContent_deviceTypes",
+                      "flatten": {
+                        "func": "convert.KiotaEnumSliceToFrameworkSet",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "icon_url",
+                    "goField": "IconURL",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "iconUrl",
+                      "sdkField": "IconUrl",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "license_count_in_use",
+                    "goField": "LicenseCountInUse",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "licenseCountInUse",
+                      "sdkField": "LicenseCountInUse",
+                      "sdkGoType": "*int32",
+                      "flatten": {
+                        "func": "convert.PtrInt32ToFrameworkInt64"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "license_count_reported",
+                    "goField": "LicenseCountReported",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "licenseCountReported",
+                      "sdkField": "LicenseCountReported",
+                      "sdkGoType": "*int32",
+                      "flatten": {
+                        "func": "convert.PtrInt32ToFrameworkInt64"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "license_count_total",
+                    "goField": "LicenseCountTotal",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "licenseCountTotal",
+                      "sdkField": "LicenseCountTotal",
+                      "sdkGoType": "*int32",
+                      "flatten": {
+                        "func": "convert.PtrInt32ToFrameworkInt64"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "pricing_param",
+                    "goField": "PricingParam",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "pricingParam",
+                      "sdkField": "PricingParam",
+                      "sdkGoType": "*models.VolumePurchasingContent_pricingParam",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "content",
+              "sdkField": "Content",
+              "sdkGoType": "[]models.VolumePurchasingContentable",
+              "flatten": {
+                "func": "flattenV1VolumePurchasingLocationVolumePurchasingContents",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "country_code",
+            "goField": "CountryCode",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The two-letter ISO 3166-1 code that designates the country where the Volume Purchasing account is located.",
+            "wire": {
+              "jsonPath": "countryCode",
+              "sdkField": "CountryCode",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "email",
+            "goField": "Email",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "email",
+              "sdkField": "Email",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "last_sync_time",
+            "goField": "LastSyncTime",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "lastSyncTime",
+              "sdkField": "LastSyncTime",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "location_name",
+            "goField": "LocationName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "locationName",
+              "sdkField": "LocationName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "organization_name",
+            "goField": "OrganizationName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "organizationName",
+              "sdkField": "OrganizationName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "send_notification_when_no_longer_assigned",
+            "goField": "SendNotificationWhenNoLongerAssigned",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "sendNotificationWhenNoLongerAssigned",
+              "sdkField": "SendNotificationWhenNoLongerAssigned",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "site_id",
+            "goField": "SiteID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "siteId",
+              "sdkField": "SiteId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "site_name",
+            "goField": "SiteName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "siteName",
+              "sdkField": "SiteName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "token_expiration",
+            "goField": "TokenExpiration",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "tokenExpiration",
+              "sdkField": "TokenExpiration",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "total_purchased_licenses",
+            "goField": "TotalPurchasedLicenses",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "totalPurchasedLicenses",
+              "sdkField": "TotalPurchasedLicenses",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "total_used_licenses",
+            "goField": "TotalUsedLicenses",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "totalUsedLicenses",
+              "sdkField": "TotalUsedLicenses",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Retrieve a Volume Purchasing Location with the supplied id."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "VolumePurchasingLocations"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.VolumePurchasingLocationable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/volume-purchasing-locations/{id}"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "VolumePurchasingLocations"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.VolumePurchasingLocationsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/volume-purchasing-locations"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.VolumePurchasingLocationListViewable",
+        "selectors": [
+          {
+            "attribute": "id",
+            "goField": "ID",
+            "viaRead": true
+          },
+          {
+            "attribute": "location_name",
+            "goField": "LocationName",
+            "sdkField": "LocationName"
+          },
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          },
+          {
+            "attribute": "organization_name",
+            "goField": "OrganizationName",
+            "sdkField": "OrganizationName"
+          },
+          {
+            "attribute": "site_name",
+            "goField": "SiteName",
+            "sdkField": "SiteName"
+          }
+        ],
+        "elementIdField": "Id",
+        "elementIdFlatten": {
+          "func": "convert.PtrStringToFramework"
+        },
+        "response": {
+          "type": "models.VolumePurchasingLocationable",
+          "accessStyle": "method"
+        }
+      },
+      "accTest": {
+        "seedResourceKey": "v1_volume_purchasing_location",
+        "args": [
+          {
+            "attr": "id",
+            "fromSeedAttr": "id"
+          }
+        ]
+      }
+    }
+  ]
+}

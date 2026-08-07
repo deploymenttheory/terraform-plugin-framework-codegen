@@ -1,0 +1,158 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "ldap_group",
+      "name": "ldap_group",
+      "goPackage": "ldap_group",
+      "goPackageAlias": "v7LdapGroupDs",
+      "goTypeName": "LdapGroupDataSource",
+      "modelTypeName": "LdapGroupDataSourceModel",
+      "serviceGroup": "ldap",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "distinguished_name",
+            "goField": "DistinguishedName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "distinguishedName",
+              "sdkField": "DistinguishedName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "ldap_server_id",
+            "goField": "LdapServerID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "ldapServerId",
+              "sdkField": "LdapServerId",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "uuid",
+            "goField": "UUID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "uuid",
+              "sdkField": "Uuid",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "Ldap"
+            },
+            {
+              "method": "Groups"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.LdapGroupSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/ldap/groups"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.LdapGroupable",
+        "selectors": [
+          {
+            "attribute": "distinguished_name",
+            "goField": "DistinguishedName",
+            "sdkField": "DistinguishedName"
+          },
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "response": {
+          "type": "models.LdapGroupable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

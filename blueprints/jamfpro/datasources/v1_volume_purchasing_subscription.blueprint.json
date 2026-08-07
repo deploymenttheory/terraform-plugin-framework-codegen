@@ -1,0 +1,379 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_volume_purchasing_subscription",
+      "name": "v1_volume_purchasing_subscription",
+      "goPackage": "v1_volume_purchasing_subscription",
+      "goPackageAlias": "v7V1VolumePurchasingSubscriptionDs",
+      "goTypeName": "V1VolumePurchasingSubscriptionDataSource",
+      "modelTypeName": "V1VolumePurchasingSubscriptionDataSourceModel",
+      "serviceGroup": "volume_purchasing_subscriptions",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "enabled",
+            "goField": "Enabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "enabled",
+              "sdkField": "Enabled",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "external_recipients",
+            "goField": "ExternalRecipients",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V1VolumePurchasingSubscriptionExternalRecipientModel",
+                "sdkType": "models.ExternalRecipientable",
+                "constructorExpr": "models.NewExternalRecipient()",
+                "attrTypesVar": "v1VolumePurchasingSubscriptionExternalRecipientAttrTypes",
+                "objectTypeVar": "v1VolumePurchasingSubscriptionExternalRecipientObjectType",
+                "expandFunc": "expandV1VolumePurchasingSubscriptionExternalRecipients",
+                "flattenFunc": "flattenV1VolumePurchasingSubscriptionExternalRecipients",
+                "attributes": [
+                  {
+                    "name": "email",
+                    "goField": "Email",
+                    "type": {
+                      "kind": "string",
+                      "constraints": {
+                        "minLength": 1
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "email",
+                      "sdkField": "Email",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string",
+                      "constraints": {
+                        "minLength": 1
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "externalRecipients",
+              "sdkField": "ExternalRecipients",
+              "sdkGoType": "[]models.ExternalRecipientable",
+              "flatten": {
+                "func": "flattenV1VolumePurchasingSubscriptionExternalRecipients",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "internal_recipients",
+            "goField": "InternalRecipients",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V1VolumePurchasingSubscriptionInternalRecipientModel",
+                "sdkType": "models.InternalRecipientable",
+                "constructorExpr": "models.NewInternalRecipient()",
+                "attrTypesVar": "v1VolumePurchasingSubscriptionInternalRecipientAttrTypes",
+                "objectTypeVar": "v1VolumePurchasingSubscriptionInternalRecipientObjectType",
+                "expandFunc": "expandV1VolumePurchasingSubscriptionInternalRecipients",
+                "flattenFunc": "flattenV1VolumePurchasingSubscriptionInternalRecipients",
+                "attributes": [
+                  {
+                    "name": "account_id",
+                    "goField": "AccountID",
+                    "type": {
+                      "kind": "string",
+                      "constraints": {
+                        "pattern": "^\\d+$"
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "accountId",
+                      "sdkField": "AccountId",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "frequency",
+                    "goField": "Frequency",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "frequency",
+                      "sdkField": "Frequency",
+                      "sdkGoType": "*models.InternalRecipient_frequency",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "internalRecipients",
+              "sdkField": "InternalRecipients",
+              "sdkGoType": "[]models.InternalRecipientable",
+              "flatten": {
+                "func": "flattenV1VolumePurchasingSubscriptionInternalRecipients",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "location_ids",
+            "goField": "LocationIDs",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string",
+                "constraints": {
+                  "pattern": "^\\d+$"
+                }
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "locationIds",
+              "sdkField": "LocationIds",
+              "sdkGoType": "[]string",
+              "flatten": {
+                "func": "convert.StringSliceToFrameworkSet",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 1
+              }
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "site_id",
+            "goField": "SiteID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "siteId",
+              "sdkField": "SiteId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "triggers",
+            "goField": "Triggers",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "triggers",
+              "sdkField": "Triggers",
+              "sdkGoType": "[]models.VolumePurchasingSubscriptionBase_triggers",
+              "flatten": {
+                "func": "convert.KiotaEnumSliceToFrameworkSet",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Retrieve a Volume Purchasing Subscription with the supplied id."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "VolumePurchasingSubscriptions"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.VolumePurchasingSubscriptionable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/volume-purchasing-subscriptions/{id}"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "VolumePurchasingSubscriptions"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.VolumePurchasingSubscriptionsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/volume-purchasing-subscriptions"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.VolumePurchasingSubscriptionable",
+        "selectors": [
+          {
+            "attribute": "id",
+            "goField": "ID",
+            "viaRead": true
+          },
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "elementIdField": "Id",
+        "elementIdFlatten": {
+          "func": "convert.PtrStringToFramework"
+        },
+        "response": {
+          "type": "models.VolumePurchasingSubscriptionable",
+          "accessStyle": "method"
+        }
+      },
+      "accTest": {
+        "seedResourceKey": "v1_volume_purchasing_subscription",
+        "args": [
+          {
+            "attr": "id",
+            "fromSeedAttr": "id"
+          }
+        ]
+      }
+    }
+  ]
+}

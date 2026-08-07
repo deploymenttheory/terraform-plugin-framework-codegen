@@ -1,0 +1,259 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v1_log_flushing_task",
+      "name": "v1_log_flushing_task",
+      "goPackage": "v1_log_flushing_task",
+      "goPackageAlias": "v7V1LogFlushingTask",
+      "goTypeName": "V1LogFlushingTaskResource",
+      "modelTypeName": "V1LogFlushingTaskResourceModel",
+      "serviceGroup": "log_flushing",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The unique identifier of the log flushing task",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "qualifier",
+            "goField": "Qualifier",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The qualifier of the retention policy",
+            "wire": {
+              "jsonPath": "qualifier",
+              "sdkField": "Qualifier",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "retention_period",
+            "goField": "RetentionPeriod",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The period beyond which data will be flushed",
+            "wire": {
+              "jsonPath": "retentionPeriod",
+              "sdkField": "RetentionPeriod",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "retention_period_unit",
+            "goField": "RetentionPeriodUnit",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The unit of the retention period (eg: DAY, WEEK, MONTH, YEAR)",
+            "wire": {
+              "jsonPath": "retentionPeriodUnit",
+              "sdkField": "RetentionPeriodUnit",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "state",
+            "goField": "State",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The state of the task (eg: RUNNING, SUCCESS, FAILED, CANCELLED)",
+            "wire": {
+              "jsonPath": "state",
+              "sdkField": "State",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Get log flushing task."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "LogFlushing"
+            },
+            {
+              "method": "Task"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HrefResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v1/log-flushing/task"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "LogFlushing"
+            },
+            {
+              "method": "Task"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.LogFlushingTaskV1able",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/log-flushing/task/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "LogFlushing"
+            },
+            {
+              "method": "Task"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v1/log-flushing/task/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.LogFlushingTaskV1",
+          "responseType": "models.LogFlushingTaskV1able",
+          "constructorExpr": "models.NewLogFlushingTaskV1()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "replaceOnly",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}

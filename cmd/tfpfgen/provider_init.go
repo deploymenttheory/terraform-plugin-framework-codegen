@@ -83,7 +83,16 @@ func runProviderInit(args []string) error {
 	// declares its security schemes has already answered this, and asking a
 	// person to restate it invites them to state it differently.
 	auth := blueprint.Auth{Method: blueprint.AuthBearerToken}
+	apiEndpoint := ""
 	if doc, dErr := openapi.Load(snap.SpecPath()); dErr == nil {
+		// The document's own server, when it names a host. A relative server
+		// means the host is per-installation, so there is nothing to default to.
+		apiEndpoint = doc.ServerURL()
+		if apiEndpoint == "" {
+			log.Printf("endpoint: the document names no absolute server; the provider will require one")
+		} else {
+			log.Printf("endpoint: %s, from the document's server", apiEndpoint)
+		}
 		if derived, ok := doc.Auth(); ok {
 			auth = derived
 			log.Printf("auth: %s, derived from the document's security schemes", auth.Resolved())
@@ -100,6 +109,7 @@ func runProviderInit(args []string) error {
 			GoModule:    goModule,
 			TypePrefix:  *name,
 			DisplayName: displayName(*name),
+			APIEndpoint: apiEndpoint,
 			Auth:        auth,
 			SDK: blueprint.SDKModule{
 				Dialect:    blueprint.DialectKiotaFluent,

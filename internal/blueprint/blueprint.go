@@ -82,6 +82,13 @@ type Provider struct {
 	// TypePrefix prefixes every resource type name. Usually equal to Name.
 	TypePrefix string `json:"typePrefix"`
 
+	// APIEndpoint is the base URL the provider defaults to when a practitioner
+	// configures none. Empty is meaningful and common: a self-hosted product
+	// has no default host -- Jamf Pro's document declares the server as the
+	// path /api, because the host is whatever tenant you bought -- and a
+	// provider for one must require the endpoint rather than invent it.
+	APIEndpoint string `json:"apiEndpoint,omitempty"`
+
 	// DisplayName is the API's name as a person writes it, e.g. "ThousandEyes".
 	// It appears in the provider's schema documentation and in the diagnostics
 	// a practitioner reads. Defaults to Name when absent.

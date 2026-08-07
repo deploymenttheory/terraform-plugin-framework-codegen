@@ -1,0 +1,349 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v1_self_service_branding_io",
+      "name": "v1_self_service_branding_io",
+      "goPackage": "v1_self_service_branding_io",
+      "goPackageAlias": "v7V1SelfServiceBrandingIo",
+      "goTypeName": "V1SelfServiceBrandingIoResource",
+      "modelTypeName": "V1SelfServiceBrandingIoResourceModel",
+      "serviceGroup": "self_service_branding_ios",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "branding_name",
+            "goField": "BrandingName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "brandingName",
+              "sdkField": "BrandingName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "branding_name_color_code",
+            "goField": "BrandingNameColorCode",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "brandingNameColorCode",
+              "sdkField": "BrandingNameColorCode",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "header_background_color_code",
+            "goField": "HeaderBackgroundColorCode",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "headerBackgroundColorCode",
+              "sdkField": "HeaderBackgroundColorCode",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "icon_id",
+            "goField": "IconID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "iconId",
+              "sdkField": "IconId",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "menu_icon_color_code",
+            "goField": "MenuIconColorCode",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "menuIconColorCode",
+              "sdkField": "MenuIconColorCode",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "status_bar_text_color",
+            "goField": "StatusBarTextColor",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "statusBarTextColor",
+              "sdkField": "StatusBarTextColor",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Read a single Self Service iOS branding configuration indicated by the provided id."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "SelfService"
+            },
+            {
+              "method": "Branding"
+            },
+            {
+              "method": "Ios"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HrefResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v1/self-service/branding/ios"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "SelfService"
+            },
+            {
+              "method": "Branding"
+            },
+            {
+              "method": "Ios"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.IosBrandingConfigurationable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/self-service/branding/ios/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "SelfService"
+            },
+            {
+              "method": "Branding"
+            },
+            {
+              "method": "Ios"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Put",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.IosBrandingConfigurationable",
+          "httpMethod": "PUT",
+          "pathTemplate": "/v1/self-service/branding/ios/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "SelfService"
+            },
+            {
+              "method": "Branding"
+            },
+            {
+              "method": "Ios"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v1/self-service/branding/ios/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.IosBrandingConfiguration",
+          "responseType": "models.IosBrandingConfigurationable",
+          "constructorExpr": "models.NewIosBrandingConfiguration()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}

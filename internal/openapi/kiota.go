@@ -75,7 +75,19 @@ func kiotaModelName(schemaName string) string {
 			b.WriteRune(r)
 		}
 	}
-	return b.String()
+
+	name := b.String()
+
+	// A schema whose name is a Go keyword gets the same Escaped suffix kiota
+	// gives a colliding property: a document declaring `Package` becomes
+	// PackageEscaped, because `package` cannot be an identifier. The check is
+	// on the whole name rather than its last word -- Tests_API_Package is not
+	// a keyword and kiota leaves it alone.
+	if goReservedWords[strings.ToLower(name)] {
+		name += "Escaped"
+	}
+
+	return name
 }
 
 // kiotaAccessorBase is the Get/Set base for one JSON property, including the

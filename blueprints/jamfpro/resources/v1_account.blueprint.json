@@ -1,0 +1,530 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v1_account",
+      "name": "v1_account",
+      "goPackage": "v1_account",
+      "goPackageAlias": "v7V1Account",
+      "goTypeName": "V1AccountResource",
+      "modelTypeName": "V1AccountResourceModel",
+      "serviceGroup": "accounts",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "access_level",
+            "goField": "AccessLevel",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Access level for the account",
+            "wire": {
+              "jsonPath": "accessLevel",
+              "sdkField": "AccessLevel",
+              "sdkGoType": "*models.UserAccount_accessLevel",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.UserAccount_accessLevel"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseUserAccount_accessLevel"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "account_status",
+            "goField": "AccountStatus",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Status of the account",
+            "wire": {
+              "jsonPath": "accountStatus",
+              "sdkField": "AccountStatus",
+              "sdkGoType": "*models.UserAccount_accountStatus",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.UserAccount_accountStatus"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseUserAccount_accountStatus"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "account_type",
+            "goField": "AccountType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Type of the account",
+            "wire": {
+              "jsonPath": "accountType",
+              "sdkField": "AccountType",
+              "sdkGoType": "*models.UserAccount_accountType",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.UserAccount_accountType"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseUserAccount_accountType"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "change_password_on_next_login",
+            "goField": "ChangePasswordOnNextLogin",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "changePasswordOnNextLogin",
+              "sdkField": "ChangePasswordOnNextLogin",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "distinguished_name",
+            "goField": "DistinguishedName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "distinguishedName",
+              "sdkField": "DistinguishedName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "email",
+            "goField": "Email",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "email",
+              "sdkField": "Email",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "failed_login_attempts",
+            "goField": "FailedLoginAttempts",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "failedLoginAttempts",
+              "sdkField": "FailedLoginAttempts",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "last_password_change",
+            "goField": "LastPasswordChange",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "lastPasswordChange",
+              "sdkField": "LastPasswordChange",
+              "sdkGoType": "*time.Time",
+              "flatten": {
+                "func": "convert.PtrTimeToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "ldap_server_id",
+            "goField": "LdapServerID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "ldapServerId",
+              "sdkField": "LdapServerId",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "phone",
+            "goField": "Phone",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "phone",
+              "sdkField": "Phone",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "plain_password",
+            "goField": "PlainPassword",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "password"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "plainPassword",
+              "sdkField": "PlainPassword",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "privilege_level",
+            "goField": "PrivilegeLevel",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Privilege level for the account",
+            "wire": {
+              "jsonPath": "privilegeLevel",
+              "sdkField": "PrivilegeLevel",
+              "sdkGoType": "*models.UserAccount_privilegeLevel",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.UserAccount_privilegeLevel"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseUserAccount_privilegeLevel"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "realname",
+            "goField": "Realname",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "realname",
+              "sdkField": "Realname",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "site_id",
+            "goField": "SiteID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "siteId",
+              "sdkField": "SiteId",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "username",
+            "goField": "Username",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "username",
+              "sdkField": "Username",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Gets the user account.."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Accounts"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.UserAccountable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v1/accounts"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Accounts"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.UserAccountable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/accounts/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Accounts"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Put",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.UserAccountable",
+          "httpMethod": "PUT",
+          "pathTemplate": "/v1/accounts/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Accounts"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v1/accounts/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.UserAccount",
+          "responseType": "models.UserAccountable",
+          "constructorExpr": "models.NewUserAccount()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}

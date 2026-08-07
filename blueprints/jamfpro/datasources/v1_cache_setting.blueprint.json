@@ -1,0 +1,178 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_cache_setting",
+      "name": "v1_cache_setting",
+      "goPackage": "v1_cache_setting",
+      "goPackageAlias": "v7V1CacheSettingDs",
+      "goTypeName": "V1CacheSettingDataSource",
+      "modelTypeName": "V1CacheSettingDataSourceModel",
+      "serviceGroup": "cache_settings",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "enabled",
+            "goField": "Enabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "enabled",
+              "sdkField": "Enabled",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "host_name",
+            "goField": "HostName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "hostName",
+              "sdkField": "HostName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 1
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "jss_cache_configuration_id",
+            "goField": "JssCacheConfigurationID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "jssCacheConfigurationId",
+              "sdkField": "JssCacheConfigurationId",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "port",
+            "goField": "Port",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "port",
+              "sdkField": "Port",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "CacheSettings"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.CacheSettingsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/cache-settings"
+        },
+        "collectionField": "GetMemcachedEndpoints()",
+        "elementType": "models.MemcachedEndpointsable",
+        "selectors": [
+          {
+            "attribute": "host_name",
+            "goField": "HostName",
+            "sdkField": "HostName"
+          },
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "response": {
+          "type": "models.MemcachedEndpointsable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

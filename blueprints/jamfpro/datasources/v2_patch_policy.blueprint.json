@@ -1,0 +1,255 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v2_patch_policy",
+      "name": "v2_patch_policy",
+      "goPackage": "v2_patch_policy",
+      "goPackageAlias": "v7V2PatchPolicyDs",
+      "goTypeName": "V2PatchPolicyDataSource",
+      "modelTypeName": "V2PatchPolicyDataSourceModel",
+      "serviceGroup": "patch_policies",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "completed",
+            "goField": "Completed",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "completed",
+              "sdkField": "Completed",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "deferred",
+            "goField": "Deferred",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "deferred",
+              "sdkField": "Deferred",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "failed",
+            "goField": "Failed",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "failed",
+              "sdkField": "Failed",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "pending",
+            "goField": "Pending",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "pending",
+              "sdkField": "Pending",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "policy_deployment_method",
+            "goField": "PolicyDeploymentMethod",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "policyDeploymentMethod",
+              "sdkField": "PolicyDeploymentMethod",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "policy_enabled",
+            "goField": "PolicyEnabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "policyEnabled",
+              "sdkField": "PolicyEnabled",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "policy_name",
+            "goField": "PolicyName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "policyName",
+              "sdkField": "PolicyName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "policy_target_version",
+            "goField": "PolicyTargetVersion",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "policyTargetVersion",
+              "sdkField": "PolicyTargetVersion",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "software_title",
+            "goField": "SoftwareTitle",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "softwareTitle",
+              "sdkField": "SoftwareTitle",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "software_title_configuration_id",
+            "goField": "SoftwareTitleConfigurationID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "softwareTitleConfigurationId",
+              "sdkField": "SoftwareTitleConfigurationId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V2"
+            },
+            {
+              "method": "PatchPolicies"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.PatchPoliciesable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v2/patch-policies"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.PatchPolicyListViewable",
+        "selectors": [
+          {
+            "attribute": "policy_name",
+            "goField": "PolicyName",
+            "sdkField": "PolicyName"
+          }
+        ],
+        "response": {
+          "type": "models.PatchPolicyListViewable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

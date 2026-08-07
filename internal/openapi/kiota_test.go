@@ -101,3 +101,26 @@ func TestUnit_OpenAPI_KiotaEnumWiring(t *testing.T) {
 		t.Errorf("expand = %+v", expand)
 	}
 }
+
+// TestUnit_OpenAPI_KiotaModelNameEscapesKeywords covers the shape a second API
+// found: Jamf Pro declares a schema named Package, and kiota cannot call a Go
+// type `Package` any more than it can call a field `package`, so it emits
+// PackageEscaped. Naming the unescaped form bound the blueprint to a type that
+// does not exist, and the resource was dropped for it.
+func TestUnit_OpenAPI_KiotaModelNameEscapesKeywords(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]string{
+		"Package":           "PackageEscaped",
+		"package":           "PackageEscaped",
+		"Tests_API_Package": "Tests_API_Package",
+		"Tag":               "Tag",
+		"type":              "TypeEscaped",
+	}
+
+	for in, want := range cases {
+		if got := kiotaModelName(in); got != want {
+			t.Errorf("kiotaModelName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

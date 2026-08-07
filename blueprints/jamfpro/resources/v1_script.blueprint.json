@@ -1,0 +1,525 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v1_script",
+      "name": "v1_script",
+      "goPackage": "v1_script",
+      "goPackageAlias": "v7V1Script",
+      "goTypeName": "V1ScriptResource",
+      "modelTypeName": "V1ScriptResourceModel",
+      "serviceGroup": "scripts",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "category_id",
+            "goField": "CategoryID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "categoryId",
+              "sdkField": "CategoryId",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "category_name",
+            "goField": "CategoryName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "categoryName",
+              "sdkField": "CategoryName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 1
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "info",
+            "goField": "Info",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "info",
+              "sdkField": "Info",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "notes",
+            "goField": "Notes",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "notes",
+              "sdkField": "Notes",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "os_requirements",
+            "goField": "OSRequirements",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "osRequirements",
+              "sdkField": "OsRequirements",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "parameter10",
+            "goField": "Parameter10",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "parameter10",
+              "sdkField": "Parameter10",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "parameter11",
+            "goField": "Parameter11",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "parameter11",
+              "sdkField": "Parameter11",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "parameter4",
+            "goField": "Parameter4",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "parameter4",
+              "sdkField": "Parameter4",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "parameter5",
+            "goField": "Parameter5",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "parameter5",
+              "sdkField": "Parameter5",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "parameter6",
+            "goField": "Parameter6",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "parameter6",
+              "sdkField": "Parameter6",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "parameter7",
+            "goField": "Parameter7",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "parameter7",
+              "sdkField": "Parameter7",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "parameter8",
+            "goField": "Parameter8",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "parameter8",
+              "sdkField": "Parameter8",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "parameter9",
+            "goField": "Parameter9",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "parameter9",
+              "sdkField": "Parameter9",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "priority",
+            "goField": "Priority",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "priority",
+              "sdkField": "Priority",
+              "sdkGoType": "*models.Script_priority",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.Script_priority"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseScript_priority"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "script_contents",
+            "goField": "ScriptContents",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "scriptContents",
+              "sdkField": "ScriptContents",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Retrieve a full script object."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Scripts"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HrefResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v1/scripts"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Scripts"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Scriptable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/scripts/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Scripts"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Put",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Scriptable",
+          "httpMethod": "PUT",
+          "pathTemplate": "/v1/scripts/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "Scripts"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v1/scripts/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.Script",
+          "responseType": "models.Scriptable",
+          "constructorExpr": "models.NewScript()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}

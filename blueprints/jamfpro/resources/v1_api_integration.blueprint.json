@@ -1,0 +1,330 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v1_api_integration",
+      "name": "v1_api_integration",
+      "goPackage": "v1_api_integration",
+      "goPackageAlias": "v7V1APIIntegration",
+      "goTypeName": "V1APIIntegrationResource",
+      "modelTypeName": "V1APIIntegrationResourceModel",
+      "serviceGroup": "api_integrations",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "access_token_lifetime_seconds",
+            "goField": "AccessTokenLifetimeSeconds",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "accessTokenLifetimeSeconds",
+              "sdkField": "AccessTokenLifetimeSeconds",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "app_type",
+            "goField": "AppType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Type of API Client:\n    * `CLIENT_CREDENTIALS` - A client ID and secret have been generated for this integration.\n    * `NATIVE_APP_OAUTH` - A native app (i.e., Jamf Reset) has been linked to this integration for auth code grant type via Managed App Config.\n    * `NONE` - No client is currently associated with this integration.",
+            "wire": {
+              "jsonPath": "appType",
+              "sdkField": "AppType",
+              "sdkGoType": "*models.ApiIntegrationResponse_appType",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "authorization_scopes",
+            "goField": "AuthorizationScopes",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string"
+              }
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "API Role display names.",
+            "wire": {
+              "jsonPath": "authorizationScopes",
+              "sdkField": "AuthorizationScopes",
+              "sdkGoType": "[]string",
+              "expand": {
+                "func": "convert.FrameworkSetToStringSlice",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "convert.StringSliceToFrameworkSet",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "client_id",
+            "goField": "ClientID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "clientId",
+              "sdkField": "ClientId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "display_name",
+            "goField": "DisplayName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "displayName",
+              "sdkField": "DisplayName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "enabled",
+            "goField": "Enabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "enabled",
+              "sdkField": "Enabled",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Get specified API integration object."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "ApiIntegrations"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.ApiIntegrationResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v1/api-integrations"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "ApiIntegrations"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.ApiIntegrationResponseable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/api-integrations/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "ApiIntegrations"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Put",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.ApiIntegrationResponseable",
+          "httpMethod": "PUT",
+          "pathTemplate": "/v1/api-integrations/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "ApiIntegrations"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v1/api-integrations/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.ApiIntegrationRequest",
+          "responseType": "models.ApiIntegrationResponseable",
+          "constructorExpr": "models.NewApiIntegrationRequest()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}
