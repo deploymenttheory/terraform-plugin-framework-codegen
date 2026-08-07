@@ -211,30 +211,6 @@ func TestUnit_SpecStore_DirName(t *testing.T) {
 	}
 }
 
-// TestUnit_SpecStore_CommittedSnapshotVerifies checks the real pinned snapshot,
-// so a corrupted or hand-edited commit fails here rather than during generation.
-func TestUnit_SpecStore_CommittedSnapshotVerifies(t *testing.T) {
-	t.Parallel()
-
-	root := filepath.Join("..", "..", "openapi", "thousandeyes")
-
-	snap, err := Latest(root)
-	if err != nil {
-		t.Fatalf("the committed snapshot should be discoverable: %v", err)
-	}
-	if err := snap.Verify(); err != nil {
-		t.Errorf("the committed snapshot does not match its recorded checksum: %v", err)
-	}
-
-	m, mErr := snap.LoadMetadata()
-	if mErr != nil {
-		t.Fatalf("LoadMetadata: %v", mErr)
-	}
-	if m.Version == "" {
-		t.Error("the committed snapshot records no version")
-	}
-}
-
 func names(in []Snapshot) []string {
 	out := make([]string, 0, len(in))
 	for _, s := range in {

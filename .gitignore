@@ -39,6 +39,13 @@ go.work.sum
 /bin/tfpfgen
 .tfpfgen/cache/
 
+# The corpus cache belongs in the user cache directory and the code puts it
+# there. This is the backstop for the mistake that pattern above does not catch:
+# a path relative to the working directory, which `go test` sets per package, so
+# caches appear inside package directories where a root-anchored pattern never
+# matches. It once put 19 MB of fetched specifications into a commit.
+**/.tfpfgen/cache/
+
 # A probe ledger records live objects in somebody's tenant. It is per-run rather than
 # per-snapshot, so committing one would be both meaningless and a disclosure.
 .tfpfgen/probe/

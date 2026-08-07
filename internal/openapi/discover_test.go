@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/corpus"
 )
 
 // miniSpec is a small document exercising the shapes discovery has to get right:
@@ -287,24 +288,20 @@ func TestUnit_Discover_IsDeterministic(t *testing.T) {
 func TestUnit_Discover_AgainstTheCommittedSpecification(t *testing.T) {
 	t.Parallel()
 
-	path := filepath.Join("..", "..", "..", "openapi", "thousandeyes",
-		"7.0.97-t1785152261691", "api.yaml")
+	pin := corpus.MustPin(t, corpus.ThousandEyes)
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		t.Skipf("the pinned snapshot is not present at %s", path)
-	}
-
-	doc, err := Load(path)
+	doc, err := Load(corpus.SpecPath(t, corpus.ThousandEyes))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if doc.Version != "7.0.97" {
-		t.Errorf("Version = %q, want 7.0.97", doc.Version)
+	if doc.Version != pin.Version {
+		t.Errorf("Version = %q, want %q", doc.Version, pin.Version)
 	}
 
 	all := doc.Discover()
 	if len(all) < 50 {
-		t.Fatalf("only %d candidates from a 201-path document; discovery is not working", len(all))
+		t.Fatalf("only %d candidates from a %d-path document; discovery is not working",
+			len(all), pin.PathCount)
 	}
 
 	tag := find(t, all, "tag")

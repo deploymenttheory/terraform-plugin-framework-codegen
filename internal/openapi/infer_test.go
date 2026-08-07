@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/blueprint"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/corpus"
 )
 
 // inferSpec exercises the shapes inference has to get right: readOnly versus
@@ -800,13 +801,7 @@ func TestUnit_Infer_IsDeterministic(t *testing.T) {
 func TestUnit_Infer_AgainstTheCommittedSpecification(t *testing.T) {
 	t.Parallel()
 
-	path := filepath.Join("..", "..", "..", "openapi", "thousandeyes",
-		"7.0.97-t1785152261691", "api.yaml")
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		t.Skipf("the pinned snapshot is not present at %s", path)
-	}
-
-	doc, err := Load(path)
+	doc, err := Load(corpus.SpecPath(t, corpus.ThousandEyes))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}

@@ -255,3 +255,31 @@ func TestUnit_Corpus_CacheDirIsRedirectable(t *testing.T) {
 		t.Errorf("Root() = %q, want %q", got, want)
 	}
 }
+
+// TestUnit_Corpus_TheDefaultCacheIsNotRelative is the guard for a mistake that
+// has already been made once.
+//
+// A relative default resolves against the working directory, and `go test` sets
+// that per package -- so a single suite run scatters a copy of every document
+// through the tree, in directories no root-anchored .gitignore pattern reaches.
+// It put 19 MB of fetched specifications into a commit that existed to remove
+// artefacts from this repository. The cache must be absolute and outside any
+// checkout, whatever else changes.
+func TestUnit_Corpus_TheDefaultCacheIsNotRelative(t *testing.T) {
+	t.Setenv(EnvCacheDir, "")
+
+	dir := CacheDir()
+	if !filepath.IsAbs(dir) {
+		t.Fatalf("the default cache is %q, which is relative to the working directory", dir)
+	}
+
+	// The working directory during a test is its own package directory, so a
+	// cache anywhere beneath it is a cache inside the repository.
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rel, err := filepath.Rel(wd, dir); err == nil && !strings.HasPrefix(rel, "..") {
+		t.Errorf("the default cache %q is inside the package directory %q", dir, wd)
+	}
+}

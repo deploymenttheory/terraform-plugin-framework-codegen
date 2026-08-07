@@ -138,9 +138,15 @@ members, candidate counts, inferred bindings — so a vendor editing their
 specification changes what those tests *mean*. The lock turns that from an
 inexplicable failure into a deliberate review.
 
-The cache lives under `.tfpfgen/cache/corpus` (gitignored), relocatable with
-`TFPFGEN_CORPUS_DIR` so CI can restore it. It is an ordinary snapshot store, the
-same layout `openapi fetch` writes.
+The cache lives in the user cache directory — `~/Library/Caches/tfpfgen/corpus`
+on macOS, `~/.cache/tfpfgen/corpus` on Linux — relocatable with
+`TFPFGEN_CORPUS_DIR` so CI can put it where its cache action can restore it. It
+is an ordinary snapshot store, the same layout `openapi fetch` writes.
+
+Outside the repository deliberately. A path relative to the working directory
+looks tidier but `go test` sets that per package, so one suite run scatters a
+copy of every document through the tree, in package directories that a
+root-anchored `.gitignore` pattern never matches.
 
 A document that cannot be fetched **skips** the tests that need it, unless
 `TFPFGEN_CORPUS_REQUIRED` is set, when it fails. CI sets it. The split is
