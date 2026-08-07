@@ -402,7 +402,7 @@ pinned snapshot. It used to be the one hand-authored file gating the pipeline;
 run after `sdk generate`, before `blueprint draft -prune-module`.
 
 ```
-provider init [-module DIR] [-name NAME] [-openapi-dir DIR] [-out DIR] [-force]
+provider init [-module DIR] [-name NAME] [-openapi-dir DIR] [-out DIR] [-display-name NAME] [-api-endpoint URL] [-force]
 ```
 
 | Flag | Default | Purpose |
@@ -411,6 +411,8 @@ provider init [-module DIR] [-name NAME] [-openapi-dir DIR] [-out DIR] [-force]
 | `-name` | module basename minus `terraform-provider-` | provider registry name |
 | `-openapi-dir` | `openapi/<name>` | directory holding pinned OpenAPI snapshots |
 | `-out` | `blueprints/<name>` | blueprint directory the block is written into |
+| `-display-name` | the name, capitalised | provider display name for prose. `thousandeyes` derives `Thousandeyes`; state `ThousandEyes` or `Jamf Pro` when the vendor capitalises it their own way, which no generator can guess |
+| `-api-endpoint` | the document's server | API base URL. Overrides the document, which for self-hosted software either names no absolute server or names the vendor's own rather than the customer's |
 | `-force` | | overwrite an existing provider block; without it an existing block is kept and reported |
 
 ### `provider generate`

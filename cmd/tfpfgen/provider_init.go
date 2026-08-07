@@ -16,7 +16,7 @@ import (
 )
 
 const usageProviderInit = "provider init [-module DIR] [-name NAME] [-openapi-dir DIR] " +
-	"[-out DIR] [-force]"
+	"[-out DIR] [-display-name NAME] [-api-endpoint URL] [-force]"
 
 // runProviderInit derives the provider block from what the repository already
 // states.
@@ -38,6 +38,16 @@ func runProviderInit(args []string) error {
 		out = fs.String("out", "",
 			"blueprint directory to write the provider block into (default blueprints/<name>)")
 		force = fs.Bool("force", false, "overwrite an existing provider block")
+		// Two settings a document cannot supply. The endpoint is derivable only
+		// when the document names an absolute server, and house capitalisation
+		// ("ThousandEyes", "Jamf Pro") is not derivable at all -- a generator
+		// that guesses it is wrong for every vendor whose name is not one
+		// lowercase word. Stating them here is what keeps the correction out of
+		// the generated blueprint, which nobody may hand-edit.
+		displayNameFlag = fs.String("display-name", "",
+			"provider display name for prose, e.g. ThousandEyes or Jamf Pro (default: the name, capitalised)")
+		apiEndpointFlag = fs.String("api-endpoint", "",
+			"API base URL (default: the document's server, when it names an absolute one)")
 	)
 
 	if err := parse(fs, args); err != nil {
@@ -102,13 +112,31 @@ func runProviderInit(args []string) error {
 		}
 	}
 
+	// A stated endpoint wins over the document's: a self-hosted API's server is
+	// per-customer, so the document either names none or names the vendor's own.
+	if *apiEndpointFlag != "" {
+		if apiEndpoint != "" && apiEndpoint != *apiEndpointFlag {
+			log.Printf("endpoint: %s, stated; the document said %s", *apiEndpointFlag, apiEndpoint)
+		} else {
+			log.Printf("endpoint: %s, stated", *apiEndpointFlag)
+		}
+		apiEndpoint = *apiEndpointFlag
+	}
+
+	resolvedDisplayName := *displayNameFlag
+	if resolvedDisplayName == "" {
+		resolvedDisplayName = displayName(*name)
+		log.Printf("display name: %s, from the provider name; state -display-name if the vendor "+
+			"capitalises it differently", resolvedDisplayName)
+	}
+
 	bp := blueprint.Blueprint{
 		FormatVersion: blueprint.FormatVersion,
 		Provider: blueprint.Provider{
 			Name:        *name,
 			GoModule:    goModule,
 			TypePrefix:  *name,
-			DisplayName: displayName(*name),
+			DisplayName: resolvedDisplayName,
 			APIEndpoint: apiEndpoint,
 			Auth:        auth,
 			SDK: blueprint.SDKModule{
