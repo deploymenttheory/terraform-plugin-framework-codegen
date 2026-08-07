@@ -1,0 +1,448 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "label",
+      "name": "label",
+      "goPackage": "label",
+      "goPackageAlias": "v1Label",
+      "goTypeName": "LabelResource",
+      "modelTypeName": "LabelResourceModel",
+      "serviceGroup": "catalog",
+      "apiVersionDir": "v1",
+      "docRefUrl": "https://docs.nimbus.example/api/labels",
+      "schema": {
+        "markdownDescription": "Manages a Nimbus label. The flat resource of the fixture: every attribute is a scalar, so a failure here is a failure in the scalar paths and nothing else.",
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The label's unique identifier, assigned by the API.",
+            "behaviour": {
+              "writable": false,
+              "returnedOnRead": true,
+              "returnedOnCreate": true
+            },
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[a-z0-9-]+$"
+              }
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The label's name. Immutable: the API keys a label by its name, so changing it replaces the label rather than renaming it.",
+            "behaviour": {
+              "writable": true,
+              "immutable": true,
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "returnedOnCreate": true
+            },
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "colour",
+            "goField": "Colour",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "pattern": "^#[0-9a-f]{6}$"
+              }
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "The label's display colour. Computed as well as optional because the API assigns one when it is omitted.",
+            "behaviour": {
+              "writable": true,
+              "serverDefault": {
+                "kind": "string",
+                "raw": "\"#7057ff\""
+              },
+              "returnedOnRead": true,
+              "returnedOnCreate": false
+            },
+            "wire": {
+              "jsonPath": "colour",
+              "sdkField": "Colour",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "scope",
+            "goField": "Scope",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "global",
+                "project",
+                "team"
+              ]
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "Where the label may be applied. The documented set is wider than what this tenant accepts, which is the ordinary state of an API specification and the reason the observed set is recorded separately.",
+            "behaviour": {
+              "writable": true,
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "zeroValueUnsendable": true,
+              "acceptedValues": [
+                "global",
+                "project"
+              ],
+              "rejectedValues": [
+                "team"
+              ],
+              "valuesClosed": true
+            },
+            "wire": {
+              "jsonPath": "scope",
+              "sdkField": "Scope",
+              "sdkGoType": "*models.LabelScope",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.LabelScope"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseLabelScope"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "description",
+            "goField": "Description",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "maxLength": 200
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "A human-readable description of the label.",
+            "behaviour": {
+              "writable": true,
+              "returnedOnRead": true
+            },
+            "wire": {
+              "jsonPath": "description",
+              "sdkField": "Description",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "archived",
+            "goField": "Archived",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Whether the label has been archived. Archiving happens outside Terraform, so this is read and never sent.",
+            "behaviour": {
+              "writable": false,
+              "returnedOnRead": true
+            },
+            "wire": {
+              "jsonPath": "archived",
+              "sdkField": "Archived",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "example.com/nimbus/terraform-provider-nimbus/internal/sdk/models",
+          "alias": "models",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Labelable",
+          "httpMethod": "POST",
+          "pathTemplate": "/labels",
+          "successCodes": [
+            201
+          ]
+        },
+        "read": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "ByLabelId",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Labelable",
+          "httpMethod": "GET",
+          "pathTemplate": "/labels/{labelId}",
+          "successCodes": [
+            200
+          ]
+        },
+        "update": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "ByLabelId",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Patch",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Labelable",
+          "httpMethod": "PATCH",
+          "pathTemplate": "/labels/{labelId}",
+          "successCodes": [
+            200
+          ]
+        },
+        "delete": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "ByLabelId",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/labels/{labelId}",
+          "successCodes": [
+            204
+          ]
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.Label",
+          "responseType": "models.Labelable",
+          "constructorExpr": "models.NewLabel()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "patchMerge",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id",
+        "example": "nimbus_label.example lbl_01H8XY"
+      },
+      "identity": {
+        "goTypeName": "LabelResourceIdentity",
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "kind": "string",
+            "requiredForImport": true,
+            "description": "The label's unique identifier, which Terraform addresses it by.",
+            "fromAttribute": "id"
+          }
+        ]
+      },
+      "list": {
+        "goTypeName": "LabelListResource",
+        "service": {
+          "importPath": "example.com/nimbus/terraform-provider-nimbus/internal/sdk/models",
+          "alias": "models",
+          "accessor": "l.client"
+        },
+        "read": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.LabelCollectionable",
+          "httpMethod": "GET",
+          "pathTemplate": "/labels",
+          "successCodes": [
+            200
+          ]
+        },
+        "response": {
+          "type": "models.LabelCollectionable",
+          "accessStyle": "method"
+        },
+        "collectionField": "GetValue()",
+        "elementType": "models.Labelable",
+        "identityFrom": [
+          {
+            "goField": "ID",
+            "fromSdkField": "Id",
+            "isPointer": true
+          }
+        ],
+        "displayNameFrom": "Name",
+        "displayNameIsPointer": true
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "name",
+            "hcl": "\"tfacc-label\""
+          },
+          {
+            "attr": "scope",
+            "hcl": "\"project\""
+          }
+        ]
+      }
+    }
+  ]
+}

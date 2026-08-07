@@ -1,0 +1,55 @@
+{
+  "formatVersion": "4",
+  "provider": {
+    "name": "nimbus",
+    "goModule": "example.com/nimbus/terraform-provider-nimbus",
+    "typePrefix": "nimbus",
+    "displayName": "Nimbus",
+    "apiEndpoint": "https://api.nimbus.example/v1",
+    "sdk": {
+      "dialect": "kiotaFluent",
+      "modulePath": "example.com/nimbus/terraform-provider-nimbus",
+      "mode": "embed",
+      "generator": "kiota",
+      "clientType": "*sdk.ApiClient",
+      "clientImport": {
+        "path": "example.com/nimbus/terraform-provider-nimbus/internal/sdk",
+        "alias": "sdk"
+      }
+    },
+    "auth": {
+      "method": "bearerToken"
+    },
+    "conventions": {
+      "resourceRoot": "internal/services/resources",
+      "dataSourceRoot": "internal/services/datasources",
+      "actionRoot": "internal/services/actions",
+      "ephemeralRoot": "internal/services/ephemerals",
+      "providerPkgDir": "internal/provider",
+      "defaultTimeouts": {
+        "createSeconds": 120,
+        "readSeconds": 120,
+        "updateSeconds": 120,
+        "deleteSeconds": 120
+      }
+    },
+    "support": {
+      "convert": {
+        "path": "example.com/nimbus/terraform-provider-nimbus/internal/services/common/convert"
+      },
+      "crud": {
+        "path": "example.com/nimbus/terraform-provider-nimbus/internal/services/common/crud"
+      },
+      "commonSchema": {
+        "path": "example.com/nimbus/terraform-provider-nimbus/internal/services/common/schema",
+        "alias": "commonschema"
+      },
+      "errors": {
+        "path": "example.com/nimbus/terraform-provider-nimbus/internal/services/common/errors"
+      },
+      "client": {
+        "path": "example.com/nimbus/terraform-provider-nimbus/internal/client"
+      }
+    }
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "formatVersion": "4",
+  "actions": [
+    {
+      "key": "retire_runner_pool",
+      "name": "retire_runner_pool",
+      "goPackage": "retire_runner_pool",
+      "goPackageAlias": "v1RetireRunnerPool",
+      "goTypeName": "RetireRunnerPoolAction",
+      "modelTypeName": "RetireRunnerPoolConfig",
+      "serviceGroup": "compute",
+      "apiVersionDir": "v1",
+      "docRefUrl": "https://docs.nimbus.example/api/runner-pools-retire",
+      "schema": {
+        "markdownDescription": "Retires a Nimbus runner pool: the pool stops accepting work and drains, without being deleted. An action rather than a resource because there is nothing for Terraform to reconcile afterwards.",
+        "attributes": [
+          {
+            "name": "runner_pool_id",
+            "goField": "RunnerPoolID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The identifier of the runner pool to retire.",
+            "wire": {
+              "jsonPath": "runner_pool_id",
+              "sdkField": "RunnerPoolId",
+              "sdkGoType": "string"
+            }
+          },
+          {
+            "name": "drain_seconds",
+            "goField": "DrainSeconds",
+            "type": {
+              "kind": "int64",
+              "constraints": {
+                "minimum": 0,
+                "maximum": 3600
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "How long the pool is given to finish work in flight before it is stopped.",
+            "wire": {
+              "jsonPath": "drain_seconds",
+              "sdkField": "DrainSeconds",
+              "sdkGoType": "*int64"
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "example.com/nimbus/terraform-provider-nimbus/internal/sdk/models",
+          "alias": "models",
+          "accessor": "a.client"
+        },
+        "invoke": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "RunnerPools"
+            },
+            {
+              "method": "ByRunnerPoolId",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "RunnerPoolID"
+                }
+              ]
+            },
+            {
+              "method": "Retire"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "POST",
+          "pathTemplate": "/runner-pools/{runnerPoolId}/retire",
+          "successCodes": [
+            202
+          ]
+        }
+      },
+      "accTest": {
+        "envArgs": [
+          {
+            "attr": "runner_pool_id",
+            "envVar": "NIMBUS_TEST_RUNNER_POOL_ID"
+          }
+        ],
+        "cleanup": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "RunnerPools"
+            },
+            {
+              "method": "ByRunnerPoolId",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "RunnerPoolID"
+                }
+              ]
+            },
+            {
+              "method": "Resume"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error"
+        }
+      }
+    }
+  ]
+}

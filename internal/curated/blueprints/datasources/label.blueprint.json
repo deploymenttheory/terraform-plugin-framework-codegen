@@ -1,0 +1,229 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "label",
+      "name": "label",
+      "goPackage": "label",
+      "goPackageAlias": "v1LabelData",
+      "goTypeName": "LabelDataSource",
+      "modelTypeName": "LabelDataSourceModel",
+      "serviceGroup": "catalog",
+      "apiVersionDir": "v1",
+      "docRefUrl": "https://docs.nimbus.example/api/labels",
+      "schema": {
+        "markdownDescription": "Looks up a single Nimbus label, by identifier or by name. A lookup must be predictable, so a name matching no label and a name matching several are both errors rather than a guess.",
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "The label's identifier. Set exactly one of `id` or `name`.",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "The label's name. Set exactly one of `id` or `name`.",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "colour",
+            "goField": "Colour",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The label's display colour.",
+            "wire": {
+              "jsonPath": "colour",
+              "sdkField": "Colour",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "scope",
+            "goField": "Scope",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "global",
+                "project",
+                "team"
+              ]
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Where the label may be applied.",
+            "wire": {
+              "jsonPath": "scope",
+              "sdkField": "Scope",
+              "sdkGoType": "*models.LabelScope",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "description",
+            "goField": "Description",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "A human-readable description of the label.",
+            "wire": {
+              "jsonPath": "description",
+              "sdkField": "Description",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "archived",
+            "goField": "Archived",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "Whether the label has been archived.",
+            "wire": {
+              "jsonPath": "archived",
+              "sdkField": "Archived",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "example.com/nimbus/terraform-provider-nimbus/internal/sdk/models",
+          "alias": "models",
+          "accessor": "d.client"
+        },
+        "read": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "ByLabelId",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Labelable",
+          "httpMethod": "GET",
+          "pathTemplate": "/labels/{labelId}",
+          "successCodes": [
+            200
+          ]
+        },
+        "list": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Labels"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.LabelCollectionable",
+          "httpMethod": "GET",
+          "pathTemplate": "/labels",
+          "successCodes": [
+            200
+          ]
+        },
+        "collectionField": "GetValue()",
+        "elementType": "models.Labelable",
+        "selectors": [
+          {
+            "attribute": "id",
+            "goField": "ID",
+            "viaRead": true
+          },
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "elementIdField": "Id",
+        "elementIdFlatten": {
+          "func": "convert.PtrStringToFramework"
+        },
+        "response": {
+          "type": "models.Labelable",
+          "accessStyle": "method"
+        }
+      },
+      "accTest": {
+        "seedResourceKey": "label",
+        "args": [
+          {
+            "attr": "id",
+            "fromSeedAttr": "id"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -127,7 +127,12 @@ func EphemeralAccTest(
 
 	org := bp.Provider.GoModule
 	imports.add(org+"/"+accSubdir, "")
-	imports.add(org+"/"+accSubdir+"/check", "")
+	if len(v.Checks) > 0 {
+		// Conditional because an ephemeral sharing no assertable attribute with its
+		// seed produces no cross-checks, and an import nothing references is a test
+		// file that does not compile.
+		imports.add(org+"/"+accSubdir+"/check", "")
+	}
 	imports.add(org+"/"+accSubdir+"/destroy", "")
 	imports.add(org+"/"+EphemeralDir(bp, e), "")
 

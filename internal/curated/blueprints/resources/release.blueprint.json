@@ -1,0 +1,663 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "release",
+      "name": "release",
+      "goPackage": "release",
+      "goPackageAlias": "v1Release",
+      "goTypeName": "ReleaseResource",
+      "modelTypeName": "ReleaseResourceModel",
+      "serviceGroup": "delivery",
+      "apiVersionDir": "v1",
+      "docRefUrl": "https://docs.nimbus.example/api/releases",
+      "schema": {
+        "markdownDescription": "Manages a Nimbus release. The shaped resource of the fixture: it nests a collection and an object, it hides a secret from state, and half of what the API does with it depends on whether the release is a draft.",
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The release's unique identifier, assigned by the API.",
+            "behaviour": {
+              "writable": false,
+              "returnedOnRead": true,
+              "returnedOnCreate": true
+            },
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "tag",
+            "goField": "Tag",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The version tag the release publishes. Immutable: the API refuses to retag a release, so a change here replaces it.",
+            "behaviour": {
+              "writable": true,
+              "immutable": true,
+              "requiredByApi": true,
+              "returnedOnRead": true
+            },
+            "wire": {
+              "jsonPath": "tag_name",
+              "sdkField": "TagName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "title",
+            "goField": "Title",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The release's human-readable title.",
+            "behaviour": {
+              "writable": true,
+              "requiredByApi": true,
+              "returnedOnRead": true
+            },
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "notes",
+            "goField": "Notes",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "The release notes, in Markdown.",
+            "behaviour": {
+              "writable": true,
+              "returnedOnRead": true
+            },
+            "wire": {
+              "jsonPath": "body",
+              "sdkField": "Body",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "draft",
+            "goField": "Draft",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "Whether the release is still a draft. This is the API's own dispatch: a draft release is stored but not served, and several fields below behave differently on each side of it.",
+            "behaviour": {
+              "writable": true,
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "zeroValueUnsendable": true
+            },
+            "wire": {
+              "jsonPath": "draft",
+              "sdkField": "DraftEscaped",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "channel",
+            "goField": "Channel",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "stable",
+                "beta",
+                "canary"
+              ]
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "The distribution channel the release is served on. A draft has no channel, so the API neither requires it nor returns it until the release is published.",
+            "behaviour": {
+              "writable": true,
+              "zeroValueUnsendable": true,
+              "acceptedValues": [
+                "stable",
+                "beta",
+                "canary"
+              ],
+              "valuesClosed": true,
+              "conditional": [
+                {
+                  "when": [
+                    {
+                      "jsonPath": "draft",
+                      "equals": "false"
+                    }
+                  ],
+                  "behaviour": {
+                    "requiredByApi": true,
+                    "returnedOnRead": true
+                  }
+                },
+                {
+                  "when": [
+                    {
+                      "jsonPath": "draft",
+                      "equals": "true"
+                    }
+                  ],
+                  "behaviour": {
+                    "returnedOnRead": false
+                  }
+                }
+              ]
+            },
+            "wire": {
+              "jsonPath": "channel",
+              "sdkField": "Channel",
+              "sdkGoType": "*models.ReleaseChannel",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.ReleaseChannel"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseReleaseChannel"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "publish_token",
+            "goField": "PublishToken",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "sensitive": true,
+            "markdownDescription": "A one-shot token authorising the publish. The API accepts it and never returns it, so it is sent and never read back; flattening it would blank state on every read.",
+            "behaviour": {
+              "writable": true,
+              "returnedOnRead": false,
+              "returnedOnCreate": false
+            },
+            "wire": {
+              "jsonPath": "publish_token",
+              "sdkField": "PublishToken",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "skipFlatten": true
+            }
+          },
+          {
+            "name": "assets",
+            "goField": "Assets",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "ReleaseAssetModel",
+                "sdkType": "models.ReleaseAssetable",
+                "constructorExpr": "models.NewReleaseAsset()",
+                "attrTypesVar": "releaseAssetAttrTypes",
+                "objectTypeVar": "releaseAssetObjectType",
+                "expandFunc": "expandReleaseAssets",
+                "flattenFunc": "flattenReleaseAssets",
+                "attributes": [
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "markdownDescription": "The asset's file name.",
+                    "behaviour": {
+                      "writable": true,
+                      "requiredByApi": true,
+                      "returnedOnRead": true
+                    },
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "size_bytes",
+                    "goField": "SizeBytes",
+                    "type": {
+                      "kind": "int64",
+                      "constraints": {
+                        "minimum": 0,
+                        "maximum": 2147483648
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The asset's size, measured by the API once it is uploaded.",
+                    "behaviour": {
+                      "writable": false,
+                      "returnedOnRead": true
+                    },
+                    "wire": {
+                      "jsonPath": "size_bytes",
+                      "sdkField": "SizeBytes",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "platforms",
+                    "goField": "Platforms",
+                    "type": {
+                      "kind": "set",
+                      "elementType": {
+                        "kind": "string"
+                      }
+                    },
+                    "computedOptionalRequired": "required",
+                    "markdownDescription": "The platforms the asset is built for.",
+                    "behaviour": {
+                      "writable": true,
+                      "requiredByApi": true,
+                      "returnedOnRead": true
+                    },
+                    "wire": {
+                      "jsonPath": "platforms",
+                      "sdkField": "Platforms",
+                      "sdkGoType": "[]string",
+                      "expand": {
+                        "func": "convert.FrameworkSetToStringSlice",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "convert.StringSliceToFrameworkSet",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "The files the release distributes. A set rather than a list because the API does not preserve ordering.",
+            "behaviour": {
+              "writable": true,
+              "conditional": [
+                {
+                  "when": [
+                    {
+                      "jsonPath": "channel",
+                      "equals": "stable"
+                    },
+                    {
+                      "jsonPath": "draft",
+                      "equals": "false"
+                    }
+                  ],
+                  "behaviour": {
+                    "requiredByApi": true,
+                    "returnedOnRead": true
+                  }
+                }
+              ]
+            },
+            "wire": {
+              "jsonPath": "assets",
+              "sdkField": "Assets",
+              "sdkGoType": "[]models.ReleaseAssetable",
+              "expand": {
+                "func": "expandReleaseAssets",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenReleaseAssets",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "author",
+            "goField": "Author",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "ReleaseAuthorModel",
+                "sdkType": "models.ReleaseAuthorable",
+                "constructorExpr": "models.NewReleaseAuthor()",
+                "attrTypesVar": "releaseAuthorAttrTypes",
+                "objectTypeVar": "releaseAuthorObjectType",
+                "expandFunc": "",
+                "flattenFunc": "flattenReleaseAuthor",
+                "attributes": [
+                  {
+                    "name": "login",
+                    "goField": "Login",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The publishing account's login name.",
+                    "wire": {
+                      "jsonPath": "login",
+                      "sdkField": "Login",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "account_id",
+                    "goField": "AccountID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The publishing account's identifier.",
+                    "wire": {
+                      "jsonPath": "account_id",
+                      "sdkField": "AccountId",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The account that published the release. Read-only: the API attributes a release to whoever's credential created it.",
+            "behaviour": {
+              "writable": false,
+              "returnedOnRead": true
+            },
+            "wire": {
+              "jsonPath": "author",
+              "sdkField": "Author",
+              "sdkGoType": "models.ReleaseAuthorable",
+              "flatten": {
+                "func": "flattenReleaseAuthor",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "example.com/nimbus/terraform-provider-nimbus/internal/sdk/models",
+          "alias": "models",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Releases"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Releaseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/releases",
+          "successCodes": [
+            201
+          ]
+        },
+        "read": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Releases"
+            },
+            {
+              "method": "ByReleaseId",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Releaseable",
+          "httpMethod": "GET",
+          "pathTemplate": "/releases/{releaseId}",
+          "successCodes": [
+            200
+          ]
+        },
+        "update": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Releases"
+            },
+            {
+              "method": "ByReleaseId",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Put",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.Releaseable",
+          "httpMethod": "PUT",
+          "pathTemplate": "/releases/{releaseId}",
+          "successCodes": [
+            200
+          ]
+        },
+        "delete": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "Releases"
+            },
+            {
+              "method": "ByReleaseId",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/releases/{releaseId}",
+          "successCodes": [
+            204
+          ]
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.Release",
+          "responseType": "models.Releaseable",
+          "constructorExpr": "models.NewRelease()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "readBack": {
+          "enabled": true,
+          "maxRetries": 5,
+          "intervalMs": 500,
+          "reason": "publishing is asynchronous, so the release's channel is not set on the response to the write that set it"
+        },
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id",
+        "example": "nimbus_release.example rel_01H8XY"
+      },
+      "identity": {
+        "goTypeName": "ReleaseResourceIdentity",
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "kind": "string",
+            "requiredForImport": true,
+            "description": "The release's unique identifier, which Terraform addresses it by.",
+            "fromAttribute": "id"
+          }
+        ]
+      },
+      "hooks": {
+        "modifyPlan": true,
+        "readBackPredicate": true
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "draft",
+            "hcl": "true"
+          },
+          {
+            "attr": "channel",
+            "hcl": "\"beta\""
+          },
+          {
+            "attr": "assets",
+            "hcl": "[{ name = \"nimbus-linux-amd64\", platforms = [\"linux/amd64\"] }]"
+          },
+          {
+            "attr": "publish_token",
+            "omit": true
+          }
+        ]
+      }
+    }
+  ]
+}
