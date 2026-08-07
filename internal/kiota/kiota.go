@@ -33,10 +33,12 @@ const LockFileName = "kiota-lock.json"
 
 // Lock is the subset of kiota-lock.json this tool reads.
 type Lock struct {
-	DescriptionHash     string `json:"descriptionHash"`
-	KiotaVersion        string `json:"kiotaVersion"`
-	ClientClassName     string `json:"clientClassName"`
-	ClientNamespaceName string `json:"clientNamespaceName"`
+	DescriptionHash     string   `json:"descriptionHash"`
+	KiotaVersion        string   `json:"kiotaVersion"`
+	ClientClassName     string   `json:"clientClassName"`
+	ClientNamespaceName string   `json:"clientNamespaceName"`
+	IncludePatterns     []string `json:"includePatterns"`
+	ExcludePatterns     []string `json:"excludePatterns"`
 }
 
 // ReadLock reads the lock file in dir, reporting whether one exists.

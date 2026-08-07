@@ -372,18 +372,45 @@ jobs:
           echo "$HOME/kiota" >> "$GITHUB_PATH"
           echo "::endgroup::"
 
-      - name: Regenerate the SDK and diff
+      - name: Regenerate every committed SDK and diff
         run: |
-          echo "::group::🧰 sdk generate -check"
-          # Full-spec SDK; the one excluded family is an upstream kiota code
-          # generation defect (unqualified cross-package enum constants in the
-          # dynamic-tests inline request bodies), not a scoping choice.
-          go run ./cmd/tfpfgen sdk generate \
-            -out pilot/thousandeyes-kiota/internal/sdk \
-            -exclude "/endpoint/tests/dynamic-tests/**,/endpoint/agents/transfer,/endpoint/agents/transfer/**" \
-            -client-name ThousandEyesClient \
-            -check
-          echo "::endgroup::"
+          # Every SDK under pilot/ is checked, discovered rather than listed:
+          # a hardcoded list goes stale silently the moment a pilot is added,
+          # and an unchecked pilot SDK is not a regression test at all. It is
+          # how the Jamf SDK sat unpoliced after being wired in elsewhere.
+          #
+          # Each lock names the snapshot it was generated from and the settings
+          # it was generated with (client class, include/exclude globs), so the
+          # invocation below states none of them -- retyping committed settings
+          # is what makes a "regeneration" produce a different SDK.
+          #
+          # The one set of adopted excludes worth explaining: thousandeyes-kiota
+          # drops /endpoint/tests/dynamic-tests/** and /endpoint/agents/transfer.
+          # That is an upstream kiota code generation defect -- unqualified
+          # cross-package enum constants in those inline request bodies -- not a
+          # scoping choice about which API surface this pilot covers.
+          root="$PWD"
+          fail=0
+
+          for lock in $(find pilot -name kiota-lock.json | sort); do
+            sdk="$(dirname "$lock")"
+            # Resolved by cd rather than realpath: portable, and it fails loudly
+            # if a lock names a snapshot that is no longer committed.
+            snapshot_abs="$(cd "$sdk/$(dirname "$(jq -r '.descriptionLocation' "$lock")")" && pwd)"
+            snapshot="${snapshot_abs#"$root"/}"
+
+            echo "::group::🧰 sdk generate -check $sdk"
+            if ! go run ./cmd/tfpfgen sdk generate \
+                  -openapi-dir "$(dirname "$snapshot")" \
+                  -snapshot "$(basename "$snapshot")" \
+                  -out "$sdk" \
+                  -check; then
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+
+          exit "$fail"
 
   probe-replay:
     name: "🔬 Re-derive probe facts offline"
