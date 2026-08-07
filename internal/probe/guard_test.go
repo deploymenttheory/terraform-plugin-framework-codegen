@@ -27,7 +27,7 @@ func transportForTest(t *testing.T) http.RoundTripper {
 func goodProfile() Profile {
 	return Profile{
 		Endpoint:        "https://api.example.com/v7",
-		TokenEnv:        "TFPFGEN_PROBE_TOKEN",
+		TokenEnv:        "TFPFGEN_PROBE_BEARER_TOKEN",
 		Sandbox:         true,
 		SandboxEvidence: "A disposable tenant created for this work and holding nothing else.",
 		NamePrefix:      "tfpfgen-probe",
@@ -39,7 +39,7 @@ func goodProfile() Profile {
 }
 
 func goodEnv() MapEnviron {
-	return MapEnviron{"TFPFGEN_PROBE_TOKEN": "a-token-value"}
+	return MapEnviron{"TFPFGEN_PROBE_BEARER_TOKEN": "a-token-value"}
 }
 
 func goodOptions() GuardOptions {
@@ -600,7 +600,7 @@ func TestUnit_Probe_ACredentialInTheProfileIsRefused(t *testing.T) {
 
 	// tokenEnv and secretEnv hold variable *names*, which is the design. Refusing them would
 	// make the safe pattern the one you cannot express.
-	safe := map[string]any{"tokenEnv": "TFPFGEN_PROBE_TOKEN", "secretEnv": []any{"OTHER"}}
+	safe := map[string]any{"tokenEnv": "TFPFGEN_PROBE_BEARER_TOKEN", "secretEnv": []any{"OTHER"}}
 	if got := credentialNamedKey(safe); got != "" {
 		t.Errorf("credentialNamedKey refused the safe pattern: %q", got)
 	}
@@ -628,7 +628,7 @@ func TestUnit_Probe_ACredentialInTheProfileIsRefused(t *testing.T) {
 	leaked := goodProfile()
 	leaked.RedactValues = map[string]string{token: "REDACTED"}
 
-	if why := credentialShaped(leaked, token); !strings.Contains(why, "TFPFGEN_PROBE_TOKEN") {
+	if why := credentialShaped(leaked, token); !strings.Contains(why, "TFPFGEN_PROBE_BEARER_TOKEN") {
 		t.Errorf("the token in the profile was not caught: %q", why)
 	}
 

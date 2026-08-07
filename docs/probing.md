@@ -142,7 +142,7 @@ The token and the endpoint come from the environment and nowhere else:
 
 ```bash
 export TFPFGEN_PROBE_ENDPOINT=https://api.example.com/v7
-export TFPFGEN_PROBE_TOKEN=…
+export TFPFGEN_PROBE_BEARER_TOKEN=…
 ```
 
 Not a flag: a flag puts the credential in shell history and in the process table. Not the
@@ -159,7 +159,7 @@ committed file turns a vulnerability into a targeted one. Start from
 ```json
 {
   "endpoint": "https://api.example.com/v7",
-  "tokenEnv": "TFPFGEN_PROBE_TOKEN",
+  "tokenEnv": "TFPFGEN_PROBE_BEARER_TOKEN",
   "sandbox": true,
   "sandboxEvidence": "A disposable tenant created for provider development; it holds nothing anybody depends on.",
   "namePrefix": "tfpfgen-probe",
@@ -283,7 +283,7 @@ are the majority of the branches in every mutating protocol.
 ### When something is left behind
 
 The run fails with exit **5** even if every fact was gathered, and prints a table with a runnable
-`curl` per object — carrying `"$TFPFGEN_PROBE_TOKEN"` and never a value, because that table goes
+`curl` per object — carrying `"$TFPFGEN_PROBE_BEARER_TOKEN"` and never a value, because that table goes
 into a committed report and a CI step summary. In GitHub Actions it is also appended to
 `$GITHUB_STEP_SUMMARY`.
 

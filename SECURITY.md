@@ -14,7 +14,7 @@ This project probes live APIs with real credentials and commits the resulting
 transcripts, so its threat surface is specific and worth stating:
 
 - **Bearer tokens.** Credentials are read from the environment only
-  (`TFPFGEN_PROBE_TOKEN`; the generated pilot provider uses
+  (`TFPFGEN_PROBE_BEARER_TOKEN`; the generated pilot provider uses
   `THOUSANDEYES_BEARER_TOKEN`). No command accepts a token flag, and the sandbox
   profile loader refuses a profile containing a credential-shaped value. Anything
   that would move a token into a file, a flag, a log line or a committed artefact

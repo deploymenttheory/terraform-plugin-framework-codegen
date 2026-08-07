@@ -454,7 +454,7 @@ func (opts SweepOptions) orphansOf() []Orphan {
 
 // curlDelete is the command a human runs to finish the job.
 //
-// It carries "$TFPFGEN_PROBE_TOKEN" and never a value. This string goes into a committed report
+// It carries "$TFPFGEN_PROBE_BEARER_TOKEN" and never a value. This string goes into a committed report
 // and a CI step summary, and a token in either is a token that has to be rotated.
 func (s *MutatingSession) curlDelete(id string) string {
 	return fmt.Sprintf(
@@ -472,7 +472,7 @@ func (s *MutatingSession) curlDelete(id string) string {
 // names is the one thing that must never appear here.
 //
 //nolint:gosec // G101: this is an environment variable *name*, printed on purpose. The value it
-const tokenEnvPlaceholder = "TFPFGEN_PROBE_TOKEN"
+const tokenEnvPlaceholder = "TFPFGEN_PROBE_BEARER_TOKEN"
 
 // identifierIn reads an identifier out of a list item.
 func identifierIn(obj map[string]any, idField string) string {

@@ -150,7 +150,7 @@ tfpfgen provider generate -blueprint blueprints/PROVIDER -out pilot/PROVIDER
 The safe verbs are the defaults: a bare `probe` means `probe replay`, which reads
 the committed recording and never the network; mutating runs demand a sandbox
 profile that proves itself at runtime, and the token comes from
-`TFPFGEN_PROBE_TOKEN` — never a flag, never a file.
+`TFPFGEN_PROBE_BEARER_TOKEN` — never a flag, never a file.
 
 ## What is generated and what is yours
 

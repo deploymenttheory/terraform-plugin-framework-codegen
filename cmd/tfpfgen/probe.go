@@ -27,7 +27,7 @@ import (
 // Not a flag: a flag puts the token in shell history and in the process table. Not a profile
 // file: that gets committed. See probe.Profile's doc comment.
 const (
-	tokenEnv = "TFPFGEN_PROBE_TOKEN"
+	tokenEnv = "TFPFGEN_PROBE_BEARER_TOKEN"
 
 	// probeTokenTimeout bounds the client-credentials exchange, which happens
 	// once before a run and must not hang it.
@@ -916,7 +916,7 @@ func reportOrphans(resource string, report probe.Report) {
 //
 // To stderr and to $GITHUB_STEP_SUMMARY where there is one, because the person who has to clean
 // up should not have to find this in a fold-out log. The curl lines carry
-// "$TFPFGEN_PROBE_TOKEN" and never a value.
+// "$TFPFGEN_PROBE_BEARER_TOKEN" and never a value.
 func printOrphanTable(orphans []probe.Orphan) {
 	if len(orphans) == 0 {
 		return

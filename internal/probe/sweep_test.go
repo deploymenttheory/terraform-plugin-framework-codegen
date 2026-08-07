@@ -183,7 +183,7 @@ func TestUnit_Probe_SweepReportsOrphansItCannotRemove(t *testing.T) {
 
 	// The curl line goes into a committed report and a CI step summary. A token in either is a
 	// token that has to be rotated.
-	if !strings.Contains(orphan.Curl, "$TFPFGEN_PROBE_TOKEN") {
+	if !strings.Contains(orphan.Curl, "$TFPFGEN_PROBE_BEARER_TOKEN") {
 		t.Errorf("the curl line must reference the environment variable: %q", orphan.Curl)
 	}
 	if strings.Contains(orphan.Curl, "Bearer secret") {

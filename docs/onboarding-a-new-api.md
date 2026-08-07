@@ -33,7 +33,7 @@ closes it. Nothing here requires doing steps out of order.
 
   ```sh
   security add-generic-password -U -s tfpfgen-probe -a bearer -w   # prompts silently
-  TFPFGEN_PROBE_TOKEN=$(security find-generic-password -s tfpfgen-probe -w) ...
+  TFPFGEN_PROBE_BEARER_TOKEN=$(security find-generic-password -s tfpfgen-probe -w) ...
   ```
 
   Never a flag (process table, shell history), never a file (the profile loader scans
@@ -162,7 +162,7 @@ taught, both now load-bearing:
 ## 7. Probe the live API
 
 ```sh
-TFPFGEN_PROBE_TOKEN=$(security find-generic-password -s tfpfgen-probe -w) \
+TFPFGEN_PROBE_BEARER_TOKEN=$(security find-generic-password -s tfpfgen-probe -w) \
 TFPFGEN_PROBE_ENDPOINT=https://api.PROVIDER.com/v7 \
 tfpfgen probe record -blueprint blueprints/PROVIDER -resource THING \
   -allow-mutations \
