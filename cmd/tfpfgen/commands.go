@@ -35,6 +35,12 @@ var commands = []command{
 		run:     runOpenAPI,
 	},
 	{
+		name:    "corpus",
+		summary: "materialise, check or refresh the pinned API documents the tests read",
+		usage:   "corpus <sync|check|refresh> [flags]",
+		run:     runCorpus,
+	},
+	{
 		name:    "sdk",
 		summary: "generate a Go SDK from a pinned OpenAPI snapshot",
 		usage:   "sdk <generate> [flags]",

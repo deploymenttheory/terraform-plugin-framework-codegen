@@ -1,0 +1,34 @@
+{
+  "$comment": "Pinned third-party API documents the tests run against. Not vendored: fetched at test time and verified against these hashes. A change here changes what several tests mean, so it is reviewed, not applied. Take a change with 'tfpfgen corpus refresh -id \u003cid\u003e'.",
+  "formatVersion": "1",
+  "openapi": {
+    "github": {
+      "large": true,
+      "mirrorUrl": "",
+      "operationCount": 1220,
+      "pathCount": 808,
+      "pinnedAt": "2026-08-07T14:30:00Z",
+      "sha256": "80850db290cde4eb487e0efb587cf27f305e77b6bef96933ed8a09b5169d5b1d",
+      "upstreamUrl": "https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json",
+      "version": "1.1.4"
+    },
+    "jamfpro": {
+      "mirrorUrl": "",
+      "operationCount": 817,
+      "pathCount": 547,
+      "pinnedAt": "2026-08-07T09:29:37.523719Z",
+      "sha256": "e9a22a2d4af4e5c70a7d53b61e110a0abdade17da3513fbf826c4c3b77ccf312",
+      "upstreamUrl": "https://raw.githubusercontent.com/deploymenttheory/go-sdk-jamfpro-v2/main/openapi-specs/11.30.1-t1784555528405/api-schema.json",
+      "version": "production"
+    },
+    "thousandeyes": {
+      "mirrorUrl": "",
+      "operationCount": 323,
+      "pathCount": 205,
+      "pinnedAt": "2026-08-07T15:28:52.593600Z",
+      "sha256": "664dffebf5db224e5414f1444e083d39bd4a201813e6c187b07d9b527f030b67",
+      "upstreamUrl": "https://pubhub.devnetcloud.com/media/000-v7-apis/docs/reference/unified-oas/api.yaml",
+      "version": "7.0.99"
+    }
+  }
+}
