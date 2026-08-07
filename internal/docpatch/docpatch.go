@@ -124,6 +124,8 @@ func Apply(specYAML []byte, patches []Patch) ([]byte, error) {
 		}
 	}
 
+	forceBlockStyle(&root)
+
 	out, err := yaml.Marshal(&root)
 	if err != nil {
 		return nil, err
@@ -320,6 +322,8 @@ func Normalize(specYAML []byte) (out []byte, stripped, collapsed int, err error)
 	stripped = stripAllDefaults(top)
 	collapsed = collapseAnonymousAllOfs(top)
 	widenByteArrayCollections(top)
+
+	forceBlockStyle(&root)
 
 	out, err = yaml.Marshal(&root)
 	if err != nil {
@@ -609,5 +613,35 @@ func dropByteFormat(schema *yaml.Node) {
 			schema.Content = append(schema.Content[:i], schema.Content[i+2:]...)
 			return
 		}
+	}
+}
+
+// forceBlockStyle clears the flow-style flag from every node before the
+// document is written back out.
+//
+// A JSON document is valid YAML in flow style, so a parse-then-emit round trip
+// faithfully reproduces it as flow -- which for a large specification means one
+// line several million characters long. GitHub's description is 7 MB and
+// emerged as a single line; kiota read it, reported success, and generated
+// nothing at all. Jamf Pro's is JSON too and survived only by being smaller.
+//
+// Block style is what every YAML consumer expects and what the pinned snapshot
+// already looks like when the upstream document is YAML, so this makes the two
+// sources behave identically. It changes formatting only; the tree it came from
+// is untouched.
+// mutationProof: forceBlockStyle is what keeps a JSON-sourced document
+// readable to downstream tools. Reverting it reproduces the GitHub failure:
+// one line, no generated code, and a success message.
+func forceBlockStyle(n *yaml.Node) {
+	if n == nil {
+		return
+	}
+	// Quoting styles on scalars are meaningful -- a quoted "true" is a string
+	// and a bare one is not -- so only the flow flags on collections go.
+	if n.Kind == yaml.MappingNode || n.Kind == yaml.SequenceNode || n.Kind == yaml.DocumentNode {
+		n.Style &^= yaml.FlowStyle
+	}
+	for _, c := range n.Content {
+		forceBlockStyle(c)
 	}
 }
