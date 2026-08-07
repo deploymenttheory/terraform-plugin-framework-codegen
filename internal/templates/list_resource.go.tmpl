@@ -150,7 +150,11 @@ func (l *{{ $.List.GoTypeName }}) List(ctx context.Context, req list.ListRequest
 
 			if req.IncludeResource {
 				var state {{ $.ModelTypeName }}
+{{- if $.State.NeedsDiagnostics }}
 				result.Diagnostics.Append(mapRemoteStateToTerraform(ctx, &state, {{ $.List.ItemRef }})...)
+{{- else }}
+				mapRemoteStateToTerraform(ctx, &state, {{ $.List.ItemRef }})
+{{- end }}
 
 				// The mapper never touches timeouts, and a zero value carries no
 				// attribute types to serialise with.

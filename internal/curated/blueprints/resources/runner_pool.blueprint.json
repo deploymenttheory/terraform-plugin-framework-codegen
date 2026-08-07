@@ -1,0 +1,319 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "runner_pool",
+      "name": "runner_pool",
+      "goPackage": "runner_pool",
+      "goPackageAlias": "v1RunnerPool",
+      "goTypeName": "RunnerPoolResource",
+      "modelTypeName": "RunnerPoolResourceModel",
+      "serviceGroup": "compute",
+      "apiVersionDir": "v1",
+      "docRefUrl": "https://docs.nimbus.example/api/runner-pools",
+      "schema": {
+        "markdownDescription": "Manages a Nimbus runner pool. The API offers no update at all, so every configurable attribute here replaces the pool rather than changing it.",
+        "attributes": [
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The pool's unique identifier, assigned by the API.",
+            "behaviour": {
+              "writable": false,
+              "returnedOnRead": true,
+              "returnedOnCreate": true
+            },
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 3,
+                "maxLength": 64
+              }
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The pool's name.",
+            "behaviour": {
+              "writable": true,
+              "immutable": true,
+              "requiredByApi": true,
+              "returnedOnRead": true
+            },
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "size",
+            "goField": "Size",
+            "type": {
+              "kind": "string",
+              "allowedValues": [
+                "small",
+                "medium",
+                "large"
+              ]
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The machine size every runner in the pool is built at.",
+            "behaviour": {
+              "writable": true,
+              "immutable": true,
+              "requiredByApi": true,
+              "returnedOnRead": true,
+              "zeroValueUnsendable": true,
+              "acceptedValues": [
+                "small",
+                "medium"
+              ],
+              "rejectedValues": [
+                "large"
+              ],
+              "valuesClosed": true
+            },
+            "wire": {
+              "jsonPath": "size",
+              "sdkField": "Size",
+              "sdkGoType": "*models.RunnerSize",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.RunnerSize"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseRunnerSize"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "maximum_runners",
+            "goField": "MaximumRunners",
+            "type": {
+              "kind": "int64",
+              "constraints": {
+                "minimum": 1,
+                "maximum": 250
+              }
+            },
+            "computedOptionalRequired": "computed_optional",
+            "markdownDescription": "The most runners the pool will scale to. The API applies its own ceiling when this is omitted.",
+            "behaviour": {
+              "writable": true,
+              "immutable": true,
+              "serverDefault": {
+                "kind": "int64",
+                "raw": "10"
+              },
+              "returnedOnRead": true
+            },
+            "wire": {
+              "jsonPath": "maximum_runners",
+              "sdkField": "MaximumRunners",
+              "sdkGoType": "*int64",
+              "expand": {
+                "func": "convert.FrameworkToPtrInt64"
+              },
+              "flatten": {
+                "func": "convert.PtrInt64ToFramework"
+              }
+            }
+          },
+          {
+            "name": "status",
+            "goField": "Status",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The pool's lifecycle status, which the API owns entirely.",
+            "behaviour": {
+              "writable": false,
+              "returnedOnRead": true,
+              "volatile": true
+            },
+            "wire": {
+              "jsonPath": "status",
+              "sdkField": "Status",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "example.com/nimbus/terraform-provider-nimbus/internal/sdk/models",
+          "alias": "models",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "RunnerPools"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.RunnerPoolable",
+          "httpMethod": "POST",
+          "pathTemplate": "/runner-pools",
+          "successCodes": [
+            201
+          ]
+        },
+        "read": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "RunnerPools"
+            },
+            {
+              "method": "ByRunnerPoolId",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.RunnerPoolable",
+          "httpMethod": "GET",
+          "pathTemplate": "/runner-pools/{runnerPoolId}",
+          "successCodes": [
+            200
+          ]
+        },
+        "delete": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "RunnerPools"
+            },
+            {
+              "method": "ByRunnerPoolId",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/runner-pools/{runnerPoolId}",
+          "successCodes": [
+            204
+          ]
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.RunnerPool",
+          "responseType": "models.RunnerPoolable",
+          "constructorExpr": "models.NewRunnerPool()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "replaceOnly",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id",
+        "example": "nimbus_runner_pool.example rp_01H8XY"
+      },
+      "sweep": {
+        "nameField": "name"
+      },
+      "accFixture": {
+        "values": [
+          {
+            "attr": "size",
+            "hcl": "\"small\""
+          }
+        ]
+      }
+    }
+  ]
+}

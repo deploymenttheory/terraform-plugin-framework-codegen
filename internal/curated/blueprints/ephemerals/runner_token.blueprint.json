@@ -1,0 +1,133 @@
+{
+  "formatVersion": "4",
+  "ephemerals": [
+    {
+      "key": "runner_token",
+      "name": "runner_token",
+      "goPackage": "runner_token",
+      "goPackageAlias": "v1RunnerTokenEph",
+      "goTypeName": "RunnerTokenEphemeral",
+      "modelTypeName": "RunnerTokenEphemeralModel",
+      "serviceGroup": "compute",
+      "apiVersionDir": "v1",
+      "docRefUrl": "https://docs.nimbus.example/api/runner-pools-registration-token",
+      "schema": {
+        "markdownDescription": "Opens a short-lived registration token for a Nimbus runner pool. Ephemeral by construction: the token lives for the run and never reaches state, which is the whole reason this is not a data source.",
+        "attributes": [
+          {
+            "name": "runner_pool_id",
+            "goField": "RunnerPoolID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "The identifier of the runner pool the token registers against.",
+            "wire": {
+              "jsonPath": "runner_pool_id",
+              "sdkField": "RunnerPoolId",
+              "sdkGoType": "*string",
+              "skipFlatten": true
+            }
+          },
+          {
+            "name": "value",
+            "goField": "Value",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "sensitive": true,
+            "markdownDescription": "The registration token itself.",
+            "wire": {
+              "jsonPath": "value",
+              "sdkField": "Value",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "expires_at",
+            "goField": "ExpiresAt",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "date-time"
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "When the token stops being accepted.",
+            "wire": {
+              "jsonPath": "expires_at",
+              "sdkField": "ExpiresAt",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "example.com/nimbus/terraform-provider-nimbus/internal/sdk/models",
+          "alias": "models",
+          "accessor": "e.client"
+        },
+        "open": {
+          "style": "fluent",
+          "chain": [
+            {
+              "method": "RunnerPools"
+            },
+            {
+              "method": "ByRunnerPoolId",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "RunnerPoolID"
+                }
+              ]
+            },
+            {
+              "method": "RegistrationToken"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.RunnerTokenable",
+          "httpMethod": "GET",
+          "pathTemplate": "/runner-pools/{runnerPoolId}/registration-token",
+          "successCodes": [
+            200
+          ]
+        },
+        "response": {
+          "type": "models.RunnerTokenable",
+          "accessStyle": "method"
+        }
+      },
+      "accTest": {
+        "seedResourceKey": "runner_pool",
+        "args": [
+          {
+            "attr": "runner_pool_id",
+            "fromSeedAttr": "id"
+          }
+        ]
+      }
+    }
+  ]
+}
