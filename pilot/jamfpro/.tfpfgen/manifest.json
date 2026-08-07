@@ -1,0 +1,4025 @@
+{
+  "formatVersion": "1",
+  "toolVersion": "dev",
+  "files": [
+    {
+      "path": "examples/data-sources/jamfpro_inventory_preload_history/data-source.tf",
+      "sha256": "e8348510ef58ec5d3525faf5b94289e35352b22fc1586ff8a2481b0e65de201d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_ldap_group/data-source.tf",
+      "sha256": "4d8b5fe0c01cbdeaa22989022760a7cd83eaf35ab6d1f82d81f4a124787c5b49",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_preview_computer/data-source.tf",
+      "sha256": "dd152e22c95e00112158fe7f09e8e126ef85aeb3f553ac451d281108e2d3a543",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_preview_remote_administration_configuration/data-source.tf",
+      "sha256": "c043f6ab8afade2fe8d78d656934f122d2620d17e1de14444b28c6e715ee0ec7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_account/data-source.tf",
+      "sha256": "3499450674ccbd65b72bc1057239c06e982fd899ae1015f63631d93996ccc7f7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_account_group/data-source.tf",
+      "sha256": "8761941b7375c8508aad3e3331576366865f589368f97555f6f2732285e58928",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_activation_code_history/data-source.tf",
+      "sha256": "16205874c0703ca59d86ec0844d5103151d6971a36e18839df42244fabe0ec43",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_advanced_mobile_device_search/data-source.tf",
+      "sha256": "09586bc981dde1c510ea87eb20ed9964eaecae30af1c528b13e2eade420fc656",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_advanced_user_content_search/data-source.tf",
+      "sha256": "98b42ede5ecf2c9ee35f399ce9b6c7344833ed475fae97eb56bd7d7d9d53e9a5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_api_integration/data-source.tf",
+      "sha256": "403d7a264cf9f7ab806e75e240e7078221df2da2cbf83437de9b7a94c6d6a7b8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_api_role/data-source.tf",
+      "sha256": "09ffb0f0045da24bf6ea5876bce9304e4b54f526d6e83c55fbf1195da659cddd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_app_store_country_code/data-source.tf",
+      "sha256": "a822e12e9e394f8ec213c9a053e62d5404528287fcf0654633a9878bdbb25ff6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_building/data-source.tf",
+      "sha256": "8530701581e4a190a9ed8db0ac721fe47ffd1a131e880b4fcaed8dddacb10679",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_cache_setting/data-source.tf",
+      "sha256": "73c340f95b813d6b1805cd89e3972e98caab46b5a521bd52352530ae54ed31d6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_category/data-source.tf",
+      "sha256": "8108b7267deb851e94547187780c5241bacfb23398026395239accb1320fdcd3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_cloud_distribution_point_file/data-source.tf",
+      "sha256": "a3e060e9b415e54c22f078f97f8929643ca0c6c42693a5bf9f89c50439c549b8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_cloud_distribution_point_history/data-source.tf",
+      "sha256": "31a506590bb183baefbceecd83910231c54e5aed456ae53ca30a3a42594339b3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_cloud_idp/data-source.tf",
+      "sha256": "b45ceac5d4a23cd54d810fc981dabc3870f3857a570e7fc66498f96b29af59b7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_computer_extension_attribute/data-source.tf",
+      "sha256": "17eb150bc1b4f69906ce14b4838c56fe16eafea5010170753e0277255f9389ff",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_computers_inventory/data-source.tf",
+      "sha256": "2cbbb57c4d9fa63efe1aacee5307e9c3c607028eaba10f2a56bb4f5c600cc1e2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_computers_inventory_filevault/data-source.tf",
+      "sha256": "d03ce7aa528902bebe436cc0d49ac99c22ccc8dbe22d6470d90927b13ca0a845",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_department/data-source.tf",
+      "sha256": "441710c7228f20776c597e5c0cf682be82009c3ca673c980c2bfc6d501fb863e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_device_communication_settings_history/data-source.tf",
+      "sha256": "a1ad8d5368c1255e8665a08745468ec60e22780afbb0e0598ec8182797305404",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_device_enrollment/data-source.tf",
+      "sha256": "cae2a287642d176b9d5596ff6ba4452373cb1a8b68cc09e3076f6ea7dd5809cb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_distribution_point/data-source.tf",
+      "sha256": "f62a413f5b543a9a194f0e8f10ad39a1f3a5263719a0ccf7702582bf7cad45e0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_ebook/data-source.tf",
+      "sha256": "740e0ab497eb81eaf8256cea1448a3845ea6392137cfa4293172fc704eb54ee2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_gsx_connection_history/data-source.tf",
+      "sha256": "c79d12ecf428294ce58281573ba8c4d375a111234feb56e80e1991bacdad7055",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_inventory_preload_history/data-source.tf",
+      "sha256": "5696e25191b569434db5481f6c73fe99b1a033ebf3d05117d5771505b4986580",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_jamf_connect_config_profile/data-source.tf",
+      "sha256": "685412dd5a688a4157c2fdd019041adde9ee76f51ffd13ad680e1752258edfe0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_jamf_connect_history/data-source.tf",
+      "sha256": "314b40c03c8888bab47cc5ed46ab86a3e54a4d25bed8e87711f3f49dd052aed0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_jamf_pro_server_url_history/data-source.tf",
+      "sha256": "e6655dcfc0b31997d6c9403eee1d0e1375464a974bb38ce02c398f0d88b35d00",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_jamf_protect_history/data-source.tf",
+      "sha256": "ad791f2d39bfdd953f1a660a2fefa9cdc409f3b8b4dbec46480b43f0e49e8f9b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_jamf_protect_plan/data-source.tf",
+      "sha256": "292728832c6195f39b31c23649dd757bfbd335a19e6e150b375161a11167038a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_ldap_group/data-source.tf",
+      "sha256": "fa0bf68fa436600420247bce109e8e58f8e765261e4de814ab6c78aa76e3f0aa",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_log_flushing/data-source.tf",
+      "sha256": "1a684212ff99c86eccf79ccd712e8de5fd36e687398dcbbacc6e654e25423dd7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_mobile_device_extension_attribute/data-source.tf",
+      "sha256": "775b7a5db44838bffcc12a424e6f8aec04a5791e15b9fa0b1b9bd30417878808",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_onboarding/data-source.tf",
+      "sha256": "47e21a82f4274eb97553b03453b4920743b661537240cf3d583b1155801fde41",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_onboarding_eligible_app/data-source.tf",
+      "sha256": "f2e155303f06d39afb9e9d40beed189ea961ec018cf78986b405979ad8571f9a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_onboarding_eligible_configuration_profile/data-source.tf",
+      "sha256": "e0154406b08dbba450f58db4141bd203e9f9cc461fd1adb2e558fd03ddf55c70",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_onboarding_eligible_policy/data-source.tf",
+      "sha256": "9e136fbd4c2790656bf4cba06ae4c89d38849688545bf476bb3f0fd71717962e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_onboarding_history/data-source.tf",
+      "sha256": "b3a0ff2ce24ef44a17d6b3d9a8e4f3359423045f829af370dc1f3543e8aca196",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_package/data-source.tf",
+      "sha256": "9b69340cb13d5bfc2ec8770b427760232bdb820ac873728e70a96f5af908dc53",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_parent_app/data-source.tf",
+      "sha256": "4b4af17e18b6e247deeeb8ae4b05e863039fc2c0f329bc4521dc5307a19ec208",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_parent_app_history/data-source.tf",
+      "sha256": "8ed250660216fc2bbf8beeeaadde498178ee9c09dec0eb331f0d3188229ff99b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_reenrollment_history/data-source.tf",
+      "sha256": "d6a19a920469b3f915e6a3da6f887d29b7a2ea01e9537c86b394b84c3feab1a8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_return_to_service/data-source.tf",
+      "sha256": "463e74a8bfe8608f929360e3583f73f0ef025ed2ea59f28d307cf7ef8e9d754f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_script/data-source.tf",
+      "sha256": "74f4d4524320dfb6c2319bcb1a6fb6b9f515e1567e80614d85a4e0a8a9929ca8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_self_service_branding_io/data-source.tf",
+      "sha256": "8485e22407ad5183941dd5278ef6626fc0292b1dc1eb4121e4504d807f61c5c7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_self_service_branding_maco/data-source.tf",
+      "sha256": "112e752a6fb43b7346c836b0927fd12434ed31bd0263ebea2d9a0f878becf0a0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_self_service_settings_history/data-source.tf",
+      "sha256": "f8945b229ef5644be5329e286cd79e2b68b42b613b51a46b7f9a601ab4e9adc9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_service_discovery_enrollment_well_known_setting/data-source.tf",
+      "sha256": "b43724ac9b152089719c5dbcd5fc9e1fb9b98fa35db59e2792c352b96ef97ace",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_smtp_server_history/data-source.tf",
+      "sha256": "debb942d995c22f9c6c66a8d0cc6d2595796d3cbe399b1f7afeb468caf3c3847",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_teacher_app/data-source.tf",
+      "sha256": "f5afbe22dc2d5ed9743c6c642e164767044ef32f585f612699fd38027c45f1eb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_teacher_app_history/data-source.tf",
+      "sha256": "031c65fe691face413adec72b0524807b9d5c4abb9b09198f5df2ef13173a666",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_user/data-source.tf",
+      "sha256": "cbc58ced0fa5a6e367d0f0ceb4a2a86a0018b6a8e3fcae2c3bce2d75cf210e31",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_volume_purchasing_location/data-source.tf",
+      "sha256": "3bbe4c217cc4d1f420981f8250ff19bdbfd96d932cbd936792c17c796a0c17ad",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v1_volume_purchasing_subscription/data-source.tf",
+      "sha256": "34e25459c6d13e700c0fc8745adff7a64864edc4d18e7b08c68b0a9fcf40f15e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_computer_groups_static_group/data-source.tf",
+      "sha256": "61b88d80a9b64b04013c044cc003c9dd599184741f14755e30fad6b079813414",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_computers_inventory/data-source.tf",
+      "sha256": "61abfdcbd23557280fa7bea71dcff7376a38a29aaa16aa73a2fc0a857dd05033",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_computers_inventory_filevault/data-source.tf",
+      "sha256": "5d505558a58bd5d9c9988b3cc5cb81440ede93c5237d4739211d1570213105e7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_enrollment_customization/data-source.tf",
+      "sha256": "d40ef72014dd70b4273610e847dc4c231e3f68cc2ddf565649a77474cc4ed59a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_enrollment_history/data-source.tf",
+      "sha256": "5da2bfefb068e785fcc4079c8f27d99e643af4f227b1f70270751c09f9e757dd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_inventory_preload_ea_column/data-source.tf",
+      "sha256": "e3cf823debb8755ebbef564077f90471b64fd8dd4aaf192978eac11c2077e3a7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_inventory_preload_history/data-source.tf",
+      "sha256": "4b6ac8526f2ecd63454986942a3298f91ce7091c58bf2bf2f44fd5ced51f75ce",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_inventory_preload_record/data-source.tf",
+      "sha256": "7e7fa3c1f9a8ac207d2e0a87dd7c6a65eb4e6fe2a6edfa48f41551c022cc2e1e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_jamf_package/data-source.tf",
+      "sha256": "5eddb87c6fb7430f5bdc983942cb529f9d3c5775f65060412ae1d2614486307b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_mobile_device/data-source.tf",
+      "sha256": "f39f2286a209ea0e13cdbcd32c7505698c1d7732d91b0783169cfd07a83dcc18",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_mobile_device_prestage/data-source.tf",
+      "sha256": "b9806111e5e012ebe3bc82cdb5c52b9eabb2c8c5d0c33bf33f50a37f84ba74bd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_patch_policies_policy_detail/data-source.tf",
+      "sha256": "4962a74ac1bf9153fecdfd6e8a695102e057fd488fd0e43c43e9e148f6df1dea",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v2_patch_policy/data-source.tf",
+      "sha256": "e41a888ac2b68e1fbc49f801e30ba119f2105fbec2409961a78f6d4550f9ea40",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v3_check_in_history/data-source.tf",
+      "sha256": "7dc014d319127d88e5cc5d0924f950c2fa77c1b9a95272e7f5bcc14b9b558f22",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v3_computer_groups_static_group/data-source.tf",
+      "sha256": "000759207e04bc12d1e9674345056155d015c750e6fc323a9320213f2ff5f22c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v3_computer_prestage/data-source.tf",
+      "sha256": "2c08ab7344e4317d39c479ff80c7070b6d9fa7c6384e7a49190b241dd854cd97",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v3_computers_inventory/data-source.tf",
+      "sha256": "c32c6fa71030e3e69308a222b57a0882c4f209790677d90ee8fe19f26c834d87",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v3_computers_inventory_filevault/data-source.tf",
+      "sha256": "1ea3b43b7650c6b14057695868246c1fece6401c3fd67bfb13c607c52a75b294",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v3_enrollment_access_group/data-source.tf",
+      "sha256": "fcc06926eca78a0ffaed79d73f5ffcc55ab593b0dba4c53a79968ef2fa0a8c86",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v3_mobile_device_prestage/data-source.tf",
+      "sha256": "70305ccdf59268ab5417461725c21aafe54e1465be7d5a6b5fe991b981b6de3a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v3_sso_dependency/data-source.tf",
+      "sha256": "34f22ffed2b66365021dbbc492a87c536ad43d5a4f3ef5b7fb6405d45ae883b6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v3_sso_history/data-source.tf",
+      "sha256": "ccea142d2560bfbc71b7aabddfeb97cbccc5a2638912ca69df82cedfd3cdf65b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v4_computers_inventory/data-source.tf",
+      "sha256": "44ca49707083d01eaf628e8e7b38fc85419a8adb0be0ac1069348fc3386a98e5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/data-sources/jamfpro_v4_computers_inventory_filevault/data-source.tf",
+      "sha256": "99e6413981d4be5f52d2aa7400891404399e8a70d790410b8ee7754fadc6ecc8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/provider/provider.tf",
+      "sha256": "0f250f221556de0f9df9c93d6bcfb6db61843218df751592d3e0be5a00180efa",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_advanced_mobile_device_search/resource.tf",
+      "sha256": "2ce968300ae30ef7d0c6cfe09de6e238015d652bf0e88b9e076294fb4fc8ebfc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_advanced_user_content_search/resource.tf",
+      "sha256": "f873a6f1b2ba3cb7d8787558c7d72c502d701d8dd73db1f93ed80f21002e0cd3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_api_integration/resource.tf",
+      "sha256": "d9162644710da8e57e806a0d81826860ec60a15e4abeba9b2e224399e32938b1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_api_role/resource.tf",
+      "sha256": "43e09d085c7c65db740a07c65f8988491a1416af6deac819c3fb8613e6abd0af",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_building/resource.tf",
+      "sha256": "c5f89d372d1789143c7d3cd9482f6474b136af4d738f5c5e816410505be24cbe",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_category/resource.tf",
+      "sha256": "b79c8fade30b1c72ab957e6580b352d120dd36183a71b86eb1c33667914f39bc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_computer_extension_attribute/resource.tf",
+      "sha256": "bf87b1b92d78429293aac59ccce321df0956c55277aea8150785845291e3c751",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_department/resource.tf",
+      "sha256": "1bc7fe4099496a1fa3474fa95676840ec6d8c9a006368d5bba25c3da0fcec992",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_distribution_point/resource.tf",
+      "sha256": "6a92273e095e14d2bd18420f88ae92024c979a904ebe0db1a26ed3799b2a7e36",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_log_flushing_task/resource.tf",
+      "sha256": "25f3ca6f0fa6fda9323852fc4229e59e2b99560b9e1b8e39b8f7376675f190cc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_mobile_device_extension_attribute/resource.tf",
+      "sha256": "368da7d2371b7b53a7de74fb1dba40c6b3002035183d2a91157ce18756fd378e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_script/resource.tf",
+      "sha256": "4881df5b5859aed8c9a39101fe4454ad4808995ab6bdb4b1ccd130162715d9f0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_self_service_branding_io/resource.tf",
+      "sha256": "4fa764d3f115bd47a06c1b6b6925d74d50331006b5bdb3e369afc0a3eb30d65c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v1_volume_purchasing_subscription/resource.tf",
+      "sha256": "2fe6ca2f8eb3cba75b4e1ac750a73fd768d53256973c64ef461f7f46858eb181",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v2_computer_groups_smart_group/resource.tf",
+      "sha256": "e9a6fa8e640ac492c19e678de7a695d10f0940b010550497e12fdc6b517bacf1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v2_computer_groups_static_group/resource.tf",
+      "sha256": "d8281cf6492069a2150a858e1be4cb2c64ccdea926bc2286345f5812b5ccb6c0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v2_inventory_preload_record/resource.tf",
+      "sha256": "147632a095f4e67fef7af65ce5276868c3fdcb99805e674e4f0dd0d009ff2fd8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v3_computer_groups_smart_group/resource.tf",
+      "sha256": "c25348f0287d3c6ad8471ee0dc45a90b9a8ad8d952ce2c3c3c8fb3c4eb1b1a04",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "examples/resources/jamfpro_v3_computer_groups_static_group/resource.tf",
+      "sha256": "03f4a1c4d956c70bf774bb6538e6b07251a6119b98ee0d277236e168de230441",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/acceptance/acceptance.go",
+      "sha256": "0e4e2055eda1482f06f4f602f8e5781608657df240cba0c3bba9a9c8474c42a5",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/acceptance/check/check.go",
+      "sha256": "3576f37b5d842f87a0f926049d86f15afeed02f9c5340118719f56efb6aa4f3b",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/acceptance/check/context.go",
+      "sha256": "d92176a262421f43ff05d9a949d9fdabe7094358bed803cf5248cb0d46aa616f",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/acceptance/destroy/destroy.go",
+      "sha256": "656c3abd507b9d25ce659e2e7a9aaa67d2fbadfe6e222a0e0b381866b7e1a137",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/acceptance/exists/client.go",
+      "sha256": "f59a6f4218b09b547d3d59f93909582ca5936f4cf4c83c452a61ccbcbf750b89",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/acceptance/exists/exists.go",
+      "sha256": "810642cb8eecc91d61b204f962ee3fbc551dd8ccc1d9e110ee6079e1fd54b458",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/acceptance/testlog/testlog.go",
+      "sha256": "461ae01c6b8a92b0ac51692f8302d1f8c25ee7a91090a80b38cb7a14c3ae14c8",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/acceptance/types/types.go",
+      "sha256": "1e4895f001ce1c7d7c221f74496edbc3e6ad6afabc8fa0ef6019ebe23bfda6ff",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/client/client.go",
+      "sha256": "63e23ccc24db652553098aeff41bd16b2afea194cd7857ae4680d6bb06663517",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/client/client_wire_test.go",
+      "sha256": "da6255af1166fb8b0233ba051752ec1841647c408796c830364b83493c75f932",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/provider/actions.go",
+      "sha256": "ee9747c0c2f9e5f5815f4cdb9752df2615680e116006629d4ae11d068cba755e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/provider/datasources.go",
+      "sha256": "171a56d4df311f51a0ff71cc395be0a1d0d4bc2c14909e5b263cc400d6220be2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/provider/ephemerals.go",
+      "sha256": "0b6fe89448e53c9eff09e2befd203ccf8e8f012910947a20a084740d76aca163",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/provider/interfaces.go",
+      "sha256": "f494367144fad616aa7284839114710b275355697cd113c5ee7d000989da2f46",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/provider/list_resources.go",
+      "sha256": "963df4d7bee0522704e46a75daf58b4915053f2bb0da3740e686ba26fc390d59",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/provider/provider.go",
+      "sha256": "477b899a4c711b71b9f69ba1c96fc3b2e375ffe94f1b2ea28cf78366eeec25bf",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/provider/resources.go",
+      "sha256": "8eb54eaebc81cb354e457aceeafdfb9db9f6df3a6ed8eade4c62ac2400af2395",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/common/convert/convert.go",
+      "sha256": "1be170035edcc5d04c4b48233d5714e1761d14b45f69303461a77d8957e0f2a6",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/services/common/convert/convert_test.go",
+      "sha256": "dd90238e26499a6f7d700aaca3cf1d5bdf0b23ecb226d8faec05416b8cca569f",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/services/common/crud/crud.go",
+      "sha256": "25657467a05085b5c0c04031b49294052fe0a0d7686bee3b8ac9b4d1228c180b",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/services/common/crud/errors.go",
+      "sha256": "97a44126773446b84b085c978b3bf119d55cbde840872e872d7da4a6aeb8d914",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/services/common/errors/errors.go",
+      "sha256": "8250857af89b42659f2b78be080761a68ebcf5bdece0e59dd81adcb447ecf96c",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/services/common/schema/schema.go",
+      "sha256": "128ef79e4f44074dc2ceea1d0b9b8a2b0105d196f0cd1d7cda456c6f6d8b794c",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    },
+    {
+      "path": "internal/services/datasources/account_groups/v7/v1_account_group/datasource.go",
+      "sha256": "b2b44d324161714a44bb36a8c5a9981b69809f68737830358e9e85a92faf3097",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/account_groups/v7/v1_account_group/model.go",
+      "sha256": "d21bd63550df8eff8645f8d4c8d5075cacb0184b382ab10cdd515755c9037d90",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/account_groups/v7/v1_account_group/read.go",
+      "sha256": "68ebb3843adf04e2f584c4312cb39a65b51f8b4c928e6be54f8ea7df9f0b7d1b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/account_groups/v7/v1_account_group/state.go",
+      "sha256": "a73144e2a6bcb431db0cd89bde28b22d8e3c371aa507cc9ad8643d89ce594038",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/accounts/v7/v1_account/datasource.go",
+      "sha256": "ce53c8e88d61b3d21edf7bdb5c2c70097f370acc61dc2219c0b5c8b81d511329",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/accounts/v7/v1_account/model.go",
+      "sha256": "b786473e9258e48852486a911feb85f5801c7a9054d66b83ba01c12c0429f612",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/accounts/v7/v1_account/read.go",
+      "sha256": "08e6fd5b1015dfc48da1e264091dea03863b673d915ea167e91f270a628cfc6e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/accounts/v7/v1_account/state.go",
+      "sha256": "f4dba8fbd16a006dae2c8b90c5b3d3fd7b861b3bdba014db026d700dbe2647cb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/activation_code/v7/v1_activation_code_history/datasource.go",
+      "sha256": "29888b67131d3a025de81c19926ab00a3f03df6b230b182536230cce5880f0bb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/activation_code/v7/v1_activation_code_history/model.go",
+      "sha256": "a15410e6ca4c1069a3d1b25995e5770242716e520911fc70044756170e6e65ce",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/activation_code/v7/v1_activation_code_history/read.go",
+      "sha256": "d8108da20783919bf6ee4acaa43d44f4b4d4d8ff0d42761be79dded4041f43b9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/activation_code/v7/v1_activation_code_history/state.go",
+      "sha256": "1bac45bf74f6bbfa23f69a667223231e5b3814bb54a30043beabfd90c4e2577f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/datasource.go",
+      "sha256": "0120ef182a4a6555b694e1bc08b07164c21e2783fa1687136e73b1dcb5aa2604",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/datasource_acceptance_test.go",
+      "sha256": "64d4c74ebb9b04302ce412aa4f43b809068252e13034d448788703e936a2385a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/model.go",
+      "sha256": "5d66cfd29e70ad6932256097e251cb336a56331a7e07eb52f87038ec87ded9cb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/read.go",
+      "sha256": "7b91b3942775cad1cc7a28ad1a7a229c3ed0457807b781ebe752cc51d3edccb9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/seed_helper_test.go",
+      "sha256": "dfadc77bf36ea8fc48819543434df88e19de5b7492f04bed9fae1b193061cf5f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/state.go",
+      "sha256": "0084f9719cf3bb6c16e1a5e50f1103dd153b25a8b67a532beaa5624c7eff2c80",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/testdata/datasource.tf",
+      "sha256": "1e1323e90069e4052cb11a8070eee91ead738b9d96e9c000ca5708cd309ddf33",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_user_content_searches/v7/v1_advanced_user_content_search/datasource.go",
+      "sha256": "d9427a0b170ff99c7e586a7594457819ebccf1133736700520b85132c235c4c7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_user_content_searches/v7/v1_advanced_user_content_search/datasource_acceptance_test.go",
+      "sha256": "b1d093b45aa59e9a003cfe62f1dcd858e1681c5a69e23c4ddeb812234081e7b8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_user_content_searches/v7/v1_advanced_user_content_search/model.go",
+      "sha256": "20489e60e50d336c6aa234971929cb23b338e8c6e014330a2c00b433322dc30c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_user_content_searches/v7/v1_advanced_user_content_search/read.go",
+      "sha256": "bfe8054aa1dc1646de422bec34043f5e411043ddd5eadb545ea54fc836a70c04",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_user_content_searches/v7/v1_advanced_user_content_search/seed_helper_test.go",
+      "sha256": "057901826e2b0a5449b790ea79e17e969cd2951dd097515326b9c53bbe7376ce",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_user_content_searches/v7/v1_advanced_user_content_search/state.go",
+      "sha256": "cd5e68f6d541bf783c2a322019acd781ec3950369d66c3e4de0e3c21f7892347",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/advanced_user_content_searches/v7/v1_advanced_user_content_search/testdata/datasource.tf",
+      "sha256": "524b9aff9f46b371455d1b4c357fd7d019607d2bead4353faca505d77a11ef80",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_integrations/v7/v1_api_integration/datasource.go",
+      "sha256": "22967021347311fe0e433d4afa947418db3c576f519ddc75fb1f55bf453ce3cb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_integrations/v7/v1_api_integration/datasource_acceptance_test.go",
+      "sha256": "0a68e86596edc9b9aa0984534b4e18b018e043197fbab696d30be1259ec4a31c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_integrations/v7/v1_api_integration/model.go",
+      "sha256": "92702d8d11374b6e362b8c5cd698b2fe24c8437d19f6a704439f8f95451661bc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_integrations/v7/v1_api_integration/read.go",
+      "sha256": "45dc8d47f5162b3fd5245a7e6e0f38a96d34879103786737fc2f3fda5ff16f5e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_integrations/v7/v1_api_integration/seed_helper_test.go",
+      "sha256": "23dbb07daf8d7e6fcb1ec383f3aaedd590c81f5a1cd27af451f7d5a173ae52a7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_integrations/v7/v1_api_integration/state.go",
+      "sha256": "724843a7e63972c1303152ba172fdffd7739aa621cfae0c4a00e0c7985716aef",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_integrations/v7/v1_api_integration/testdata/datasource.tf",
+      "sha256": "14828e221abf12290352a444e90db996faeb88a030a8b3ad4e3f5b853571ee7c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_roles/v7/v1_api_role/datasource.go",
+      "sha256": "a96bfac4a627dc337170e35f7101e6bd8a602744b9ef8b38bf6ed7483e244e4d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_roles/v7/v1_api_role/datasource_acceptance_test.go",
+      "sha256": "2bf1d502e90f20d849b5ef60dd496d5aa1fa094fedb09947d77936c6a6e0ef6c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_roles/v7/v1_api_role/model.go",
+      "sha256": "fd87bf7fcb9848e91c22e054abd74f6401dd1c4abffedd07ead6317e505f98fc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_roles/v7/v1_api_role/read.go",
+      "sha256": "5f2e654eaecb44a54beb8cad32bfa6d5eb5a8ace1f2b7ffa72068b6d6b38885d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_roles/v7/v1_api_role/seed_helper_test.go",
+      "sha256": "dd52b3e820547cc3bbb1d1af5a5791749f42629b8c6e3fc433a63d4041351c0d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_roles/v7/v1_api_role/state.go",
+      "sha256": "7441002797c0ed2486e7a7c71d3552686b6d6bc87a35029308ae85906436d063",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/api_roles/v7/v1_api_role/testdata/datasource.tf",
+      "sha256": "a672bc6f49328ab0d6f845475249bae31d36ebb9ab5f7af499c939721ee9104b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/app_store_country_codes_preview/v7/v1_app_store_country_code/datasource.go",
+      "sha256": "ecb160fa7e644a5d28586018158cb2e237535d62d2f0d49d98093a4c3e54f5e2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/app_store_country_codes_preview/v7/v1_app_store_country_code/model.go",
+      "sha256": "a8a42498f44300a0e8d12e53b104a840a968cbb7611cae3f50971d185e78559c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/app_store_country_codes_preview/v7/v1_app_store_country_code/read.go",
+      "sha256": "f15cf6aaf9d2ba2d76dc4f1469717e477c38f5856059f4ea471dbbb4a397f778",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/app_store_country_codes_preview/v7/v1_app_store_country_code/state.go",
+      "sha256": "b869a772a44ab24965cb1f08963cd9275a8eeb887dabc5b6049e923701b096eb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/buildings/v7/v1_building/datasource.go",
+      "sha256": "062ed372fd1aff2fa5238fa3c7dd6c7d0a667dd0df359d59b15b7c759e9b378f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/buildings/v7/v1_building/datasource_acceptance_test.go",
+      "sha256": "9be52aa63f1fbada14a15224b728cf016f73156ddb15fa751024955bb7d9d8ee",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/buildings/v7/v1_building/model.go",
+      "sha256": "defcba60985f70f6b9979b104526515768179f1c060cfc3eff058db8ef4019b4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/buildings/v7/v1_building/read.go",
+      "sha256": "5dfcfc389eb824746249b7066b8721eea5418249241c9ac8e100345aa8621fef",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/buildings/v7/v1_building/seed_helper_test.go",
+      "sha256": "e780d7d77d5024a0715c57c85bc42910c0093ad97d7e2a797c15ef4fb64adfd5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/buildings/v7/v1_building/state.go",
+      "sha256": "d9629b9cff04f04d841375817022c054e1887f4500e4ce1eda219cb38f74d31e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/buildings/v7/v1_building/testdata/datasource.tf",
+      "sha256": "fd2194a3a36d00ff759e78044bbc50b96e6abf8b00a53ddf72886472db7e0df0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cache_settings/v7/v1_cache_setting/datasource.go",
+      "sha256": "b9ab6233aafe0e9127038743f04820704c8124d92fa90c031a9b41a28fdba33b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cache_settings/v7/v1_cache_setting/model.go",
+      "sha256": "9dddcedfb17208f9fb397b4768c10e6c83f62870fed50807b0b369f8f9477e3a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cache_settings/v7/v1_cache_setting/read.go",
+      "sha256": "bba240beeae4c5a71b9202a0d1393dc7db3eab519af333ab6ffb012d12c326ec",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cache_settings/v7/v1_cache_setting/state.go",
+      "sha256": "963817a27174f41ef3d7a30fa54bc00f9baaa6999464c9a2caf58ba1cc9a6bf2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/categories/v7/v1_category/datasource.go",
+      "sha256": "7713e553fc0dace097fcac1c8831761f19d99891d8a62ac0cb35bf1fcbeeb025",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/categories/v7/v1_category/datasource_acceptance_test.go",
+      "sha256": "0d08905666c7ea9216f5b08c6153ebac78061140f74d45a6ecbda997c0a0b4b4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/categories/v7/v1_category/model.go",
+      "sha256": "da7c0cb4c31ad8d27a85755c92f9e614eb44d550fbde5adc0147eb686ebee253",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/categories/v7/v1_category/read.go",
+      "sha256": "fcd80572321a848c771a3d1b54219432ec003e3a164fe614957cdcaa7e7f64c0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/categories/v7/v1_category/seed_helper_test.go",
+      "sha256": "34aeb94e57765f39a1cd2323d7edc39c79efa0ee681ecce1b4337f6040d3d5ab",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/categories/v7/v1_category/state.go",
+      "sha256": "80b516ba6263d05fec9fdd603b65d86cdfb03c5f2dea5ceeabe1fc1ced22699f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/categories/v7/v1_category/testdata/datasource.tf",
+      "sha256": "2b5abc70d903b28c9fae17c6fe948208a2072ce3fb9484324e4b8659341d87bc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/client_check_in/v7/v3_check_in_history/datasource.go",
+      "sha256": "b3047848048173211a9e80064441179cc59bfffc0da0a0f6914b76574ab652b0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/client_check_in/v7/v3_check_in_history/model.go",
+      "sha256": "7b4bfdf0182b3a4979d48810cc7b0dce01aee6e7001606f8b2844959f982c3c7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/client_check_in/v7/v3_check_in_history/read.go",
+      "sha256": "1b24f90987a3ade7db9ce2fd83cab1279881c277c17ede0c1d951f8c8284dac3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/client_check_in/v7/v3_check_in_history/state.go",
+      "sha256": "51efde61ebf166bb9d727eb4ad821fd8d4de86f0b9396d766a3e6288ca91e57a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_distribution_point/v7/v1_cloud_distribution_point_file/datasource.go",
+      "sha256": "48665d0cbdd07c91c72201c2ae12dab2127369c21fb18ee574c876711ccc90ff",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_distribution_point/v7/v1_cloud_distribution_point_file/model.go",
+      "sha256": "514b92d9c3b2e3cf43d0f098eb829b420f988885b5050378952f7deec6d2701b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_distribution_point/v7/v1_cloud_distribution_point_file/read.go",
+      "sha256": "bcf4d73948606a16035befb1b41a3021ebe298160eb295b0f2d2e5af3ad9bc75",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_distribution_point/v7/v1_cloud_distribution_point_file/state.go",
+      "sha256": "95254e37917b6b0fd89e17b801fe6127b00a10fa00e787554cd51b6a7e25bd91",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_distribution_point/v7/v1_cloud_distribution_point_history/datasource.go",
+      "sha256": "53b520538742e56daa108c18e6aa2d910c57aed1da58d9125b090554ac4fd48c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_distribution_point/v7/v1_cloud_distribution_point_history/model.go",
+      "sha256": "7f136c9a9315302d5b39ae007f460384306e796b4716a54f05f7545a5828e508",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_distribution_point/v7/v1_cloud_distribution_point_history/read.go",
+      "sha256": "b609ff61d6af1c41835cf45cc41604efe736b463e6fa5949313c0ecbc9093637",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_distribution_point/v7/v1_cloud_distribution_point_history/state.go",
+      "sha256": "554835bd61ed9a2fe9bc0b8fc7b0958950c9b18e57de528cac3b310193f606a7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_idp/v7/v1_cloud_idp/datasource.go",
+      "sha256": "946eee90b89787e4fdfcbcdf1e975955d29604445066642bffc384a003d80a98",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_idp/v7/v1_cloud_idp/model.go",
+      "sha256": "49b6c103a708f941705e941c8d0b59e5b36fabc1025f69f004d81414be261d3f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_idp/v7/v1_cloud_idp/read.go",
+      "sha256": "b866af220304a76848c3716d6fa3530286e9cd44fca1f8fc7a73e4f34113d726",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/cloud_idp/v7/v1_cloud_idp/state.go",
+      "sha256": "f4755b1b1f827fc4408f32b973ca124faa025eb8c537a5731e275c2a243ce5d5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_extension_attributes/v7/v1_computer_extension_attribute/datasource.go",
+      "sha256": "7ab5e9262c5bb0d69863b445d6a2fa34401e0d5f9fc5c0433034a6771ad86319",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_extension_attributes/v7/v1_computer_extension_attribute/datasource_acceptance_test.go",
+      "sha256": "db7a6c293fce3c6e2c308c574d8c6395810b513204fb3fba482e05456d4517ba",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_extension_attributes/v7/v1_computer_extension_attribute/model.go",
+      "sha256": "9438eecf2bbef19bd1c1afccdaf8f2c673c0feb8bc2d31c87636e03a992af1db",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_extension_attributes/v7/v1_computer_extension_attribute/read.go",
+      "sha256": "94e3ee9358f860b83fd6afbd8832167a76a1b753c8b6d0995d9e830f10daec84",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_extension_attributes/v7/v1_computer_extension_attribute/seed_helper_test.go",
+      "sha256": "f3bf4275cc6f406f5bc62d79172f05c13ad060c1874401b5ef2a0c5047c1e82b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_extension_attributes/v7/v1_computer_extension_attribute/state.go",
+      "sha256": "94f7152380f71cfe33862e3aebb24392ed483d554e957028bf0a4ce965400806",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_extension_attributes/v7/v1_computer_extension_attribute/testdata/datasource.tf",
+      "sha256": "2e52acef3f57773181818fa7e7da40fa4f62d6dac56fe0b9d2393c2ebf200654",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v2_computer_groups_static_group/datasource.go",
+      "sha256": "79e9955d59e50018127215db4c5157d69279e71a416e0a489423a59810046768",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v2_computer_groups_static_group/datasource_acceptance_test.go",
+      "sha256": "aae8ab166170b886eae4235aa7addb2277b3a7ee7efccd1cf6f6677872cc49f9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v2_computer_groups_static_group/model.go",
+      "sha256": "efb729a889b2b85c0e15355289bda72252085f8742fea19aa73a44915d448640",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v2_computer_groups_static_group/read.go",
+      "sha256": "1ca5bef389560b0f5f3fab976ed66c7876e1179c10e43c60d2364cfcc816b1f5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v2_computer_groups_static_group/seed_helper_test.go",
+      "sha256": "a0ecf7551e6c44bde9110eaed553421ad49bd4bc206702c9b589ced8a5d5ca5b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v2_computer_groups_static_group/state.go",
+      "sha256": "6e6cdb7e5c6c2e762e65d5dd5d2364de35846402e53083230080b6da063f71a2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v2_computer_groups_static_group/testdata/datasource.tf",
+      "sha256": "4dec853905b7f810886f186af9fb54a369b4d0db682228e93eb31498884bec6a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v3_computer_groups_static_group/datasource.go",
+      "sha256": "13fb61754126d1e6b7cf0496f053cb851f65afd75832ad6d9de8b23b1bc5048d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v3_computer_groups_static_group/datasource_acceptance_test.go",
+      "sha256": "8ec96a28e99deacb5d99bdf340187f8298306292585163f5d884fc928ba24fb4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v3_computer_groups_static_group/model.go",
+      "sha256": "e41c99c88ba6f0d647fdbecad1525d0b27a883201d2e47b6f72076f8b7cf75a4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v3_computer_groups_static_group/read.go",
+      "sha256": "079ec9abc9a48165f7f980e2f3451f97f208920460f1a288de440ed162e8e99f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v3_computer_groups_static_group/seed_helper_test.go",
+      "sha256": "b0c2fb11077fbbaae5e16dad692e0671a697f6d2b891154b5c0e92c2eeb5f541",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v3_computer_groups_static_group/state.go",
+      "sha256": "fdc307c2807be0eb3671e2179a0fec0722a77cb12f8e530ed629116845544930",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_groups/v7/v3_computer_groups_static_group/testdata/datasource.tf",
+      "sha256": "bf9bf01ed6c281f3f416607fe440d678ea31e69ab5753d2218601e8fc9bd6058",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v1_computers_inventory/datasource.go",
+      "sha256": "7c2b86a5e696b0ba19baf1cc007e065dae2f66aaaec5b901a0667b7112568411",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v1_computers_inventory/model.go",
+      "sha256": "44454c66fe53fa66451512288276d233ba169b18f91ec57add490a80c33d5f45",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v1_computers_inventory/read.go",
+      "sha256": "fd0f3bb9ad56c7d5c6a55df5547a4db80026d142227cf9cc9da5ed8af0a534a8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v1_computers_inventory/state.go",
+      "sha256": "7dfbc815c618acd6458b67c0bfaddaee1c5408d49ed583c5baff01edc9447936",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v1_computers_inventory_filevault/datasource.go",
+      "sha256": "771150297bb69334090430b7c9c5233faa97b810d9097fa088e57ef2a256c235",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v1_computers_inventory_filevault/model.go",
+      "sha256": "eab705c5e0d7e5d428e7d25833eea8f22571312e6046302e8e9fa0ba03f1d571",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v1_computers_inventory_filevault/read.go",
+      "sha256": "1886028cf277bebc3c2ae41404b6856e08708fd7c656c03205b6d0fc355a76fa",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v1_computers_inventory_filevault/state.go",
+      "sha256": "9d788af1a9f60bfb2eae0bc41fe3967727244e0a223b453589b678fbdd8ef83a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v2_computers_inventory/datasource.go",
+      "sha256": "5b233d250bb2a5a85d7f6ce77d7385a41f1295a5e19ee2bff8ddf5b95fdf873e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v2_computers_inventory/model.go",
+      "sha256": "614673b2bd048a1f438bfdf4d82c78356c1c89c946c780656d7c04303b40ec2b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v2_computers_inventory/read.go",
+      "sha256": "e03151fd40f0cb65c3652536d9a77283a67391da23f23cdcbe0b76b86234169b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v2_computers_inventory/state.go",
+      "sha256": "258ac961131596bce68593fa75ba7c297ab65210e364a2af81b1cf61dc390391",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v2_computers_inventory_filevault/datasource.go",
+      "sha256": "5fca7c13d848c69803a4cb41de98af9f7f72a691f9cb127bc6624429eb3567ee",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v2_computers_inventory_filevault/model.go",
+      "sha256": "7bf7620e5b0a5f7fa51a5de02cd5f60a1f6ff57affdd20264ea570894e2627ce",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v2_computers_inventory_filevault/read.go",
+      "sha256": "cb95019e1bbe04a5a78d0fd9f2c2f548efcb9dd51881ca8c51d5d0f4f074f564",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v2_computers_inventory_filevault/state.go",
+      "sha256": "e4e2b4c0ded8ca3ebde8579fdadb149d126177a212fcd94855fae149ddd93da7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v3_computers_inventory/datasource.go",
+      "sha256": "14c6474117136c75b37e08030fb781da2ffb54c1f3f3c3af2ece5f8dafb53f40",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v3_computers_inventory/model.go",
+      "sha256": "4239187cf3d4d833e930f63fdd87a1115cc3c1dc7b63966c7f1825c18afa741c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v3_computers_inventory/read.go",
+      "sha256": "dd652e1c005499f6670721b4afb0996b66134cf5fac8a42d2d084ccf1e868d20",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v3_computers_inventory/state.go",
+      "sha256": "7706a78b5f80880505ebb87cff9279ad17f763cbc21771c4bcabd5ec0059f8dd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v3_computers_inventory_filevault/datasource.go",
+      "sha256": "eb787d16e9437830c7e236226625fffa94f04774eec53de5fe615d748ad911ac",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v3_computers_inventory_filevault/model.go",
+      "sha256": "7a0015fc3d7f4a804d0586a7cd53c2d147604cf0412a1b64064b73f3de97b211",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v3_computers_inventory_filevault/read.go",
+      "sha256": "60a6477cfbce6368aaed8ec2e68ae19cbfdf9cfe8939ce70a49858bc2a1b3b2e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v3_computers_inventory_filevault/state.go",
+      "sha256": "a318392c4993927b440b639065cbc09a76d86f9bb39fd89bc1b7940cca9c190b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v4_computers_inventory/datasource.go",
+      "sha256": "cebeebc178b82f6e8a25d2b64909f41c159f73b289acd887be9d1fda9972fd98",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v4_computers_inventory/model.go",
+      "sha256": "fdf0242cebc5c9951a1cfaef1a4764c09691342c092c9c4a7488b8976b6ceab2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v4_computers_inventory/read.go",
+      "sha256": "9886caec312f0746308c2038a9523df6c20249cc74dcb6af03f5eeb93311371c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v4_computers_inventory/state.go",
+      "sha256": "9be26d77eac86247ded5ff5484debb29f5157266f3ac758bd96c177a0784e3ad",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v4_computers_inventory_filevault/datasource.go",
+      "sha256": "45d366149d8c608a2cdef9d452715084eb1c0ec192743b10cd6c223652970042",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v4_computers_inventory_filevault/model.go",
+      "sha256": "95e685c180dc60be96f0358d60772dfcc973bdaf520ac13363c317fa2462eee8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v4_computers_inventory_filevault/read.go",
+      "sha256": "85a6857d0086e523bbc85e86227de7d6ef7f03c7ef318fa3af09e1d98a06ac53",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_inventory/v7/v4_computers_inventory_filevault/state.go",
+      "sha256": "df3b8feb8fcdf7832dcb9705be61d88bcb65c385de8b220f1847caff247b4f22",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_prestages/v7/v3_computer_prestage/datasource.go",
+      "sha256": "b264073385152f2dcee437348e2c70b1083dad2f4491e2e504f7acd975e75876",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_prestages/v7/v3_computer_prestage/model.go",
+      "sha256": "0d111675b2be17fe62cfc39729b74c5e0487ccb13e5a1a2ad03e18f403be1f1a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_prestages/v7/v3_computer_prestage/read.go",
+      "sha256": "b5b2779cecfd2e5d397bcfed53740d83ebd5d01ec5a5ec716d96e9bead4cf137",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computer_prestages/v7/v3_computer_prestage/state.go",
+      "sha256": "f75952a3ee35676008ded299086885a64e5327c0dc2a58ca9d3eb2077a1280de",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computers_preview/v7/preview_computer/datasource.go",
+      "sha256": "a6a2d9cbfd019802eac45311e00820aa1b2f0056d277accbcf43fb9f3cd736f2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computers_preview/v7/preview_computer/model.go",
+      "sha256": "dd56eb18ac228f61ff4aa428eea49ed1d8097bb8b5f2da2a17048e3b6740c083",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computers_preview/v7/preview_computer/read.go",
+      "sha256": "a564bad4d0cbde9097eaf5a819cd9c542b66f505c77b435fa98f256ac3e79277",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/computers_preview/v7/preview_computer/state.go",
+      "sha256": "79ae3ae07ece5c5915896084a183e10646c353027efc208b8440299f705ad549",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/departments/v7/v1_department/datasource.go",
+      "sha256": "028741064ec554576cb8402f9f2786e0b8398bbe7a8c6d9feaa6de4bcf6953dd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/departments/v7/v1_department/datasource_acceptance_test.go",
+      "sha256": "064d5faa8624a8e261c8d892a4684e096712faa1937ca22d9a1352f74426a6f9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/departments/v7/v1_department/model.go",
+      "sha256": "5c78af7953facce8e3e519a57cf9214c297b25ae0190d263a0f52f20efa8d245",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/departments/v7/v1_department/read.go",
+      "sha256": "167d9d37dfcdf76e4602551ec5c7eb313155e32e3e5508fbdf99bb6aa9b2e024",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/departments/v7/v1_department/seed_helper_test.go",
+      "sha256": "da0954af6eaf354d08246918415c972cc3e3f2dbe67e03b9fc62d4a311e244b0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/departments/v7/v1_department/state.go",
+      "sha256": "fc63f9f114136dace623b5c10cf67cbcf48cdfd88eeca888dcaca93fcf374fe5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/departments/v7/v1_department/testdata/datasource.tf",
+      "sha256": "fb17525dbb536ff68be0803ccac495af3d9a455bcc85c91e96387e05a7519a6d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/device_communication_settings/v7/v1_device_communication_settings_history/datasource.go",
+      "sha256": "efae6dcab42e4e3567c622c3c46a267ee260e2213b135c87fbe9545974bb1c0b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/device_communication_settings/v7/v1_device_communication_settings_history/model.go",
+      "sha256": "128369775b7987a4acd5abf13791e099634857f2d8c3a0a2a97e908e299af4eb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/device_communication_settings/v7/v1_device_communication_settings_history/read.go",
+      "sha256": "11724e4da60b17c0198a6394ebfa8525f30979609823f22f703754a5ead5f4c6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/device_communication_settings/v7/v1_device_communication_settings_history/state.go",
+      "sha256": "a7b2eaf033bb9f42bdd33c9ef4f631bd7441c5903a2d7b97754f33849d8b1c34",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/device_enrollments/v7/v1_device_enrollment/datasource.go",
+      "sha256": "18c916289d159101f401cc4a24f75664a8572d9f648197481d7e2d5bfadbc9fd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/device_enrollments/v7/v1_device_enrollment/model.go",
+      "sha256": "bd5219279cb8c61760e615a3988d60fa6fe3dd3ba4da2bf62b14589bd0d5f177",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/device_enrollments/v7/v1_device_enrollment/read.go",
+      "sha256": "13c2f8e48b5065d280bf39821f72038ce41c3bceffe0b195285f805d4c840021",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/device_enrollments/v7/v1_device_enrollment/state.go",
+      "sha256": "4c8427fc424d19f5a58446b46678c8aac8b69c7a8087310389c4e74d45d0f104",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/distribution_point/v7/v1_distribution_point/datasource.go",
+      "sha256": "53b0b855c9a52349f332a2d5cd3fc3478aece5b63c9f724750d795a954b2629e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/distribution_point/v7/v1_distribution_point/datasource_acceptance_test.go",
+      "sha256": "a6219e91353ec5d5cd39026f9894310ef919eb1b2245d7916b57cfc930e5f017",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/distribution_point/v7/v1_distribution_point/model.go",
+      "sha256": "ef54ad5dc37f26fdbb27dbea7a62d3edbd70da3270df5e30753a2dd9332f731d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/distribution_point/v7/v1_distribution_point/read.go",
+      "sha256": "cb758bedaec4abb82500c109cd60b89aa2b69197b2287badfde4e7f8b95be097",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/distribution_point/v7/v1_distribution_point/seed_helper_test.go",
+      "sha256": "4873a6e7d6245b8307759bf67c772f1ed2b8e101b3b5f023ee013418e09750dd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/distribution_point/v7/v1_distribution_point/state.go",
+      "sha256": "eb2cf4d6e4019b48a105e097c3824cb293e1c63960ce378ef5913625ee15a140",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/distribution_point/v7/v1_distribution_point/testdata/datasource.tf",
+      "sha256": "b1869bfbe070fb2e23925c8a9ce28187aa9fd7b5de064b216496f38783866822",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ebooks/v7/v1_ebook/datasource.go",
+      "sha256": "893ddb24174c4e5fbccfced6e04c941db8e7d1b7f2cd06fa106351b30f746cc3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ebooks/v7/v1_ebook/model.go",
+      "sha256": "6aee87edf1b20c496593087ed2ea8df1e503e55b791cf360a8770b224227e058",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ebooks/v7/v1_ebook/read.go",
+      "sha256": "c8539e08d95ea35f4031fc48ca1291a5df2e51ed5bdb401d9b1fa7542b9e9996",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ebooks/v7/v1_ebook/state.go",
+      "sha256": "14891359f38280a69ab1bc3dab7f5ef62dfabd794b135dae6a23911d2e394e44",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment/v7/v2_enrollment_history/datasource.go",
+      "sha256": "9bee18238224876a745ff9e82d5c86ad3766e90c2aa0e35c878848767862ac37",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment/v7/v2_enrollment_history/model.go",
+      "sha256": "9552583dd9592860447430983c395ef6e5a39565a1273dc26680151f95c8085a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment/v7/v2_enrollment_history/read.go",
+      "sha256": "43f3fb044a512cbe3a92cf4710d2f7cbea9e4a8a03b4f2279fbfe16bdb7cc9dc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment/v7/v2_enrollment_history/state.go",
+      "sha256": "00e7d5aa3682c9aa43ef842390ea18cbe9c6df2cf054a5278a6c177570284b48",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment/v7/v3_enrollment_access_group/datasource.go",
+      "sha256": "26a0dc55252a1c450976c9c96329abc97a803ef641f2f9d5688bfbb4294f6bd3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment/v7/v3_enrollment_access_group/model.go",
+      "sha256": "bd2a9c3a258f931131bb1922cc59f0b2e4e06a837371d9820990fff9b0a54b71",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment/v7/v3_enrollment_access_group/read.go",
+      "sha256": "09366e2c6f45c8157bd3d9d1b2a81bb3edbaba7dd27f698f41d910326b14125b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment/v7/v3_enrollment_access_group/state.go",
+      "sha256": "a4c99fcec6f76c140e0fa69facb70fa092e39607e0360c73b33abdcde5dc6294",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment_customization/v7/v2_enrollment_customization/datasource.go",
+      "sha256": "f2339a9de3135e36e83272daa18dd76dd1592ca2b3a8d1c2cf4b1a2d2bc7236a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment_customization/v7/v2_enrollment_customization/model.go",
+      "sha256": "2b2c7cc6e3d18443ec2680dc270895f875f9163f87c2ce965b9d9c89bab2af63",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment_customization/v7/v2_enrollment_customization/read.go",
+      "sha256": "0c369a6d03181fc845c1e9a2e4e354b99098fe3f37c01bf4b71301892762ae27",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/enrollment_customization/v7/v2_enrollment_customization/state.go",
+      "sha256": "df9e23c234bcb5b1ed0388dda43c1c7143a418fa07e200ffc18eb01f5a64e44a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/gsx_connection/v7/v1_gsx_connection_history/datasource.go",
+      "sha256": "963555a83464a63d55927d4aaa782202793ac7f43a23404f21ce146e7ece2e87",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/gsx_connection/v7/v1_gsx_connection_history/model.go",
+      "sha256": "4a68ea2b58095e284de483b4f14c270fe11d3b50c814eb868e51f5d4a47c43aa",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/gsx_connection/v7/v1_gsx_connection_history/read.go",
+      "sha256": "e12cf1e2636c0d1bc1fce3a7129cfe4e3f9cdc382ed327e3cd41679a3cdfc8fb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/gsx_connection/v7/v1_gsx_connection_history/state.go",
+      "sha256": "feb463b261e5bf5fc24de67aa060a3212aee83288656bd34eee0957ab3593832",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/inventory_preload_history/datasource.go",
+      "sha256": "a0ddeab139c7dfed6aead08cd22eb43a8022c4ef0ce4953a5739731babbef43c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/inventory_preload_history/model.go",
+      "sha256": "2a740ced11f5cc54ccbc16e038d213573652e6a28b850170eb9e74dc1e23dafa",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/inventory_preload_history/read.go",
+      "sha256": "e67053677780a528fdc52ab8bfbe89b64ecdade9534167350b2aeb9dde784a03",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/inventory_preload_history/state.go",
+      "sha256": "809cb3a762e426cd766907cd4097c6abc0fd1f3c9ab2002b26f26db25036f8f6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v1_inventory_preload_history/datasource.go",
+      "sha256": "540d785296cfbb40d787073fb194c4ee0be164097d9b3cff1970fdc37ff551bf",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v1_inventory_preload_history/model.go",
+      "sha256": "e5198d3327687dd1acd5143e128ed9e7692236f12f17af4c5e9fe51dffe9d57b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v1_inventory_preload_history/read.go",
+      "sha256": "71b530d78d290f4826b66ed10c2f3a1bd83f7e76edc4ad212c5715ebff435abc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v1_inventory_preload_history/state.go",
+      "sha256": "9ebfc9936789a3a62468b55a5af5a1d8516d060acc51afd19546ba814434c5fd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_ea_column/datasource.go",
+      "sha256": "5cf34142423eb8aa3d58d6eeb0a640c8409a2437ac8532526bea6af8261520d6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_ea_column/model.go",
+      "sha256": "1458aa632ebbb0f452a2f222a9f923902a713c5618eb54eeea27738c0a9509cf",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_ea_column/read.go",
+      "sha256": "88d6c41fa3fa90da4200404415bf7427e1c8526c7fcaab40d9dae6c2ebc1449a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_ea_column/state.go",
+      "sha256": "cd3ca13454ab80d799871a8fada9e12c0e9013f3bbf79cead75f24ef629c656d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_history/datasource.go",
+      "sha256": "b33e28e4a4ef806dc7db6322e60f608e8a5108384135641086c6f5602005a824",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_history/model.go",
+      "sha256": "a6219f19651726f7b5a21abc250e1cc447e1ba08d7acad8fc9a2dd20104c0e07",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_history/read.go",
+      "sha256": "a4a68681d444adaa1f09a36252bd2aa69f86c87d2b076a23832f29a06ff9e568",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_history/state.go",
+      "sha256": "0872db347a55f5ee58bf3e02f365113eb97fa9b2ab49019ece4b13265bdc5b53",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_record/datasource.go",
+      "sha256": "5c26503e05ddc572700ab7242a9bca2a9074003362e46ca3b6e23108a4df2eca",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_record/datasource_acceptance_test.go",
+      "sha256": "eb3d8a503c2ba9bc0b341db61cd46322a5ef9c89de5eb6fe1997f1539cf60852",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_record/model.go",
+      "sha256": "640e9be62bba10267f73b5dd0c239529ff396851398d0a7d97e403189391e66d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_record/read.go",
+      "sha256": "e2639dc7d5ac72a6b77155c8e876a36f489b2cad1476bf81534880522f2223d7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_record/seed_helper_test.go",
+      "sha256": "d0b8416b4a9ae2c8e1a6e171ed71efeaba630117f4ec08a4529645a1d9f913d8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_record/state.go",
+      "sha256": "743e61284858b20df08987b5c6659ee32eb96f475ec2f44efd0b691cb6feb7e1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/inventory_preload/v7/v2_inventory_preload_record/testdata/datasource.tf",
+      "sha256": "6477bff945f0a23e5bde77380d90038ffcf36436434e57d85008d8780dab47fb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_connect/v7/v1_jamf_connect_config_profile/datasource.go",
+      "sha256": "a99b51a281a0746ef6c1a168cfcfecac7a1ba5051117e84cb793a41770c1cf98",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_connect/v7/v1_jamf_connect_config_profile/model.go",
+      "sha256": "89e2f7389228df3e1b4bb78b722e32e3a254211a2907908d64fa67f68cd1822f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_connect/v7/v1_jamf_connect_config_profile/read.go",
+      "sha256": "fcdf1b708fa00b7dad013aeafe5c6bc1f19ef4c3563c28d6fc781655919b1e55",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_connect/v7/v1_jamf_connect_config_profile/state.go",
+      "sha256": "141e4c151622613b2624c2096126fbeb362fb8027f34a4f543b858459402320f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_connect/v7/v1_jamf_connect_history/datasource.go",
+      "sha256": "92b558bd52efa9c1f7971dcc402f74c1ecc1ad36be94833e28977ab8819eb087",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_connect/v7/v1_jamf_connect_history/model.go",
+      "sha256": "3227923f6b0705a9f0b263622c86de43751f1733bba7959ec9c181fd1169c7df",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_connect/v7/v1_jamf_connect_history/read.go",
+      "sha256": "fe20deea06c6a93edad1102ac2f5d39beec8f41fb9113f3bdad0ad74920de374",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_connect/v7/v1_jamf_connect_history/state.go",
+      "sha256": "9ae6b3dbae37ddbf8920c6a6e4fcde704b742c8e0bdc89c502415e5cdd2489fc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_package/v7/v2_jamf_package/datasource.go",
+      "sha256": "a96c473fcd610f38707b85ee746213fa5b73d1291fa71efe06ab7a93e2c41115",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_package/v7/v2_jamf_package/model.go",
+      "sha256": "6fdb9baf8b7314cbedc75d21ee4580593770cba11fa94b15dfb752d27cc3aa20",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_package/v7/v2_jamf_package/read.go",
+      "sha256": "5301c56485fb346f7300e9b53b13d21d27806b77d7d240bacaad87824a670eaa",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_package/v7/v2_jamf_package/state.go",
+      "sha256": "71752752d59b9a5ba8ffc9717e176ffcd2d94852395a08b9b9ccd856ba475dee",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_pro_server_url_preview/v7/v1_jamf_pro_server_url_history/datasource.go",
+      "sha256": "a54835dd9be601e7f5c2f6a164b28a6443183d89837291096ecebb964b85a8c6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_pro_server_url_preview/v7/v1_jamf_pro_server_url_history/model.go",
+      "sha256": "77e1ea73a7a827b8b3a62882cb76d7e03b572ea0d009100f96f7dc683c09769e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_pro_server_url_preview/v7/v1_jamf_pro_server_url_history/read.go",
+      "sha256": "5222bc2d908a4b3780a2389f5d19b8f8c5fda16e6802dd52f86fd8ebb21cefec",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_pro_server_url_preview/v7/v1_jamf_pro_server_url_history/state.go",
+      "sha256": "429adcd6aba9c3d30048a303bf8960838cc8ff01a98c5635281952e93c9faf2f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_protect/v7/v1_jamf_protect_history/datasource.go",
+      "sha256": "302140fe7e2251501bf4aed4e07e18173035dfcf76639a61f46d99c8f053dd84",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_protect/v7/v1_jamf_protect_history/model.go",
+      "sha256": "6ce820d40735bb4c98ec96c26c9fe2503f75164ffaf5c21f06c1a71e8ab53261",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_protect/v7/v1_jamf_protect_history/read.go",
+      "sha256": "9f9439ccf57fe6781bebabecf1e002784a7c8bfe0df99f9116acb993ce316241",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_protect/v7/v1_jamf_protect_history/state.go",
+      "sha256": "e3a9bb3ed7548ffeae69b7ae98503bba8ded77245ebf3c8c4e03605c0a67e510",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_protect/v7/v1_jamf_protect_plan/datasource.go",
+      "sha256": "a2f58196f06e79062e3263adbc00855a508ec38e6c8934ba12fe63d7dd93b042",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_protect/v7/v1_jamf_protect_plan/model.go",
+      "sha256": "83b0296e43e87d98f790465528eed2ec77929ba4cf8115f7237c1526c0f74f6b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_protect/v7/v1_jamf_protect_plan/read.go",
+      "sha256": "2097c334f97cfdf5c72027df52d0a469b71fa73203949b559e953502e6a8d111",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/jamf_protect/v7/v1_jamf_protect_plan/state.go",
+      "sha256": "4806a49b42aeb1e99a79114a0c947bb19dc883d09d99f4192a25e433d1596ddb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ldap/v7/ldap_group/datasource.go",
+      "sha256": "9c25c07b282644aa4ccd38455eb197a355c75016224a1c060258e9247c88c1a1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ldap/v7/ldap_group/model.go",
+      "sha256": "d58055319c8d34d86755ff9eeffa72af872b3ec79577166dabfe97ae2df0f297",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ldap/v7/ldap_group/read.go",
+      "sha256": "9bfdaf9137c20b7ff24a2527e1c174568f684ddb494ea3d290195acd995c0c6c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ldap/v7/ldap_group/state.go",
+      "sha256": "6625ce5de88f4c5f36ddf59e42e9fc9d2e7c7ac967ae8f90b35039b40e960761",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ldap/v7/v1_ldap_group/datasource.go",
+      "sha256": "ac8b25a0a585369d1bc701709adf7cbcda6c77fb9e59bfb95c68b0924d06e5af",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ldap/v7/v1_ldap_group/model.go",
+      "sha256": "ff10f25c74f9fb211c9e9dd455f3185f11082b7b7659ef634874bbfd7800ee9e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ldap/v7/v1_ldap_group/read.go",
+      "sha256": "2a75edb63c505539d5164d43f0e0d46ec9432f3bcd047ded6c77c573979383ea",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/ldap/v7/v1_ldap_group/state.go",
+      "sha256": "f2017df041ac542721c465e2009eca145dd102894dd825bcc46cd9a897991ada",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/log_flushing/v7/v1_log_flushing/datasource.go",
+      "sha256": "1f489d0e82fac93466cf4916511e3d7f7fd5633419f29ce51abe06934a4d4cc8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/log_flushing/v7/v1_log_flushing/model.go",
+      "sha256": "cafef641e115d14e8d8138df7db846878a62c63453b82c0ddc398453c3016359",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/log_flushing/v7/v1_log_flushing/read.go",
+      "sha256": "1bc3c56a9f305c7acda98032a2dcb4b25ea0fb70a2fafcd67603f5a90afe4875",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/log_flushing/v7/v1_log_flushing/state.go",
+      "sha256": "89d848971511b93e0d576f39a7de8411c667bcae12b2be49992e93ea102af33e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/datasource.go",
+      "sha256": "91dfa61010980923978beca8522a9019e906f3d4d986347ca0bfa618247ba0e8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/datasource_acceptance_test.go",
+      "sha256": "7ece44281c2e37b5790d750f807ca3ca2ec9709cc8f3d6e03c22767ca3b24308",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/model.go",
+      "sha256": "d79d6db72f567627e0549f29002b4855f340d336c68b5f7a28c6c4ff0cac26ef",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/read.go",
+      "sha256": "a728385efca6b98ec4e7080927008272c2eb3182aa89646b1dece2893bf92564",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/seed_helper_test.go",
+      "sha256": "7ddb1dceece55ff1bdca6c158c4d3f0d4ade84d3ca2300024a553d966055805b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/state.go",
+      "sha256": "d341ebc20e38c2396639daf739ceae654092cddfc2424e498aea35a7ad0acedd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/testdata/datasource.tf",
+      "sha256": "746248516489b575c87eb7724fd79a07308ddd25f2a28c15fd1f81efd9838e42",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_prestages/v7/v2_mobile_device_prestage/datasource.go",
+      "sha256": "fefb1c15ad986798e6e72c23ba15a963c10918ca224dac602dd5ca36f2aec3eb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_prestages/v7/v2_mobile_device_prestage/model.go",
+      "sha256": "a3592cef1475ccc59aa57e642f266ce93335f68c7c31afcd8ba2765b5e27b547",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_prestages/v7/v2_mobile_device_prestage/read.go",
+      "sha256": "ae89d24cc857850626102e1b00d3c0812b3687589bd83657c0cb2ec6ac40b3bd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_prestages/v7/v2_mobile_device_prestage/state.go",
+      "sha256": "1c73fa3774b788e9a1fb074bf428385591b91c4fa04c2e66d4cc866715bb83cd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_prestages/v7/v3_mobile_device_prestage/datasource.go",
+      "sha256": "37067876324cc548c04c2dbd3b13119672a397c5de08ce3205345915ba658e70",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_prestages/v7/v3_mobile_device_prestage/model.go",
+      "sha256": "234101932b217b7d76b237236c1d9b10d2123be02977a1caeab810476da946e9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_prestages/v7/v3_mobile_device_prestage/read.go",
+      "sha256": "4501685ffa45b3a95d1e307bb8d66e66f77f6470830d213d373910e90df9eb3c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_device_prestages/v7/v3_mobile_device_prestage/state.go",
+      "sha256": "16c3750de7b027af3ff76ac32baea30f8dc08eacdf999ffb12f837f2c020491f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_devices/v7/v2_mobile_device/datasource.go",
+      "sha256": "68232fa4d66e8985fdd166c9152a1a25c10a8151e69bab61553ac40bf8395526",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_devices/v7/v2_mobile_device/model.go",
+      "sha256": "0013110ff073b952bd3ab0c53b63909b9050d36ba52736a3006e45a2a6c32e52",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_devices/v7/v2_mobile_device/read.go",
+      "sha256": "21c30ecba15c4ac43f34154aa00b7a35b8fd374f1557e9bb9d58c7912cafed0a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/mobile_devices/v7/v2_mobile_device/state.go",
+      "sha256": "24af71a8c2eca635f54c463d73edf9eff297074b963871bb3946db5acd8f9d2d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding/datasource.go",
+      "sha256": "a81c004737bf76b61138a20d222e0293654895be6a01246cea64a1f08a186439",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding/model.go",
+      "sha256": "b55040515daa1fb343df2375e665eac67132010d5fe6dba520975e083470fc4f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding/read.go",
+      "sha256": "fed48d130b10e4168acec58ae165c15d6442a96a892247ff3d884197d79fc552",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding/state.go",
+      "sha256": "94ac842107feae8335c651a7e06323272b7d7affb2dcd262c0d18947cd1847fc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_app/datasource.go",
+      "sha256": "df0edff1e6ca7c211bcefa4a2db557c336ea110f1fee8213917f2f26eea3c81f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_app/model.go",
+      "sha256": "a04651ef3c774dffba958f644498ceb8a12c6e41fdf49ebd49e326de9ffdd6c2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_app/read.go",
+      "sha256": "2dfd75ec055f721cacd115ff4e72f8b032197bdea66ade4946be26d480129f8a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_app/state.go",
+      "sha256": "ff4497da1a1d427de9231f1c23b2a2e6ef00ce0d2a914621010c992ab34d04a5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_configuration_profile/datasource.go",
+      "sha256": "2a4a7a6e74084aa2d650efd8b121bebd7f1383663da9dbaeff9e159f74a8c6bb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_configuration_profile/model.go",
+      "sha256": "5706e26424eb746557d69054fdc44f45e6aca2f6d86ae19efa24955052b19733",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_configuration_profile/read.go",
+      "sha256": "c5502acaaea41e949ee3addd99bf0c0e432480cbbcf0ffd6550f7413cd350dee",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_configuration_profile/state.go",
+      "sha256": "1520aaf8c941e62fd24cd92bf558bcec7b1ac08a4f972e2b46e06587387448d7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_policy/datasource.go",
+      "sha256": "f6866303225a76c00b14cad3b70004fddcc21a2584adcaeefdc50a42017cc1b3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_policy/model.go",
+      "sha256": "13be5be3d0845b1335afbb70cb2328067e58ef9e40b5d5e3788a7fcaf2044d90",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_policy/read.go",
+      "sha256": "6116d35cecdeda55905031aa2f567d7d25bba3b2e4d067d1e13928d475683fca",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_eligible_policy/state.go",
+      "sha256": "5a85b8b4fc0537018591721bfc09aefda2f52c2bb32531f9c8044379dca09014",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_history/datasource.go",
+      "sha256": "7cbb0a31c080ee948fde54a7db799b4916d124cf5d00cc06438fe6e9c4572ea8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_history/model.go",
+      "sha256": "3242e6dcaca4d34e850e2982667116cab22be4e11c517ae482fd4fd322016457",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_history/read.go",
+      "sha256": "fdaf6560abbeb9329d658891e122bc1256f6a5460a68a235b23fa70e44e99ae5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/onboarding/v7/v1_onboarding_history/state.go",
+      "sha256": "d2e6841e0f3de75194a5b7d7b4b69f6cd22bfa005e77a8e1290c680e2a947e82",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/packages/v7/v1_package/datasource.go",
+      "sha256": "6349f757f8b8632dd47f3097e6dce8a7e1bfd6f3cef64f386e82f5e0975fe856",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/packages/v7/v1_package/model.go",
+      "sha256": "3a2f557fdc65890cd22d1361f63eff8de5c45becde099a29bb09d2404a917a6b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/packages/v7/v1_package/read.go",
+      "sha256": "d6d32f08969656b33ec4322304e7e20f9ee6fb28bcfc9137ed069e163532fd87",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/packages/v7/v1_package/state.go",
+      "sha256": "21985fbf49abb2a87d5489be13ceef30ff3ae1c1560cdd61d12a8bb0a6688c43",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/parent_app_preview/v7/v1_parent_app/datasource.go",
+      "sha256": "e669f17fb5c0b0e535eacd873357f5084e81419fa80d40c8a9bb2be1e9dd5e35",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/parent_app_preview/v7/v1_parent_app/model.go",
+      "sha256": "dc978de9114f5c1b75f0da81e5bd49e3361f471a5912563df3a418fd81473570",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/parent_app_preview/v7/v1_parent_app/read.go",
+      "sha256": "ccb0aa0bb9c9528bef885559c969613570bddebc84aaf2098c68923a0d3e51d8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/parent_app_preview/v7/v1_parent_app/state.go",
+      "sha256": "558775ddc31b9d589311edba32c46c3c4ae591bd8d0ee503345499e763a2ec4b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/parent_app_preview/v7/v1_parent_app_history/datasource.go",
+      "sha256": "39957ca16069dcab52b713408cd36b081ce143627238959d58f63c3fb50f51a8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/parent_app_preview/v7/v1_parent_app_history/model.go",
+      "sha256": "e692fc07ab8c6c1ee5457ef951179e35d4cc3b085ebdb38e00d45de09db02857",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/parent_app_preview/v7/v1_parent_app_history/read.go",
+      "sha256": "b8025ae418d56f3bdd2eb95a949dca9092d85b468ff6412c15488817833b1c61",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/parent_app_preview/v7/v1_parent_app_history/state.go",
+      "sha256": "a73e4d879616a7c1a9642f717d42167686fe699e97faf312885fda6e7e7355bd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/patch_policies/v7/v2_patch_policies_policy_detail/datasource.go",
+      "sha256": "bd7c23f2d7602cda8dfe6babf20dfa1c276e504a83b497f3bc7584d42b8f03a5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/patch_policies/v7/v2_patch_policies_policy_detail/model.go",
+      "sha256": "fbc27ae7d01eb8cbea2122768d4c94fd65b7ea563daa181f7acc74efb08b6eb8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/patch_policies/v7/v2_patch_policies_policy_detail/read.go",
+      "sha256": "c4e7ce0849c93d6bf67ee3f6e0a2168f86ed0d9f362efd6ebf184606a22af855",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/patch_policies/v7/v2_patch_policies_policy_detail/state.go",
+      "sha256": "9ef7c846df46493db9b3c1751264c03b7a200814dcab72984fc275736bcebfa2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/patch_policies/v7/v2_patch_policy/datasource.go",
+      "sha256": "64de28bbdb9486ae90e6e4cfbf53941f24b82576bafb0020e5db5253ef71de5f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/patch_policies/v7/v2_patch_policy/model.go",
+      "sha256": "c292ebc92bc41f1718460398daa7ef37702b7b8a94ced44e7c49df5a1265fba1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/patch_policies/v7/v2_patch_policy/read.go",
+      "sha256": "5b86f67f7cb4c4b751fddb65972ac2bb5541acf22ae48e9d47fd45a627de52c4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/patch_policies/v7/v2_patch_policy/state.go",
+      "sha256": "0e2afbad04611965720b7c36fed80bc3a86b559115d3e36df2ce4bff19f39589",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/re_enrollment_preview/v7/v1_reenrollment_history/datasource.go",
+      "sha256": "bdfacd7a53a4950763cc5f9bcd4d13bbce54bfbcc4163c3bb259d93f4ae4d1d0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/re_enrollment_preview/v7/v1_reenrollment_history/model.go",
+      "sha256": "4904bf0869094b1186111e0f734a5277d7e3170a0b0f02a0c340814ea985f2f8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/re_enrollment_preview/v7/v1_reenrollment_history/read.go",
+      "sha256": "95ff98b060d532707731adc279fd301948264aa20c5d3eced3ab76b48704231f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/re_enrollment_preview/v7/v1_reenrollment_history/state.go",
+      "sha256": "04bedc38457d33d0fc311e5e1675c5d590497f602feff815c4b2e0c8d7b7801b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/remote_administration/v7/preview_remote_administration_configuration/datasource.go",
+      "sha256": "3cc15aa0ab854efda1308b4a22b9c2276becf9bb7e8f145656f2627e974a248f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/remote_administration/v7/preview_remote_administration_configuration/model.go",
+      "sha256": "b0178b3ee96a54c577a3fac804645f25e8fe95289bfc2a965db7dc32d3bda4d6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/remote_administration/v7/preview_remote_administration_configuration/read.go",
+      "sha256": "f998d295641fe56d159f62c0a59bdc5593d0aa584a472fe1da119989d91818fc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/remote_administration/v7/preview_remote_administration_configuration/state.go",
+      "sha256": "a19a03b495386387b1ceaa6c5cf74eaa239d8311727af0328397aeafa3b090c0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/return_to_service/v7/v1_return_to_service/datasource.go",
+      "sha256": "9dabff2c746066254b4f363df0c739a73ee9528a186ec397154dc695da9467ef",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/return_to_service/v7/v1_return_to_service/model.go",
+      "sha256": "3fae5622bc1a45f5a29d2db1073832fd2860ac8f7b3d3d7be183b121a9509eff",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/return_to_service/v7/v1_return_to_service/read.go",
+      "sha256": "2f771157da191d5c4714abd754408a852bfac0245a3e840f86969cd6be361442",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/return_to_service/v7/v1_return_to_service/state.go",
+      "sha256": "78ed1b7a551babc153ed47a26498fe121296f1e2b8fe7ef5d5162a66269c4ebe",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/scripts/v7/v1_script/datasource.go",
+      "sha256": "600d8c8b20fed733c5a6e68ea03bb427eadda2638330ac169deb15dcc99ec600",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/scripts/v7/v1_script/datasource_acceptance_test.go",
+      "sha256": "3136b1186359c8989ecfcdfc961267d9cb9bed5948e16a4035539a0eb0f9760d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/scripts/v7/v1_script/model.go",
+      "sha256": "ea5588a62ab40eea90c9d142a81a7edf10e0c34295bdb79e97d4b45e4647ef83",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/scripts/v7/v1_script/read.go",
+      "sha256": "d1ede11e4eef7a2e720fe17fb8159d38ef454e1e82e50617f638004936fcca8f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/scripts/v7/v1_script/seed_helper_test.go",
+      "sha256": "cfda7d23216255354edd2bdb50d31a0b659a4446d9dd3510574a856c809e51a9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/scripts/v7/v1_script/state.go",
+      "sha256": "8fe8c8eff1ee6f3b80f8bd31ef9901b21bcca18886a583f5efb05c8a0471e4bd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/scripts/v7/v1_script/testdata/datasource.tf",
+      "sha256": "835600fa1e45e341379fbfabcaf6e1780f1b145215ca9586e7eaf1b2ca57af4a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service/v7/v1_self_service_settings_history/datasource.go",
+      "sha256": "f7e2b71c6005a35ed95fcb2e28fe00308ee328865e31f6f339d0c4ab1daf79d1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service/v7/v1_self_service_settings_history/model.go",
+      "sha256": "edadc40eeee296cf7f245a69807ddd88e46c5ad529c2f7353c943bddc1b194ec",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service/v7/v1_self_service_settings_history/read.go",
+      "sha256": "32bd1389235917ebb5980b54dd4211f9e4451f010bcf9eedf4dc8e734134084f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service/v7/v1_self_service_settings_history/state.go",
+      "sha256": "324e8b99700aa1067e7f59319b8488e3ef01f7c299877ad5dfb35444748ac32c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_ios/v7/v1_self_service_branding_io/datasource.go",
+      "sha256": "32453853b74c621a652ffe3ef4786e9141a13b5fba8e729917a95f4f58de5695",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_ios/v7/v1_self_service_branding_io/datasource_acceptance_test.go",
+      "sha256": "3bd2a4309713a4dc9ff10297f9a364d01da26f9b430a057d37d40b37587de410",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_ios/v7/v1_self_service_branding_io/model.go",
+      "sha256": "07df2e43df81b72ac65f62f6038d14b9923dd79c40ade6132c652c1b389d46c9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_ios/v7/v1_self_service_branding_io/read.go",
+      "sha256": "ee1b6a3e951b0c4082786b331a25429d3883172b79748d4c17abb6ed2feaecf9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_ios/v7/v1_self_service_branding_io/seed_helper_test.go",
+      "sha256": "f2df538ddc7ba9f7a79730bc907d40d2efd25a965eb08dad337d056495194ea0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_ios/v7/v1_self_service_branding_io/state.go",
+      "sha256": "05595eb550824a4e1ee139547578df1f7f069c6724c19c8500b374c273c9c286",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_ios/v7/v1_self_service_branding_io/testdata/datasource.tf",
+      "sha256": "024c002460c0e3bd4e8a585a7e64a1f6524afdba8e6af0b8fbe5f563a07abc29",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_macos/v7/v1_self_service_branding_maco/datasource.go",
+      "sha256": "9f8bd006891fe43a1e0272aaab798a7f8c4b11792b1a0f8195674cdb1f0a56c5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_macos/v7/v1_self_service_branding_maco/model.go",
+      "sha256": "c3a0375ff9b76a202acd16dcaf29676fc682bbb6dbb749f944640c2c0567ef77",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_macos/v7/v1_self_service_branding_maco/read.go",
+      "sha256": "9469a32b7c771b19176b910748f9bbdc12d4c0ef84cc62e7d57d649d43cb7af5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/self_service_branding_macos/v7/v1_self_service_branding_maco/state.go",
+      "sha256": "dc193535fba04e404a8366e207536fbac8051bc5b21862769f239c7b1e873f5d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/service_discovery_enrollment/v7/v1_service_discovery_enrollment_well_known_setting/datasource.go",
+      "sha256": "a69b4237b83de5b32f96e8d7ba31d7c0ee083a8aacf26933a308a1446a59d8b7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/service_discovery_enrollment/v7/v1_service_discovery_enrollment_well_known_setting/model.go",
+      "sha256": "a8a840efa786d64da6b7d06d2c59a048b94640ede1cfcfcaf9edea2999660dac",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/service_discovery_enrollment/v7/v1_service_discovery_enrollment_well_known_setting/read.go",
+      "sha256": "57a5af656a2b69ac8017b6fc71ac27c33f77f7e0fcb092203ec5819d9c098290",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/service_discovery_enrollment/v7/v1_service_discovery_enrollment_well_known_setting/state.go",
+      "sha256": "b7c04e9daf4b87a7524105207574ecc67a0af942c9cbda6b896bbf2fa3752a32",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/smtp_server/v7/v1_smtp_server_history/datasource.go",
+      "sha256": "c31c4a684e002d0c3a3b880501b55d1f23471d5d7cedde597c021bbb946070a6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/smtp_server/v7/v1_smtp_server_history/model.go",
+      "sha256": "d127261845f78f94adad1ae6b8fce9896fc4714d2785313c46615b5711dadaee",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/smtp_server/v7/v1_smtp_server_history/read.go",
+      "sha256": "4209dff598e31498623c39a6c03b977ee14e2e439edca7b5ee7e02dcb30b8014",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/smtp_server/v7/v1_smtp_server_history/state.go",
+      "sha256": "9b196779d117355e4a6480483aacead8fe1443e1ad8b995ad09d3d141cfdb41d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/sso_settings/v7/v3_sso_dependency/datasource.go",
+      "sha256": "be946b368bcb38266b9af534ae6f65e89ead76d169510a994d7ef7cb0fce7f54",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/sso_settings/v7/v3_sso_dependency/model.go",
+      "sha256": "041a874174333fc3c5d727f1456c113751b7fe47f70d0617429c5d9b879d017e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/sso_settings/v7/v3_sso_dependency/read.go",
+      "sha256": "7a2984a7eda06dcf968d19a77fafea5d929128cbcf1c51c7979ff0e0d8ccfc7d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/sso_settings/v7/v3_sso_dependency/state.go",
+      "sha256": "97d736b4820507e743b7f7682d3b010a2fb6df7a7bc109992596096af777997e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/sso_settings/v7/v3_sso_history/datasource.go",
+      "sha256": "74710c4ed36de2d97393cb26050af9e56464a7f6b534b9ec113d556633ce9eb4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/sso_settings/v7/v3_sso_history/model.go",
+      "sha256": "323495c69fd9d730b6ca68abcf4f9adc658c349b2972b2c824b0eedaf1348df3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/sso_settings/v7/v3_sso_history/read.go",
+      "sha256": "38e101b78681e8089173b9950933ccd9e02c2802b9a7614b6150460a213f8c0a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/sso_settings/v7/v3_sso_history/state.go",
+      "sha256": "789db7cfdfd0adf46649fa626701fd80cd2bfcad3722f3bd935ee1c6bf6fc004",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/teacher_app/v7/v1_teacher_app/datasource.go",
+      "sha256": "d3456f4cdc71d394dd29676b46b157d58d0f95c31d950fd3d8946917a6104fc5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/teacher_app/v7/v1_teacher_app/model.go",
+      "sha256": "aebc7305c576e2f3b0df4c0a268922da7be9c809c9cd23fdeb78c2028ff0c3c2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/teacher_app/v7/v1_teacher_app/read.go",
+      "sha256": "fafce9e38b0907d11bf367d386be3dc6faf903b8979cbec60c1cf297fefa041f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/teacher_app/v7/v1_teacher_app/state.go",
+      "sha256": "d1cfe2b116e8fa244148ede97338152cc693b7f03ebe55b250354422e894ca5e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/teacher_app/v7/v1_teacher_app_history/datasource.go",
+      "sha256": "f4c4be9d3765a860b10226a86372ccb0f74c94e1dfa6f61df7fbd7599f3c56d6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/teacher_app/v7/v1_teacher_app_history/model.go",
+      "sha256": "d5e2ce532d78cdc15bd38952b6f35d2b52767fc20f4c6d722a7d5224c39c5ef5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/teacher_app/v7/v1_teacher_app_history/read.go",
+      "sha256": "2b417be02c6734d2ac4b217dd5deea04091ec5e50f960c8e1565f25160254035",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/teacher_app/v7/v1_teacher_app_history/state.go",
+      "sha256": "144f60fd5ee1449d5ab40a1a4d8090b148a2eac0731e9f9eada175245cbb7236",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/users/v7/v1_user/datasource.go",
+      "sha256": "39efd0e188ef415807db6271189e2312d94fa85ef90865d7c45c4f8996f66b89",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/users/v7/v1_user/model.go",
+      "sha256": "2bc8249be33147a9f8a856bf65562b6f51a14da954fa326a9364c28bdd16397d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/users/v7/v1_user/read.go",
+      "sha256": "4051249750721db440755be6b416508d44dc519c129dfc791452b1fa369f14d5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/users/v7/v1_user/state.go",
+      "sha256": "42b9b16627aa88b7d6cd5ef7417cf5892b19133bfb6bb404693b9140f314416e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_locations/v7/v1_volume_purchasing_location/datasource.go",
+      "sha256": "49342272aa63b9c3f7410c145e4d4684973500289f91e703d830a2e4d52b635f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_locations/v7/v1_volume_purchasing_location/model.go",
+      "sha256": "6d5f0857db1dc6c6ad88783702395b6e74ac844c24f6ad277836957b165d41ef",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_locations/v7/v1_volume_purchasing_location/read.go",
+      "sha256": "bd721877e3f790a374ad73f0c1e3c50c1c0d1349105a5e30033c0f40d576247a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_locations/v7/v1_volume_purchasing_location/state.go",
+      "sha256": "be471b2f6d1b08069a46ea89a5e79a792656615b263cbafe7a210ca2c1782598",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/datasource.go",
+      "sha256": "f2baaeb41ecab3eb9b96e61cbfd813debe578d954e401660a395fa80eb84c9fa",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/datasource_acceptance_test.go",
+      "sha256": "9e424eb660529d1aebc809e23edd605f8db5defbeb363fc9ff6d3dfd8f9fde7c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/model.go",
+      "sha256": "802ade26829c33f973a57760fdfdb92572eecdfc9f5fc3c47e19b8c999e05829",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/read.go",
+      "sha256": "2f91dac746f088cc27e135e6764a161fcfbedf6226e7ea9008a0a954c6621e7c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/seed_helper_test.go",
+      "sha256": "2d741ac46a9eb358c5745ac1b93a82e51ad12fb282a55d56882bd5020dfeec9b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/state.go",
+      "sha256": "6cf4f44639a1455ff6010f26f86ed21f194c098eb5e213beb20665c27ffb1ccd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/datasources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/testdata/datasource.tf",
+      "sha256": "848be5f538dd09b07a818e1487ccbbfb574da09d64fa1c028bc16ef174357992",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/accounts/v7/v1_account/construct.go",
+      "sha256": "de188b469181fd68b67cd9f027f446d99e56fc33a60cf2567a4ecec03093570d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/accounts/v7/v1_account/crud.go",
+      "sha256": "e820f4ae51c904d6e19db4d558ae48045b59b25f07c54a96258edabf8440cc0b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/accounts/v7/v1_account/model.go",
+      "sha256": "0eaf596256425cae1dcc5fa6752f09a326ae5d2b2d748548ba84b5c5bcf2360d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/accounts/v7/v1_account/resource.go",
+      "sha256": "b1f972769645f7a5aac1174eaccdb6b69ff5c48b37579ae7134bb3034a287379",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/accounts/v7/v1_account/state.go",
+      "sha256": "cdca575d4de221a742253a43dbac927bba9f6f5f2b960b340247b150d74c0f7f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/accounts/v7/v1_account/test_helper_test.go",
+      "sha256": "61a283dbcbd76e506cc7b45249b4e2e6d5c8f9ff1b88ab9d0aed5e6f1f325842",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/accounts/v7/v1_account/testdata/maximal.tf",
+      "sha256": "ab7b31cc9cf57460e94e3c4a6b93d92727d39b14ab460dd99acbdeedc44eab4b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/construct.go",
+      "sha256": "a89f7bb1e405671a4abc3876e447dcd6425dc52747e27e3b3f964e240394d712",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/crud.go",
+      "sha256": "4f4ac88f69583523a6444212831f5f4fc7be9790ec4dec1bb376b04160efad3d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/model.go",
+      "sha256": "7d9f774e4939f54e0cea52e782767390ca376433c19837593fea9524beeefb81",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/resource.go",
+      "sha256": "8955ab9c94a736e205c00d9e25c9ae26c3b3d86a607ad087e946f572f38fb685",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/resource_acceptance_test.go",
+      "sha256": "02012342d62664a2d384a38d2fbfb755e6e04f82b0b55c8a066046c6413612e8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/state.go",
+      "sha256": "dda7abe12f903a0522dd6100599c7676fefa97cf45bbb2271dd0ee4b50b8ec17",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/test_helper_test.go",
+      "sha256": "dfadc77bf36ea8fc48819543434df88e19de5b7492f04bed9fae1b193061cf5f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/testdata/maximal.tf",
+      "sha256": "3a096e9df92ce4e420c2345a78c20e4bb662ff0cd4d256f80f86590ba1b50c18",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_mobile_device_searches/v7/v1_advanced_mobile_device_search/testdata/minimal.tf",
+      "sha256": "cd2eb1a000dab3315245c148adee9abfb3af90417f3e8684eb3dcf452e238a66",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_user_content_searches/v7/v1_advanced_user_content_search/construct.go",
+      "sha256": "5a156aebc3bb62fcc25f64fbf8c8cb1c2785456c449f5dbbf9534212cb2362f9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_user_content_searches/v7/v1_advanced_user_content_search/crud.go",
+      "sha256": "3c4d8794aa8dc6794156aa38b02eda0bdb90d36cf9f42d90dd5a5dede1abd0df",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_user_content_searches/v7/v1_advanced_user_content_search/model.go",
+      "sha256": "56510ab97e1a6812c777a693cf43f8a04c095fda45b78e71a93058f4e28f9d1b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_user_content_searches/v7/v1_advanced_user_content_search/resource.go",
+      "sha256": "aea1a6ae34984ba59c34a3486117f8e978dd4cb57ac717d981e14e8098cb2bd3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_user_content_searches/v7/v1_advanced_user_content_search/resource_acceptance_test.go",
+      "sha256": "b511e19fbb989c3d127150b631ba3cc4085afe91dafb63462d4396197835e654",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_user_content_searches/v7/v1_advanced_user_content_search/state.go",
+      "sha256": "6f61fa71079d5c123ed56a1815b63d115c1314d50f5617ffff056364b09697c3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_user_content_searches/v7/v1_advanced_user_content_search/test_helper_test.go",
+      "sha256": "057901826e2b0a5449b790ea79e17e969cd2951dd097515326b9c53bbe7376ce",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_user_content_searches/v7/v1_advanced_user_content_search/testdata/maximal.tf",
+      "sha256": "6e936044ad4cf2f855a9b849f4443e1dcaca5ba51f3e79e31c89c066327b7644",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/advanced_user_content_searches/v7/v1_advanced_user_content_search/testdata/minimal.tf",
+      "sha256": "0773c1849190a8a31907fde5c1e08cda2aeff70300a9694fb770f4775874700b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_integrations/v7/v1_api_integration/construct.go",
+      "sha256": "4bea48da4b345266d7dd6b476e8246235bd7d9b2406097e1f4281743fc1198cc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_integrations/v7/v1_api_integration/crud.go",
+      "sha256": "09b364de2543c4c69978978493d997b0f8c8958242a23b5bc9f3c05c7f2d8940",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_integrations/v7/v1_api_integration/model.go",
+      "sha256": "5051564fe9c7e740d3213c65fee27431586ad641eb5b5319f78836978e76616c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_integrations/v7/v1_api_integration/resource.go",
+      "sha256": "d41154839341259943a473a01b20ef2ba2652df1f5a11fbb99d817d1e0c91319",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_integrations/v7/v1_api_integration/resource_acceptance_test.go",
+      "sha256": "4dba07967d291cedab900719ed9bc7b0be15bf7c112b7c70bda60510979b734b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_integrations/v7/v1_api_integration/state.go",
+      "sha256": "81e4332f2d261fe350cc381308b5c493347b78575298ac4b2f02d14ab9e67311",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_integrations/v7/v1_api_integration/test_helper_test.go",
+      "sha256": "23dbb07daf8d7e6fcb1ec383f3aaedd590c81f5a1cd27af451f7d5a173ae52a7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_integrations/v7/v1_api_integration/testdata/maximal.tf",
+      "sha256": "92ba831d83a25c80d6b940194699f48cccbf1b589800deb4b78b5ba6d2f57f60",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_integrations/v7/v1_api_integration/testdata/minimal.tf",
+      "sha256": "667b281be5faf7a82ad4b84349dab26abde0c79c445920305662a3717844e543",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_roles/v7/v1_api_role/construct.go",
+      "sha256": "8f515c09d3a770b147fb1bcb335af3a86e0b87fda077079090c719eccb592a9b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_roles/v7/v1_api_role/crud.go",
+      "sha256": "1592ab76e2b3cdcaa16443da67b58be4310b755bdee46b47d097691c07b03976",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_roles/v7/v1_api_role/model.go",
+      "sha256": "65907469c3c148d089a9e3260f6f4ef2c7c3f1b8e0e9cafd86e61cdc4bbc116d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_roles/v7/v1_api_role/resource.go",
+      "sha256": "7a03fe273e35b623cf2c828bf82280e840274bd98b06442d9f7d7cbe223386c1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_roles/v7/v1_api_role/resource_acceptance_test.go",
+      "sha256": "be3300b0cf20530cfcd94a5d9f40fc8fcb7aa2eece8d2e24286e7ea62b00613e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_roles/v7/v1_api_role/state.go",
+      "sha256": "cfcdfb193ea3bedf833d06640356a33cc88b36c293c4140ed879ce41bf4f5d9d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_roles/v7/v1_api_role/test_helper_test.go",
+      "sha256": "dd52b3e820547cc3bbb1d1af5a5791749f42629b8c6e3fc433a63d4041351c0d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_roles/v7/v1_api_role/testdata/maximal.tf",
+      "sha256": "6c4f749822776bbadbb42656d82ff537fb2fba82287dce003645f217c253cbfb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/api_roles/v7/v1_api_role/testdata/minimal.tf",
+      "sha256": "7bc904b6af1acad617ce98dfef6734d7f1f699b802a5cfc552762d760d083d7a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/buildings/v7/v1_building/construct.go",
+      "sha256": "745e52a1a4a246d587de0f05dfaa7025f70bfc5c2c00bdddc4ed1a4810b94aba",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/buildings/v7/v1_building/crud.go",
+      "sha256": "40ac798fdf81b6905348560325345a173c036c9e563b22ea9b569b5aa56201e3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/buildings/v7/v1_building/model.go",
+      "sha256": "d7cc1191de253f4f1258de06ed6290745e8a1f748154cd283f46e4beee6ace55",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/buildings/v7/v1_building/resource.go",
+      "sha256": "843bb230f3189f282762c0c7427d2f74cb12cd14dff3315a878912c2c0184af8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/buildings/v7/v1_building/resource_acceptance_test.go",
+      "sha256": "a12d9845df95db59239bd8f4731cdd1bfb7d38a1f53501f0276d21e907e159a5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/buildings/v7/v1_building/state.go",
+      "sha256": "aed0985362ae532bea168db28dd3d328cc7c4a5178c48de560d4d019f677b195",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/buildings/v7/v1_building/test_helper_test.go",
+      "sha256": "e780d7d77d5024a0715c57c85bc42910c0093ad97d7e2a797c15ef4fb64adfd5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/buildings/v7/v1_building/testdata/maximal.tf",
+      "sha256": "c20c0422cae2545a6c115124800771c0166c096cf020b32c7a433e11a3c53a7d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/buildings/v7/v1_building/testdata/minimal.tf",
+      "sha256": "ca9013e95e4f2345b027f06e29e2bdb65adb1524d909379cda866229e56511f5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/categories/v7/v1_category/construct.go",
+      "sha256": "fb1cbf661d60c800f4327b43235d98e6ebb5bf6aa1b14a0e613504255235e142",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/categories/v7/v1_category/crud.go",
+      "sha256": "2cd572a76a7e5df4786912a81cc5b5a790a5c46b9c74fc4642fb727116cbdf8c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/categories/v7/v1_category/model.go",
+      "sha256": "cc334abb70614a2f6df569c5e329fa679e40ae59bf537fc701648e93000c1a12",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/categories/v7/v1_category/resource.go",
+      "sha256": "1aeed418a723ada51f49f3e21475d521678dbf9bb8f7672871d2cf1f1fa9935d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/categories/v7/v1_category/resource_acceptance_test.go",
+      "sha256": "2d4dbd0bbb3d0e1d7689fe0152d543fb2e1b3d5ce8cc33736f3e3e40eca1031b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/categories/v7/v1_category/state.go",
+      "sha256": "9b8718b2dc292a8944deaabe0b160909d7848cefc935ac06d1d2fe4fb8cf2363",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/categories/v7/v1_category/test_helper_test.go",
+      "sha256": "34aeb94e57765f39a1cd2323d7edc39c79efa0ee681ecce1b4337f6040d3d5ab",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/categories/v7/v1_category/testdata/maximal.tf",
+      "sha256": "9e2441b3b1b32031c00e432b7f5fbdfa6091cefec8e5cf1f6d0bf1d1cc4271a3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/categories/v7/v1_category/testdata/minimal.tf",
+      "sha256": "652acfbb924941dd82fc33098a3799d1f52cb2d9be7487db3139eb12312e0cd7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_extension_attributes/v7/v1_computer_extension_attribute/construct.go",
+      "sha256": "7732b3cc0cf6c995e4303dd056da135b6a03d9871467de67693782df985cea98",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_extension_attributes/v7/v1_computer_extension_attribute/crud.go",
+      "sha256": "af73c661688c7a859824cb6999cc9da9c1645ac541264aca058b7156ba0806d1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_extension_attributes/v7/v1_computer_extension_attribute/model.go",
+      "sha256": "1192185551b6bdbf95ad9d6d88b7266d856ca842e953ab3c2b4a6313b185ae5b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_extension_attributes/v7/v1_computer_extension_attribute/resource.go",
+      "sha256": "5b3fb890c28604ac836fa4ac0a3782da86cca8f6f5e400941f57b777fdff3732",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_extension_attributes/v7/v1_computer_extension_attribute/resource_acceptance_test.go",
+      "sha256": "41c27a5ce8ee87d8e5513f4c1eee934e6e5bd18b7b7303e892cb2b0d7d8abfa1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_extension_attributes/v7/v1_computer_extension_attribute/state.go",
+      "sha256": "dd522bd9a7bf0ea32301cf89331bb66cbee25bd9e1a62ec80611ac96efa9b920",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_extension_attributes/v7/v1_computer_extension_attribute/test_helper_test.go",
+      "sha256": "f3bf4275cc6f406f5bc62d79172f05c13ad060c1874401b5ef2a0c5047c1e82b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_extension_attributes/v7/v1_computer_extension_attribute/testdata/maximal.tf",
+      "sha256": "26035aabc1d8e493ee63aae288ccf35132a19d4fb6044be8fe48f6a4987ab30a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_extension_attributes/v7/v1_computer_extension_attribute/testdata/minimal.tf",
+      "sha256": "5da0a526e1c448877d9102583e911aa91bbc2a4c89ad06c266055a417b5abdbd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_smart_group/construct.go",
+      "sha256": "587f68a728b4eaa9a7b3eab281916a0bd1a93aa71332188d98d930d315ac9050",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_smart_group/crud.go",
+      "sha256": "273c6d6bc6f01c8abde529d224a7ded8ae5b58927a85dda396922ad9ec8ec83f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_smart_group/model.go",
+      "sha256": "72eb0777e31a5858faaa1d3f1a07a3fa250aa7d29d13dfd1b16febfba92d3d24",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_smart_group/resource.go",
+      "sha256": "3910b763f9b5229880098db8e742b806b3421c5fc31525355474603598081aa9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_smart_group/resource_acceptance_test.go",
+      "sha256": "dbbc4bd40ba27db2a28ed763a8c897990acbc18bc3efdb933f75a8d26f5876b2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_smart_group/state.go",
+      "sha256": "ffb78059ca0103b858ca916123fdfa6b4583b540698cbc23daa1bbc18a826d18",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_smart_group/test_helper_test.go",
+      "sha256": "52776a868595b7cf28cea0e3efd5e31e2fbec48f2f7f02b5e480721e3622a237",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_smart_group/testdata/maximal.tf",
+      "sha256": "48e3048f48e5e50fce794d9c537e170c6e4a8534f4afc5a12744530960a9792f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_smart_group/testdata/minimal.tf",
+      "sha256": "580e396bbccb6dfe6388f57d817a7aa167dda94f0227012f24e5912d8740993c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_static_group/construct.go",
+      "sha256": "c3d7caf249e03237ff180664bbbee7a4dfc8921ef251703533f335318d87bade",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_static_group/crud.go",
+      "sha256": "1bb2301a1afb5ef70665fec7cced8e5de63b2b16e05e660c2b20907a09d8a58e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_static_group/model.go",
+      "sha256": "358030c827c4a91f77f84801552e80daa3d447b5212ae25d32038f7382efadd9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_static_group/resource.go",
+      "sha256": "3181e3696136548f04d908705ca655bd798e2557903c799a525cc82de64dedbc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_static_group/resource_acceptance_test.go",
+      "sha256": "bc7a892e3513d087910db64b23757ed1409b2f3ba3b360ad1aa060896c0d475d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_static_group/state.go",
+      "sha256": "1f6dc75d7c03a7528251db87ca2b8ccb8a7faefc505498e63ebcb2e2036a61cb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_static_group/test_helper_test.go",
+      "sha256": "a0ecf7551e6c44bde9110eaed553421ad49bd4bc206702c9b589ced8a5d5ca5b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_static_group/testdata/maximal.tf",
+      "sha256": "d1af78b07d5851928841aef0389f630e96144a5bca987f776908ccedbc7528e1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v2_computer_groups_static_group/testdata/minimal.tf",
+      "sha256": "6008b5fc31d4253871728fac11b036c387b95cb2404bf553bd008f00ac7b3aa8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_smart_group/construct.go",
+      "sha256": "5613005adff82f3f0910d63b3f473b80e131558cf6dfaead75671b893ee4cafa",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_smart_group/crud.go",
+      "sha256": "c6ca39d907ec8e52564f10e51156e86d3dc60a5f826d8c35c633218c51a57c6c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_smart_group/model.go",
+      "sha256": "c164c678936ff62bca6a5417659193f62a3d9eef8ccdba600e61a9ed9004d3b9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_smart_group/resource.go",
+      "sha256": "36486908d908881754726ca95f6f2fb05427e5d518ae190875d288be478acb0b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_smart_group/resource_acceptance_test.go",
+      "sha256": "987fcbaa1427ec56df3f90327069eff7e2ef92d509d39e8b54bd44ca9eb39ccd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_smart_group/state.go",
+      "sha256": "75e3d08f68bcc9ea7d12e85f6711843524d647e59e8cda89cee55479d3e65d7b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_smart_group/test_helper_test.go",
+      "sha256": "9f83c06412dd043d46314a7d08299b8bf775c2bef0f29addd79d32d26ee788d6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_smart_group/testdata/maximal.tf",
+      "sha256": "28893254c9fa6a2706b0b11b45309e51754e2026418ffc92075a1f2c9bed865e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_smart_group/testdata/minimal.tf",
+      "sha256": "3c5c804530f747225a4cff857caf327a6dac834082eb94a85fc53138a8446eec",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_static_group/construct.go",
+      "sha256": "78da2df7e6e83e61b87fbb27585370ebbd535edefc509a979c4d8c21280c05f4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_static_group/crud.go",
+      "sha256": "d259aff308f7dd36dccff41ac259bd978d5a5f7541c2abffc38aa82de98d084a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_static_group/model.go",
+      "sha256": "1bc69d88fe7d6f89895ce12bd1c91fc6c986fb98f05e8b337b0088677a4f0f5e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_static_group/resource.go",
+      "sha256": "aea33d1466b6425d959a1d5ac47807a2ead27749ae7cbe7643282986a49b7396",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_static_group/resource_acceptance_test.go",
+      "sha256": "505b39ca912bb3eb84dff9e52ac83e71ceb003ab7e37e540ceefbd5e1eab2f7b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_static_group/state.go",
+      "sha256": "7c9389865f8814e27454a2c2ca53c1043bc219eb9e4e0930fed09d0f51e8df43",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_static_group/test_helper_test.go",
+      "sha256": "b0c2fb11077fbbaae5e16dad692e0671a697f6d2b891154b5c0e92c2eeb5f541",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_static_group/testdata/maximal.tf",
+      "sha256": "a22d3e3bba817c31fa9c961813c748593e03444e2fd738783a94d816869c80b9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_groups/v7/v3_computer_groups_static_group/testdata/minimal.tf",
+      "sha256": "7b6c4f62b51c940210f232ed05cfaf16afaaad4072330ab1f0f557c0ee1aa92d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v1_computers_inventory/construct.go",
+      "sha256": "02790e2168d6fd3341b8d1c85d5a9a31c1a23b471d84632e26be13a07a174417",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v1_computers_inventory/crud.go",
+      "sha256": "b90851caa4cc54afd2081caf2d6200cbad49d9526d109b816a66ffe18ef15823",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v1_computers_inventory/model.go",
+      "sha256": "a2b96fdf5a1092086809fd841a702423317d456493295eb21aa377e7cbeff892",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v1_computers_inventory/resource.go",
+      "sha256": "e2ae64de6710006663da9fba84d17ccebce5e099f9e2495278c35295bb5c3199",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v1_computers_inventory/state.go",
+      "sha256": "9ecb3b0fd60fd52db6ac73432bd041ecff8a0dd1a9463bd2175d2ce405bebe7d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v1_computers_inventory/test_helper_test.go",
+      "sha256": "fecd6c88b17c23aa29fb1e665f7675c2f041442e55c93e843c33b9456f0526af",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v1_computers_inventory/testdata/maximal.tf",
+      "sha256": "8d8afc893063e354c8089031d53bbdcf7369acf861c3d48db0af44d489b8d887",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v2_computers_inventory/construct.go",
+      "sha256": "cf0e00d6f0fe1be056a1768a0faa79f9e3d184b8412ce6a21603a9c61cbb623f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v2_computers_inventory/crud.go",
+      "sha256": "fac0a8e1445a7e66d95320a43ba63aff29f102cf515eea52c3c64d128d187a23",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v2_computers_inventory/model.go",
+      "sha256": "b00365dba3e73f19f45fa3437896821a244ebf8a8d72867fb6639700e9ed649b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v2_computers_inventory/resource.go",
+      "sha256": "e95ebbf7fbd50e61483963af332266dd6dedc784c121f68a8f5256a2f294f50d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v2_computers_inventory/state.go",
+      "sha256": "39ff2cf6a57d327cd591884e61f022bc599ac14755788259373995b67f1b56c8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v2_computers_inventory/test_helper_test.go",
+      "sha256": "88eb6de0e8d6ab1b1ddbcc8c48c2d75f89b33a3a4a7cdcc390cf690b7410194d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v2_computers_inventory/testdata/maximal.tf",
+      "sha256": "896360c2943d2a7778f3f3e8c2a46ff48db04472033eca763f698f2b458184da",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v3_computers_inventory/construct.go",
+      "sha256": "8af5fa175812e339d07e5999504912736acd98bb10f0ff20e2a33d4d20ac33b8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v3_computers_inventory/crud.go",
+      "sha256": "3ff05f2a8b264ee56bafb69c66f9bdc6dea169842a9fd4144a0eca529c77d886",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v3_computers_inventory/model.go",
+      "sha256": "3a451514bee5a43b7d4bf2b2f8fbbd8c1328e81fec5674fef2bdf4ad63c1617e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v3_computers_inventory/resource.go",
+      "sha256": "9d31b284a0a8e18a81a138331ccbf9ea7dedfc14a0610b5744c6e770fb25a833",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v3_computers_inventory/state.go",
+      "sha256": "6e3eaa3796e603ed004e2437f349390ba69ffec0f408bcf81ce43456d12a3dd4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v3_computers_inventory/test_helper_test.go",
+      "sha256": "1e82441697c6bd78d75fc23b9a36c81b34450e472657ae8130489c331b72256c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v3_computers_inventory/testdata/maximal.tf",
+      "sha256": "f39765372e1e03407a08578b94c1fbecb6a563f13f64ee3d085b33f603e8f30e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v4_computers_inventory/construct.go",
+      "sha256": "d5f30d8d00ffc63b441dcf44b04e2495a4fd08856b6acff2e4009efda1996b47",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v4_computers_inventory/crud.go",
+      "sha256": "70afabd55ee5dc10daebba160022f2638c2ff16660c25b9565c3d813dbd758e5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v4_computers_inventory/model.go",
+      "sha256": "658ff2b8e03a37cb0871ec91c89528b8fa497008846b41ad34de3407806cf3e6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v4_computers_inventory/resource.go",
+      "sha256": "330ead14763fb98cfe1bf558d90e5ebf83949c42166cfee1f9fa7c59ea4b15d3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v4_computers_inventory/state.go",
+      "sha256": "304d991003436e0a68c1db13f96dc217eb73b56a6c3be6bf3b09f3b9d80de858",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v4_computers_inventory/test_helper_test.go",
+      "sha256": "9b66617ff7487386dd07caeef8890aef1983423e725e0170f15492a3349090e9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_inventory/v7/v4_computers_inventory/testdata/maximal.tf",
+      "sha256": "8175f0af95968b6923e0b9fed8ec778e2b6ea27f248cdc5762222245051c5ab2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_prestages/v7/v3_computer_prestage/construct.go",
+      "sha256": "b17be6ca2983c9559c02b4133930c68368f8cef49108c6ca515c53be4b82701c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_prestages/v7/v3_computer_prestage/crud.go",
+      "sha256": "48dee20e1f5c524d69d1364292ca95148d3eb7dd5fa06e80e9af7061fafbcc7b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_prestages/v7/v3_computer_prestage/model.go",
+      "sha256": "6b2e14999382c04305504db24c97639b60103b6caa874c190507062888bef3ee",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_prestages/v7/v3_computer_prestage/resource.go",
+      "sha256": "aae61c38a6f0ab18dc45957a1001032945e708527eba3b5077bfd3688bd5bbab",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_prestages/v7/v3_computer_prestage/state.go",
+      "sha256": "29501a2a527ea1861bb2ef698b571b37a46b7f6180172d3982d49ed54bcd3aad",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/computer_prestages/v7/v3_computer_prestage/test_helper_test.go",
+      "sha256": "7b85bcdb6d2afefe6c79620f92c2b4efb3946ba8cfe479a45c69c506e524e924",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/departments/v7/v1_department/construct.go",
+      "sha256": "90e6d4cf85c5bd578633f7f888a70a0d686b91179ad05f40173a23be54080684",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/departments/v7/v1_department/crud.go",
+      "sha256": "2ea2b4c6c986456ee10ad897bdfb4d231a072810384dddb9c2a40fe3dc4a44bb",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/departments/v7/v1_department/model.go",
+      "sha256": "6efebf58b1d6be510239a5f4d1550bc49abbe646a43c63b3a3aef5100bb34ec4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/departments/v7/v1_department/resource.go",
+      "sha256": "3bc57a1eec0e21fb569b43f3c10063b3bd48130df8c49ea9fb5a2c6d5b90bab0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/departments/v7/v1_department/resource_acceptance_test.go",
+      "sha256": "b63425e50555b8bfa6b868d6db8134937cf7f8274160980c1cf42e12b5053c4c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/departments/v7/v1_department/state.go",
+      "sha256": "eadee4b51e59b674e40bccfd5f7ba488e9919f59a9d0f21209c16b9dbb089e25",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/departments/v7/v1_department/test_helper_test.go",
+      "sha256": "da0954af6eaf354d08246918415c972cc3e3f2dbe67e03b9fc62d4a311e244b0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/departments/v7/v1_department/testdata/maximal.tf",
+      "sha256": "a711e813be4b73143cbf07e08bf95891c451b522ef005ce9b0b97f8c643e2714",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/departments/v7/v1_department/testdata/minimal.tf",
+      "sha256": "ebbbb9235e5b1e7ed69aaa94019897a6cffbc20083212eb421a21bfe3cbd9626",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/distribution_point/v7/v1_distribution_point/construct.go",
+      "sha256": "4f344b6f15ca25b2edf79913b3beb051b4785bac43c60839321da0f93d603138",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/distribution_point/v7/v1_distribution_point/crud.go",
+      "sha256": "22c805698a5e6d50d049c2d3f56dfda2a74d2b258438a585ead6b5ff0effc243",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/distribution_point/v7/v1_distribution_point/model.go",
+      "sha256": "09daa43a722e9f3e65b7aa8f4a100b35ba6f7db3e8abc803ee2fb5a3fb0beaaf",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/distribution_point/v7/v1_distribution_point/resource.go",
+      "sha256": "276a88d0bec42a29dba723a0c671e9e7345df72313fe3e2ebcf00dcdf8cc8649",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/distribution_point/v7/v1_distribution_point/resource_acceptance_test.go",
+      "sha256": "d4b8ac359041dece0e94a20dbd64ccaa605f5b8f47ea52627be4344154c9d73c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/distribution_point/v7/v1_distribution_point/state.go",
+      "sha256": "3251ecaab4ee9e347b0aba81d9e35cc3a466ce2c6b8c111169cb3f569c31b9df",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/distribution_point/v7/v1_distribution_point/test_helper_test.go",
+      "sha256": "4873a6e7d6245b8307759bf67c772f1ed2b8e101b3b5f023ee013418e09750dd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/distribution_point/v7/v1_distribution_point/testdata/maximal.tf",
+      "sha256": "261558e9a4d125a5abaab677cd89c01410529dba51f8746720f82fc854f56810",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/distribution_point/v7/v1_distribution_point/testdata/minimal.tf",
+      "sha256": "30004a55776ed1bc74b1f3fcaae786ac610546b7050ce5845558344701d70d13",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment/v7/v3_enrollment_access_group/construct.go",
+      "sha256": "3722b1082d753ccc3615ed9be633c742ac6cd0b90d121bb9599f796fc53b4a90",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment/v7/v3_enrollment_access_group/crud.go",
+      "sha256": "05e87ff68b34367f2c65a2f45d25500636254b7876e19efdb024801c3d6d9d21",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment/v7/v3_enrollment_access_group/model.go",
+      "sha256": "61006d5f3d56c967f590d4b8d1ca803c2a7d6cbf0271824c8b7c637d7140989f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment/v7/v3_enrollment_access_group/resource.go",
+      "sha256": "1eb0d64aecec6d784a48a31784cfead6b3e1cea28bacf1ea2b80536a6279ec00",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment/v7/v3_enrollment_access_group/state.go",
+      "sha256": "f184dc3bc16d97cbc7c9427136051cbc93f102e62c69d8e4fb97ad19abbbd3f3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment/v7/v3_enrollment_access_group/test_helper_test.go",
+      "sha256": "0bd678ba547a9bff3560e2c0d2abf84686eaf423843a711c268a5ccfd83d427f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment_customization/v7/v2_enrollment_customization/construct.go",
+      "sha256": "1f7d65c0f0ddebc83ce5b016809f8dc56569b0473681a15cbf0fc034549b2d53",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment_customization/v7/v2_enrollment_customization/crud.go",
+      "sha256": "77c4ed4ae4267bcb6958b35aad19bbef36fd2126154018eddf8113ba2967f7e7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment_customization/v7/v2_enrollment_customization/model.go",
+      "sha256": "c7aed45d851a7ac89ca04a268c4e23e04bce5391fd787c57839b77d84cea2c18",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment_customization/v7/v2_enrollment_customization/resource.go",
+      "sha256": "ec89d27b5ced4ba183a1591dfffe259241cf98d75311efb93b89d4a2ed3b6333",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment_customization/v7/v2_enrollment_customization/state.go",
+      "sha256": "7fcc174f0ef60ba63fa78307efb6c0f2cb0edc44f5cd3ad963d0a9627f9db8b7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/enrollment_customization/v7/v2_enrollment_customization/test_helper_test.go",
+      "sha256": "16aab297b087a3a9865ce85f8b51531faa5bee76e6d4183e4671f2ca223555e2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/inventory_preload/v7/v2_inventory_preload_record/construct.go",
+      "sha256": "8e40e89505cdc7feb574d63121d66befd0dd9809a0a8ca8cb3ffad1672ae155b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/inventory_preload/v7/v2_inventory_preload_record/crud.go",
+      "sha256": "3242e9160fef59cd7848af5eacaeeb69ebf270be601e62d291b9f9fb83823f0d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/inventory_preload/v7/v2_inventory_preload_record/model.go",
+      "sha256": "00d4c07d3ee63ef1da055b34c6be9d37293da068ddd5d55c874b94fbda8aa71c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/inventory_preload/v7/v2_inventory_preload_record/resource.go",
+      "sha256": "43bddf3f5eb63491739a09180d8ce84ae939518d16c08b6b05056ac7d23e3160",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/inventory_preload/v7/v2_inventory_preload_record/resource_acceptance_test.go",
+      "sha256": "42d8db091af5eee5ba9ed1a375e1b21a35edd1d0b528a0778857062af4d4755f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/inventory_preload/v7/v2_inventory_preload_record/state.go",
+      "sha256": "3bd040774cd0f3f0548fc9eb8aee17ca72cd183463be3bff6ebba21ea7705581",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/inventory_preload/v7/v2_inventory_preload_record/test_helper_test.go",
+      "sha256": "d0b8416b4a9ae2c8e1a6e171ed71efeaba630117f4ec08a4529645a1d9f913d8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/inventory_preload/v7/v2_inventory_preload_record/testdata/maximal.tf",
+      "sha256": "4d44e444d5873c717a37c9fe0e95524d21a7cd708ac8140a993f8a36bbf6c0c0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/inventory_preload/v7/v2_inventory_preload_record/testdata/minimal.tf",
+      "sha256": "49d5942b852040c7e3924068a8f2837cb0bbf11365c3dd3a0ecb99c08adbc8ea",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/log_flushing/v7/v1_log_flushing_task/construct.go",
+      "sha256": "7c4b235814c9b3cc93fa352ee78b53f3b6b3857b294537741f027afb9eb04070",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/log_flushing/v7/v1_log_flushing_task/crud.go",
+      "sha256": "83a45e3ba3b484656c6c3c195d583aa00d84647ac58fec77f2ca25fec8eaef2b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/log_flushing/v7/v1_log_flushing_task/model.go",
+      "sha256": "916b5f07e82cba18f979e437e7322cb093fbb94863df14ee9e34ba97e671f04d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/log_flushing/v7/v1_log_flushing_task/resource.go",
+      "sha256": "9403f48f72d17e715f8dc51385cb710999a09cc39dacfaad63995db06b6c0ebc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/log_flushing/v7/v1_log_flushing_task/resource_acceptance_test.go",
+      "sha256": "9617e95c9cd5b2f4d74aec66a2c8c9277208c8474c0d384208e16e5e3871dac9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/log_flushing/v7/v1_log_flushing_task/state.go",
+      "sha256": "c63079fea16bde5321a2e3d155af0ca10a2534bb0caa4e80ad31624e8dbfc299",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/log_flushing/v7/v1_log_flushing_task/test_helper_test.go",
+      "sha256": "9bf75eb456f5535c88b30cb192f5e0dd9beb55e4d66041717d2c4fc852267ecc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/log_flushing/v7/v1_log_flushing_task/testdata/maximal.tf",
+      "sha256": "566b8a14cc7a9c356769630b472aeefb82a948affdbaa1c230722b19da54660b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/log_flushing/v7/v1_log_flushing_task/testdata/minimal.tf",
+      "sha256": "310dc209457dacc746ef83f7326eecd494549988c6c93ff946ca3348d2473271",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/construct.go",
+      "sha256": "ca4ba4daa32057a21fef0dab0b1aa3a47b5ab79c026812b82bf9127b904ccc17",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/crud.go",
+      "sha256": "58a230eb17b4fdad07b34d4e7ad7b150f399517cd22c3335e381e41fe48f4f63",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/model.go",
+      "sha256": "088d3a75b0945fd1ef77c0333cf433e6a776d7396a821cdd14ba6f0c170e8373",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/resource.go",
+      "sha256": "b750004635f907ba81b5ae601fb2639128e27cb0b2c0f374dd0d1d1e3d91fd53",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/resource_acceptance_test.go",
+      "sha256": "5a030235d838384188335fec32855d12cb21e1e0020eb9e183a1eea96b89f616",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/state.go",
+      "sha256": "79b7794e03d6b110846b8fdea5fc22eaaf607f9a0b4e6135d23c8f1141f25846",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/test_helper_test.go",
+      "sha256": "7ddb1dceece55ff1bdca6c158c4d3f0d4ade84d3ca2300024a553d966055805b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/testdata/maximal.tf",
+      "sha256": "dd2c7a7ea3897effc744d6339dbfa4328e3e9300a23401047d0bf7b8ad191177",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_extension_attributes/v7/v1_mobile_device_extension_attribute/testdata/minimal.tf",
+      "sha256": "bc8a9435a42b760aef25fecf5178002143d577b00dc4d9d349ef7b84a4c8f6f7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_smart_group/construct.go",
+      "sha256": "61028a059a14aefff339b9f8127cdf36da32c774204730e62275eff27966ba9c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_smart_group/crud.go",
+      "sha256": "f46cd1fa56285edbe3babd223efe22c25ad77bd4961eaf519bf5e3f2e9173670",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_smart_group/model.go",
+      "sha256": "45bce89e1abd83a91df9c97afb4950a407e0a6d711685e02284bd66bde4f02ac",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_smart_group/resource.go",
+      "sha256": "26f0428a0ef622f89bc84b4587904a1958cb741334aaa5d0d7fa7008f8d1186f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_smart_group/state.go",
+      "sha256": "623afc3438275d324edeb7f43bcdab084a120054acd8398beb28edb6e0f7b203",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_smart_group/test_helper_test.go",
+      "sha256": "8bcd441d7839a576f23678ca1a1efd16d300c9efe21c228cf410425e212cc87c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_smart_group/testdata/maximal.tf",
+      "sha256": "c5259aa0350a264130f4ac0bde8dc1989c4588513dad8fe5d5e280f90f32f06c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_static_group/construct.go",
+      "sha256": "4b3957e425f347054984cf6ef4a27bf08664cc37c37fa4d62d477924c1432222",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_static_group/crud.go",
+      "sha256": "9fd4fa8e087dfa0098b590f7a02920f0e8f00142f354983c6fa5f298c0248cda",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_static_group/model.go",
+      "sha256": "08cb6925ee6c81ea65939a53e151645ce62aa579fb33290bdd08764a95455b24",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_static_group/resource.go",
+      "sha256": "73e43a06ca0e83bcffddb24a0757dd05013e6be5fcece6e310bc818df161e5e3",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_static_group/state.go",
+      "sha256": "21ed76ece99de42d9b178bbcd3ca18398edbcc91672e41d2aab4649cbfb0afa8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_static_group/test_helper_test.go",
+      "sha256": "14e9b6ddccbf0c3f4dd2e969bef6aa612ee585f0f20417a1880bbb368ca39673",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v1_mobile_device_groups_static_group/testdata/maximal.tf",
+      "sha256": "2cb53238ce8fefc955bdce3f960c7802b18d38fc32b02b884436a315d5f26b79",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_smart_group/construct.go",
+      "sha256": "0c440be9241ff1ce26e5c9c8de3d2441fcea30a3434c4295e4d34836a7f309f6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_smart_group/crud.go",
+      "sha256": "056e362e7ab92871fd85f882c8a6e4631d85c5351773d9e6a318df44b76ab576",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_smart_group/model.go",
+      "sha256": "4b20b88f1c4d9a741e86c4918ad632b62aa581a727bc8261cd3766596f2aa307",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_smart_group/resource.go",
+      "sha256": "0053d5acc61286e06796a33de5996fa657b80f4f37840a107d952e1230031cfc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_smart_group/state.go",
+      "sha256": "4ad0f1155bba6ec525ef05acb09a15203f539c617bd637a22ef5396eaadd21a2",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_smart_group/test_helper_test.go",
+      "sha256": "abbb31e6d4c943c1ae480fab3d5624d39656283b89bc0b4b4ee77e2c075c10a6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_smart_group/testdata/maximal.tf",
+      "sha256": "b0bf85afbfe694e549476d0bc4613049d86c680abf02d6b48de408cd21746c2e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_static_group/construct.go",
+      "sha256": "58ba2ea4d31e62d9ee6cec48d1793853351c318a63862167b9a4d73041867614",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_static_group/crud.go",
+      "sha256": "ae7b6f099d05b6dc6759750dcc61f39298477cd2ab4af7d348bae66584287f79",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_static_group/model.go",
+      "sha256": "2b0ac281ee87752f05811f9580d88ca0abdb8062dad2ae982d11d9706a3b5aee",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_static_group/resource.go",
+      "sha256": "3c2318d8a55cbe0d2734f5885bcbbc8be138b7fddb11b31eea566161b47d06d5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_static_group/state.go",
+      "sha256": "a5df2e76eff66b37615d0c6b5cbac5a32ceb1bf35356404db7c1a2d3d7c449ee",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_static_group/test_helper_test.go",
+      "sha256": "a0a0054e6574821ef41ed4b154e4c57951911783588c36ae042d228a7fd86a7b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_groups/v7/v2_mobile_device_groups_static_group/testdata/maximal.tf",
+      "sha256": "cde92bcab2dc17db20ae19c74a8f358af9d8e3661cce26fa44c0de0bb042d980",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v2_mobile_device_prestage/construct.go",
+      "sha256": "6d984e4ad248b296d5ed32bb31db24d8ce61fda754fa9be4cbaa78c5b74fade7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v2_mobile_device_prestage/crud.go",
+      "sha256": "ba996a0bfc2ddfcc30a0b82db4cf4b0fb775753e4e00de619b12303b8fcce84d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v2_mobile_device_prestage/model.go",
+      "sha256": "58c78e6b21219ba8555e33e69fbe58644f5a1efa0b106adb267b33cfd3369611",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v2_mobile_device_prestage/resource.go",
+      "sha256": "3ab6cd0d83e0efaa91b662a2c0b76819cc99a92119f1a4efdf18c9a09124b28c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v2_mobile_device_prestage/state.go",
+      "sha256": "e24368b566adf74e71c910b7c5bc1140cb83837fb1ff7fcd9ed16d3d200a78d7",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v2_mobile_device_prestage/test_helper_test.go",
+      "sha256": "046d34aa34e682ff725bed46ba4117d7f47d86a1494c913792aae4041efb3c7c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v3_mobile_device_prestage/construct.go",
+      "sha256": "ca47a569db2c2bbe5d8bc790f203f873d80d327fe55cc58e25fedd2e54539b80",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v3_mobile_device_prestage/crud.go",
+      "sha256": "703456978c0ce5d39ea2bf6a3e242c52c8f721bd83e59b85b12d54063aa0d320",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v3_mobile_device_prestage/model.go",
+      "sha256": "f038e60599aa11158a4f6b02a71c3035ea5f1727de3c08cc933e3b5deb5d7607",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v3_mobile_device_prestage/resource.go",
+      "sha256": "b77797c34c01b6eae1f350daa5dba03b5a429c670d8383040024d93a05136503",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v3_mobile_device_prestage/state.go",
+      "sha256": "b68428d2b6ab8e2ab3b547cab9b18cdb6a2061606e65e2dd1e73e2a919aa2e4a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/mobile_device_prestages/v7/v3_mobile_device_prestage/test_helper_test.go",
+      "sha256": "b6b778dda4004c9465f0a624dd8145cc994b7c2f2a2b6c7626ee11014200aa58",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/packages/v7/v1_package/construct.go",
+      "sha256": "16c8c6421aa9cbe34999e1f9e8124d59db88627c90d15ccd19dfa7694e709e73",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/packages/v7/v1_package/crud.go",
+      "sha256": "3b84dc56da78a6fcc2cc43ff614b81ea24bc894af359e7caceda082ed13317d5",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/packages/v7/v1_package/model.go",
+      "sha256": "f14dd20c4b50030e9ca9e272855af79d81c726b9ef05e6339de57a2836bee100",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/packages/v7/v1_package/resource.go",
+      "sha256": "0fbc756c01528a8a0c23a6359369b40ba6e2e434d098bdc5e7b70674ae69b0ce",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/packages/v7/v1_package/state.go",
+      "sha256": "b5f33069385169cfd7e70e56765bd82868b4d460cc3cd2047f1fd919e4932d9e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/packages/v7/v1_package/test_helper_test.go",
+      "sha256": "7012104261f6a70bc9a9ce359c6fcbdc9597da263ba7908e061beffcec64aeea",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v2_patch_software_title_configuration/construct.go",
+      "sha256": "ba3b2bbe96282b9641d1776873c3244fc0e385416b08d3865989ab33709cc310",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v2_patch_software_title_configuration/crud.go",
+      "sha256": "a4fafa465c134d2afdc29b18f0a0d6f1039312a83f074e1946a57d4c8925e3f4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v2_patch_software_title_configuration/model.go",
+      "sha256": "125273e5bc6dca849b5c70d1ef58524c6b265ce9b0f5f0276290b08eba801029",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v2_patch_software_title_configuration/resource.go",
+      "sha256": "cdbf4ae9495a12b57b2f05b73267f6b443a35194e21c33101389b8f575d70f6e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v2_patch_software_title_configuration/state.go",
+      "sha256": "6ce5aceea4d1a4a2c8b3441b1e6b109cc798d2ad7f55ab2644c2ff25010bd3d1",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v2_patch_software_title_configuration/test_helper_test.go",
+      "sha256": "e4060dc2933115e8a1fbf1dca0fdd50f1ee4835d90c2f9ba4c266492dfb696f4",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v3_patch_software_title_configuration/construct.go",
+      "sha256": "c318e635c75a4f3bc07e8d26588fc67dc7ade4801755d1bc8bbd00c162e75192",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v3_patch_software_title_configuration/crud.go",
+      "sha256": "027605495c73f59da19c19f999c5dda0b825d8a3211d5eae04d9b29ab9f39d34",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v3_patch_software_title_configuration/model.go",
+      "sha256": "701ca5e06455ef6a4c64ab9d6b659b931f750fcfcbb5cb9a1e7b31470a1ae830",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v3_patch_software_title_configuration/resource.go",
+      "sha256": "ba2c92020270502340d7d7eee1ffa41fab115e9caf12844ab01f585c3d198144",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v3_patch_software_title_configuration/state.go",
+      "sha256": "c915a2ef9b278559043cf7b0cdc7a63d65024e69c976d9a1dcdfa9171ada6ee0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/patch_software_title_configurations/v7/v3_patch_software_title_configuration/test_helper_test.go",
+      "sha256": "6d0a7510d2c841e3789bf3bc4aecb68486db3e923ce102e5af4a17f5e7a4a121",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/return_to_service/v7/v1_return_to_service/construct.go",
+      "sha256": "803e1ecacdbab2b29f3353ae8d960766c2ffe9584fd27f30124abf4d705520ee",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/return_to_service/v7/v1_return_to_service/crud.go",
+      "sha256": "02955d25e026a0932c8aae5f149db67d97a95790f334e46ebe29c6ee3c0e6799",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/return_to_service/v7/v1_return_to_service/model.go",
+      "sha256": "63d031af64417f4c640d066e2e27faa8c950545fa2ffb77d884128fda37faa69",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/return_to_service/v7/v1_return_to_service/resource.go",
+      "sha256": "d58f2f370f9c0eb7a7ba10d3df87dbe17047a73148ca4e9ee1d2f7548bb4ab7c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/return_to_service/v7/v1_return_to_service/state.go",
+      "sha256": "e7cf163934e7da643df456b08319550cd7ecd279829daf8afcaf5408af745956",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/return_to_service/v7/v1_return_to_service/test_helper_test.go",
+      "sha256": "e69ca5cb5c4e0acc07bf03b04d4716e0b803a1a8e5ea0cfe64de4ae380f2b76a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/return_to_service/v7/v1_return_to_service/testdata/maximal.tf",
+      "sha256": "434d16c89bf848d1f55bf560ddd4032ecd76dda1d01a33c78b8ee3500e01aedc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/scripts/v7/v1_script/construct.go",
+      "sha256": "1c86405de170c3889d25963a4f704268f0e12274cf4c59a428855c3888678a63",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/scripts/v7/v1_script/crud.go",
+      "sha256": "33a39a79653e69620e30c614f1debdcafd147589a4eeaf200a72068c302f6c38",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/scripts/v7/v1_script/model.go",
+      "sha256": "3034b037ed092657938b788eeb23fbc12e735b8a45ee3a740ee43aa2c44efd9d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/scripts/v7/v1_script/resource.go",
+      "sha256": "6f6e69117523c50bc28307844ba3db927ffb78578f21e281fea9ae9b2e830a78",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/scripts/v7/v1_script/resource_acceptance_test.go",
+      "sha256": "1261b8ecaed8ae3ae0b5c8313329aa84f56ac9ffc560da06e658e41cb66037a8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/scripts/v7/v1_script/state.go",
+      "sha256": "f9a74d6b51524e007a3b455268f9408371f408fac43f86af328229a4e8a36c12",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/scripts/v7/v1_script/test_helper_test.go",
+      "sha256": "cfda7d23216255354edd2bdb50d31a0b659a4446d9dd3510574a856c809e51a9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/scripts/v7/v1_script/testdata/maximal.tf",
+      "sha256": "6ddc528651f1c43dc8cc5c4ca5a53ea538cd8534faa06e7253aaa61cf7f4297c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/scripts/v7/v1_script/testdata/minimal.tf",
+      "sha256": "f40efe69fa2b9edbe8d8254e76cce99d68f8b64554a23da878e2096ffd574c14",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_ios/v7/v1_self_service_branding_io/construct.go",
+      "sha256": "170e45088e9e911bb052386d59a9a50f29e9b6b1b9940bf83c23d421ccdc7c76",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_ios/v7/v1_self_service_branding_io/crud.go",
+      "sha256": "45c5f4ef96099824aca5edb84ff1d721ea99ef067d5119e258564547a67cd38e",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_ios/v7/v1_self_service_branding_io/model.go",
+      "sha256": "0fa5c69272187feeb13966421930e650baa2c5ca158e46e3ff584b63bc730f64",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_ios/v7/v1_self_service_branding_io/resource.go",
+      "sha256": "b5bdae10c156c54052039fc83a74e7da3061eb5b7eddf4da4ac6114539fd6b49",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_ios/v7/v1_self_service_branding_io/resource_acceptance_test.go",
+      "sha256": "51b14f4bf63933645701536d765f9696a8813ef5ea4549efaa3a7d1642f2fdbc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_ios/v7/v1_self_service_branding_io/state.go",
+      "sha256": "f23051662180d7bba7c7422f4bc61d1ef93481d630cbcda39acd957cde82aaa0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_ios/v7/v1_self_service_branding_io/test_helper_test.go",
+      "sha256": "f2df538ddc7ba9f7a79730bc907d40d2efd25a965eb08dad337d056495194ea0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_ios/v7/v1_self_service_branding_io/testdata/maximal.tf",
+      "sha256": "c1958cc433ea5fe16247c7f701f07ac8d137c3d34700f2f22fd3c9091c16ebfd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_ios/v7/v1_self_service_branding_io/testdata/minimal.tf",
+      "sha256": "3297abc450dd74eac6362d013097c66b7e2fb470c3a4cdbdc1a069cca960843f",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_macos/v7/v1_self_service_branding_maco/construct.go",
+      "sha256": "d9bd4dde949854d1aecae721282d7250c84400cdd81d1bb2fa8d3ec121c67129",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_macos/v7/v1_self_service_branding_maco/crud.go",
+      "sha256": "fec9ef12b31e5e2d8ee3240c03ec13f15ef71bd7fd2983d33d3ab8fb42a2fcb6",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_macos/v7/v1_self_service_branding_maco/model.go",
+      "sha256": "80362c568e1439d2a76d702606ce230ad36f62b0491fb5c145cfcc7024c0f01a",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_macos/v7/v1_self_service_branding_maco/resource.go",
+      "sha256": "cdc739565f4b74e4905260fbfdb8c568b26dd5f41ea4a895a1624389b5b858d8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_macos/v7/v1_self_service_branding_maco/state.go",
+      "sha256": "1a973d362a884e4b6702c23ad5a6c71ba07f052f042280eef0b8602d8bfb7fc8",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_macos/v7/v1_self_service_branding_maco/test_helper_test.go",
+      "sha256": "db19c8b7cea5dca401290d661b817d5df6d6aa164a6b90ec8455be0fa0fd4f81",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/self_service_branding_macos/v7/v1_self_service_branding_maco/testdata/maximal.tf",
+      "sha256": "4179aab5d8019fcd2b632099aaf028459b2b2f64098c665c3cd5e77e78db4aba",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_locations/v7/v1_volume_purchasing_location/construct.go",
+      "sha256": "51426ea1dd800e8dd16bc548c13dc73e85da9133a6f75f89358612d257d695be",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_locations/v7/v1_volume_purchasing_location/crud.go",
+      "sha256": "d8a8a3dfccde552aaf36e987558f650a12afb6a4d3cb11486c7d9f9254e1d54d",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_locations/v7/v1_volume_purchasing_location/model.go",
+      "sha256": "04815b0587277b7d40e0e6aefa0213bcb256b528531bfe91cdd8d83e562de763",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_locations/v7/v1_volume_purchasing_location/resource.go",
+      "sha256": "625641beefa1907e4ebcebfcbfe87a7e8a245d3e5b55434c243d2edfda6de2fc",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_locations/v7/v1_volume_purchasing_location/state.go",
+      "sha256": "ed7236c366ba1ada0704a4d026cd807e92b5243b1fc5333d2e0c3a0691fc8da0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_locations/v7/v1_volume_purchasing_location/test_helper_test.go",
+      "sha256": "f37c838eb6416150d1f652c995c259183054bbbd2ba97712c37ed691931842d9",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_locations/v7/v1_volume_purchasing_location/testdata/maximal.tf",
+      "sha256": "da04ef9d77a3efbb4f1b9ed20c8c6aada582af1e1d259cb09ff1f785c7ba6554",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/construct.go",
+      "sha256": "1e4c9abb9205b86b931359cc942be0f7010fc5b19ed24bbfb0ae4c7cbf58a8a0",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/crud.go",
+      "sha256": "e46e77f01a08f860a594c47b8df1bb3e1821bad22086794321a4848d461a2ddf",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/model.go",
+      "sha256": "9974482f15067953afe3f19f9364df246b0cd03ca1d39f3d31acdd723bbb9112",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/resource.go",
+      "sha256": "02ef6d755c28805925909603767e297e34d77edd95450437ed9dc353c3a32138",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/resource_acceptance_test.go",
+      "sha256": "74b9f858d30672b1e69e893e4fe47c45a4cd09fbb27e5e15a58d503c4f41c833",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/state.go",
+      "sha256": "67248cc3deaa7443ef7782ff20a6c6cbd0156c0f5ac0dad4863ee776e7c249bd",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/test_helper_test.go",
+      "sha256": "2d741ac46a9eb358c5745ac1b93a82e51ad12fb282a55d56882bd5020dfeec9b",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/testdata/maximal.tf",
+      "sha256": "ff66b9d7dcfc2b0751842c8630cf45b1ab26545774d2f7abb617c5ef31cb2edf",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "internal/services/resources/volume_purchasing_subscriptions/v7/v1_volume_purchasing_subscription/testdata/minimal.tf",
+      "sha256": "f69109345f920f56f90dfd8885f144539c9743614f33f84d645f8461593b403c",
+      "blueprint": "blueprints/jamfpro"
+    },
+    {
+      "path": "main.go",
+      "sha256": "0ba567ed232a31f7db0022a7a079f1a2860a732caac2b05551729d6d025306fb",
+      "blueprint": "../../blueprints/jamfpro/provider.blueprint.json",
+      "origin": "scaffold"
+    }
+  ]
+}

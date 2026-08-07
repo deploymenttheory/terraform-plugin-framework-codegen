@@ -1,0 +1,160 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_cloud_distribution_point_history",
+      "name": "v1_cloud_distribution_point_history",
+      "goPackage": "v1_cloud_distribution_point_history",
+      "goPackageAlias": "v7V1CloudDistributionPointHistoryDs",
+      "goTypeName": "V1CloudDistributionPointHistoryDataSource",
+      "modelTypeName": "V1CloudDistributionPointHistoryDataSourceModel",
+      "serviceGroup": "cloud_distribution_point",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "date",
+            "goField": "Date",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "date",
+              "sdkField": "Date",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "details",
+            "goField": "Details",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "details",
+              "sdkField": "Details",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "int64",
+              "constraints": {
+                "minimum": 1
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "note",
+            "goField": "Note",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "note",
+              "sdkField": "Note",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "username",
+            "goField": "Username",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "username",
+              "sdkField": "Username",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Add specified cloud distribution point history object notes."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "CloudDistributionPoint"
+            },
+            {
+              "method": "History"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HistorySearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/cloud-distribution-point/history"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.ObjectHistoryable",
+        "selectors": [
+          {
+            "attribute": "username",
+            "goField": "Username",
+            "sdkField": "Username"
+          }
+        ],
+        "response": {
+          "type": "models.ObjectHistoryable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

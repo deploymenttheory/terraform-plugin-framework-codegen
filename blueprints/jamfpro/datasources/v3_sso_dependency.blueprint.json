@@ -1,0 +1,127 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v3_sso_dependency",
+      "name": "v3_sso_dependency",
+      "goPackage": "v3_sso_dependency",
+      "goPackageAlias": "v7V3SsoDependencyDs",
+      "goTypeName": "V3SsoDependencyDataSource",
+      "modelTypeName": "V3SsoDependencyDataSourceModel",
+      "serviceGroup": "sso_settings",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "human_readable_name",
+            "goField": "HumanReadableName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "humanReadableName",
+              "sdkField": "HumanReadableName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "hyperlink",
+            "goField": "Hyperlink",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "hyperlink",
+              "sdkField": "Hyperlink",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V3"
+            },
+            {
+              "method": "Sso"
+            },
+            {
+              "method": "Dependencies"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.EnrollmentCustomizationDependenciesable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v3/sso/dependencies"
+        },
+        "collectionField": "GetDependencies()",
+        "elementType": "models.EnrollmentCustomizationDependencyable",
+        "selectors": [
+          {
+            "attribute": "human_readable_name",
+            "goField": "HumanReadableName",
+            "sdkField": "HumanReadableName"
+          },
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "response": {
+          "type": "models.EnrollmentCustomizationDependencyable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

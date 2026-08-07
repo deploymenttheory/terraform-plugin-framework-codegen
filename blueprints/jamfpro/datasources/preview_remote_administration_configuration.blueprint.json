@@ -1,0 +1,136 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "preview_remote_administration_configuration",
+      "name": "preview_remote_administration_configuration",
+      "goPackage": "preview_remote_administration_configuration",
+      "goPackageAlias": "v7PreviewRemoteAdministrationConfigurationDs",
+      "goTypeName": "PreviewRemoteAdministrationConfigurationDataSource",
+      "modelTypeName": "PreviewRemoteAdministrationConfigurationDataSourceModel",
+      "serviceGroup": "remote_administration",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "display_name",
+            "goField": "DisplayName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "displayName",
+              "sdkField": "DisplayName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "site_id",
+            "goField": "SiteID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "siteId",
+              "sdkField": "SiteId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "type",
+            "goField": "Type",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "type",
+              "sdkField": "TypeEscaped",
+              "sdkGoType": "*models.RemoteAdministrationResponse_type",
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "Preview"
+            },
+            {
+              "method": "RemoteAdministrationConfigurations"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.RemoteAdministrationSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/preview/remote-administration-configurations"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.RemoteAdministrationResponseable",
+        "selectors": [
+          {
+            "attribute": "display_name",
+            "goField": "DisplayName",
+            "sdkField": "DisplayName"
+          }
+        ],
+        "response": {
+          "type": "models.RemoteAdministrationResponseable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

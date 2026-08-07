@@ -41,7 +41,8 @@
       "client": {
         "path": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/thousandeyes/internal/client"
       }
-    }
+    },
+    "apiEndpoint": "https://api.thousandeyes.com/v7"
   },
   "source": {
     "specFile": "api.yaml",

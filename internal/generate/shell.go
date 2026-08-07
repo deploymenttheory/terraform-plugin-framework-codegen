@@ -46,6 +46,9 @@ type ShellParams struct {
 	// Every sentence a practitioner reads names the API through this, so a
 	// provider for some other API does not describe itself as the pilot's.
 	DisplayName string
+	// DefaultEndpoint is the base URL to fall back to, or empty when the API
+	// has no single host and the practitioner must name one.
+	DefaultEndpoint string
 
 	// AuthMethod is the resolved authentication method, for the one place a
 	// template states which it is rather than branching on it.
@@ -103,12 +106,13 @@ func ShellParamsFrom(p blueprint.Provider) (ShellParams, error) {
 	method := p.Auth.Resolved()
 
 	return ShellParams{
-		Module:      p.GoModule,
-		Name:        p.Name,
-		EnvPrefix:   envPrefix(p.Name),
-		RegistryOrg: segments[1],
-		ClientClass: clientClass,
-		DisplayName: displayName,
+		Module:          p.GoModule,
+		Name:            p.Name,
+		EnvPrefix:       envPrefix(p.Name),
+		RegistryOrg:     segments[1],
+		ClientClass:     clientClass,
+		DisplayName:     displayName,
+		DefaultEndpoint: p.APIEndpoint,
 
 		AuthMethod:          string(method),
 		IsBearer:            method == blueprint.AuthBearerToken,

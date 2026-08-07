@@ -1,0 +1,153 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v2_jamf_package",
+      "name": "v2_jamf_package",
+      "goPackage": "v2_jamf_package",
+      "goPackageAlias": "v7V2JamfPackageDs",
+      "goTypeName": "V2JamfPackageDataSource",
+      "modelTypeName": "V2JamfPackageDataSourceModel",
+      "serviceGroup": "jamf_package",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "created",
+            "goField": "Created",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "created",
+              "sdkField": "Created",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "filename",
+            "goField": "Filename",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "filename",
+              "sdkField": "Filename",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "url",
+            "goField": "URL",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "url",
+              "sdkField": "Url",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "version",
+            "goField": "Version",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "version",
+              "sdkField": "Version",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V2"
+            },
+            {
+              "method": "JamfPackage"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.JamfApplicationResponseable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v2/jamf-package"
+        },
+        "collectionField": "GetArtifacts()",
+        "elementType": "models.JamfPackageResponseable",
+        "selectors": [
+          {
+            "attribute": "filename",
+            "goField": "Filename",
+            "sdkField": "Filename"
+          }
+        ],
+        "response": {
+          "type": "models.JamfPackageResponseable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

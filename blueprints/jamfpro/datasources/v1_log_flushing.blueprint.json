@@ -1,0 +1,137 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_log_flushing",
+      "name": "v1_log_flushing",
+      "goPackage": "v1_log_flushing",
+      "goPackageAlias": "v7V1LogFlushingDs",
+      "goTypeName": "V1LogFlushingDataSource",
+      "modelTypeName": "V1LogFlushingDataSourceModel",
+      "serviceGroup": "log_flushing",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "display_name",
+            "goField": "DisplayName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "displayName",
+              "sdkField": "DisplayName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "qualifier",
+            "goField": "Qualifier",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "qualifier",
+              "sdkField": "Qualifier",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "retention_period",
+            "goField": "RetentionPeriod",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "retentionPeriod",
+              "sdkField": "RetentionPeriod",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "retention_period_unit",
+            "goField": "RetentionPeriodUnit",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "markdownDescription": "The unit of the retention period (eg: DAY, WEEK, MONTH, YEAR)",
+            "wire": {
+              "jsonPath": "retentionPeriodUnit",
+              "sdkField": "RetentionPeriodUnit",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "LogFlushing"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.LogFlushingV1able",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/log-flushing"
+        },
+        "collectionField": "GetRetentionPolicies()",
+        "elementType": "models.RetentionPolicyV1able",
+        "selectors": [
+          {
+            "attribute": "display_name",
+            "goField": "DisplayName",
+            "sdkField": "DisplayName"
+          }
+        ],
+        "response": {
+          "type": "models.RetentionPolicyV1able",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

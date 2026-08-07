@@ -1,0 +1,110 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v2_inventory_preload_ea_column",
+      "name": "v2_inventory_preload_ea_column",
+      "goPackage": "v2_inventory_preload_ea_column",
+      "goPackageAlias": "v7V2InventoryPreloadEaColumnDs",
+      "goTypeName": "V2InventoryPreloadEaColumnDataSource",
+      "modelTypeName": "V2InventoryPreloadEaColumnDataSourceModel",
+      "serviceGroup": "inventory_preload",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "full_name",
+            "goField": "FullName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "fullName",
+              "sdkField": "FullName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V2"
+            },
+            {
+              "method": "InventoryPreload"
+            },
+            {
+              "method": "EaColumns"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.InventoryPreloadExtensionAttributeColumnResultable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v2/inventory-preload/ea-columns"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.InventoryPreloadExtensionAttributeColumnable",
+        "selectors": [
+          {
+            "attribute": "full_name",
+            "goField": "FullName",
+            "sdkField": "FullName"
+          },
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "response": {
+          "type": "models.InventoryPreloadExtensionAttributeColumnable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}

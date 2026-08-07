@@ -1,0 +1,2440 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v4_computers_inventory",
+      "name": "v4_computers_inventory",
+      "goPackage": "v4_computers_inventory",
+      "goPackageAlias": "v7V4ComputersInventory",
+      "goTypeName": "V4ComputersInventoryResource",
+      "modelTypeName": "V4ComputersInventoryResourceModel",
+      "serviceGroup": "computer_inventory",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "attachments",
+            "goField": "Attachments",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V4ComputersInventoryComputerAttachmentModel",
+                "sdkType": "models.ComputerAttachmentable",
+                "constructorExpr": "models.NewComputerAttachment()",
+                "attrTypesVar": "v4ComputersInventoryComputerAttachmentAttrTypes",
+                "objectTypeVar": "v4ComputersInventoryComputerAttachmentObjectType",
+                "expandFunc": "expandV4ComputersInventoryComputerAttachments",
+                "flattenFunc": "flattenV4ComputersInventoryComputerAttachments",
+                "attributes": [
+                  {
+                    "name": "file_type",
+                    "goField": "FileType",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "fileType",
+                      "sdkField": "FileType",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "id",
+                    "goField": "ID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "id",
+                      "sdkField": "Id",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "size_bytes",
+                    "goField": "SizeBytes",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "File size in bytes",
+                    "wire": {
+                      "jsonPath": "sizeBytes",
+                      "sdkField": "SizeBytes",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "attachments",
+              "sdkField": "Attachments",
+              "sdkGoType": "[]models.ComputerAttachmentable",
+              "flatten": {
+                "func": "flattenV4ComputersInventoryComputerAttachments",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "content_caching",
+            "goField": "ContentCaching",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "V4ComputersInventoryComputerContentCachingModel",
+                "sdkType": "models.ComputerContentCachingable",
+                "constructorExpr": "models.NewComputerContentCaching()",
+                "attrTypesVar": "v4ComputersInventoryComputerContentCachingAttrTypes",
+                "objectTypeVar": "v4ComputersInventoryComputerContentCachingObjectType",
+                "expandFunc": "expandV4ComputersInventoryComputerContentCaching",
+                "flattenFunc": "flattenV4ComputersInventoryComputerContentCaching",
+                "attributes": [
+                  {
+                    "name": "activated",
+                    "goField": "Activated",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "activated",
+                      "sdkField": "Activated",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "active",
+                    "goField": "Active",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "active",
+                      "sdkField": "Active",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "actual_cache_bytes_used",
+                    "goField": "ActualCacheBytesUsed",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "actualCacheBytesUsed",
+                      "sdkField": "ActualCacheBytesUsed",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "alerts",
+                    "goField": "Alerts",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "V4ComputersInventoryComputerContentCachingAlertModel",
+                        "sdkType": "models.ComputerContentCachingAlertable",
+                        "constructorExpr": "models.NewComputerContentCachingAlert()",
+                        "attrTypesVar": "v4ComputersInventoryComputerContentCachingAlertAttrTypes",
+                        "objectTypeVar": "v4ComputersInventoryComputerContentCachingAlertObjectType",
+                        "expandFunc": "expandV4ComputersInventoryComputerContentCachingAlerts",
+                        "flattenFunc": "flattenV4ComputersInventoryComputerContentCachingAlerts",
+                        "attributes": [
+                          {
+                            "name": "cache_bytes_limit",
+                            "goField": "CacheBytesLimit",
+                            "type": {
+                              "kind": "int64"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "cacheBytesLimit",
+                              "sdkField": "CacheBytesLimit",
+                              "sdkGoType": "*int64",
+                              "flatten": {
+                                "func": "convert.PtrInt64ToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "class_name",
+                            "goField": "ClassName",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "className",
+                              "sdkField": "ClassName",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "path_preventing_access",
+                            "goField": "PathPreventingAccess",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "pathPreventingAccess",
+                              "sdkField": "PathPreventingAccess",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "post_date",
+                            "goField": "PostDate",
+                            "type": {
+                              "kind": "string",
+                              "constraints": {
+                                "format": "date-time"
+                              }
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "postDate",
+                              "sdkField": "PostDate",
+                              "sdkGoType": "*time.Time",
+                              "flatten": {
+                                "func": "convert.PtrTimeToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "reserved_volume_bytes",
+                            "goField": "ReservedVolumeBytes",
+                            "type": {
+                              "kind": "int64"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "reservedVolumeBytes",
+                              "sdkField": "ReservedVolumeBytes",
+                              "sdkGoType": "*int64",
+                              "flatten": {
+                                "func": "convert.PtrInt64ToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "resource",
+                            "goField": "Resource",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "resource",
+                              "sdkField": "Resource",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "alerts",
+                      "sdkField": "Alerts",
+                      "sdkGoType": "[]models.ComputerContentCachingAlertable",
+                      "flatten": {
+                        "func": "flattenV4ComputersInventoryComputerContentCachingAlerts",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "cache_bytes_free",
+                    "goField": "CacheBytesFree",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "cacheBytesFree",
+                      "sdkField": "CacheBytesFree",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "cache_bytes_limit",
+                    "goField": "CacheBytesLimit",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "cacheBytesLimit",
+                      "sdkField": "CacheBytesLimit",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "cache_bytes_used",
+                    "goField": "CacheBytesUsed",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "cacheBytesUsed",
+                      "sdkField": "CacheBytesUsed",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "cache_details",
+                    "goField": "CacheDetails",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "V4ComputersInventoryComputerContentCachingCacheDetailModel",
+                        "sdkType": "models.ComputerContentCachingCacheDetailable",
+                        "constructorExpr": "models.NewComputerContentCachingCacheDetail()",
+                        "attrTypesVar": "v4ComputersInventoryComputerContentCachingCacheDetailAttrTypes",
+                        "objectTypeVar": "v4ComputersInventoryComputerContentCachingCacheDetailObjectType",
+                        "expandFunc": "expandV4ComputersInventoryComputerContentCachingCacheDetails",
+                        "flattenFunc": "flattenV4ComputersInventoryComputerContentCachingCacheDetails",
+                        "attributes": [
+                          {
+                            "name": "category_name",
+                            "goField": "CategoryName",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "categoryName",
+                              "sdkField": "CategoryName",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "computer_content_caching_cache_details_id",
+                            "goField": "ComputerContentCachingCacheDetailsID",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "computerContentCachingCacheDetailsId",
+                              "sdkField": "ComputerContentCachingCacheDetailsId",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "disk_space_bytes_used",
+                            "goField": "DiskSpaceBytesUsed",
+                            "type": {
+                              "kind": "int64"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "diskSpaceBytesUsed",
+                              "sdkField": "DiskSpaceBytesUsed",
+                              "sdkGoType": "*int64",
+                              "flatten": {
+                                "func": "convert.PtrInt64ToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "cacheDetails",
+                      "sdkField": "CacheDetails",
+                      "sdkGoType": "[]models.ComputerContentCachingCacheDetailable",
+                      "flatten": {
+                        "func": "flattenV4ComputersInventoryComputerContentCachingCacheDetails",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "cache_status",
+                    "goField": "CacheStatus",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "cacheStatus",
+                      "sdkField": "CacheStatus",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "computer_content_caching_information_id",
+                    "goField": "ComputerContentCachingInformationID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "computerContentCachingInformationId",
+                      "sdkField": "ComputerContentCachingInformationId",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "data_migration_completed",
+                    "goField": "DataMigrationCompleted",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "dataMigrationCompleted",
+                      "sdkField": "DataMigrationCompleted",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "data_migration_error",
+                    "goField": "DataMigrationError",
+                    "type": {
+                      "kind": "single_nested",
+                      "nestedObject": {
+                        "goTypeName": "V4ComputersInventoryComputerContentCachingDataMigrationErrorModel",
+                        "sdkType": "models.ComputerContentCachingDataMigrationErrorable",
+                        "constructorExpr": "models.NewComputerContentCachingDataMigrationError()",
+                        "attrTypesVar": "v4ComputersInventoryComputerContentCachingDataMigrationErrorAttrTypes",
+                        "objectTypeVar": "v4ComputersInventoryComputerContentCachingDataMigrationErrorObjectType",
+                        "expandFunc": "expandV4ComputersInventoryComputerContentCachingDataMigrationError",
+                        "flattenFunc": "flattenV4ComputersInventoryComputerContentCachingDataMigrationError",
+                        "attributes": [
+                          {
+                            "name": "code",
+                            "goField": "Code",
+                            "type": {
+                              "kind": "int64"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "code",
+                              "sdkField": "Code",
+                              "sdkGoType": "*int64",
+                              "flatten": {
+                                "func": "convert.PtrInt64ToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "domain",
+                            "goField": "Domain",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "domain",
+                              "sdkField": "Domain",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "user_info",
+                            "goField": "UserInfo",
+                            "type": {
+                              "kind": "set_nested",
+                              "nestedObject": {
+                                "goTypeName": "V4ComputersInventoryComputerContentCachingDataMigrationErrorUserInfoModel",
+                                "sdkType": "models.ComputerContentCachingDataMigrationErrorUserInfoable",
+                                "constructorExpr": "models.NewComputerContentCachingDataMigrationErrorUserInfo()",
+                                "attrTypesVar": "v4ComputersInventoryComputerContentCachingDataMigrationErrorUserInfoAttrTypes",
+                                "objectTypeVar": "v4ComputersInventoryComputerContentCachingDataMigrationErrorUserInfoObjectType",
+                                "expandFunc": "expandV4ComputersInventoryComputerContentCachingDataMigrationErrorUserInfos",
+                                "flattenFunc": "flattenV4ComputersInventoryComputerContentCachingDataMigrationErrorUserInfos",
+                                "attributes": [
+                                  {
+                                    "name": "key",
+                                    "goField": "Key",
+                                    "type": {
+                                      "kind": "string"
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "key",
+                                      "sdkField": "Key",
+                                      "sdkGoType": "*string",
+                                      "flatten": {
+                                        "func": "convert.PtrStringToFramework"
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  },
+                                  {
+                                    "name": "value",
+                                    "goField": "Value",
+                                    "type": {
+                                      "kind": "string"
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "value",
+                                      "sdkField": "Value",
+                                      "sdkGoType": "*string",
+                                      "flatten": {
+                                        "func": "convert.PtrStringToFramework"
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "userInfo",
+                              "sdkField": "UserInfo",
+                              "sdkGoType": "[]models.ComputerContentCachingDataMigrationErrorUserInfoable",
+                              "flatten": {
+                                "func": "flattenV4ComputersInventoryComputerContentCachingDataMigrationErrorUserInfos",
+                                "needsCtx": true,
+                                "returnsError": true
+                              },
+                              "skipExpand": true
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "dataMigrationError",
+                      "sdkField": "DataMigrationError",
+                      "sdkGoType": "models.ComputerContentCachingDataMigrationErrorable",
+                      "flatten": {
+                        "func": "flattenV4ComputersInventoryComputerContentCachingDataMigrationError",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "data_migration_progress_percentage",
+                    "goField": "DataMigrationProgressPercentage",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "dataMigrationProgressPercentage",
+                      "sdkField": "DataMigrationProgressPercentage",
+                      "sdkGoType": "*int32",
+                      "flatten": {
+                        "func": "convert.PtrInt32ToFrameworkInt64"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "max_cache_pressure_last1_hour_percentage",
+                    "goField": "MaxCachePressureLast1HourPercentage",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "maxCachePressureLast1HourPercentage",
+                      "sdkField": "MaxCachePressureLast1HourPercentage",
+                      "sdkGoType": "*int32",
+                      "flatten": {
+                        "func": "convert.PtrInt32ToFrameworkInt64"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "parents",
+                    "goField": "Parents",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "V4ComputersInventoryComputerContentCachingParentModel",
+                        "sdkType": "models.ComputerContentCachingParentable",
+                        "constructorExpr": "models.NewComputerContentCachingParent()",
+                        "attrTypesVar": "v4ComputersInventoryComputerContentCachingParentAttrTypes",
+                        "objectTypeVar": "v4ComputersInventoryComputerContentCachingParentObjectType",
+                        "expandFunc": "expandV4ComputersInventoryComputerContentCachingParents",
+                        "flattenFunc": "flattenV4ComputersInventoryComputerContentCachingParents",
+                        "attributes": [
+                          {
+                            "name": "address",
+                            "goField": "Address",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "address",
+                              "sdkField": "Address",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "alerts",
+                            "goField": "Alerts",
+                            "type": {
+                              "kind": "single_nested",
+                              "nestedObject": {
+                                "goTypeName": "V4ComputersInventoryComputerContentCachingParentAlertModel",
+                                "sdkType": "models.ComputerContentCachingParentAlertable",
+                                "constructorExpr": "models.NewComputerContentCachingParentAlert()",
+                                "attrTypesVar": "v4ComputersInventoryComputerContentCachingParentAlertAttrTypes",
+                                "objectTypeVar": "v4ComputersInventoryComputerContentCachingParentAlertObjectType",
+                                "expandFunc": "expandV4ComputersInventoryComputerContentCachingParentAlert",
+                                "flattenFunc": "flattenV4ComputersInventoryComputerContentCachingParentAlert",
+                                "attributes": [
+                                  {
+                                    "name": "addresses",
+                                    "goField": "Addresses",
+                                    "type": {
+                                      "kind": "set",
+                                      "elementType": {
+                                        "kind": "string"
+                                      }
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "addresses",
+                                      "sdkField": "Addresses",
+                                      "sdkGoType": "[]string",
+                                      "flatten": {
+                                        "func": "convert.StringSliceToFrameworkSet",
+                                        "needsCtx": true,
+                                        "returnsError": true
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  },
+                                  {
+                                    "name": "class_name",
+                                    "goField": "ClassName",
+                                    "type": {
+                                      "kind": "string"
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "className",
+                                      "sdkField": "ClassName",
+                                      "sdkGoType": "*string",
+                                      "flatten": {
+                                        "func": "convert.PtrStringToFramework"
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  },
+                                  {
+                                    "name": "content_caching_parent_alert_id",
+                                    "goField": "ContentCachingParentAlertID",
+                                    "type": {
+                                      "kind": "string"
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "contentCachingParentAlertId",
+                                      "sdkField": "ContentCachingParentAlertId",
+                                      "sdkGoType": "*string",
+                                      "flatten": {
+                                        "func": "convert.PtrStringToFramework"
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  },
+                                  {
+                                    "name": "post_date",
+                                    "goField": "PostDate",
+                                    "type": {
+                                      "kind": "string",
+                                      "constraints": {
+                                        "format": "date-time"
+                                      }
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "postDate",
+                                      "sdkField": "PostDate",
+                                      "sdkGoType": "*time.Time",
+                                      "flatten": {
+                                        "func": "convert.PtrTimeToFramework"
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "alerts",
+                              "sdkField": "Alerts",
+                              "sdkGoType": "models.ComputerContentCachingParentAlertable",
+                              "flatten": {
+                                "func": "flattenV4ComputersInventoryComputerContentCachingParentAlert",
+                                "needsCtx": true,
+                                "returnsError": true
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "content_caching_parent_id",
+                            "goField": "ContentCachingParentID",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "contentCachingParentId",
+                              "sdkField": "ContentCachingParentId",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "details",
+                            "goField": "Details",
+                            "type": {
+                              "kind": "single_nested",
+                              "nestedObject": {
+                                "goTypeName": "V4ComputersInventoryComputerContentCachingParentDetailsModel",
+                                "sdkType": "models.ComputerContentCachingParentDetailsable",
+                                "constructorExpr": "models.NewComputerContentCachingParentDetails()",
+                                "attrTypesVar": "v4ComputersInventoryComputerContentCachingParentDetailsAttrTypes",
+                                "objectTypeVar": "v4ComputersInventoryComputerContentCachingParentDetailsObjectType",
+                                "expandFunc": "expandV4ComputersInventoryComputerContentCachingParentDetails",
+                                "flattenFunc": "flattenV4ComputersInventoryComputerContentCachingParentDetails",
+                                "attributes": [
+                                  {
+                                    "name": "ac_power",
+                                    "goField": "AcPower",
+                                    "type": {
+                                      "kind": "bool"
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "acPower",
+                                      "sdkField": "AcPower",
+                                      "sdkGoType": "*bool",
+                                      "flatten": {
+                                        "func": "convert.PtrBoolToFramework"
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  },
+                                  {
+                                    "name": "cache_size_bytes",
+                                    "goField": "CacheSizeBytes",
+                                    "type": {
+                                      "kind": "int64"
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "cacheSizeBytes",
+                                      "sdkField": "CacheSizeBytes",
+                                      "sdkGoType": "*int64",
+                                      "flatten": {
+                                        "func": "convert.PtrInt64ToFramework"
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  },
+                                  {
+                                    "name": "capabilities",
+                                    "goField": "Capabilities",
+                                    "type": {
+                                      "kind": "single_nested",
+                                      "nestedObject": {
+                                        "goTypeName": "V4ComputersInventoryComputerContentCachingParentCapabilitiesModel",
+                                        "sdkType": "models.ComputerContentCachingParentCapabilitiesable",
+                                        "constructorExpr": "models.NewComputerContentCachingParentCapabilities()",
+                                        "attrTypesVar": "v4ComputersInventoryComputerContentCachingParentCapabilitiesAttrTypes",
+                                        "objectTypeVar": "v4ComputersInventoryComputerContentCachingParentCapabilitiesObjectType",
+                                        "expandFunc": "expandV4ComputersInventoryComputerContentCachingParentCapabilities",
+                                        "flattenFunc": "flattenV4ComputersInventoryComputerContentCachingParentCapabilities",
+                                        "attributes": [
+                                          {
+                                            "name": "content_caching_parent_capabilities_id",
+                                            "goField": "ContentCachingParentCapabilitiesID",
+                                            "type": {
+                                              "kind": "string"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "contentCachingParentCapabilitiesId",
+                                              "sdkField": "ContentCachingParentCapabilitiesId",
+                                              "sdkGoType": "*string",
+                                              "flatten": {
+                                                "func": "convert.PtrStringToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          },
+                                          {
+                                            "name": "imports",
+                                            "goField": "Imports",
+                                            "type": {
+                                              "kind": "bool"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "imports",
+                                              "sdkField": "Imports",
+                                              "sdkGoType": "*bool",
+                                              "flatten": {
+                                                "func": "convert.PtrBoolToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          },
+                                          {
+                                            "name": "namespaces",
+                                            "goField": "Namespaces",
+                                            "type": {
+                                              "kind": "bool"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "namespaces",
+                                              "sdkField": "Namespaces",
+                                              "sdkGoType": "*bool",
+                                              "flatten": {
+                                                "func": "convert.PtrBoolToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          },
+                                          {
+                                            "name": "personal_content",
+                                            "goField": "PersonalContent",
+                                            "type": {
+                                              "kind": "bool"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "personalContent",
+                                              "sdkField": "PersonalContent",
+                                              "sdkGoType": "*bool",
+                                              "flatten": {
+                                                "func": "convert.PtrBoolToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          },
+                                          {
+                                            "name": "prioritization",
+                                            "goField": "Prioritization",
+                                            "type": {
+                                              "kind": "bool"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "prioritization",
+                                              "sdkField": "Prioritization",
+                                              "sdkGoType": "*bool",
+                                              "flatten": {
+                                                "func": "convert.PtrBoolToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          },
+                                          {
+                                            "name": "query_parameters",
+                                            "goField": "QueryParameters",
+                                            "type": {
+                                              "kind": "bool"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "queryParameters",
+                                              "sdkField": "QueryParameters",
+                                              "sdkGoType": "*bool",
+                                              "flatten": {
+                                                "func": "convert.PtrBoolToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          },
+                                          {
+                                            "name": "shared_content",
+                                            "goField": "SharedContent",
+                                            "type": {
+                                              "kind": "bool"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "sharedContent",
+                                              "sdkField": "SharedContent",
+                                              "sdkGoType": "*bool",
+                                              "flatten": {
+                                                "func": "convert.PtrBoolToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "capabilities",
+                                      "sdkField": "Capabilities",
+                                      "sdkGoType": "models.ComputerContentCachingParentCapabilitiesable",
+                                      "flatten": {
+                                        "func": "flattenV4ComputersInventoryComputerContentCachingParentCapabilities",
+                                        "needsCtx": true,
+                                        "returnsError": true
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  },
+                                  {
+                                    "name": "content_caching_parent_details_id",
+                                    "goField": "ContentCachingParentDetailsID",
+                                    "type": {
+                                      "kind": "string"
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "contentCachingParentDetailsId",
+                                      "sdkField": "ContentCachingParentDetailsId",
+                                      "sdkGoType": "*string",
+                                      "flatten": {
+                                        "func": "convert.PtrStringToFramework"
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  },
+                                  {
+                                    "name": "local_network",
+                                    "goField": "LocalNetwork",
+                                    "type": {
+                                      "kind": "set_nested",
+                                      "nestedObject": {
+                                        "goTypeName": "V4ComputersInventoryComputerContentCachingParentLocalNetworkModel",
+                                        "sdkType": "models.ComputerContentCachingParentLocalNetworkable",
+                                        "constructorExpr": "models.NewComputerContentCachingParentLocalNetwork()",
+                                        "attrTypesVar": "v4ComputersInventoryComputerContentCachingParentLocalNetworkAttrTypes",
+                                        "objectTypeVar": "v4ComputersInventoryComputerContentCachingParentLocalNetworkObjectType",
+                                        "expandFunc": "expandV4ComputersInventoryComputerContentCachingParentLocalNetworks",
+                                        "flattenFunc": "flattenV4ComputersInventoryComputerContentCachingParentLocalNetworks",
+                                        "attributes": [
+                                          {
+                                            "name": "content_caching_parent_local_network_id",
+                                            "goField": "ContentCachingParentLocalNetworkID",
+                                            "type": {
+                                              "kind": "string"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "contentCachingParentLocalNetworkId",
+                                              "sdkField": "ContentCachingParentLocalNetworkId",
+                                              "sdkGoType": "*string",
+                                              "flatten": {
+                                                "func": "convert.PtrStringToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          },
+                                          {
+                                            "name": "speed",
+                                            "goField": "Speed",
+                                            "type": {
+                                              "kind": "int64"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "speed",
+                                              "sdkField": "Speed",
+                                              "sdkGoType": "*int64",
+                                              "flatten": {
+                                                "func": "convert.PtrInt64ToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          },
+                                          {
+                                            "name": "wired",
+                                            "goField": "Wired",
+                                            "type": {
+                                              "kind": "bool"
+                                            },
+                                            "computedOptionalRequired": "computed",
+                                            "wire": {
+                                              "jsonPath": "wired",
+                                              "sdkField": "Wired",
+                                              "sdkGoType": "*bool",
+                                              "flatten": {
+                                                "func": "convert.PtrBoolToFramework"
+                                              },
+                                              "skipExpand": true
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "localNetwork",
+                                      "sdkField": "LocalNetwork",
+                                      "sdkGoType": "[]models.ComputerContentCachingParentLocalNetworkable",
+                                      "flatten": {
+                                        "func": "flattenV4ComputersInventoryComputerContentCachingParentLocalNetworks",
+                                        "needsCtx": true,
+                                        "returnsError": true
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  },
+                                  {
+                                    "name": "portable",
+                                    "goField": "Portable",
+                                    "type": {
+                                      "kind": "bool"
+                                    },
+                                    "computedOptionalRequired": "computed",
+                                    "wire": {
+                                      "jsonPath": "portable",
+                                      "sdkField": "Portable",
+                                      "sdkGoType": "*bool",
+                                      "flatten": {
+                                        "func": "convert.PtrBoolToFramework"
+                                      },
+                                      "skipExpand": true
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "details",
+                              "sdkField": "Details",
+                              "sdkGoType": "models.ComputerContentCachingParentDetailsable",
+                              "flatten": {
+                                "func": "flattenV4ComputersInventoryComputerContentCachingParentDetails",
+                                "needsCtx": true,
+                                "returnsError": true
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "guid",
+                            "goField": "Guid",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "guid",
+                              "sdkField": "Guid",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "healthy",
+                            "goField": "Healthy",
+                            "type": {
+                              "kind": "bool"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "healthy",
+                              "sdkField": "Healthy",
+                              "sdkGoType": "*bool",
+                              "flatten": {
+                                "func": "convert.PtrBoolToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "port",
+                            "goField": "Port",
+                            "type": {
+                              "kind": "int64"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "port",
+                              "sdkField": "Port",
+                              "sdkGoType": "*int64",
+                              "flatten": {
+                                "func": "convert.PtrInt64ToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "version",
+                            "goField": "Version",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "version",
+                              "sdkField": "Version",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "parents",
+                      "sdkField": "Parents",
+                      "sdkGoType": "[]models.ComputerContentCachingParentable",
+                      "flatten": {
+                        "func": "flattenV4ComputersInventoryComputerContentCachingParents",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "personal_cache_bytes_free",
+                    "goField": "PersonalCacheBytesFree",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "personalCacheBytesFree",
+                      "sdkField": "PersonalCacheBytesFree",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "personal_cache_bytes_limit",
+                    "goField": "PersonalCacheBytesLimit",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "personalCacheBytesLimit",
+                      "sdkField": "PersonalCacheBytesLimit",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "personal_cache_bytes_used",
+                    "goField": "PersonalCacheBytesUsed",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "personalCacheBytesUsed",
+                      "sdkField": "PersonalCacheBytesUsed",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "port",
+                    "goField": "Port",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "port",
+                      "sdkField": "Port",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "public_address",
+                    "goField": "PublicAddress",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "publicAddress",
+                      "sdkField": "PublicAddress",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "registration_error",
+                    "goField": "RegistrationError",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "registrationError",
+                      "sdkField": "RegistrationError",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "registration_response_code",
+                    "goField": "RegistrationResponseCode",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "registrationResponseCode",
+                      "sdkField": "RegistrationResponseCode",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "registration_started",
+                    "goField": "RegistrationStarted",
+                    "type": {
+                      "kind": "string",
+                      "constraints": {
+                        "format": "date-time"
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "registrationStarted",
+                      "sdkField": "RegistrationStarted",
+                      "sdkGoType": "*time.Time",
+                      "flatten": {
+                        "func": "convert.PtrTimeToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "registration_status",
+                    "goField": "RegistrationStatus",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "registrationStatus",
+                      "sdkField": "RegistrationStatus",
+                      "sdkGoType": "*models.ComputerContentCaching_registrationStatus",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "restricted_media",
+                    "goField": "RestrictedMedia",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "restrictedMedia",
+                      "sdkField": "RestrictedMedia",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "server_guid",
+                    "goField": "ServerGuid",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "serverGuid",
+                      "sdkField": "ServerGuid",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "startup_status",
+                    "goField": "StartupStatus",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "startupStatus",
+                      "sdkField": "StartupStatus",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "tetherator_status",
+                    "goField": "TetheratorStatus",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "tetheratorStatus",
+                      "sdkField": "TetheratorStatus",
+                      "sdkGoType": "*models.ComputerContentCaching_tetheratorStatus",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "total_bytes_are_since",
+                    "goField": "TotalBytesAreSince",
+                    "type": {
+                      "kind": "string",
+                      "constraints": {
+                        "format": "date-time"
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "totalBytesAreSince",
+                      "sdkField": "TotalBytesAreSince",
+                      "sdkGoType": "*time.Time",
+                      "flatten": {
+                        "func": "convert.PtrTimeToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "total_bytes_dropped",
+                    "goField": "TotalBytesDropped",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "totalBytesDropped",
+                      "sdkField": "TotalBytesDropped",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "total_bytes_imported",
+                    "goField": "TotalBytesImported",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "totalBytesImported",
+                      "sdkField": "TotalBytesImported",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "total_bytes_returned_to_children",
+                    "goField": "TotalBytesReturnedToChildren",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "totalBytesReturnedToChildren",
+                      "sdkField": "TotalBytesReturnedToChildren",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "total_bytes_returned_to_clients",
+                    "goField": "TotalBytesReturnedToClients",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "totalBytesReturnedToClients",
+                      "sdkField": "TotalBytesReturnedToClients",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "total_bytes_returned_to_peers",
+                    "goField": "TotalBytesReturnedToPeers",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "totalBytesReturnedToPeers",
+                      "sdkField": "TotalBytesReturnedToPeers",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "total_bytes_stored_from_origin",
+                    "goField": "TotalBytesStoredFromOrigin",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "totalBytesStoredFromOrigin",
+                      "sdkField": "TotalBytesStoredFromOrigin",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "total_bytes_stored_from_parents",
+                    "goField": "TotalBytesStoredFromParents",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "totalBytesStoredFromParents",
+                      "sdkField": "TotalBytesStoredFromParents",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "total_bytes_stored_from_peers",
+                    "goField": "TotalBytesStoredFromPeers",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "totalBytesStoredFromPeers",
+                      "sdkField": "TotalBytesStoredFromPeers",
+                      "sdkGoType": "*int64",
+                      "flatten": {
+                        "func": "convert.PtrInt64ToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "contentCaching",
+              "sdkField": "ContentCaching",
+              "sdkGoType": "models.ComputerContentCachingable",
+              "flatten": {
+                "func": "flattenV4ComputersInventoryComputerContentCaching",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "disk_encryption",
+            "goField": "DiskEncryption",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "V4ComputersInventoryComputerDiskEncryptionModel",
+                "sdkType": "models.ComputerDiskEncryptionable",
+                "constructorExpr": "models.NewComputerDiskEncryption()",
+                "attrTypesVar": "v4ComputersInventoryComputerDiskEncryptionAttrTypes",
+                "objectTypeVar": "v4ComputersInventoryComputerDiskEncryptionObjectType",
+                "expandFunc": "expandV4ComputersInventoryComputerDiskEncryption",
+                "flattenFunc": "flattenV4ComputersInventoryComputerDiskEncryption",
+                "attributes": [
+                  {
+                    "name": "boot_partition_encryption_details",
+                    "goField": "BootPartitionEncryptionDetails",
+                    "type": {
+                      "kind": "single_nested",
+                      "nestedObject": {
+                        "goTypeName": "V4ComputersInventoryComputerPartitionEncryptionModel",
+                        "sdkType": "models.ComputerPartitionEncryptionable",
+                        "constructorExpr": "models.NewComputerPartitionEncryption()",
+                        "attrTypesVar": "v4ComputersInventoryComputerPartitionEncryptionAttrTypes",
+                        "objectTypeVar": "v4ComputersInventoryComputerPartitionEncryptionObjectType",
+                        "expandFunc": "expandV4ComputersInventoryComputerPartitionEncryption",
+                        "flattenFunc": "flattenV4ComputersInventoryComputerPartitionEncryption",
+                        "attributes": [
+                          {
+                            "name": "partition_file_vault2_percent",
+                            "goField": "PartitionFileVault2Percent",
+                            "type": {
+                              "kind": "int64"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "partitionFileVault2Percent",
+                              "sdkField": "PartitionFileVault2Percent",
+                              "sdkGoType": "*int32",
+                              "flatten": {
+                                "func": "convert.PtrInt32ToFrameworkInt64"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "partition_file_vault2_state",
+                            "goField": "PartitionFileVault2State",
+                            "type": {
+                              "kind": "string",
+                              "allowedValues": [
+                                "UNKNOWN",
+                                "UNENCRYPTED",
+                                "INELIGIBLE",
+                                "DECRYPTED",
+                                "DECRYPTING",
+                                "ENCRYPTED",
+                                "ENCRYPTING",
+                                "RESTART_NEEDED",
+                                "OPTIMIZING",
+                                "DECRYPTING_PAUSED",
+                                "ENCRYPTING_PAUSED"
+                              ]
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "partitionFileVault2State",
+                              "sdkField": "PartitionFileVault2State",
+                              "sdkGoType": "*models.ComputerPartitionFileVault2State",
+                              "flatten": {
+                                "func": "convert.PtrStringerToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          },
+                          {
+                            "name": "partition_name",
+                            "goField": "PartitionName",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "computed",
+                            "wire": {
+                              "jsonPath": "partitionName",
+                              "sdkField": "PartitionName",
+                              "sdkGoType": "*string",
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              },
+                              "skipExpand": true
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "bootPartitionEncryptionDetails",
+                      "sdkField": "BootPartitionEncryptionDetails",
+                      "sdkGoType": "models.ComputerPartitionEncryptionable",
+                      "flatten": {
+                        "func": "flattenV4ComputersInventoryComputerPartitionEncryption",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "disk_encryption_configuration_name",
+                    "goField": "DiskEncryptionConfigurationName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "diskEncryptionConfigurationName",
+                      "sdkField": "DiskEncryptionConfigurationName",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "file_vault2_eligibility_message",
+                    "goField": "FileVault2EligibilityMessage",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "fileVault2EligibilityMessage",
+                      "sdkField": "FileVault2EligibilityMessage",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "file_vault2_enabled",
+                    "goField": "FileVault2Enabled",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "fileVault2Enabled",
+                      "sdkField": "FileVault2Enabled",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "file_vault2_enabled_user_names",
+                    "goField": "FileVault2EnabledUserNames",
+                    "type": {
+                      "kind": "set",
+                      "elementType": {
+                        "kind": "string"
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "fileVault2EnabledUserNames",
+                      "sdkField": "FileVault2EnabledUserNames",
+                      "sdkGoType": "[]string",
+                      "flatten": {
+                        "func": "convert.StringSliceToFrameworkSet",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "individual_recovery_key_validity_status",
+                    "goField": "IndividualRecoveryKeyValidityStatus",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "individualRecoveryKeyValidityStatus",
+                      "sdkField": "IndividualRecoveryKeyValidityStatus",
+                      "sdkGoType": "*models.ComputerDiskEncryption_individualRecoveryKeyValidityStatus",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "institutional_recovery_key_present",
+                    "goField": "InstitutionalRecoveryKeyPresent",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "institutionalRecoveryKeyPresent",
+                      "sdkField": "InstitutionalRecoveryKeyPresent",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "diskEncryption",
+              "sdkField": "DiskEncryption",
+              "sdkGoType": "models.ComputerDiskEncryptionable",
+              "flatten": {
+                "func": "flattenV4ComputersInventoryComputerDiskEncryption",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "extension_attributes",
+            "goField": "ExtensionAttributes",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V4ComputersInventoryComputerExtensionAttributeModel",
+                "sdkType": "models.ComputerExtensionAttributeable",
+                "constructorExpr": "models.NewComputerExtensionAttribute()",
+                "attrTypesVar": "v4ComputersInventoryComputerExtensionAttributeAttrTypes",
+                "objectTypeVar": "v4ComputersInventoryComputerExtensionAttributeObjectType",
+                "expandFunc": "expandV4ComputersInventoryComputerExtensionAttributes",
+                "flattenFunc": "flattenV4ComputersInventoryComputerExtensionAttributes",
+                "attributes": [
+                  {
+                    "name": "data_type",
+                    "goField": "DataType",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "A data type of extension attribute.",
+                    "wire": {
+                      "jsonPath": "dataType",
+                      "sdkField": "DataType",
+                      "sdkGoType": "*models.ComputerExtensionAttribute_dataType",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "definition_id",
+                    "goField": "DefinitionID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "An identifier of extension attribute definition.",
+                    "wire": {
+                      "jsonPath": "definitionId",
+                      "sdkField": "DefinitionId",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "description",
+                    "goField": "Description",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "An additional explanation of exact attribute meaning, possible values, etc.",
+                    "wire": {
+                      "jsonPath": "description",
+                      "sdkField": "Description",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "enabled",
+                    "goField": "Enabled",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "enabled",
+                      "sdkField": "Enabled",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "input_type",
+                    "goField": "InputType",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "The input method. `text` is most common and means simply free text, `popup` i a closed list of values from\nwhich one or many can be selected and `script` value is calculated and can never be set directly.",
+                    "wire": {
+                      "jsonPath": "inputType",
+                      "sdkField": "InputType",
+                      "sdkGoType": "*models.ComputerExtensionAttribute_inputType",
+                      "flatten": {
+                        "func": "convert.PtrStringerToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "multi_value",
+                    "goField": "MultiValue",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "multiValue",
+                      "sdkField": "MultiValue",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "A human-readable name by which attribute can be referred to.",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "options",
+                    "goField": "Options",
+                    "type": {
+                      "kind": "set",
+                      "elementType": {
+                        "kind": "string"
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "A closed list of possible values (applies to `popup` input type).",
+                    "wire": {
+                      "jsonPath": "options",
+                      "sdkField": "Options",
+                      "sdkGoType": "[]string",
+                      "flatten": {
+                        "func": "convert.StringSliceToFrameworkSet",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "values",
+                    "goField": "Values",
+                    "type": {
+                      "kind": "set",
+                      "elementType": {
+                        "kind": "string"
+                      }
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "A value of extension attribute, in some rare cases there may be multiple values present, hence the array.",
+                    "wire": {
+                      "jsonPath": "values",
+                      "sdkField": "Values",
+                      "sdkGoType": "[]string",
+                      "flatten": {
+                        "func": "convert.StringSliceToFrameworkSet",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "extensionAttributes",
+              "sdkField": "ExtensionAttributes",
+              "sdkGoType": "[]models.ComputerExtensionAttributeable",
+              "flatten": {
+                "func": "flattenV4ComputersInventoryComputerExtensionAttributes",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "group_memberships",
+            "goField": "GroupMemberships",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V4ComputersInventoryGroupMembershipModel",
+                "sdkType": "models.GroupMembershipable",
+                "constructorExpr": "models.NewGroupMembership()",
+                "attrTypesVar": "v4ComputersInventoryGroupMembershipAttrTypes",
+                "objectTypeVar": "v4ComputersInventoryGroupMembershipObjectType",
+                "expandFunc": "expandV4ComputersInventoryGroupMemberships",
+                "flattenFunc": "flattenV4ComputersInventoryGroupMemberships",
+                "attributes": [
+                  {
+                    "name": "group_description",
+                    "goField": "GroupDescription",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "groupDescription",
+                      "sdkField": "GroupDescription",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "group_id",
+                    "goField": "GroupID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "groupId",
+                      "sdkField": "GroupId",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "group_name",
+                    "goField": "GroupName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "groupName",
+                      "sdkField": "GroupName",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "smart_group",
+                    "goField": "SmartGroup",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "markdownDescription": "Indicates that group is smart group",
+                    "wire": {
+                      "jsonPath": "smartGroup",
+                      "sdkField": "SmartGroup",
+                      "sdkGoType": "*bool",
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "groupMemberships",
+              "sdkField": "GroupMemberships",
+              "sdkGoType": "[]models.GroupMembershipable",
+              "flatten": {
+                "func": "flattenV4ComputersInventoryGroupMemberships",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "ibeacons",
+            "goField": "Ibeacons",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V4ComputersInventoryComputerIbeaconModel",
+                "sdkType": "models.ComputerIbeaconable",
+                "constructorExpr": "models.NewComputerIbeacon()",
+                "attrTypesVar": "v4ComputersInventoryComputerIbeaconAttrTypes",
+                "objectTypeVar": "v4ComputersInventoryComputerIbeaconObjectType",
+                "expandFunc": "expandV4ComputersInventoryComputerIbeacons",
+                "flattenFunc": "flattenV4ComputersInventoryComputerIbeacons",
+                "attributes": [
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "ibeacons",
+              "sdkField": "Ibeacons",
+              "sdkGoType": "[]models.ComputerIbeaconable",
+              "flatten": {
+                "func": "flattenV4ComputersInventoryComputerIbeacons",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 1
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "licensed_software",
+            "goField": "LicensedSoftware",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V4ComputersInventoryComputerLicensedSoftwareModel",
+                "sdkType": "models.ComputerLicensedSoftwareable",
+                "constructorExpr": "models.NewComputerLicensedSoftware()",
+                "attrTypesVar": "v4ComputersInventoryComputerLicensedSoftwareAttrTypes",
+                "objectTypeVar": "v4ComputersInventoryComputerLicensedSoftwareObjectType",
+                "expandFunc": "expandV4ComputersInventoryComputerLicensedSoftwares",
+                "flattenFunc": "flattenV4ComputersInventoryComputerLicensedSoftwares",
+                "attributes": [
+                  {
+                    "name": "id",
+                    "goField": "ID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "id",
+                      "sdkField": "Id",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "goField": "Name",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "name",
+                      "sdkField": "Name",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "licensedSoftware",
+              "sdkField": "LicensedSoftware",
+              "sdkGoType": "[]models.ComputerLicensedSoftwareable",
+              "flatten": {
+                "func": "flattenV4ComputersInventoryComputerLicensedSoftwares",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "udid",
+            "goField": "Udid",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "udid",
+              "sdkField": "Udid",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Return General section of a Computer."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V4"
+            },
+            {
+              "method": "ComputersInventory"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HrefResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v4/computers-inventory"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V4"
+            },
+            {
+              "method": "ComputersInventory"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.ComputerInventoryV4able",
+          "httpMethod": "GET",
+          "pathTemplate": "/v4/computers-inventory/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V4"
+            },
+            {
+              "method": "ComputersInventory"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v4/computers-inventory/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.ComputerInventoryCreateRequestV4",
+          "responseType": "models.ComputerInventoryV4able",
+          "constructorExpr": "models.NewComputerInventoryCreateRequestV4()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "replaceOnly",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}

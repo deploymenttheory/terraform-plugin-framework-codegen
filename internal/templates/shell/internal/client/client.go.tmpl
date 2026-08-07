@@ -42,10 +42,11 @@ import (
 	"{{ .Module }}/internal/sdk"
 )
 
-// defaultAPIEndpoint is the v7 base URL the SDK itself defaults to, restated
-// here because the allowed-hosts validator needs the host before the SDK's
-// default has been applied.
-const defaultAPIEndpoint = "https://api.thousandeyes.com/v7"
+{{- if .DefaultEndpoint }}
+// defaultAPIEndpoint is the base URL the API's own document declares, restated
+// here so a practitioner who names no endpoint still reaches the right host.
+const defaultAPIEndpoint = {{ printf "%q" .DefaultEndpoint }}
+{{- end }}
 
 // Config is what the provider block resolves to, independent of the framework's
 // value types, so building a client is testable without a Terraform plan.
@@ -301,9 +302,18 @@ func (acceptNormalizer) Intercept(pipeline kiotahttp.Pipeline, middlewareIndex i
 // New builds an SDK client.
 func New(cfg Config) (*sdk.{{ .ClientClass }}, error) {
 	endpoint := cfg.APIEndpoint
+{{- if .DefaultEndpoint }}
 	if endpoint == "" {
 		endpoint = defaultAPIEndpoint
 	}
+{{- else }}
+	// This API has no single host -- its document declares a path, not a
+	// server -- so there is nothing to fall back to and the practitioner's
+	// endpoint is the only one there is.
+	if endpoint == "" {
+		return nil, fmt.Errorf("no API endpoint was configured, and {{ .DisplayName }} has no default host")
+	}
+{{- end }}
 
 	parsed, err := url.Parse(endpoint)
 	if err != nil || parsed.Hostname() == "" {

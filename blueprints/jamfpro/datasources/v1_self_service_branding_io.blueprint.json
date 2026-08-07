@@ -1,0 +1,255 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_self_service_branding_io",
+      "name": "v1_self_service_branding_io",
+      "goPackage": "v1_self_service_branding_io",
+      "goPackageAlias": "v7V1SelfServiceBrandingIoDs",
+      "goTypeName": "V1SelfServiceBrandingIoDataSource",
+      "modelTypeName": "V1SelfServiceBrandingIoDataSourceModel",
+      "serviceGroup": "self_service_branding_ios",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "branding_name",
+            "goField": "BrandingName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "brandingName",
+              "sdkField": "BrandingName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "branding_name_color_code",
+            "goField": "BrandingNameColorCode",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "brandingNameColorCode",
+              "sdkField": "BrandingNameColorCode",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "header_background_color_code",
+            "goField": "HeaderBackgroundColorCode",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "headerBackgroundColorCode",
+              "sdkField": "HeaderBackgroundColorCode",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "icon_id",
+            "goField": "IconID",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "iconId",
+              "sdkField": "IconId",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "menu_icon_color_code",
+            "goField": "MenuIconColorCode",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "menuIconColorCode",
+              "sdkField": "MenuIconColorCode",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "status_bar_text_color",
+            "goField": "StatusBarTextColor",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "statusBarTextColor",
+              "sdkField": "StatusBarTextColor",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Read a single Self Service iOS branding configuration indicated by the provided id."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "SelfService"
+            },
+            {
+              "method": "Branding"
+            },
+            {
+              "method": "Ios"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "configField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.IosBrandingConfigurationable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/self-service/branding/ios/{id}"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "SelfService"
+            },
+            {
+              "method": "Branding"
+            },
+            {
+              "method": "Ios"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.IosBrandingSearchResultsable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/self-service/branding/ios"
+        },
+        "collectionField": "GetResults()",
+        "elementType": "models.IosBrandingConfigurationable",
+        "selectors": [
+          {
+            "attribute": "id",
+            "goField": "ID",
+            "viaRead": true
+          },
+          {
+            "attribute": "branding_name",
+            "goField": "BrandingName",
+            "sdkField": "BrandingName"
+          }
+        ],
+        "elementIdField": "Id",
+        "elementIdFlatten": {
+          "func": "convert.PtrStringToFramework"
+        },
+        "response": {
+          "type": "models.IosBrandingConfigurationable",
+          "accessStyle": "method"
+        }
+      },
+      "accTest": {
+        "seedResourceKey": "v1_self_service_branding_io",
+        "args": [
+          {
+            "attr": "id",
+            "fromSeedAttr": "id"
+          }
+        ]
+      }
+    }
+  ]
+}

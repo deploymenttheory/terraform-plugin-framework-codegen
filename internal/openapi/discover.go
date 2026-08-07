@@ -15,6 +15,7 @@ package openapi
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"regexp"
 	"sort"
@@ -431,4 +432,24 @@ func scopeNames(flow *v3.OAuthFlow) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// ServerURL returns the document's first absolute server URL.
+//
+// Relative -- Jamf Pro declares /api -- means the host is per-installation and
+// there is no default to offer, so the caller gets an empty string and the
+// generated provider requires an endpoint instead of inventing one.
+func (d *Document) ServerURL() string {
+	if d.model == nil {
+		return ""
+	}
+	for _, s := range d.model.Servers {
+		if s == nil {
+			continue
+		}
+		if u, err := url.Parse(s.URL); err == nil && u.Scheme != "" && u.Host != "" {
+			return strings.TrimSuffix(s.URL, "/")
+		}
+	}
+	return ""
 }

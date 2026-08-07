@@ -1,0 +1,1815 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v2_mobile_device_prestage",
+      "name": "v2_mobile_device_prestage",
+      "goPackage": "v2_mobile_device_prestage",
+      "goPackageAlias": "v7V2MobileDevicePrestage",
+      "goTypeName": "V2MobileDevicePrestageResource",
+      "modelTypeName": "V2MobileDevicePrestageResourceModel",
+      "serviceGroup": "mobile_device_prestages",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "allow_pairing",
+            "goField": "AllowPairing",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "allowPairing",
+              "sdkField": "AllowPairing",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "anchor_certificates",
+            "goField": "AnchorCertificates",
+            "type": {
+              "kind": "set",
+              "elementType": {
+                "kind": "string"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "The Base64 encoded PEM Certificate",
+            "wire": {
+              "jsonPath": "anchorCertificates",
+              "sdkField": "AnchorCertificates",
+              "sdkGoType": "[]string",
+              "expand": {
+                "func": "convert.FrameworkSetToStringSlice",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "convert.StringSliceToFrameworkSet",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "authentication_prompt",
+            "goField": "AuthenticationPrompt",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "authenticationPrompt",
+              "sdkField": "AuthenticationPrompt",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "auto_advance_setup",
+            "goField": "AutoAdvanceSetup",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "autoAdvanceSetup",
+              "sdkField": "AutoAdvanceSetup",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "configure_device_before_setup_assistant",
+            "goField": "ConfigureDeviceBeforeSetupAssistant",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "configureDeviceBeforeSetupAssistant",
+              "sdkField": "ConfigureDeviceBeforeSetupAssistant",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "default_prestage",
+            "goField": "DefaultPrestage",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "defaultPrestage",
+              "sdkField": "DefaultPrestage",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "department",
+            "goField": "Department",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "department",
+              "sdkField": "Department",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "device_enrollment_program_instance_id",
+            "goField": "DeviceEnrollmentProgramInstanceID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "deviceEnrollmentProgramInstanceId",
+              "sdkField": "DeviceEnrollmentProgramInstanceId",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "display_name",
+            "goField": "DisplayName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "displayName",
+              "sdkField": "DisplayName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "enable_device_based_activation_lock",
+            "goField": "EnableDeviceBasedActivationLock",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "enableDeviceBasedActivationLock",
+              "sdkField": "EnableDeviceBasedActivationLock",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "enforce_temporary_session_timeout",
+            "goField": "EnforceTemporarySessionTimeout",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "enforceTemporarySessionTimeout",
+              "sdkField": "EnforceTemporarySessionTimeout",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "enforce_user_session_timeout",
+            "goField": "EnforceUserSessionTimeout",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "enforceUserSessionTimeout",
+              "sdkField": "EnforceUserSessionTimeout",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "enrollment_customization_id",
+            "goField": "EnrollmentCustomizationID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "enrollmentCustomizationId",
+              "sdkField": "EnrollmentCustomizationId",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "enrollment_site_id",
+            "goField": "EnrollmentSiteID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "enrollmentSiteId",
+              "sdkField": "EnrollmentSiteId",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "keep_existing_location_information",
+            "goField": "KeepExistingLocationInformation",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "keepExistingLocationInformation",
+              "sdkField": "KeepExistingLocationInformation",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "keep_existing_site_membership",
+            "goField": "KeepExistingSiteMembership",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "keepExistingSiteMembership",
+              "sdkField": "KeepExistingSiteMembership",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "language",
+            "goField": "Language",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "language",
+              "sdkField": "Language",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "location_information",
+            "goField": "LocationInformation",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "V2MobileDevicePrestageLocationInformationV2Model",
+                "sdkType": "models.LocationInformationV2able",
+                "constructorExpr": "models.NewLocationInformationV2()",
+                "attrTypesVar": "v2MobileDevicePrestageLocationInformationV2AttrTypes",
+                "objectTypeVar": "v2MobileDevicePrestageLocationInformationV2ObjectType",
+                "expandFunc": "expandV2MobileDevicePrestageLocationInformationV2",
+                "flattenFunc": "flattenV2MobileDevicePrestageLocationInformationV2",
+                "attributes": [
+                  {
+                    "name": "building_id",
+                    "goField": "BuildingID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "buildingId",
+                      "sdkField": "BuildingId",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "department_id",
+                    "goField": "DepartmentID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "departmentId",
+                      "sdkField": "DepartmentId",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "email",
+                    "goField": "Email",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "email",
+                      "sdkField": "Email",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "id",
+                    "goField": "ID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "id",
+                      "sdkField": "Id",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "phone",
+                    "goField": "Phone",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "phone",
+                      "sdkField": "Phone",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "position",
+                    "goField": "Position",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "position",
+                      "sdkField": "Position",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "realname",
+                    "goField": "Realname",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "realname",
+                      "sdkField": "Realname",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "room",
+                    "goField": "Room",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "room",
+                      "sdkField": "Room",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "username",
+                    "goField": "Username",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "username",
+                      "sdkField": "Username",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "version_lock",
+                    "goField": "VersionLock",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "versionLock",
+                      "sdkField": "VersionLock",
+                      "sdkGoType": "*int32",
+                      "expand": {
+                        "func": "convert.FrameworkInt64ToPtrInt32"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrInt32ToFrameworkInt64"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "locationInformation",
+              "sdkField": "LocationInformation",
+              "sdkGoType": "models.LocationInformationV2able",
+              "expand": {
+                "func": "expandV2MobileDevicePrestageLocationInformationV2",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenV2MobileDevicePrestageLocationInformationV2",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "mandatory",
+            "goField": "Mandatory",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "mandatory",
+              "sdkField": "Mandatory",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "maximum_shared_accounts",
+            "goField": "MaximumSharedAccounts",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "maximumSharedAccounts",
+              "sdkField": "MaximumSharedAccounts",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "mdm_removable",
+            "goField": "MdmRemovable",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "mdmRemovable",
+              "sdkField": "MdmRemovable",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "minimum_os_specific_version_ios",
+            "goField": "MinimumOSSpecificVersionIos",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 0
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "minimumOsSpecificVersionIos",
+              "sdkField": "MinimumOsSpecificVersionIos",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "minimum_os_specific_version_ipad",
+            "goField": "MinimumOSSpecificVersionIpad",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "minLength": 0
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "minimumOsSpecificVersionIpad",
+              "sdkField": "MinimumOsSpecificVersionIpad",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "multi_user",
+            "goField": "MultiUser",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "multiUser",
+              "sdkField": "MultiUser",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "names",
+            "goField": "Names",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "V2MobileDevicePrestageMobileDevicePrestageNamesV2Model",
+                "sdkType": "models.MobileDevicePrestageNamesV2able",
+                "constructorExpr": "models.NewMobileDevicePrestageNamesV2()",
+                "attrTypesVar": "v2MobileDevicePrestageMobileDevicePrestageNamesV2AttrTypes",
+                "objectTypeVar": "v2MobileDevicePrestageMobileDevicePrestageNamesV2ObjectType",
+                "expandFunc": "expandV2MobileDevicePrestageMobileDevicePrestageNamesV2",
+                "flattenFunc": "flattenV2MobileDevicePrestageMobileDevicePrestageNamesV2",
+                "attributes": [
+                  {
+                    "name": "assign_names_using",
+                    "goField": "AssignNamesUsing",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "assignNamesUsing",
+                      "sdkField": "AssignNamesUsing",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "device_name_prefix",
+                    "goField": "DeviceNamePrefix",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "deviceNamePrefix",
+                      "sdkField": "DeviceNamePrefix",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "device_name_suffix",
+                    "goField": "DeviceNameSuffix",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "deviceNameSuffix",
+                      "sdkField": "DeviceNameSuffix",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "device_naming_configured",
+                    "goField": "DeviceNamingConfigured",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "deviceNamingConfigured",
+                      "sdkField": "DeviceNamingConfigured",
+                      "sdkGoType": "*bool",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrBool"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "manage_names",
+                    "goField": "ManageNames",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "manageNames",
+                      "sdkField": "ManageNames",
+                      "sdkGoType": "*bool",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrBool"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "prestage_device_names",
+                    "goField": "PrestageDeviceNames",
+                    "type": {
+                      "kind": "set_nested",
+                      "nestedObject": {
+                        "goTypeName": "V2MobileDevicePrestageMobileDevicePrestageNameV2Model",
+                        "sdkType": "models.MobileDevicePrestageNameV2able",
+                        "constructorExpr": "models.NewMobileDevicePrestageNameV2()",
+                        "attrTypesVar": "v2MobileDevicePrestageMobileDevicePrestageNameV2AttrTypes",
+                        "objectTypeVar": "v2MobileDevicePrestageMobileDevicePrestageNameV2ObjectType",
+                        "expandFunc": "expandV2MobileDevicePrestageMobileDevicePrestageNameV2s",
+                        "flattenFunc": "flattenV2MobileDevicePrestageMobileDevicePrestageNameV2s",
+                        "attributes": [
+                          {
+                            "name": "device_name",
+                            "goField": "DeviceName",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "optional",
+                            "wire": {
+                              "jsonPath": "deviceName",
+                              "sdkField": "DeviceName",
+                              "sdkGoType": "*string",
+                              "expand": {
+                                "func": "convert.FrameworkToPtrString"
+                              },
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "id",
+                            "goField": "ID",
+                            "type": {
+                              "kind": "string"
+                            },
+                            "computedOptionalRequired": "optional",
+                            "wire": {
+                              "jsonPath": "id",
+                              "sdkField": "Id",
+                              "sdkGoType": "*string",
+                              "expand": {
+                                "func": "convert.FrameworkToPtrString"
+                              },
+                              "flatten": {
+                                "func": "convert.PtrStringToFramework"
+                              }
+                            }
+                          },
+                          {
+                            "name": "used",
+                            "goField": "Used",
+                            "type": {
+                              "kind": "bool"
+                            },
+                            "computedOptionalRequired": "optional",
+                            "wire": {
+                              "jsonPath": "used",
+                              "sdkField": "Used",
+                              "sdkGoType": "*bool",
+                              "expand": {
+                                "func": "convert.FrameworkToPtrBool"
+                              },
+                              "flatten": {
+                                "func": "convert.PtrBoolToFramework"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "prestageDeviceNames",
+                      "sdkField": "PrestageDeviceNames",
+                      "sdkGoType": "[]models.MobileDevicePrestageNameV2able",
+                      "expand": {
+                        "func": "expandV2MobileDevicePrestageMobileDevicePrestageNameV2s",
+                        "needsCtx": true,
+                        "returnsError": true
+                      },
+                      "flatten": {
+                        "func": "flattenV2MobileDevicePrestageMobileDevicePrestageNameV2s",
+                        "needsCtx": true,
+                        "returnsError": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "single_device_name",
+                    "goField": "SingleDeviceName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "singleDeviceName",
+                      "sdkField": "SingleDeviceName",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "names",
+              "sdkField": "Names",
+              "sdkGoType": "models.MobileDevicePrestageNamesV2able",
+              "expand": {
+                "func": "expandV2MobileDevicePrestageMobileDevicePrestageNamesV2",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenV2MobileDevicePrestageMobileDevicePrestageNamesV2",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "prestage_minimum_os_target_version_type_ios",
+            "goField": "PrestageMinimumOSTargetVersionTypeIos",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "prestageMinimumOsTargetVersionTypeIos",
+              "sdkField": "PrestageMinimumOsTargetVersionTypeIos",
+              "sdkGoType": "*models.MobileDevicePrestageV2_prestageMinimumOsTargetVersionTypeIos",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.MobileDevicePrestageV2_prestageMinimumOsTargetVersionTypeIos"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseMobileDevicePrestageV2_prestageMinimumOsTargetVersionTypeIos"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "prestage_minimum_os_target_version_type_ipad",
+            "goField": "PrestageMinimumOSTargetVersionTypeIpad",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "prestageMinimumOsTargetVersionTypeIpad",
+              "sdkField": "PrestageMinimumOsTargetVersionTypeIpad",
+              "sdkGoType": "*models.MobileDevicePrestageV2_prestageMinimumOsTargetVersionTypeIpad",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.MobileDevicePrestageV2_prestageMinimumOsTargetVersionTypeIpad"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseMobileDevicePrestageV2_prestageMinimumOsTargetVersionTypeIpad"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "prevent_activation_lock",
+            "goField": "PreventActivationLock",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "preventActivationLock",
+              "sdkField": "PreventActivationLock",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "profile_uuid",
+            "goField": "ProfileUUID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "profileUuid",
+              "sdkField": "ProfileUuid",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "purchasing_information",
+            "goField": "PurchasingInformation",
+            "type": {
+              "kind": "single_nested",
+              "nestedObject": {
+                "goTypeName": "V2MobileDevicePrestagePrestagePurchasingInformationV2Model",
+                "sdkType": "models.PrestagePurchasingInformationV2able",
+                "constructorExpr": "models.NewPrestagePurchasingInformationV2()",
+                "attrTypesVar": "v2MobileDevicePrestagePrestagePurchasingInformationV2AttrTypes",
+                "objectTypeVar": "v2MobileDevicePrestagePrestagePurchasingInformationV2ObjectType",
+                "expandFunc": "expandV2MobileDevicePrestagePrestagePurchasingInformationV2",
+                "flattenFunc": "flattenV2MobileDevicePrestagePrestagePurchasingInformationV2",
+                "attributes": [
+                  {
+                    "name": "apple_care_id",
+                    "goField": "AppleCareID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "appleCareId",
+                      "sdkField": "AppleCareId",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "id",
+                    "goField": "ID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "id",
+                      "sdkField": "Id",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "lease_date",
+                    "goField": "LeaseDate",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "leaseDate",
+                      "sdkField": "LeaseDate",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "leased",
+                    "goField": "Leased",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "leased",
+                      "sdkField": "Leased",
+                      "sdkGoType": "*bool",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrBool"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "life_expectancy",
+                    "goField": "LifeExpectancy",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "lifeExpectancy",
+                      "sdkField": "LifeExpectancy",
+                      "sdkGoType": "*int32",
+                      "expand": {
+                        "func": "convert.FrameworkInt64ToPtrInt32"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrInt32ToFrameworkInt64"
+                      }
+                    }
+                  },
+                  {
+                    "name": "po_date",
+                    "goField": "PoDate",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "poDate",
+                      "sdkField": "PoDate",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "po_number",
+                    "goField": "PoNumber",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "poNumber",
+                      "sdkField": "PoNumber",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "purchase_price",
+                    "goField": "PurchasePrice",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "purchasePrice",
+                      "sdkField": "PurchasePrice",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "purchased",
+                    "goField": "Purchased",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "purchased",
+                      "sdkField": "Purchased",
+                      "sdkGoType": "*bool",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrBool"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "purchasing_account",
+                    "goField": "PurchasingAccount",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "purchasingAccount",
+                      "sdkField": "PurchasingAccount",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "purchasing_contact",
+                    "goField": "PurchasingContact",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "purchasingContact",
+                      "sdkField": "PurchasingContact",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "vendor",
+                    "goField": "Vendor",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "vendor",
+                      "sdkField": "VendorEscaped",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "version_lock",
+                    "goField": "VersionLock",
+                    "type": {
+                      "kind": "int64"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "versionLock",
+                      "sdkField": "VersionLock",
+                      "sdkGoType": "*int32",
+                      "expand": {
+                        "func": "convert.FrameworkInt64ToPtrInt32"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrInt32ToFrameworkInt64"
+                      }
+                    }
+                  },
+                  {
+                    "name": "warranty_date",
+                    "goField": "WarrantyDate",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "required",
+                    "wire": {
+                      "jsonPath": "warrantyDate",
+                      "sdkField": "WarrantyDate",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "purchasingInformation",
+              "sdkField": "PurchasingInformation",
+              "sdkGoType": "models.PrestagePurchasingInformationV2able",
+              "expand": {
+                "func": "expandV2MobileDevicePrestagePrestagePurchasingInformationV2",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenV2MobileDevicePrestagePrestagePurchasingInformationV2",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "region",
+            "goField": "Region",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "region",
+              "sdkField": "Region",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "require_authentication",
+            "goField": "RequireAuthentication",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "requireAuthentication",
+              "sdkField": "RequireAuthentication",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "rts_config_profile_id",
+            "goField": "RtsConfigProfileID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "rtsConfigProfileId",
+              "sdkField": "RtsConfigProfileId",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "rts_enabled",
+            "goField": "RtsEnabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "rtsEnabled",
+              "sdkField": "RtsEnabled",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "send_timezone",
+            "goField": "SendTimezone",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "sendTimezone",
+              "sdkField": "SendTimezone",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "site_id",
+            "goField": "SiteID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "siteId",
+              "sdkField": "SiteId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "storage_quota_size_megabytes",
+            "goField": "StorageQuotaSizeMegabytes",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "storageQuotaSizeMegabytes",
+              "sdkField": "StorageQuotaSizeMegabytes",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "supervised",
+            "goField": "Supervised",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "supervised",
+              "sdkField": "Supervised",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "support_email_address",
+            "goField": "SupportEmailAddress",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "supportEmailAddress",
+              "sdkField": "SupportEmailAddress",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "support_phone_number",
+            "goField": "SupportPhoneNumber",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "supportPhoneNumber",
+              "sdkField": "SupportPhoneNumber",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "temporary_session_only",
+            "goField": "TemporarySessionOnly",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "temporarySessionOnly",
+              "sdkField": "TemporarySessionOnly",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "temporary_session_timeout",
+            "goField": "TemporarySessionTimeout",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "temporarySessionTimeout",
+              "sdkField": "TemporarySessionTimeout",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "timezone",
+            "goField": "Timezone",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "timezone",
+              "sdkField": "Timezone",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "use_storage_quota_size",
+            "goField": "UseStorageQuotaSize",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "useStorageQuotaSize",
+              "sdkField": "UseStorageQuotaSize",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "user_session_timeout",
+            "goField": "UserSessionTimeout",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "userSessionTimeout",
+              "sdkField": "UserSessionTimeout",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "version_lock",
+            "goField": "VersionLock",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "versionLock",
+              "sdkField": "VersionLock",
+              "sdkGoType": "*int32",
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              },
+              "skipExpand": true
+            }
+          }
+        ],
+        "markdownDescription": "Retrieve a Mobile Device Prestage with the supplied id."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V2"
+            },
+            {
+              "method": "MobileDevicePrestages"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HrefResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v2/mobile-device-prestages"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V2"
+            },
+            {
+              "method": "MobileDevicePrestages"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.GetMobileDevicePrestageV2able",
+          "httpMethod": "GET",
+          "pathTemplate": "/v2/mobile-device-prestages/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V2"
+            },
+            {
+              "method": "MobileDevicePrestages"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Put",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.GetMobileDevicePrestageV2able",
+          "httpMethod": "PUT",
+          "pathTemplate": "/v2/mobile-device-prestages/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V2"
+            },
+            {
+              "method": "MobileDevicePrestages"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v2/mobile-device-prestages/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.MobileDevicePrestageV2",
+          "responseType": "models.GetMobileDevicePrestageV2able",
+          "constructorExpr": "models.NewMobileDevicePrestageV2()",
+          "updateRequestType": "models.PutMobileDevicePrestageV2",
+          "updateConstructorExpr": "models.NewPutMobileDevicePrestageV2()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "putFull",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}

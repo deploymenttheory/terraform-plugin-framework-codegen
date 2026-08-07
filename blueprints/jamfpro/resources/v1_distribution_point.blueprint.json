@@ -1,0 +1,669 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v1_distribution_point",
+      "name": "v1_distribution_point",
+      "goPackage": "v1_distribution_point",
+      "goPackageAlias": "v7V1DistributionPoint",
+      "goTypeName": "V1DistributionPointResource",
+      "modelTypeName": "V1DistributionPointResourceModel",
+      "serviceGroup": "distribution_point",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "backup_distribution_point_id",
+            "goField": "BackupDistributionPointID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "backupDistributionPointId",
+              "sdkField": "BackupDistributionPointId",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "enable_load_balancing",
+            "goField": "EnableLoadBalancing",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "This is used to configure load balancing on the backup distribution point. Cannot be enabled when the backup distribution point configured is cloud.",
+            "wire": {
+              "jsonPath": "enableLoadBalancing",
+              "sdkField": "EnableLoadBalancing",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "file_sharing_connection_type",
+            "goField": "FileSharingConnectionType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "markdownDescription": "Specify the type of connection , Either of  fileSharingConnectionType (or) https connection type needs to be enabled using httpsEnabled for a distribution point to be created.",
+            "wire": {
+              "jsonPath": "fileSharingConnectionType",
+              "sdkField": "FileSharingConnectionType",
+              "sdkGoType": "*models.DistributionPoint_fileSharingConnectionType",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.DistributionPoint_fileSharingConnectionType"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseDistributionPoint_fileSharingConnectionType"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "https_context",
+            "goField": "HTTPSContext",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Path to the share (e.g. if the share is accessible at http://192.168.10.10/JamfShare, the context is \"JamfShare\") - required if HTTPS enabled",
+            "wire": {
+              "jsonPath": "httpsContext",
+              "sdkField": "HttpsContext",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "https_enabled",
+            "goField": "HTTPSEnabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Allow downloads over HTTPS - requires installation of a valid SSL certificate",
+            "wire": {
+              "jsonPath": "httpsEnabled",
+              "sdkField": "HttpsEnabled",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "https_password",
+            "goField": "HTTPSPassword",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "password"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Required if httpsSecurityType is USERNAME_PASSWORD",
+            "wire": {
+              "jsonPath": "httpsPassword",
+              "sdkField": "HttpsPassword",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "https_port",
+            "goField": "HTTPSPort",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Port number of the server - required if HTTPS enabled",
+            "wire": {
+              "jsonPath": "httpsPort",
+              "sdkField": "HttpsPort",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "https_security_type",
+            "goField": "HTTPSSecurityType",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Type of authentication required to download files from the distribution point - required if HTTPS enabled",
+            "wire": {
+              "jsonPath": "httpsSecurityType",
+              "sdkField": "HttpsSecurityType",
+              "sdkGoType": "*models.DistributionPoint_httpsSecurityType",
+              "expand": {
+                "func": "convert.FrameworkToKiotaEnum",
+                "typeArgs": [
+                  "models.DistributionPoint_httpsSecurityType"
+                ],
+                "returnsError": true,
+                "extraArgs": [
+                  "models.ParseDistributionPoint_httpsSecurityType"
+                ]
+              },
+              "flatten": {
+                "func": "convert.PtrStringerToFramework"
+              }
+            }
+          },
+          {
+            "name": "https_username",
+            "goField": "HTTPSUsername",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Required if httpsSecurityType is USERNAME_PASSWORD",
+            "wire": {
+              "jsonPath": "httpsUsername",
+              "sdkField": "HttpsUsername",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "local_path_to_share",
+            "goField": "LocalPathToShare",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "localPathToShare",
+              "sdkField": "LocalPathToShare",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "port",
+            "goField": "Port",
+            "type": {
+              "kind": "int64"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Required if fileSharingConnectionType is either AFP (or) SMB",
+            "wire": {
+              "jsonPath": "port",
+              "sdkField": "Port",
+              "sdkGoType": "*int32",
+              "expand": {
+                "func": "convert.FrameworkInt64ToPtrInt32"
+              },
+              "flatten": {
+                "func": "convert.PtrInt32ToFrameworkInt64"
+              }
+            }
+          },
+          {
+            "name": "principal",
+            "goField": "Principal",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "principal",
+              "sdkField": "Principal",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "read_only_password",
+            "goField": "ReadOnlyPassword",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "password"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Required if fileSharingConnectionType is either AFP (or) SMB",
+            "wire": {
+              "jsonPath": "readOnlyPassword",
+              "sdkField": "ReadOnlyPassword",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "read_only_username",
+            "goField": "ReadOnlyUsername",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Required if fileSharingConnectionType is either AFP (or) SMB",
+            "wire": {
+              "jsonPath": "readOnlyUsername",
+              "sdkField": "ReadOnlyUsername",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "read_write_password",
+            "goField": "ReadWritePassword",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "password"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Required if fileSharingConnectionType is either AFP (or) SMB",
+            "wire": {
+              "jsonPath": "readWritePassword",
+              "sdkField": "ReadWritePassword",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "read_write_username",
+            "goField": "ReadWriteUsername",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Required if fileSharingConnectionType is either AFP (or) SMB",
+            "wire": {
+              "jsonPath": "readWriteUsername",
+              "sdkField": "ReadWriteUsername",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "server_name",
+            "goField": "ServerName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "serverName",
+              "sdkField": "ServerName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "share_name",
+            "goField": "ShareName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "markdownDescription": "Required if fileSharingConnectionType is either AFP (or) SMB",
+            "wire": {
+              "jsonPath": "shareName",
+              "sdkField": "ShareName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "ssh_password",
+            "goField": "SshPassword",
+            "type": {
+              "kind": "string",
+              "constraints": {
+                "format": "password"
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "sshPassword",
+              "sdkField": "SshPassword",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "ssh_username",
+            "goField": "SshUsername",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "sshUsername",
+              "sdkField": "SshUsername",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "workgroup",
+            "goField": "Workgroup",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "workgroup",
+              "sdkField": "Workgroup",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Get specified distribution point."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "DistributionPoints"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HrefResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v1/distribution-points"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "DistributionPoints"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.DistributionPointable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/distribution-points/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "DistributionPoints"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Patch",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.DistributionPointable",
+          "httpMethod": "PATCH",
+          "pathTemplate": "/v1/distribution-points/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "DistributionPoints"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v1/distribution-points/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.DistributionPoint",
+          "responseType": "models.DistributionPointable",
+          "constructorExpr": "models.NewDistributionPoint()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "patchMerge",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}

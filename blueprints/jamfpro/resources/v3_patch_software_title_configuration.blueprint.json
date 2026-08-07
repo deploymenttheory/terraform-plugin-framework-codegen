@@ -1,0 +1,583 @@
+{
+  "formatVersion": "4",
+  "resources": [
+    {
+      "key": "v3_patch_software_title_configuration",
+      "name": "v3_patch_software_title_configuration",
+      "goPackage": "v3_patch_software_title_configuration",
+      "goPackageAlias": "v7V3PatchSoftwareTitleConfiguration",
+      "goTypeName": "V3PatchSoftwareTitleConfigurationResource",
+      "modelTypeName": "V3PatchSoftwareTitleConfigurationResourceModel",
+      "serviceGroup": "patch_software_title_configurations",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "category_id",
+            "goField": "CategoryID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "categoryId",
+              "sdkField": "CategoryId",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "display_name",
+            "goField": "DisplayName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "displayName",
+              "sdkField": "DisplayName",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "email_notifications",
+            "goField": "EmailNotifications",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "emailNotifications",
+              "sdkField": "EmailNotifications",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          },
+          {
+            "name": "extension_attributes",
+            "goField": "ExtensionAttributes",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V3PatchSoftwareTitleConfigurationPatchSoftwareTitleConfigurationExtensionAttributesModel",
+                "sdkType": "models.PatchSoftwareTitleConfigurationExtensionAttributesable",
+                "constructorExpr": "models.NewPatchSoftwareTitleConfigurationExtensionAttributes()",
+                "attrTypesVar": "v3PatchSoftwareTitleConfigurationPatchSoftwareTitleConfigurationExtensionAttributesAttrTypes",
+                "objectTypeVar": "v3PatchSoftwareTitleConfigurationPatchSoftwareTitleConfigurationExtensionAttributesObjectType",
+                "expandFunc": "expandV3PatchSoftwareTitleConfigurationPatchSoftwareTitleConfigurationExtensionAttributeses",
+                "flattenFunc": "flattenV3PatchSoftwareTitleConfigurationPatchSoftwareTitleConfigurationExtensionAttributeses",
+                "attributes": [
+                  {
+                    "name": "accepted",
+                    "goField": "Accepted",
+                    "type": {
+                      "kind": "bool"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "markdownDescription": "Once an extension attribute is accepted, it cannot be reverted.",
+                    "wire": {
+                      "jsonPath": "accepted",
+                      "sdkField": "Accepted",
+                      "sdkGoType": "*bool",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrBool"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrBoolToFramework"
+                      }
+                    }
+                  },
+                  {
+                    "name": "ea_id",
+                    "goField": "EaID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "optional",
+                    "wire": {
+                      "jsonPath": "eaId",
+                      "sdkField": "EaId",
+                      "sdkGoType": "*string",
+                      "expand": {
+                        "func": "convert.FrameworkToPtrString"
+                      },
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "extensionAttributes",
+              "sdkField": "ExtensionAttributes",
+              "sdkGoType": "[]models.PatchSoftwareTitleConfigurationExtensionAttributesable",
+              "expand": {
+                "func": "expandV3PatchSoftwareTitleConfigurationPatchSoftwareTitleConfigurationExtensionAttributeses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "flatten": {
+                "func": "flattenV3PatchSoftwareTitleConfigurationPatchSoftwareTitleConfigurationExtensionAttributeses",
+                "needsCtx": true,
+                "returnsError": true
+              }
+            }
+          },
+          {
+            "name": "id",
+            "goField": "ID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "id",
+              "sdkField": "Id",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "jamf_official",
+            "goField": "JamfOfficial",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "jamfOfficial",
+              "sdkField": "JamfOfficial",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "packages",
+            "goField": "Packages",
+            "type": {
+              "kind": "set_nested",
+              "nestedObject": {
+                "goTypeName": "V3PatchSoftwareTitleConfigurationPatchSoftwareTitlePackagesModel",
+                "sdkType": "models.PatchSoftwareTitlePackagesable",
+                "constructorExpr": "models.NewPatchSoftwareTitlePackages()",
+                "attrTypesVar": "v3PatchSoftwareTitleConfigurationPatchSoftwareTitlePackagesAttrTypes",
+                "objectTypeVar": "v3PatchSoftwareTitleConfigurationPatchSoftwareTitlePackagesObjectType",
+                "expandFunc": "expandV3PatchSoftwareTitleConfigurationPatchSoftwareTitlePackageses",
+                "flattenFunc": "flattenV3PatchSoftwareTitleConfigurationPatchSoftwareTitlePackageses",
+                "attributes": [
+                  {
+                    "name": "display_name",
+                    "goField": "DisplayName",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "displayName",
+                      "sdkField": "DisplayName",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "package_id",
+                    "goField": "PackageID",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "packageId",
+                      "sdkField": "PackageId",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  },
+                  {
+                    "name": "version",
+                    "goField": "Version",
+                    "type": {
+                      "kind": "string"
+                    },
+                    "computedOptionalRequired": "computed",
+                    "wire": {
+                      "jsonPath": "version",
+                      "sdkField": "Version",
+                      "sdkGoType": "*string",
+                      "flatten": {
+                        "func": "convert.PtrStringToFramework"
+                      },
+                      "skipExpand": true
+                    }
+                  }
+                ]
+              }
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "packages",
+              "sdkField": "Packages",
+              "sdkGoType": "[]models.PatchSoftwareTitlePackagesable",
+              "flatten": {
+                "func": "flattenV3PatchSoftwareTitleConfigurationPatchSoftwareTitlePackageses",
+                "needsCtx": true,
+                "returnsError": true
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "patch_source_enabled",
+            "goField": "PatchSourceEnabled",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "patchSourceEnabled",
+              "sdkField": "PatchSourceEnabled",
+              "sdkGoType": "*bool",
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "patch_source_name",
+            "goField": "PatchSourceName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "patchSourceName",
+              "sdkField": "PatchSourceName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "site_id",
+            "goField": "SiteID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "siteId",
+              "sdkField": "SiteId",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "software_title_id",
+            "goField": "SoftwareTitleID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "required",
+            "wire": {
+              "jsonPath": "softwareTitleId",
+              "sdkField": "SoftwareTitleId",
+              "sdkGoType": "*string",
+              "expand": {
+                "func": "convert.FrameworkToPtrString"
+              },
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              }
+            }
+          },
+          {
+            "name": "software_title_name",
+            "goField": "SoftwareTitleName",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "softwareTitleName",
+              "sdkField": "SoftwareTitleName",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "software_title_name_id",
+            "goField": "SoftwareTitleNameID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "softwareTitleNameId",
+              "sdkField": "SoftwareTitleNameId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "software_title_publisher",
+            "goField": "SoftwareTitlePublisher",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "softwareTitlePublisher",
+              "sdkField": "SoftwareTitlePublisher",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "ui_notifications",
+            "goField": "UiNotifications",
+            "type": {
+              "kind": "bool"
+            },
+            "computedOptionalRequired": "optional",
+            "wire": {
+              "jsonPath": "uiNotifications",
+              "sdkField": "UiNotifications",
+              "sdkGoType": "*bool",
+              "expand": {
+                "func": "convert.FrameworkToPtrBool"
+              },
+              "flatten": {
+                "func": "convert.PtrBoolToFramework"
+              }
+            }
+          }
+        ],
+        "markdownDescription": "Retrieve Patch Software Title Configurations with the supplied id."
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "r.client"
+        },
+        "create": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V3"
+            },
+            {
+              "method": "PatchSoftwareTitleConfigurations"
+            },
+            {
+              "method": "Post",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.HrefResponseable",
+          "httpMethod": "POST",
+          "pathTemplate": "/v3/patch-software-title-configurations"
+        },
+        "read": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V3"
+            },
+            {
+              "method": "PatchSoftwareTitleConfigurations"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.PatchSoftwareTitleConfigurationable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v3/patch-software-title-configurations/{id}"
+        },
+        "update": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V3"
+            },
+            {
+              "method": "PatchSoftwareTitleConfigurations"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Patch",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "body"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.PatchSoftwareTitleConfigurationable",
+          "httpMethod": "PATCH",
+          "pathTemplate": "/v3/patch-software-title-configurations/{id}"
+        },
+        "delete": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V3"
+            },
+            {
+              "method": "PatchSoftwareTitleConfigurations"
+            },
+            {
+              "method": "ById",
+              "args": [
+                {
+                  "kind": "stateField",
+                  "field": "ID"
+                }
+              ]
+            },
+            {
+              "method": "Delete",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "error",
+          "httpMethod": "DELETE",
+          "pathTemplate": "/v3/patch-software-title-configurations/{id}"
+        },
+        "id": {
+          "attribute": "id",
+          "goField": "ID",
+          "fromCreate": "created.GetId()",
+          "fromCreateIsPointer": true
+        },
+        "body": {
+          "requestType": "models.PatchSoftwareTitleConfigurationBase",
+          "responseType": "models.PatchSoftwareTitleConfigurationable",
+          "constructorExpr": "models.NewPatchSoftwareTitleConfigurationBase()",
+          "updateRequestType": "models.PatchSoftwareTitleConfigurationPatch",
+          "updateConstructorExpr": "models.NewPatchSoftwareTitleConfigurationPatch()",
+          "accessStyle": "method"
+        }
+      },
+      "policy": {
+        "updateStyle": "patchMerge",
+        "delete": {
+          "notFoundIsSuccess": true
+        }
+      },
+      "import": {
+        "style": "passthroughId",
+        "attribute": "id"
+      }
+    }
+  ]
+}

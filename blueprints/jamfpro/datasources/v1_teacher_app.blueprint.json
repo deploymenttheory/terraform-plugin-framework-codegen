@@ -1,0 +1,102 @@
+{
+  "formatVersion": "4",
+  "dataSources": [
+    {
+      "key": "v1_teacher_app",
+      "name": "v1_teacher_app",
+      "goPackage": "v1_teacher_app",
+      "goPackageAlias": "v7V1TeacherAppDs",
+      "goTypeName": "V1TeacherAppDataSource",
+      "modelTypeName": "V1TeacherAppDataSourceModel",
+      "serviceGroup": "teacher_app",
+      "apiVersionDir": "v7",
+      "schema": {
+        "attributes": [
+          {
+            "name": "bundle_id",
+            "goField": "BundleID",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed",
+            "wire": {
+              "jsonPath": "bundleId",
+              "sdkField": "BundleId",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          },
+          {
+            "name": "name",
+            "goField": "Name",
+            "type": {
+              "kind": "string"
+            },
+            "computedOptionalRequired": "computed_optional",
+            "wire": {
+              "jsonPath": "name",
+              "sdkField": "Name",
+              "sdkGoType": "*string",
+              "flatten": {
+                "func": "convert.PtrStringToFramework"
+              },
+              "skipExpand": true
+            }
+          }
+        ]
+      },
+      "binding": {
+        "service": {
+          "importPath": "github.com/deploymenttheory/terraform-plugin-framework-codegen/pilot/jamfpro/internal/sdk/models",
+          "alias": "models",
+          "typeName": "",
+          "accessor": "d.client"
+        },
+        "list": {
+          "style": "fluent",
+          "method": "",
+          "chain": [
+            {
+              "method": "V1"
+            },
+            {
+              "method": "TeacherApp"
+            },
+            {
+              "method": "Get",
+              "args": [
+                {
+                  "kind": "ctx"
+                },
+                {
+                  "kind": "literal",
+                  "expr": "nil"
+                }
+              ]
+            }
+          ],
+          "return": "resultError",
+          "resultType": "models.TeacherSettingsResponseable",
+          "httpMethod": "GET",
+          "pathTemplate": "/v1/teacher-app"
+        },
+        "collectionField": "GetSafelistedApps()",
+        "elementType": "models.SafelistedAppable",
+        "selectors": [
+          {
+            "attribute": "name",
+            "goField": "Name",
+            "sdkField": "Name"
+          }
+        ],
+        "response": {
+          "type": "models.SafelistedAppable",
+          "accessStyle": "method"
+        }
+      }
+    }
+  ]
+}
