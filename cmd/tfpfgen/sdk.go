@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/fs"
 	"log"
@@ -46,6 +47,22 @@ func runSDK(args []string) error {
 	return runVerbs("sdk", sdkVerbs, "", args)
 }
 
+// adoptedSettings names the settings taken from the lock rather than the
+// command line, so a regeneration says out loud what it decided for itself.
+func adoptedSettings(gen kiota.GenerateOptions, o sdkGenerateOptions, stated map[string]bool) []string {
+	var out []string
+	if !stated["client-name"] && gen.ClientName != o.clientName {
+		out = append(out, "client name "+gen.ClientName)
+	}
+	if !stated["include"] && len(gen.Include) > 0 {
+		out = append(out, fmt.Sprintf("%d include glob(s)", len(gen.Include)))
+	}
+	if !stated["exclude"] && len(gen.Exclude) > 0 {
+		out = append(out, fmt.Sprintf("%d exclude glob(s)", len(gen.Exclude)))
+	}
+	return out
+}
+
 type sdkGenerateOptions struct {
 	openapiDir   string
 	snapshotName string
@@ -82,6 +99,15 @@ func runSDKGenerate(args []string) error {
 	if err := parse(fs, args); err != nil {
 		return err
 	}
+
+	// Which settings the operator actually stated. Anything absent here is
+	// adopted from the committed lock below, so a regeneration reproduces the
+	// tree it is regenerating rather than whatever the flag defaults happen to
+	// be. Retyping settings that are already committed is how a regeneration
+	// silently produces a different SDK -- a renamed client type reads as
+	// drift, when nothing about the API changed.
+	stated := map[string]bool{}
+	fs.Visit(func(f *flag.Flag) { stated[f.Name] = true })
 
 	if o.out == "" {
 		return usagef("-out is required: it names the SDK root")
@@ -122,6 +148,20 @@ func runSDKGenerate(args []string) error {
 		}
 	}
 
+	// The version gate: a committed tree names the kiota that produced it, and
+	// running any other version rewrites the whole tree as an inexplicable diff.
+	lock, hadLock, err := kiota.ReadLock(o.out)
+	if err != nil {
+		return err
+	}
+	if hadLock {
+		if err := kiota.Gate(lock); err != nil {
+			return err
+		}
+	} else if _, err := kiota.BinaryVersion(); err != nil {
+		return err
+	}
+
 	gen := kiota.GenerateOptions{
 		Description: snap.SpecPath(),
 		Out:         o.out,
@@ -130,6 +170,22 @@ func runSDKGenerate(args []string) error {
 		Include:     splitGlobs(o.include),
 		Exclude:     splitGlobs(o.exclude),
 		Clean:       o.clean,
+	}
+
+	// Settings the operator did not state come from the tree being regenerated.
+	if hadLock {
+		if !stated["client-name"] && lock.ClientClassName != "" {
+			gen.ClientName = lock.ClientClassName
+		}
+		if !stated["include"] {
+			gen.Include = lock.IncludePatterns
+		}
+		if !stated["exclude"] {
+			gen.Exclude = lock.ExcludePatterns
+		}
+		if adopted := adoptedSettings(gen, o, stated); len(adopted) > 0 {
+			log.Printf("adopted from %s: %s", kiota.LockFileName, strings.Join(adopted, "; "))
+		}
 	}
 
 	if o.dryRun {
@@ -157,20 +213,6 @@ func runSDKGenerate(args []string) error {
 		stripped, collapsed)
 	if len(patches) > 0 {
 		log.Printf("applied %d document patch(es) from %s", len(patches), filepath.Join(o.openapiDir, docpatch.DirName))
-	}
-
-	// The version gate: a committed tree names the kiota that produced it, and
-	// running any other version rewrites the whole tree as an inexplicable diff.
-	lock, hadLock, err := kiota.ReadLock(o.out)
-	if err != nil {
-		return err
-	}
-	if hadLock {
-		if err := kiota.Gate(lock); err != nil {
-			return err
-		}
-	} else if _, err := kiota.BinaryVersion(); err != nil {
-		return err
 	}
 
 	if o.check {
