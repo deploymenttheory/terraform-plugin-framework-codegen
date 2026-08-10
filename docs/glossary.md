@@ -27,7 +27,10 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 | **binding** | The dialect-neutral mapping from one intermediate-representation entity onto the generated SDK's surface (`internal/sdkbind`): finished call expressions, accessor names, model types. Drafted by a per-backend binder, resolved against the real SDK with go/types. Its vocabulary (Bindings, Call, FieldAccess, Segment) is approved. |
 | **prune** | To resolve drafted bindings against the generated SDK and delete whatever the SDK cannot carry, recording the SDK's reason for each deletion. A spelling is repaired only where the SDK admits exactly one answer — never invented, never widened. |
 | **provider-core** | The shared plumbing the toolkit emits into every generated provider: the client, crud retry, error semantics, the conversion catalog, schema helpers, and the test harness. An emitted copy, not a shared library — every file is manifest-covered and regenerated wholesale. Templates live in `internal/templates/provider-core`. |
-| **emit** | The render-and-write layer (`internal/emit`): it turns the provider-core templates plus finished context values into provider files and reports what it wrote as manifest entries. |
+| **emit** | The render-and-write layer (`internal/emit`): it turns the provider-core and service templates plus finished context values into provider files and reports what it wrote as manifest entries. Its emission vocabulary is approved: `RenderServices` renders every entity's service files and answers a `ServiceFiles` (the files plus a `Registry` of registration lines); `Register` writes one slot's `Registrations` into a registry file at its sentinels; `RegistrySlots` is the fixed slot order. |
+| **fixtures** | The single derivation of one entity's test fixture values (`internal/fixtures`), rendered twice — HCL and wire JSON — from one result so the two can never disagree. Its vocabulary is approved: a `Fixture` carries `Entries` (one `Entry` per supported attribute) and `Omissions` (one `Omission` per refused attribute, with its reason); a `Form` (`ConfigMinimal`, `ConfigMaximal`, `ResponseMinimal`, `ResponseMaximal`) selects which entries a rendering carries; `NamePrefix` (`tfpfgen-test-`) marks every synthesised name-bearing string. |
+| **step kind** | One audit derivation rule's output, named for what the step does. The set is closed, twelve strong, spelled identically in Go (`Step*`) and in plan JSON: `createMinimal`, `readWithRetry`, `readConsecutive`, `updateField`, `deleteWithConfirmation`, `createMaximal`, `omitRequired`, `undocumentedEnumValue`, `undeclaredSpecField`, `createPerEnumValue`, `read`, `cleanupDelete`. |
+| **outcome** | How far the audit got with one claim. The set is closed, four strong, spelled identically in Go (`Outcome*`) and in observation JSON: `confirmed`, `inconclusive`, `blocked`, `timeoutExhausted`. Despite its name's emphasis on time, `timeoutExhausted` covers every exhausted run budget alike — request, live-object and time. |
 
 ## Fixed spellings
 
@@ -43,8 +46,23 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   `30-acceptance.yml`, `40-docs.yml`, `50-release.yml`.
 - Generation branch in provider repos: `tfpfgen/run-<id>`.
 - Machine-append sentinels in provider-core registry files:
-  `// tfpfgen:<kind>:imports` and `// tfpfgen:<kind>:registrations`, where
-  `<kind>` is `resources`, `datasources`, `list_resources`, or `actions`.
+  `// tfpfgen:<slot>:imports` and `// tfpfgen:<slot>:registrations`, where
+  `<slot>` is `resources`, `datasources`, `list_resources`, or `actions` —
+  the registry slots, in the fixed order `emit.RegistrySlots` declares.
+- Per-entity (service) templates live under `internal/templates/services/`,
+  one directory per service kind: `resource`, `datasource`,
+  `list-resource`, `action`.
+- Generated Go identifiers spell data source the HashiCorp way, two words
+  in Pascal case: `DataSourceName`, never `DatasourceName`. Prose, CLI
+  verbs and the intermediate representation keep the one-word
+  `datasource`.
+- Naming helpers the intermediate representation exports for every
+  emitter: `GoName` (the Pascal Go spelling, acronym-aware) and
+  `TerraformName` (the snake_case terraform attribute spelling).
+- Audit plan tokens: `<runid>` is the run-id placeholder execution
+  substitutes into synthesised names; `${VAR}` marks an operator input
+  read from the named environment variable at execution time;
+  `$created:<entity>` is the id of an object the audit itself created.
 - Operator environment variables a generated provider reads:
   `TF_<PROVIDER>_*` — `TF_` then the uppercased provider name, e.g.
   `TF_THOUSANDEYES_API_TOKEN`. Distinct from the pipeline's
