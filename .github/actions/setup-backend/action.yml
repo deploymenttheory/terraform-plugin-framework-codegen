@@ -1,0 +1,107 @@
+name: setup-backend
+description: >-
+  Install the SDK backend tool a repo's tfpfgen.yaml names, at its exact
+  version pin. The toolkit itself never downloads tools — `tfpfgen sdk
+  generate` gates on the binary already being on PATH at the pinned
+  version — so the pipeline installs it here, verified where the publisher
+  ships a checksum. Linux x64 runners only: the reusable workflows all run
+  on ubuntu-latest.
+
+inputs:
+  config:
+    description: Config file naming sdk.backend and sdk.backend_version.
+    required: false
+    default: tfpfgen.yaml
+
+runs:
+  using: composite
+  steps:
+    - name: Read the backend pin
+      id: pin
+      shell: bash
+      env:
+        TFPFGEN_CONFIG: ${{ inputs.config }}
+      run: |
+        set -euo pipefail
+        read_key() {
+          awk -v key="$1:" '
+            /^[^[:space:]#]/ { insec = ($0 ~ /^sdk:/) }
+            insec && $1 == key { gsub(/["'\'']/, "", $2); print $2; exit }
+          ' "$TFPFGEN_CONFIG"
+        }
+        backend="$(read_key backend)"
+        version="$(read_key backend_version)"
+        if [ -z "$backend" ] || [ -z "$version" ]; then
+          echo "::error::setup-backend: ${TFPFGEN_CONFIG} must declare sdk.backend and sdk.backend_version."
+          exit 1
+        fi
+        case "$backend" in
+          kiota|openapi-generator) ;;
+          *) echo "::error::setup-backend: unknown sdk.backend '${backend}' (kiota | openapi-generator)."; exit 1 ;;
+        esac
+        echo "backend=$backend" >> "$GITHUB_OUTPUT"
+        echo "version=${version#v}" >> "$GITHUB_OUTPUT"
+
+    - name: Install kiota at the pin
+      if: steps.pin.outputs.backend == 'kiota'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        KIOTA_VERSION: ${{ steps.pin.outputs.version }}
+      run: |
+        set -euo pipefail
+        tag="v${KIOTA_VERSION}"
+        dir="${RUNNER_TEMP}/setup-backend-kiota"
+        mkdir -p "$dir"
+        cd "$dir"
+        # The linux-x64 archive, plus any checksum asset the release
+        # carries. Kiota's release layout has renamed its assets before, so
+        # the archive is matched by pattern rather than exact name.
+        if ! gh release download "$tag" --repo microsoft/kiota \
+            --pattern '*linux-x64.zip'; then
+          echo "::error::setup-backend: no kiota release '${tag}', or it lacks a linux-x64 archive."
+          exit 1
+        fi
+        gh release download "$tag" --repo microsoft/kiota \
+          --pattern '*checksums*' --pattern '*.sha256' 2>/dev/null || true
+        archive="$(ls -- *linux-x64.zip)"
+        verified=false
+        for sums in *checksums* *.sha256; do
+          [ -f "$sums" ] || continue
+          if grep -q "$archive" "$sums"; then
+            grep "$archive" "$sums" | sha256sum --check -
+            verified=true
+          fi
+        done
+        if [ "$verified" = false ]; then
+          echo "::notice::setup-backend: kiota ${tag} publishes no checksum for ${archive}; installing unverified from the pinned release."
+        fi
+        mkdir -p kiota-bin
+        unzip -oq "$archive" -d kiota-bin
+        chmod +x kiota-bin/kiota
+        echo "${dir}/kiota-bin" >> "$GITHUB_PATH"
+
+    - name: Install openapi-generator at the pin
+      if: steps.pin.outputs.backend == 'openapi-generator'
+      shell: bash
+      env:
+        OAG_VERSION: ${{ steps.pin.outputs.version }}
+      run: |
+        set -euo pipefail
+        dir="${RUNNER_TEMP}/setup-backend-openapi-generator"
+        mkdir -p "$dir"
+        cd "$dir"
+        # Maven Central publishes the CLI jar with a SHA-256 beside it, so
+        # the pin verifies end to end. The runner's preinstalled JDK runs it
+        # behind a shim named the way `tfpfgen sdk generate` looks it up.
+        base="https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/${OAG_VERSION}"
+        jar="openapi-generator-cli-${OAG_VERSION}.jar"
+        curl --fail --silent --show-error --location --remote-name "${base}/${jar}"
+        curl --fail --silent --show-error --location --output "${jar}.sha256" "${base}/${jar}.sha256"
+        echo "$(cat "${jar}.sha256")  ${jar}" | sha256sum --check -
+        cat > openapi-generator-cli <<EOF
+        #!/usr/bin/env bash
+        exec java -jar "${dir}/${jar}" "\$@"
+        EOF
+        chmod +x openapi-generator-cli
+        echo "$dir" >> "$GITHUB_PATH"

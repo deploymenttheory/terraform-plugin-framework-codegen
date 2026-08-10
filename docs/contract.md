@@ -22,6 +22,54 @@ succeeded jobs' artifacts persist within the run.
 | 7 | verify | `tfpfgen provider verify` + build/vet/lint/test | `verify-report` | Coverage gate ≥90%; docs and fmt must be fixed points. |
 | 8 | open-pr | — | the PR | The only job with write permissions. Branch `tfpfgen/run-<id>`. |
 
+## Calling the workflows
+
+A provider repo runs the pipeline through a thin caller — triggers,
+inputs and an inherited secrets context, nothing else. Everything the
+pipeline does lives here and reaches the caller by pinned tag:
+
+```yaml
+name: generate
+on:
+  workflow_dispatch:
+    inputs:
+      audit:
+        type: boolean
+        default: false
+      reuse_audit_run_id:
+        type: string
+        default: ""
+      openapi_url:
+        type: string
+        default: ""
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  generate:
+    uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/workflows/10-generate.yml@v0
+    with:
+      audit: ${{ inputs.audit }}
+      reuse_audit_run_id: ${{ inputs.reuse_audit_run_id }}
+      openapi_url: ${{ inputs.openapi_url }}
+    secrets: inherit
+```
+
+The caller's `permissions` are the ceiling the called jobs downscope from:
+only `open-pr` keeps write. `secrets: inherit` hands the repo's
+`TFPFGEN_AUTH_*` secrets across; only the audit job reads their values.
+
+The same shape calls `20-ci.yml` (push/PR triggers, no inputs, no
+secrets), `30-acceptance.yml` (schedule/dispatch only, an `environment`
+input whose protection rules gate the run), `40-docs.yml`
+(schedule/dispatch) and `50-release.yml` (tag push, plus the GPG secrets).
+
+**The `@v0` pin rule:** until the 1.0.0 contract freeze, callers pin
+`@v0`, which fast-forwards with every compatible pre-1.0 release. The
+freeze cuts `v1`; callers move to `@v1` deliberately, and from then on a
+breaking change cuts the next major rather than moving the tag callers
+follow.
+
 ## Exit codes
 
 | Code | Meaning |
@@ -52,9 +100,10 @@ prints them.
 
 - Provider repos pin `generator.version` to an exact release tag; branches
   are refused by validation.
-- Caller workflows reference `deploymenttheory/terraform-plugin-framework-codegen-1/.github/workflows/<NN-name>.yml@v1`.
-  Compatible releases fast-forward `v1`; breaking changes cut `v2` and leave
-  `v1` callers untouched.
+- Caller workflows reference `deploymenttheory/terraform-plugin-framework-codegen-1/.github/workflows/<NN-name>.yml`
+  at the moving major tag — `@v0` until the 1.0.0 contract freeze, `@v1`
+  after it. Compatible releases fast-forward the tag; breaking changes cut
+  the next major and leave existing callers untouched.
 - Third-party actions are SHA-pinned; first-party workflows are tag-pinned.
 - Observations record the spec hash they were taken against; revision flags
   staleness when the pinned document moves.

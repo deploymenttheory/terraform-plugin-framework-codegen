@@ -1,0 +1,83 @@
+name: 20-ci
+
+# Push/PR CI for a generated provider repo: the tree builds, vets, lints and
+# tests at the coverage gate, and nothing drifted from what the pinned
+# toolkit would regenerate — CI refuses a hand edit to a derived file. The
+# caller supplies the triggers; no secrets are needed.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: build, vet, test, coverage gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Build and vet
+        run: |
+          go build ./...
+          go vet ./...
+      - name: Test with race detector
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+      - name: Coverage gate (total ≥90%)
+        run: |
+          set -euo pipefail
+          total="$(go tool cover -func=coverage.out | tail -1 | awk '{gsub(/%/, "", $3); print $3}')"
+          if awk -v t="$total" 'BEGIN { exit !(t < 90) }'; then
+            echo "::error::total coverage ${total}% is below the 90% gate."
+            exit 1
+          fi
+          echo "total coverage ${total}% meets the 90% gate."
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a
+        with:
+          version: latest
+
+  # The drift gates: config well-formed, the pinned document untouched, and
+  # both generated trees byte-identical to what the pinned toolkit and
+  # backend would regenerate. `config validate` runs without --secrets —
+  # presence is the pipeline's preflight concern, and CI holds no secrets.
+  verify:
+    name: drift gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-backend@v0
+      - name: tfpfgen config validate
+        run: tfpfgen config validate
+      - name: tfpfgen spec verify
+        run: tfpfgen spec verify
+      - name: tfpfgen sdk verify
+        run: tfpfgen sdk verify
+      - name: tfpfgen provider verify
+        run: tfpfgen provider verify
