@@ -38,6 +38,7 @@ type Command struct {
 // package variable, so each Run starts from a clean table.
 func commands() []Command {
 	return []Command{
+		{Name: "config validate", Summary: "check tfpfgen.yaml and, with -secrets, the environment", Run: runConfigValidate},
 		{Name: "version", Summary: "report the toolkit version", Run: runVersion},
 	}
 }
