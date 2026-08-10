@@ -1,0 +1,248 @@
+{{ template "header" . }}
+
+// Package provider serves the {{ .ProviderName }} provider: the
+// configuration schema, the Configure flow that turns it into an SDK
+// client, and one registry file per block kind.
+package provider
+
+import (
+	"context"
+	"os"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"{{ .Module }}/internal/client"
+)
+
+var _ provider.Provider = (*Provider)(nil)
+
+{{ if .DefaultEndpoint }}
+// defaultEndpoint is the API base URL the spec declares; the provider
+// configuration and the environment both override it.
+const defaultEndpoint = {{ printf "%q" .DefaultEndpoint }}
+{{ end }}
+{{ if .AuthOAuth2ClientCredentials }}{{ if .DefaultTokenURL }}
+// defaultTokenURL is the OAuth2 token endpoint tfpfgen.yaml declares; the
+// provider configuration and the environment both override it.
+const defaultTokenURL = {{ printf "%q" .DefaultTokenURL }}
+{{ end }}{{ end }}
+
+// Provider implements the {{ .ProviderName }} provider.
+type Provider struct {
+	// version is the build version stamped into main; "test" in test
+	// builds and "dev" in source builds.
+	version string
+}
+
+// New returns the provider constructor providerserver and the test
+// harnesses share.
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &Provider{version: version}
+	}
+}
+
+// Metadata names the provider.
+func (p *Provider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "{{ .ProviderName }}"
+	resp.Version = p.version
+}
+
+// Schema declares the provider configuration block. Every field is
+// optional here because each falls back to an environment variable;
+// Configure reports what is still missing after that resolution.
+func (p *Provider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Interact with the {{ .ProviderName }} API.",
+		Attributes: map[string]schema.Attribute{
+			"endpoint": schema.StringAttribute{
+				Optional:    true,
+				Description: "The API base URL. Falls back to the {{ .EnvPrefix }}_ENDPOINT environment variable{{ if .DefaultEndpoint }}, then to the URL the spec declares{{ end }}.",
+			},
+{{- if .AuthBearerToken }}
+			"bearer_token": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The bearer token sent on every request. Falls back to the {{ .EnvPrefix }}_BEARER_TOKEN environment variable.",
+			},
+{{- end }}
+{{- if .AuthAPIKeyHeader }}
+			"api_key": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The API key sent in the " + client.APIKeyHeader + " header on every request. Falls back to the {{ .EnvPrefix }}_API_KEY environment variable.",
+			},
+{{- end }}
+{{- if .AuthBasic }}
+			"username": schema.StringAttribute{
+				Optional:    true,
+				Description: "The HTTP basic authentication username. Falls back to the {{ .EnvPrefix }}_USERNAME environment variable.",
+			},
+			"password": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The HTTP basic authentication password. Falls back to the {{ .EnvPrefix }}_PASSWORD environment variable.",
+			},
+{{- end }}
+{{- if .AuthOAuth2ClientCredentials }}
+			"client_id": schema.StringAttribute{
+				Optional:    true,
+				Description: "The OAuth2 client credentials client id. Falls back to the {{ .EnvPrefix }}_CLIENT_ID environment variable.",
+			},
+			"client_secret": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The OAuth2 client credentials client secret. Falls back to the {{ .EnvPrefix }}_CLIENT_SECRET environment variable.",
+			},
+			"token_url": schema.StringAttribute{
+				Optional:    true,
+				Description: "The OAuth2 token endpoint. Falls back to the {{ .EnvPrefix }}_TOKEN_URL environment variable{{ if .DefaultTokenURL }}, then to the endpoint tfpfgen.yaml declares{{ end }}.",
+			},
+{{- end }}
+{{- if .AuthGitHubApp }}
+			"app_id": schema.StringAttribute{
+				Optional:    true,
+				Description: "The GitHub App id. Falls back to the {{ .EnvPrefix }}_APP_ID environment variable.",
+			},
+			"app_private_key": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The GitHub App private key, PEM-encoded. Falls back to the {{ .EnvPrefix }}_APP_PRIVATE_KEY environment variable.",
+			},
+{{- end }}
+			"request_timeout": schema.StringAttribute{
+				Optional:    true,
+				Description: "How long one HTTP request may take, as a Go duration string such as \"30s\". Falls back to the {{ .EnvPrefix }}_REQUEST_TIMEOUT environment variable, then to one minute.",
+			},
+		},
+	}
+}
+
+// Configure resolves the configuration against its environment fallbacks,
+// builds the SDK client, and hands it to every block kind.
+func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var data model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	cfg := client.Config{UserAgent: "terraform-provider-{{ .ProviderName }}/" + p.version}
+
+	cfg.Endpoint = orEnv(data.Endpoint, "{{ .EnvPrefix }}_ENDPOINT")
+{{- if .DefaultEndpoint }}
+	if cfg.Endpoint == "" {
+		cfg.Endpoint = defaultEndpoint
+	}
+{{- end }}
+	if cfg.Endpoint == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("endpoint"),
+			"Missing endpoint",
+			"Set endpoint in the provider configuration or the {{ .EnvPrefix }}_ENDPOINT environment variable.")
+	}
+
+{{- if .AuthBearerToken }}
+
+	cfg.Token = orEnv(data.BearerToken, "{{ .EnvPrefix }}_BEARER_TOKEN")
+	if cfg.Token == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("bearer_token"),
+			"Missing bearer token",
+			"Set bearer_token in the provider configuration or the {{ .EnvPrefix }}_BEARER_TOKEN environment variable.")
+	}
+{{- end }}
+{{- if .AuthAPIKeyHeader }}
+
+	cfg.APIKey = orEnv(data.APIKey, "{{ .EnvPrefix }}_API_KEY")
+	if cfg.APIKey == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("api_key"),
+			"Missing API key",
+			"Set api_key in the provider configuration or the {{ .EnvPrefix }}_API_KEY environment variable.")
+	}
+{{- end }}
+{{- if .AuthBasic }}
+
+	cfg.Username = orEnv(data.Username, "{{ .EnvPrefix }}_USERNAME")
+	if cfg.Username == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("username"),
+			"Missing username",
+			"Set username in the provider configuration or the {{ .EnvPrefix }}_USERNAME environment variable.")
+	}
+	cfg.Password = orEnv(data.Password, "{{ .EnvPrefix }}_PASSWORD")
+	if cfg.Password == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("password"),
+			"Missing password",
+			"Set password in the provider configuration or the {{ .EnvPrefix }}_PASSWORD environment variable.")
+	}
+{{- end }}
+{{- if .AuthOAuth2ClientCredentials }}
+
+	cfg.ClientID = orEnv(data.ClientID, "{{ .EnvPrefix }}_CLIENT_ID")
+	if cfg.ClientID == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("client_id"),
+			"Missing client id",
+			"Set client_id in the provider configuration or the {{ .EnvPrefix }}_CLIENT_ID environment variable.")
+	}
+	cfg.ClientSecret = orEnv(data.ClientSecret, "{{ .EnvPrefix }}_CLIENT_SECRET")
+	if cfg.ClientSecret == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("client_secret"),
+			"Missing client secret",
+			"Set client_secret in the provider configuration or the {{ .EnvPrefix }}_CLIENT_SECRET environment variable.")
+	}
+	cfg.TokenURL = orEnv(data.TokenURL, "{{ .EnvPrefix }}_TOKEN_URL")
+{{- if .DefaultTokenURL }}
+	if cfg.TokenURL == "" {
+		cfg.TokenURL = defaultTokenURL
+	}
+{{- end }}
+	if cfg.TokenURL == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("token_url"),
+			"Missing token URL",
+			"Set token_url in the provider configuration or the {{ .EnvPrefix }}_TOKEN_URL environment variable.")
+	}
+{{- end }}
+{{- if .AuthGitHubApp }}
+
+	cfg.AppID = orEnv(data.AppID, "{{ .EnvPrefix }}_APP_ID")
+	cfg.AppPrivateKey = orEnv(data.AppPrivateKey, "{{ .EnvPrefix }}_APP_PRIVATE_KEY")
+{{- end }}
+
+	timeoutText := orEnv(data.RequestTimeout, "{{ .EnvPrefix }}_REQUEST_TIMEOUT")
+	if timeoutText != "" {
+		parsed, err := time.ParseDuration(timeoutText)
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(path.Root("request_timeout"),
+				"Invalid request timeout",
+				"request_timeout must be a Go duration string such as \"30s\": "+err.Error())
+		} else {
+			cfg.RequestTimeout = parsed
+		}
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	sdkClient, err := client.NewSDKClient(cfg)
+	if err != nil {
+		resp.Diagnostics.AddError("Cannot build the API client", err.Error())
+		return
+	}
+
+	resp.ResourceData = sdkClient
+	resp.DataSourceData = sdkClient
+	resp.ListResourceData = sdkClient
+	resp.ActionData = sdkClient
+}
+
+// orEnv resolves one configuration value: the configured value wins, the
+// environment variable backs it up, and empty means unresolved.
+func orEnv(value types.String, env string) string {
+	if !value.IsNull() && value.ValueString() != "" {
+		return value.ValueString()
+	}
+	return os.Getenv(env)
+}

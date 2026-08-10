@@ -1,0 +1,177 @@
+{{ template "header" . }}
+
+// Package client builds the authenticated HTTP client every SDK call goes
+// through. The provider's Configure resolves configuration and environment
+// into a Config; this package turns it into transport.
+package client
+
+import (
+{{- if .AuthOAuth2ClientCredentials }}
+	"context"
+{{- end }}
+	"fmt"
+	"net/http"
+	"time"
+{{- if .AuthOAuth2ClientCredentials }}
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
+{{- end }}
+)
+
+// DefaultRequestTimeout bounds one HTTP request when the provider
+// configuration does not say otherwise.
+const DefaultRequestTimeout = time.Minute
+
+{{ if .AuthAPIKeyHeader }}
+// APIKeyHeader is the request header the API reads the key from.
+const APIKeyHeader = {{ printf "%q" .APIKeyHeader }}
+{{ end }}
+
+// Config carries everything Configure resolved: the endpoint, the
+// credential, and the request timeout. Values arrive finished — this
+// package neither reads the environment nor applies defaults beyond the
+// request timeout.
+type Config struct {
+	// Endpoint is the API base URL.
+	Endpoint string
+	// UserAgent identifies this provider build on every request.
+	UserAgent string
+	// RequestTimeout bounds one HTTP request, zero meaning the default.
+	RequestTimeout time.Duration
+{{- if .AuthBearerToken }}
+	// Token is sent as "Authorization: Bearer <token>".
+	Token string
+{{- end }}
+{{- if .AuthAPIKeyHeader }}
+	// APIKey is sent in the APIKeyHeader header.
+	APIKey string
+{{- end }}
+{{- if .AuthBasic }}
+	// Username and Password are sent as HTTP basic authentication.
+	Username string
+	Password string
+{{- end }}
+{{- if .AuthOAuth2ClientCredentials }}
+	// ClientID, ClientSecret and TokenURL drive the OAuth2 client
+	// credentials flow; tokens are fetched and refreshed automatically.
+	ClientID     string
+	ClientSecret string
+	TokenURL     string
+{{- end }}
+{{- if .AuthGitHubApp }}
+	// AppID and AppPrivateKey identify a GitHub App installation.
+	AppID         string
+	AppPrivateKey string
+{{- end }}
+}
+
+{{ if .AuthGitHubApp }}
+// NewHTTPClient refuses: github_app authentication is not supported by
+// generated providers yet. The auth method is reserved in tfpfgen.yaml so a
+// repo can declare its intent, and this error is the single place the gap
+// surfaces.
+func NewHTTPClient(cfg Config) (*http.Client, error) {
+	return nil, fmt.Errorf("auth.method github_app is not supported by generated providers yet; " +
+		"generate with another auth method until tfpfgen ships GitHub App token exchange")
+}
+{{ else }}
+// headerTransport stamps the user agent and the credential onto every
+// request before handing it to the base transport. The request is cloned
+// first: transports must not mutate what callers still hold.
+type headerTransport struct {
+	base      http.RoundTripper
+	userAgent string
+{{- if .AuthBearerToken }}
+	token     string
+{{- end }}
+{{- if .AuthAPIKeyHeader }}
+	apiKey    string
+{{- end }}
+{{- if .AuthBasic }}
+	username  string
+	password  string
+{{- end }}
+}
+
+// RoundTrip implements http.RoundTripper.
+func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	r := req.Clone(req.Context())
+	r.Header.Set("User-Agent", t.userAgent)
+{{- if .AuthBearerToken }}
+	r.Header.Set("Authorization", "Bearer "+t.token)
+{{- end }}
+{{- if .AuthAPIKeyHeader }}
+	r.Header.Set(APIKeyHeader, t.apiKey)
+{{- end }}
+{{- if .AuthBasic }}
+	r.SetBasicAuth(t.username, t.password)
+{{- end }}
+	return t.base.RoundTrip(r)
+}
+
+{{ if .AuthOAuth2ClientCredentials }}
+// NewHTTPClient builds the authenticated client: an OAuth2 client
+// credentials token source over a base transport that stamps the user
+// agent. Token requests ride the same base client, so they carry the same
+// user agent and timeout as API calls.
+func NewHTTPClient(cfg Config) (*http.Client, error) {
+	if cfg.TokenURL == "" {
+		return nil, fmt.Errorf("the OAuth2 token URL is empty; set token_url in the provider configuration")
+	}
+
+	timeout := cfg.RequestTimeout
+	if timeout == 0 {
+		timeout = DefaultRequestTimeout
+	}
+
+	base := &http.Client{
+		Transport: &headerTransport{base: http.DefaultTransport, userAgent: cfg.UserAgent},
+		Timeout:   timeout,
+	}
+
+	credentials := clientcredentials.Config{
+		ClientID:     cfg.ClientID,
+		ClientSecret: cfg.ClientSecret,
+		TokenURL:     cfg.TokenURL,
+	}
+
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, base)
+	authenticated := credentials.Client(ctx)
+	authenticated.Timeout = timeout
+
+	return authenticated, nil
+}
+{{ else }}
+// NewHTTPClient builds the authenticated client: the credential and the
+// user agent ride a header-stamping transport over the default one.
+func NewHTTPClient(cfg Config) (*http.Client, error) {
+	if cfg.Endpoint == "" {
+		return nil, fmt.Errorf("the endpoint is empty; set endpoint in the provider configuration")
+	}
+
+	timeout := cfg.RequestTimeout
+	if timeout == 0 {
+		timeout = DefaultRequestTimeout
+	}
+
+	return &http.Client{
+		Transport: &headerTransport{
+			base:      http.DefaultTransport,
+			userAgent: cfg.UserAgent,
+{{- if .AuthBearerToken }}
+			token:     cfg.Token,
+{{- end }}
+{{- if .AuthAPIKeyHeader }}
+			apiKey:    cfg.APIKey,
+{{- end }}
+{{- if .AuthBasic }}
+			username:  cfg.Username,
+			password:  cfg.Password,
+{{- end }}
+		},
+		Timeout: timeout,
+	}, nil
+}
+{{ end }}
+{{ end }}

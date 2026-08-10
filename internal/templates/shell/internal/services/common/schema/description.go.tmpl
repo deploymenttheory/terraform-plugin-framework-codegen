@@ -1,0 +1,17 @@
+{{ template "header" . }}
+
+package schema
+
+import "strings"
+
+// CoManagementNote renders the note the schema description of a
+// co-managed entity carries, given the sibling entities' terraform type
+// names in sorted order. The wording is fixed by the toolkit — every
+// entity renders exactly these words — and the derivation supplies the
+// siblings, so the note is deterministic.
+func CoManagementNote(siblings []string) string {
+	return "Fields of this entity may also be managed by " + strings.Join(siblings, ", ") +
+		", generated from the same underlying API collection family. " +
+		"Managing the same object through more than one of them concurrently causes drift, " +
+		"and the last terraform apply wins."
+}

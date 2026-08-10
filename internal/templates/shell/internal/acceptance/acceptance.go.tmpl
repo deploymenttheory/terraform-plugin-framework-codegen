@@ -1,0 +1,115 @@
+{{ template "header" . }}
+
+// Package acceptance is the live-API test harness: the in-process
+// provider factory, the environment precheck, and the existence checks
+// generated acceptance tests attach to their steps.
+package acceptance
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+
+	"{{ .Module }}/internal/provider"
+)
+
+// ProtoV6ProviderFactories serves the provider in-process for acceptance
+// tests, configured from the environment like any other run.
+var ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	"{{ .ProviderName }}": providerserver.NewProtocol6WithError(provider.New("test")()),
+}
+
+// requiredEnvVars is what a live run cannot proceed without: the values
+// the provider configuration has no other source for.
+var requiredEnvVars = []string{
+{{- if .DefaultEndpoint }}{{ else }}
+	"{{ .EnvPrefix }}_ENDPOINT",
+{{- end }}
+{{- if .AuthBearerToken }}
+	"{{ .EnvPrefix }}_BEARER_TOKEN",
+{{- end }}
+{{- if .AuthAPIKeyHeader }}
+	"{{ .EnvPrefix }}_API_KEY",
+{{- end }}
+{{- if .AuthBasic }}
+	"{{ .EnvPrefix }}_USERNAME",
+	"{{ .EnvPrefix }}_PASSWORD",
+{{- end }}
+{{- if .AuthOAuth2ClientCredentials }}
+	"{{ .EnvPrefix }}_CLIENT_ID",
+	"{{ .EnvPrefix }}_CLIENT_SECRET",
+{{- if .DefaultTokenURL }}{{ else }}
+	"{{ .EnvPrefix }}_TOKEN_URL",
+{{- end }}
+{{- end }}
+{{- if .AuthGitHubApp }}
+	"{{ .EnvPrefix }}_APP_ID",
+	"{{ .EnvPrefix }}_APP_PRIVATE_KEY",
+{{- end }}
+}
+
+// PreCheck fails fast when the environment lacks what a live run needs,
+// naming the first missing variable rather than failing later inside a
+// half-applied configuration.
+func PreCheck(t *testing.T) {
+	t.Helper()
+	for _, name := range requiredEnvVars {
+		if os.Getenv(name) == "" {
+			t.Fatalf("%s must be set for acceptance tests", name)
+		}
+	}
+}
+
+// TestResource is implemented once per generated resource: an
+// out-of-band existence check against the live API, independent of the
+// provider under test.
+type TestResource interface {
+	// Exists reports whether the object the state describes exists in
+	// the live API.
+	Exists(ctx context.Context, state *terraform.InstanceState) (bool, error)
+}
+
+// CheckExists asserts the named resource in the terraform state also
+// exists in the live API.
+func CheckExists(tr TestResource, resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("%s is not in the state", resourceName)
+		}
+		exists, err := tr.Exists(context.Background(), rs.Primary)
+		if err != nil {
+			return fmt.Errorf("checking %s exists: %w", resourceName, err)
+		}
+		if !exists {
+			return fmt.Errorf("%s is in the state but not in the API", resourceName)
+		}
+		return nil
+	}
+}
+
+// CheckDestroyed asserts no instance of the resource type survived the
+// destroy, using the same out-of-band check.
+func CheckDestroyed(tr TestResource, resourceType string) func(*terraform.State) error {
+	return func(s *terraform.State) error {
+		for name, rs := range s.RootModule().Resources {
+			if rs.Type != resourceType {
+				continue
+			}
+			exists, err := tr.Exists(context.Background(), rs.Primary)
+			if err != nil {
+				return fmt.Errorf("checking %s destroyed: %w", name, err)
+			}
+			if exists {
+				return fmt.Errorf("%s still exists in the API after destroy", name)
+			}
+		}
+		return nil
+	}
+}

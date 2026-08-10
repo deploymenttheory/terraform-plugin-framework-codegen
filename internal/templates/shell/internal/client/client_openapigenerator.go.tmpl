@@ -1,0 +1,27 @@
+{{ template "header" . }}
+
+package client
+
+import (
+	sdk "{{ .SDKImport }}"
+)
+
+// NewSDKClient builds the generated SDK client the provider hands to every
+// resource, datasource, list resource and action: the SDK configuration
+// points at the resolved endpoint, and every call rides the authenticated
+// HTTP client built by NewHTTPClient.
+func NewSDKClient(cfg Config) (*sdk.{{ .ClientType }}, error) {
+	httpClient, err := NewHTTPClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	sdkConfig := sdk.NewConfiguration()
+	sdkConfig.HTTPClient = httpClient
+	sdkConfig.UserAgent = cfg.UserAgent
+
+	server := sdk.ServerConfiguration{URL: cfg.Endpoint}
+	sdkConfig.Servers = sdk.ServerConfigurations{server}
+
+	return sdk.{{ .ClientConstructor }}(sdkConfig), nil
+}

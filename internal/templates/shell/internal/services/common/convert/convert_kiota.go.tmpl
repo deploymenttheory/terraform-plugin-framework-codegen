@@ -1,0 +1,63 @@
+{{ template "header" . }}
+
+package convert
+
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/microsoft/kiota-abstractions-go/serialization"
+)
+
+// APIToFrameworkEnum converts a kiota enum — any fmt.Stringer — to
+// types.String, nil to null.
+func APIToFrameworkEnum[T fmt.Stringer](value *T) types.String {
+	if value == nil {
+		return types.StringNull()
+	}
+	return types.StringValue((*value).String())
+}
+
+// FrameworkToAPIEnum parses the plan's string with the kiota-generated
+// Parse function and hands the typed enum to the setter, erroring on a
+// value the enum does not declare:
+//
+//	err := convert.FrameworkToAPIEnum(plan.Status, sdk.ParseStatus, body.SetStatus)
+func FrameworkToAPIEnum[T any](value types.String, parser func(string) (any, error), setter func(*T)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	parsed, err := parser(value.ValueString())
+	if err != nil {
+		return fmt.Errorf("%q is not a declared enum value: %w", value.ValueString(), err)
+	}
+	typed, ok := parsed.(*T)
+	if !ok {
+		return fmt.Errorf("the parsed enum is %T, not %T", parsed, (*T)(nil))
+	}
+	setter(typed)
+	return nil
+}
+
+// APIToFrameworkDateOnly converts kiota's DateOnly to types.String, nil
+// to null.
+func APIToFrameworkDateOnly(value *serialization.DateOnly) types.String {
+	if value == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(value.String())
+}
+
+// FrameworkToAPIDateOnly parses the plan's date string and hands kiota's
+// DateOnly to the setter, erroring on a malformed value.
+func FrameworkToAPIDateOnly(value types.String, setter func(*serialization.DateOnly)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	parsed, err := serialization.ParseDateOnly(value.ValueString())
+	if err != nil {
+		return fmt.Errorf("%q is not a date: %w", value.ValueString(), err)
+	}
+	setter(parsed)
+	return nil
+}

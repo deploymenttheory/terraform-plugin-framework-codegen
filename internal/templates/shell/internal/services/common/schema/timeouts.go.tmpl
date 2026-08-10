@@ -1,0 +1,32 @@
+{{ template "header" . }}
+
+// Package schema carries the schema fragments every generated entity
+// shares, so the same words and shapes appear once here rather than once
+// per entity.
+package schema
+
+import (
+	"context"
+
+	datasourcetimeouts "github.com/hashicorp/terraform-plugin-framework-timeouts/datasource/timeouts"
+	resourcetimeouts "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts"
+	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+)
+
+// ResourceTimeouts is the timeouts attribute every generated resource
+// carries: create, read, update and delete, each optional.
+func ResourceTimeouts(ctx context.Context) resourceschema.Attribute {
+	return resourcetimeouts.Attributes(ctx, resourcetimeouts.Opts{
+		Create: true,
+		Read:   true,
+		Update: true,
+		Delete: true,
+	})
+}
+
+// DatasourceTimeouts is the timeouts attribute every generated datasource
+// carries: a single optional read timeout.
+func DatasourceTimeouts(ctx context.Context) datasourceschema.Attribute {
+	return datasourcetimeouts.Attributes(ctx)
+}

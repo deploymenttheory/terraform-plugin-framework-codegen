@@ -1,0 +1,161 @@
+{{ template "header" . }}
+
+// Package mocks is the unit-test harness: the in-process provider factory
+// over httpmock's hijacked transport, the registrar every generated
+// entity's mocks implement, and the responder helpers they share.
+package mocks
+
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/jarcoal/httpmock"
+
+	"{{ .Module }}/internal/provider"
+)
+
+// unitEndpoint is where unit tests point the provider; nothing listens
+// there, because httpmock intercepts every request before the network.
+const unitEndpoint = "https://unit.invalid"
+
+// ProtoV6ProviderFactories serves the provider in-process for unit tests.
+// Configure builds the real client over http.DefaultTransport, which
+// httpmock hijacks while active, so every SDK call lands on the
+// registered responders.
+var ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	"{{ .ProviderName }}": providerserver.NewProtocol6WithError(provider.New("test")()),
+}
+
+// SetupUnitTestEnvironment points the provider at the mock transport:
+// every configuration value resolves from these variables, none of which
+// is a real credential, and t.Setenv restores them when the test ends.
+func SetupUnitTestEnvironment(t *testing.T) {
+	t.Helper()
+	t.Setenv("{{ .EnvPrefix }}_ENDPOINT", unitEndpoint)
+{{- if .AuthBearerToken }}
+	t.Setenv("{{ .EnvPrefix }}_BEARER_TOKEN", "unit-test-token")
+{{- end }}
+{{- if .AuthAPIKeyHeader }}
+	t.Setenv("{{ .EnvPrefix }}_API_KEY", "unit-test-key")
+{{- end }}
+{{- if .AuthBasic }}
+	t.Setenv("{{ .EnvPrefix }}_USERNAME", "unit-test-user")
+	t.Setenv("{{ .EnvPrefix }}_PASSWORD", "unit-test-password")
+{{- end }}
+{{- if .AuthOAuth2ClientCredentials }}
+	t.Setenv("{{ .EnvPrefix }}_CLIENT_ID", "unit-test-client")
+	t.Setenv("{{ .EnvPrefix }}_CLIENT_SECRET", "unit-test-secret")
+	t.Setenv("{{ .EnvPrefix }}_TOKEN_URL", unitEndpoint+"/oauth2/token")
+{{- end }}
+{{- if .AuthGitHubApp }}
+	t.Setenv("{{ .EnvPrefix }}_APP_ID", "1")
+	t.Setenv("{{ .EnvPrefix }}_APP_PRIVATE_KEY", "unit-test-key")
+{{- end }}
+}
+
+{{ if .AuthOAuth2ClientCredentials }}
+// registerAuthMocks answers the OAuth2 token request Configure's client
+// makes before any API call; the registry registers it on every
+// activation so entity mocks never think about authentication.
+func registerAuthMocks() {
+	httpmock.RegisterResponder("POST", unitEndpoint+"/oauth2/token",
+		httpmock.NewStringResponder(200,
+			`{"access_token":"unit-test-token","token_type":"Bearer","expires_in":3600}`))
+}
+{{ end }}
+
+// MockRegistrar pairs the happy-path and error responders one generated
+// entity's unit tests register.
+type MockRegistrar interface {
+	// RegisterMocks registers the happy-path responders.
+	RegisterMocks()
+	// RegisterErrorMocks registers responders that fail every request.
+	RegisterErrorMocks()
+}
+
+// Registry holds every entity's registrar; generated mock files register
+// themselves into GlobalRegistry from init.
+type Registry struct {
+	registrars map[string]MockRegistrar
+}
+
+// NewRegistry builds an empty registry.
+func NewRegistry() *Registry {
+	return &Registry{registrars: map[string]MockRegistrar{}}
+}
+
+// Register adds one entity's registrar under its name.
+func (r *Registry) Register(name string, m MockRegistrar) {
+	r.registrars[name] = m
+}
+
+// ActivateMocks activates httpmock and registers the named entities'
+// happy-path responders — every entity's when no names are given.
+func (r *Registry) ActivateMocks(names ...string) {
+	httpmock.Activate()
+{{- if .AuthOAuth2ClientCredentials }}
+	registerAuthMocks()
+{{- end }}
+	for _, m := range r.selected(names) {
+		m.RegisterMocks()
+	}
+}
+
+// ActivateErrorMocks activates httpmock and registers the named entities'
+// error responders — every entity's when no names are given.
+func (r *Registry) ActivateErrorMocks(names ...string) {
+	httpmock.Activate()
+{{- if .AuthOAuth2ClientCredentials }}
+	registerAuthMocks()
+{{- end }}
+	for _, m := range r.selected(names) {
+		m.RegisterErrorMocks()
+	}
+}
+
+// DeactivateAndReset restores the real transport and forgets every
+// responder; defer it beside every activation.
+func (r *Registry) DeactivateAndReset() {
+	httpmock.DeactivateAndReset()
+}
+
+// selected resolves names to registrars, all of them for no names.
+func (r *Registry) selected(names []string) []MockRegistrar {
+	if len(names) == 0 {
+		out := make([]MockRegistrar, 0, len(r.registrars))
+		for _, m := range r.registrars {
+			out = append(out, m)
+		}
+		return out
+	}
+	out := make([]MockRegistrar, 0, len(names))
+	for _, name := range names {
+		if m, ok := r.registrars[name]; ok {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// GlobalRegistry is where generated mock files register from init.
+var GlobalRegistry = NewRegistry()
+
+// SuccessResponse renders body as the JSON answer to a matched request.
+func SuccessResponse(status int, body any) httpmock.Responder {
+	return httpmock.NewJsonResponderOrPanic(status, body)
+}
+
+// EmptySuccessResponse answers a matched request with an empty body — the
+// shape of a 204 delete.
+func EmptySuccessResponse(status int) httpmock.Responder {
+	return httpmock.NewStringResponder(status, "")
+}
+
+// ErrorResponse answers a matched request with a conventional JSON error
+// body.
+func ErrorResponse(status int, code, message string) httpmock.Responder {
+	return httpmock.NewJsonResponderOrPanic(status, map[string]any{
+		"error": map[string]any{"code": code, "message": message},
+	})
+}

@@ -1,0 +1,13 @@
+{{ template "hashheader" . }}
+
+version: "2"
+
+linters:
+  default: standard
+  exclusions:
+    # Every file in this repository is generated and carries the generated
+    # header; the default lax mode would exclude the whole tree from linting.
+    generated: disable
+
+run:
+  timeout: 5m

@@ -1,0 +1,33 @@
+{{ template "header" . }}
+
+// Package crud carries the lifecycle plumbing every generated resource
+// shares: operation timeouts, and the retry loops that absorb eventual
+// consistency after writes and contention around deletes.
+package crud
+
+import (
+	"context"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+)
+
+// HandleTimeout resolves the configured operation timeout and derives the
+// bounded context the retrying helpers require:
+//
+//	ctx, cancel := crud.HandleTimeout(ctx, plan.Timeouts.Create, 30*time.Minute, &resp.Diagnostics)
+//	if resp.Diagnostics.HasError() {
+//		return
+//	}
+//	defer cancel()
+//
+// On a diagnostics error the context comes back unchanged with a no-op
+// cancel, so the deferred cancel is always safe.
+func HandleTimeout(ctx context.Context, timeoutFunc func(context.Context, time.Duration) (time.Duration, diag.Diagnostics), fallback time.Duration, diags *diag.Diagnostics) (context.Context, context.CancelFunc) {
+	timeout, timeoutDiags := timeoutFunc(ctx, fallback)
+	diags.Append(timeoutDiags...)
+	if diags.HasError() {
+		return ctx, func() {}
+	}
+	return context.WithTimeout(ctx, timeout)
+}

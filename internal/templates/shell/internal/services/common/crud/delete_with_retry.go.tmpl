@@ -1,0 +1,62 @@
+{{ template "header" . }}
+
+package crud
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"{{ .Module }}/internal/services/common/errors"
+)
+
+// DeleteWithRetryOptions tunes one delete loop.
+type DeleteWithRetryOptions struct {
+	// Interval is the pause between attempts; zero means ten seconds.
+	Interval time.Duration
+	// ResourceTypeName names the resource, for messages.
+	ResourceTypeName string
+}
+
+// DeleteWithRetry runs a delete until it succeeds, retrying only the
+// statuses IsRetryableDelete names — throttling and server-side trouble —
+// within the deadline the context carries. Anything else fails
+// immediately: a delete the API refused for cause does not improve with
+// repetition, and an unknown error is not a license to keep deleting.
+//
+// The context must carry a deadline; derive one with HandleTimeout.
+func DeleteWithRetry(ctx context.Context, deleteFunc func(context.Context) error, opts DeleteWithRetryOptions) error {
+	if opts.Interval <= 0 {
+		opts.Interval = 10 * time.Second
+	}
+	name := opts.ResourceTypeName
+	if name == "" {
+		name = "the resource"
+	}
+
+	deadline, hasDeadline := ctx.Deadline()
+	if !hasDeadline {
+		return fmt.Errorf("DeleteWithRetry requires a context with a deadline; derive one with HandleTimeout")
+	}
+
+	for {
+		err := deleteFunc(ctx)
+		if err == nil {
+			return nil
+		}
+
+		if info := errors.Describe(err); !errors.IsRetryableDelete(info.Status) {
+			return err
+		}
+
+		if time.Until(deadline) < opts.Interval {
+			return fmt.Errorf("timed out deleting %s: %w", name, err)
+		}
+
+		select {
+		case <-time.After(opts.Interval):
+		case <-ctx.Done():
+			return fmt.Errorf("cancelled deleting %s: %w", name, err)
+		}
+	}
+}

@@ -1,0 +1,23 @@
+{{ template "header" . }}
+
+package provider
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/list"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	// tfpfgen:list_resources:imports
+)
+
+var _ provider.ProviderWithListResources = (*Provider)(nil)
+
+// ListResources returns every list resource this provider serves. The list
+// is machine-maintained: `provider generate` appends one registration per
+// generated list resource at each sentinel comment and never edits other
+// lines.
+func (p *Provider) ListResources(_ context.Context) []func() list.ListResource {
+	return []func() list.ListResource{
+		// tfpfgen:list_resources:registrations
+	}
+}
