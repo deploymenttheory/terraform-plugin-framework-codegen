@@ -26,7 +26,8 @@ func testConfig(backend, method string) *config.Config {
 	return cfg
 }
 
-// backends and methods enumerate the closed sets the shell branches over.
+// backends and methods enumerate the closed sets the provider core
+// branches over.
 var backends = []string{config.BackendKiota, config.BackendOpenAPIGenerator}
 
 var methods = []string{
@@ -37,26 +38,27 @@ var methods = []string{
 	config.AuthGitHubApp,
 }
 
-// TestUnit_RenderShell_EveryBackendAndAuthMethodRenders proves the whole
-// template matrix: every combination renders, every .go file is
-// gofmt-clean as rendered (RenderShell refuses otherwise) and parses,
-// every file carries the DO-NOT-EDIT header where a header is possible,
-// and no file carries a doubled blank line or a missing final newline.
-func TestUnit_RenderShell_EveryBackendAndAuthMethodRenders(t *testing.T) {
+// TestUnit_RenderProviderCore_EveryBackendAndAuthMethodRenders proves the
+// whole template matrix: every combination renders, every .go file is
+// gofmt-clean as rendered (RenderProviderCore refuses otherwise) and
+// parses, every file carries the DO-NOT-EDIT header where a header is
+// possible, and no file carries a doubled blank line or a missing final
+// newline.
+func TestUnit_RenderProviderCore_EveryBackendAndAuthMethodRenders(t *testing.T) {
 	for _, backend := range backends {
 		for _, method := range methods {
 			t.Run(backend+"/"+method, func(t *testing.T) {
-				sh, err := FromConfig(testConfig(backend, method), "https://api.example.test")
+				pc, err := FromConfig(testConfig(backend, method), "https://api.example.test")
 				if err != nil {
 					t.Fatalf("FromConfig: %v", err)
 				}
 
-				files, err := RenderShell(sh)
+				files, err := RenderProviderCore(pc)
 				if err != nil {
-					t.Fatalf("RenderShell: %v", err)
+					t.Fatalf("RenderProviderCore: %v", err)
 				}
 				if len(files) == 0 {
-					t.Fatal("RenderShell returned no files")
+					t.Fatal("RenderProviderCore returned no files")
 				}
 
 				fset := token.NewFileSet()
@@ -102,18 +104,70 @@ func headerFor(p string) string {
 	}
 }
 
-// TestUnit_RenderShell_DialectSelectionIsExclusive proves each backend
-// gets its own dialect files and never the other's.
-func TestUnit_RenderShell_DialectSelectionIsExclusive(t *testing.T) {
+// TestUnit_RenderProviderCore_OperatorEnvVarsCarryTheTFPrefix proves the
+// emitted provider configuration reads TF_<PROVIDER>_* operator variables
+// and spells the token attribute api_token.
+func TestUnit_RenderProviderCore_OperatorEnvVarsCarryTheTFPrefix(t *testing.T) {
+	for method, wants := range map[string][]string{
+		config.AuthBearerToken: {
+			`"api_token"`,
+			"TF_PETSTORE_ENDPOINT",
+			"TF_PETSTORE_API_TOKEN",
+		},
+		config.AuthAPIKeyHeader: {
+			`"api_token"`,
+			"TF_PETSTORE_API_TOKEN",
+		},
+		config.AuthBasic: {
+			`"username"`, `"password"`,
+			"TF_PETSTORE_USERNAME", "TF_PETSTORE_PASSWORD",
+		},
+		config.AuthOAuth2ClientCredentials: {
+			`"client_id"`, `"client_secret"`, `"token_url"`,
+			"TF_PETSTORE_CLIENT_ID", "TF_PETSTORE_CLIENT_SECRET", "TF_PETSTORE_TOKEN_URL",
+		},
+	} {
+		pc, err := FromConfig(testConfig(config.BackendKiota, method), "")
+		if err != nil {
+			t.Fatalf("FromConfig(%s): %v", method, err)
+		}
+		files, err := RenderProviderCore(pc)
+		if err != nil {
+			t.Fatalf("RenderProviderCore(%s): %v", method, err)
+		}
+
+		var providerGo string
+		for _, f := range files {
+			if f.Path == "internal/provider/provider.go" {
+				providerGo = string(f.Content)
+			}
+		}
+		if providerGo == "" {
+			t.Fatalf("%s render is missing internal/provider/provider.go", method)
+		}
+		for _, want := range wants {
+			if !strings.Contains(providerGo, want) {
+				t.Errorf("%s provider.go does not carry %s", method, want)
+			}
+		}
+		if strings.Contains(providerGo, `"PETSTORE_`) {
+			t.Errorf("%s provider.go reads a non-TF_-prefixed operator variable", method)
+		}
+	}
+}
+
+// TestUnit_RenderProviderCore_DialectSelectionIsExclusive proves each
+// backend gets its own dialect files and never the other's.
+func TestUnit_RenderProviderCore_DialectSelectionIsExclusive(t *testing.T) {
 	renderPaths := func(backend string) map[string]bool {
 		t.Helper()
-		sh, err := FromConfig(testConfig(backend, config.AuthBearerToken), "")
+		pc, err := FromConfig(testConfig(backend, config.AuthBearerToken), "")
 		if err != nil {
 			t.Fatalf("FromConfig: %v", err)
 		}
-		files, err := RenderShell(sh)
+		files, err := RenderProviderCore(pc)
 		if err != nil {
-			t.Fatalf("RenderShell: %v", err)
+			t.Fatalf("RenderProviderCore: %v", err)
 		}
 		paths := make(map[string]bool, len(files))
 		for _, f := range files {
@@ -157,16 +211,17 @@ func TestUnit_RenderShell_DialectSelectionIsExclusive(t *testing.T) {
 	}
 }
 
-// TestUnit_RenderShell_RegistriesCarryTheSentinels proves every registry
-// file carries both machine-append sentinels `provider generate` targets.
-func TestUnit_RenderShell_RegistriesCarryTheSentinels(t *testing.T) {
-	sh, err := FromConfig(testConfig(config.BackendKiota, config.AuthBearerToken), "")
+// TestUnit_RenderProviderCore_RegistriesCarryTheSentinels proves every
+// registry file carries both machine-append sentinels `provider generate`
+// targets.
+func TestUnit_RenderProviderCore_RegistriesCarryTheSentinels(t *testing.T) {
+	pc, err := FromConfig(testConfig(config.BackendKiota, config.AuthBearerToken), "")
 	if err != nil {
 		t.Fatalf("FromConfig: %v", err)
 	}
-	files, err := RenderShell(sh)
+	files, err := RenderProviderCore(pc)
 	if err != nil {
-		t.Fatalf("RenderShell: %v", err)
+		t.Fatalf("RenderProviderCore: %v", err)
 	}
 
 	byPath := make(map[string]string, len(files))
@@ -196,51 +251,51 @@ func TestUnit_RenderShell_RegistriesCarryTheSentinels(t *testing.T) {
 	}
 }
 
-// TestUnit_RenderShell_RefusesAnInconsistentContext proves the context
-// check runs before any template does.
-func TestUnit_RenderShell_RefusesAnInconsistentContext(t *testing.T) {
-	if _, err := RenderShell(Shell{}); err == nil {
-		t.Fatal("RenderShell accepted a zero context")
+// TestUnit_RenderProviderCore_RefusesAnInconsistentContext proves the
+// context check runs before any template does.
+func TestUnit_RenderProviderCore_RefusesAnInconsistentContext(t *testing.T) {
+	if _, err := RenderProviderCore(ProviderCore{}); err == nil {
+		t.Fatal("RenderProviderCore accepted a zero context")
 	}
 
-	sh, err := FromConfig(testConfig(config.BackendKiota, config.AuthBearerToken), "")
+	pc, err := FromConfig(testConfig(config.BackendKiota, config.AuthBearerToken), "")
 	if err != nil {
 		t.Fatalf("FromConfig: %v", err)
 	}
-	sh.BackendOpenAPIGenerator = true // two backends at once
-	if _, err := RenderShell(sh); err == nil {
-		t.Fatal("RenderShell accepted two backends")
+	pc.BackendOpenAPIGenerator = true // two backends at once
+	if _, err := RenderProviderCore(pc); err == nil {
+		t.Fatal("RenderProviderCore accepted two backends")
 	}
 
-	sh, err = FromConfig(testConfig(config.BackendKiota, config.AuthBearerToken), "")
+	pc, err = FromConfig(testConfig(config.BackendKiota, config.AuthBearerToken), "")
 	if err != nil {
 		t.Fatalf("FromConfig: %v", err)
 	}
-	sh.AuthBasic = true // two auth methods at once
-	if _, err := RenderShell(sh); err == nil {
-		t.Fatal("RenderShell accepted two auth methods")
+	pc.AuthBasic = true // two auth methods at once
+	if _, err := RenderProviderCore(pc); err == nil {
+		t.Fatal("RenderProviderCore accepted two auth methods")
 	}
 }
 
-// brokenShell returns a valid context for exercising renderShell against
-// crafted filesystems.
-func brokenShell(t *testing.T) Shell {
+// validContext returns a valid context for exercising renderProviderCore
+// against crafted filesystems.
+func validContext(t *testing.T) ProviderCore {
 	t.Helper()
-	sh, err := FromConfig(testConfig(config.BackendKiota, config.AuthBearerToken), "")
+	pc, err := FromConfig(testConfig(config.BackendKiota, config.AuthBearerToken), "")
 	if err != nil {
 		t.Fatalf("FromConfig: %v", err)
 	}
-	return sh
+	return pc
 }
 
-// header is a minimal valid partial for crafted filesystems.
+// testPartial is a minimal valid header partial for crafted filesystems.
 const testPartial = `{{ define "header" }}// Code generated by tfpfgen from {{ .Source }}. DO NOT EDIT.{{ end }}
 {{ define "hashheader" }}# Code generated by tfpfgen from {{ .Source }}. DO NOT EDIT.{{ end }}
 `
 
-// TestUnit_RenderShell_ReportsTemplateProblemsByName proves each failure
-// mode names the template it came from.
-func TestUnit_RenderShell_ReportsTemplateProblemsByName(t *testing.T) {
+// TestUnit_RenderProviderCore_ReportsTemplateProblemsByName proves each
+// failure mode names the template it came from.
+func TestUnit_RenderProviderCore_ReportsTemplateProblemsByName(t *testing.T) {
 	cases := []struct {
 		name    string
 		fsys    fstest.MapFS
@@ -248,38 +303,38 @@ func TestUnit_RenderShell_ReportsTemplateProblemsByName(t *testing.T) {
 	}{
 		{
 			name:    "missing header partial",
-			fsys:    fstest.MapFS{"shell/main.go.tmpl": &fstest.MapFile{Data: []byte("package main\n")}},
+			fsys:    fstest.MapFS{"provider-core/main.go.tmpl": &fstest.MapFile{Data: []byte("package main\n")}},
 			wantErr: "header partial",
 		},
 		{
 			name: "unparseable template",
 			fsys: fstest.MapFS{
-				"shell/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
-				"shell/bad.go.tmpl":  &fstest.MapFile{Data: []byte("{{ if }}")},
+				"provider-core/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
+				"provider-core/bad.go.tmpl":  &fstest.MapFile{Data: []byte("{{ if }}")},
 			},
-			wantErr: "shell/bad.go.tmpl",
+			wantErr: "provider-core/bad.go.tmpl",
 		},
 		{
 			name: "missing field",
 			fsys: fstest.MapFS{
-				"shell/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
-				"shell/bad.go.tmpl":  &fstest.MapFile{Data: []byte("{{ .NoSuchField }}")},
+				"provider-core/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
+				"provider-core/bad.go.tmpl":  &fstest.MapFile{Data: []byte("{{ .NoSuchField }}")},
 			},
-			wantErr: "shell/bad.go.tmpl",
+			wantErr: "provider-core/bad.go.tmpl",
 		},
 		{
 			name: "renders unparseable go",
 			fsys: fstest.MapFS{
-				"shell/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
-				"shell/bad.go.tmpl":  &fstest.MapFile{Data: []byte("this is not go\n")},
+				"provider-core/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
+				"provider-core/bad.go.tmpl":  &fstest.MapFile{Data: []byte("this is not go\n")},
 			},
 			wantErr: "does not parse",
 		},
 		{
 			name: "renders gofmt-unclean go",
 			fsys: fstest.MapFS{
-				"shell/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
-				"shell/bad.go.tmpl":  &fstest.MapFile{Data: []byte("package p\n\nfunc f() {\n  return\n}\n")},
+				"provider-core/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
+				"provider-core/bad.go.tmpl":  &fstest.MapFile{Data: []byte("package p\n\nfunc f() {\n  return\n}\n")},
 			},
 			wantErr: "gofmt-clean",
 		},
@@ -287,9 +342,9 @@ func TestUnit_RenderShell_ReportsTemplateProblemsByName(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := renderShell(tc.fsys, brokenShell(t))
+			_, err := renderProviderCore(tc.fsys, validContext(t))
 			if err == nil {
-				t.Fatalf("renderShell accepted the %s tree", tc.name)
+				t.Fatalf("renderProviderCore accepted the %s tree", tc.name)
 			}
 			if !strings.Contains(err.Error(), tc.wantErr) {
 				t.Fatalf("error %q does not mention %q", err, tc.wantErr)
@@ -298,25 +353,25 @@ func TestUnit_RenderShell_ReportsTemplateProblemsByName(t *testing.T) {
 	}
 }
 
-// TestUnit_RenderShell_NonGoFilesAreNotHeldToGofmt proves a crafted
-// non-Go file passes through with only whitespace bookkeeping.
-func TestUnit_RenderShell_NonGoFilesAreNotHeldToGofmt(t *testing.T) {
+// TestUnit_RenderProviderCore_NonGoFilesAreNotHeldToGofmt proves a
+// crafted non-Go file passes through with only whitespace bookkeeping.
+func TestUnit_RenderProviderCore_NonGoFilesAreNotHeldToGofmt(t *testing.T) {
 	fsys := fstest.MapFS{
-		"shell/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
-		"shell/notes.txt.tmpl": &fstest.MapFile{
+		"provider-core/_header.tmpl": &fstest.MapFile{Data: []byte(testPartial)},
+		"provider-core/notes.txt.tmpl": &fstest.MapFile{
 			Data: []byte("{{ template \"hashheader\" . }}\n\n\n\nplain   text\n\n\n"),
 		},
 	}
 
-	files, err := renderShell(fsys, brokenShell(t))
+	files, err := renderProviderCore(fsys, validContext(t))
 	if err != nil {
-		t.Fatalf("renderShell: %v", err)
+		t.Fatalf("renderProviderCore: %v", err)
 	}
 	if len(files) != 1 {
 		t.Fatalf("got %d files, want 1", len(files))
 	}
 	got := string(files[0].Content)
-	want := "# Code generated by tfpfgen from shell/notes.txt.tmpl. DO NOT EDIT.\n\nplain   text\n"
+	want := "# Code generated by tfpfgen from provider-core/notes.txt.tmpl. DO NOT EDIT.\n\nplain   text\n"
 	if got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}

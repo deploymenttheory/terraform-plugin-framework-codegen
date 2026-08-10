@@ -15,13 +15,13 @@ import (
 // tree matches the rendered one byte for byte, and every entry carries
 // the digest, the template source, and the empty provider origin.
 func TestUnit_Write_LandsFilesAndReportsProviderEntries(t *testing.T) {
-	sh, err := FromConfig(testConfig(config.BackendOpenAPIGenerator, config.AuthBasic), "")
+	pc, err := FromConfig(testConfig(config.BackendOpenAPIGenerator, config.AuthBasic), "")
 	if err != nil {
 		t.Fatalf("FromConfig: %v", err)
 	}
-	files, err := RenderShell(sh)
+	files, err := RenderProviderCore(pc)
 	if err != nil {
-		t.Fatalf("RenderShell: %v", err)
+		t.Fatalf("RenderProviderCore: %v", err)
 	}
 
 	root := t.TempDir()
@@ -65,7 +65,7 @@ func TestUnit_Write_LandsFilesAndReportsProviderEntries(t *testing.T) {
 			t.Errorf("%s carries origin %q; provider entries carry the empty origin", e.Path, e.Origin)
 		}
 		if e.Authored {
-			t.Errorf("%s is marked authored; nothing the shell writes is", e.Path)
+			t.Errorf("%s is marked authored; nothing the provider core writes is", e.Path)
 		}
 	}
 
@@ -84,7 +84,7 @@ func TestUnit_Write_ReportsAnUnwritableRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err := Write(root, []File{{Path: "internal/x.txt", Content: []byte("x"), Source: "shell/x.txt.tmpl"}})
+	_, err := Write(root, []File{{Path: "internal/x.txt", Content: []byte("x"), Source: "provider-core/x.txt.tmpl"}})
 	if err == nil {
 		t.Fatal("Write succeeded under a root that is a file")
 	}

@@ -32,10 +32,10 @@ var requiredEnvVars = []string{
 	"{{ .EnvPrefix }}_ENDPOINT",
 {{- end }}
 {{- if .AuthBearerToken }}
-	"{{ .EnvPrefix }}_BEARER_TOKEN",
+	"{{ .EnvPrefix }}_API_TOKEN",
 {{- end }}
 {{- if .AuthAPIKeyHeader }}
-	"{{ .EnvPrefix }}_API_KEY",
+	"{{ .EnvPrefix }}_API_TOKEN",
 {{- end }}
 {{- if .AuthBasic }}
 	"{{ .EnvPrefix }}_USERNAME",

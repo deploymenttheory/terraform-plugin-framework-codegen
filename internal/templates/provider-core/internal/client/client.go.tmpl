@@ -40,12 +40,12 @@ type Config struct {
 	// RequestTimeout bounds one HTTP request, zero meaning the default.
 	RequestTimeout time.Duration
 {{- if .AuthBearerToken }}
-	// Token is sent as "Authorization: Bearer <token>".
-	Token string
+	// APIToken is sent as "Authorization: Bearer <token>".
+	APIToken string
 {{- end }}
 {{- if .AuthAPIKeyHeader }}
-	// APIKey is sent in the APIKeyHeader header.
-	APIKey string
+	// APIToken is sent in the APIKeyHeader header.
+	APIToken string
 {{- end }}
 {{- if .AuthBasic }}
 	// Username and Password are sent as HTTP basic authentication.
@@ -83,10 +83,10 @@ type headerTransport struct {
 	base      http.RoundTripper
 	userAgent string
 {{- if .AuthBearerToken }}
-	token     string
+	apiToken  string
 {{- end }}
 {{- if .AuthAPIKeyHeader }}
-	apiKey    string
+	apiToken  string
 {{- end }}
 {{- if .AuthBasic }}
 	username  string
@@ -99,10 +99,10 @@ func (t *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	r := req.Clone(req.Context())
 	r.Header.Set("User-Agent", t.userAgent)
 {{- if .AuthBearerToken }}
-	r.Header.Set("Authorization", "Bearer "+t.token)
+	r.Header.Set("Authorization", "Bearer "+t.apiToken)
 {{- end }}
 {{- if .AuthAPIKeyHeader }}
-	r.Header.Set(APIKeyHeader, t.apiKey)
+	r.Header.Set(APIKeyHeader, t.apiToken)
 {{- end }}
 {{- if .AuthBasic }}
 	r.SetBasicAuth(t.username, t.password)
@@ -160,10 +160,10 @@ func NewHTTPClient(cfg Config) (*http.Client, error) {
 			base:      http.DefaultTransport,
 			userAgent: cfg.UserAgent,
 {{- if .AuthBearerToken }}
-			token:     cfg.Token,
+			apiToken:  cfg.APIToken,
 {{- end }}
 {{- if .AuthAPIKeyHeader }}
-			apiKey:    cfg.APIKey,
+			apiToken:  cfg.APIToken,
 {{- end }}
 {{- if .AuthBasic }}
 			username:  cfg.Username,

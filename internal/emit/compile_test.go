@@ -10,8 +10,8 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
 )
 
-// TestUnit_RenderShell_TheRenderedTreeCompiles is the full-strength gate:
-// render the shell for a fictional provider, stand a hand-written stub SDK
+// TestUnit_RenderProviderCore_TheRenderedTreeCompiles is the full-strength gate:
+// render the provider core for a fictional provider, stand a hand-written stub SDK
 // where `sdk generate` would put the real one, and hold the tree to `go
 // mod tidy`, `go build` and `go vet` against the real dependency pins.
 //
@@ -21,7 +21,7 @@ import (
 // is online, gets the real answer. Everything the compile would prove
 // about template syntax is already proven without the network by the
 // render tests' gofmt and parse gates.
-func TestUnit_RenderShell_TheRenderedTreeCompiles(t *testing.T) {
+func TestUnit_RenderProviderCore_TheRenderedTreeCompiles(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping the toolchain compile in -short mode")
 	}
@@ -44,13 +44,13 @@ func TestUnit_RenderShell_TheRenderedTreeCompiles(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			sh, err := FromConfig(testConfig(tc.backend, tc.method), "https://api.example.test")
+			pc, err := FromConfig(testConfig(tc.backend, tc.method), "https://api.example.test")
 			if err != nil {
 				t.Fatalf("FromConfig: %v", err)
 			}
-			files, err := RenderShell(sh)
+			files, err := RenderProviderCore(pc)
 			if err != nil {
-				t.Fatalf("RenderShell: %v", err)
+				t.Fatalf("RenderProviderCore: %v", err)
 			}
 
 			root := t.TempDir()
@@ -67,7 +67,7 @@ func TestUnit_RenderShell_TheRenderedTreeCompiles(t *testing.T) {
 }
 
 // installStubSDK copies the named stub into the tree at the path the
-// shell's SDK import expects.
+// provider core's SDK import expects.
 func installStubSDK(t *testing.T, name, root string) {
 	t.Helper()
 

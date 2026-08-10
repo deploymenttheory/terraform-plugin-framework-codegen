@@ -64,17 +64,17 @@ func (p *Provider) Schema(_ context.Context, _ provider.SchemaRequest, resp *pro
 				Description: "The API base URL. Falls back to the {{ .EnvPrefix }}_ENDPOINT environment variable{{ if .DefaultEndpoint }}, then to the URL the spec declares{{ end }}.",
 			},
 {{- if .AuthBearerToken }}
-			"bearer_token": schema.StringAttribute{
+			"api_token": schema.StringAttribute{
 				Optional:    true,
 				Sensitive:   true,
-				Description: "The bearer token sent on every request. Falls back to the {{ .EnvPrefix }}_BEARER_TOKEN environment variable.",
+				Description: "The API token sent as the bearer credential on every request. Falls back to the {{ .EnvPrefix }}_API_TOKEN environment variable.",
 			},
 {{- end }}
 {{- if .AuthAPIKeyHeader }}
-			"api_key": schema.StringAttribute{
+			"api_token": schema.StringAttribute{
 				Optional:    true,
 				Sensitive:   true,
-				Description: "The API key sent in the " + client.APIKeyHeader + " header on every request. Falls back to the {{ .EnvPrefix }}_API_KEY environment variable.",
+				Description: "The API token sent in the " + client.APIKeyHeader + " header on every request. Falls back to the {{ .EnvPrefix }}_API_TOKEN environment variable.",
 			},
 {{- end }}
 {{- if .AuthBasic }}
@@ -147,20 +147,20 @@ func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest,
 
 {{- if .AuthBearerToken }}
 
-	cfg.Token = orEnv(data.BearerToken, "{{ .EnvPrefix }}_BEARER_TOKEN")
-	if cfg.Token == "" {
-		resp.Diagnostics.AddAttributeError(path.Root("bearer_token"),
-			"Missing bearer token",
-			"Set bearer_token in the provider configuration or the {{ .EnvPrefix }}_BEARER_TOKEN environment variable.")
+	cfg.APIToken = orEnv(data.APIToken, "{{ .EnvPrefix }}_API_TOKEN")
+	if cfg.APIToken == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("api_token"),
+			"Missing API token",
+			"Set api_token in the provider configuration or the {{ .EnvPrefix }}_API_TOKEN environment variable.")
 	}
 {{- end }}
 {{- if .AuthAPIKeyHeader }}
 
-	cfg.APIKey = orEnv(data.APIKey, "{{ .EnvPrefix }}_API_KEY")
-	if cfg.APIKey == "" {
-		resp.Diagnostics.AddAttributeError(path.Root("api_key"),
-			"Missing API key",
-			"Set api_key in the provider configuration or the {{ .EnvPrefix }}_API_KEY environment variable.")
+	cfg.APIToken = orEnv(data.APIToken, "{{ .EnvPrefix }}_API_TOKEN")
+	if cfg.APIToken == "" {
+		resp.Diagnostics.AddAttributeError(path.Root("api_token"),
+			"Missing API token",
+			"Set api_token in the provider configuration or the {{ .EnvPrefix }}_API_TOKEN environment variable.")
 	}
 {{- end }}
 {{- if .AuthBasic }}
