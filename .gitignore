@@ -1,0 +1,14 @@
+# Built binaries — never commit the tool itself.
+/tfpfgen
+/bin/
+/dist/
+
+# Test and lint residue.
+coverage.out
+coverage.html
+*.sarif
+
+# Editor and OS noise.
+.DS_Store
+.idea/
+.vscode/
