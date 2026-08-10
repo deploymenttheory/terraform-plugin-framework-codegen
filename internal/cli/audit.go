@@ -1,0 +1,285 @@
+package cli
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"sort"
+	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
+	auditrun "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/run"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/revise"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/store"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+)
+
+func newAuditCommand() *cobra.Command {
+	group := &cobra.Command{
+		Use:   "audit",
+		Short: "exercise the live API to learn its true behaviour",
+	}
+	group.AddCommand(newAuditRunCommand())
+	group.AddCommand(newAuditCleanupCommand())
+	return group
+}
+
+// auditWorkDir is where the created-object ledgers live, beside the
+// observations. Never committed — it records live objects in somebody's
+// tenant — but stable across runs, so a crashed run's ledger is exactly
+// where the next cleanup looks.
+const auditWorkDir = "audit/work"
+
+// newAuditRunCommand executes the derived plan against the live API: the
+// only verb that touches a network with credentials. Observations land in
+// --out, one file per entity, and a summary table says how far the run
+// got.
+func newAuditRunCommand() *cobra.Command {
+	var (
+		dir               string
+		cfgFile           string
+		out               string
+		baseURL           string
+		allowSharedTenant bool
+	)
+	cmd := &cobra.Command{
+		Use:   "run",
+		Short: "execute the audit plan against the live API and record observations",
+		Args:  exactArgs("tfpfgen audit run [--dir spec] [--config tfpfgen.yaml] [--out audit/observations] [--base-url URL] [--allow-shared-tenant]"),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, p, lock, err := auditPlan(dir, cfgFile)
+			if err != nil {
+				return err
+			}
+			base, err := auditBaseURL(baseURL, cfg, dir)
+			if err != nil {
+				return err
+			}
+			if missing := config.MissingSecrets(cfg.Auth.Method, os.LookupEnv); len(missing) > 0 {
+				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", cfg.Auth.Method, missing)
+			}
+
+			obs, sum, runErr := auditrun.Run(cmd.Context(), auditrun.Options{
+				Plan:    p,
+				BaseURL: base,
+				Auth: auditrun.Auth{
+					Method:       cfg.Auth.Method,
+					APIKeyHeader: cfg.Auth.APIKeyHeader,
+					TokenURL:     cfg.Auth.TokenURL,
+				},
+				NamePrefix:        cfg.Audit.NamePrefix,
+				RateLimitRPS:      cfg.Audit.RateLimitRPS,
+				WorkDir:           auditWorkDir,
+				SpecHash:          lock.SHA256,
+				AllowSharedTenant: allowSharedTenant,
+				Logger:            auditLogger(cmd.ErrOrStderr()),
+			})
+
+			// Whatever was learned is written, even when the run ended
+			// early: partial evidence beats none, and the summary says how
+			// partial.
+			if len(obs) > 0 {
+				if writeErr := observe.Write(out, obs); writeErr != nil {
+					if runErr != nil {
+						return fmt.Errorf("%v; additionally %w", runErr, writeErr)
+					}
+					return writeErr
+				}
+			}
+			printSummary(cmd.OutOrStdout(), out, len(obs), sum)
+			return runErr
+		},
+	}
+	cmd.Flags().StringVar(&dir, "dir", "spec", "directory holding the revised document and the upstream pin")
+	cmd.Flags().StringVar(&cfgFile, "config", "tfpfgen.yaml", "config file naming the auth method and audit bounds")
+	cmd.Flags().StringVar(&out, "out", "audit/observations", "directory the observation files are written into")
+	cmd.Flags().StringVar(&baseURL, "base-url", "", "override the audited API's base URL")
+	cmd.Flags().BoolVar(&allowSharedTenant, "allow-shared-tenant", false, "mutate even when the tenant already holds more foreign objects than audit.max_objects")
+	return cmd
+}
+
+// newAuditCleanupCommand clears the tenant of audit debris: ledgered
+// objects by id, then everything carrying the name prefix. Runs
+// automatically at both boundaries of every audit; this verb is the
+// standalone invocation for after a crash.
+func newAuditCleanupCommand() *cobra.Command {
+	var (
+		dir     string
+		cfgFile string
+		baseURL string
+		prefix  string
+	)
+	cmd := &cobra.Command{
+		Use:   "cleanup",
+		Short: "delete the live test objects a previous audit left behind",
+		Args:  exactArgs("tfpfgen audit cleanup [--dir spec] [--config tfpfgen.yaml] [--base-url URL] [--prefix NAME]"),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, p, _, err := auditPlan(dir, cfgFile)
+			if err != nil {
+				return err
+			}
+			base, err := auditBaseURL(baseURL, cfg, dir)
+			if err != nil {
+				return err
+			}
+			if prefix == "" {
+				prefix = cfg.Audit.NamePrefix
+			}
+			if missing := config.MissingSecrets(cfg.Auth.Method, os.LookupEnv); len(missing) > 0 {
+				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", cfg.Auth.Method, missing)
+			}
+
+			sum, err := auditrun.Cleanup(cmd.Context(), auditrun.Options{
+				Plan:    p,
+				BaseURL: base,
+				Auth: auditrun.Auth{
+					Method:       cfg.Auth.Method,
+					APIKeyHeader: cfg.Auth.APIKeyHeader,
+					TokenURL:     cfg.Auth.TokenURL,
+				},
+				NamePrefix:   prefix,
+				RateLimitRPS: cfg.Audit.RateLimitRPS,
+				WorkDir:      auditWorkDir,
+				Logger:       auditLogger(cmd.ErrOrStderr()),
+			})
+
+			w := cmd.OutOrStdout()
+			fmt.Fprintf(w, "cleanup: %d deleted from ledgers, %d deleted by prefix %q\n",
+				sum.LedgerDeletes, sum.PrefixDeletes, prefix)
+			for _, o := range sum.Orphans {
+				fmt.Fprintf(w, "  orphan: %s\n", o)
+			}
+			return err
+		},
+	}
+	cmd.Flags().StringVar(&dir, "dir", "spec", "directory holding the revised document")
+	cmd.Flags().StringVar(&cfgFile, "config", "tfpfgen.yaml", "config file naming the auth method and name prefix")
+	cmd.Flags().StringVar(&baseURL, "base-url", "", "override the audited API's base URL")
+	cmd.Flags().StringVar(&prefix, "prefix", "", "override the name prefix to match by (default audit.name_prefix)")
+	return cmd
+}
+
+// auditPlan loads everything both audit verbs derive from: the config,
+// the revised document, the operator inputs, and the upstream pin the
+// observations are stamped with.
+func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, store.Lock, error) {
+	cfg, err := config.Load(cfgFile)
+	if err != nil {
+		return nil, nil, store.Lock{}, err
+	}
+	if !cfg.Audit.Enabled {
+		return nil, nil, store.Lock{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
+	}
+
+	revisedPath := filepath.Join(dir, revise.OutputName)
+	data, err := os.ReadFile(revisedPath) //nolint:gosec // the fixed name under the operator-supplied dir
+	if os.IsNotExist(err) {
+		return nil, nil, store.Lock{}, fmt.Errorf("%s does not exist; the audit reads the revised spec — run `tfpfgen spec revise` first", revisedPath)
+	}
+	if err != nil {
+		return nil, nil, store.Lock{}, err
+	}
+	doc, err := specmodel.Load(data)
+	if err != nil {
+		return nil, nil, store.Lock{}, fmt.Errorf("%s: %w", revisedPath, err)
+	}
+
+	lock, err := store.Verify(dir)
+	if err != nil {
+		return nil, nil, store.Lock{}, err
+	}
+
+	rawInputs, err := os.ReadFile(plan.InputsPath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, nil, store.Lock{}, err
+	}
+	inputs, err := plan.ParseInputs(rawInputs)
+	if err != nil {
+		return nil, nil, store.Lock{}, err
+	}
+
+	p, err := plan.Derive(doc, cfg, inputs)
+	if err != nil {
+		return nil, nil, store.Lock{}, err
+	}
+	return cfg, p, lock, nil
+}
+
+// auditBaseURL picks the audited API's root: the flag, then the config
+// override, then the document's first declared server.
+func auditBaseURL(flag string, cfg *config.Config, dir string) (string, error) {
+	if flag != "" {
+		return flag, nil
+	}
+	if cfg.Audit.BaseURLOverride != "" {
+		return cfg.Audit.BaseURLOverride, nil
+	}
+	revisedPath := filepath.Join(dir, revise.OutputName)
+	data, err := os.ReadFile(revisedPath) //nolint:gosec // the fixed name under the operator-supplied dir
+	if err == nil {
+		if doc, err := specmodel.Load(data); err == nil && len(doc.Servers) > 0 && doc.Servers[0].URL != "" {
+			return doc.Servers[0].URL, nil
+		}
+	}
+	return "", fmt.Errorf("no base URL: the document declares no servers; pass --base-url or set audit.base_url_override")
+}
+
+// auditLogger builds the run's zerolog logger. Requests log at debug;
+// TFPFGEN_LOG_LEVEL=debug turns them on.
+func auditLogger(w io.Writer) zerolog.Logger {
+	level := zerolog.InfoLevel
+	if v, ok := os.LookupEnv("TFPFGEN_LOG_LEVEL"); ok {
+		if parsed, err := zerolog.ParseLevel(v); err == nil {
+			level = parsed
+		}
+	}
+	return zerolog.New(w).Level(level).With().Timestamp().Logger()
+}
+
+// printSummary renders the run's table.
+func printSummary(w io.Writer, out string, obsCount int, sum auditrun.Summary) {
+	fmt.Fprintf(w, "audit run %s: %d audited, %d blocked, %d exhausted, %d skipped by the plan\n",
+		sum.RunID, sum.Audited, sum.Blocked, sum.TimedOut, sum.Skipped)
+	for _, e := range sum.Entities {
+		if e.Status == auditrun.StatusAudited {
+			fmt.Fprintf(w, "  %-12s %s\n", e.Status, e.Entity)
+			continue
+		}
+		fmt.Fprintf(w, "  %-12s %s: %s\n", e.Status, e.Entity, e.Reason)
+	}
+
+	fmt.Fprintf(w, "observations: %d written to %s\n", obsCount, out)
+	kinds := make([]string, 0, len(sum.ByKind))
+	for k := range sum.ByKind {
+		kinds = append(kinds, string(k))
+	}
+	sort.Strings(kinds)
+	for _, k := range kinds {
+		fmt.Fprintf(w, "  %-20s %d\n", k, sum.ByKind[observe.Kind(k)])
+	}
+
+	fmt.Fprintf(w, "budget: %d/%d requests, %d objects created (ceiling %d), %s of %s\n",
+		sum.Requests, sum.RequestBudget, sum.ObjectsCreated, sum.ObjectBudget,
+		sum.Elapsed.Round(time.Millisecond), sum.DurationBudget)
+	fmt.Fprintf(w, "cleanup: %d+%d removed at start, %d+%d at end (ledger+prefix)\n",
+		sum.CleanupStart.LedgerDeletes, sum.CleanupStart.PrefixDeletes,
+		sum.CleanupEnd.LedgerDeletes, sum.CleanupEnd.PrefixDeletes)
+	for _, o := range append(append([]string{}, sum.CleanupStart.Orphans...), sum.CleanupEnd.Orphans...) {
+		fmt.Fprintf(w, "  orphan: %s\n", o)
+	}
+
+	entities := make([]string, 0, len(sum.Tolerance))
+	for e := range sum.Tolerance {
+		entities = append(entities, e)
+	}
+	sort.Strings(entities)
+	for _, e := range entities {
+		fmt.Fprintf(w, "calibration: %s %s\n", e, sum.Tolerance[e])
+	}
+}
