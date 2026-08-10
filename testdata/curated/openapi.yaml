@@ -1,0 +1,387 @@
+# The curated document: a fictional orbital-station inventory API, invented
+# for this repository. It is deliberately small and deliberately complete:
+# three resources exercising scalar, enum, nested-object and list attributes,
+# a create-only property, a missing-update entity, a value-conditional
+# requirement, an eventual-consistency window, a put-full update style, a
+# lookup-by-key datasource, a list-only entity, and an action.
+openapi: 3.0.3
+info:
+  title: Orbital Station Inventory API
+  version: 1.0.0
+servers:
+  - url: https://station.example.test/api
+paths:
+  /modules:
+    post:
+      operationId: CreateModule
+      x-tfpfgen-eventual-consistency: 45s
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewModule'
+      responses:
+        "201":
+          description: The created module.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+    get:
+      operationId: ListModules
+      responses:
+        "200":
+          description: Every module on the station.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Module'
+  /modules/{moduleId}:
+    parameters:
+      - name: moduleId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: GetModule
+      responses:
+        "200":
+          description: One module.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+    patch:
+      operationId: UpdateModule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewModule'
+      responses:
+        "200":
+          description: The updated module.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+    delete:
+      operationId: DeleteModule
+      x-tfpfgen-delete-not-found-ok: true
+      responses:
+        "204":
+          description: Deleted.
+  /modules/{moduleId}/reboot:
+    post:
+      operationId: RebootModule
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RebootRequest'
+      responses:
+        "202":
+          description: Reboot accepted.
+  /beacons:
+    post:
+      operationId: CreateBeacon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Beacon'
+      responses:
+        "201":
+          description: The created beacon.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Beacon'
+    get:
+      operationId: ListBeacons
+      responses:
+        "200":
+          description: Every beacon.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Beacon'
+  /beacons/{beaconId}:
+    parameters:
+      - name: beaconId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: GetBeacon
+      responses:
+        "200":
+          description: One beacon.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Beacon'
+    delete:
+      operationId: DeleteBeacon
+      responses:
+        "204":
+          description: Deleted.
+  /docks:
+    post:
+      operationId: CreateDock
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dock'
+      responses:
+        "201":
+          description: The created dock.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dock'
+    get:
+      operationId: ListDocks
+      responses:
+        "200":
+          description: Every dock.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dock'
+  /docks/{dockId}:
+    parameters:
+      - name: dockId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: GetDock
+      responses:
+        "200":
+          description: One dock.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dock'
+    put:
+      operationId: ReplaceDock
+      x-tfpfgen-update-style: put-full
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dock'
+      responses:
+        "200":
+          description: The replaced dock.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dock'
+    delete:
+      operationId: DeleteDock
+      responses:
+        "204":
+          description: Deleted.
+  /permits/{permitCode}:
+    get:
+      operationId: GetPermit
+      parameters:
+        - name: permitCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The permit the code identifies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Permit'
+  /transits:
+    get:
+      operationId: ListTransits
+      responses:
+        "200":
+          description: Every scheduled transit.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transit'
+components:
+  schemas:
+    NewModule:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: The module's display name.
+        kind:
+          type: string
+          enum:
+            - habitat
+            - lab
+          description: What the module is for.
+        serial:
+          type: string
+          x-tfpfgen-create-only: true
+          description: The hull serial, fixed at commissioning.
+        occupied:
+          type: boolean
+          description: Whether anyone is aboard.
+        berthCount:
+          type: integer
+          description: How many berths the module carries.
+        massRatio:
+          type: number
+          description: Mass relative to the station core.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Free-form labels.
+        berth:
+          type: object
+          x-tfpfgen-required-when:
+            property: kind
+            equals: habitat
+          properties:
+            ring:
+              type: integer
+              description: Which ring the berth sits on.
+            spin:
+              type: boolean
+              description: Whether the ring spins.
+          description: Where the module berths. Required for habitats.
+        hatches:
+          type: array
+          items:
+            type: object
+            required:
+              - label
+            properties:
+              label:
+                type: string
+                description: The hatch label.
+              width:
+                type: integer
+                description: Clear width in centimetres.
+          description: The module's hatches.
+    Module:
+      allOf:
+        - $ref: '#/components/schemas/NewModule'
+        - type: object
+          required:
+            - id
+            - occupied
+            - status
+          properties:
+            id:
+              type: string
+              readOnly: true
+              description: The module's identifier.
+            status:
+              type: string
+              readOnly: true
+              description: The station computer's current assessment.
+    RebootRequest:
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          type: string
+          description: How hard to reboot.
+        force:
+          type: boolean
+          description: Reboot even with crew aboard.
+    Beacon:
+      type: object
+      required:
+        - callsign
+      properties:
+        id:
+          type: string
+          readOnly: true
+          description: The beacon's identifier.
+        callsign:
+          type: string
+          description: The broadcast callsign.
+        rangeKm:
+          type: integer
+          description: Nominal range in kilometres.
+        active:
+          type: boolean
+          description: Whether the beacon transmits.
+    Dock:
+      type: object
+      required:
+        - label
+      properties:
+        id:
+          type: string
+          readOnly: true
+          description: The dock's identifier.
+        label:
+          type: string
+          description: The dock's painted label.
+        shielded:
+          type: boolean
+          description: Whether the dock carries debris shielding.
+    Permit:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+          description: The permit's identifier.
+        permitCode:
+          type: string
+          description: The code stamped on the permit.
+        holder:
+          type: string
+          description: Who the permit was issued to.
+        seats:
+          type: integer
+          description: How many seats the permit covers.
+    Transit:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+          description: The transit's identifier.
+        window:
+          type: string
+          description: The launch window, ISO 8601.
+        craft:
+          type: string
+          description: The craft making the transit.

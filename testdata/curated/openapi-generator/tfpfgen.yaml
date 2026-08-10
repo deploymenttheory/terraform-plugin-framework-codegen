@@ -1,0 +1,16 @@
+# The curated fixture's openapi-generator-dialect config: the fictional
+# orbital provider, generated against the generator-shaped stub SDK beside
+# this file.
+version: 1
+provider:
+  name: orbital
+  registry_namespace: example-org
+generator:
+  version: v1.0.0
+spec:
+  document_url: https://station.example.test/openapi.yaml
+sdk:
+  backend: openapi-generator
+  backend_version: 7.8.0
+auth:
+  method: basic
