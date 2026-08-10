@@ -1,4 +1,4 @@
-package ir
+package intermediate_representation
 
 import (
 	"reflect"

@@ -23,6 +23,7 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 | **quirkserver** | The deliberately-misbehaving stub API that serves as offline ground truth for audit logic and as the fake live API in pipeline rehearsals. |
 | **corpus** | Third-party OpenAPI documents pinned by SHA-256 and fetched at test time, never vendored. |
 | **backend** | An SDK generator behind the common interface: `kiota` or `openapi-generator`. Exactly one per provider repo. |
+| **intermediate representation** | The ephemeral, never-committed derivation (`internal/intermediate_representation`) recomputed from the revised spec and config on every generation run; its model vocabulary (Model, Resource, Datasource, ListResource, Action, AttributeTree, Presence, Op, Names) is approved. |
 
 ## Fixed spellings
 
@@ -37,3 +38,8 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 - Shared workflows, stage-numbered: `10-generate.yml`, `20-ci.yml`,
   `30-acceptance.yml`, `40-docs.yml`, `50-release.yml`.
 - Generation branch in provider repos: `tfpfgen/run-<id>`.
+- Go-idiomatic acronym casing in generated names: known acronyms uppercase
+  whole in Pascal/camel spellings (`HTTPServer`, `APIKey`), and a leading
+  acronym lowers whole in camel (`id`, `apiKey`). The acronym table lives in
+  `internal/intermediate_representation/naming.go`; additions go through the
+  repository owner.

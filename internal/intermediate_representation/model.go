@@ -1,23 +1,28 @@
-// Package ir derives the intermediate representation the emitter and the
-// SDK binders consume: every entity the revised document classifies,
-// reduced to the decisions generation acts on — names, operations,
-// attribute trees, lifecycle behaviour.
+// Package intermediate_representation derives the representation the
+// emitter and the SDK binders consume: every entity the revised document
+// classifies, reduced to the decisions generation acts on — names,
+// operations, attribute trees, lifecycle behaviour.
 //
-// The IR is ephemeral by design. Derive is a pure function of the revised
-// document and tfpfgen.yaml, recomputed on every generation run, and the
-// result is never written to the repository. v1's fatal flaw was a
-// committed IR: the moment the derived file lived in git it became a second
-// source of truth, hand adjustments to it fought every regeneration, and
-// the document stopped being what generation actually read. Here the
-// revised document is the only committed truth; anything a human wants
-// changed goes through a correction to that document, and the IR follows.
+// The name is owner-mandated, underscores included, and the package is
+// ephemeral by design. Derive is a pure function of the revised document
+// and tfpfgen.yaml, recomputed on every generation run, and the result is
+// never written to the repository. v1's fatal flaw was a committed
+// intermediate representation: the moment the derived file lived in git it
+// became a second source of truth, hand adjustments to it fought every
+// regeneration, and the document stopped being what generation actually
+// read. Here the revised document is the only committed truth; anything a
+// human wants changed goes through a correction to that document, and the
+// derivation follows.
 //
-// The model is JSON-marshalable so a --print-ir flag can dump it for
+// The model is JSON-marshalable so a debug flag can dump it for
 // inspection, but a dump is a debugging aid, not an artifact — nothing may
 // read one back in.
-package ir
+package intermediate_representation
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Model is the complete derived representation of one provider.
 type Model struct {
@@ -43,6 +48,17 @@ type Provider struct {
 type Exclusion struct {
 	Key    string `json:"key"`
 	Reason string `json:"reason"`
+}
+
+// coManagementNote renders the prose the generated schema description of a
+// co-managed entity must carry, given the sibling entities' terraform type
+// names. It is written once, here, so every emitter renders exactly the
+// same words; siblings arrive sorted so the note is deterministic.
+func coManagementNote(siblings []string) string {
+	return "Fields of this entity may also be managed by " + strings.Join(siblings, ", ") +
+		", generated from the same underlying API collection family. " +
+		"Managing the same object through more than one of them concurrently causes drift, " +
+		"and the last terraform apply wins."
 }
 
 // Update styles, mirroring the x-tfpfgen-update-style contract values.
@@ -72,6 +88,11 @@ type Resource struct {
 	DeleteNotFoundOK bool `json:"delete_not_found_ok,omitempty"`
 	// Timeouts are the generated timeout defaults.
 	Timeouts Timeouts `json:"timeouts"`
+	// CoManagementNote is set when sibling entities derive from the same
+	// underlying collection path family: prose every emitter appends to
+	// the generated schema description verbatim. Empty for an entity with
+	// no siblings.
+	CoManagementNote string `json:"co_management_note,omitempty"`
 }
 
 // Datasource is one entity readable outside Terraform's ownership. Every
@@ -92,6 +113,8 @@ type Datasource struct {
 	// KeyParameter is the item path parameter's wire name when
 	// LookupByKey is set, empty otherwise.
 	KeyParameter string `json:"key_parameter,omitempty"`
+	// CoManagementNote is the sibling-entity prose; see Resource.
+	CoManagementNote string `json:"co_management_note,omitempty"`
 }
 
 // ListResource is a list-only entity: enumerable but not addressable.
@@ -100,6 +123,8 @@ type ListResource struct {
 	ListOp Op    `json:"list_op"`
 	// Schema is the element's attribute tree, everything computed.
 	Schema *AttributeTree `json:"schema"`
+	// CoManagementNote is the sibling-entity prose; see Resource.
+	CoManagementNote string `json:"co_management_note,omitempty"`
 }
 
 // Action is a POST with no lifecycle complement — an invocation.
@@ -112,6 +137,8 @@ type Action struct {
 	// ParentEntity is the key of the entity whose collection path is the
 	// longest prefix of the action's, empty when no entity encloses it.
 	ParentEntity string `json:"parent_entity,omitempty"`
+	// CoManagementNote is the sibling-entity prose; see Resource.
+	CoManagementNote string `json:"co_management_note,omitempty"`
 }
 
 // Ops holds an entity's operations by role. Slots an entity lacks are nil.

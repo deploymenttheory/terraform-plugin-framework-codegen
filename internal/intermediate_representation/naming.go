@@ -1,4 +1,4 @@
-package ir
+package intermediate_representation
 
 import (
 	"regexp"
@@ -13,7 +13,7 @@ type Names struct {
 	// the model. The API version segment is factored out into
 	// APIVersionDir rather than living in the name.
 	Key string `json:"key"`
-	// Pascal is the exported Go type spelling, e.g. "HttpServer".
+	// Pascal is the exported Go type spelling, e.g. "HTTPServer".
 	Pascal string `json:"pascal"`
 	// Camel is the unexported Go spelling, e.g. "httpServer".
 	Camel string `json:"camel"`
@@ -28,6 +28,50 @@ type Names struct {
 	// APIVersionDir is the stripped version segment, "v1" when the path
 	// declares none.
 	APIVersionDir string `json:"api_version_dir"`
+}
+
+// acronyms is the closed set of initialisms Go spellings uppercase whole,
+// keyed by their snake_case form, sorted. This table is owner-owned:
+// additions go through the repository owner, never in passing.
+var acronyms = map[string]string{
+	"acl":   "ACL",
+	"api":   "API",
+	"arn":   "ARN",
+	"cidr":  "CIDR",
+	"cli":   "CLI",
+	"cpu":   "CPU",
+	"css":   "CSS",
+	"dns":   "DNS",
+	"ftp":   "FTP",
+	"gpu":   "GPU",
+	"html":  "HTML",
+	"http":  "HTTP",
+	"https": "HTTPS",
+	"id":    "ID",
+	"ip":    "IP",
+	"json":  "JSON",
+	"jwt":   "JWT",
+	"lan":   "LAN",
+	"mac":   "MAC",
+	"oauth": "OAuth",
+	"os":    "OS",
+	"ram":   "RAM",
+	"sdk":   "SDK",
+	"smtp":  "SMTP",
+	"sql":   "SQL",
+	"ssh":   "SSH",
+	"ssl":   "SSL",
+	"tcp":   "TCP",
+	"tls":   "TLS",
+	"udp":   "UDP",
+	"ui":    "UI",
+	"uri":   "URI",
+	"url":   "URL",
+	"uuid":  "UUID",
+	"vpn":   "VPN",
+	"wan":   "WAN",
+	"xml":   "XML",
+	"yaml":  "YAML",
 }
 
 // versionSegment matches a leading API version path segment such as "v7".
@@ -64,23 +108,34 @@ func deriveNames(provider, key, collectionPath string) Names {
 		version = "v1"
 	}
 
-	pascal := pascalCase(k)
-	return Names{
-		Key:           k,
-		Pascal:        pascal,
-		Camel:         camelCase(pascal),
-		TerraformType: provider + "_" + k,
-		Package:       strings.ReplaceAll(k, "_", ""),
-		Service:       service,
-		APIVersionDir: version,
-	}
+	n := Names{Service: service, APIVersionDir: version}
+	return n.withKey(provider, k)
 }
 
-// pascalCase turns a snake_case key into its exported Go spelling.
+// withKey rebuilds every key-derived field of the naming block around a
+// replacement key, leaving the path-derived fields alone. Disambiguation
+// renames an entity after its names were first computed; this keeps every
+// spelling in step with the final key.
+func (n Names) withKey(provider, key string) Names {
+	n.Key = key
+	n.Pascal = pascalCase(key)
+	n.Camel = camelCase(key)
+	n.TerraformType = provider + "_" + key
+	n.Package = strings.ReplaceAll(key, "_", "")
+	return n
+}
+
+// pascalCase turns a snake_case key into its exported Go spelling. Parts
+// in the acronym table uppercase whole: "http_server" is "HTTPServer",
+// never "HttpServer".
 func pascalCase(key string) string {
 	var b strings.Builder
 	for _, part := range strings.Split(key, "_") {
 		if part == "" {
+			continue
+		}
+		if a, ok := acronyms[part]; ok {
+			b.WriteString(a)
 			continue
 		}
 		b.WriteString(strings.ToUpper(part[:1]))
@@ -89,14 +144,19 @@ func pascalCase(key string) string {
 	return b.String()
 }
 
-// camelCase lowers a Pascal spelling's first rune.
-func camelCase(pascal string) string {
-	if pascal == "" {
+// camelCase turns a snake_case key into its unexported Go spelling: the
+// leading part stays lowercase whole — an acronym there lowers entirely,
+// "id" stays "id" and "api_key" becomes "apiKey" — and the rest follows
+// the Pascal rules.
+func camelCase(key string) string {
+	parts := strings.Split(key, "_")
+	for len(parts) > 0 && parts[0] == "" {
+		parts = parts[1:]
+	}
+	if len(parts) == 0 {
 		return ""
 	}
-	r := []rune(pascal)
-	r[0] = unicode.ToLower(r[0])
-	return string(r)
+	return parts[0] + pascalCase(strings.Join(parts[1:], "_"))
 }
 
 // snakeCase turns a wire property name — camelCase, PascalCase, kebab-case
