@@ -1,0 +1,43 @@
+{{ template "header" . }}
+
+package {{ .Package }}_test
+
+{{ .AccImports }}
+
+//go:embed tests/terraform/acceptance/resource_minimal.tf
+var accConfigMinimal string
+
+//go:embed tests/terraform/acceptance/resource_maximal.tf
+var accConfigMaximal string
+
+// TestAcc{{ .Pascal }}Resource_Lifecycle drives the full lifecycle against
+// the live API. It only runs when TF_ACC is set, and PreCheck names the
+// first missing environment variable before anything is created.
+func TestAcc{{ .Pascal }}Resource_Lifecycle(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { acceptance.PreCheck(t) },
+		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: accConfigMinimal,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("{{ .TerraformType }}.test", "id"),
+				),
+			},
+{{- if .HasImport }}
+			{
+				ResourceName:            "{{ .TerraformType }}.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"timeouts"},
+			},
+{{- end }}
+			{
+				Config: accConfigMaximal,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("{{ .TerraformType }}.test", "id"),
+				),
+			},
+		},
+	})
+}

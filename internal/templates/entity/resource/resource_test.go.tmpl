@@ -1,0 +1,75 @@
+{{ template "header" . }}
+
+package {{ .Package }}_test
+
+{{ .TestImports }}
+
+//go:embed tests/terraform/unit/resource_minimal.tf
+var unitConfigMinimal string
+
+//go:embed tests/terraform/unit/resource_maximal.tf
+var unitConfigMaximal string
+
+// TestUnit{{ .Pascal }}Resource_Schema holds the generated schema to the
+// framework's implementation validation.
+func TestUnit{{ .Pascal }}Resource_Schema(t *testing.T) {
+	ctx := context.Background()
+	schemaResp := &fwresource.SchemaResponse{}
+	{{ .Package }}.New{{ .Pascal }}Resource().Schema(ctx, fwresource.SchemaRequest{}, schemaResp)
+	if schemaResp.Diagnostics.HasError() {
+		t.Fatalf("schema diagnostics: %v", schemaResp.Diagnostics)
+	}
+	if diags := schemaResp.Schema.ValidateImplementation(ctx); diags.HasError() {
+		t.Fatalf("schema implementation: %v", diags)
+	}
+}
+
+// TestUnit{{ .Pascal }}Resource_Lifecycle drives create, import, update
+// and destroy against the stateful mock API.
+func TestUnit{{ .Pascal }}Resource_Lifecycle(t *testing.T) {
+	mocks.SetupUnitTestEnvironment(t)
+	mocks.GlobalRegistry.ActivateMocks("{{ .TerraformType }}")
+	defer mocks.GlobalRegistry.DeactivateAndReset()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: mocks.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: unitConfigMinimal,
+				Check: resource.ComposeTestCheckFunc(
+{{ .MinimalChecks }}				),
+			},
+{{- if .HasImport }}
+			{
+				ResourceName:            "{{ .TerraformType }}.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"timeouts"},
+			},
+{{- end }}
+			{
+				Config: unitConfigMaximal,
+				Check: resource.ComposeTestCheckFunc(
+{{ .MaximalChecks }}				),
+			},
+		},
+	})
+}
+
+// TestUnit{{ .Pascal }}Resource_CreateError holds the error path: a
+// refused create surfaces as a diagnostic, not a panic or a hang.
+func TestUnit{{ .Pascal }}Resource_CreateError(t *testing.T) {
+	mocks.SetupUnitTestEnvironment(t)
+	mocks.GlobalRegistry.ActivateErrorMocks("{{ .TerraformType }}")
+	defer mocks.GlobalRegistry.DeactivateAndReset()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: mocks.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      unitConfigMinimal,
+				ExpectError: regexp.MustCompile(`Create failed`),
+			},
+		},
+	})
+}

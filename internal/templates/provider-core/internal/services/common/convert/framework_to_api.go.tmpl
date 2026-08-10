@@ -102,3 +102,141 @@ func FrameworkToAPIStringList(ctx context.Context, value types.List, setter func
 	setter(values)
 	return nil
 }
+
+// FrameworkToAPIStringValue hands the plain string to a value-typed
+// setter unless the value is null or unknown. The Value variants exist
+// for SDKs whose setters take values rather than pointers.
+func FrameworkToAPIStringValue(value types.String, setter func(string)) {
+	if value.IsNull() || value.IsUnknown() {
+		return
+	}
+	setter(value.ValueString())
+}
+
+// FrameworkToAPIBoolValue hands the plain bool to a value-typed setter
+// unless the value is null or unknown.
+func FrameworkToAPIBoolValue(value types.Bool, setter func(bool)) {
+	if value.IsNull() || value.IsUnknown() {
+		return
+	}
+	setter(value.ValueBool())
+}
+
+// FrameworkToAPIInt64Value hands the plain int64 to a value-typed setter
+// unless the value is null or unknown.
+func FrameworkToAPIInt64Value(value types.Int64, setter func(int64)) {
+	if value.IsNull() || value.IsUnknown() {
+		return
+	}
+	setter(value.ValueInt64())
+}
+
+// FrameworkToAPIInt64ValueAsInt32 narrows the plan's int64 to a
+// value-typed int32 setter, erroring on a value the wire type cannot
+// carry.
+func FrameworkToAPIInt64ValueAsInt32(value types.Int64, setter func(int32)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	v := value.ValueInt64()
+	if v > 2147483647 || v < -2147483648 {
+		return fmt.Errorf("%d does not fit the API's 32-bit integer", v)
+	}
+	setter(int32(v))
+	return nil
+}
+
+// FrameworkToAPIFloat64Value hands the plain float64 to a value-typed
+// setter unless the value is null or unknown.
+func FrameworkToAPIFloat64Value(value types.Float64, setter func(float64)) {
+	if value.IsNull() || value.IsUnknown() {
+		return
+	}
+	setter(value.ValueFloat64())
+}
+
+// FrameworkToAPIFloat64ValueAsFloat32 narrows the plan's float64 to a
+// value-typed float32 setter.
+func FrameworkToAPIFloat64ValueAsFloat32(value types.Float64, setter func(float32)) {
+	if value.IsNull() || value.IsUnknown() {
+		return
+	}
+	setter(float32(value.ValueFloat64()))
+}
+
+// FrameworkToAPITimeValue parses the RFC 3339 string and hands the time
+// to a value-typed setter, erroring on a malformed value.
+func FrameworkToAPITimeValue(value types.String, setter func(time.Time)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	parsed, err := time.Parse(time.RFC3339, value.ValueString())
+	if err != nil {
+		return fmt.Errorf("%q is not an RFC 3339 timestamp: %w", value.ValueString(), err)
+	}
+	setter(parsed)
+	return nil
+}
+
+// FrameworkToAPIBoolList hands the plain []bool to the setter unless the
+// list is null or unknown.
+func FrameworkToAPIBoolList(ctx context.Context, value types.List, setter func([]bool)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	var values []bool
+	if diags := value.ElementsAs(ctx, &values, false); diags.HasError() {
+		return fmt.Errorf("reading a bool list from the plan: %v", diags.Errors())
+	}
+	setter(values)
+	return nil
+}
+
+// FrameworkToAPIInt64List hands the plain []int64 to the setter unless
+// the list is null or unknown.
+func FrameworkToAPIInt64List(ctx context.Context, value types.List, setter func([]int64)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	var values []int64
+	if diags := value.ElementsAs(ctx, &values, false); diags.HasError() {
+		return fmt.Errorf("reading an int64 list from the plan: %v", diags.Errors())
+	}
+	setter(values)
+	return nil
+}
+
+// FrameworkToAPIInt64ListAsInt32 narrows the plan's int64 list to the
+// SDK's []int32, erroring on any element the wire type cannot carry.
+func FrameworkToAPIInt64ListAsInt32(ctx context.Context, value types.List, setter func([]int32)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	var values []int64
+	if diags := value.ElementsAs(ctx, &values, false); diags.HasError() {
+		return fmt.Errorf("reading an int64 list from the plan: %v", diags.Errors())
+	}
+	narrowed := make([]int32, len(values))
+	for i, v := range values {
+		if v > 2147483647 || v < -2147483648 {
+			return fmt.Errorf("%d does not fit the API's 32-bit integer", v)
+		}
+		narrowed[i] = int32(v)
+	}
+	setter(narrowed)
+	return nil
+}
+
+// FrameworkToAPIFloat64List hands the plain []float64 to the setter
+// unless the list is null or unknown.
+func FrameworkToAPIFloat64List(ctx context.Context, value types.List, setter func([]float64)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	var values []float64
+	if diags := value.ElementsAs(ctx, &values, false); diags.HasError() {
+		return fmt.Errorf("reading a float64 list from the plan: %v", diags.Errors())
+	}
+	setter(values)
+	return nil
+}

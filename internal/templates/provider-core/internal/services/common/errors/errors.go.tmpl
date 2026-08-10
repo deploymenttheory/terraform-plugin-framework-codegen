@@ -32,6 +32,7 @@ const (
 	OperationRead   Operation = "Read"
 	OperationUpdate Operation = "Update"
 	OperationDelete Operation = "Delete"
+	OperationInvoke Operation = "Invoke"
 )
 
 // Info is the dialect-neutral description of one API error.
@@ -117,6 +118,15 @@ func HandleDatasourceReadError(ctx context.Context, err error, resp *datasource.
 	info := Describe(err)
 	logError(ctx, info, OperationRead)
 	addError(&resp.Diagnostics, info, OperationRead, permissions)
+}
+
+// HandleActionError reports a failed action invocation. Every status is
+// an error here: an invocation owns no state, so there is nothing to
+// reconcile and nothing a 404 could mean but "the target is gone".
+func HandleActionError(ctx context.Context, err error, diags *diag.Diagnostics, permissions []string) {
+	info := Describe(err)
+	logError(ctx, info, OperationInvoke)
+	addError(diags, info, OperationInvoke, permissions)
 }
 
 // IsFatalRead reports the statuses no retry fixes on a read: the request

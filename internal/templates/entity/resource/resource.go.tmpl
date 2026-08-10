@@ -1,0 +1,69 @@
+{{ template "header" . }}
+
+// Package {{ .Package }} manages the {{ .TerraformType }} resource.
+package {{ .Package }}
+
+{{ .Imports }}
+
+// ResourceName is the terraform type this resource serves.
+const ResourceName = "{{ .TerraformType }}"
+
+// Operation timeout defaults, from the derivation.
+const (
+	createTimeout = {{ .TimeoutCreate }}
+	readTimeout   = {{ .TimeoutRead }}
+	updateTimeout = {{ .TimeoutUpdate }}
+	deleteTimeout = {{ .TimeoutDelete }}
+)
+
+var (
+	_ resource.Resource              = (*{{ .Type }})(nil)
+	_ resource.ResourceWithConfigure = (*{{ .Type }})(nil)
+{{- if .HasImport }}
+	_ resource.ResourceWithImportState = (*{{ .Type }})(nil)
+{{- end }}
+)
+
+// New{{ .Pascal }}Resource builds the resource for registration.
+func New{{ .Pascal }}Resource() resource.Resource {
+	return &{{ .Type }}{}
+}
+
+// {{ .Type }} implements the {{ .TerraformType }} resource.
+type {{ .Type }} struct {
+	client {{ .ClientType }}
+}
+
+// Metadata names the resource.
+func (r *{{ .Type }}) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = ResourceName
+}
+
+// Configure receives the SDK client the provider built.
+func (r *{{ .Type }}) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	c, ok := req.ProviderData.({{ .ClientType }})
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected provider data",
+			fmt.Sprintf("expected {{ .ClientType }}, got %T", req.ProviderData))
+		return
+	}
+	r.client = c
+}
+{{ if .HasImport }}
+// ImportState imports by the API identifier.
+func (r *{{ .Type }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("{{ .ImportAttr }}"), req, resp)
+}
+{{ end }}
+// Schema declares the attributes the revised document derives.
+func (r *{{ .Type }}) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: {{ .SchemaDescription }},
+		Attributes: map[string]schema.Attribute{
+{{ .SchemaAttributes }}			"timeouts": commonschema.ResourceTimeouts(ctx),
+		},
+	}
+}

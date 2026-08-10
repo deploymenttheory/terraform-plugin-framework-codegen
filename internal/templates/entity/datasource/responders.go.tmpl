@@ -1,0 +1,61 @@
+{{ template "header" . }}
+
+// Package mocks serves a read-only fake of the {{ .TerraformType }}
+// datasource's API surface for unit tests. The answers are the committed
+// response fixtures — rendered from the same derivation as the terraform
+// fixtures, so the two can never disagree.
+package mocks
+
+{{ .MocksImports }}
+
+// responseMaximal is the wire shape of one fully-populated object.
+const responseMaximal = `{{ .ResponseMaximal }}`
+
+{{ if .CollectionURL }}
+// collectionURL is where the list operation answers.
+const collectionURL = "{{ .CollectionURL }}"
+{{ end }}
+{{ if .HasItemMock }}
+// itemPattern matches the by-key read's URL.
+const itemPattern = `{{ .ItemPattern }}`
+{{ end }}
+
+// {{ .Pascal }}DatasourceMock registers this datasource's responders.
+type {{ .Pascal }}DatasourceMock struct{}
+
+var _ providermocks.MockRegistrar = (*{{ .Pascal }}DatasourceMock)(nil)
+
+func init() {
+	providermocks.GlobalRegistry.Register("{{ .RegistryName }}", &{{ .Pascal }}DatasourceMock{})
+}
+
+// object parses the committed fixture.
+func object() map[string]any {
+	out := map[string]any{}
+	_ = json.Unmarshal([]byte(responseMaximal), &out)
+	return out
+}
+
+// RegisterMocks registers the happy-path responders.
+func (m *{{ .Pascal }}DatasourceMock) RegisterMocks() {
+{{- if .CollectionURL }}
+	httpmock.RegisterResponder("GET", collectionURL,
+		providermocks.SuccessResponse(200, map[string]any{"{{ .ListWrap }}": []map[string]any{object()}}))
+{{- end }}
+{{- if .HasItemMock }}
+	httpmock.RegisterResponder("GET", itemPattern,
+		providermocks.SuccessResponse(200, object()))
+{{- end }}
+}
+
+// RegisterErrorMocks registers responders that refuse every request.
+func (m *{{ .Pascal }}DatasourceMock) RegisterErrorMocks() {
+{{- if .CollectionURL }}
+	httpmock.RegisterResponder("GET", collectionURL,
+		providermocks.ErrorResponse(500, "InternalServerError", "the server misbehaved"))
+{{- end }}
+{{- if .HasItemMock }}
+	httpmock.RegisterResponder("GET", itemPattern,
+		providermocks.ErrorResponse(500, "InternalServerError", "the server misbehaved"))
+{{- end }}
+}

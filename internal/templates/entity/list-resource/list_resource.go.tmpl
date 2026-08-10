@@ -1,0 +1,51 @@
+{{ template "header" . }}
+
+// Package {{ .Package }} serves the {{ .TerraformType }} list resource.
+package {{ .Package }}
+
+{{ .Imports }}
+
+// ListResourceName is the terraform type this list resource serves.
+const ListResourceName = "{{ .TerraformType }}"
+
+var (
+	_ list.ListResource              = (*{{ .Type }})(nil)
+	_ list.ListResourceWithConfigure = (*{{ .Type }})(nil)
+)
+
+// New{{ .Pascal }}ListResource builds the list resource for registration.
+func New{{ .Pascal }}ListResource() list.ListResource {
+	return &{{ .Type }}{}
+}
+
+// {{ .Type }} implements the {{ .TerraformType }} list resource.
+type {{ .Type }} struct {
+	client {{ .ClientType }}
+}
+
+// Metadata names the list resource.
+func (r *{{ .Type }}) Metadata(_ context.Context, _ resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = ListResourceName
+}
+
+// Configure receives the SDK client the provider built.
+func (r *{{ .Type }}) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	c, ok := req.ProviderData.({{ .ClientType }})
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected provider data",
+			fmt.Sprintf("expected {{ .ClientType }}, got %T", req.ProviderData))
+		return
+	}
+	r.client = c
+}
+
+// ListResourceConfigSchema declares the list block's configuration: the
+// document derives no filters for this entity, so the block is empty.
+func (r *{{ .Type }}) ListResourceConfigSchema(_ context.Context, _ list.ListResourceSchemaRequest, resp *list.ListResourceSchemaResponse) {
+	resp.Schema = listschema.Schema{
+		Description: {{ .SchemaDescription }},
+	}
+}

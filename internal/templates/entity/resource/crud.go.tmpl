@@ -1,0 +1,179 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+{{ .CRUDImports }}
+{{ if .HasEC }}
+// eventualConsistency is how long a read may lag a write, as the document
+// declares it. The predicate below keeps the read-after-write loop
+// retrying inside the operation timeout while a lagging read still
+// answers "gone".
+const eventualConsistency = {{ .ECDuration }}
+
+// consistencyPredicate treats a state the read removed as "not consistent
+// yet" rather than "does not exist": within the retry window a 404 is
+// propagation lag, and only the operation deadline turns it into an error.
+func consistencyPredicate(_ context.Context, state tfsdk.State) bool {
+	return !state.Raw.IsNull()
+}
+{{ end }}
+// Create creates the object and settles state with a follow-up read.
+func (r *{{ .Type }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data {{ .Type }}Model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := crud.HandleTimeout(ctx, data.Timeouts.Create, createTimeout, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	defer cancel()
+
+	body, constructErr := constructResource(ctx, &data, true)
+	if constructErr != nil {
+		resp.Diagnostics.AddError("Cannot build the create request", constructErr.Error())
+		return
+	}
+	_ = body
+
+	client := r.client
+{{ if .CreatePlan.ParamDecls }}	{{ .CreatePlan.ParamDecls }}
+{{ end }}	{{ .CreatePlan.Assign }}
+	if err != nil {
+		errors.HandleCreateError(ctx, err, resp, nil)
+		return
+	}
+{{ if .CreateMapsResponse }}
+	MapRemoteStateToTerraform(ctx, &data, {{ .CreatePlan.Payload }})
+{{ end }}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	readReq := resource.ReadRequest{State: resp.State, ProviderMeta: req.ProviderMeta}
+	opts := crud.ReadWithRetryOptions{Operation: errors.OperationCreate, ResourceTypeName: ResourceName}
+{{- if .HasEC }}
+	opts.ConsistencyPredicate = consistencyPredicate
+{{- end }}
+	if retryErr := crud.ReadWithRetry(ctx, r.Read, readReq, crud.CreateResponseContainer{Response: resp}, opts); retryErr != nil {
+		resp.Diagnostics.AddError("Create succeeded but the state did not settle", retryErr.Error())
+	}
+}
+
+// Read refreshes state from the API. A 404 removes the resource from
+// state so the next plan proposes recreating it.
+func (r *{{ .Type }}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data {{ .Type }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := crud.HandleTimeout(ctx, data.Timeouts.Read, readTimeout, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	defer cancel()
+
+	client := r.client
+{{ if .ReadPlan.ParamDecls }}	{{ .ReadPlan.ParamDecls }}
+{{ end }}	{{ .ReadPlan.Assign }}
+	if err != nil {
+		errors.HandleReadError(ctx, err, resp, nil)
+		return
+	}
+
+	MapRemoteStateToTerraform(ctx, &data, {{ .ReadPlan.Payload }})
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+{{ if .MissingUpdate }}
+// Update refuses: the API declares no update operation, so every writable
+// attribute carries RequiresReplace and a plan can never reach here
+// without a bug upstream.
+func (r *{{ .Type }}) Update(_ context.Context, _ resource.UpdateRequest, resp *resource.UpdateResponse) {
+	resp.Diagnostics.AddError(
+		"Update is not supported",
+		"The API declares no update operation for this resource; every change forces replacement.")
+}
+{{ else }}
+// Update applies the plan and settles state with a follow-up read.
+func (r *{{ .Type }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var data {{ .Type }}Model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	var prior {{ .Type }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &prior)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := crud.HandleTimeout(ctx, data.Timeouts.Update, updateTimeout, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	defer cancel()
+
+	body, constructErr := constructResource(ctx, &data, false)
+	if constructErr != nil {
+		resp.Diagnostics.AddError("Cannot build the update request", constructErr.Error())
+		return
+	}
+	_ = body
+
+	client := r.client
+{{ if .UpdatePlan.ParamDecls }}	{{ .UpdatePlan.ParamDecls }}
+{{ end }}	{{ .UpdatePlan.Assign }}
+	if err != nil {
+		errors.HandleUpdateError(ctx, err, resp, nil)
+		return
+	}
+{{ if .UpdateMapsResponse }}
+	MapRemoteStateToTerraform(ctx, &data, {{ .UpdatePlan.Payload }})
+{{ else if .UpdateParamCopies }}
+	{{ .UpdateParamCopies }}
+{{ end }}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	readReq := resource.ReadRequest{State: resp.State, ProviderMeta: req.ProviderMeta}
+	opts := crud.ReadWithRetryOptions{Operation: errors.OperationUpdate, ResourceTypeName: ResourceName}
+{{- if .HasEC }}
+	opts.ConsistencyPredicate = consistencyPredicate
+{{- end }}
+	if retryErr := crud.ReadWithRetry(ctx, r.Read, readReq, crud.UpdateResponseContainer{Response: resp}, opts); retryErr != nil {
+		resp.Diagnostics.AddError("Update succeeded but the state did not settle", retryErr.Error())
+	}
+}
+{{ end }}
+// Delete removes the object, retrying the statuses a retry can outwait.
+// A 404 counts as success: the object is already gone.
+func (r *{{ .Type }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data {{ .Type }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := crud.HandleTimeout(ctx, data.Timeouts.Delete, deleteTimeout, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	defer cancel()
+
+	client := r.client
+{{ if .DeletePlan.ParamDecls }}	{{ .DeletePlan.ParamDecls }}
+{{ end }}	deleteErr := crud.DeleteWithRetry(ctx, func(ctx context.Context) error {
+		{{ .DeletePlan.ClosureBody }}
+	}, crud.DeleteWithRetryOptions{ResourceTypeName: ResourceName})
+	if deleteErr != nil {
+		errors.HandleDeleteError(ctx, deleteErr, resp, nil)
+		return
+	}
+
+	resp.State.RemoveResource(ctx)
+}

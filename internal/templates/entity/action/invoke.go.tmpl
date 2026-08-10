@@ -1,0 +1,39 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+{{ .InvokeImports }}
+
+{{ if .HasBody }}
+// constructInvocation builds the invocation body from the configuration.
+func constructInvocation(ctx context.Context, data *{{ .Type }}Model) ({{ .ConstructReturnType }}, error) {
+	_ = ctx
+	body := {{ .WriteConstructor }}
+{{ .ConstructBody }}
+	return body, nil
+}
+{{ end }}
+// Invoke runs the operation. An invocation owns no state: success is
+// silence, and any refusal surfaces as a diagnostic.
+func (a *{{ .Type }}) Invoke(ctx context.Context, req action.InvokeRequest, resp *action.InvokeResponse) {
+	var data {{ .Type }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{ if .HasBody }}
+	body, constructErr := constructInvocation(ctx, &data)
+	if constructErr != nil {
+		resp.Diagnostics.AddError("Cannot build the invocation request", constructErr.Error())
+		return
+	}
+	_ = body
+{{ end }}
+	client := a.client
+{{ if .InvokePlan.ParamDecls }}	{{ .InvokePlan.ParamDecls }}
+{{ end }}	{{ .InvokePlan.Assign }}
+	if err != nil {
+		errors.HandleActionError(ctx, err, &resp.Diagnostics, nil)
+		return
+	}
+}

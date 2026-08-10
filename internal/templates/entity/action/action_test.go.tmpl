@@ -1,0 +1,83 @@
+{{ template "header" . }}
+
+package {{ .Package }}_test
+
+{{ .TestImports }}
+
+// configuredAction builds the action over a client pointed at the mock
+// transport, plus the configuration value the fixture derivation supplies.
+func configuredAction(t *testing.T) (action.Action, tfsdk.Config) {
+	t.Helper()
+	ctx := context.Background()
+
+	sdkClient, err := client.NewSDKClient(client.Config{Endpoint: mocks.UnitEndpoint, UserAgent: "unit-test"{{ .TestClientConfig }}})
+	if err != nil {
+		t.Fatalf("building the SDK client: %v", err)
+	}
+
+	act := {{ .Package }}.New{{ .Pascal }}Action()
+	configurable, ok := act.(action.ActionWithConfigure)
+	if !ok {
+		t.Fatal("the action does not accept configuration")
+	}
+	confResp := &action.ConfigureResponse{}
+	configurable.Configure(ctx, action.ConfigureRequest{ProviderData: sdkClient}, confResp)
+	if confResp.Diagnostics.HasError() {
+		t.Fatalf("configure diagnostics: %v", confResp.Diagnostics)
+	}
+
+	schemaResp := &action.SchemaResponse{}
+	act.Schema(ctx, action.SchemaRequest{}, schemaResp)
+	if schemaResp.Diagnostics.HasError() {
+		t.Fatalf("schema diagnostics: %v", schemaResp.Diagnostics)
+	}
+
+	raw := {{ .ConfigValue }}
+	return act, tfsdk.Config{Schema: schemaResp.Schema, Raw: raw}
+}
+
+// TestUnit{{ .Pascal }}Action_Metadata holds the published type name.
+func TestUnit{{ .Pascal }}Action_Metadata(t *testing.T) {
+	metaResp := &action.MetadataResponse{}
+	{{ .Package }}.New{{ .Pascal }}Action().Metadata(context.Background(), action.MetadataRequest{}, metaResp)
+	if metaResp.TypeName != "{{ .TerraformType }}" {
+		t.Fatalf("type name = %q", metaResp.TypeName)
+	}
+}
+
+// TestUnit{{ .Pascal }}Action_Invoke invokes against the mock API.
+func TestUnit{{ .Pascal }}Action_Invoke(t *testing.T) {
+{{- if .AuthGitHubApp }}
+	t.Skip("github_app client construction is not supported by generated providers yet")
+{{- end }}
+	mocks.GlobalRegistry.ActivateMocks("{{ .TerraformType }}")
+	defer mocks.GlobalRegistry.DeactivateAndReset()
+	httpmock.RegisterResponder("{{ .InvokeMethod }}", `{{ .InvokeMatcher }}`,
+		httpmock.NewStringResponder({{ .InvokeStatus }}, ""))
+
+	act, config := configuredAction(t)
+	invokeResp := &action.InvokeResponse{}
+	act.Invoke(context.Background(), action.InvokeRequest{Config: config}, invokeResp)
+	if invokeResp.Diagnostics.HasError() {
+		t.Fatalf("invoke diagnostics: %v", invokeResp.Diagnostics)
+	}
+}
+
+// TestUnit{{ .Pascal }}Action_InvokeError holds the error path: a refused
+// invocation surfaces as a diagnostic.
+func TestUnit{{ .Pascal }}Action_InvokeError(t *testing.T) {
+{{- if .AuthGitHubApp }}
+	t.Skip("github_app client construction is not supported by generated providers yet")
+{{- end }}
+	mocks.GlobalRegistry.ActivateMocks("{{ .TerraformType }}")
+	defer mocks.GlobalRegistry.DeactivateAndReset()
+	httpmock.RegisterResponder("{{ .InvokeMethod }}", `{{ .InvokeMatcher }}`,
+		httpmock.NewStringResponder(500, `{"error":{"code":"InternalServerError","message":"the server misbehaved"}}`))
+
+	act, config := configuredAction(t)
+	invokeResp := &action.InvokeResponse{}
+	act.Invoke(context.Background(), action.InvokeRequest{Config: config}, invokeResp)
+	if !invokeResp.Diagnostics.HasError() {
+		t.Fatal("a refused invocation must surface as a diagnostic")
+	}
+}
