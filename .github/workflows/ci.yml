@@ -1,0 +1,59 @@
+name: ci
+
+# Push and pull_request both — main is actually measured. v1's verify
+# workflow was PR-only, which is how a red main went unnoticed for days.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: 🧪 Build, vet, test, coverage gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: gofmt is a fixed point
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [[ -n "$unformatted" ]]; then
+            echo "gofmt would rewrite:" >&2
+            echo "$unformatted" >&2
+            exit 1
+          fi
+      - name: Build and vet
+        run: |
+          go build ./...
+          go vet ./...
+      - name: Test with race detector
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./internal/...
+      - name: Coverage gate (total ≥90%, package ≥80%)
+        run: bash scripts/coverage_gate.sh coverage.out
+
+  lint:
+    name: 🔍 Lint and repo hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a
+        with:
+          version: latest
+      - name: Repo hygiene (file ceiling, pilot leakage, no binaries)
+        run: bash scripts/repo_hygiene_gate.sh
