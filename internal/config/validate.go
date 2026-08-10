@@ -47,8 +47,8 @@ func (c *Config) problems() []string {
 		report("generator.version: %q is not an exact release tag (vX.Y.Z); branches are refused", c.Generator.Version)
 	}
 
-	switch {
-	case c.Spec.DocumentURL == "":
+	switch c.Spec.DocumentURL {
+	case "":
 		report("spec.document_url: required")
 	default:
 		if u, err := url.Parse(c.Spec.DocumentURL); err != nil || (u.Scheme != "https" && u.Scheme != "http") {

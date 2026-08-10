@@ -218,7 +218,7 @@ func (s *Server) update(w http.ResponseWriter, r *http.Request, path string) {
 	writeJSON(w, http.StatusOK, s.project(id, r))
 }
 
-func (s *Server) delete(w http.ResponseWriter, r *http.Request, path string) {
+func (s *Server) delete(w http.ResponseWriter, _ *http.Request, path string) {
 	id := strings.TrimPrefix(path, itemPrefix)
 
 	s.mu.Lock()
