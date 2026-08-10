@@ -1,0 +1,113 @@
+{{ template "header" . }}
+
+package crud
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+
+	"{{ .Module }}/internal/services/common/errors"
+)
+
+// StateContainer is the part of a write response the read-after-write
+// loop settles: the state the successful read produced.
+type StateContainer interface {
+	GetState() tfsdk.State
+	SetState(tfsdk.State)
+}
+
+// CreateResponseContainer adapts a create response for ReadWithRetry.
+type CreateResponseContainer struct {
+	Response *resource.CreateResponse
+}
+
+// GetState implements StateContainer.
+func (c CreateResponseContainer) GetState() tfsdk.State { return c.Response.State }
+
+// SetState implements StateContainer.
+func (c CreateResponseContainer) SetState(state tfsdk.State) { c.Response.State = state }
+
+// UpdateResponseContainer adapts an update response for ReadWithRetry.
+type UpdateResponseContainer struct {
+	Response *resource.UpdateResponse
+}
+
+// GetState implements StateContainer.
+func (c UpdateResponseContainer) GetState() tfsdk.State { return c.Response.State }
+
+// SetState implements StateContainer.
+func (c UpdateResponseContainer) SetState(state tfsdk.State) { c.Response.State = state }
+
+// ReadWithRetryOptions tunes one read-after-write loop.
+type ReadWithRetryOptions struct {
+	// Interval is the pause between attempts; zero means two seconds.
+	Interval time.Duration
+	// Operation names the write this read follows, for messages.
+	Operation errors.Operation
+	// ResourceTypeName names the resource, for messages.
+	ResourceTypeName string
+	// ConsistencyPredicate, when set, keeps retrying even successful
+	// reads until it reports the state consistent — eventual-consistency
+	// polling for an API whose reads lag its writes.
+	ConsistencyPredicate func(ctx context.Context, state tfsdk.State) bool
+}
+
+// ReadWithRetry settles the state after a write: it calls the resource's
+// own Read until it succeeds — and, when a consistency predicate is set,
+// until the predicate holds — retrying everything except the statuses
+// IsFatalRead names, within the deadline the context carries.
+//
+// The context must carry a deadline; derive one with HandleTimeout. The
+// deadline is the only retry budget — there is no attempt cap, because two
+// bounds that can disagree are one bound too many.
+func ReadWithRetry(ctx context.Context, readFunc func(context.Context, resource.ReadRequest, *resource.ReadResponse), req resource.ReadRequest, container StateContainer, opts ReadWithRetryOptions) error {
+	if opts.Interval <= 0 {
+		opts.Interval = 2 * time.Second
+	}
+	if opts.Operation == "" {
+		opts.Operation = errors.OperationRead
+	}
+	name := opts.ResourceTypeName
+	if name == "" {
+		name = "the resource"
+	}
+
+	deadline, hasDeadline := ctx.Deadline()
+	if !hasDeadline {
+		return fmt.Errorf("ReadWithRetry requires a context with a deadline; derive one with HandleTimeout")
+	}
+
+	var lastErr error
+	for {
+		readResp := &resource.ReadResponse{State: container.GetState()}
+		readFunc(ctx, req, readResp)
+
+		if !readResp.Diagnostics.HasError() {
+			if opts.ConsistencyPredicate == nil || opts.ConsistencyPredicate(ctx, readResp.State) {
+				container.SetState(readResp.State)
+				return nil
+			}
+			lastErr = fmt.Errorf("the read after %s succeeded but the state is not consistent yet", opts.Operation)
+		} else {
+			status := errors.StatusFromDiagnostics(readResp.Diagnostics)
+			lastErr = fmt.Errorf("reading %s after %s failed: %v", name, opts.Operation, readResp.Diagnostics.Errors())
+			if errors.IsFatalRead(status) {
+				return lastErr
+			}
+		}
+
+		if time.Until(deadline) < opts.Interval {
+			return fmt.Errorf("timed out settling %s after %s: %w", name, opts.Operation, lastErr)
+		}
+
+		select {
+		case <-time.After(opts.Interval):
+		case <-ctx.Done():
+			return fmt.Errorf("cancelled settling %s after %s: %w", name, opts.Operation, lastErr)
+		}
+	}
+}

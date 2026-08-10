@@ -1,0 +1,20 @@
+{{ template "header" . }}
+
+package provider
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	// tfpfgen:datasources:imports
+)
+
+// DataSources returns every datasource this provider serves. The list is
+// machine-maintained: `provider generate` appends one registration per
+// generated datasource at each sentinel comment and never edits other
+// lines.
+func (p *Provider) DataSources(_ context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		// tfpfgen:datasources:registrations
+	}
+}

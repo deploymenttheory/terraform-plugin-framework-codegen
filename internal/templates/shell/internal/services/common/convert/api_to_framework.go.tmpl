@@ -1,0 +1,82 @@
+{{ template "header" . }}
+
+// Package convert is the conversion catalog between the SDK's plain Go
+// values and terraform-plugin-framework values. One direction per file:
+// api_to_framework.go populates state from responses, framework_to_api.go
+// populates requests from plans. The enum and nullable helpers are
+// backend-specific, supplied by the one dialect file compiled into this
+// package.
+//
+// Conventions: a nil API value becomes a null framework value; a null or
+// unknown framework value leaves the request untouched (its setter is not
+// called).
+package convert
+
+import (
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// APIToFrameworkString converts *string to types.String, nil to null.
+func APIToFrameworkString(value *string) types.String {
+	return types.StringPointerValue(value)
+}
+
+// APIToFrameworkBool converts *bool to types.Bool, nil to null.
+func APIToFrameworkBool(value *bool) types.Bool {
+	return types.BoolPointerValue(value)
+}
+
+// APIToFrameworkInt64 converts *int64 to types.Int64, nil to null.
+func APIToFrameworkInt64(value *int64) types.Int64 {
+	return types.Int64PointerValue(value)
+}
+
+// APIToFrameworkInt32AsInt64 converts *int32 to types.Int64, nil to null.
+// Schemas carry every integer as Int64; the SDK's int32 widens losslessly.
+func APIToFrameworkInt32AsInt64(value *int32) types.Int64 {
+	if value == nil {
+		return types.Int64Null()
+	}
+	return types.Int64Value(int64(*value))
+}
+
+// APIToFrameworkFloat64 converts *float64 to types.Float64, nil to null.
+func APIToFrameworkFloat64(value *float64) types.Float64 {
+	return types.Float64PointerValue(value)
+}
+
+// APIToFrameworkFloat32AsFloat64 converts *float32 to types.Float64, nil
+// to null. Schemas carry every number as Float64; the SDK's float32
+// widens losslessly.
+func APIToFrameworkFloat32AsFloat64(value *float32) types.Float64 {
+	if value == nil {
+		return types.Float64Null()
+	}
+	return types.Float64Value(float64(*value))
+}
+
+// APIToFrameworkTime converts *time.Time to an RFC 3339 types.String, nil
+// to null.
+func APIToFrameworkTime(value *time.Time) types.String {
+	if value == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(value.Format(time.RFC3339))
+}
+
+// APIToFrameworkStringList converts []string to a types.List of strings,
+// nil to null. An empty non-nil slice stays an empty list — the API said
+// "none", not "unknown".
+func APIToFrameworkStringList(values []string) types.List {
+	if values == nil {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, len(values))
+	for i, v := range values {
+		elements[i] = types.StringValue(v)
+	}
+	return types.ListValueMust(types.StringType, elements)
+}

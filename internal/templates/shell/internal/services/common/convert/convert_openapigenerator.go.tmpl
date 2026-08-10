@@ -1,0 +1,69 @@
+{{ template "header" . }}
+
+package convert
+
+import (
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// APIToFrameworkEnumString converts an openapi-generator enum — a defined
+// string type — to types.String, nil to null.
+func APIToFrameworkEnumString[T ~string](value *T) types.String {
+	if value == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(string(*value))
+}
+
+// FrameworkToAPIEnumString hands the typed enum value to the setter
+// unless the value is null or unknown. Enum membership is validated by
+// the schema, so no parse step exists here.
+func FrameworkToAPIEnumString[T ~string](value types.String, setter func(*T)) {
+	if value.IsNull() || value.IsUnknown() {
+		return
+	}
+	typed := T(value.ValueString())
+	setter(&typed)
+}
+
+// The Nullable helpers accept the generated SDK's NullableX containers
+// structurally — anything with the container's Get method — so this
+// package never imports the SDK.
+
+// APIToFrameworkNullableString converts the SDK's NullableString to
+// types.String, unset to null.
+func APIToFrameworkNullableString(value interface{ Get() *string }) types.String {
+	return types.StringPointerValue(value.Get())
+}
+
+// APIToFrameworkNullableBool converts the SDK's NullableBool to
+// types.Bool, unset to null.
+func APIToFrameworkNullableBool(value interface{ Get() *bool }) types.Bool {
+	return types.BoolPointerValue(value.Get())
+}
+
+// APIToFrameworkNullableInt64 converts the SDK's NullableInt64 to
+// types.Int64, unset to null.
+func APIToFrameworkNullableInt64(value interface{ Get() *int64 }) types.Int64 {
+	return types.Int64PointerValue(value.Get())
+}
+
+// APIToFrameworkNullableInt32 converts the SDK's NullableInt32 to
+// types.Int64, unset to null.
+func APIToFrameworkNullableInt32(value interface{ Get() *int32 }) types.Int64 {
+	return APIToFrameworkInt32AsInt64(value.Get())
+}
+
+// APIToFrameworkNullableFloat64 converts the SDK's NullableFloat64 to
+// types.Float64, unset to null.
+func APIToFrameworkNullableFloat64(value interface{ Get() *float64 }) types.Float64 {
+	return types.Float64PointerValue(value.Get())
+}
+
+// APIToFrameworkNullableTime converts the SDK's NullableTime to an
+// RFC 3339 types.String, unset to null.
+func APIToFrameworkNullableTime(value interface{ Get() *time.Time }) types.String {
+	return APIToFrameworkTime(value.Get())
+}

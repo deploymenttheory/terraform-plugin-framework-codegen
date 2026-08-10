@@ -1,0 +1,22 @@
+{{ template "header" . }}
+
+package provider
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/action"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	// tfpfgen:actions:imports
+)
+
+var _ provider.ProviderWithActions = (*Provider)(nil)
+
+// Actions returns every action this provider serves. The list is
+// machine-maintained: `provider generate` appends one registration per
+// generated action at each sentinel comment and never edits other lines.
+func (p *Provider) Actions(_ context.Context) []func() action.Action {
+	return []func() action.Action{
+		// tfpfgen:actions:registrations
+	}
+}

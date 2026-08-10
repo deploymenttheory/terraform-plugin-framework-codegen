@@ -1,0 +1,46 @@
+{{ template "header" . }}
+
+package provider
+
+import (
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// model is the provider configuration block. Every field is optional in the
+// schema; Configure resolves each one against its environment fallback and
+// reports what is still missing.
+type model struct {
+	// Endpoint is the API base URL. Falls back to {{ .EnvPrefix }}_ENDPOINT.
+	Endpoint types.String `tfsdk:"endpoint"`
+{{- if .AuthBearerToken }}
+	// BearerToken falls back to {{ .EnvPrefix }}_BEARER_TOKEN.
+	BearerToken types.String `tfsdk:"bearer_token"`
+{{- end }}
+{{- if .AuthAPIKeyHeader }}
+	// APIKey falls back to {{ .EnvPrefix }}_API_KEY.
+	APIKey types.String `tfsdk:"api_key"`
+{{- end }}
+{{- if .AuthBasic }}
+	// Username falls back to {{ .EnvPrefix }}_USERNAME.
+	Username types.String `tfsdk:"username"`
+	// Password falls back to {{ .EnvPrefix }}_PASSWORD.
+	Password types.String `tfsdk:"password"`
+{{- end }}
+{{- if .AuthOAuth2ClientCredentials }}
+	// ClientID falls back to {{ .EnvPrefix }}_CLIENT_ID.
+	ClientID types.String `tfsdk:"client_id"`
+	// ClientSecret falls back to {{ .EnvPrefix }}_CLIENT_SECRET.
+	ClientSecret types.String `tfsdk:"client_secret"`
+	// TokenURL falls back to {{ .EnvPrefix }}_TOKEN_URL.
+	TokenURL types.String `tfsdk:"token_url"`
+{{- end }}
+{{- if .AuthGitHubApp }}
+	// AppID falls back to {{ .EnvPrefix }}_APP_ID.
+	AppID types.String `tfsdk:"app_id"`
+	// AppPrivateKey falls back to {{ .EnvPrefix }}_APP_PRIVATE_KEY.
+	AppPrivateKey types.String `tfsdk:"app_private_key"`
+{{- end }}
+	// RequestTimeout is a Go duration string bounding one HTTP request.
+	// Falls back to {{ .EnvPrefix }}_REQUEST_TIMEOUT, then one minute.
+	RequestTimeout types.String `tfsdk:"request_timeout"`
+}

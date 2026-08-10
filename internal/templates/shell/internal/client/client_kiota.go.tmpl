@@ -1,0 +1,41 @@
+{{ template "header" . }}
+
+package client
+
+import (
+	kiotaauth "github.com/microsoft/kiota-abstractions-go/authentication"
+	kiotahttp "github.com/microsoft/kiota-http-go"
+
+	sdk "{{ .SDKImport }}"
+)
+
+// NewRequestAdapter builds the kiota request adapter over the authenticated
+// HTTP client. Authentication rides the transport built by NewHTTPClient,
+// so kiota's own authentication provider is the anonymous one — a second
+// credential layer here would fight the first.
+func NewRequestAdapter(cfg Config) (*kiotahttp.NetHttpRequestAdapter, error) {
+	httpClient, err := NewHTTPClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	adapter, err := kiotahttp.NewNetHttpRequestAdapterWithParseNodeFactoryAndSerializationWriterFactoryAndHttpClient(
+		&kiotaauth.AnonymousAuthenticationProvider{}, nil, nil, httpClient)
+	if err != nil {
+		return nil, err
+	}
+	adapter.SetBaseUrl(cfg.Endpoint)
+
+	return adapter, nil
+}
+
+// NewSDKClient builds the generated SDK client the provider hands to every
+// resource, datasource, list resource and action.
+func NewSDKClient(cfg Config) (*sdk.{{ .ClientType }}, error) {
+	adapter, err := NewRequestAdapter(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return sdk.{{ .ClientConstructor }}(adapter), nil
+}

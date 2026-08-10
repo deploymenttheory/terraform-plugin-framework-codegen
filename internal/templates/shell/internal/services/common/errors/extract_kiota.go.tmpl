@@ -1,0 +1,32 @@
+{{ template "header" . }}
+
+package errors
+
+import (
+	stderrors "errors"
+)
+
+// kiotaAPIError is what every kiota-generated error type satisfies by
+// embedding kiota-abstractions-go's ApiError: the message via error, the
+// transport status via GetStatusCode.
+type kiotaAPIError interface {
+	error
+	GetStatusCode() int
+}
+
+// kiotaExtractor reads the kiota SDK's error shape.
+type kiotaExtractor struct{}
+
+// wire is the extractor Describe consults. Exactly one dialect file is
+// compiled into this package, so exactly one definition exists.
+var wire extractor = kiotaExtractor{}
+
+// extract answers for any error in the chain that carries a kiota API
+// error; everything else is not an API error.
+func (kiotaExtractor) extract(err error) (Info, bool) {
+	var apiErr kiotaAPIError
+	if stderrors.As(err, &apiErr) {
+		return Info{Status: apiErr.GetStatusCode(), Message: apiErr.Error()}, true
+	}
+	return Info{}, false
+}

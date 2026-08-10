@@ -1,0 +1,80 @@
+{{ template "header" . }}
+
+package errors
+
+import (
+	stderrors "errors"
+	"net/http"
+)
+
+// openAPIError is what the generated SDK's GenericOpenAPIError satisfies:
+// the message via error, the raw response body via Body.
+type openAPIError interface {
+	error
+	Body() []byte
+}
+
+// statusError pairs an SDK error with the transport status the SDK returns
+// beside it, because GenericOpenAPIError does not carry one.
+type statusError struct {
+	status int
+	err    error
+}
+
+// Error implements error.
+func (e *statusError) Error() string { return e.err.Error() }
+
+// Unwrap keeps the SDK error reachable for errors.As.
+func (e *statusError) Unwrap() error { return e.err }
+
+// FromResponse attaches the transport status to an SDK error at the call
+// site, where the generated code still holds both:
+//
+//	obj, httpResp, err := ...Execute()
+//	if err != nil {
+//		errors.HandleReadError(ctx, errors.FromResponse(err, httpResp), resp, permissions)
+//	}
+//
+// A nil response leaves the error as it is — a transport failure has no
+// status to attach.
+func FromResponse(err error, resp *http.Response) error {
+	if err == nil || resp == nil {
+		return err
+	}
+	return &statusError{status: resp.StatusCode, err: err}
+}
+
+// openAPIGeneratorExtractor reads the openapi-generator SDK's error shape.
+type openAPIGeneratorExtractor struct{}
+
+// wire is the extractor Describe consults. Exactly one dialect file is
+// compiled into this package, so exactly one definition exists.
+var wire extractor = openAPIGeneratorExtractor{}
+
+// extract answers for errors FromResponse stamped, and for bare SDK errors
+// without a status; everything else is not an API error.
+func (openAPIGeneratorExtractor) extract(err error) (Info, bool) {
+	info := Info{}
+
+	var stamped *statusError
+	if stderrors.As(err, &stamped) {
+		info.Status = stamped.status
+		err = stamped.err
+	}
+
+	var apiErr openAPIError
+	if stderrors.As(err, &apiErr) {
+		info.Message = apiErr.Error()
+		if body := string(apiErr.Body()); body != "" {
+			info.Message = body
+		}
+		return info, true
+	}
+
+	if info.Status != 0 {
+		info.Message = err.Error()
+		return info, true
+	}
+
+	return Info{}, false
+}

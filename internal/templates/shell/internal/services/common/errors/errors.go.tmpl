@@ -1,0 +1,214 @@
+{{ template "header" . }}
+
+// Package errors turns API errors into terraform diagnostics with one
+// policy for the whole provider: which statuses remove state, which count
+// as success, which are worth retrying, and how a refused credential is
+// explained. Extraction of the SDK's error type is the only
+// backend-specific part, supplied by the one dialect file compiled into
+// this package.
+package errors
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+)
+
+// Operation names the lifecycle step an error interrupted. The 404 policy
+// is per-operation, so every handler knows its operation statically.
+type Operation string
+
+// Lifecycle operations.
+const (
+	OperationCreate Operation = "Create"
+	OperationRead   Operation = "Read"
+	OperationUpdate Operation = "Update"
+	OperationDelete Operation = "Delete"
+)
+
+// Info is the dialect-neutral description of one API error.
+type Info struct {
+	// Status is the HTTP status, zero when the request never completed —
+	// a transport failure, a cancelled context.
+	Status int
+	// Message is what the API or the transport said.
+	Message string
+}
+
+// extractor pulls Info out of the SDK's error type. The compiled dialect
+// file supplies the package-level wire value.
+type extractor interface {
+	extract(err error) (Info, bool)
+}
+
+// Describe renders any error as Info: the dialect extractor answers for
+// SDK errors, and everything else keeps its message with a zero status.
+func Describe(err error) Info {
+	if err == nil {
+		return Info{}
+	}
+	if info, ok := wire.extract(err); ok {
+		return info
+	}
+	return Info{Message: err.Error()}
+}
+
+// HandleCreateError reports a failed create. A 404 on create is an error
+// like any other: nothing exists yet, so there is no state to reconcile.
+func HandleCreateError(ctx context.Context, err error, resp *resource.CreateResponse, permissions []string) {
+	info := Describe(err)
+	logError(ctx, info, OperationCreate)
+	addError(&resp.Diagnostics, info, OperationCreate, permissions)
+}
+
+// HandleReadError reports a failed read. A 404 means the object vanished
+// outside Terraform: the resource is removed from state so the next plan
+// proposes recreating it, and no error is raised.
+func HandleReadError(ctx context.Context, err error, resp *resource.ReadResponse, permissions []string) {
+	info := Describe(err)
+	logError(ctx, info, OperationRead)
+	if info.Status == http.StatusNotFound {
+		tflog.Warn(ctx, "the object no longer exists; removing it from state")
+		resp.State.RemoveResource(ctx)
+		return
+	}
+	addError(&resp.Diagnostics, info, OperationRead, permissions)
+}
+
+// HandleUpdateError reports a failed update. A 404 means the object
+// vanished under management: the resource is removed from state so the
+// next plan proposes recreating it, and no error is raised.
+func HandleUpdateError(ctx context.Context, err error, resp *resource.UpdateResponse, permissions []string) {
+	info := Describe(err)
+	logError(ctx, info, OperationUpdate)
+	if info.Status == http.StatusNotFound {
+		tflog.Warn(ctx, "the object no longer exists; removing it from state")
+		resp.State.RemoveResource(ctx)
+		return
+	}
+	addError(&resp.Diagnostics, info, OperationUpdate, permissions)
+}
+
+// HandleDeleteError reports a failed delete. A 404 means the object is
+// already gone — which is what a delete wanted — so it counts as success
+// and no error is raised.
+func HandleDeleteError(ctx context.Context, err error, resp *resource.DeleteResponse, permissions []string) {
+	info := Describe(err)
+	logError(ctx, info, OperationDelete)
+	if info.Status == http.StatusNotFound {
+		tflog.Warn(ctx, "the object is already gone; treating the delete as successful")
+		return
+	}
+	addError(&resp.Diagnostics, info, OperationDelete, permissions)
+}
+
+// HandleDatasourceReadError reports a failed datasource read. A 404 stays
+// an error here: the practitioner asked for an object that does not exist,
+// and there is no state to reconcile it against.
+func HandleDatasourceReadError(ctx context.Context, err error, resp *datasource.ReadResponse, permissions []string) {
+	info := Describe(err)
+	logError(ctx, info, OperationRead)
+	addError(&resp.Diagnostics, info, OperationRead, permissions)
+}
+
+// IsFatalRead reports the statuses no retry fixes on a read: the request
+// itself is wrong or refused. Everything else — propagation lag,
+// contention, throttling, server trouble, transport noise — is retried
+// until the operation's deadline.
+func IsFatalRead(status int) bool {
+	switch status {
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden,
+		http.StatusMethodNotAllowed, http.StatusNotAcceptable, http.StatusGone,
+		http.StatusUnprocessableEntity:
+		return true
+	}
+	return false
+}
+
+// IsRetryableDelete reports the statuses a delete retry can outwait:
+// throttling and server-side trouble. Anything else fails immediately —
+// retrying a delete the API refused for cause only defers the report.
+func IsRetryableDelete(status int) bool {
+	switch status {
+	case http.StatusTooManyRequests, http.StatusInternalServerError,
+		http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
+		return true
+	}
+	return false
+}
+
+// statusPattern matches the "(HTTP 404)" marker addError writes into every
+// summary.
+var statusPattern = regexp.MustCompile(`\(HTTP (\d{3})\)`)
+
+// StatusFromDiagnostics recovers the HTTP status addError recorded, zero
+// when none is found. Framework diagnostics erase typed errors, so the
+// retry loop reads the marker this package itself wrote — a format
+// contract internal to this provider, defined entirely by this file.
+func StatusFromDiagnostics(diags diag.Diagnostics) int {
+	for _, d := range diags.Errors() {
+		for _, text := range []string{d.Summary(), d.Detail()} {
+			if m := statusPattern.FindStringSubmatch(text); m != nil {
+				status, err := strconv.Atoi(m[1])
+				if err == nil {
+					return status
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// addError renders one diagnostic. The summary carries the operation and
+// the "(HTTP %d)" marker StatusFromDiagnostics reads back; the detail
+// carries what the API said, and for a refused credential, which
+// permissions the spec declares.
+func addError(diags *diag.Diagnostics, info Info, op Operation, permissions []string) {
+	if info.Status == 0 {
+		diags.AddError(
+			fmt.Sprintf("%s failed: the request never completed", op),
+			info.Message,
+		)
+		return
+	}
+
+	summary := fmt.Sprintf("%s failed (HTTP %d)", op, info.Status)
+
+	detail := info.Message
+	if info.Status == http.StatusUnauthorized || info.Status == http.StatusForbidden {
+		detail = permissionDetail(permissions) + "\n" + detail
+	}
+
+	diags.AddError(summary, detail)
+}
+
+// permissionDetail explains a refused credential in terms of the
+// permissions the spec declares for the operation.
+func permissionDetail(permissions []string) string {
+	switch len(permissions) {
+	case 0:
+		return "The credential was refused, and the spec declares no specific permissions for this operation; check the API's own documentation."
+	case 1:
+		return "The operation requires the " + permissions[0] + " permission."
+	default:
+		return "The operation requires one or more of: " + strings.Join(permissions, ", ") + "."
+	}
+}
+
+// logError records the raw error before policy is applied, so a debug log
+// shows what the API said even when the policy swallows it.
+func logError(ctx context.Context, info Info, op Operation) {
+	tflog.Debug(ctx, "API error", map[string]any{
+		"operation": string(op),
+		"status":    info.Status,
+		"message":   info.Message,
+	})
+}
