@@ -1,14 +1,16 @@
-// Package cli dispatches the tfpfgen command line. The grammar is
-// noun-verb — `tfpfgen <noun> <verb> [flags]` — with `version` as the one
-// bare verb. Verbs register themselves in the table below; this package owns
-// only resolution, usage rendering, and the exit-code contract.
+// Package cli assembles the tfpfgen command tree. The grammar is noun-verb
+// — `tfpfgen <noun> <verb> [flags]` — with `version` as the one bare verb.
+// Cobra owns parsing and help; each verb is a thin adapter that calls into
+// an internal package and maps its result onto the exit-code contract.
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"sort"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 // Exit codes are a documented contract (docs/contract.md). New codes are
@@ -19,65 +21,77 @@ const (
 	ExitUsage   = 2
 )
 
-// Context carries the streams a command writes to, so tests can capture
-// output without touching the process's own stdout and stderr.
-type Context struct {
-	Stdout io.Writer
-	Stderr io.Writer
+// usageError marks an error as the operator's spelling rather than a failed
+// operation, so Run can answer with the usage exit code.
+type usageError struct{ err error }
+
+func (u usageError) Error() string { return u.err.Error() }
+
+// usagef builds a usageError the way fmt.Errorf builds an error.
+func usagef(format string, args ...any) error {
+	return usageError{fmt.Errorf(format, args...)}
 }
 
-// Command is one resolvable entry in the grammar. Name is the full spelling
-// the operator types: "config validate", or "version" for the bare verb.
-type Command struct {
-	Name    string
-	Summary string
-	Run     func(ctx *Context, args []string) int
-}
-
-// commands returns the registry in display order. It is a function, not a
-// package variable, so each Run starts from a clean table.
-func commands() []Command {
-	return []Command{
-		{Name: "version", Summary: "report the toolkit version", Run: runVersion},
-	}
-}
-
-// Run resolves args against the registry and executes the matched command.
+// Run executes one invocation and returns its exit code. Streams are
+// injected so tests capture output without touching the process's own.
 func Run(args []string, stdout, stderr io.Writer) int {
-	ctx := &Context{Stdout: stdout, Stderr: stderr}
-	if len(args) == 0 {
-		usage(ctx.Stderr)
+	root := newRootCommand()
+	root.SetOut(stdout)
+	root.SetErr(stderr)
+	root.SetArgs(args)
+
+	err := root.Execute()
+	if err == nil {
+		return ExitOK
+	}
+
+	fmt.Fprintf(stderr, "tfpfgen: %v\n", err)
+	var u usageError
+	// Cobra reports an unmatched subcommand with its own error before any
+	// RunE can wrap it; that is a spelling problem all the same.
+	if errors.As(err, &u) || strings.HasPrefix(err.Error(), "unknown command") {
+		fmt.Fprintln(stderr)
+		fmt.Fprint(stderr, root.UsageString())
 		return ExitUsage
 	}
-
-	table := commands()
-	// Longest spelling first: a two-word match beats a one-word match.
-	if len(args) >= 2 {
-		name := args[0] + " " + args[1]
-		for _, c := range table {
-			if c.Name == name {
-				return c.Run(ctx, args[2:])
-			}
-		}
-	}
-	for _, c := range table {
-		if c.Name == args[0] {
-			return c.Run(ctx, args[1:])
-		}
-	}
-
-	fmt.Fprintf(ctx.Stderr, "tfpfgen: unknown command %q\n\n", strings.Join(args, " "))
-	usage(ctx.Stderr)
-	return ExitUsage
+	return ExitFailure
 }
 
-// usage renders the registry grouped by noun.
-func usage(w io.Writer) {
-	fmt.Fprintln(w, "usage: tfpfgen <noun> <verb> [flags]")
-	fmt.Fprintln(w)
-	names := commands()
-	sort.SliceStable(names, func(i, j int) bool { return names[i].Name < names[j].Name })
-	for _, c := range names {
-		fmt.Fprintf(w, "  %-24s %s\n", c.Name, c.Summary)
+// newRootCommand assembles the full tree. It is rebuilt per Run so no state
+// leaks between invocations.
+func newRootCommand() *cobra.Command {
+	root := &cobra.Command{
+		Use:   "tfpfgen",
+		Short: "turn an OpenAPI document into a terraform-plugin-framework provider",
+		// Errors and usage are rendered once, by Run, with the exit-code
+		// contract applied — not by cobra's own printer.
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				return usagef("unknown command %q", strings.Join(args, " "))
+			}
+			return usagef("a command is required — usage: tfpfgen <noun> <verb> [flags]")
+		},
+	}
+	root.CompletionOptions.DisableDefaultCmd = true
+	root.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
+		return usageError{err}
+	})
+
+	root.AddCommand(
+		newConfigCommand(),
+		newVersionCommand(),
+	)
+	return root
+}
+
+// exactArgs refuses trailing arguments with the verb's own usage line.
+func exactArgs(usage string) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if len(args) != 0 {
+			return usagef("usage: %s", usage)
+		}
+		return nil
 	}
 }
