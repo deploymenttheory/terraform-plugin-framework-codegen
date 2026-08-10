@@ -10,7 +10,7 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 |---|---|
 | **audit** | The credentialed stage that exercises a live API to learn its true behaviour — minimum and maximum valid configuration, field dependencies, value-conditional rules. `tfpfgen audit run`. The only stage that touches a network. |
 | **observation** | One recorded finding of an audit: what the live API actually accepted or rejected, with a redacted request/response excerpt as proof. Committed per entity in `audit/observations/<entity>.observations.json`, stamped with the spec hash it was observed against. Deliberately not replayable. |
-| **correction** | One committed correction to the imported OpenAPI document: RFC 6902 operations plus a required justification and an optional evidence pointer to an observation. Lives in `spec/corrections/`; proposed ones await a human in `spec/corrections/proposed/`; rejected ones leave a marker in `spec/corrections/rejected/`. |
+| **correction** | One committed correction to the imported OpenAPI document: RFC 6902 operations plus a required justification and an optional evidence pointer to an observation. Lives in `spec/corrections/`; proposed ones await a human in `spec/corrections/proposed/`; rejected ones leave a marker in `spec/corrections/rejected/`. Kinds listed in config `audit.auto_accept` skip `proposed/` and land accepted directly, named with an `auto-NNN-` prefix. |
 | **revise** | To fold observations into proposed corrections and apply accepted ones — `tfpfgen spec revise`. The spec is revised based on audit observations; the output is the revised spec (`spec/revised.yaml`), the single source of truth for all generation. |
 | **import** | To pin the upstream OpenAPI document by hash — `tfpfgen spec import`. The imported document is immutable evidence of what the vendor published. |
 | **validate** | The offline preflight — `tfpfgen config validate`: tfpfgen.yaml is well-formed, the auth method's secrets are present, tool pins match. Dies in seconds, before anything credentialed runs. |
@@ -59,6 +59,11 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 - Naming helpers the intermediate representation exports for every
   emitter: `GoName` (the Pascal Go spelling, acronym-aware) and
   `TerraformName` (the snake_case terraform attribute spelling).
+- Rejected-proposal marker: one JSON file per rejected proposal in
+  `spec/corrections/rejected/`, shaped
+  `{"observationID": "…", "reason": "…", "rejectedAt": "…"}`. A marker
+  suppresses re-proposal of that observation permanently; deleting the
+  marker is the only way back.
 - Audit plan tokens: `<runid>` is the run-id placeholder execution
   substitutes into synthesised names; `${VAR}` marks an operator input
   read from the named environment variable at execution time;
