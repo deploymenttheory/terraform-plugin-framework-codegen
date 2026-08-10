@@ -24,6 +24,8 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 | **corpus** | Third-party OpenAPI documents pinned by SHA-256 and fetched at test time, never vendored. |
 | **backend** | An SDK generator behind the common interface: `kiota` or `openapi-generator`. Exactly one per provider repo. |
 | **intermediate representation** | The ephemeral, never-committed derivation (`internal/intermediate_representation`) recomputed from the revised spec and config on every generation run; its model vocabulary (Model, Resource, Datasource, ListResource, Action, AttributeTree, Presence, Op, Names) is approved. |
+| **binding** | The dialect-neutral mapping from one intermediate-representation entity onto the generated SDK's surface (`internal/sdkbind`): finished call expressions, accessor names, model types. Drafted by a per-backend binder, resolved against the real SDK with go/types. Its vocabulary (Bindings, Call, FieldAccess, Segment) is approved. |
+| **prune** | To resolve drafted bindings against the generated SDK and delete, each with the SDK's recorded reason, whatever the SDK cannot carry — repairing a spelling only where the SDK admits exactly one answer, never inventing, never widening. |
 
 ## Fixed spellings
 
