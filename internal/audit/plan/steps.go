@@ -9,14 +9,15 @@ import (
 // string no sane document lists, recognisably the toolkit's.
 const undocumentedEnumValue = "tfpfgen-undocumented"
 
-// unknownFieldName is the field the unknown-field check adds to an
+// undeclaredSpecFieldName is the field the unknown-field check adds to an
 // otherwise valid body.
-const unknownFieldName = "tfpfgen_unknown_field"
+const undeclaredSpecFieldName = "tfpfgen_unknown_field"
 
 // resourcePlan derives one resource's full lifecycle: create minimal,
-// read back, double read, per-field updates, delete and confirm, create
-// maximal, the negative checks, the conditional checks, and the final
-// delete. The step order is fixed; the caps in derive.go bound each rule.
+// read with retry, read consecutive, per-field updates, delete with
+// confirmation, create maximal, the negative checks, the per-enum-value
+// creates, and the cleanup delete. The step order is fixed; the caps in
+// derive.go bound each rule.
 func (d *deriver) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped) {
 	ei := d.inputs.forEntity(c.Key)
 	sy := synth{entity: c.Key, prefix: d.cfg.Audit.NamePrefix, inputs: ei}
@@ -52,15 +53,15 @@ func (d *deriver) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped
 
 	steps := []Step{post(StepCreateMinimal, "", minimal)}
 
-	readBack := onItem(StepReadBack, c.Read.Method)
-	readBack.Poll = pollSpec(readOp, createOp)
-	steps = append(steps, readBack, onItem(StepDoubleRead, c.Read.Method))
+	readWithRetry := onItem(StepReadWithRetry, c.Read.Method)
+	readWithRetry.Poll = pollSpec(readOp, createOp)
+	steps = append(steps, readWithRetry, onItem(StepReadConsecutive, c.Read.Method))
 
 	if updateOp != nil {
 		steps = append(steps, d.updateSteps(c, sy, createSchema, minimal, itemValues)...)
 	}
 
-	steps = append(steps, onItem(StepDeleteAndConfirm, c.Delete.Method))
+	steps = append(steps, onItem(StepDeleteWithConfirmation, c.Delete.Method))
 
 	maximal, optional := sy.maximalBody(createSchema)
 	createMaximal := post(StepCreateMaximal, "", maximal)
@@ -69,7 +70,7 @@ func (d *deriver) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped
 
 	steps = append(steps, negativeSteps(createSchema, minimal, post)...)
 	steps = append(steps, conditionalSteps(sy, createSchema, minimal, post)...)
-	steps = append(steps, onItem(StepFinalDelete, c.Delete.Method))
+	steps = append(steps, onItem(StepCleanupDelete, c.Delete.Method))
 
 	return EntityPlan{
 		Entity:  c.Key,
@@ -91,7 +92,7 @@ func (d *deriver) lookupPlan(c specmodel.Classification) (EntityPlan, *Skipped) 
 	}
 	read := Step{Kind: StepRead, Method: c.Read.Method, Path: c.ItemPath, PathValues: values}
 	double := read
-	double.Kind = StepDoubleRead
+	double.Kind = StepReadConsecutive
 	return EntityPlan{
 		Entity:  c.Key,
 		Role:    "lookup",
@@ -170,8 +171,8 @@ func negativeSteps(schema *specmodel.Schema, minimal map[string]any, post func(S
 	}
 
 	body := cloneBody(minimal)
-	body[unknownFieldName] = true
-	steps = append(steps, post(StepUnknownField, "", body))
+	body[undeclaredSpecFieldName] = true
+	steps = append(steps, post(StepUndeclaredSpecField, "", body))
 	return steps
 }
 
@@ -209,7 +210,7 @@ func conditionalSteps(sy synth, schema *specmodel.Schema, minimal map[string]any
 		delete(without, p.Name)
 
 		for _, body := range []map[string]any{with, without} {
-			step := post(StepConditionalCreate, p.Name, body)
+			step := post(StepCreatePerEnumValue, p.Name, body)
 			step.Condition = &observe.Condition{Attribute: rw.Property, Equals: rw.Equals}
 			steps = append(steps, step)
 		}
@@ -231,7 +232,7 @@ func conditionalSteps(sy synth, schema *specmodel.Schema, minimal map[string]any
 				}
 				body := cloneBody(minimal)
 				body[p.Name] = v
-				step := post(StepConditionalCreate, p.Name, body)
+				step := post(StepCreatePerEnumValue, p.Name, body)
 				step.Condition = &observe.Condition{Attribute: p.Name, Equals: v}
 				steps = append(steps, step)
 				pinned++
@@ -251,7 +252,7 @@ func requiredWhenHint(s *specmodel.Schema) (specmodel.RequiredWhen, bool) {
 	return s.Resolved().Extensions.RequiredWhen()
 }
 
-// pollSpec bounds a readBack: the document's eventual-consistency hint on
+// pollSpec bounds a readWithRetry: the document's eventual-consistency hint on
 // the read or create operation when present, the default ceiling
 // otherwise.
 func pollSpec(readOp, createOp *specmodel.Operation) *Poll {

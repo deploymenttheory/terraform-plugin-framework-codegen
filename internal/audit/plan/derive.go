@@ -23,7 +23,7 @@ const (
 	maxOmitRequired = 6
 	// maxConditionalValues caps the enum values conditional creates pin.
 	maxConditionalValues = 6
-	// defaultPollTimeout and pollInterval bound a readBack with no
+	// defaultPollTimeout and pollInterval bound a readWithRetry with no
 	// x-tfpfgen-eventual-consistency hint.
 	defaultPollTimeout = 30 * time.Second
 	pollInterval       = 2 * time.Second

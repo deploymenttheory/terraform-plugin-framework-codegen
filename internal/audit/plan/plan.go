@@ -28,10 +28,14 @@ import (
 // time is what keeps Derive deterministic.
 const RunIDToken = "<runid>"
 
-// EnvRefPrefix marks an operator input whose value is read from the named
-// environment variable at execution time, so audit/inputs.json can be
-// committed without committing the value.
-const EnvRefPrefix = "$env:"
+// envRefOpen and envRefClose delimit an operator input whose value is
+// read from the named environment variable at execution time — the token
+// is ${VAR} — so audit/inputs.json can be committed without committing
+// the value.
+const (
+	envRefOpen  = "${"
+	envRefClose = "}"
+)
 
 // createdRefPrefix marks a path value that is the id of an object an
 // earlier entity's createMinimal step made. See CreatedRef.
@@ -52,20 +56,20 @@ const (
 	// writable fields only. Everything later reads, mutates or deletes
 	// this object unless it says otherwise.
 	StepCreateMinimal StepKind = "createMinimal"
-	// StepReadBack polls the item read until it shows the created object,
+	// StepReadWithRetry polls the item read until it shows the created object,
 	// within Poll. Learns readAfterWrite; its per-field comparison learns
 	// writable, serverDefault and normalisation.
-	StepReadBack StepKind = "readBack"
-	// StepDoubleRead reads the same object twice and compares. Learns
+	StepReadWithRetry StepKind = "readWithRetry"
+	// StepReadConsecutive reads the same object twice and compares. Learns
 	// volatile.
-	StepDoubleRead StepKind = "doubleRead"
+	StepReadConsecutive StepKind = "readConsecutive"
 	// StepUpdateField updates exactly one attribute — Attribute — to the
 	// variant value the body carries, then re-reads. Learns immutable,
 	// ignoredOnUpdate, serverForced and updateStyle.
 	StepUpdateField StepKind = "updateField"
-	// StepDeleteAndConfirm deletes the minimal object, confirms it is
+	// StepDeleteWithConfirmation deletes the minimal object, confirms it is
 	// gone, and deletes again. Learns deleteNotFoundOK.
-	StepDeleteAndConfirm StepKind = "deleteAndConfirm"
+	StepDeleteWithConfirmation StepKind = "deleteWithConfirmation"
 	// StepCreateMaximal creates an object with every writable field
 	// populated. When it is refused, execution may spend up to
 	// BisectionAllowance extra creates halving the optional set to name
@@ -78,26 +82,26 @@ const (
 	// attribute set to a value the document does not list. Learns whether
 	// the documented set is closed.
 	StepUndocumentedEnumValue StepKind = "undocumentedEnumValue"
-	// StepUnknownField sends the minimal body plus one field no schema
+	// StepUndeclaredSpecField sends the minimal body plus one field no schema
 	// declares. Calibrates every omission-based check: an API that
 	// rejects unknown fields discriminates differently from one that
 	// ignores them.
-	StepUnknownField StepKind = "unknownField"
-	// StepConditionalCreate creates an object with the Condition's
+	StepUndeclaredSpecField StepKind = "undeclaredSpecField"
+	// StepCreatePerEnumValue creates an object with the Condition's
 	// attribute pinned to one value, to observe value-conditional
 	// behaviour; the object is read back and deleted within the step.
 	// When Attribute is set and absent from the body, the omission is the
 	// check — a requiredWhen hint being tested.
-	StepConditionalCreate StepKind = "conditionalCreate"
+	StepCreatePerEnumValue StepKind = "createPerEnumValue"
 	// StepRead is a lookup datasource's read: fetch by the operator-
 	// supplied key and confirm the response decodes.
 	StepRead StepKind = "read"
-	// StepFinalDelete removes whatever the entity's later creates left
+	// StepCleanupDelete removes whatever the entity's later creates left
 	// behind, ending the entity at zero live objects.
-	StepFinalDelete StepKind = "finalDelete"
+	StepCleanupDelete StepKind = "cleanupDelete"
 )
 
-// Poll bounds a readBack: try every Interval until Timeout. Durations are
+// Poll bounds a readWithRetry: try every Interval until Timeout. Durations are
 // strings in Go duration syntax, as committed artefacts spell them.
 type Poll struct {
 	Interval string `json:"interval"`
@@ -106,21 +110,21 @@ type Poll struct {
 
 // Step is one derived action. Method and Path name the operation as the
 // document spells it; PathValues carries a value per path parameter — a
-// literal, an EnvRefPrefix reference, or a CreatedRef token.
+// literal, a ${VAR} environment reference, or a CreatedRef token.
 type Step struct {
 	Kind   StepKind `json:"kind"`
 	Method string   `json:"method"`
 	Path   string   `json:"path"`
 	// Attribute is the wire property under test, for per-field steps.
 	Attribute string `json:"attribute,omitempty"`
-	// Condition scopes a conditionalCreate, in the same vocabulary the
+	// Condition scopes a createPerEnumValue, in the same vocabulary the
 	// resulting observation will carry.
 	Condition *observe.Condition `json:"condition,omitempty"`
 	// Body is the synthesized request body, nil for bodiless steps.
 	Body map[string]any `json:"body,omitempty"`
 	// PathValues maps each path parameter to its value or token.
 	PathValues map[string]string `json:"pathValues,omitempty"`
-	// Poll bounds a readBack step.
+	// Poll bounds a readWithRetry step.
 	Poll *Poll `json:"poll,omitempty"`
 	// BisectionAllowance is the extra createMaximal attempts execution may
 	// spend narrowing a refusal; zero elsewhere.
@@ -226,5 +230,8 @@ func levenshtein(a, b string) int {
 	return prev[len(b)]
 }
 
-// isEnvRef reports whether an operator value is an environment reference.
-func isEnvRef(v string) bool { return strings.HasPrefix(v, EnvRefPrefix) }
+// isEnvRef reports whether an operator value is a ${VAR} environment
+// reference.
+func isEnvRef(v string) bool {
+	return strings.HasPrefix(v, envRefOpen) && strings.HasSuffix(v, envRefClose)
+}

@@ -245,8 +245,8 @@ func TestUnit_Plan_CapsBoundWideSchemas(t *testing.T) {
 	if counts[StepOmitRequired] != maxOmitRequired {
 		t.Errorf("omitRequired steps = %d, want the %d cap", counts[StepOmitRequired], maxOmitRequired)
 	}
-	if counts[StepConditionalCreate] != maxConditionalValues {
-		t.Errorf("conditionalCreate steps = %d, want the %d cap", counts[StepConditionalCreate], maxConditionalValues)
+	if counts[StepCreatePerEnumValue] != maxConditionalValues {
+		t.Errorf("createPerEnumValue steps = %d, want the %d cap", counts[StepCreatePerEnumValue], maxConditionalValues)
 	}
 
 	// 21 writable fields, 11 optional and derivable: allowance is
