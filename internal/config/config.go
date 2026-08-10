@@ -1,16 +1,17 @@
 // Package config owns tfpfgen.yaml: the schema as Go structs, strict
-// decoding, semantic validation, and the auth-role→secret-name contract.
-// This package is the single definition site for the cross-repo config
-// contract — the reusable workflows and docs/config.md both derive from it,
-// so a key that nothing reads cannot exist.
+// decoding through viper, semantic validation, and the auth-role→secret-name
+// contract. This package is the single definition site for the cross-repo
+// config contract — the reusable workflows and docs/config.md both derive
+// from it, so a key that nothing reads cannot exist.
 package config
 
 import (
+	"bytes"
 	"fmt"
-	"os"
+	"regexp"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	"github.com/spf13/viper"
 )
 
 // SchemaVersion is the config schema this build understands. Bumps follow
@@ -20,62 +21,62 @@ const SchemaVersion = 1
 // Config is the complete tfpfgen.yaml. Field additions land here first;
 // docs/config.md is generated from this schema and CI holds it to that.
 type Config struct {
-	Version   int       `yaml:"version"`
-	Provider  Provider  `yaml:"provider"`
-	Generator Generator `yaml:"generator"`
-	Spec      Spec      `yaml:"spec"`
-	SDK       SDK       `yaml:"sdk"`
-	Auth      Auth      `yaml:"auth"`
-	Audit     Audit     `yaml:"audit"`
-	Services  Services  `yaml:"services"`
+	Version   int       `mapstructure:"version"`
+	Provider  Provider  `mapstructure:"provider"`
+	Generator Generator `mapstructure:"generator"`
+	Spec      Spec      `mapstructure:"spec"`
+	SDK       SDK       `mapstructure:"sdk"`
+	Auth      Auth      `mapstructure:"auth"`
+	Audit     Audit     `mapstructure:"audit"`
+	Services  Services  `mapstructure:"services"`
 }
 
 // Provider names the provider this repo publishes.
 type Provider struct {
-	Name              string `yaml:"name"`
-	RegistryNamespace string `yaml:"registry_namespace"`
+	Name              string `mapstructure:"name"`
+	RegistryNamespace string `mapstructure:"registry_namespace"`
 }
 
 // Generator pins the toolkit release the pipeline installs.
 type Generator struct {
-	Version string `yaml:"version"`
+	Version string `mapstructure:"version"`
 }
 
 // Spec locates the upstream OpenAPI document.
 type Spec struct {
-	DocumentURL string `yaml:"document_url"`
+	DocumentURL string `mapstructure:"document_url"`
 }
 
 // SDK selects and pins the SDK backend.
 type SDK struct {
-	Backend        string   `yaml:"backend"`
-	BackendVersion string   `yaml:"backend_version"`
-	ClientTypeName string   `yaml:"client_type_name"`
-	IncludePaths   []string `yaml:"include_paths"`
-	ExcludePaths   []string `yaml:"exclude_paths"`
+	Backend        string   `mapstructure:"backend"`
+	BackendVersion string   `mapstructure:"backend_version"`
+	ClientTypeName string   `mapstructure:"client_type_name"`
+	IncludePaths   []string `mapstructure:"include_paths"`
+	ExcludePaths   []string `mapstructure:"exclude_paths"`
 }
 
 // Auth names how the audit authenticates. Secret values never appear in
 // config — names are fixed by role (see secrets.go).
 type Auth struct {
-	Method       string `yaml:"method"`
-	APIKeyHeader string `yaml:"api_key_header"`
-	TokenURL     string `yaml:"token_url"`
+	Method       string `mapstructure:"method"`
+	APIKeyHeader string `mapstructure:"api_key_header"`
+	TokenURL     string `mapstructure:"token_url"`
 }
 
 // Audit bounds the credentialed live-API stage.
 type Audit struct {
-	Enabled         bool     `yaml:"enabled"`
-	BaseURLOverride string   `yaml:"base_url_override"`
-	NamePrefix      string   `yaml:"name_prefix"`
-	MaxObjects      int      `yaml:"max_objects"`
-	RateLimitRPS    int      `yaml:"rate_limit_rps"`
-	AutoAccept      []string `yaml:"auto_accept"`
+	Enabled         bool     `mapstructure:"enabled"`
+	BaseURLOverride string   `mapstructure:"base_url_override"`
+	NamePrefix      string   `mapstructure:"name_prefix"`
+	MaxObjects      int      `mapstructure:"max_objects"`
+	RateLimitRPS    int      `mapstructure:"rate_limit_rps"`
+	AutoAccept      []string `mapstructure:"auto_accept"`
 }
 
 // Services scopes which spec entities become provider code.
 type Services struct {
-	Exclude []string `yaml:"exclude"`
+	Exclude []string `mapstructure:"exclude"`
 }
 
 // SDK backends. The set is closed; config validation refuses others.
@@ -93,37 +94,44 @@ const (
 	AuthGitHubApp               = "github_app"
 )
 
-// withDefaults returns a Config pre-populated with the values a decode
-// leaves in place when the key is absent.
-func withDefaults() Config {
-	return Config{
-		SDK: SDK{ClientTypeName: "APIClient"},
-		Audit: Audit{
-			Enabled:      true,
-			NamePrefix:   "tfpfgen",
-			MaxObjects:   25,
-			RateLimitRPS: 2,
-		},
-	}
+// setDefaults registers the values a decode leaves in place when the key is
+// absent from the file.
+func setDefaults(v *viper.Viper) {
+	v.SetDefault("sdk.client_type_name", "APIClient")
+	v.SetDefault("audit.enabled", true)
+	v.SetDefault("audit.name_prefix", "tfpfgen")
+	v.SetDefault("audit.max_objects", 25)
+	v.SetDefault("audit.rate_limit_rps", 2)
 }
 
 // Load reads, strictly decodes, and validates a tfpfgen.yaml. Unknown keys
 // are an error naming the key and its nearest valid neighbour; semantic
 // problems are reported all at once, never one per run.
 func Load(path string) (*Config, error) {
-	raw, err := os.ReadFile(path)
-	if err != nil {
+	v := viper.New()
+	setDefaults(v)
+	v.SetConfigFile(path)
+	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("reading %s: %w", path, err)
 	}
-	return Parse(raw, path)
+	return finish(v, path)
 }
 
 // Parse is Load without the filesystem, for callers holding bytes.
 func Parse(raw []byte, path string) (*Config, error) {
-	cfg := withDefaults()
-	dec := yaml.NewDecoder(strings.NewReader(string(raw)))
-	dec.KnownFields(true)
-	if err := dec.Decode(&cfg); err != nil {
+	v := viper.New()
+	setDefaults(v)
+	v.SetConfigType("yaml")
+	if err := v.ReadConfig(bytes.NewReader(raw)); err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	return finish(v, path)
+}
+
+// finish strictly unmarshals and semantically validates a read config.
+func finish(v *viper.Viper, path string) (*Config, error) {
+	var cfg Config
+	if err := v.UnmarshalExact(&cfg); err != nil {
 		return nil, fmt.Errorf("%s: %s", path, describeDecodeError(err))
 	}
 	if problems := cfg.problems(); len(problems) > 0 {
@@ -133,22 +141,30 @@ func Parse(raw []byte, path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// describeDecodeError rewrites yaml.v3's unknown-field message to also name
-// the nearest known key, so a typo reads as "did you mean" rather than a
-// schema lecture.
+// invalidKeys matches mapstructure's unknown-key report, e.g.
+// "* 'audit' has invalid keys: enabledd, foo".
+var invalidKeys = regexp.MustCompile(`has invalid keys: ([^\n]+)`)
+
+// describeDecodeError rewrites the strict-unmarshal message so a typo reads
+// as "did you mean" rather than a schema lecture.
 func describeDecodeError(err error) string {
-	msg := err.Error()
-	const marker = "field "
-	i := strings.Index(msg, marker)
-	if i < 0 || !strings.Contains(msg, "not found in type") {
-		return msg
+	matches := invalidKeys.FindAllStringSubmatch(err.Error(), -1)
+	if len(matches) == 0 {
+		return err.Error()
 	}
-	rest := msg[i+len(marker):]
-	key := rest[:strings.IndexAny(rest+" ", " ")]
-	if suggestion := nearestKey(key); suggestion != "" {
-		return fmt.Sprintf("unknown key %q (did you mean %q?)", key, suggestion)
+
+	var parts []string
+	for _, m := range matches {
+		for _, key := range strings.Split(m[1], ",") {
+			key = strings.TrimSpace(key)
+			if suggestion := nearestKey(key); suggestion != "" {
+				parts = append(parts, fmt.Sprintf("unknown key %q (did you mean %q?)", key, suggestion))
+			} else {
+				parts = append(parts, fmt.Sprintf("unknown key %q", key))
+			}
+		}
 	}
-	return fmt.Sprintf("unknown key %q", key)
+	return strings.Join(parts, "; ")
 }
 
 // knownKeys is every yaml key in the schema, for typo suggestions.

@@ -13,7 +13,7 @@ func run(t *testing.T, args ...string) (code int, stdout, stderr string) {
 	return code, out.String(), err.String()
 }
 
-func TestUnit_CLI_NoArgumentsPrintsUsageAndExitsUsage(t *testing.T) {
+func TestUnit_CLI_NoArgumentsExplainsAndExitsUsage(t *testing.T) {
 	code, stdout, stderr := run(t)
 	if code != ExitUsage {
 		t.Fatalf("exit code = %d, want %d", code, ExitUsage)
@@ -21,8 +21,11 @@ func TestUnit_CLI_NoArgumentsPrintsUsageAndExitsUsage(t *testing.T) {
 	if stdout != "" {
 		t.Fatalf("stdout = %q, want empty", stdout)
 	}
+	if !strings.Contains(stderr, "a command is required") {
+		t.Fatalf("stderr does not explain the problem: %q", stderr)
+	}
 	if !strings.Contains(stderr, "usage: tfpfgen <noun> <verb>") {
-		t.Fatalf("stderr missing usage line: %q", stderr)
+		t.Fatalf("stderr missing the grammar line: %q", stderr)
 	}
 }
 
@@ -31,22 +34,22 @@ func TestUnit_CLI_UnknownCommandNamesItselfAndExitsUsage(t *testing.T) {
 	if code != ExitUsage {
 		t.Fatalf("exit code = %d, want %d", code, ExitUsage)
 	}
-	if !strings.Contains(stderr, `unknown command "conjure provider"`) {
+	if !strings.Contains(stderr, `unknown command "conjure`) {
 		t.Fatalf("stderr does not name the unknown command: %q", stderr)
 	}
-	if !strings.Contains(stderr, "usage: tfpfgen") {
+	if !strings.Contains(stderr, "Usage:") {
 		t.Fatalf("stderr missing usage after the error: %q", stderr)
 	}
 }
 
-func TestUnit_CLI_UsageListsEveryRegisteredCommand(t *testing.T) {
+func TestUnit_CLI_UsageListsEveryCommandGroup(t *testing.T) {
 	_, _, stderr := run(t)
-	for _, c := range commands() {
-		if !strings.Contains(stderr, c.Name) {
-			t.Errorf("usage does not list %q", c.Name)
-		}
-		if !strings.Contains(stderr, c.Summary) {
-			t.Errorf("usage does not carry the summary for %q", c.Name)
+	for _, want := range []string{
+		"config", "work with tfpfgen.yaml",
+		"version", "report the toolkit version",
+	} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("usage does not mention %q:\n%s", want, stderr)
 		}
 	}
 }

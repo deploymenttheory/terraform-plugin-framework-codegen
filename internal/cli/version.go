@@ -3,14 +3,19 @@ package cli
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/version"
 )
 
-func runVersion(ctx *Context, args []string) int {
-	if len(args) != 0 {
-		fmt.Fprintln(ctx.Stderr, "usage: tfpfgen version")
-		return ExitUsage
+func newVersionCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "version",
+		Short: "report the toolkit version",
+		Args:  exactArgs("tfpfgen version"),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Fprintln(cmd.OutOrStdout(), version.Version())
+			return nil
+		},
 	}
-	fmt.Fprintln(ctx.Stdout, version.Version())
-	return ExitOK
 }

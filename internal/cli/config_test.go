@@ -36,7 +36,7 @@ func writeConfig(t *testing.T, content string) string {
 
 func TestUnit_ConfigValidate_ValidFileSummarisesAndExitsOK(t *testing.T) {
 	path := writeConfig(t, validConfig)
-	code, stdout, stderr := run(t, "config", "validate", "-file", path)
+	code, stdout, stderr := run(t, "config", "validate", "--file", path)
 	if code != ExitOK {
 		t.Fatalf("exit code = %d, want %d (stderr: %s)", code, ExitOK, stderr)
 	}
@@ -49,7 +49,7 @@ func TestUnit_ConfigValidate_ValidFileSummarisesAndExitsOK(t *testing.T) {
 
 func TestUnit_ConfigValidate_InvalidFileNamesTheProblemAndFails(t *testing.T) {
 	path := writeConfig(t, strings.Replace(validConfig, "v0.1.0", "main", 1))
-	code, _, stderr := run(t, "config", "validate", "-file", path)
+	code, _, stderr := run(t, "config", "validate", "--file", path)
 	if code != ExitFailure {
 		t.Fatalf("exit code = %d, want %d", code, ExitFailure)
 	}
@@ -59,7 +59,7 @@ func TestUnit_ConfigValidate_InvalidFileNamesTheProblemAndFails(t *testing.T) {
 }
 
 func TestUnit_ConfigValidate_MissingFileFails(t *testing.T) {
-	code, _, stderr := run(t, "config", "validate", "-file", filepath.Join(t.TempDir(), "absent.yaml"))
+	code, _, stderr := run(t, "config", "validate", "--file", filepath.Join(t.TempDir(), "absent.yaml"))
 	if code != ExitFailure {
 		t.Fatalf("exit code = %d, want %d", code, ExitFailure)
 	}
@@ -71,7 +71,7 @@ func TestUnit_ConfigValidate_MissingFileFails(t *testing.T) {
 func TestUnit_ConfigValidate_SecretsFlagReportsEveryMissingRole(t *testing.T) {
 	t.Setenv(config.SecretToken, "")
 	path := writeConfig(t, validConfig)
-	code, _, stderr := run(t, "config", "validate", "-file", path, "-secrets")
+	code, _, stderr := run(t, "config", "validate", "--file", path, "--secrets")
 	if code != ExitFailure {
 		t.Fatalf("exit code = %d, want %d", code, ExitFailure)
 	}
@@ -83,7 +83,7 @@ func TestUnit_ConfigValidate_SecretsFlagReportsEveryMissingRole(t *testing.T) {
 func TestUnit_ConfigValidate_SecretsFlagPassesWhenRolesAreSet(t *testing.T) {
 	t.Setenv(config.SecretToken, "present")
 	path := writeConfig(t, validConfig)
-	code, _, stderr := run(t, "config", "validate", "-file", path, "-secrets")
+	code, _, stderr := run(t, "config", "validate", "--file", path, "--secrets")
 	if code != ExitOK {
 		t.Fatalf("exit code = %d, want %d (stderr: %s)", code, ExitOK, stderr)
 	}
@@ -100,7 +100,7 @@ func TestUnit_ConfigValidate_TrailingArgumentsAreRefused(t *testing.T) {
 }
 
 func TestUnit_ConfigValidate_UnknownFlagIsUsageError(t *testing.T) {
-	if code, _, _ := run(t, "config", "validate", "-no-such-flag"); code != ExitUsage {
+	if code, _, _ := run(t, "config", "validate", "--no-such-flag"); code != ExitUsage {
 		t.Fatalf("exit code = %d, want %d", code, ExitUsage)
 	}
 }

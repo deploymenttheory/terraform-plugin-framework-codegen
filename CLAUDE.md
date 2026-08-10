@@ -19,6 +19,19 @@ options to the owner and record the decision in the glossary. Never reintroduce
 v1 vocabulary (probe, cassette, recording, scenario, blueprint, draft, merge,
 sweep, doctor, facts, rehearsal, curate).
 
+## Library mandates
+
+Set by the repository owner; not open to per-PR relitigating:
+
+- **The CLI is driven by cobra and viper.** New verbs are cobra commands;
+  tfpfgen.yaml is read through viper. Strict decoding stays: unknown keys
+  error with a did-you-mean suggestion, and the semantic validation plus the
+  fixed `TFPFGEN_AUTH_*` secrets contract live in `internal/config`.
+- **All logging uses zerolog** (`github.com/rs/zerolog`) — never a
+  hand-rolled logger, never zap.
+- Any other cross-cutting library choice (HTTP client, test framework, …)
+  goes to the repository owner before it lands.
+
 ## Hard rules
 
 - **Providers consume tags only, never `main`.** Every behavior change to a
