@@ -1,0 +1,488 @@
+package ir
+
+import (
+	"bytes"
+	"encoding/json"
+	"reflect"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestDerive_RefusesMissingInputs(t *testing.T) {
+	doc := mustLoad(t, thingSpec)
+	if _, err := Derive(nil, testConfig()); err == nil {
+		t.Errorf("a nil document derived")
+	}
+	if _, err := Derive(doc, nil); err == nil {
+		t.Errorf("a nil config derived")
+	}
+	empty := testConfig()
+	empty.Provider.Name = ""
+	if _, err := Derive(doc, empty); err == nil {
+		t.Errorf("an empty provider name derived")
+	}
+}
+
+func TestDerive_ModelShape(t *testing.T) {
+	m := mustDerive(t, thingSpec, testConfig())
+
+	if m.Provider.Name != "acme" {
+		t.Errorf("provider = %q", m.Provider.Name)
+	}
+	if got := len(m.Resources); got != 1 {
+		t.Fatalf("%d resources, want 1", got)
+	}
+	// thing's companion, the stream list+read entity, and the lookup-only
+	// setting entity all yield datasources.
+	if got := len(m.Datasources); got != 3 {
+		t.Fatalf("%d datasources, want 3", got)
+	}
+	// Only events is list-only; streams has a read so it becomes a
+	// datasource instead.
+	if got := len(m.ListResources); got != 1 {
+		t.Fatalf("%d list resources, want 1 (events)", got)
+	}
+	if got := len(m.Actions); got != 1 {
+		t.Fatalf("%d actions, want 1", got)
+	}
+
+	// The junk entity classifies as nothing and passes through with the
+	// classifier's reason.
+	found := false
+	for _, e := range m.Excluded {
+		if e.Key == "junk" {
+			found = true
+			if !strings.Contains(e.Reason, "partial lifecycle") {
+				t.Errorf("junk excluded for %q", e.Reason)
+			}
+		}
+	}
+	if !found {
+		t.Errorf("the junk entity is not in Excluded: %+v", m.Excluded)
+	}
+}
+
+func TestDerive_ResourceLifecycle(t *testing.T) {
+	r := resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing")
+
+	if r.MissingUpdate {
+		t.Errorf("MissingUpdate on an entity with PATCH")
+	}
+	if r.UpdateStyle != UpdateStylePutFull {
+		t.Errorf("UpdateStyle = %q, want the declared put-full", r.UpdateStyle)
+	}
+	if r.EventualConsistency != 30*time.Second {
+		t.Errorf("EventualConsistency = %v, want 30s", r.EventualConsistency)
+	}
+	if !r.DeleteNotFoundOK {
+		t.Errorf("DeleteNotFoundOK not carried from the delete operation")
+	}
+	if r.Timeouts.Create == 0 || r.Timeouts.Read == 0 || r.Timeouts.Update == 0 || r.Timeouts.Delete == 0 {
+		t.Errorf("timeout defaults missing: %+v", r.Timeouts)
+	}
+
+	create, del := r.Ops.Create, r.Ops.Delete
+	if create == nil || del == nil || r.Ops.Read == nil || r.Ops.Update == nil || r.Ops.List == nil {
+		t.Fatalf("lifecycle ops missing: %+v", r.Ops)
+	}
+	if create.Kind != OpCreate || create.Method != "POST" || create.SuccessCode != 201 {
+		t.Errorf("create op = %+v", create)
+	}
+	if create.OperationID != "createThing" {
+		t.Errorf("create operation id = %q", create.OperationID)
+	}
+	if del.PathTemplate != "/v7/things/{thingId}" || del.SuccessCode != 204 {
+		t.Errorf("delete op = %+v", del)
+	}
+	want := []Param{{Name: "thingId", Type: TypeString}}
+	if !reflect.DeepEqual(del.PathParams, want) {
+		t.Errorf("delete path params = %+v, want %+v", del.PathParams, want)
+	}
+}
+
+func TestDerive_UpdateStyleDefaultsToPatchMerge(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /notes:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Note'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Note'}
+  /notes/{noteId}:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Note'}
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Note'}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Note'}
+    delete:
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Note:
+      type: object
+      properties:
+        text: {type: string}
+`
+	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "note")
+	if r.UpdateStyle != UpdateStylePatchMerge {
+		t.Errorf("UpdateStyle = %q, want the patch-merge default", r.UpdateStyle)
+	}
+	if r.Names.APIVersionDir != "v1" {
+		t.Errorf("APIVersionDir = %q, want the v1 default", r.Names.APIVersionDir)
+	}
+	if r.EventualConsistency != 0 {
+		t.Errorf("EventualConsistency = %v with none declared", r.EventualConsistency)
+	}
+	if r.DeleteNotFoundOK {
+		t.Errorf("DeleteNotFoundOK true with none declared")
+	}
+}
+
+func TestDerive_MissingUpdateForcesReplacement(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /marks:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Mark'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Mark'}
+  /marks/{markId}:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Mark'}
+    delete:
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Mark:
+      type: object
+      required: [label]
+      properties:
+        label: {type: string}
+        color: {type: string}
+        serial:
+          type: string
+          readOnly: true
+`
+	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "mark")
+	if !r.MissingUpdate {
+		t.Fatalf("MissingUpdate not set on an entity with no update operation")
+	}
+	if r.UpdateStyle != "" {
+		t.Errorf("UpdateStyle = %q on a resource with no update", r.UpdateStyle)
+	}
+	for _, name := range []string{"label", "color"} {
+		if a := attribute(t, r.Schema, name); !a.RequiresReplace {
+			t.Errorf("writable %q lacks RequiresReplace under MissingUpdate", name)
+		}
+	}
+	for _, name := range []string{"serial", "id"} {
+		if a := attribute(t, r.Schema, name); a.RequiresReplace {
+			t.Errorf("computed %q carries RequiresReplace", name)
+		}
+	}
+}
+
+func TestDerive_CompanionDatasource(t *testing.T) {
+	ds := datasourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing")
+
+	if ds.LookupByKey {
+		t.Fatalf("a resource companion marked LookupByKey")
+	}
+	if ds.Ops.Read == nil || ds.Ops.List == nil {
+		t.Fatalf("companion ops incomplete: %+v", ds.Ops)
+	}
+
+	ft := attribute(t, ds.Schema, "filter_type")
+	if ft.Kind != TypeString || ft.Presence != PresenceRequired {
+		t.Errorf("filter_type = %+v", ft)
+	}
+	fv := attribute(t, ds.Schema, "filter_value")
+	if fv.Presence != PresenceOptional {
+		t.Errorf("filter_value = %+v", fv)
+	}
+	items := attribute(t, ds.Schema, "items")
+	if items.Kind != TypeList || items.ElemKind != TypeObject || items.Presence != PresenceComputed {
+		t.Errorf("items = %+v", items)
+	}
+	// Inside items everything is computed: the datasource never writes.
+	for _, a := range items.Nested.Attributes {
+		if a.Presence != PresenceComputed {
+			t.Errorf("companion item attribute %q is %s, want computed", a.Name, a.Presence)
+		}
+	}
+	if a := attribute(t, items.Nested, "name"); a.Presence != PresenceComputed {
+		t.Errorf("name inside items = %+v", a)
+	}
+}
+
+func TestDerive_LookupByKeyDatasource(t *testing.T) {
+	ds := datasourceByKey(t, mustDerive(t, thingSpec, testConfig()), "setting")
+
+	if !ds.LookupByKey {
+		t.Fatalf("the read-only-by-id entity is not LookupByKey")
+	}
+	if ds.KeyParameter != "settingName" {
+		t.Errorf("KeyParameter = %q", ds.KeyParameter)
+	}
+	if ds.Ops.Read == nil || ds.Ops.List != nil {
+		t.Errorf("lookup ops = %+v", ds.Ops)
+	}
+	key := attribute(t, ds.Schema, "setting_name")
+	if key.Presence != PresenceRequired || key.Kind != TypeString || key.WireName != "settingName" {
+		t.Errorf("key attribute = %+v", key)
+	}
+	if a := attribute(t, ds.Schema, "id"); a.Presence != PresenceComputed {
+		t.Errorf("id = %+v", a)
+	}
+	if a := attribute(t, ds.Schema, "value"); a.Presence != PresenceComputed {
+		t.Errorf("value = %+v", a)
+	}
+}
+
+func TestDerive_ListReadEntityYieldsDatasource(t *testing.T) {
+	m := mustDerive(t, thingSpec, testConfig())
+	ds := datasourceByKey(t, m, "stream")
+	if ds.LookupByKey {
+		t.Errorf("a list+read entity marked LookupByKey")
+	}
+	if ds.Ops.List == nil || ds.Ops.Read == nil {
+		t.Errorf("stream ops = %+v", ds.Ops)
+	}
+	items := attribute(t, ds.Schema, "items")
+	if a := attribute(t, items.Nested, "topic"); a.Presence != PresenceComputed {
+		t.Errorf("topic = %+v", a)
+	}
+}
+
+func TestDerive_ListResource(t *testing.T) {
+	m := mustDerive(t, thingSpec, testConfig())
+	for _, lr := range m.ListResources {
+		if lr.Names.Key != "event" {
+			continue
+		}
+		if lr.ListOp.Kind != OpList || lr.ListOp.Method != "GET" || lr.ListOp.SuccessCode != 200 {
+			t.Errorf("list op = %+v", lr.ListOp)
+		}
+		for _, name := range []string{"at", "level"} {
+			if a := attribute(t, lr.Schema, name); a.Presence != PresenceComputed {
+				t.Errorf("%q = %+v", name, a)
+			}
+		}
+		return
+	}
+	t.Fatalf("no event list resource in %+v", m.ListResources)
+}
+
+func TestDerive_Action(t *testing.T) {
+	m := mustDerive(t, thingSpec, testConfig())
+	if len(m.Actions) != 1 {
+		t.Fatalf("%d actions", len(m.Actions))
+	}
+	a := m.Actions[0]
+	if a.Names.Key != "things_restart" {
+		t.Errorf("action key = %q", a.Names.Key)
+	}
+	if a.ParentEntity != "thing" {
+		t.Errorf("ParentEntity = %q, want the enclosing thing entity", a.ParentEntity)
+	}
+	if a.InvokeOp.Kind != OpInvoke || a.InvokeOp.SuccessCode != 202 {
+		t.Errorf("invoke op = %+v", a.InvokeOp)
+	}
+	force := attribute(t, a.RequestSchema, "force")
+	if force.Kind != TypeBool || force.Presence != PresenceRequired {
+		t.Errorf("force = %+v", force)
+	}
+}
+
+func TestDerive_ActionWithoutBodyOrParent(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /pings:
+    post:
+      responses:
+        "202": {description: accepted}
+`
+	m := mustDerive(t, spec, testConfig())
+	if len(m.Actions) != 1 {
+		t.Fatalf("%d actions", len(m.Actions))
+	}
+	a := m.Actions[0]
+	if a.RequestSchema != nil {
+		t.Errorf("a bodiless action carries a request schema: %+v", a.RequestSchema)
+	}
+	if a.ParentEntity != "" {
+		t.Errorf("ParentEntity = %q with nothing enclosing", a.ParentEntity)
+	}
+}
+
+func TestDerive_ConfigExcludesByService(t *testing.T) {
+	m := mustDerive(t, thingSpec, testConfig("things"))
+
+	if len(m.Resources) != 0 {
+		t.Errorf("the things service still yields resources: %+v", m.Resources)
+	}
+	// The action lives under /v7/things too, so the service exclusion
+	// takes it with the resource.
+	if len(m.Actions) != 0 {
+		t.Errorf("the things service still yields actions: %+v", m.Actions)
+	}
+	var reasons []string
+	for _, e := range m.Excluded {
+		if e.Key == "thing" || e.Key == "things_restart" {
+			reasons = append(reasons, e.Reason)
+		}
+	}
+	if len(reasons) != 2 {
+		t.Fatalf("expected both things entities excluded, got %+v", m.Excluded)
+	}
+	for _, r := range reasons {
+		if r != configExcludedReason {
+			t.Errorf("exclusion reason = %q", r)
+		}
+	}
+	// Other services are untouched.
+	datasourceByKey(t, m, "stream")
+}
+
+func TestDerive_ConfigExcludesByEntityKey(t *testing.T) {
+	m := mustDerive(t, thingSpec, testConfig("event"))
+	for _, lr := range m.ListResources {
+		if lr.Names.Key == "event" {
+			t.Errorf("the excluded event entity still derived")
+		}
+	}
+	found := false
+	for _, e := range m.Excluded {
+		if e.Key == "event" && e.Reason == configExcludedReason {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("no configuration exclusion for event: %+v", m.Excluded)
+	}
+}
+
+func TestDerive_ExcludesEntityKeyCollisions(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /v6/tags:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: {type: string}
+  /v7/tags:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: {type: string}
+`
+	m := mustDerive(t, spec, testConfig())
+	// The first entity in collection-path order wins; the other is
+	// excluded with a reason naming both paths, never silently dropped.
+	if got := len(m.ListResources); got != 1 {
+		t.Fatalf("%d list resources from two colliding versions, want 1", got)
+	}
+	var collision *Exclusion
+	for i := range m.Excluded {
+		if m.Excluded[i].Key == "tag" {
+			collision = &m.Excluded[i]
+		}
+	}
+	if collision == nil {
+		t.Fatalf("no exclusion recorded for the losing version: %+v", m.Excluded)
+	}
+	for _, want := range []string{"/v6/tags", "/v7/tags", "services.exclude"} {
+		if !strings.Contains(collision.Reason, want) {
+			t.Errorf("collision reason %q does not name %s", collision.Reason, want)
+		}
+	}
+}
+
+// Deriving twice from independently loaded documents must agree exactly —
+// reflect.DeepEqual over the values and byte equality over the JSON, which
+// is what catches a map iteration order leaking into the model.
+func TestDerive_IsDeterministic(t *testing.T) {
+	a := mustDerive(t, thingSpec, testConfig())
+	b := mustDerive(t, thingSpec, testConfig())
+
+	if !reflect.DeepEqual(a, b) {
+		t.Fatalf("two derivations of the same document differ")
+	}
+	aj, err := json.Marshal(a)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	bj, err := json.Marshal(b)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if !bytes.Equal(aj, bj) {
+		t.Fatalf("two derivations marshal differently:\n%s\n%s", aj, bj)
+	}
+}
+
+// The model's slices arrive sorted by entity key whatever order the
+// document declared the paths in.
+func TestDerive_SlicesAreSortedByKey(t *testing.T) {
+	m := mustDerive(t, thingSpec, testConfig())
+	for i := 1; i < len(m.Datasources); i++ {
+		if m.Datasources[i-1].Names.Key > m.Datasources[i].Names.Key {
+			t.Errorf("datasources out of order: %q before %q",
+				m.Datasources[i-1].Names.Key, m.Datasources[i].Names.Key)
+		}
+	}
+	for i := 1; i < len(m.Excluded); i++ {
+		if m.Excluded[i-1].Key > m.Excluded[i].Key {
+			t.Errorf("exclusions out of order: %q before %q",
+				m.Excluded[i-1].Key, m.Excluded[i].Key)
+		}
+	}
+}
