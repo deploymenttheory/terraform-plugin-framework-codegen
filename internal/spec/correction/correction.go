@@ -34,6 +34,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/yamlwalk"
 )
 
 // Suffix is what names a correction file inside a corrections directory.
@@ -129,7 +131,7 @@ func Apply(specYAML []byte, corrections []Correction) ([]byte, error) {
 		}
 	}
 
-	forceBlockStyle(&root)
+	yamlwalk.ForceBlockStyle(&root)
 
 	out, err := yaml.Marshal(&root)
 	if err != nil {
@@ -262,108 +264,12 @@ func applyToSequence(node *yaml.Node, token string, op Operation) error {
 }
 
 // stripSchemaDefaults removes the `default` key from every schema in the
-// document: the named schemas under components, and every inline `schema`
-// under paths. It walks the schema grammar rather than matching keys
-// blindly, because "default" is also a legitimate property *name* and a
-// legitimate key inside an example — both of which must survive.
-//
-// Exists because a generated model constructor that stamps every
-// spec-declared default onto itself leaks unwired fields into every request
-// body, and on responses the default masks absence: the getter answers the
-// default where the wire said nothing. A wire-faithful provider needs
-// neither, in either direction.
+// document (see yamlwalk.StripSchemaDefaults for the walk and its reasons).
+// As a committed correction it must strip something: zero hits means the
+// vendor no longer declares defaults and the correction has gone stale.
 func stripSchemaDefaults(top *yaml.Node) error {
-	if stripAllDefaults(top) == 0 {
+	if yamlwalk.StripSchemaDefaults(top) == 0 {
 		return fmt.Errorf("the document declares no schema defaults; the correction is stale — delete it")
-	}
-	return nil
-}
-
-// stripAllDefaults is the lenient core of strip-schema-defaults: zero hits
-// is a fine answer when it runs as a built-in normalisation rather than as a
-// correction somebody committed.
-func stripAllDefaults(top *yaml.Node) int {
-	stripped := 0
-
-	if schemas := childValue(childValue(top, "components"), "schemas"); schemas != nil {
-		for i := 1; i < len(schemas.Content); i += 2 {
-			stripFromSchema(schemas.Content[i], &stripped)
-		}
-	}
-	if paths := childValue(top, "paths"); paths != nil {
-		stripUnderPaths(paths, &stripped)
-	}
-
-	return stripped
-}
-
-// stripFromSchema removes `default` from one schema node and recurses into
-// the positions of its grammar that hold further schemas.
-func stripFromSchema(schema *yaml.Node, stripped *int) {
-	if schema == nil || schema.Kind != yaml.MappingNode {
-		return
-	}
-
-	for i := 0; i+1 < len(schema.Content); i += 2 {
-		if schema.Content[i].Value == "default" {
-			schema.Content = append(schema.Content[:i], schema.Content[i+2:]...)
-			*stripped++
-			break
-		}
-	}
-
-	for i := 0; i+1 < len(schema.Content); i += 2 {
-		key, value := schema.Content[i].Value, schema.Content[i+1]
-		switch key {
-		case "properties", "patternProperties":
-			// A map of property NAME to schema: the names are data (one may
-			// literally be "default"), the values are schemas.
-			for j := 1; j < len(value.Content); j += 2 {
-				stripFromSchema(value.Content[j], stripped)
-			}
-		case "items", "additionalProperties", "not":
-			stripFromSchema(value, stripped)
-		case "allOf", "anyOf", "oneOf":
-			for _, member := range value.Content {
-				stripFromSchema(member, stripped)
-			}
-		}
-	}
-}
-
-// stripUnderPaths finds every `schema` key beneath paths — request bodies,
-// responses, parameters — and strips its value as a schema. Examples are
-// data, not schemas, and are not entered.
-func stripUnderPaths(node *yaml.Node, stripped *int) {
-	switch node.Kind {
-	case yaml.MappingNode:
-		for i := 0; i+1 < len(node.Content); i += 2 {
-			key, value := node.Content[i].Value, node.Content[i+1]
-			switch key {
-			case "schema":
-				stripFromSchema(value, stripped)
-			case "example", "examples":
-				continue
-			default:
-				stripUnderPaths(value, stripped)
-			}
-		}
-	case yaml.SequenceNode:
-		for _, member := range node.Content {
-			stripUnderPaths(member, stripped)
-		}
-	}
-}
-
-// childValue returns the value node of a mapping entry, or nil.
-func childValue(node *yaml.Node, key string) *yaml.Node {
-	if node == nil || node.Kind != yaml.MappingNode {
-		return nil
-	}
-	for i := 0; i+1 < len(node.Content); i += 2 {
-		if node.Content[i].Value == key {
-			return node.Content[i+1]
-		}
 	}
 	return nil
 }
@@ -446,27 +352,4 @@ func pointerTokens(pointer string) ([]string, error) {
 		parts[i] = p
 	}
 	return parts, nil
-}
-
-// forceBlockStyle clears the flow-style flag from every collection node
-// before the document is written back out.
-//
-// A JSON document is valid YAML in flow style, so a parse-then-emit round
-// trip faithfully reproduces it as flow — which for a large specification
-// means one line several million characters long. A 7 MB JSON-published
-// document emerged as a single line in v1; the SDK generator read it,
-// reported success, and generated nothing at all. Block style is what every
-// YAML consumer expects; this changes formatting only, never the tree.
-func forceBlockStyle(n *yaml.Node) {
-	if n == nil {
-		return
-	}
-	// Quoting styles on scalars are meaningful — a quoted "true" is a string
-	// and a bare one is not — so only the flow flags on collections go.
-	if n.Kind == yaml.MappingNode || n.Kind == yaml.SequenceNode || n.Kind == yaml.DocumentNode {
-		n.Style &^= yaml.FlowStyle
-	}
-	for _, c := range n.Content {
-		forceBlockStyle(c)
-	}
 }
