@@ -103,6 +103,8 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 	case observe.KindIgnoredOnUpdate:
 		return c.propertyFlag(loc, cls, o, specmodel.ExtSilentlyIgnoredOnUpdate,
 			"updates accept a new value with a success status and do not apply it"), nil
+	case observe.KindUndocumentedFieldInSpec:
+		return c.undocumentedField(loc, cls, o), nil
 	case observe.KindNormalisation, observe.KindDerivedDefault:
 		return compiled{category: catNoForm,
 			reason: "no correction form exists yet; adding an x-tfpfgen-* key is an owner decision"}, nil
@@ -380,6 +382,68 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 		justification: fmt.Sprintf("the audit confirmed a values observation on %s.%s: the live API %s",
 			o.Entity, o.Attribute, strings.Join(parts, "; ")),
 	}, nil
+}
+
+// undocumentedField compiles an undocumentedFieldInSpec observation into an
+// operation adding the property, with its observed JSON type, to the entity
+// schema's properties. The site is the first properties mapping of the read
+// response schema — the view the field was observed in — walking $refs and
+// allOf branches in the same order findProperty reads them; the request
+// schema is the fallback for an entity whose read declares no properties.
+func (c *compiler) undocumentedField(loc *locator, cls specmodel.Classification, o observe.Observation) compiled {
+	if o.Attribute == "" {
+		return unplaceable(fmt.Sprintf("a %s observation names no attribute", o.Kind))
+	}
+	if _, _, found := c.property(loc, cls, o); found {
+		return stated("the document already declares the property")
+	}
+
+	sitePtr, ok := propertiesSite(loc, cls.Read, cls.Create)
+	if !ok {
+		return unplaceable(fmt.Sprintf("no schema of %s declares a properties mapping to add %q to", o.Entity, o.Attribute))
+	}
+
+	jsonType, _ := o.Value.(string)
+	value := map[string]any{"type": jsonType}
+	if jsonType == "array" {
+		// 3.0 requires items on an array schema; nothing more is known.
+		value["items"] = map[string]any{}
+	}
+	return compiled{
+		ops: []correction.Operation{{
+			Op: "add", Path: sitePtr + "/properties/" + escapeToken(o.Attribute), Value: value,
+		}},
+		justification: fmt.Sprintf("the audit confirmed an undocumentedFieldInSpec observation on %s.%s: "+
+			"read responses carry the field with the stable JSON type %s, and no schema declares it", o.Entity, o.Attribute, jsonType),
+	}
+}
+
+// propertiesSite finds the pointer of the first schema node carrying a
+// properties mapping: the read operation's response schema first, the
+// create operation's request schema as the fallback.
+func propertiesSite(loc *locator, read, create *specmodel.Op) (string, bool) {
+	find := func(node *yaml.Node, ptr string) (string, bool) {
+		var sitePtr string
+		loc.walkSchemaWithPtr(node, ptr, map[string]bool{}, func(n *yaml.Node, p string) bool {
+			if props := mapValue(n, "properties"); props != nil && props.Kind == yaml.MappingNode {
+				sitePtr = p
+				return true
+			}
+			return false
+		})
+		return sitePtr, sitePtr != ""
+	}
+	if node, ptr, ok := loc.responseSchema(read); ok {
+		if sitePtr, found := find(node, ptr); found {
+			return sitePtr, true
+		}
+	}
+	if node, ptr, ok := loc.requestSchema(create); ok {
+		if sitePtr, found := find(node, ptr); found {
+			return sitePtr, true
+		}
+	}
+	return "", false
 }
 
 // updateStyle compiles onto the update operation, where derivation reads it.

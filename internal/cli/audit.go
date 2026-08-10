@@ -30,11 +30,11 @@ func newAuditCommand() *cobra.Command {
 	return group
 }
 
-// auditWorkDir is where the created-object ledgers live, beside the
+// auditRunsDir is where the audit activity ledgers live, beside the
 // observations. Never committed — it records live objects in somebody's
 // tenant — but stable across runs, so a crashed run's ledger is exactly
 // where the next cleanup looks.
-const auditWorkDir = "audit/work"
+const auditRunsDir = "audit/runs"
 
 // newAuditRunCommand executes the derived plan against the live API: the
 // only verb that touches a network with credentials. Observations land in
@@ -42,16 +42,21 @@ const auditWorkDir = "audit/work"
 // got.
 func newAuditRunCommand() *cobra.Command {
 	var (
-		dir               string
-		cfgFile           string
-		out               string
-		baseURL           string
-		allowSharedTenant bool
+		dir           string
+		cfgFile       string
+		out           string
+		baseURL       string
+		forceAPIAudit bool
 	)
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "execute the audit plan against the live API and record observations",
-		Args:  exactArgs("tfpfgen audit run [--dir spec] [--config tfpfgen.yaml] [--out audit/observations] [--base-url URL] [--allow-shared-tenant]"),
+		Long: "Execute the audit plan against the live API and record observations.\n\n" +
+			"Warning: the audit creates and deletes real objects in the tenant the\n" +
+			"base URL points at. Run it only against sandbox or non-production\n" +
+			"tenants; the toolkit does not police this — it is the operator's\n" +
+			"responsibility.",
+		Args: exactArgs("tfpfgen audit run [--dir spec] [--config tfpfgen.yaml] [--out audit/observations] [--base-url URL] [--force-api-audit]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, p, lock, err := auditPlan(dir, cfgFile)
 			if err != nil {
@@ -73,12 +78,12 @@ func newAuditRunCommand() *cobra.Command {
 					APIKeyHeader: cfg.Auth.APIKeyHeader,
 					TokenURL:     cfg.Auth.TokenURL,
 				},
-				NamePrefix:        cfg.Audit.NamePrefix,
-				RateLimitRPS:      cfg.Audit.RateLimitRPS,
-				WorkDir:           auditWorkDir,
-				SpecHash:          lock.SHA256,
-				AllowSharedTenant: allowSharedTenant,
-				Logger:            auditLogger(cmd.ErrOrStderr()),
+				NamePrefix:    cfg.Audit.NamePrefix,
+				RateLimitRPS:  cfg.Audit.RateLimitRPS,
+				RunsDir:       auditRunsDir,
+				SpecHash:      lock.SHA256,
+				ForceAPIAudit: forceAPIAudit,
+				Logger:        auditLogger(cmd.ErrOrStderr()),
 			})
 
 			// Whatever was learned is written, even when the run ended
@@ -100,7 +105,7 @@ func newAuditRunCommand() *cobra.Command {
 	cmd.Flags().StringVar(&cfgFile, "config", "tfpfgen.yaml", "config file naming the auth method and audit bounds")
 	cmd.Flags().StringVar(&out, "out", "audit/observations", "directory the observation files are written into")
 	cmd.Flags().StringVar(&baseURL, "base-url", "", "override the audited API's base URL")
-	cmd.Flags().BoolVar(&allowSharedTenant, "allow-shared-tenant", false, "mutate even when the tenant already holds more foreign objects than audit.max_objects")
+	cmd.Flags().BoolVar(&forceAPIAudit, "force-api-audit", false, "mutate even when the tenant already holds more foreign objects than audit.max_objects")
 	return cmd
 }
 
@@ -145,7 +150,7 @@ func newAuditCleanupCommand() *cobra.Command {
 				},
 				NamePrefix:   prefix,
 				RateLimitRPS: cfg.Audit.RateLimitRPS,
-				WorkDir:      auditWorkDir,
+				RunsDir:      auditRunsDir,
 				Logger:       auditLogger(cmd.ErrOrStderr()),
 			})
 
@@ -274,12 +279,16 @@ func printSummary(w io.Writer, out string, obsCount int, sum auditrun.Summary) {
 		fmt.Fprintf(w, "  orphan: %s\n", o)
 	}
 
-	entities := make([]string, 0, len(sum.Tolerance))
-	for e := range sum.Tolerance {
+	entities := make([]string, 0, len(sum.RejectsUnknownFields))
+	for e := range sum.RejectsUnknownFields {
 		entities = append(entities, e)
 	}
 	sort.Strings(entities)
 	for _, e := range entities {
-		fmt.Fprintf(w, "calibration: %s %s\n", e, sum.Tolerance[e])
+		if sum.RejectsUnknownFields[e] {
+			fmt.Fprintf(w, "rejectsUnknownFields: %s true — this entity's refusal-based findings need caution\n", e)
+			continue
+		}
+		fmt.Fprintf(w, "rejectsUnknownFields: %s false\n", e)
 	}
 }

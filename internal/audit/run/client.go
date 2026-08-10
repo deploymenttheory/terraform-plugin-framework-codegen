@@ -72,7 +72,7 @@ func (h *httpResult) mentions(attribute string) bool {
 	return attribute != "" && bytes.Contains(bytes.ToLower(h.body), []byte(strings.ToLower(attribute)))
 }
 
-// do sends one request: substitution, budget spend, sandbox guard, rate
+// do sends one request: substitution, budget spend, host allowlist, rate
 // limit, auth, per-request timeout, logging. ent may be nil for requests
 // outside any entity (cleanup passes).
 func (r *runner) do(ctx context.Context, ent *entityState, spec reqSpec) (*httpResult, error) {
@@ -202,15 +202,12 @@ func (r *runner) spend(ent *entityState) error {
 	return nil
 }
 
-// guardMutation is the per-request half of the sandbox guard: the
-// operator acknowledgement and the host allowlist derived from the base
-// URL, checked before every mutating request however the URL was built.
+// guardMutation is the per-request guard: the host allowlist derived from
+// the base URL, checked before every mutating request however the URL was
+// built.
 func (r *runner) guardMutation(u *url.URL) error {
-	if err := r.checkSandboxEnv(); err != nil {
-		return err
-	}
 	if u.Host != r.base.Host {
-		return fmt.Errorf("audit run: refusing a mutating request to %s: the sandbox allowlist derived from the base URL admits only %s", u.Host, r.base.Host)
+		return fmt.Errorf("audit run: refusing a mutating request to %s: the host allowlist derived from the base URL admits only %s", u.Host, r.base.Host)
 	}
 	return nil
 }

@@ -119,9 +119,20 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 	if o := wantConfirmed(t, obs, "thing", "", observe.KindUpdateStyle); o.Value != "patch-merge" {
 		t.Errorf("updateStyle = %v, want patch-merge", o.Value)
 	}
-	// The unknown-field calibration landed on the summary.
-	if got := sum.Tolerance["thing"]; got != "ignores unknown body fields" {
-		t.Errorf("tolerance = %q, want the ignoring calibration", got)
+	// The unknown-field probe's finding landed on the summary: this API
+	// accepts and ignores a body field no schema declares.
+	if got, ok := sum.RejectsUnknownFields["thing"]; !ok || got {
+		t.Errorf("rejectsUnknownFields = %v (recorded %v), want false", got, ok)
+	}
+	// VolatileFields("etag") is also a field thingSpec never declares: the
+	// reads demonstrably carry it, so it is an undocumented field with the
+	// stable JSON type string.
+	if o := wantConfirmed(t, obs, "thing", "etag", observe.KindUndocumentedFieldInSpec); o.Value != "string" {
+		t.Errorf("undocumentedFieldInSpec(etag) = %v, want %q", o.Value, "string")
+	}
+	// Every declared field stays out of the undocumented findings.
+	if o := findObs(obs, "thing", "retention", observe.KindUndocumentedFieldInSpec); o != nil {
+		t.Errorf("the declared retention field was written down as undocumented: %+v", o)
 	}
 
 	// Budgets were respected and reported.

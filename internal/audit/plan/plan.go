@@ -83,9 +83,10 @@ const (
 	// the documented set is closed.
 	StepUndocumentedEnumValue StepKind = "undocumentedEnumValue"
 	// StepUndeclaredSpecField sends the minimal body plus one field no schema
-	// declares. Calibrates every omission-based check: an API that
-	// rejects unknown fields discriminates differently from one that
-	// ignores them.
+	// declares. Learns whether the API rejects unknown body fields, which
+	// the summary reports as rejectsUnknownFields — an API that rejects
+	// them discriminates differently in every omission-based check than
+	// one that ignores them.
 	StepUndeclaredSpecField StepKind = "undeclaredSpecField"
 	// StepCreatePerEnumValue creates an object with the Condition's
 	// attribute pinned to one value, to observe value-conditional
@@ -155,8 +156,14 @@ type EntityPlan struct {
 	// paths embed, in path order. Every parent appears earlier in the
 	// plan.
 	Parents []string `json:"parents,omitempty"`
-	Budget  Budget   `json:"budget"`
-	Steps   []Step   `json:"steps"`
+	// DeclaredProperties is the sorted union of the property names the
+	// entity's create request and read response schemas declare. Execution
+	// diffs read responses against it to observe undocumentedFieldInSpec —
+	// a real field the API carries that the spec omits. Empty means the
+	// schemas are unknown and the diff is skipped.
+	DeclaredProperties []string `json:"declaredProperties,omitempty"`
+	Budget             Budget   `json:"budget"`
+	Steps              []Step   `json:"steps"`
 }
 
 // Skipped is one entity the plan leaves out, and why — surfaced rather

@@ -36,6 +36,15 @@ type evidence struct {
 	values        map[string]*observe.Values
 	valuesProof   map[string][]observe.Excerpt
 	requiredWhens map[string]*requiredWhenPair
+	// undeclared collects, per response field the entity's declared schema
+	// lacks, the JSON type each read answered — a field seen with one
+	// stable type becomes an undocumentedFieldInSpec observation, and a
+	// field whose type wobbles between reads claims nothing.
+	undeclared      map[string]string
+	undeclaredProof map[string][]observe.Excerpt
+	// undeclaredUnstable marks fields whose observed JSON type differed
+	// between reads.
+	undeclaredUnstable map[string]bool
 	// update-style tallies across the updateField steps.
 	updSucceeded   int
 	updRefused     int
@@ -60,11 +69,63 @@ type requiredWhenPair struct {
 
 func newEvidence() *evidence {
 	return &evidence{
-		volatile:      map[string]bool{},
-		omitted:       map[string][]any{},
-		values:        map[string]*observe.Values{},
-		valuesProof:   map[string][]observe.Excerpt{},
-		requiredWhens: map[string]*requiredWhenPair{},
+		volatile:           map[string]bool{},
+		omitted:            map[string][]any{},
+		values:             map[string]*observe.Values{},
+		valuesProof:        map[string][]observe.Excerpt{},
+		requiredWhens:      map[string]*requiredWhenPair{},
+		undeclared:         map[string]string{},
+		undeclaredProof:    map[string][]observe.Excerpt{},
+		undeclaredUnstable: map[string]bool{},
+	}
+}
+
+// observeUndeclaredFields diffs one read response against the entity's
+// declared schema properties, accumulating every field the spec omits with
+// the JSON type it was observed carrying. Only the item object itself is
+// diffed — collection envelopes never reach here — which is what keeps
+// envelope noise out. An empty declared set means the plan carried no
+// schema knowledge, and no claim can be made.
+func (r *runner) observeUndeclaredFields(ent *entityState, obj map[string]any, excerpt observe.Excerpt) {
+	if len(ent.plan.DeclaredProperties) == 0 || obj == nil {
+		return
+	}
+	if ent.declared == nil {
+		ent.declared = make(map[string]bool, len(ent.plan.DeclaredProperties))
+		for _, name := range ent.plan.DeclaredProperties {
+			ent.declared[name] = true
+		}
+	}
+	for k, v := range obj {
+		if ent.declared[k] || v == nil {
+			continue
+		}
+		t := jsonTypeOf(v)
+		if prev, seen := ent.ev.undeclared[k]; seen && prev != t {
+			ent.ev.undeclaredUnstable[k] = true
+			continue
+		}
+		ent.ev.undeclared[k] = t
+		ent.ev.undeclaredProof[k] = appendProof(ent.ev.undeclaredProof[k], excerpt)
+	}
+}
+
+// jsonTypeOf names a decoded JSON value's type the way the observation
+// spells it.
+func jsonTypeOf(v any) string {
+	switch v.(type) {
+	case string:
+		return "string"
+	case bool:
+		return "boolean"
+	case float64, json.Number:
+		return "number"
+	case map[string]any:
+		return "object"
+	case []any:
+		return "array"
+	default:
+		return "unknown"
 	}
 }
 
@@ -117,6 +178,27 @@ func (r *runner) finalizeEvidence(ent *entityState) {
 	r.finalizeValues(entity, ev)
 	r.finalizeRequiredWhens(ev)
 	r.finalizeUpdateStyle(entity, ev)
+	r.finalizeUndeclaredFields(entity, ev)
+}
+
+// finalizeUndeclaredFields emits one undocumentedFieldInSpec observation
+// per response field the declared schema lacks, provided every read showed
+// it with the same JSON type — the API demonstrably carries the field, and
+// the spec omits it.
+func (r *runner) finalizeUndeclaredFields(entity string, ev *evidence) {
+	fields := make([]string, 0, len(ev.undeclared))
+	for f := range ev.undeclared {
+		fields = append(fields, f)
+	}
+	sort.Strings(fields)
+	for _, f := range fields {
+		t := ev.undeclared[f]
+		if ev.undeclaredUnstable[f] || t == "unknown" {
+			continue
+		}
+		r.record(entity, f, observe.KindUndocumentedFieldInSpec, t, nil,
+			observe.OutcomeConfirmed, ev.undeclaredProof[f]...)
+	}
 }
 
 // finalizeFields draws the per-field conclusions from one sent/got pair:

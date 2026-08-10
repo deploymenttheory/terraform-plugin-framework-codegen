@@ -30,8 +30,11 @@ type entityState struct {
 	// lastRead is the most recent full read of the minimal object, the
 	// baseline updates compare against.
 	lastRead map[string]any
-	// preflighted marks the shared-tenant pre-flight as done.
+	// preflighted marks the foreign-object pre-flight as done.
 	preflighted bool
+	// declared is the plan's DeclaredProperties as a set, built on first
+	// use by observeUndeclaredFields.
+	declared map[string]bool
 }
 
 // runEntity executes one entity's steps in order, stopping at the first
@@ -119,10 +122,10 @@ func (r *runner) runStep(ctx context.Context, ent *entityState, step *plan.Step)
 	}
 }
 
-// preflight is the third tier of the sandbox guard: a read of the
-// entity's collection before its first mutating request. A collection
-// already holding more foreign objects than the run may itself create is
-// not a sandbox, and mutating it needs the explicit AllowSharedTenant.
+// preflight is the foreign-object check: a read of the entity's
+// collection before its first mutating request. A collection already
+// holding more foreign objects than the run may itself create does not
+// look like a sandbox, and mutating it needs the explicit ForceAPIAudit.
 func (r *runner) preflight(ctx context.Context, ent *entityState, step *plan.Step) error {
 	ent.preflighted = true
 	if ent.recipe.collectionPath == "" {
@@ -147,9 +150,9 @@ func (r *runner) preflight(ctx context.Context, ent *entityState, step *plan.Ste
 			foreign++
 		}
 	}
-	if foreign > r.budget.Objects && !r.opts.AllowSharedTenant {
+	if foreign > r.budget.Objects && !r.opts.ForceAPIAudit {
 		return blockedError{reason: fmt.Sprintf(
-			"%s holds %d objects that do not carry the %q prefix, over the %d-object sandbox ceiling; a tenant this full is shared, and mutating it needs --allow-shared-tenant",
+			"%s holds %d objects that do not carry the %q prefix, over the %d-object ceiling; a tenant this full does not look like a sandbox, and mutating it needs --force-api-audit",
 			ent.recipe.collectionPath, foreign, r.opts.NamePrefix, r.budget.Objects)}
 	}
 	_ = step
@@ -267,12 +270,12 @@ func (r *runner) createObject(ctx context.Context, ent *entityState, rec *entity
 	switch {
 	case res.ok():
 		id := identifierOf(res.object())
-		r.ledger.resolve(seq, ledgerCreated, id, res.status)
+		r.ledger.resolve(seq, activityCreated, id, res.status)
 		r.summary.ObjectsCreated++
 		r.observeOmittedSamples(ent, resolved, res.object())
 		return &createdObject{entity: rec.entity, id: id, seq: seq}, res, nil
 	case res.refused():
-		r.ledger.resolve(seq, ledgerRejected, "", res.status)
+		r.ledger.resolve(seq, activityRejected, "", res.status)
 		return nil, res, nil
 	default:
 		// A 5xx discriminates nothing and may have created the object
@@ -316,7 +319,7 @@ func (r *runner) deleteObject(ctx context.Context, ent *entityState, rec *entity
 		return nil, err
 	}
 	if res.ok() || res.status == 404 {
-		r.ledger.resolve(obj.seq, ledgerDeleted, obj.id, res.status)
+		r.ledger.resolve(obj.seq, activityDeleted, obj.id, res.status)
 		if live, ok := r.registry[obj.entity]; ok && live.seq == obj.seq {
 			delete(r.registry, obj.entity)
 		}
