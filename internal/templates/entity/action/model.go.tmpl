@@ -1,0 +1,8 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+{{ .ModelImports }}
+
+// {{ .Type }}Model mirrors the invocation schema.
+{{ .Models }}

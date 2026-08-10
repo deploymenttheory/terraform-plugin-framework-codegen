@@ -24,3 +24,12 @@ import "embed"
 //
 //go:embed all:provider-core
 var ProviderCore embed.FS
+
+// Entity holds the per-entity templates: the four service-kind file sets
+// `provider generate` renders once per derived entity. Unlike the
+// provider core, these templates interpolate computed declarations —
+// schemas, mappings, call plans — every one of which arrives as a
+// finished string from internal/emit.
+//
+//go:embed all:entity
+var Entity embed.FS

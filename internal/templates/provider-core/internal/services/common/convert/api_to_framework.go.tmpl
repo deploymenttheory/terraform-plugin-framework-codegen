@@ -80,3 +80,95 @@ func APIToFrameworkStringList(values []string) types.List {
 	}
 	return types.ListValueMust(types.StringType, elements)
 }
+
+// APIToFrameworkStringValue converts a plain string to types.String. The
+// Value converters exist for SDKs whose accessors return values rather
+// than pointers; an absent field arrives as the zero value there, and the
+// zero value is what the state carries.
+func APIToFrameworkStringValue(value string) types.String {
+	return types.StringValue(value)
+}
+
+// APIToFrameworkBoolValue converts a plain bool to types.Bool.
+func APIToFrameworkBoolValue(value bool) types.Bool {
+	return types.BoolValue(value)
+}
+
+// APIToFrameworkInt64Value converts a plain int64 to types.Int64.
+func APIToFrameworkInt64Value(value int64) types.Int64 {
+	return types.Int64Value(value)
+}
+
+// APIToFrameworkInt32ValueAsInt64 converts a plain int32 to types.Int64.
+func APIToFrameworkInt32ValueAsInt64(value int32) types.Int64 {
+	return types.Int64Value(int64(value))
+}
+
+// APIToFrameworkFloat64Value converts a plain float64 to types.Float64.
+func APIToFrameworkFloat64Value(value float64) types.Float64 {
+	return types.Float64Value(value)
+}
+
+// APIToFrameworkFloat32ValueAsFloat64 converts a plain float32 to
+// types.Float64.
+func APIToFrameworkFloat32ValueAsFloat64(value float32) types.Float64 {
+	return types.Float64Value(float64(value))
+}
+
+// APIToFrameworkTimeValue converts a plain time.Time to an RFC 3339
+// types.String.
+func APIToFrameworkTimeValue(value time.Time) types.String {
+	return types.StringValue(value.Format(time.RFC3339))
+}
+
+// APIToFrameworkBoolList converts []bool to a types.List of bools, nil to
+// null.
+func APIToFrameworkBoolList(values []bool) types.List {
+	if values == nil {
+		return types.ListNull(types.BoolType)
+	}
+	elements := make([]attr.Value, len(values))
+	for i, v := range values {
+		elements[i] = types.BoolValue(v)
+	}
+	return types.ListValueMust(types.BoolType, elements)
+}
+
+// APIToFrameworkInt64List converts []int64 to a types.List of int64s, nil
+// to null.
+func APIToFrameworkInt64List(values []int64) types.List {
+	if values == nil {
+		return types.ListNull(types.Int64Type)
+	}
+	elements := make([]attr.Value, len(values))
+	for i, v := range values {
+		elements[i] = types.Int64Value(v)
+	}
+	return types.ListValueMust(types.Int64Type, elements)
+}
+
+// APIToFrameworkInt32ListAsInt64 converts []int32 to a types.List of
+// int64s, nil to null.
+func APIToFrameworkInt32ListAsInt64(values []int32) types.List {
+	if values == nil {
+		return types.ListNull(types.Int64Type)
+	}
+	elements := make([]attr.Value, len(values))
+	for i, v := range values {
+		elements[i] = types.Int64Value(int64(v))
+	}
+	return types.ListValueMust(types.Int64Type, elements)
+}
+
+// APIToFrameworkFloat64List converts []float64 to a types.List of
+// float64s, nil to null.
+func APIToFrameworkFloat64List(values []float64) types.List {
+	if values == nil {
+		return types.ListNull(types.Float64Type)
+	}
+	elements := make([]attr.Value, len(values))
+	for i, v := range values {
+		elements[i] = types.Float64Value(v)
+	}
+	return types.ListValueMust(types.Float64Type, elements)
+}

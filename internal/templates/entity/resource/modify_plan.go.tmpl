@@ -1,0 +1,20 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+)
+
+var _ resource.ResourceWithModifyPlan = (*{{ .Type }})(nil)
+
+// ModifyPlan is a deliberate no-op: the document declares nothing this
+// resource must normalise or treat as volatile at plan time. The method
+// exists so the wiring is already in place when something does.
+func (r *{{ .Type }}) ModifyPlan(_ context.Context, req resource.ModifyPlanRequest, _ *resource.ModifyPlanResponse) {
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
+}

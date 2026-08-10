@@ -1,0 +1,52 @@
+{{ template "header" . }}
+
+// Package {{ .Package }} serves the {{ .TerraformType }} action.
+package {{ .Package }}
+
+{{ .Imports }}
+
+// ActionName is the terraform type this action serves.
+const ActionName = "{{ .TerraformType }}"
+
+var (
+	_ action.Action              = (*{{ .Type }})(nil)
+	_ action.ActionWithConfigure = (*{{ .Type }})(nil)
+)
+
+// New{{ .Pascal }}Action builds the action for registration.
+func New{{ .Pascal }}Action() action.Action {
+	return &{{ .Type }}{}
+}
+
+// {{ .Type }} implements the {{ .TerraformType }} action.
+type {{ .Type }} struct {
+	client {{ .ClientType }}
+}
+
+// Metadata names the action.
+func (a *{{ .Type }}) Metadata(_ context.Context, _ action.MetadataRequest, resp *action.MetadataResponse) {
+	resp.TypeName = ActionName
+}
+
+// Configure receives the SDK client the provider built.
+func (a *{{ .Type }}) Configure(_ context.Context, req action.ConfigureRequest, resp *action.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	c, ok := req.ProviderData.({{ .ClientType }})
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected provider data",
+			fmt.Sprintf("expected {{ .ClientType }}, got %T", req.ProviderData))
+		return
+	}
+	a.client = c
+}
+
+// Schema declares the invocation's arguments.
+func (a *{{ .Type }}) Schema(_ context.Context, _ action.SchemaRequest, resp *action.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: {{ .SchemaDescription }},
+		Attributes: map[string]schema.Attribute{
+{{ .SchemaAttributes }}		},
+	}
+}

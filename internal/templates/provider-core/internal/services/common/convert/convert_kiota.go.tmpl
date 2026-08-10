@@ -3,8 +3,10 @@
 package convert
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/microsoft/kiota-abstractions-go/serialization"
 )
@@ -59,5 +61,51 @@ func FrameworkToAPIDateOnly(value types.String, setter func(*serialization.DateO
 		return fmt.Errorf("%q is not a date: %w", value.ValueString(), err)
 	}
 	setter(parsed)
+	return nil
+}
+
+// APIToFrameworkEnumValue converts a value-typed kiota enum to
+// types.String.
+func APIToFrameworkEnumValue[T fmt.Stringer](value T) types.String {
+	return types.StringValue(value.String())
+}
+
+// APIToFrameworkEnumSlice converts a slice of kiota enums to a
+// types.List of their string spellings, nil to null.
+func APIToFrameworkEnumSlice[T fmt.Stringer](values []T) types.List {
+	if values == nil {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, len(values))
+	for i, v := range values {
+		elements[i] = types.StringValue(v.String())
+	}
+	return types.ListValueMust(types.StringType, elements)
+}
+
+// FrameworkToAPIEnumSlice parses each element of the plan's string list
+// with the kiota-generated Parse function and hands the typed slice to
+// the setter, erroring on any value the enum does not declare.
+func FrameworkToAPIEnumSlice[T any](ctx context.Context, value types.List, parser func(string) (any, error), setter func([]T)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	var raw []string
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a string list from the plan: %v", diags.Errors())
+	}
+	typed := make([]T, 0, len(raw))
+	for _, element := range raw {
+		parsed, err := parser(element)
+		if err != nil {
+			return fmt.Errorf("%q is not a declared enum value: %w", element, err)
+		}
+		pointer, ok := parsed.(*T)
+		if !ok {
+			return fmt.Errorf("the parsed enum is %T, not %T", parsed, (*T)(nil))
+		}
+		typed = append(typed, *pointer)
+	}
+	setter(typed)
 	return nil
 }

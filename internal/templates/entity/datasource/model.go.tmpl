@@ -1,0 +1,9 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+{{ .ModelImports }}
+
+// {{ .Type }}Model mirrors the schema. Nested objects take one struct
+// each; a nil pointer or slice is a null attribute.
+{{ .Models }}

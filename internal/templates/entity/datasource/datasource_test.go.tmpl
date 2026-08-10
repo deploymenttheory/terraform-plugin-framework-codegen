@@ -1,0 +1,59 @@
+{{ template "header" . }}
+
+package {{ .Package }}_test
+
+{{ .TestImports }}
+
+//go:embed tests/terraform/unit/datasource.tf
+var unitConfigDatasource string
+
+// TestUnit{{ .Pascal }}Datasource_Schema holds the generated schema to
+// the framework's implementation validation.
+func TestUnit{{ .Pascal }}Datasource_Schema(t *testing.T) {
+	ctx := context.Background()
+	schemaResp := &fwdatasource.SchemaResponse{}
+	{{ .Package }}.New{{ .Pascal }}Datasource().Schema(ctx, fwdatasource.SchemaRequest{}, schemaResp)
+	if schemaResp.Diagnostics.HasError() {
+		t.Fatalf("schema diagnostics: %v", schemaResp.Diagnostics)
+	}
+	if diags := schemaResp.Schema.ValidateImplementation(ctx); diags.HasError() {
+		t.Fatalf("schema implementation: %v", diags)
+	}
+}
+
+// TestUnit{{ .Pascal }}Datasource_Read reads through the mock API and
+// holds the state to the derived fixture values.
+func TestUnit{{ .Pascal }}Datasource_Read(t *testing.T) {
+	mocks.SetupUnitTestEnvironment(t)
+	mocks.GlobalRegistry.ActivateMocks("{{ .RegistryName }}")
+	defer mocks.GlobalRegistry.DeactivateAndReset()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: mocks.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: unitConfigDatasource,
+				Check: resource.ComposeTestCheckFunc(
+{{ .UnitChecks }}				),
+			},
+		},
+	})
+}
+
+// TestUnit{{ .Pascal }}Datasource_ReadError holds the error path: a
+// refused read surfaces as a diagnostic.
+func TestUnit{{ .Pascal }}Datasource_ReadError(t *testing.T) {
+	mocks.SetupUnitTestEnvironment(t)
+	mocks.GlobalRegistry.ActivateErrorMocks("{{ .RegistryName }}")
+	defer mocks.GlobalRegistry.DeactivateAndReset()
+
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: mocks.ProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      unitConfigDatasource,
+				ExpectError: regexp.MustCompile(`Read failed`),
+			},
+		},
+	})
+}

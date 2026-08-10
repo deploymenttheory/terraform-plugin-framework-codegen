@@ -1,0 +1,566 @@
+package emit
+
+import (
+	"fmt"
+	"path"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixturespec"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
+)
+
+// resourceData is the render context every resource template consumes.
+// Every field is a finished expression, declaration or presence boolean.
+type resourceData struct {
+	Source        string
+	Package       string
+	PackagePath   string
+	Key           string
+	Pascal        string
+	Type          string
+	TerraformType string
+	ClientType    string
+
+	Imports          string
+	ModelImports     string
+	ConstructImports string
+	StateImports     string
+	CRUDImports      string
+	TestImports      string
+	AccImports       string
+	ValidatorImports string
+	MocksImports     string
+
+	TimeoutCreate string
+	TimeoutRead   string
+	TimeoutUpdate string
+	TimeoutDelete string
+
+	HasImport  bool
+	ImportAttr string
+
+	SchemaDescription string
+	SchemaAttributes  string
+	Models            string
+
+	ConstructReturnType string
+	WriteConstructor    string
+	ConstructBody       string
+	HasUpdate           bool
+
+	ReadModel string
+	StateBody string
+
+	CreatePlan         callPlan
+	ReadPlan           callPlan
+	UpdatePlan         callPlan
+	DeletePlan         callPlan
+	CreateMapsResponse bool
+	UpdateMapsResponse bool
+	UpdateParamCopies  string
+	MissingUpdate      bool
+
+	HasEC      bool
+	ECDuration string
+
+	HasValidators  bool
+	ValidatorBody  string
+	MinimalChecks  string
+	MaximalChecks  string
+	ProviderModule string
+
+	// Mock responder fields.
+	RegistryName    string
+	CollectionURL   string
+	ItemPattern     string
+	IDSegmentIndex  int
+	IDWire          string
+	ResponseMinimal string
+	ResponseMaximal string
+	CreateStatus    int
+	UpdateStatus    int
+	UpdateMethod    string
+	DeleteStatus    int
+	HasList         bool
+	ListWrap        string
+	HasDelete       bool
+}
+
+// resource renders one resource's complete file set.
+func (e *entityRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) ([]File, error) {
+	if r.Ops.Create == nil || rb.Create == nil || r.Ops.Read == nil || rb.Read == nil ||
+		r.Ops.Delete == nil || rb.Delete == nil {
+		return nil, fmt.Errorf("a resource needs bound create, read and delete calls")
+	}
+
+	nodes := joinTree(r.Schema, rb.Fields)
+	d := &resourceData{
+		Package:        r.Names.Package,
+		PackagePath:    e.packagePath(kindResources, r.Names),
+		Key:            r.Names.Key,
+		Pascal:         r.Names.Pascal,
+		Type:           r.Names.Pascal + "Resource",
+		TerraformType:  r.Names.TerraformType,
+		ClientType:     "*sdk." + e.bindings.SDK.ClientTypeName,
+		TimeoutCreate:  goDuration(int64(r.Timeouts.Create)),
+		TimeoutRead:    goDuration(int64(r.Timeouts.Read)),
+		TimeoutUpdate:  goDuration(int64(r.Timeouts.Update)),
+		TimeoutDelete:  goDuration(int64(r.Timeouts.Delete)),
+		MissingUpdate:  r.MissingUpdate || r.Ops.Update == nil || rb.Update == nil,
+		ReadModel:      rb.ReadModel,
+		ProviderModule: e.pc.Module,
+	}
+	d.HasUpdate = !d.MissingUpdate
+	if r.EventualConsistency > 0 {
+		d.HasEC = true
+		d.ECDuration = goDuration(int64(r.EventualConsistency))
+	}
+
+	if err := e.resourceCode(d, r, rb, nodes); err != nil {
+		return nil, err
+	}
+	if err := e.resourceCRUD(d, rb, nodes); err != nil {
+		return nil, err
+	}
+	spec := deriveFixtures(r.Schema, nodes)
+	if err := e.resourceMocks(d, r, rb, spec); err != nil {
+		return nil, err
+	}
+	e.resourceChecks(d, spec)
+
+	dir := e.dir(kindResources, r.Names)
+	var files []File
+
+	renderGo := func(tmpl, out string) error {
+		d.Source = "entity/resource/" + tmpl
+		f, err := e.renderEntityFile("resource/"+tmpl, path.Join(dir, out), r.Names.Key, d)
+		if err != nil {
+			return err
+		}
+		files = append(files, f)
+		return nil
+	}
+
+	goFiles := []struct{ tmpl, out string }{
+		{"resource.go.tmpl", "resource.go"},
+		{"model.go.tmpl", "model.go"},
+		{"construct.go.tmpl", "construct.go"},
+		{"state.go.tmpl", "state.go"},
+		{"crud.go.tmpl", "crud.go"},
+		{"modify_plan.go.tmpl", "modify_plan.go"},
+		{"resource_test.go.tmpl", "resource_test.go"},
+		{"resource_acceptance_test.go.tmpl", "resource_acceptance_test.go"},
+		{"responders.go.tmpl", "mocks/responders.go"},
+	}
+	for _, gf := range goFiles {
+		if err := renderGo(gf.tmpl, gf.out); err != nil {
+			return nil, err
+		}
+	}
+	if d.HasValidators {
+		if err := renderGo("conditional_validators.go.tmpl", "conditional_validators.go"); err != nil {
+			return nil, err
+		}
+	}
+
+	fixtures, err := e.resourceFixtures(r, spec, dir)
+	if err != nil {
+		return nil, err
+	}
+	files = append(files, fixtures...)
+
+	return files, nil
+}
+
+// resourceCode builds the schema, model, construct and state contexts.
+func (e *entityRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkbind.ResourceBinding, nodes []node) error {
+	// Schema.
+	imports := newImportSet(e.pc.Module)
+	imports.add("", "context")
+	imports.add("", "fmt")
+	imports.add("", "time")
+	imports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
+	imports.add("schema", "github.com/hashicorp/terraform-plugin-framework/resource/schema")
+	imports.add("sdk", e.bindings.SDK.ImportPath)
+	imports.add("commonschema", e.pc.Module+"/internal/services/common/schema")
+
+	sb := &schemaBuilder{kind: schemaResource, imports: imports}
+	d.SchemaAttributes = sb.attributeDecls(nodes, 3)
+
+	description := "Manages the " + r.Names.Key + " entity."
+	if r.CoManagementNote != "" {
+		description += " " + r.CoManagementNote
+	}
+	d.SchemaDescription = strconv.Quote(description)
+
+	if d.HasImport = importAttr(r, nodes) != ""; d.HasImport {
+		d.ImportAttr = importAttr(r, nodes)
+		imports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
+	}
+	d.Imports = imports.render()
+
+	// Model.
+	decls, err := buildModels(d.Type+"Model", d.Pascal, nodes,
+		[]string{"Timeouts timeouts.Value `tfsdk:\"timeouts\"`"})
+	if err != nil {
+		return err
+	}
+	d.Models = renderModelDecls(decls)
+	modelImports := newImportSet(e.pc.Module)
+	modelImports.add("", "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts")
+	if strings.Contains(d.Models, "types.") {
+		modelImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
+	}
+	d.ModelImports = modelImports.render()
+
+	// Construct.
+	d.ConstructReturnType = "*" + rb.WriteModel
+	d.WriteConstructor = rb.WriteConstructor
+	body, usesFmt, err := constructLines(nodes, "data", "body", "", 1, true)
+	if err != nil {
+		return err
+	}
+	d.ConstructBody = body
+	constructImports := newImportSet(e.pc.Module)
+	constructImports.add("", "context")
+	if usesFmt {
+		constructImports.add("", "fmt")
+	}
+	if strings.Contains(body, "convert.") {
+		constructImports.add("", e.pc.Module+"/internal/services/common/convert")
+	}
+	e.addSDKImports(constructImports, body, d.ConstructReturnType, d.WriteConstructor)
+	d.ConstructImports = constructImports.render()
+
+	// State.
+	stateBody, err := stateLines(nodes, d.Pascal, "remote", "data", 1)
+	if err != nil {
+		return err
+	}
+	d.StateBody = stateBody
+	stateImports := newImportSet(e.pc.Module)
+	stateImports.add("", "context")
+	if strings.Contains(stateBody, "convert.") {
+		stateImports.add("", e.pc.Module+"/internal/services/common/convert")
+	}
+	e.addSDKImports(stateImports, stateBody, d.ReadModel)
+	d.StateImports = stateImports.render()
+
+	// Conditional validators.
+	if len(r.Schema.ConditionalRequirements) > 0 {
+		body, err := validatorBody(r.Schema.ConditionalRequirements, nodes)
+		if err != nil {
+			return err
+		}
+		d.HasValidators = true
+		d.ValidatorBody = body
+		validatorImports := newImportSet(e.pc.Module)
+		validatorImports.add("", "context")
+		validatorImports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
+		validatorImports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
+		d.ValidatorImports = validatorImports.render()
+	}
+	return nil
+}
+
+// resourceCRUD builds the four lifecycle call plans and the crud imports.
+func (e *entityRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBinding, nodes []node) error {
+	var err error
+	d.CreateMapsResponse = rb.Create.ResponseType != "" && rb.Create.ResponseType == rb.ReadModel
+	createPayload := ""
+	if d.CreateMapsResponse {
+		createPayload = "created"
+	}
+	if d.CreatePlan, err = buildCallPlan(rb.Create, createPayload, nodes, "data"); err != nil {
+		return fmt.Errorf("create: %w", err)
+	}
+	if d.ReadPlan, err = buildCallPlan(rb.Read, "remote", nodes, "data"); err != nil {
+		return fmt.Errorf("read: %w", err)
+	}
+	if d.ReadPlan.Payload == "" {
+		return fmt.Errorf("read: the bound read call yields no payload to map state from")
+	}
+	if d.DeletePlan, err = buildCallPlan(rb.Delete, "", nodes, "data"); err != nil {
+		return fmt.Errorf("delete: %w", err)
+	}
+	if d.HasUpdate {
+		d.UpdateMapsResponse = rb.Update.ResponseType != "" && rb.Update.ResponseType == rb.ReadModel
+		updatePayload := ""
+		if d.UpdateMapsResponse {
+			updatePayload = "updated"
+		}
+		if d.UpdatePlan, err = buildCallPlan(rb.Update, updatePayload, nodes, "prior"); err != nil {
+			return fmt.Errorf("update: %w", err)
+		}
+		var copies []string
+		for _, p := range rb.Update.Params {
+			field, ferr := paramField(p, nodes, len(rb.Update.Params) == 1)
+			if ferr != nil {
+				return fmt.Errorf("update: %w", ferr)
+			}
+			copies = append(copies, "data."+field+" = prior."+field)
+		}
+		d.UpdateParamCopies = strings.Join(copies, "\n\t")
+	}
+
+	imports := newImportSet(e.pc.Module)
+	imports.add("", "context")
+	imports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
+	imports.add("", e.pc.Module+"/internal/services/common/crud")
+	imports.add("", e.pc.Module+"/internal/services/common/errors")
+	if d.HasEC {
+		imports.add("", "time")
+		imports.add("", "github.com/hashicorp/terraform-plugin-framework/tfsdk")
+	}
+	e.addSDKImports(imports, d.CreatePlan.Assign, d.ReadPlan.Assign, d.DeletePlan.ClosureBody, d.UpdatePlan.Assign)
+	d.CRUDImports = imports.render()
+	return nil
+}
+
+// addSDKImports adds the SDK root and models imports to a set when any of
+// the rendered snippets references their package qualifiers.
+func (e *entityRenderer) addSDKImports(s *importSet, snippets ...string) {
+	joined := strings.Join(snippets, "\n")
+	if strings.Contains(joined, "models.") {
+		s.add("", e.bindings.SDK.ModelsImportPath)
+	}
+	if strings.Contains(joined, "sdk.") {
+		s.add("sdk", e.bindings.SDK.ImportPath)
+	}
+}
+
+// importAttr is the attribute ImportState passes the import identifier
+// through: the read call's single path parameter, when it maps to one.
+func importAttr(r *ir.Resource, nodes []node) string {
+	if r.Ops.Read == nil || len(r.Ops.Read.PathParams) != 1 {
+		return ""
+	}
+	p := r.Ops.Read.PathParams[0]
+	for _, n := range nodes {
+		if n.attr.WireName == p.Name || n.attr.Name == ir.SnakeName(p.Name) {
+			return n.attr.Name
+		}
+	}
+	for _, n := range nodes {
+		if n.attr.Name == "id" {
+			return "id"
+		}
+	}
+	return ""
+}
+
+// validatorBody renders the value-conditional requirement checks.
+func validatorBody(reqs []ir.ConditionalRequirement, nodes []node) (string, error) {
+	byName := map[string]node{}
+	for _, n := range nodes {
+		byName[n.attr.Name] = n
+	}
+	var b strings.Builder
+	for _, req := range reqs {
+		prop, ok := byName[req.Property]
+		if !ok {
+			return "", fmt.Errorf("conditional requirement names %q, which is not an attribute", req.Property)
+		}
+		if prop.attr.Kind != ir.TypeString || prop.attr.Nested != nil {
+			return "", fmt.Errorf("conditional requirement on %q needs a string attribute", req.Property)
+		}
+		fmt.Fprintf(&b, "\tif data.%s.Value%s() == %s {\n",
+			ir.GoName(req.Property), "String", strconv.Quote(req.Equals))
+		for _, required := range req.Required {
+			target, ok := byName[required]
+			if !ok {
+				return "", fmt.Errorf("conditional requirement requires %q, which is not an attribute", required)
+			}
+			fmt.Fprintf(&b, "\t\tif %s {\n", nullCheck(target))
+			fmt.Fprintf(&b, "\t\t\tresp.Diagnostics.AddAttributeError(path.Root(%q),\n", required)
+			fmt.Fprintf(&b, "\t\t\t\t\"Missing required attribute\",\n")
+			fmt.Fprintf(&b, "\t\t\t\t%s)\n", strconv.Quote(
+				fmt.Sprintf("%s must be set when %s is %q.", required, req.Property, req.Equals)))
+			b.WriteString("\t\t}\n")
+		}
+		b.WriteString("\t}\n")
+	}
+	return b.String(), nil
+}
+
+// nullCheck is the absent-value test for one attribute's model field.
+func nullCheck(n node) string {
+	field := "data." + ir.GoName(n.attr.Name)
+	if n.attr.Nested != nil {
+		return field + " == nil"
+	}
+	return field + ".IsNull()"
+}
+
+// resourceMocks builds the stateful responder context from the operations
+// and the fixture derivation.
+func (e *entityRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdkbind.ResourceBinding, spec fixturespec.Spec) error {
+	d.RegistryName = r.Names.TerraformType
+	d.CollectionURL = mockURL(r.Ops.Create.PathTemplate)
+	d.ItemPattern = mockPattern(r.Ops.Read.PathTemplate)
+	d.IDSegmentIndex = paramSegmentIndex(r.Ops.Read.PathTemplate)
+	if d.IDSegmentIndex < 0 {
+		return fmt.Errorf("the read path %s declares no parameter segment for the mock to key on", r.Ops.Read.PathTemplate)
+	}
+	d.IDWire = idWire(rb.Fields)
+	d.ResponseMinimal = string(spec.WireJSON(fixturespec.ResponseMinimal))
+	d.ResponseMaximal = string(spec.WireJSON(fixturespec.ResponseMaximal))
+	d.CreateStatus = successStatus(r.Ops.Create, 201)
+	d.DeleteStatus = successStatus(r.Ops.Delete, 204)
+	d.HasDelete = true
+	if d.HasUpdate {
+		d.UpdateMethod = r.Ops.Update.Method
+		d.UpdateStatus = successStatus(r.Ops.Update, 200)
+	}
+	if r.Ops.List != nil {
+		d.HasList = true
+		d.ListWrap = "value"
+	}
+
+	imports := newImportSet(e.pc.Module)
+	imports.add("", "encoding/json")
+	imports.add("", "net/http")
+	imports.add("", "strings")
+	imports.add("", "sync")
+	if d.HasList {
+		imports.add("", "sort")
+	}
+	imports.add("", "github.com/jarcoal/httpmock")
+	imports.add("providermocks", e.pc.Module+"/internal/mocks")
+	d.MocksImports = imports.render()
+	return nil
+}
+
+// successStatus is an operation's declared success code, or the
+// conventional one.
+func successStatus(op *ir.Op, fallback int) int {
+	if op != nil && op.SuccessCode > 0 {
+		return op.SuccessCode
+	}
+	return fallback
+}
+
+// unitEndpoint mirrors the provider core's mocks.UnitEndpoint; the mock
+// URLs are finished strings, so the spelling lives here too.
+const unitEndpoint = "https://unit.invalid"
+
+// mockURL is the literal URL one collection operation answers on.
+func mockURL(pathTemplate string) string {
+	return unitEndpoint + pathTemplate
+}
+
+// mockPattern is the httpmock regex matching one item operation's URL,
+// each path parameter matching one segment.
+func mockPattern(pathTemplate string) string {
+	segments := strings.Split(strings.Trim(pathTemplate, "/"), "/")
+	out := make([]string, len(segments))
+	for i, seg := range segments {
+		if strings.HasPrefix(seg, "{") && strings.HasSuffix(seg, "}") {
+			out[i] = "([^/]+)"
+			continue
+		}
+		out[i] = regexp.QuoteMeta(seg)
+	}
+	return "=~^" + regexp.QuoteMeta(unitEndpoint) + "/" + strings.Join(out, "/") + "$"
+}
+
+// paramSegmentIndex is the position of the first parameter segment in a
+// path template, for id extraction from a request URL.
+func paramSegmentIndex(pathTemplate string) int {
+	for i, seg := range strings.Split(strings.Trim(pathTemplate, "/"), "/") {
+		if strings.HasPrefix(seg, "{") && strings.HasSuffix(seg, "}") {
+			return i
+		}
+	}
+	return -1
+}
+
+// idWire is the wire name of the id attribute, "id" when none is bound.
+func idWire(fbs []sdkbind.FieldBinding) string {
+	for _, fb := range fbs {
+		if fb.Attr == "id" {
+			return fb.Wire
+		}
+	}
+	return "id"
+}
+
+// resourceChecks builds the terraform test check lines from the fixture
+// derivation: one attribute-set check for the id, one value check per
+// top-level scalar.
+func (e *entityRenderer) resourceChecks(d *resourceData, spec fixturespec.Spec) {
+	address := d.TerraformType + ".test"
+	minimal := checkLines(address, spec, fixturespec.ConfigMinimal)
+	maximal := checkLines(address, spec, fixturespec.ConfigMaximal)
+	idCheck := ""
+	for _, v := range spec.Values {
+		if v.Name == "id" {
+			idCheck = fmt.Sprintf("\t\t\t\t\tresource.TestCheckResourceAttrSet(%q, %q),\n", address, "id")
+			break
+		}
+	}
+	d.MinimalChecks = idCheck + minimal
+	d.MaximalChecks = idCheck + maximal
+
+	// Test imports are shared between the unit and acceptance suites.
+	testImports := newImportSet(e.pc.Module)
+	testImports.add("", "context")
+	testImports.add("_", "embed")
+	testImports.add("", "regexp")
+	testImports.add("", "testing")
+	testImports.add("fwresource", "github.com/hashicorp/terraform-plugin-framework/resource")
+	testImports.add("", "github.com/hashicorp/terraform-plugin-testing/helper/resource")
+	testImports.add("", e.pc.Module+"/internal/mocks")
+	testImports.add(d.Package, d.PackagePath)
+	testImports.add("_", d.PackagePath+"/mocks")
+	d.TestImports = testImports.render()
+
+	accImports := newImportSet(e.pc.Module)
+	accImports.add("_", "embed")
+	accImports.add("", "testing")
+	accImports.add("", "github.com/hashicorp/terraform-plugin-testing/helper/resource")
+	accImports.add("", e.pc.Module+"/internal/acceptance")
+	d.AccImports = accImports.render()
+}
+
+// checkLines renders value checks for the audience's top-level scalars.
+func checkLines(address string, spec fixturespec.Spec, a fixturespec.Audience) string {
+	var b strings.Builder
+	for _, v := range spec.Values {
+		if !valueWanted(v, a) || v.Nested != nil || v.Kind == ir.TypeList {
+			continue
+		}
+		fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %s),\n",
+			address, v.Name, strconv.Quote(checkValue(v.Scalar)))
+	}
+	return b.String()
+}
+
+// valueWanted mirrors the fixture audience selection for check building.
+func valueWanted(v fixturespec.Value, a fixturespec.Audience) bool {
+	switch a {
+	case fixturespec.ConfigMinimal:
+		return v.Presence == ir.PresenceRequired
+	case fixturespec.ConfigMaximal:
+		return v.Presence != ir.PresenceComputed
+	default:
+		return true
+	}
+}
+
+// checkValue renders a fixture scalar the way terraform state prints it.
+func checkValue(scalar any) string {
+	switch v := scalar.(type) {
+	case bool:
+		return strconv.FormatBool(v)
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}

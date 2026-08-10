@@ -1,0 +1,28 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+{{ .ListImports }}
+
+// List streams every object the collection answers with: one result per
+// element, carrying its identity and display name.
+func (r *{{ .Type }}) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
+	client := r.client
+	{{ .ListPlan.Assign }}
+	if err != nil {
+		stream.Results = list.ListResultsStreamDiagnostics(diag.Diagnostics{
+			diag.NewErrorDiagnostic("Listing {{ .TerraformType }} failed", err.Error()),
+		})
+		return
+	}
+
+	elements := {{ .Collection }}
+	stream.Results = func(push func(list.ListResult) bool) {
+		for _, element := range elements {
+			result := req.NewListResult(ctx)
+{{ .ResultLines }}			if !push(result) {
+				return
+			}
+		}
+	}
+}

@@ -1,0 +1,82 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+{{ .ReadImports }}
+
+{{ if .LookupByKey }}
+// Read fetches the one object the key argument identifies.
+func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data {{ .Type }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx, cancel := crud.HandleTimeout(ctx, data.Timeouts.Read, readTimeout, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	defer cancel()
+
+	client := d.client
+{{ if .ReadPlan.ParamDecls }}	{{ .ReadPlan.ParamDecls }}
+{{ end }}	{{ .ReadPlan.Assign }}
+	if err != nil {
+		errors.HandleDatasourceReadError(ctx, err, resp, nil)
+		return
+	}
+
+	MapRemoteStateToDatasource(ctx, &data, {{ .ReadPlan.Payload }})
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+{{ else }}
+// Read lists the collection and keeps what the filter selects.
+func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data {{ .Type }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	filterType := data.FilterType.ValueString()
+	if filterType != "all" && (data.FilterValue.IsNull() || data.FilterValue.ValueString() == "") {
+		resp.Diagnostics.AddError("Missing filter_value",
+			fmt.Sprintf("filter_value must be set when filter_type is %q.", filterType))
+		return
+	}
+
+	ctx, cancel := crud.HandleTimeout(ctx, data.Timeouts.Read, readTimeout, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	defer cancel()
+
+	client := d.client
+	items := []{{ .ItemModel }}{}
+	switch filterType {
+{{- if .HasIDFilter }}
+	case "id":
+		{{ .IDParamDecl }}
+		{{ .ReadPlan.Assign }}
+		if err != nil {
+			errors.HandleDatasourceReadError(ctx, err, resp, nil)
+			return
+		}
+		items = append(items, mapItem(ctx, {{ .ReadPlan.Payload }}))
+{{- end }}
+	default:
+		{{ .ListPlan.Assign }}
+		if err != nil {
+			errors.HandleDatasourceReadError(ctx, err, resp, nil)
+			return
+		}
+		for _, element := range {{ .Collection }} {
+			items = append(items, mapItem(ctx, element))
+		}
+	}
+
+	data.Items = items
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+{{ end }}

@@ -1,0 +1,19 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+{{ .ValidatorImports }}
+
+var _ resource.ResourceWithValidateConfig = (*{{ .Type }})(nil)
+
+// ValidateConfig enforces the value-conditional requirements the document
+// declares: when the deciding attribute takes the stated value, the
+// dependent attributes must be set.
+func (r *{{ .Type }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data {{ .Type }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+{{ .ValidatorBody }}}

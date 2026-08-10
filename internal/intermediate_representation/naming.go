@@ -125,6 +125,21 @@ func (n Names) withKey(provider, key string) Names {
 	return n
 }
 
+// GoName is pascalCase for consumers outside the derivation: the emitter
+// spells model field names and type names from attribute keys, and it must
+// spell them exactly the way the derivation spells entity names — same
+// acronym table, same casing — or the two drift apart file by file.
+func GoName(snake string) string {
+	return pascalCase(snake)
+}
+
+// SnakeName is snakeCase for consumers outside the derivation: the emitter
+// derives terraform spellings for names the model does not carry
+// pre-spelled, such as an action's path parameters.
+func SnakeName(wire string) string {
+	return snakeCase(wire)
+}
+
 // pascalCase turns a snake_case key into its exported Go spelling. Parts
 // in the acronym table uppercase whole: "http_server" is "HTTPServer",
 // never "HttpServer".

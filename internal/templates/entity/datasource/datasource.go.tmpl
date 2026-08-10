@@ -1,0 +1,57 @@
+{{ template "header" . }}
+
+// Package {{ .Package }} serves the {{ .TerraformType }} datasource.
+package {{ .Package }}
+
+{{ .Imports }}
+
+// DatasourceName is the terraform type this datasource serves.
+const DatasourceName = "{{ .TerraformType }}"
+
+// readTimeout bounds one read when the configuration does not say
+// otherwise.
+const readTimeout = {{ .TimeoutRead }}
+
+var (
+	_ datasource.DataSource              = (*{{ .Type }})(nil)
+	_ datasource.DataSourceWithConfigure = (*{{ .Type }})(nil)
+)
+
+// New{{ .Pascal }}Datasource builds the datasource for registration.
+func New{{ .Pascal }}Datasource() datasource.DataSource {
+	return &{{ .Type }}{}
+}
+
+// {{ .Type }} implements the {{ .TerraformType }} datasource.
+type {{ .Type }} struct {
+	client {{ .ClientType }}
+}
+
+// Metadata names the datasource.
+func (d *{{ .Type }}) Metadata(_ context.Context, _ datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = DatasourceName
+}
+
+// Configure receives the SDK client the provider built.
+func (d *{{ .Type }}) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+	c, ok := req.ProviderData.({{ .ClientType }})
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected provider data",
+			fmt.Sprintf("expected {{ .ClientType }}, got %T", req.ProviderData))
+		return
+	}
+	d.client = c
+}
+
+// Schema declares the attributes the revised document derives.
+func (d *{{ .Type }}) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: {{ .SchemaDescription }},
+		Attributes: map[string]schema.Attribute{
+{{ .SchemaAttributes }}			"timeouts": commonschema.DatasourceTimeouts(ctx),
+		},
+	}
+}

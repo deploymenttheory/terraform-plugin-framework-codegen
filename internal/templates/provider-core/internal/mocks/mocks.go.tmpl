@@ -15,9 +15,11 @@ import (
 	"{{ .Module }}/internal/provider"
 )
 
-// unitEndpoint is where unit tests point the provider; nothing listens
+// UnitEndpoint is where unit tests point the provider; nothing listens
 // there, because httpmock intercepts every request before the network.
-const unitEndpoint = "https://unit.invalid"
+// Exported because every generated entity's responders register against
+// URLs under it.
+const UnitEndpoint = "https://unit.invalid"
 
 // ProtoV6ProviderFactories serves the provider in-process for unit tests.
 // Configure builds the real client over http.DefaultTransport, which
@@ -32,7 +34,7 @@ var ProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, erro
 // is a real credential, and t.Setenv restores them when the test ends.
 func SetupUnitTestEnvironment(t *testing.T) {
 	t.Helper()
-	t.Setenv("{{ .EnvPrefix }}_ENDPOINT", unitEndpoint)
+	t.Setenv("{{ .EnvPrefix }}_ENDPOINT", UnitEndpoint)
 {{- if .AuthBearerToken }}
 	t.Setenv("{{ .EnvPrefix }}_API_TOKEN", "unit-test-token")
 {{- end }}
@@ -46,7 +48,7 @@ func SetupUnitTestEnvironment(t *testing.T) {
 {{- if .AuthOAuth2ClientCredentials }}
 	t.Setenv("{{ .EnvPrefix }}_CLIENT_ID", "unit-test-client")
 	t.Setenv("{{ .EnvPrefix }}_CLIENT_SECRET", "unit-test-secret")
-	t.Setenv("{{ .EnvPrefix }}_TOKEN_URL", unitEndpoint+"/oauth2/token")
+	t.Setenv("{{ .EnvPrefix }}_TOKEN_URL", UnitEndpoint+"/oauth2/token")
 {{- end }}
 {{- if .AuthGitHubApp }}
 	t.Setenv("{{ .EnvPrefix }}_APP_ID", "1")
@@ -59,7 +61,7 @@ func SetupUnitTestEnvironment(t *testing.T) {
 // makes before any API call; the registry registers it on every
 // activation so entity mocks never think about authentication.
 func registerAuthMocks() {
-	httpmock.RegisterResponder("POST", unitEndpoint+"/oauth2/token",
+	httpmock.RegisterResponder("POST", UnitEndpoint+"/oauth2/token",
 		httpmock.NewStringResponder(200,
 			`{"access_token":"unit-test-token","token_type":"Bearer","expires_in":3600}`))
 }

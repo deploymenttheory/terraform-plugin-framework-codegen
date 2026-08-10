@@ -1,0 +1,16 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+{{ .ConstructImports }}
+
+// constructResource builds the request body from the plan. isCreate gates
+// the attributes updates silently discard; a null or unknown plan value
+// leaves its field unset.
+func constructResource(ctx context.Context, data *{{ .Type }}Model, isCreate bool) ({{ .ConstructReturnType }}, error) {
+	_ = ctx
+	_ = isCreate
+	body := {{ .WriteConstructor }}
+{{ .ConstructBody }}
+	return body, nil
+}

@@ -1,0 +1,178 @@
+{{ template "header" . }}
+
+// Package mocks serves a stateful in-memory fake of the
+// {{ .TerraformType }} API for unit tests: create stores, read returns,
+// update merges, delete removes — so a create→read→update→delete
+// lifecycle is self-consistent without a network.
+package mocks
+
+{{ .MocksImports }}
+
+// mockState holds the objects the fake API knows, keyed by id and
+// mutex-guarded because the test harness reads while terraform applies.
+var mockState = struct {
+	sync.Mutex
+	objects map[string]map[string]any
+}{objects: map[string]map[string]any{}}
+
+// Wire fixtures, rendered from the same derivation as the terraform
+// fixtures so the two can never disagree.
+const (
+	responseMinimal = `{{ .ResponseMinimal }}`
+)
+
+// URLs this entity's operations answer on.
+const (
+	collectionURL = "{{ .CollectionURL }}"
+	itemPattern   = `{{ .ItemPattern }}`
+)
+
+// {{ .Pascal }}Mock registers this entity's responders.
+type {{ .Pascal }}Mock struct{}
+
+var _ providermocks.MockRegistrar = (*{{ .Pascal }}Mock)(nil)
+
+func init() {
+	providermocks.GlobalRegistry.Register("{{ .RegistryName }}", &{{ .Pascal }}Mock{})
+}
+
+// RegisterMocks registers the happy-path responders and resets the store,
+// so every activation starts from an empty API.
+func (m *{{ .Pascal }}Mock) RegisterMocks() {
+	mockState.Lock()
+	mockState.objects = map[string]map[string]any{}
+	mockState.Unlock()
+
+	httpmock.RegisterResponder("POST", collectionURL, createResponder())
+	httpmock.RegisterResponder("GET", itemPattern, readResponder())
+{{- if .HasUpdate }}
+	httpmock.RegisterResponder("{{ .UpdateMethod }}", itemPattern, updateResponder())
+{{- end }}
+	httpmock.RegisterResponder("DELETE", itemPattern, deleteResponder())
+{{- if .HasList }}
+	httpmock.RegisterResponder("GET", collectionURL, listResponder())
+{{- end }}
+}
+
+// RegisterErrorMocks registers responders that refuse every request.
+func (m *{{ .Pascal }}Mock) RegisterErrorMocks() {
+	httpmock.RegisterResponder("POST", collectionURL,
+		providermocks.ErrorResponse(400, "BadRequest", "the request is invalid"))
+	httpmock.RegisterResponder("GET", itemPattern,
+		providermocks.ErrorResponse(500, "InternalServerError", "the server misbehaved"))
+{{- if .HasUpdate }}
+	httpmock.RegisterResponder("{{ .UpdateMethod }}", itemPattern,
+		providermocks.ErrorResponse(500, "InternalServerError", "the server misbehaved"))
+{{- end }}
+	httpmock.RegisterResponder("DELETE", itemPattern,
+		providermocks.ErrorResponse(409, "Conflict", "the object is locked"))
+}
+
+// requestID extracts the id segment of an item URL.
+func requestID(req *http.Request) string {
+	parts := strings.Split(strings.Trim(req.URL.Path, "/"), "/")
+	if len(parts) <= {{ .IDSegmentIndex }} {
+		return ""
+	}
+	return parts[{{ .IDSegmentIndex }}]
+}
+
+// seeded parses the committed response fixture the store grows from: the
+// server-filled fields a create must answer with.
+func seeded() map[string]any {
+	base := map[string]any{}
+	_ = json.Unmarshal([]byte(responseMinimal), &base)
+	return base
+}
+
+// createResponder answers a create with the fixture's server-filled
+// fields overlaid by whatever the request actually sent.
+func createResponder() httpmock.Responder {
+	return func(req *http.Request) (*http.Response, error) {
+		body := map[string]any{}
+		if req.Body != nil {
+			_ = json.NewDecoder(req.Body).Decode(&body)
+		}
+		object := seeded()
+		for k, v := range body {
+			object[k] = v
+		}
+		id, _ := object["{{ .IDWire }}"].(string)
+		mockState.Lock()
+		mockState.objects[id] = object
+		mockState.Unlock()
+		return providermocks.SuccessResponse({{ .CreateStatus }}, object)(req)
+	}
+}
+
+// readResponder answers reads from the store, 404 for an id it never saw.
+func readResponder() httpmock.Responder {
+	return func(req *http.Request) (*http.Response, error) {
+		mockState.Lock()
+		object, ok := mockState.objects[requestID(req)]
+		mockState.Unlock()
+		if !ok {
+			return providermocks.ErrorResponse(404, "NotFound", "no such object")(req)
+		}
+		return providermocks.SuccessResponse(200, object)(req)
+	}
+}
+{{ if .HasUpdate }}
+// updateResponder merges the request into the stored object.
+func updateResponder() httpmock.Responder {
+	return func(req *http.Request) (*http.Response, error) {
+		id := requestID(req)
+		mockState.Lock()
+		object, ok := mockState.objects[id]
+		if !ok {
+			mockState.Unlock()
+			return providermocks.ErrorResponse(404, "NotFound", "no such object")(req)
+		}
+		body := map[string]any{}
+		if req.Body != nil {
+			_ = json.NewDecoder(req.Body).Decode(&body)
+		}
+		for k, v := range body {
+			object[k] = v
+		}
+		mockState.objects[id] = object
+		mockState.Unlock()
+		return providermocks.SuccessResponse({{ .UpdateStatus }}, object)(req)
+	}
+}
+{{ end }}
+// deleteResponder removes the object; deleting the already-gone is 404,
+// which the provider's delete policy reads as success.
+func deleteResponder() httpmock.Responder {
+	return func(req *http.Request) (*http.Response, error) {
+		id := requestID(req)
+		mockState.Lock()
+		_, ok := mockState.objects[id]
+		delete(mockState.objects, id)
+		mockState.Unlock()
+		if !ok {
+			return providermocks.ErrorResponse(404, "NotFound", "no such object")(req)
+		}
+		return providermocks.EmptySuccessResponse({{ .DeleteStatus }})(req)
+	}
+}
+{{ if .HasList }}
+// listResponder answers with every stored object, id-sorted so the answer
+// is deterministic.
+func listResponder() httpmock.Responder {
+	return func(req *http.Request) (*http.Response, error) {
+		mockState.Lock()
+		ids := make([]string, 0, len(mockState.objects))
+		for id := range mockState.objects {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		items := make([]map[string]any, 0, len(ids))
+		for _, id := range ids {
+			items = append(items, mockState.objects[id])
+		}
+		mockState.Unlock()
+		return providermocks.SuccessResponse(200, map[string]any{"{{ .ListWrap }}": items})(req)
+	}
+}
+{{ end }}

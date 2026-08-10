@@ -1,0 +1,23 @@
+{{ template "header" . }}
+
+package {{ .Package }}
+
+{{ .StateImports }}
+
+{{ if .LookupByKey }}
+// MapRemoteStateToDatasource maps the API's answer onto the framework
+// model. A nil field in the answer becomes a null attribute.
+func MapRemoteStateToDatasource(ctx context.Context, data *{{ .Type }}Model, remote {{ .ReadModel }}) {
+	_ = ctx
+	if remote == nil {
+		return
+	}
+{{ .StateBody }}}
+{{ else }}
+// mapItem maps one listed element onto the item model.
+func mapItem(ctx context.Context, remote {{ .ElementType }}) {{ .ItemModel }} {
+	_ = ctx
+	item := {{ .ItemModel }}{}
+{{ .MapItemBody }}	return item
+}
+{{ end }}

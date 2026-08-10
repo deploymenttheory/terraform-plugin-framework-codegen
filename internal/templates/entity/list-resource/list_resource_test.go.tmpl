@@ -1,0 +1,85 @@
+{{ template "header" . }}
+
+package {{ .Package }}_test
+
+{{ .TestImports }}
+
+//go:embed tests/responses/list.json
+var listResponse string
+
+// identitySchema mirrors what terraform supplies at runtime, so the
+// streamed identities have somewhere to land.
+var identitySchema = identityschema.Schema{
+	Attributes: map[string]identityschema.Attribute{
+		"id": identityschema.StringAttribute{RequiredForImport: true},
+	},
+}
+
+// TestUnit{{ .Pascal }}ListResource_Schema holds the metadata and the
+// configuration schema.
+func TestUnit{{ .Pascal }}ListResource_Schema(t *testing.T) {
+	ctx := context.Background()
+	lr := {{ .Package }}.New{{ .Pascal }}ListResource()
+
+	metaResp := &resource.MetadataResponse{}
+	lr.Metadata(ctx, resource.MetadataRequest{}, metaResp)
+	if metaResp.TypeName != "{{ .TerraformType }}" {
+		t.Fatalf("type name = %q", metaResp.TypeName)
+	}
+
+	schemaResp := &list.ListResourceSchemaResponse{}
+	lr.ListResourceConfigSchema(ctx, list.ListResourceSchemaRequest{}, schemaResp)
+	if schemaResp.Diagnostics.HasError() {
+		t.Fatalf("schema diagnostics: %v", schemaResp.Diagnostics)
+	}
+}
+
+// TestUnit{{ .Pascal }}ListResource_List streams the mock collection and
+// holds the results to the derived fixture values.
+func TestUnit{{ .Pascal }}ListResource_List(t *testing.T) {
+{{- if .AuthGitHubApp }}
+	t.Skip("github_app client construction is not supported by generated providers yet")
+{{- end }}
+	ctx := context.Background()
+	mocks.GlobalRegistry.ActivateMocks("{{ .TerraformType }}.list")
+	defer mocks.GlobalRegistry.DeactivateAndReset()
+	httpmock.RegisterResponder("GET", "{{ .CollectionURL }}",
+		httpmock.NewStringResponder(200, listResponse))
+
+	sdkClient, err := client.NewSDKClient(client.Config{Endpoint: mocks.UnitEndpoint, UserAgent: "unit-test"{{ .TestClientConfig }}})
+	if err != nil {
+		t.Fatalf("building the SDK client: %v", err)
+	}
+
+	lr := {{ .Package }}.New{{ .Pascal }}ListResource()
+	configurable, ok := lr.(list.ListResourceWithConfigure)
+	if !ok {
+		t.Fatal("the list resource does not accept configuration")
+	}
+	confResp := &resource.ConfigureResponse{}
+	configurable.Configure(ctx, resource.ConfigureRequest{ProviderData: sdkClient}, confResp)
+	if confResp.Diagnostics.HasError() {
+		t.Fatalf("configure diagnostics: %v", confResp.Diagnostics)
+	}
+
+	stream := &list.ListResultsStream{}
+	lr.List(ctx, list.ListRequest{ResourceIdentitySchema: identitySchema}, stream)
+
+	var ids []string
+	for result := range stream.Results {
+		if result.Diagnostics.HasError() {
+			t.Fatalf("result diagnostics: %v", result.Diagnostics)
+		}
+		var identity identityModelForTest
+		result.Identity.Get(ctx, &identity)
+		ids = append(ids, identity.ID.ValueString())
+	}
+	if len(ids) != 1 || ids[0] != "{{ .ExpectedFirstID }}" {
+		t.Fatalf("streamed ids = %v", ids)
+	}
+}
+
+// identityModelForTest mirrors the identity schema for reading results.
+type identityModelForTest struct {
+	ID types.String `tfsdk:"id"`
+}
