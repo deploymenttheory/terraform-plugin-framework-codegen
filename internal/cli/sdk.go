@@ -15,6 +15,7 @@ func newSDKCommand() *cobra.Command {
 		Short: "work with the generated SDK",
 	}
 	group.AddCommand(newSDKGenerateCommand())
+	group.AddCommand(newSDKVerifyCommand())
 	return group
 }
 
