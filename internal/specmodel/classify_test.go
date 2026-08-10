@@ -98,6 +98,7 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 		// wantExcluded maps entity key -> a substring of its reason.
 		wantExcluded  map[string]string
 		missingUpdate map[string]bool
+		lookupByKey   map[string]bool
 	}{
 		{
 			name:          "full lifecycle is a resource and a datasource",
@@ -110,21 +111,27 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 			paths:         crud("/tags", "post!") + crud("/tags/{tagId}", "get!", "delete"),
 			wantKinds:     map[string]string{"tag": "resource,datasource"},
 			missingUpdate: map[string]bool{"tag": true},
+			// A resource's by-id datasource is its normal companion,
+			// even with no list operation — not a key lookup.
+			lookupByKey: map[string]bool{"tag": false},
 		},
 		{
-			name:      "create and read without delete is not a resource but lists as a datasource",
-			paths:     crud("/tags", "get!", "post!") + crud("/tags/{tagId}", "get!"),
-			wantKinds: map[string]string{"tag": "datasource"},
+			name:        "create and read without delete is not a resource but lists as a datasource",
+			paths:       crud("/tags", "get!", "post!") + crud("/tags/{tagId}", "get!"),
+			wantKinds:   map[string]string{"tag": "datasource"},
+			lookupByKey: map[string]bool{"tag": false},
 		},
 		{
-			name:         "create and read without delete or list classifies as nothing",
-			paths:        crud("/tags", "post!") + crud("/tags/{tagId}", "get!"),
-			wantExcluded: map[string]string{"tag": "not deletable"},
+			name:        "create and read without delete or list is a datasource looked up by key",
+			paths:       crud("/tags", "post!") + crud("/tags/{tagId}", "get!"),
+			wantKinds:   map[string]string{"tag": "datasource"},
+			lookupByKey: map[string]bool{"tag": true},
 		},
 		{
-			name:      "list plus item get is a datasource",
-			paths:     crud("/regions", "get!") + crud("/regions/{regionId}", "get!"),
-			wantKinds: map[string]string{"region": "datasource"},
+			name:        "list plus item get is a datasource",
+			paths:       crud("/regions", "get!") + crud("/regions/{regionId}", "get!"),
+			wantKinds:   map[string]string{"region": "datasource"},
+			lookupByKey: map[string]bool{"region": false},
 		},
 		{
 			name:      "list without an item get is a list-resource",
@@ -132,9 +139,15 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 			wantKinds: map[string]string{"metric": "list-resource"},
 		},
 		{
-			name:         "item get without a list classifies as nothing",
-			paths:        crud("/settings/{settingId}", "get!"),
-			wantExcluded: map[string]string{"setting": "readable by id only"},
+			name:        "item get without a list is a datasource looked up by the item path key",
+			paths:       crud("/settings/{settingId}", "get!"),
+			wantKinds:   map[string]string{"setting": "datasource"},
+			lookupByKey: map[string]bool{"setting": true},
+		},
+		{
+			name:         "item get without a list or a response schema is excluded",
+			paths:        crud("/settings/{settingId}", "get"),
+			wantExcluded: map[string]string{"setting": "readable by id but the read success response declares no schema"},
 		},
 		{
 			name:      "a post under an item path is an action",
@@ -202,6 +215,11 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 			for key, want := range tc.missingUpdate {
 				if c := classified[key]; c.MissingUpdate != want {
 					t.Errorf("entity %q MissingUpdate = %v, want %v", key, c.MissingUpdate, want)
+				}
+			}
+			for key, want := range tc.lookupByKey {
+				if c := classified[key]; c.LookupByKey != want {
+					t.Errorf("entity %q LookupByKey = %v, want %v", key, c.LookupByKey, want)
 				}
 			}
 			for key, want := range tc.wantExcluded {

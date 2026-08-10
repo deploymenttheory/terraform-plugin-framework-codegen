@@ -65,6 +65,12 @@ type Classification struct {
 	// MissingUpdate is true on a resource with no update operation, which
 	// downstream turns into RequiresReplace on every attribute.
 	MissingUpdate bool
+	// LookupByKey is true on a datasource whose only access is the item
+	// GET: there is no list operation, so the generated datasource takes
+	// the item path parameter — often a name in name-addressed APIs — as
+	// its required argument and returns the object it identifies, id
+	// included. HCL supplies the key, gets the object back.
+	LookupByKey bool
 }
 
 // Exclusion is one entity that classifies as nothing, and why. The reasons
@@ -170,6 +176,9 @@ func (e *entity) decide() (Classification, *Exclusion) {
 	dsShape := e.list != nil && e.read != nil
 	dsOK := dsShape && e.read.SuccessSchema() != nil && e.list.SuccessSchema() != nil
 
+	lookupShape := e.read != nil && e.list == nil
+	lookupOK := lookupShape && e.read.SuccessSchema() != nil
+
 	listOnlyShape := e.list != nil && e.read == nil
 	listOK := listOnlyShape && e.list.SuccessSchema() != nil
 
@@ -185,8 +194,10 @@ func (e *entity) decide() (Classification, *Exclusion) {
 			}
 		case KindDatasource:
 			// A resource is always also readable by id, so it yields a
-			// datasource whether or not the API can list it.
-			if resourceOK || dsOK {
+			// datasource whether or not the API can list it. An entity
+			// whose only access is the item GET yields one too: the
+			// caller supplies the item path key and reads the object.
+			if resourceOK || dsOK || lookupOK {
 				kinds = append(kinds, k)
 			}
 		case KindListResource:
@@ -205,7 +216,7 @@ func (e *entity) decide() (Classification, *Exclusion) {
 			Key:            e.key,
 			CollectionPath: e.collection,
 			ItemPath:       e.item,
-			Reason:         e.exclusionReason(resourceShape, dsShape, listOnlyShape),
+			Reason:         e.exclusionReason(resourceShape, dsShape, listOnlyShape, lookupShape),
 		}
 	}
 
@@ -221,12 +232,16 @@ func (e *entity) decide() (Classification, *Exclusion) {
 		List:           opRef(e.list),
 		Extra:          extraRefs(e.extra),
 		MissingUpdate:  resourceOK && e.update == nil,
+		// A resource's by-id datasource is its normal companion, not a
+		// key lookup; the flag marks the datasources that exist only
+		// because the item GET does.
+		LookupByKey: lookupOK && !resourceOK,
 	}, nil
 }
 
 // exclusionReason says why nothing fit, most specific first: a shape that
 // matched but lacked schemas beats a recital of what was missing.
-func (e *entity) exclusionReason(resourceShape, dsShape, listOnlyShape bool) string {
+func (e *entity) exclusionReason(resourceShape, dsShape, listOnlyShape, lookupShape bool) string {
 	switch {
 	case resourceShape:
 		return "create, read and delete are present but the create request or read success response declares no schema"
@@ -234,10 +249,10 @@ func (e *entity) exclusionReason(resourceShape, dsShape, listOnlyShape bool) str
 		return "list and read are present but a success response schema is missing"
 	case listOnlyShape:
 		return "list is present but its success response declares no schema"
-	case e.create != nil && e.read != nil:
-		return "creatable and readable but not deletable, which Terraform cannot own"
-	case e.read != nil:
-		return "readable by id only: no list operation and no lifecycle"
+	case lookupShape:
+		// Any read reaching here lacks a schema: with one it would have
+		// classified as at least a lookup-by-key datasource.
+		return "readable by id but the read success response declares no schema"
 	}
 
 	present := e.presentRoles()
