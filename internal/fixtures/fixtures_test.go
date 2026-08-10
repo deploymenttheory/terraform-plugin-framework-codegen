@@ -1,4 +1,4 @@
-package fixturespec
+package fixtures
 
 import (
 	"bytes"
@@ -41,15 +41,15 @@ func testTree() *ir.AttributeTree {
 	}
 }
 
-func valueByName(t *testing.T, s Spec, name string) Value {
+func valueByName(t *testing.T, s Fixture, name string) Entry {
 	t.Helper()
-	for _, v := range s.Values {
+	for _, v := range s.Entries {
 		if v.Name == name {
 			return v
 		}
 	}
 	t.Fatalf("no derived value for %s", name)
-	return Value{}
+	return Entry{}
 }
 
 func TestUnit_Fixturespec_DerivationIsDeterministicAndTypeDriven(t *testing.T) {
@@ -59,7 +59,7 @@ func TestUnit_Fixturespec_DerivationIsDeterministicAndTypeDriven(t *testing.T) {
 		t.Fatal("two derivations of the same tree disagree")
 	}
 
-	if got := valueByName(t, s, "name").Scalar; got != TestPrefix+"name" {
+	if got := valueByName(t, s, "name").Scalar; got != NamePrefix+"name" {
 		t.Fatalf("name = %v", got)
 	}
 	if got := valueByName(t, s, "enabled").Scalar; got != true {
@@ -77,7 +77,7 @@ func TestUnit_Fixturespec_DerivationIsDeterministicAndTypeDriven(t *testing.T) {
 	if got := valueByName(t, s, "mode").Scalar; got != "auto" {
 		t.Fatalf("an open enum must take its first advisory value, got %v", got)
 	}
-	if got := valueByName(t, s, "tags").Scalar; got != TestPrefix+"tags" {
+	if got := valueByName(t, s, "tags").Scalar; got != NamePrefix+"tags" {
 		t.Fatalf("tags element = %v", got)
 	}
 
@@ -86,18 +86,18 @@ func TestUnit_Fixturespec_DerivationIsDeterministicAndTypeDriven(t *testing.T) {
 		t.Fatalf("settings nested = %+v", settings.Nested)
 	}
 	rules := valueByName(t, s, "rules")
-	if len(rules.Nested) != 1 || rules.Nested[0].Scalar != TestPrefix+"rules-pattern" {
+	if len(rules.Nested) != 1 || rules.Nested[0].Scalar != NamePrefix+"rules-pattern" {
 		t.Fatalf("a nested string value must carry the full dashed path, got %+v", rules.Nested)
 	}
 }
 
 func TestUnit_Fixturespec_SkipsCarryTheirReason(t *testing.T) {
 	s := Derive(testTree())
-	if len(s.Skipped) != 1 {
-		t.Fatalf("skips = %+v", s.Skipped)
+	if len(s.Omissions) != 1 {
+		t.Fatalf("skips = %+v", s.Omissions)
 	}
-	if s.Skipped[0].Name != "blob" || !strings.Contains(s.Skipped[0].Reason, "free-form") {
-		t.Fatalf("skip = %+v", s.Skipped[0])
+	if s.Omissions[0].Name != "blob" || !strings.Contains(s.Omissions[0].Reason, "free-form") {
+		t.Fatalf("skip = %+v", s.Omissions[0])
 	}
 
 	nested := &ir.AttributeTree{Attributes: []ir.Attribute{
@@ -107,14 +107,14 @@ func TestUnit_Fixturespec_SkipsCarryTheirReason(t *testing.T) {
 			}}},
 	}}
 	deep := Derive(nested)
-	if len(deep.Skipped) != 1 || deep.Skipped[0].Name != "outer.inner" {
-		t.Fatalf("a nested skip must carry its dotted path, got %+v", deep.Skipped)
+	if len(deep.Omissions) != 1 || deep.Omissions[0].Name != "outer.inner" {
+		t.Fatalf("a nested skip must carry its dotted path, got %+v", deep.Omissions)
 	}
-	if deep.Skipped[0].Reason == "" {
+	if deep.Omissions[0].Reason == "" {
 		t.Fatal("a skip without a stated reason must still carry a fallback reason")
 	}
 
-	if empty := Derive(nil); len(empty.Values) != 0 || len(empty.Skipped) != 0 {
+	if empty := Derive(nil); len(empty.Entries) != 0 || len(empty.Omissions) != 0 {
 		t.Fatalf("a nil tree must derive an empty spec, got %+v", empty)
 	}
 }
@@ -122,9 +122,9 @@ func TestUnit_Fixturespec_SkipsCarryTheirReason(t *testing.T) {
 func TestUnit_Fixturespec_AudiencesSelectByPresence(t *testing.T) {
 	s := Derive(testTree())
 
-	names := func(a Audience) []string {
+	names := func(a Form) []string {
 		var out []string
-		for _, v := range selected(s.Values, a) {
+		for _, v := range selected(s.Entries, a) {
 			out = append(out, v.Name)
 		}
 		return out
@@ -189,7 +189,7 @@ func TestUnit_Fixturespec_WireJSONKeepsTreeOrderAndParses(t *testing.T) {
 	if err := json.Unmarshal(got, &parsed); err != nil {
 		t.Fatalf("the wire rendering is not JSON: %v\n%s", err, got)
 	}
-	if parsed["id"] != TestPrefix+"id" || parsed["name"] != TestPrefix+"name" {
+	if parsed["id"] != NamePrefix+"id" || parsed["name"] != NamePrefix+"name" {
 		t.Fatalf("wire values = %v", parsed)
 	}
 
@@ -204,7 +204,7 @@ func TestUnit_Fixturespec_WireJSONKeepsTreeOrderAndParses(t *testing.T) {
 	}
 
 	wire := s.WireValue(ResponseMaximal)
-	if !reflect.DeepEqual(wire["tags"], []any{TestPrefix + "tags"}) {
+	if !reflect.DeepEqual(wire["tags"], []any{NamePrefix + "tags"}) {
 		t.Fatalf("tags wire = %#v", wire["tags"])
 	}
 	settings, ok := wire["settings"].(map[string]any)

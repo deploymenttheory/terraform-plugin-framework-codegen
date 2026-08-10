@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixturespec"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
 )
@@ -90,7 +90,7 @@ type resourceData struct {
 }
 
 // resource renders one resource's complete file set.
-func (e *entityRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) ([]File, error) {
+func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) ([]File, error) {
 	if r.Ops.Create == nil || rb.Create == nil || r.Ops.Read == nil || rb.Read == nil ||
 		r.Ops.Delete == nil || rb.Delete == nil {
 		return nil, fmt.Errorf("a resource needs bound create, read and delete calls")
@@ -136,7 +136,7 @@ func (e *entityRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) (
 
 	renderGo := func(tmpl, out string) error {
 		d.Source = "entity/resource/" + tmpl
-		f, err := e.renderEntityFile("resource/"+tmpl, path.Join(dir, out), r.Names.Key, d)
+		f, err := e.renderServiceFile("resource/"+tmpl, path.Join(dir, out), r.Names.Key, d)
 		if err != nil {
 			return err
 		}
@@ -176,7 +176,7 @@ func (e *entityRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) (
 }
 
 // resourceCode builds the schema, model, construct and state contexts.
-func (e *entityRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkbind.ResourceBinding, nodes []node) error {
+func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkbind.ResourceBinding, nodes []node) error {
 	// Schema.
 	imports := newImportSet(e.pc.Module)
 	imports.add("", "context")
@@ -267,7 +267,7 @@ func (e *entityRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkbi
 }
 
 // resourceCRUD builds the four lifecycle call plans and the crud imports.
-func (e *entityRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBinding, nodes []node) error {
+func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBinding, nodes []node) error {
 	var err error
 	d.CreateMapsResponse = rb.Create.ResponseType != "" && rb.Create.ResponseType == rb.ReadModel
 	createPayload := ""
@@ -322,7 +322,7 @@ func (e *entityRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBindi
 
 // addSDKImports adds the SDK root and models imports to a set when any of
 // the rendered snippets references their package qualifiers.
-func (e *entityRenderer) addSDKImports(s *importSet, snippets ...string) {
+func (e *serviceRenderer) addSDKImports(s *importSet, snippets ...string) {
 	joined := strings.Join(snippets, "\n")
 	if strings.Contains(joined, "models.") {
 		s.add("", e.bindings.SDK.ModelsImportPath)
@@ -340,7 +340,7 @@ func importAttr(r *ir.Resource, nodes []node) string {
 	}
 	p := r.Ops.Read.PathParams[0]
 	for _, n := range nodes {
-		if n.attr.WireName == p.Name || n.attr.Name == ir.SnakeName(p.Name) {
+		if n.attr.WireName == p.Name || n.attr.Name == ir.TerraformName(p.Name) {
 			return n.attr.Name
 		}
 	}
@@ -397,7 +397,7 @@ func nullCheck(n node) string {
 
 // resourceMocks builds the stateful responder context from the operations
 // and the fixture derivation.
-func (e *entityRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdkbind.ResourceBinding, spec fixturespec.Spec) error {
+func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdkbind.ResourceBinding, spec fixtures.Fixture) error {
 	d.RegistryName = r.Names.TerraformType
 	d.CollectionURL = mockURL(r.Ops.Create.PathTemplate)
 	d.ItemPattern = mockPattern(r.Ops.Read.PathTemplate)
@@ -406,8 +406,8 @@ func (e *entityRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdkb
 		return fmt.Errorf("the read path %s declares no parameter segment for the mock to key on", r.Ops.Read.PathTemplate)
 	}
 	d.IDWire = idWire(rb.Fields)
-	d.ResponseMinimal = string(spec.WireJSON(fixturespec.ResponseMinimal))
-	d.ResponseMaximal = string(spec.WireJSON(fixturespec.ResponseMaximal))
+	d.ResponseMinimal = string(spec.WireJSON(fixtures.ResponseMinimal))
+	d.ResponseMaximal = string(spec.WireJSON(fixtures.ResponseMaximal))
 	d.CreateStatus = successStatus(r.Ops.Create, 201)
 	d.DeleteStatus = successStatus(r.Ops.Delete, 204)
 	d.HasDelete = true
@@ -491,12 +491,12 @@ func idWire(fbs []sdkbind.FieldBinding) string {
 // resourceChecks builds the terraform test check lines from the fixture
 // derivation: one attribute-set check for the id, one value check per
 // top-level scalar.
-func (e *entityRenderer) resourceChecks(d *resourceData, spec fixturespec.Spec) {
+func (e *serviceRenderer) resourceChecks(d *resourceData, spec fixtures.Fixture) {
 	address := d.TerraformType + ".test"
-	minimal := checkLines(address, spec, fixturespec.ConfigMinimal)
-	maximal := checkLines(address, spec, fixturespec.ConfigMaximal)
+	minimal := checkLines(address, spec, fixtures.ConfigMinimal)
+	maximal := checkLines(address, spec, fixtures.ConfigMaximal)
 	idCheck := ""
-	for _, v := range spec.Values {
+	for _, v := range spec.Entries {
 		if v.Name == "id" {
 			idCheck = fmt.Sprintf("\t\t\t\t\tresource.TestCheckResourceAttrSet(%q, %q),\n", address, "id")
 			break
@@ -527,9 +527,9 @@ func (e *entityRenderer) resourceChecks(d *resourceData, spec fixturespec.Spec) 
 }
 
 // checkLines renders value checks for the audience's top-level scalars.
-func checkLines(address string, spec fixturespec.Spec, a fixturespec.Audience) string {
+func checkLines(address string, spec fixtures.Fixture, a fixtures.Form) string {
 	var b strings.Builder
-	for _, v := range spec.Values {
+	for _, v := range spec.Entries {
 		if !valueWanted(v, a) || v.Nested != nil || v.Kind == ir.TypeList {
 			continue
 		}
@@ -540,11 +540,11 @@ func checkLines(address string, spec fixturespec.Spec, a fixturespec.Audience) s
 }
 
 // valueWanted mirrors the fixture audience selection for check building.
-func valueWanted(v fixturespec.Value, a fixturespec.Audience) bool {
+func valueWanted(v fixtures.Entry, a fixtures.Form) bool {
 	switch a {
-	case fixturespec.ConfigMinimal:
+	case fixtures.ConfigMinimal:
 		return v.Presence == ir.PresenceRequired
-	case fixturespec.ConfigMaximal:
+	case fixtures.ConfigMaximal:
 		return v.Presence != ir.PresenceComputed
 	default:
 		return true

@@ -5,8 +5,8 @@ package {{ .Package }}
 
 {{ .Imports }}
 
-// DatasourceName is the terraform type this datasource serves.
-const DatasourceName = "{{ .TerraformType }}"
+// DataSourceName is the terraform type this datasource serves.
+const DataSourceName = "{{ .TerraformType }}"
 
 // readTimeout bounds one read when the configuration does not say
 // otherwise.
@@ -29,7 +29,7 @@ type {{ .Type }} struct {
 
 // Metadata names the datasource.
 func (d *{{ .Type }}) Metadata(_ context.Context, _ datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = DatasourceName
+	resp.TypeName = DataSourceName
 }
 
 // Configure receives the SDK client the provider built.

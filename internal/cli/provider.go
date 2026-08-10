@@ -55,7 +55,7 @@ func (f *providerFlags) options() (providergen.Options, error) {
 // newProviderGenerateCommand generates the complete provider tree from the
 // revised spec and the generated SDK: derive the intermediate
 // representation, bind and prune against the real SDK, render the provider
-// core and every entity, splice the registrations, land everything through
+// core and every entity, register the registrations, land everything through
 // a staging directory, and record every file in the manifest. Prunings are
 // reported one line each, and — toolchain permitting — the installed tree
 // is held to `go mod tidy`, `go build` and `go vet`.

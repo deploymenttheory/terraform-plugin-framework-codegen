@@ -12,7 +12,7 @@ import (
 // every given fragment.
 func expectRenderError(t *testing.T, pc ProviderCore, m *ir.Model, b *sdkbind.Bindings, fragments ...string) {
 	t.Helper()
-	_, err := RenderEntities(pc, m, b)
+	_, err := RenderServices(pc, m, b)
 	if err == nil {
 		t.Fatalf("rendering must fail (%s)", strings.Join(fragments, ", "))
 	}
@@ -23,28 +23,28 @@ func expectRenderError(t *testing.T, pc ProviderCore, m *ir.Model, b *sdkbind.Bi
 	}
 }
 
-func TestUnit_RenderEntities_RefusesAnUnrenderableContext(t *testing.T) {
-	if _, err := RenderEntities(ProviderCore{}, fictionalModel(), fictionalBindings()); err == nil {
+func TestUnit_RenderServices_RefusesAnUnrenderableContext(t *testing.T) {
+	if _, err := RenderServices(ProviderCore{}, fictionalModel(), fictionalBindings()); err == nil {
 		t.Fatal("an empty provider-core context must be refused")
 	}
-	if _, err := RenderEntities(fictionalProviderCore(), nil, fictionalBindings()); err == nil {
+	if _, err := RenderServices(fictionalProviderCore(), nil, fictionalBindings()); err == nil {
 		t.Fatal("a nil model must be refused")
 	}
-	if _, err := RenderEntities(fictionalProviderCore(), fictionalModel(), nil); err == nil {
+	if _, err := RenderServices(fictionalProviderCore(), fictionalModel(), nil); err == nil {
 		t.Fatal("nil bindings must be refused")
 	}
 }
 
-func TestUnit_RenderEntities_SkipsEntitiesTheBindingsLack(t *testing.T) {
+func TestUnit_RenderServices_SkipsEntitiesTheBindingsLack(t *testing.T) {
 	b := fictionalBindings()
 	delete(b.Resources, "alert_rule")
 	delete(b.Datasources, "license")
 	delete(b.ListResources, "audit_event")
 	delete(b.Actions, "http_server_restart")
 
-	out, err := RenderEntities(fictionalProviderCore(), fictionalModel(), b)
+	out, err := RenderServices(fictionalProviderCore(), fictionalModel(), b)
 	if err != nil {
-		t.Fatalf("RenderEntities: %v", err)
+		t.Fatalf("RenderServices: %v", err)
 	}
 	for _, f := range out.Files {
 		if strings.Contains(f.Path, "alert_rule") || strings.Contains(f.Path, "license") ||
@@ -57,7 +57,7 @@ func TestUnit_RenderEntities_SkipsEntitiesTheBindingsLack(t *testing.T) {
 	}
 }
 
-func TestUnit_RenderEntities_NamesTheEntityAndAttributeAtFault(t *testing.T) {
+func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	pc := fictionalProviderCore()
 
 	// A resource without a bound delete call.
@@ -196,7 +196,7 @@ func TestUnit_Emit_HelperSpellings(t *testing.T) {
 	}
 
 	// The auth-specific client.Config fragments the direct-call tests use.
-	e := &entityRenderer{pc: fictionalProviderCore()}
+	e := &serviceRenderer{pc: fictionalProviderCore()}
 	if got := e.testClientConfig(); !strings.Contains(got, "APIToken") {
 		t.Fatalf("bearer fragment = %q", got)
 	}

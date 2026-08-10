@@ -24,19 +24,19 @@ func TestUnit_FirstServerURL_EmptyWithoutServers(t *testing.T) {
 	}
 }
 
-func TestUnit_SpliceRegistries_MissingRegistryFileIsRefused(t *testing.T) {
-	_, err := spliceRegistries(nil, emit.Registrations{})
+func TestUnit_RegisterServices_MissingRegistryFileIsRefused(t *testing.T) {
+	_, err := registerServices(nil, emit.Registry{})
 	if err == nil || !strings.Contains(err.Error(), "internal/provider/resources.go") {
 		t.Fatalf("err = %v; a core without its registry file must refuse by name", err)
 	}
 }
 
-func TestUnit_SpliceRegistries_SentinellessFileIsRefused(t *testing.T) {
+func TestUnit_RegisterServices_SentinellessFileIsRefused(t *testing.T) {
 	core := make([]emit.File, 0, len(registryFiles))
 	for _, path := range registryFiles {
 		core = append(core, emit.File{Path: path, Content: []byte("package provider\n")})
 	}
-	_, err := spliceRegistries(core, emit.Registrations{})
+	_, err := registerServices(core, emit.Registry{})
 	if err == nil || !strings.Contains(err.Error(), "sentinel") {
 		t.Fatalf("err = %v; a registry file without its sentinel must refuse", err)
 	}

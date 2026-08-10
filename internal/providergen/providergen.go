@@ -5,7 +5,7 @@
 // The pipeline is fixed: load the revised document, derive the intermediate
 // representation, draft SDK bindings and resolve them against the real SDK
 // with go/types (prune, then verify), render the provider core and every
-// entity, splice the registrations into the registry files, and land the
+// entity, register the registrations into the registry files, and land the
 // whole set through a staging directory so a failing run cannot leave a
 // half-written tree. The manifest records every file under the empty
 // origin — `provider generate`'s own, by the manifest package's convention —
@@ -67,7 +67,7 @@ type Result struct {
 }
 
 // Run generates the provider tree: derive, bind, prune, verify, render,
-// splice, then land everything through a staging directory and record it in
+// register, then land everything through a staging directory and record it in
 // the manifest under the empty origin.
 //
 // The write to the repo is deliberately last: every failure mode — a missing
@@ -151,7 +151,7 @@ func IR(opts Options) ([]byte, error) {
 }
 
 // generation is what the shared pipeline stages produce: the fully rendered
-// file set — registry files spliced — and the run report so far.
+// file set — registry files registered — and the run report so far.
 type generation struct {
 	res   Result
 	files []emit.File
@@ -160,7 +160,7 @@ type generation struct {
 // generate runs the stages `provider generate` and `provider verify` share:
 // load the revised document, require the SDK, derive the intermediate
 // representation, bind-prune-verify against the real SDK, render the
-// provider core and the entities, and splice the registrations. Nothing
+// provider core and the entities, and register the registrations. Nothing
 // under Root is written; what becomes of the files is the caller's
 // question — Run installs them, Verify compares and discards them.
 func generate(opts Options) (*generation, error) {
@@ -214,11 +214,11 @@ func generate(opts Options) (*generation, error) {
 	if err != nil {
 		return nil, err
 	}
-	entities, err := emit.RenderEntities(pc, model, bindings)
+	entities, err := emit.RenderServices(pc, model, bindings)
 	if err != nil {
 		return nil, err
 	}
-	core, err = spliceRegistries(core, entities.Registrations)
+	core, err = registerServices(core, entities.Registrations)
 	if err != nil {
 		return nil, err
 	}
@@ -300,29 +300,29 @@ var registryFiles = map[string]string{
 	"actions":        "internal/provider/actions.go",
 }
 
-// spliceRegistries replaces the machine-maintained lines in every registry
+// registerServices replaces the machine-maintained lines in every registry
 // file with the rendered registrations, before anything is written.
-func spliceRegistries(core []emit.File, regs emit.Registrations) ([]emit.File, error) {
+func registerServices(core []emit.File, regs emit.Registry) ([]emit.File, error) {
 	byPath := map[string]int{}
 	for i, f := range core {
 		byPath[f.Path] = i
 	}
 
-	for _, kind := range emit.SentinelKinds {
+	for _, kind := range emit.RegistrySlots {
 		path := registryFiles[kind]
 		i, ok := byPath[path]
 		if !ok {
-			return nil, fmt.Errorf("the provider core rendered no %s to splice %s registrations into", path, kind)
+			return nil, fmt.Errorf("the provider core rendered no %s to register %s registrations into", path, kind)
 		}
 		set, err := regs.ByKind(kind)
 		if err != nil {
 			return nil, err
 		}
-		spliced, err := emit.Splice(core[i].Content, kind, set)
+		registered, err := emit.Register(core[i].Content, kind, set)
 		if err != nil {
-			return nil, fmt.Errorf("splicing %s: %w", path, err)
+			return nil, fmt.Errorf("registering %s: %w", path, err)
 		}
-		core[i].Content = spliced
+		core[i].Content = registered
 	}
 	return core, nil
 }

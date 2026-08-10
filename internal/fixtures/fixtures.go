@@ -1,4 +1,4 @@
-// Package fixturespec derives every fixture value one entity's generated
+// Package fixtures derives every fixture value one entity's generated
 // tests use, exactly once.
 //
 // It exists because two renderings need the same values and must never
@@ -13,9 +13,9 @@
 // Every value is deterministic: a function of the attribute path and the
 // declared type alone, never the clock, never randomness — a regenerated
 // fixture is byte-identical or the document changed. Synthesised strings
-// carry the TestPrefix so anything a test creates against a live API is
+// carry the NamePrefix so anything a test creates against a live API is
 // recognisable as toolkit debris and can be cleaned up by name.
-package fixturespec
+package fixtures
 
 import (
 	"strings"
@@ -23,23 +23,23 @@ import (
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 )
 
-// TestPrefix marks every synthesised name-bearing string. The audit's
+// NamePrefix marks every synthesised name-bearing string. The audit's
 // cleanup contract matches live objects by this prefix, so fixture values
 // sent to a real API identify themselves as deletable.
-const TestPrefix = "tfpfgen-test-"
+const NamePrefix = "tfpfgen-test-"
 
-// Spec is the single derivation of one entity's fixture values.
-type Spec struct {
-	// Values holds one derived value per supported attribute, in
+// Fixture is the single derivation of one entity's fixture values.
+type Fixture struct {
+	// Entries holds one derived value per supported attribute, in
 	// attribute-tree order.
-	Values []Value
-	// Skipped lists the attributes no value could be derived for, with
+	Entries []Entry
+	// Omissions lists the attributes no value could be derived for, with
 	// the reason each was refused.
-	Skipped []Skip
+	Omissions []Omission
 }
 
-// Value is one attribute's derived fixture value.
-type Value struct {
+// Entry is one attribute's derived fixture value.
+type Entry struct {
 	// Name is the terraform attribute name; Wire the property the API
 	// speaks.
 	Name string
@@ -56,24 +56,24 @@ type Value struct {
 	Scalar any
 	// Nested are the field values of an object attribute, or of the one
 	// element a list of objects carries.
-	Nested []Value
+	Nested []Entry
 }
 
-// Skip is one attribute that has no fixture value, and why.
-type Skip struct {
+// Omission is one attribute that has no fixture value, and why.
+type Omission struct {
 	// Name is the dotted attribute path from the entity root.
 	Name   string
 	Reason string
 }
 
-// Audience selects which attributes a rendering carries.
-type Audience int
+// Form selects which attributes a rendering carries.
+type Form int
 
 // Renderings.
 const (
 	// ConfigMinimal is the smallest applying configuration: required
 	// attributes only.
-	ConfigMinimal Audience = iota
+	ConfigMinimal Form = iota
 	// ConfigMaximal is the fullest configuration: every writable
 	// attribute.
 	ConfigMaximal
@@ -87,21 +87,21 @@ const (
 
 // Derive computes the fixture values for one entity's attribute tree.
 // entityKey seeds nothing — values depend only on attribute paths — but
-// names the entity in skip reasons. A nil tree derives an empty spec.
-func Derive(tree *ir.AttributeTree) Spec {
-	var s Spec
+// names the entity in omission reasons. A nil tree derives an empty fixture.
+func Derive(tree *ir.AttributeTree) Fixture {
+	var s Fixture
 	if tree == nil {
 		return s
 	}
-	s.Values, s.Skipped = deriveTree(tree, nil)
+	s.Entries, s.Omissions = deriveTree(tree, nil)
 	return s
 }
 
-// deriveTree walks one attribute tree, carrying the dotted path for skip
+// deriveTree walks one attribute tree, carrying the dotted path for omission
 // reporting and the dashed path for string synthesis.
-func deriveTree(tree *ir.AttributeTree, path []string) ([]Value, []Skip) {
-	var values []Value
-	var skips []Skip
+func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
+	var values []Entry
+	var skips []Omission
 	for _, a := range tree.Attributes {
 		at := append(append([]string{}, path...), a.Name)
 		if a.Unsupported {
@@ -109,10 +109,10 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Value, []Skip) {
 			if reason == "" {
 				reason = "the derivation refused this attribute's shape"
 			}
-			skips = append(skips, Skip{Name: strings.Join(at, "."), Reason: reason})
+			skips = append(skips, Omission{Name: strings.Join(at, "."), Reason: reason})
 			continue
 		}
-		v := Value{
+		v := Entry{
 			Name:     a.Name,
 			Wire:     a.WireName,
 			Kind:     a.Kind,
@@ -152,14 +152,14 @@ func scalarFor(kind ir.TypeKind, a ir.Attribute, path []string) any {
 		if len(a.AdvisoryValues) > 0 {
 			return a.AdvisoryValues[0]
 		}
-		return TestPrefix + strings.ReplaceAll(strings.Join(path, "-"), "_", "-")
+		return NamePrefix + strings.ReplaceAll(strings.Join(path, "-"), "_", "-")
 	}
 }
 
 // wanted reports whether a value's attribute travels in the given
 // rendering: configurations carry what a practitioner writes, responses
 // carry what the server sends back.
-func (v Value) wanted(a Audience) bool {
+func (v Entry) wanted(a Form) bool {
 	switch a {
 	case ConfigMinimal:
 		return v.Presence == ir.PresenceRequired
@@ -172,10 +172,10 @@ func (v Value) wanted(a Audience) bool {
 	}
 }
 
-// selected filters one level of values for an audience. Nested levels are
-// filtered against the same audience by the renderers as they recurse.
-func selected(values []Value, a Audience) []Value {
-	out := make([]Value, 0, len(values))
+// selected filters one level of values for a form. Nested levels are
+// filtered against the same form by the renderers as they recurse.
+func selected(values []Entry, a Form) []Entry {
+	out := make([]Entry, 0, len(values))
 	for _, v := range values {
 		if v.wanted(a) {
 			out = append(out, v)

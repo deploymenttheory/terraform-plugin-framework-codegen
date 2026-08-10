@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixturespec"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
 )
@@ -63,7 +63,7 @@ type datasourceData struct {
 }
 
 // datasource renders one datasource's complete file set.
-func (e *entityRenderer) datasource(ds *ir.Datasource, db *sdkbind.DatasourceBinding) ([]File, error) {
+func (e *serviceRenderer) datasource(ds *ir.Datasource, db *sdkbind.DatasourceBinding) ([]File, error) {
 	d := &datasourceData{
 		Package:       ds.Names.Package,
 		PackagePath:   e.packagePath(kindDatasources, ds.Names),
@@ -77,7 +77,7 @@ func (e *entityRenderer) datasource(ds *ir.Datasource, db *sdkbind.DatasourceBin
 		ReadModel:     db.ReadModel,
 	}
 
-	var spec fixturespec.Spec
+	var spec fixtures.Fixture
 	var err error
 	if ds.LookupByKey {
 		spec, err = e.lookupDatasource(d, ds, db)
@@ -92,7 +92,7 @@ func (e *entityRenderer) datasource(ds *ir.Datasource, db *sdkbind.DatasourceBin
 	var files []File
 	renderGo := func(tmpl, out string) error {
 		d.Source = "entity/datasource/" + tmpl
-		f, ferr := e.renderEntityFile("datasource/"+tmpl, path.Join(dir, out), ds.Names.Key, d)
+		f, ferr := e.renderServiceFile("datasource/"+tmpl, path.Join(dir, out), ds.Names.Key, d)
 		if ferr != nil {
 			return ferr
 		}
@@ -123,15 +123,15 @@ func (e *entityRenderer) datasource(ds *ir.Datasource, db *sdkbind.DatasourceBin
 // keyAttrName is the terraform spelling of a lookup datasource's key
 // parameter.
 func keyAttrName(ds *ir.Datasource) string {
-	return ir.SnakeName(ds.KeyParameter)
+	return ir.TerraformName(ds.KeyParameter)
 }
 
 // lookupDatasource fills the render context for a lookup-by-key
 // datasource: the key parameter is the single required argument and the
 // entity's object comes back.
-func (e *entityRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixturespec.Spec, error) {
+func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixtures.Fixture, error) {
 	if ds.Ops.Read == nil || db.Read == nil {
-		return fixturespec.Spec{}, fmt.Errorf("a lookup-by-key datasource needs a bound read call")
+		return fixtures.Fixture{}, fmt.Errorf("a lookup-by-key datasource needs a bound read call")
 	}
 
 	nodes := joinTree(ds.Schema, db.Fields)
@@ -165,17 +165,17 @@ func (e *entityRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource, 
 	decls, err := buildModels(d.Type+"Model", d.Pascal+"Lookup", nodes,
 		[]string{"Timeouts timeouts.Value `tfsdk:\"timeouts\"`"})
 	if err != nil {
-		return fixturespec.Spec{}, err
+		return fixtures.Fixture{}, err
 	}
 	d.Models = renderModelDecls(decls)
 	d.ModelImports = e.datasourceModelImports(d.Models)
 
 	plan, err := buildCallPlan(db.Read, "remote", nodes, "data")
 	if err != nil {
-		return fixturespec.Spec{}, fmt.Errorf("read: %w", err)
+		return fixtures.Fixture{}, fmt.Errorf("read: %w", err)
 	}
 	if plan.Payload == "" {
-		return fixturespec.Spec{}, fmt.Errorf("read: the bound read call yields no payload to map from")
+		return fixtures.Fixture{}, fmt.Errorf("read: the bound read call yields no payload to map from")
 	}
 	d.ReadPlan = plan
 
@@ -189,7 +189,7 @@ func (e *entityRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource, 
 
 	stateBody, err := stateLines(nodes, d.Pascal+"Lookup", "remote", "data", 1)
 	if err != nil {
-		return fixturespec.Spec{}, err
+		return fixtures.Fixture{}, err
 	}
 	d.StateBody = stateBody
 	stateImports := newImportSet(e.pc.Module)
@@ -208,13 +208,13 @@ func (e *entityRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource, 
 
 // companionDatasource fills the render context for the
 // filter_type/filter_value/items pattern.
-func (e *entityRenderer) companionDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixturespec.Spec, error) {
+func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixtures.Fixture, error) {
 	if ds.Ops.List == nil || db.List == nil {
-		return fixturespec.Spec{}, fmt.Errorf("a companion datasource needs a bound list call")
+		return fixtures.Fixture{}, fmt.Errorf("a companion datasource needs a bound list call")
 	}
 	itemTree := companionItemTree(ds)
 	if itemTree == nil {
-		return fixturespec.Spec{}, fmt.Errorf("the companion schema carries no items attribute")
+		return fixtures.Fixture{}, fmt.Errorf("the companion schema carries no items attribute")
 	}
 	itemNodes := joinTree(itemTree, db.Fields)
 
@@ -271,7 +271,7 @@ func (e *entityRenderer) companionDatasource(d *datasourceData, ds *ir.Datasourc
 	d.ItemModel = d.Pascal + "ItemModel"
 	itemDecls, err := buildModels(d.ItemModel, d.Pascal+"Item", itemNodes, nil)
 	if err != nil {
-		return fixturespec.Spec{}, err
+		return fixtures.Fixture{}, err
 	}
 	root := "type " + d.Type + "Model struct {\n" +
 		"\tFilterType types.String `tfsdk:\"filter_type\"`\n" +
@@ -285,10 +285,10 @@ func (e *entityRenderer) companionDatasource(d *datasourceData, ds *ir.Datasourc
 	// Calls.
 	listPlan, err := buildCallPlan(db.List, "result", itemNodes, "data")
 	if err != nil {
-		return fixturespec.Spec{}, fmt.Errorf("list: %w", err)
+		return fixtures.Fixture{}, fmt.Errorf("list: %w", err)
 	}
 	if listPlan.Payload == "" {
-		return fixturespec.Spec{}, fmt.Errorf("list: the bound list call yields no payload")
+		return fixtures.Fixture{}, fmt.Errorf("list: the bound list call yields no payload")
 	}
 	d.ListPlan = listPlan
 	d.Collection = "result"
@@ -297,7 +297,7 @@ func (e *entityRenderer) companionDatasource(d *datasourceData, ds *ir.Datasourc
 	}
 	d.ElementType = db.ElementType
 	if d.ElementType == "" {
-		return fixturespec.Spec{}, fmt.Errorf("list: the binding names no element type")
+		return fixtures.Fixture{}, fmt.Errorf("list: the binding names no element type")
 	}
 
 	if d.HasIDFilter {
@@ -305,7 +305,7 @@ func (e *entityRenderer) companionDatasource(d *datasourceData, ds *ir.Datasourc
 		d.IDParamDecl = p.Local + " := data.FilterValue.ValueString()"
 		readPlan, rerr := readPlanWithoutParams(db.Read, "remote")
 		if rerr != nil {
-			return fixturespec.Spec{}, fmt.Errorf("read: %w", rerr)
+			return fixtures.Fixture{}, fmt.Errorf("read: %w", rerr)
 		}
 		d.ReadPlan = readPlan
 		d.ReadItem = itemPayloadExpr(db)
@@ -323,7 +323,7 @@ func (e *entityRenderer) companionDatasource(d *datasourceData, ds *ir.Datasourc
 	// Item mapping.
 	mapBody, err := stateLines(itemNodes, d.Pascal+"Item", "remote", "item", 1)
 	if err != nil {
-		return fixturespec.Spec{}, err
+		return fixtures.Fixture{}, err
 	}
 	d.MapItemBody = mapBody
 	stateImports := newImportSet(e.pc.Module)
@@ -389,7 +389,7 @@ func hasNode(nodes []node, name string) bool {
 }
 
 // datasourceModelImports renders the model file's imports.
-func (e *entityRenderer) datasourceModelImports(models string) string {
+func (e *serviceRenderer) datasourceModelImports(models string) string {
 	imports := newImportSet(e.pc.Module)
 	imports.add("", "github.com/hashicorp/terraform-plugin-framework-timeouts/datasource/timeouts")
 	if strings.Contains(models, "types.") {
@@ -399,9 +399,9 @@ func (e *entityRenderer) datasourceModelImports(models string) string {
 }
 
 // datasourceMocks fills the responder context.
-func (e *entityRenderer) datasourceMocks(d *datasourceData, ds *ir.Datasource, spec fixturespec.Spec) {
+func (e *serviceRenderer) datasourceMocks(d *datasourceData, ds *ir.Datasource, spec fixtures.Fixture) {
 	d.RegistryName = ds.Names.TerraformType + ".data"
-	d.ResponseMaximal = string(spec.WireJSON(fixturespec.ResponseMaximal))
+	d.ResponseMaximal = string(spec.WireJSON(fixtures.ResponseMaximal))
 	d.ListWrap = "value"
 	if ds.Ops.List != nil {
 		d.CollectionURL = mockURL(ds.Ops.List.PathTemplate)
@@ -431,7 +431,7 @@ func (e *entityRenderer) datasourceMocks(d *datasourceData, ds *ir.Datasource, s
 }
 
 // datasourceChecks builds the unit-test checks for the read result.
-func (e *entityRenderer) datasourceChecks(d *datasourceData, spec fixturespec.Spec) {
+func (e *serviceRenderer) datasourceChecks(d *datasourceData, spec fixtures.Fixture) {
 	address := "data." + d.TerraformType + ".test"
 	var b strings.Builder
 	prefix := ""
@@ -439,7 +439,7 @@ func (e *entityRenderer) datasourceChecks(d *datasourceData, spec fixturespec.Sp
 		fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %q),\n", address, "items.#", "1")
 		prefix = "items.0."
 	}
-	for _, v := range spec.Values {
+	for _, v := range spec.Entries {
 		if v.Nested != nil || v.Kind == ir.TypeList {
 			continue
 		}
@@ -454,13 +454,13 @@ func (e *entityRenderer) datasourceChecks(d *datasourceData, spec fixturespec.Sp
 
 // datasourceFixtures emits the terraform fixture, the response fixture and
 // the example.
-func (e *entityRenderer) datasourceFixtures(ds *ir.Datasource, spec fixturespec.Spec, dir string) ([]File, error) {
+func (e *serviceRenderer) datasourceFixtures(ds *ir.Datasource, spec fixtures.Fixture, dir string) ([]File, error) {
 	source := ds.Names.Key
 	blockHeader := fmt.Sprintf("data %q %q", ds.Names.TerraformType, "test")
 
 	var body string
 	if ds.LookupByKey {
-		body = spec.HCL(fixturespec.ConfigMinimal)
+		body = spec.HCL(fixtures.ConfigMinimal)
 	} else {
 		body = "  filter_type = \"all\"\n"
 	}
@@ -471,9 +471,9 @@ func (e *entityRenderer) datasourceFixtures(ds *ir.Datasource, spec fixturespec.
 
 	var response []byte
 	if ds.LookupByKey {
-		response = spec.WireJSON(fixturespec.ResponseMaximal)
+		response = spec.WireJSON(fixtures.ResponseMaximal)
 	} else {
-		item := strings.TrimSuffix(string(spec.WireJSON(fixturespec.ResponseMaximal)), "\n")
+		item := strings.TrimSuffix(string(spec.WireJSON(fixtures.ResponseMaximal)), "\n")
 		response = []byte("{\n  \"value\": [\n" + reindentJSON(item, "    ") + "\n  ]\n}\n")
 	}
 

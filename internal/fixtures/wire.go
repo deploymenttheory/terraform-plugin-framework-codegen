@@ -1,4 +1,4 @@
-package fixturespec
+package fixtures
 
 import (
 	"encoding/json"
@@ -8,27 +8,27 @@ import (
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 )
 
-// WireJSON renders the audience's values as the JSON body the API speaks,
+// WireJSON renders the form's values as the JSON body the API speaks,
 // keyed by wire names, two-space indented, ending in one newline. The
 // object's key order is the attribute-tree order — encoding/json's map
 // ordering would randomise the file between runs, so the writer walks the
 // derived order itself.
-func (s Spec) WireJSON(a Audience) []byte {
+func (s Fixture) WireJSON(a Form) []byte {
 	var b strings.Builder
-	writeWireObject(&b, selected(s.Values, a), a, 0)
+	writeWireObject(&b, selected(s.Entries, a), a, 0)
 	b.WriteString("\n")
 	return []byte(b.String())
 }
 
-// WireValue renders the audience's values as the plain Go shape a JSON
+// WireValue renders the form's values as the plain Go shape a JSON
 // encoder or a mock responder consumes: map keys are wire names, scalars
 // stay typed, and nesting mirrors the tree.
-func (s Spec) WireValue(a Audience) map[string]any {
-	return wireLevel(selected(s.Values, a), a)
+func (s Fixture) WireValue(a Form) map[string]any {
+	return wireLevel(selected(s.Entries, a), a)
 }
 
 // wireLevel builds one object level of the wire shape.
-func wireLevel(values []Value, a Audience) map[string]any {
+func wireLevel(values []Entry, a Form) map[string]any {
 	out := make(map[string]any, len(values))
 	for _, v := range values {
 		out[v.Wire] = wireOne(v, a)
@@ -37,7 +37,7 @@ func wireLevel(values []Value, a Audience) map[string]any {
 }
 
 // wireOne renders one value in wire shape.
-func wireOne(v Value, a Audience) any {
+func wireOne(v Entry, a Form) any {
 	switch {
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		return []any{wireLevel(selected(v.Nested, a), a)}
@@ -51,7 +51,7 @@ func wireOne(v Value, a Audience) any {
 }
 
 // writeWireObject writes one JSON object with deterministic key order.
-func writeWireObject(b *strings.Builder, values []Value, a Audience, depth int) {
+func writeWireObject(b *strings.Builder, values []Entry, a Form, depth int) {
 	if len(values) == 0 {
 		b.WriteString("{}")
 		return
@@ -70,7 +70,7 @@ func writeWireObject(b *strings.Builder, values []Value, a Audience, depth int) 
 }
 
 // writeWireValue writes one attribute's value.
-func writeWireValue(b *strings.Builder, v Value, a Audience, depth int) {
+func writeWireValue(b *strings.Builder, v Entry, a Form, depth int) {
 	switch {
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		b.WriteString("[\n" + strings.Repeat("  ", depth+1))
@@ -86,7 +86,7 @@ func writeWireValue(b *strings.Builder, v Value, a Audience, depth int) {
 }
 
 // jsonScalar renders one scalar as JSON; the values are all
-// fixturespec-synthesised, so a marshal failure cannot happen.
+// fixtures-synthesised, so a marshal failure cannot happen.
 func jsonScalar(value any) string {
 	out, err := json.Marshal(value)
 	if err != nil {

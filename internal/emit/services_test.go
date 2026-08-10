@@ -10,16 +10,16 @@ import (
 
 // renderFictional renders the full fictional tree once, failing the test
 // on any render error.
-func renderFictional(t *testing.T) *EntityOutput {
+func renderFictional(t *testing.T) *ServiceFiles {
 	t.Helper()
-	out, err := RenderEntities(fictionalProviderCore(), fictionalModel(), fictionalBindings())
+	out, err := RenderServices(fictionalProviderCore(), fictionalModel(), fictionalBindings())
 	if err != nil {
-		t.Fatalf("RenderEntities: %v", err)
+		t.Fatalf("RenderServices: %v", err)
 	}
 	return out
 }
 
-func fileByPath(t *testing.T, out *EntityOutput, path string) File {
+func fileByPath(t *testing.T, out *ServiceFiles, path string) File {
 	t.Helper()
 	for _, f := range out.Files {
 		if f.Path == path {
@@ -34,10 +34,10 @@ func fileByPath(t *testing.T, out *EntityOutput, path string) File {
 	return File{}
 }
 
-// TestUnit_RenderEntities_TheFileGrammarIsComplete holds the emitted tree
+// TestUnit_RenderServices_TheFileGrammarIsComplete holds the emitted tree
 // to the promised grammar: the four service-kind file sets, their tests,
 // mocks, fixtures and examples.
-func TestUnit_RenderEntities_TheFileGrammarIsComplete(t *testing.T) {
+func TestUnit_RenderServices_TheFileGrammarIsComplete(t *testing.T) {
 	out := renderFictional(t)
 
 	expected := []string{
@@ -106,10 +106,10 @@ func TestUnit_RenderEntities_TheFileGrammarIsComplete(t *testing.T) {
 	}
 }
 
-// TestUnit_RenderEntities_EveryGoFileParsesGofmtClean holds every
+// TestUnit_RenderServices_EveryGoFileParsesGofmtClean holds every
 // rendered Go file to the fixed point: parseable, and byte-identical to
 // its own gofmt rendering.
-func TestUnit_RenderEntities_EveryGoFileParsesGofmtClean(t *testing.T) {
+func TestUnit_RenderServices_EveryGoFileParsesGofmtClean(t *testing.T) {
 	out := renderFictional(t)
 	goFiles := 0
 	for _, f := range out.Files {
@@ -130,9 +130,9 @@ func TestUnit_RenderEntities_EveryGoFileParsesGofmtClean(t *testing.T) {
 	}
 }
 
-// TestUnit_RenderEntities_RenderingIsDeterministic renders the same model
+// TestUnit_RenderServices_RenderingIsDeterministic renders the same model
 // twice and holds every byte equal.
-func TestUnit_RenderEntities_RenderingIsDeterministic(t *testing.T) {
+func TestUnit_RenderServices_RenderingIsDeterministic(t *testing.T) {
 	first := renderFictional(t)
 	second := renderFictional(t)
 
@@ -149,7 +149,7 @@ func TestUnit_RenderEntities_RenderingIsDeterministic(t *testing.T) {
 		}
 	}
 
-	for _, kind := range SentinelKinds {
+	for _, kind := range RegistrySlots {
 		a, _ := first.Registrations.ByKind(kind)
 		b, _ := second.Registrations.ByKind(kind)
 		if strings.Join(a.Imports, "\n") != strings.Join(b.Imports, "\n") ||
@@ -159,9 +159,9 @@ func TestUnit_RenderEntities_RenderingIsDeterministic(t *testing.T) {
 	}
 }
 
-// TestUnit_RenderEntities_TheRenderedCodeCarriesTheDecisions spot-checks
+// TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions spot-checks
 // the load-bearing decisions in the rendered text.
-func TestUnit_RenderEntities_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
+func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 	out := renderFictional(t)
 
 	construct := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/construct.go").Content)
