@@ -38,6 +38,10 @@ type datasourceData struct {
 	// Companion fields.
 	HasIDFilter bool
 	IDParamDecl string
+	// ReadItem renders the by-id read's payload as one list element:
+	// "remote", or "*remote" when the read answers with a pointer to the
+	// element type.
+	ReadItem    string
 	ReadPlan    callPlan
 	ListPlan    callPlan
 	Collection  string
@@ -214,8 +218,11 @@ func (e *entityRenderer) companionDatasource(d *datasourceData, ds *ir.Datasourc
 	}
 	itemNodes := joinTree(itemTree, db.Fields)
 
+	// The id filter needs the by-id read's payload to bridge to one list
+	// element: identical types, or a pointer the element type sits behind.
+	// A read shaped any other way keeps the filter off rather than guessed.
 	d.HasIDFilter = ds.Ops.Read != nil && db.Read != nil && len(db.Read.Params) == 1 &&
-		db.Read.Params[0].GoType == "string"
+		db.Read.Params[0].GoType == "string" && itemPayloadExpr(db) != ""
 
 	// Schema: the two filter inputs, then the computed items list.
 	imports := newImportSet(e.pc.Module)
@@ -301,6 +308,7 @@ func (e *entityRenderer) companionDatasource(d *datasourceData, ds *ir.Datasourc
 			return fixturespec.Spec{}, fmt.Errorf("read: %w", rerr)
 		}
 		d.ReadPlan = readPlan
+		d.ReadItem = itemPayloadExpr(db)
 	}
 
 	readImports := newImportSet(e.pc.Module)
@@ -330,6 +338,23 @@ func (e *entityRenderer) companionDatasource(d *datasourceData, ds *ir.Datasourc
 	e.datasourceMocks(d, ds, spec)
 	e.datasourceChecks(d, spec)
 	return spec, nil
+}
+
+// itemPayloadExpr renders the by-id read's payload — always the local
+// "remote" — as one list element: as-is when the read answers with the
+// element type itself (the kiota interface shape), dereferenced when it
+// answers with a pointer to it (the openapi-generator struct shape), and
+// empty when neither holds, which switches the id filter off.
+func itemPayloadExpr(db *sdkbind.DatasourceBinding) string {
+	switch {
+	case db.Read == nil || db.ElementType == "":
+		return ""
+	case db.Read.ResponseType == db.ElementType:
+		return "remote"
+	case db.Read.ResponseType == "*"+db.ElementType:
+		return "*remote"
+	}
+	return ""
 }
 
 // readPlanWithoutParams renders a call plan whose parameter locals are

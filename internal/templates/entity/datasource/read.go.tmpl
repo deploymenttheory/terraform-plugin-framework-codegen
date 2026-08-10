@@ -63,7 +63,7 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 			errors.HandleDatasourceReadError(ctx, err, resp, nil)
 			return
 		}
-		items = append(items, mapItem(ctx, {{ .ReadPlan.Payload }}))
+		items = append(items, mapItem(ctx, {{ .ReadItem }}))
 {{- end }}
 	default:
 		{{ .ListPlan.Assign }}

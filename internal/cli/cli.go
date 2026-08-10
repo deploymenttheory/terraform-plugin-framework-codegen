@@ -83,6 +83,7 @@ func newRootCommand() *cobra.Command {
 		newConfigCommand(),
 		newSpecCommand(),
 		newSDKCommand(),
+		newProviderCommand(),
 		newVersionCommand(),
 	)
 	return root

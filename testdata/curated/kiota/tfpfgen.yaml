@@ -1,0 +1,15 @@
+# The curated fixture's kiota-dialect config: the fictional orbital
+# provider, generated against the kiota-shaped stub SDK beside this file.
+version: 1
+provider:
+  name: orbital
+  registry_namespace: example-org
+generator:
+  version: v1.0.0
+spec:
+  document_url: https://station.example.test/openapi.yaml
+sdk:
+  backend: kiota
+  backend_version: 1.2.3
+auth:
+  method: bearer_token

@@ -1,0 +1,135 @@
+package providergen
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkgen"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/version"
+)
+
+// TestUnit_Verify_ReportsEveryDriftKind mirrors sdk verify's vocabulary
+// against the provider tree: a hand-edit reads as changed and hand-edited
+// at once, a deleted file as missing, and a recorded file regeneration no
+// longer produces as extra.
+func TestUnit_Verify_ReportsEveryDriftKind(t *testing.T) {
+	root, opts := curatedRepo(t, "kiota")
+	if _, err := Run(context.Background(), opts); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	// A hand edit to a derived file.
+	mainPath := filepath.Join(root, "main.go")
+	edited, err := os.ReadFile(mainPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	edited = append(edited, []byte("// drifted\n")...)
+	if err := os.WriteFile(mainPath, edited, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// A deleted file.
+	if err := os.Remove(filepath.Join(root, "makefile")); err != nil {
+		t.Fatal(err)
+	}
+
+	// A recorded file regeneration does not produce, digest intact so it
+	// reads as extra alone.
+	extraContent := []byte("package extra\n")
+	extraPath := "internal/extra/extra.go"
+	full := filepath.Join(root, filepath.FromSlash(extraPath))
+	if err := os.MkdirAll(filepath.Dir(full), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(full, extraContent, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	current, _, err := manifest.Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The sdk-origin and authored entries are other verbs' business: the
+	// provider sweep must walk straight past them.
+	seeded := manifest.New(version.Version(), append(current.Files,
+		manifest.Entry{Path: extraPath, SHA256: digestOf(extraContent)},
+		manifest.Entry{Path: "internal/sdk/client.go", SHA256: "dd", Origin: manifest.OriginSDK},
+		manifest.Entry{Path: "tfpfgen.yaml", Authored: true},
+	))
+	if err := manifest.Save(root, seeded); err != nil {
+		t.Fatal(err)
+	}
+
+	rep, err := Verify(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+	if rep.Clean() {
+		t.Fatal("Verify reported a drifted tree clean")
+	}
+
+	got := make([]string, 0, len(rep.Drifts))
+	for _, d := range rep.Drifts {
+		got = append(got, d.String())
+	}
+	want := []string{
+		sdkgen.DriftExtra + ": " + extraPath,
+		sdkgen.DriftChanged + ": main.go",
+		sdkgen.DriftHandEdited + ": main.go",
+		sdkgen.DriftMissing + ": makefile",
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Errorf("drifts =\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	if !sort.SliceIsSorted(rep.Drifts, func(i, j int) bool {
+		if rep.Drifts[i].Path != rep.Drifts[j].Path {
+			return rep.Drifts[i].Path < rep.Drifts[j].Path
+		}
+		return rep.Drifts[i].Kind < rep.Drifts[j].Kind
+	}) {
+		t.Error("drifts are not sorted by path then kind")
+	}
+}
+
+func TestUnit_Verify_WritesNothingUnderTheRepo(t *testing.T) {
+	root, opts := curatedRepo(t, "kiota")
+	if _, err := Run(context.Background(), opts); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	before, err := digestTree(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := Verify(context.Background(), opts); err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+
+	after, err := digestTree(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(before) != len(after) {
+		t.Fatalf("Verify changed the file count: %d -> %d", len(before), len(after))
+	}
+	for path, sum := range before {
+		if after[path] != sum {
+			t.Errorf("Verify changed %s", path)
+		}
+	}
+}
+
+func TestUnit_Verify_FailsWhenTheChainCannot(t *testing.T) {
+	root, opts := curatedRepo(t, "kiota")
+	if err := os.RemoveAll(filepath.Join(root, "internal", "sdk")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Verify(context.Background(), opts); err == nil {
+		t.Fatal("Verify answered without an SDK to regenerate against")
+	}
+}
