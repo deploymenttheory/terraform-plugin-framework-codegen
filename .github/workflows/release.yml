@@ -1,0 +1,73 @@
+name: release
+
+# Runs when a release tag is pushed. goreleaser builds the archives for every
+# platform and publishes them as a GitHub release; a stable tag then
+# fast-forwards the moving major tag (v0.1.4 moves v0, v1.2.3 moves v1) so
+# caller workflows pinned to @v1 pick up compatible releases without editing.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+# One run per tag: goreleaser owns the release for its tag, and two
+# concurrent runs would race on creating it and uploading assets.
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: 📦 Build and publish release archives
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      # Full depth: goreleaser derives the version from the tag it finds at
+      # HEAD, and a shallow clone can hide the tag's ancestry.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  major-tag:
+    name: 🏷️ Fast-forward the moving major tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Only after the archives exist: a moved major tag promises a release
+    # that consumers can actually download.
+    needs: publish
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Move the major tag to this release
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          # Stable semver only: a prerelease or build tag (v1.2.3-rc.1)
+          # must never move the tag compatible callers follow.
+          if [[ ! "$tag" =~ ^v([0-9]+)\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::notice::${tag} is not a stable vX.Y.Z tag; the moving major tag stays put."
+            exit 0
+          fi
+          major="v${BASH_REMATCH[1]}"
+          commit="$(git rev-parse "${tag}^{commit}")"
+          # A push made with GITHUB_TOKEN does not trigger workflows, so
+          # moving the major tag cannot re-enter this workflow.
+          git tag --force "$major" "$commit"
+          git push --force origin "refs/tags/${major}"
+          echo "::notice::${major} now points at ${commit} (${tag})."

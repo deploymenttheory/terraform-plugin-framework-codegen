@@ -1,0 +1,70 @@
+name: stage
+description: >-
+  One pipeline stage: restore the artifacts a verb consumes, run the verb,
+  upload the artifact it produces. Each generate-pipeline job downstream of
+  config validation is exactly one invocation of this action, so the arrows
+  between jobs are named artifacts and nothing else.
+
+inputs:
+  verb:
+    description: The tfpfgen command line to run, e.g. "spec import".
+    required: true
+  restore:
+    description: >-
+      Comma-separated artifact names to download into the workspace before
+      the verb runs.
+    required: false
+    default: ""
+  produce:
+    description: Artifact name to upload after the verb succeeds.
+    required: false
+    default: ""
+  paths:
+    description: Paths to upload as the produced artifact.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Name the artifacts to restore
+      id: plan
+      if: inputs.restore != ''
+      shell: bash
+      env:
+        RESTORE: ${{ inputs.restore }}
+      run: |
+        set -euo pipefail
+        # download-artifact takes one name or one glob, not a list. Its
+        # patterns brace-expand, so a comma list becomes {a,b}. The trailing
+        # comma keeps a single name expanding — a lone {a} is literal — and
+        # the empty alternative it adds matches no artifact.
+        echo "pattern={$(printf '%s' "$RESTORE" | tr -d '[:space:]'),}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore artifacts
+      if: inputs.restore != ''
+      uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+      with:
+        pattern: ${{ steps.plan.outputs.pattern }}
+        merge-multiple: true
+        path: .
+
+    - name: Run the verb
+      shell: bash
+      env:
+        VERB: ${{ inputs.verb }}
+      run: |
+        set -euo pipefail
+        # Word-splitting is the point: "spec import" is two arguments.
+        # shellcheck disable=SC2086
+        tfpfgen ${VERB}
+
+    - name: Upload the produced artifact
+      if: inputs.produce != ''
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      with:
+        name: ${{ inputs.produce }}
+        path: ${{ inputs.paths }}
+        # An empty artifact is a stage that silently produced nothing; the
+        # next stage would fail further from the cause.
+        if-no-files-found: error

@@ -4,8 +4,9 @@
 package version
 
 // value is stamped by the release build via
-// -ldflags "-X .../internal/version.value=v1.2.3". A source build reports
-// "dev" so a pipeline pinned to a tag can refuse it.
+// -ldflags "-X .../internal/version.value=1.2.3" — goreleaser's version,
+// which carries no leading v. A source build reports "dev" so a pipeline
+// pinned to a tag can refuse it.
 var value = "dev"
 
 // Version reports the toolkit version as stamped at build time.
