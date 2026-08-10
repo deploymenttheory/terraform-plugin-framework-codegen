@@ -1,4 +1,4 @@
-package ir
+package intermediate_representation
 
 import (
 	"reflect"
@@ -23,11 +23,11 @@ func TestDeriveNames(t *testing.T) {
 			},
 		},
 		{
-			name:           "multi-segment key",
+			name:           "multi-segment key uppercases known acronyms",
 			key:            "v7_tests_http_server",
 			collectionPath: "/v7/tests/http-server",
 			want: Names{
-				Key: "tests_http_server", Pascal: "TestsHttpServer", Camel: "testsHttpServer",
+				Key: "tests_http_server", Pascal: "TestsHTTPServer", Camel: "testsHTTPServer",
 				TerraformType: "acme_tests_http_server", Package: "testshttpserver",
 				Service: "tests", APIVersionDir: "v7",
 			},
@@ -59,6 +59,30 @@ func TestDeriveNames(t *testing.T) {
 				t.Errorf("deriveNames(%q, %q):\n got %+v\nwant %+v", tc.key, tc.collectionPath, got, tc.want)
 			}
 		})
+	}
+}
+
+// The Go spellings uppercase known acronyms whole, and a leading acronym
+// in the camel spelling lowers whole — Go-idiomatic, per the owner ruling.
+func TestAcronymCasing(t *testing.T) {
+	for _, tc := range []struct {
+		key, pascal, camel string
+	}{
+		{"http_server", "HTTPServer", "httpServer"},
+		{"api_key", "APIKey", "apiKey"},
+		{"id", "ID", "id"},
+		{"user_id", "UserID", "userID"},
+		{"url", "URL", "url"},
+		{"oauth_client", "OAuthClient", "oauthClient"},
+		{"dns_record_ip", "DNSRecordIP", "dnsRecordIP"},
+		{"plain_name", "PlainName", "plainName"},
+	} {
+		if got := pascalCase(tc.key); got != tc.pascal {
+			t.Errorf("pascalCase(%q) = %q, want %q", tc.key, got, tc.pascal)
+		}
+		if got := camelCase(tc.key); got != tc.camel {
+			t.Errorf("camelCase(%q) = %q, want %q", tc.key, got, tc.camel)
+		}
 	}
 }
 

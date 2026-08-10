@@ -1,10 +1,11 @@
-package ir
+package intermediate_representation
 
 import (
 	"bytes"
 	"encoding/json"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/corpus"
@@ -16,7 +17,7 @@ import (
 // Skips when the pinned document is not cached and cannot be fetched,
 // unless TFPFGEN_CORPUS_REQUIRED says the machine must be honest — the
 // same split every corpus-backed test in this repo follows.
-func TestIntegration_IR_DerivesAPinnedVendorDocument(t *testing.T) {
+func TestIntegration_IntermediateRepresentation_DerivesAPinnedVendorDocument(t *testing.T) {
 	path := corpus.SpecPath(t, "thousandeyes")
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -48,6 +49,36 @@ func TestIntegration_IR_DerivesAPinnedVendorDocument(t *testing.T) {
 	for _, e := range m.Excluded {
 		if e.Key == "" || e.Reason == "" {
 			t.Errorf("anonymous exclusion: %+v", e)
+		}
+		if strings.Contains(e.Reason, "collide") {
+			t.Errorf("a key collision still excludes: %+v", e)
+		}
+	}
+
+	// The document's colliding path families both generate now: distinct
+	// keys, and a co-management note on each side of the overlap.
+	actionByKey := map[string]Action{}
+	for _, a := range m.Actions {
+		actionByKey[a.Names.Key] = a
+	}
+	for _, family := range [][2]string{
+		{"tags_assign", "tags_assign_by_id"},
+		{"tags_unassign", "tags_unassign_by_id"},
+		{"endpoint_test_results_scheduled_tests_http_server_filter",
+			"endpoint_test_results_scheduled_tests_http_server_filter_by_test_id"},
+		{"endpoint_test_results_scheduled_tests_network_filter",
+			"endpoint_test_results_scheduled_tests_network_filter_by_test_id"},
+	} {
+		for i, key := range family {
+			a, ok := actionByKey[key]
+			if !ok {
+				t.Errorf("colliding entity %s is not in the model", key)
+				continue
+			}
+			sibling := "acme_" + family[1-i]
+			if !strings.Contains(a.CoManagementNote, sibling) {
+				t.Errorf("%s co-management note does not name %s: %q", key, sibling, a.CoManagementNote)
+			}
 		}
 	}
 

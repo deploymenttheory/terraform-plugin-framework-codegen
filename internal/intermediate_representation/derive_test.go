@@ -1,4 +1,4 @@
-package ir
+package intermediate_representation
 
 import (
 	"bytes"
@@ -395,7 +395,7 @@ func TestDerive_ConfigExcludesByEntityKey(t *testing.T) {
 	}
 }
 
-func TestDerive_ExcludesEntityKeyCollisions(t *testing.T) {
+func TestDerive_DisambiguatesEntityKeyCollisions(t *testing.T) {
 	const spec = `openapi: 3.0.3
 info: {title: T, version: "1"}
 paths:
@@ -425,24 +425,159 @@ paths:
                     id: {type: string}
 `
 	m := mustDerive(t, spec, testConfig())
-	// The first entity in collection-path order wins; the other is
-	// excluded with a reason naming both paths, never silently dropped.
-	if got := len(m.ListResources); got != 1 {
-		t.Fatalf("%d list resources from two colliding versions, want 1", got)
+	// Both versions generate: the later collection path takes a key
+	// extended by its distinguishing segment, and nothing is excluded.
+	if got := len(m.ListResources); got != 2 {
+		t.Fatalf("%d list resources from two colliding versions, want 2", got)
 	}
-	var collision *Exclusion
-	for i := range m.Excluded {
-		if m.Excluded[i].Key == "tag" {
-			collision = &m.Excluded[i]
+	first, second := m.ListResources[0], m.ListResources[1]
+	if first.Names.Key != "tag" || second.Names.Key != "tag_v7" {
+		t.Fatalf("colliding keys = %q, %q; want tag, tag_v7", first.Names.Key, second.Names.Key)
+	}
+	if len(m.Excluded) != 0 {
+		t.Errorf("a key collision produced exclusions: %+v", m.Excluded)
+	}
+	// Each family member's note names its sibling and says what
+	// co-management costs.
+	if !strings.Contains(first.CoManagementNote, "acme_tag_v7") {
+		t.Errorf("first note does not name the sibling: %q", first.CoManagementNote)
+	}
+	if !strings.Contains(second.CoManagementNote, "acme_tag,") {
+		t.Errorf("second note does not name the sibling: %q", second.CoManagementNote)
+	}
+	for _, note := range []string{first.CoManagementNote, second.CoManagementNote} {
+		for _, want := range []string{"drift", "last terraform apply wins"} {
+			if !strings.Contains(note, want) {
+				t.Errorf("co-management note %q does not say %q", note, want)
+			}
 		}
 	}
-	if collision == nil {
-		t.Fatalf("no exclusion recorded for the losing version: %+v", m.Excluded)
+}
+
+func TestDerive_DisambiguatesByEmbeddedParameter(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /tags/assign:
+    post:
+      responses:
+        "202": {description: accepted}
+  /tags/{id}/assign:
+    post:
+      responses:
+        "202": {description: accepted}
+`
+	m := mustDerive(t, spec, testConfig())
+	if got := len(m.Actions); got != 2 {
+		t.Fatalf("%d actions from two colliding paths, want 2", got)
 	}
-	for _, want := range []string{"/v6/tags", "/v7/tags", "services.exclude"} {
-		if !strings.Contains(collision.Reason, want) {
-			t.Errorf("collision reason %q does not name %s", collision.Reason, want)
+	if m.Actions[0].Names.Key != "tags_assign" || m.Actions[1].Names.Key != "tags_assign_by_id" {
+		t.Fatalf("action keys = %q, %q; want tags_assign, tags_assign_by_id",
+			m.Actions[0].Names.Key, m.Actions[1].Names.Key)
+	}
+	for _, a := range m.Actions {
+		if a.CoManagementNote == "" {
+			t.Errorf("action %s lacks a co-management note", a.Names.Key)
 		}
+	}
+	if len(m.Excluded) != 0 {
+		t.Errorf("a key collision produced exclusions: %+v", m.Excluded)
+	}
+}
+
+func TestDerive_CoManagedResources(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /v6/tags:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Tag'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Tag'}
+  /v6/tags/{tagId}:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Tag'}
+    delete:
+      responses:
+        "204": {description: gone}
+  /v7/tags:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Tag'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Tag'}
+  /v7/tags/{tagId}:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Tag'}
+    delete:
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Tag:
+      type: object
+      properties:
+        name: {type: string}
+`
+	m := mustDerive(t, spec, testConfig())
+	older := resourceByKey(t, m, "tag")
+	newer := resourceByKey(t, m, "tag_v7")
+	if !strings.Contains(older.CoManagementNote, "acme_tag_v7") {
+		t.Errorf("older resource note does not name the sibling: %q", older.CoManagementNote)
+	}
+	if !strings.Contains(newer.CoManagementNote, "acme_tag,") {
+		t.Errorf("newer resource note does not name the sibling: %q", newer.CoManagementNote)
+	}
+	// The companion datasources carry the same prose.
+	for _, key := range []string{"tag", "tag_v7"} {
+		if ds := datasourceByKey(t, m, key); ds.CoManagementNote == "" {
+			t.Errorf("datasource %s lacks a co-management note", key)
+		}
+	}
+	// An entity with no siblings carries no note.
+	solo := resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing")
+	if solo.CoManagementNote != "" {
+		t.Errorf("a collision-free resource carries a note: %q", solo.CoManagementNote)
+	}
+}
+
+// The disambiguation helper's corners, called directly: renderings of
+// literal and parameter segments, and the ordinal fallback for a still-
+// taken or unchanged candidate.
+func TestDisambiguateKey(t *testing.T) {
+	if got := disambiguateKey("tag", "/v7/tags", "/v6/tags", map[string]string{}); got != "tag_v7" {
+		t.Errorf("literal segment: got %q, want tag_v7", got)
+	}
+	if got := disambiguateKey("tags_assign", "/tags/{id}/assign", "/tags/assign", map[string]string{}); got != "tags_assign_by_id" {
+		t.Errorf("parameter segment: got %q, want tags_assign_by_id", got)
+	}
+	if got := disambiguateKey("report", "/reports/by-user/{userId}", "/reports", map[string]string{}); got != "report_by_user_by_user_id" {
+		t.Errorf("mixed segments: got %q, want report_by_user_by_user_id", got)
+	}
+	// No distinguishing segment: the later path's segments are all in the
+	// winner's, so only the ordinal separates them.
+	claimed := map[string]string{"tag": "/v6/tags", "tag_2": "/elsewhere"}
+	if got := disambiguateKey("tag", "/tags", "/v6/tags", claimed); got != "tag_3" {
+		t.Errorf("ordinal fallback: got %q, want tag_3", got)
 	}
 }
 

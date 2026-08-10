@@ -1,4 +1,4 @@
-package ir
+package intermediate_representation
 
 import (
 	"errors"
@@ -20,16 +20,17 @@ const configExcludedReason = "excluded by configuration"
 // Derive computes the model from the revised document and the config. It is
 // pure: the same inputs yield the same value every run, byte-for-byte under
 // JSON. Nothing here reads a clock, the environment or the filesystem, and
-// nothing writes — the IR exists only in memory, for exactly one run.
+// nothing writes — the derivation exists only in memory, for exactly one
+// run.
 func Derive(doc *specmodel.Document, cfg *config.Config) (*Model, error) {
 	if doc == nil {
-		return nil, errors.New("ir: the document is nil")
+		return nil, errors.New("intermediate_representation: the document is nil")
 	}
 	if cfg == nil {
-		return nil, errors.New("ir: the config is nil")
+		return nil, errors.New("intermediate_representation: the config is nil")
 	}
 	if cfg.Provider.Name == "" {
-		return nil, errors.New("ir: provider.name is empty; every terraform type name derives from it")
+		return nil, errors.New("intermediate_representation: provider.name is empty; every terraform type name derives from it")
 	}
 
 	d := &deriver{index: indexOperations(doc)}
@@ -43,38 +44,36 @@ func Derive(doc *specmodel.Document, cfg *config.Config) (*Model, error) {
 	cls := specmodel.Classify(doc)
 
 	// Decide inclusion and names first: actions need every kept entity's
-	// key to resolve their parent, and key collisions must be refused
+	// key to resolve their parent, and a key collision must be resolved
 	// before any entity is built against an ambiguous name.
 	type kept struct {
 		c     specmodel.Classification
 		names Names
 	}
 	var keep []kept
-	keyOwner := map[string]string{}
+	claimed := map[string]string{} // final key -> the collection path that claimed it
+	family := map[string][]int{}   // pre-disambiguation key -> indices into keep
 	parentKey := map[string]string{}
 	for _, c := range cls.Entities {
 		names := deriveNames(cfg.Provider.Name, c.Key, c.CollectionPath)
+		original := names.Key
+		// Two collection paths can derive one key: sibling API versions
+		// once the version prefix factors out, or paths that differ only
+		// in an embedded parameter. Both entities generate: the later one
+		// in collection-path order takes a mechanically disambiguated key,
+		// and every member of the family carries a co-management note so
+		// the generated schema description says the overlap out loud.
+		if winner, taken := claimed[names.Key]; taken {
+			names = names.withKey(cfg.Provider.Name,
+				disambiguateKey(names.Key, c.CollectionPath, winner, claimed))
+		}
+		claimed[names.Key] = c.CollectionPath
 		if excluded[names.Service] || excluded[names.Key] {
 			m.Excluded = append(m.Excluded, Exclusion{Key: names.Key, Reason: configExcludedReason})
 			continue
 		}
-		// Two collection paths can derive one key: sibling API versions
-		// once the version prefix factors out, or paths that differ only
-		// in an embedded parameter. One key can generate only once, so
-		// the first entity in collection-path order wins and the rest are
-		// excluded with a reason naming the winner — recorded, never
-		// silent, and resolvable through services.exclude.
-		if owner, taken := keyOwner[names.Key]; taken {
-			m.Excluded = append(m.Excluded, Exclusion{
-				Key: names.Key,
-				Reason: fmt.Sprintf(
-					"entity key collides with %s (this entity is %s); exclude one via services.exclude",
-					owner, c.CollectionPath),
-			})
-			continue
-		}
-		keyOwner[names.Key] = c.CollectionPath
 		parentKey[c.CollectionPath] = names.Key
+		family[original] = append(family[original], len(keep))
 		keep = append(keep, kept{c: c, names: names})
 	}
 	for _, e := range cls.Excluded {
@@ -82,23 +81,106 @@ func Derive(doc *specmodel.Document, cfg *config.Config) (*Model, error) {
 		m.Excluded = append(m.Excluded, Exclusion{Key: names.Key, Reason: e.Reason})
 	}
 
+	// A collision family that generates more than one entity co-manages
+	// one API surface: every member's note names its siblings, so the
+	// prose lands on both sides of the overlap.
+	notes := map[string]string{}
+	for _, members := range family {
+		if len(members) < 2 {
+			continue
+		}
+		for _, i := range members {
+			siblings := make([]string, 0, len(members)-1)
+			for _, j := range members {
+				if j != i {
+					siblings = append(siblings, keep[j].names.TerraformType)
+				}
+			}
+			sort.Strings(siblings)
+			notes[keep[i].names.Key] = coManagementNote(siblings)
+		}
+	}
+
 	for _, k := range keep {
+		note := notes[k.names.Key]
 		for _, kind := range k.c.Kinds {
 			switch kind {
 			case specmodel.KindResource:
-				m.Resources = append(m.Resources, d.resource(k.c, k.names))
+				r := d.resource(k.c, k.names)
+				r.CoManagementNote = note
+				m.Resources = append(m.Resources, r)
 			case specmodel.KindDatasource:
-				m.Datasources = append(m.Datasources, d.datasource(k.c, k.names))
+				ds := d.datasource(k.c, k.names)
+				ds.CoManagementNote = note
+				m.Datasources = append(m.Datasources, ds)
 			case specmodel.KindListResource:
-				m.ListResources = append(m.ListResources, d.listResource(k.c, k.names))
+				lr := d.listResource(k.c, k.names)
+				lr.CoManagementNote = note
+				m.ListResources = append(m.ListResources, lr)
 			case specmodel.KindAction:
-				m.Actions = append(m.Actions, d.action(k.c, k.names, parentKey))
+				a := d.action(k.c, k.names, parentKey)
+				a.CoManagementNote = note
+				m.Actions = append(m.Actions, a)
 			}
 		}
 	}
 
 	sortModel(m)
 	return m, nil
+}
+
+// disambiguateKey computes the later entity's key when two collection
+// paths derive the same one. The algorithm is mechanical, never a guess:
+//
+//  1. Split both collection paths into segments.
+//  2. Keep, in path order, every segment of the later path the winning
+//     path does not also contain — the distinguishing segments.
+//  3. Render a distinguishing parameter segment "{name}" as "by_" plus
+//     the name snake_cased, and a distinguishing literal segment as
+//     itself snake_cased.
+//  4. Append the renderings to the colliding key, underscore-joined:
+//     "/tags/{id}/assign" against the winner "/tags/assign" turns
+//     "tags_assign" into "tags_assign_by_id".
+//  5. Should the result still be claimed, or should no segment
+//     distinguish the paths, an ordinal _2, _3 … appends until the key
+//     is free.
+func disambiguateKey(key, laterPath, winnerPath string, claimed map[string]string) string {
+	winner := map[string]bool{}
+	for _, seg := range pathSegments(winnerPath) {
+		winner[seg] = true
+	}
+	parts := []string{key}
+	for _, seg := range pathSegments(laterPath) {
+		if winner[seg] {
+			continue
+		}
+		if strings.HasPrefix(seg, "{") {
+			parts = append(parts, "by_"+snakeCase(strings.Trim(seg, "{}")))
+			continue
+		}
+		parts = append(parts, snakeCase(seg))
+	}
+	candidate := strings.Join(parts, "_")
+	if _, taken := claimed[candidate]; !taken && candidate != key {
+		return candidate
+	}
+	for n := 2; ; n++ {
+		next := fmt.Sprintf("%s_%d", candidate, n)
+		if _, taken := claimed[next]; !taken {
+			return next
+		}
+	}
+}
+
+// pathSegments splits a path template into its non-empty segments.
+func pathSegments(path string) []string {
+	var out []string
+	for _, seg := range strings.Split(strings.Trim(path, "/"), "/") {
+		if seg != "" {
+			out = append(out, seg)
+		}
+	}
+	return out
 }
 
 // sortModel fixes every slice's order by entity key, so document order and
