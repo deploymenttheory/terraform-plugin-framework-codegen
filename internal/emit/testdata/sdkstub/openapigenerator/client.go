@@ -1,5 +1,5 @@
 // A hand-written stand-in for an openapi-generator SDK, exposing exactly
-// the surface the shell touches: the configuration, the server list, and
+// the surface the provider core touches: the configuration, the server list, and
 // the client constructor. A real generated SDK would make this fixture
 // larger than the thing it tests.
 package sdk

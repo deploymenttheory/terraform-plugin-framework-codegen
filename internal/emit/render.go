@@ -12,7 +12,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/templates"
 )
 
-// File is one rendered shell file, not yet written.
+// File is one rendered provider-core file, not yet written.
 type File struct {
 	// Path is where the file lands, relative to the provider root,
 	// forward slashes.
@@ -26,10 +26,10 @@ type File struct {
 
 // headerPartial is the shared DO-NOT-EDIT header every template includes:
 // "header" for //-commented files, "hashheader" for #-commented ones.
-const headerPartial = "shell/_header.tmpl"
+const headerPartial = "provider-core/_header.tmpl"
 
-// RenderShell renders the complete provider shell for one context. Files
-// come back in walk order — sorted by path — and nothing is written.
+// RenderProviderCore renders the complete provider core for one context.
+// Files come back in walk order — sorted by path — and nothing is written.
 //
 // Every .go file is required to be gofmt-clean exactly as rendered; a
 // template whose output gofmt would rewrite is a bug reported here, not
@@ -37,16 +37,17 @@ const headerPartial = "shell/_header.tmpl"
 // first (to every file) is blank-line bookkeeping: runs of blank lines
 // collapse to one and the file ends with exactly one newline, because
 // that is what presence-branching does to vertical whitespace and it
-// carries no meaning. The shell's templates never render literals where
-// blank lines are load-bearing; a template family for which they are must
-// not use this renderer.
-func RenderShell(sh Shell) ([]File, error) {
-	return renderShell(templates.Shell, sh)
+// carries no meaning. The provider core's templates never render literals
+// where blank lines are load-bearing; a template family for which they
+// are must not use this renderer.
+func RenderProviderCore(pc ProviderCore) ([]File, error) {
+	return renderProviderCore(templates.ProviderCore, pc)
 }
 
-// renderShell is RenderShell over any FS, so tests can feed broken trees.
-func renderShell(fsys fs.FS, sh Shell) ([]File, error) {
-	if err := sh.check(); err != nil {
+// renderProviderCore is RenderProviderCore over any FS, so tests can feed
+// broken trees.
+func renderProviderCore(fsys fs.FS, pc ProviderCore) ([]File, error) {
+	if err := pc.check(); err != nil {
 		return nil, err
 	}
 
@@ -56,7 +57,7 @@ func renderShell(fsys fs.FS, sh Shell) ([]File, error) {
 	}
 
 	var files []File
-	walkErr := fs.WalkDir(fsys, "shell", func(p string, d fs.DirEntry, err error) error {
+	walkErr := fs.WalkDir(fsys, "provider-core", func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
 		}
@@ -64,7 +65,7 @@ func renderShell(fsys fs.FS, sh Shell) ([]File, error) {
 		if strings.HasPrefix(base, "_") {
 			return nil // a partial, parsed with every template, never emitted
 		}
-		if !sh.selects(base) {
+		if !pc.selects(base) {
 			return nil // the other backend's dialect file
 		}
 
@@ -73,12 +74,12 @@ func renderShell(fsys fs.FS, sh Shell) ([]File, error) {
 			return err
 		}
 
-		rendered, err := render(sh, p, string(partial), string(raw))
+		rendered, err := render(pc, p, string(partial), string(raw))
 		if err != nil {
 			return err
 		}
 
-		out := strings.TrimSuffix(strings.TrimPrefix(p, "shell/"), ".tmpl")
+		out := strings.TrimSuffix(strings.TrimPrefix(p, "provider-core/"), ".tmpl")
 		if strings.HasSuffix(out, ".go") {
 			if err := gofmtClean(p, rendered); err != nil {
 				return err
@@ -98,23 +99,23 @@ func renderShell(fsys fs.FS, sh Shell) ([]File, error) {
 // selects says whether this context emits the named template. Dialect
 // pairs follow one naming rule: a base name ending in _kiota.go.tmpl or
 // _openapigenerator.go.tmpl belongs to that backend alone.
-func (sh Shell) selects(base string) bool {
+func (pc ProviderCore) selects(base string) bool {
 	name := strings.TrimSuffix(base, ".tmpl")
 	switch {
 	case strings.HasSuffix(name, "_kiota.go"):
-		return sh.BackendKiota
+		return pc.BackendKiota
 	case strings.HasSuffix(name, "_openapigenerator.go"):
-		return sh.BackendOpenAPIGenerator
+		return pc.BackendOpenAPIGenerator
 	default:
 		return true
 	}
 }
 
-// view is what one template renders against: the shell context plus the
-// template's own path, which the shared header interpolates so every
-// generated file names its origin.
+// view is what one template renders against: the provider-core context
+// plus the template's own path, which the shared header interpolates so
+// every generated file names its origin.
 type view struct {
-	Shell
+	ProviderCore
 	// Source is the template path under the templates tree.
 	Source string
 }
@@ -122,7 +123,7 @@ type view struct {
 // render parses the header partial and one template body together —
 // per-file parsing, so repeated base names across directories can never
 // shadow one another — and executes them against the view.
-func render(sh Shell, source, partial, body string) ([]byte, error) {
+func render(pc ProviderCore, source, partial, body string) ([]byte, error) {
 	t, err := template.New(path.Base(source)).Parse(partial)
 	if err != nil {
 		return nil, fmt.Errorf("parsing %s: %w", headerPartial, err)
@@ -132,16 +133,16 @@ func render(sh Shell, source, partial, body string) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := t.Execute(&buf, view{Shell: sh, Source: source}); err != nil {
+	if err := t.Execute(&buf, view{ProviderCore: pc, Source: source}); err != nil {
 		return nil, fmt.Errorf("rendering %s: %w", source, err)
 	}
 
 	return squeezeBlankLines(buf.Bytes()), nil
 }
 
-// squeezeBlankLines is the blank-line bookkeeping RenderShell documents:
-// whitespace-only lines become empty, runs of them collapse to one, and
-// the file ends with exactly one newline.
+// squeezeBlankLines is the blank-line bookkeeping RenderProviderCore
+// documents: whitespace-only lines become empty, runs of them collapse to
+// one, and the file ends with exactly one newline.
 func squeezeBlankLines(b []byte) []byte {
 	lines := strings.Split(string(b), "\n")
 

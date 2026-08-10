@@ -34,10 +34,10 @@ func SetupUnitTestEnvironment(t *testing.T) {
 	t.Helper()
 	t.Setenv("{{ .EnvPrefix }}_ENDPOINT", unitEndpoint)
 {{- if .AuthBearerToken }}
-	t.Setenv("{{ .EnvPrefix }}_BEARER_TOKEN", "unit-test-token")
+	t.Setenv("{{ .EnvPrefix }}_API_TOKEN", "unit-test-token")
 {{- end }}
 {{- if .AuthAPIKeyHeader }}
-	t.Setenv("{{ .EnvPrefix }}_API_KEY", "unit-test-key")
+	t.Setenv("{{ .EnvPrefix }}_API_TOKEN", "unit-test-token")
 {{- end }}
 {{- if .AuthBasic }}
 	t.Setenv("{{ .EnvPrefix }}_USERNAME", "unit-test-user")

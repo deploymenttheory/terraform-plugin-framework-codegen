@@ -12,7 +12,7 @@ import (
 func TestUnit_FromConfig_DerivesEveryFinishedValue(t *testing.T) {
 	cfg := testConfig(config.BackendKiota, config.AuthOAuth2ClientCredentials)
 
-	sh, err := FromConfig(cfg, "https://api.example.test/v1")
+	pc, err := FromConfig(cfg, "https://api.example.test/v1")
 	if err != nil {
 		t.Fatalf("FromConfig: %v", err)
 	}
@@ -21,7 +21,7 @@ func TestUnit_FromConfig_DerivesEveryFinishedValue(t *testing.T) {
 		"Module":            "github.com/exampleco/terraform-provider-petstore",
 		"ProviderName":      "petstore",
 		"RegistryAddress":   "registry.terraform.io/exampleco/petstore",
-		"EnvPrefix":         "PETSTORE",
+		"EnvPrefix":         "TF_PETSTORE",
 		"ClientType":        "APIClient",
 		"ClientConstructor": "NewAPIClient",
 		"SDKImport":         "github.com/exampleco/terraform-provider-petstore/internal/sdk",
@@ -30,26 +30,26 @@ func TestUnit_FromConfig_DerivesEveryFinishedValue(t *testing.T) {
 		"DefaultTokenURL":   "https://login.example.test/oauth2/token",
 	} {
 		got := map[string]string{
-			"Module":            sh.Module,
-			"ProviderName":      sh.ProviderName,
-			"RegistryAddress":   sh.RegistryAddress,
-			"EnvPrefix":         sh.EnvPrefix,
-			"ClientType":        sh.ClientType,
-			"ClientConstructor": sh.ClientConstructor,
-			"SDKImport":         sh.SDKImport,
-			"GoVersion":         sh.GoVersion,
-			"DefaultEndpoint":   sh.DefaultEndpoint,
-			"DefaultTokenURL":   sh.DefaultTokenURL,
+			"Module":            pc.Module,
+			"ProviderName":      pc.ProviderName,
+			"RegistryAddress":   pc.RegistryAddress,
+			"EnvPrefix":         pc.EnvPrefix,
+			"ClientType":        pc.ClientType,
+			"ClientConstructor": pc.ClientConstructor,
+			"SDKImport":         pc.SDKImport,
+			"GoVersion":         pc.GoVersion,
+			"DefaultEndpoint":   pc.DefaultEndpoint,
+			"DefaultTokenURL":   pc.DefaultTokenURL,
 		}[field]
 		if got != want {
 			t.Errorf("%s = %q, want %q", field, got, want)
 		}
 	}
 
-	if !sh.BackendKiota || sh.BackendOpenAPIGenerator {
+	if !pc.BackendKiota || pc.BackendOpenAPIGenerator {
 		t.Error("the kiota config did not select exactly the kiota backend")
 	}
-	if !sh.AuthOAuth2ClientCredentials {
+	if !pc.AuthOAuth2ClientCredentials {
 		t.Error("the oauth2 config did not select the oauth2 method")
 	}
 }
@@ -112,15 +112,16 @@ func TestUnit_FromConfig_RefusesWhatItCannotDerive(t *testing.T) {
 	})
 }
 
-// TestUnit_EnvPrefix_CollapsesToUnderscores proves names with separators
-// become clean prefixes.
-func TestUnit_EnvPrefix_CollapsesToUnderscores(t *testing.T) {
+// TestUnit_EnvPrefix_IsTFThenTheCollapsedName proves the operator prefix
+// is TF_ then the uppercased name, separators collapsed to underscores.
+func TestUnit_EnvPrefix_IsTFThenTheCollapsedName(t *testing.T) {
 	for name, want := range map[string]string{
-		"petstore":   "PETSTORE",
-		"jamf-pro":   "JAMF_PRO",
-		"a--b_c.d":   "A_B_C_D",
-		"-edge-":     "EDGE",
-		"snake_case": "SNAKE_CASE",
+		"petstore":     "TF_PETSTORE",
+		"thousandeyes": "TF_THOUSANDEYES",
+		"jamf-pro":     "TF_JAMF_PRO",
+		"a--b_c.d":     "TF_A_B_C_D",
+		"-edge-":       "TF_EDGE",
+		"snake_case":   "TF_SNAKE_CASE",
 	} {
 		if got := envPrefix(name); got != want {
 			t.Errorf("envPrefix(%q) = %q, want %q", name, got, want)
@@ -128,10 +129,10 @@ func TestUnit_EnvPrefix_CollapsesToUnderscores(t *testing.T) {
 	}
 }
 
-// TestUnit_ShellCheck_NamesEveryProblemAtOnce proves the context check
-// reports all gaps in one message, config-style.
-func TestUnit_ShellCheck_NamesEveryProblemAtOnce(t *testing.T) {
-	err := Shell{APIKeyHeader: ""}.check()
+// TestUnit_ProviderCoreCheck_NamesEveryProblemAtOnce proves the context
+// check reports all gaps in one message, config-style.
+func TestUnit_ProviderCoreCheck_NamesEveryProblemAtOnce(t *testing.T) {
+	err := ProviderCore{APIKeyHeader: ""}.check()
 	if err == nil {
 		t.Fatal("check accepted the zero context")
 	}
@@ -141,17 +142,17 @@ func TestUnit_ShellCheck_NamesEveryProblemAtOnce(t *testing.T) {
 		}
 	}
 
-	sh := Shell{
-		Module: "m", ProviderName: "p", RegistryAddress: "r", EnvPrefix: "P",
+	pc := ProviderCore{
+		Module: "m", ProviderName: "p", RegistryAddress: "r", EnvPrefix: "TF_P",
 		ClientType: "C", ClientConstructor: "NewC", SDKImport: "m/internal/sdk", GoVersion: "1.25",
 		BackendKiota: true, AuthAPIKeyHeader: true,
 	}
-	if err := sh.check(); err == nil || !strings.Contains(err.Error(), "APIKeyHeader") {
+	if err := pc.check(); err == nil || !strings.Contains(err.Error(), "APIKeyHeader") {
 		t.Fatalf("check did not report the missing api key header: %v", err)
 	}
 
-	sh.APIKeyHeader = "X-Api-Key"
-	if err := sh.check(); err != nil {
+	pc.APIKeyHeader = "X-Api-Key"
+	if err := pc.check(); err != nil {
 		t.Fatalf("check refused a complete context: %v", err)
 	}
 }

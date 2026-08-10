@@ -13,12 +13,12 @@ type model struct {
 	// Endpoint is the API base URL. Falls back to {{ .EnvPrefix }}_ENDPOINT.
 	Endpoint types.String `tfsdk:"endpoint"`
 {{- if .AuthBearerToken }}
-	// BearerToken falls back to {{ .EnvPrefix }}_BEARER_TOKEN.
-	BearerToken types.String `tfsdk:"bearer_token"`
+	// APIToken falls back to {{ .EnvPrefix }}_API_TOKEN.
+	APIToken types.String `tfsdk:"api_token"`
 {{- end }}
 {{- if .AuthAPIKeyHeader }}
-	// APIKey falls back to {{ .EnvPrefix }}_API_KEY.
-	APIKey types.String `tfsdk:"api_key"`
+	// APIToken falls back to {{ .EnvPrefix }}_API_TOKEN.
+	APIToken types.String `tfsdk:"api_token"`
 {{- end }}
 {{- if .AuthBasic }}
 	// Username falls back to {{ .EnvPrefix }}_USERNAME.

@@ -1,13 +1,14 @@
-// Package emit renders the provider shell — the runtime plumbing every
-// generated provider repo carries — from the templates in
-// internal/templates/shell into a target tree, and reports what it wrote
-// as manifest entries.
+// Package emit renders the provider core — the shared runtime plumbing
+// every generated provider repo carries — from the templates in
+// internal/templates/provider-core into a target tree, and reports what
+// it wrote as manifest entries.
 //
 // Templates carry shape, this package carries logic: every value a
 // template interpolates leaves here as a finished string or a presence
 // boolean, computed once in FromConfig. Per-entity emission (resources,
 // datasources, list resources, actions) is a separate, later package —
-// the shell is everything that exists before the first entity does.
+// the provider core is everything that exists before the first entity
+// does.
 package emit
 
 import (
@@ -20,11 +21,11 @@ import (
 // DefaultGoVersion is the Go directive the generated go.mod declares.
 const DefaultGoVersion = "1.25"
 
-// Shell is the render context for the provider shell: everything the
-// templates interpolate, finished. Strings arrive complete — no template
-// assembles a value — and the backend and auth booleans exist so
+// ProviderCore is the render context for the provider core: everything
+// the templates interpolate, finished. Strings arrive complete — no
+// template assembles a value — and the backend and auth booleans exist so
 // templates branch on presence, never on meaning.
-type Shell struct {
+type ProviderCore struct {
 	// Module is the provider repo's Go module path, e.g.
 	// "github.com/exampleco/terraform-provider-petstore".
 	Module string
@@ -33,8 +34,10 @@ type Shell struct {
 	// RegistryAddress is the full registry address main.go serves, e.g.
 	// "registry.terraform.io/exampleco/petstore".
 	RegistryAddress string
-	// EnvPrefix prefixes every environment fallback the provider reads,
-	// e.g. "PETSTORE".
+	// EnvPrefix prefixes every environment fallback the provider reads:
+	// TF_ then the uppercased provider name, e.g. "TF_PETSTORE". These
+	// operator-facing variables (TF_PETSTORE_API_TOKEN, …) are distinct
+	// from the toolkit pipeline's TFPFGEN_AUTH_* secrets.
 	EnvPrefix string
 	// ClientType is the generated SDK's client type name, e.g. "APIClient".
 	ClientType string
@@ -71,25 +74,26 @@ type Shell struct {
 	AuthGitHubApp               bool
 }
 
-// FromConfig derives the shell context from a validated tfpfgen.yaml.
-// defaultEndpoint is the base URL the revised spec's servers declare —
-// the caller reads the spec, this package does not — and may be empty.
+// FromConfig derives the provider-core context from a validated
+// tfpfgen.yaml. defaultEndpoint is the base URL the revised spec's
+// servers declare — the caller reads the spec, this package does not —
+// and may be empty.
 //
 // Everything else a template needs is derived here, in one place: the
 // module path and registry address from the provider block, the
 // environment prefix from the provider name, the SDK surface names from
 // sdk.client_type_name.
-func FromConfig(cfg *config.Config, defaultEndpoint string) (Shell, error) {
+func FromConfig(cfg *config.Config, defaultEndpoint string) (ProviderCore, error) {
 	name := cfg.Provider.Name
 	namespace := cfg.Provider.RegistryNamespace
 	if name == "" || namespace == "" {
-		return Shell{}, fmt.Errorf("provider.name and provider.registry_namespace must both be set to render the shell")
+		return ProviderCore{}, fmt.Errorf("provider.name and provider.registry_namespace must both be set to render the provider core")
 	}
 	if cfg.SDK.ClientTypeName == "" {
-		return Shell{}, fmt.Errorf("sdk.client_type_name must be set to render the shell")
+		return ProviderCore{}, fmt.Errorf("sdk.client_type_name must be set to render the provider core")
 	}
 
-	sh := Shell{
+	pc := ProviderCore{
 		Module:            fmt.Sprintf("github.com/%s/terraform-provider-%s", namespace, name),
 		ProviderName:      name,
 		RegistryAddress:   fmt.Sprintf("registry.terraform.io/%s/%s", namespace, name),
@@ -101,54 +105,54 @@ func FromConfig(cfg *config.Config, defaultEndpoint string) (Shell, error) {
 		DefaultTokenURL:   cfg.Auth.TokenURL,
 		APIKeyHeader:      cfg.Auth.APIKeyHeader,
 	}
-	sh.SDKImport = sh.Module + "/internal/sdk"
+	pc.SDKImport = pc.Module + "/internal/sdk"
 
 	switch cfg.SDK.Backend {
 	case config.BackendKiota:
-		sh.BackendKiota = true
+		pc.BackendKiota = true
 	case config.BackendOpenAPIGenerator:
-		sh.BackendOpenAPIGenerator = true
+		pc.BackendOpenAPIGenerator = true
 	default:
-		return Shell{}, fmt.Errorf("sdk.backend %q is not a supported backend (%s | %s)",
+		return ProviderCore{}, fmt.Errorf("sdk.backend %q is not a supported backend (%s | %s)",
 			cfg.SDK.Backend, config.BackendKiota, config.BackendOpenAPIGenerator)
 	}
 
 	switch cfg.Auth.Method {
 	case config.AuthBearerToken:
-		sh.AuthBearerToken = true
+		pc.AuthBearerToken = true
 	case config.AuthAPIKeyHeader:
-		sh.AuthAPIKeyHeader = true
+		pc.AuthAPIKeyHeader = true
 	case config.AuthBasic:
-		sh.AuthBasic = true
+		pc.AuthBasic = true
 	case config.AuthOAuth2ClientCredentials:
-		sh.AuthOAuth2ClientCredentials = true
+		pc.AuthOAuth2ClientCredentials = true
 	case config.AuthGitHubApp:
-		sh.AuthGitHubApp = true
+		pc.AuthGitHubApp = true
 	default:
-		return Shell{}, fmt.Errorf("auth.method %q is not a supported method", cfg.Auth.Method)
+		return ProviderCore{}, fmt.Errorf("auth.method %q is not a supported method", cfg.Auth.Method)
 	}
 
-	if sh.AuthAPIKeyHeader && sh.APIKeyHeader == "" {
-		return Shell{}, fmt.Errorf("auth.api_key_header must be set when auth.method is %s", config.AuthAPIKeyHeader)
+	if pc.AuthAPIKeyHeader && pc.APIKeyHeader == "" {
+		return ProviderCore{}, fmt.Errorf("auth.api_key_header must be set when auth.method is %s", config.AuthAPIKeyHeader)
 	}
 
-	return sh, nil
+	return pc, nil
 }
 
 // check refuses an inconsistent context before any template sees it, so
 // a bad caller fails with one clear message rather than a template error.
-func (sh Shell) check() error {
+func (pc ProviderCore) check() error {
 	var problems []string
 
 	for _, field := range []struct{ name, value string }{
-		{"Module", sh.Module},
-		{"ProviderName", sh.ProviderName},
-		{"RegistryAddress", sh.RegistryAddress},
-		{"EnvPrefix", sh.EnvPrefix},
-		{"ClientType", sh.ClientType},
-		{"ClientConstructor", sh.ClientConstructor},
-		{"SDKImport", sh.SDKImport},
-		{"GoVersion", sh.GoVersion},
+		{"Module", pc.Module},
+		{"ProviderName", pc.ProviderName},
+		{"RegistryAddress", pc.RegistryAddress},
+		{"EnvPrefix", pc.EnvPrefix},
+		{"ClientType", pc.ClientType},
+		{"ClientConstructor", pc.ClientConstructor},
+		{"SDKImport", pc.SDKImport},
+		{"GoVersion", pc.GoVersion},
 	} {
 		if field.value == "" {
 			problems = append(problems, field.name+" is empty")
@@ -156,7 +160,7 @@ func (sh Shell) check() error {
 	}
 
 	backends := 0
-	for _, set := range []bool{sh.BackendKiota, sh.BackendOpenAPIGenerator} {
+	for _, set := range []bool{pc.BackendKiota, pc.BackendOpenAPIGenerator} {
 		if set {
 			backends++
 		}
@@ -166,7 +170,7 @@ func (sh Shell) check() error {
 	}
 
 	methods := 0
-	for _, set := range []bool{sh.AuthBearerToken, sh.AuthAPIKeyHeader, sh.AuthBasic, sh.AuthOAuth2ClientCredentials, sh.AuthGitHubApp} {
+	for _, set := range []bool{pc.AuthBearerToken, pc.AuthAPIKeyHeader, pc.AuthBasic, pc.AuthOAuth2ClientCredentials, pc.AuthGitHubApp} {
 		if set {
 			methods++
 		}
@@ -175,18 +179,19 @@ func (sh Shell) check() error {
 		problems = append(problems, "exactly one auth boolean must be set")
 	}
 
-	if sh.AuthAPIKeyHeader && sh.APIKeyHeader == "" {
+	if pc.AuthAPIKeyHeader && pc.APIKeyHeader == "" {
 		problems = append(problems, "APIKeyHeader is empty for the api_key_header method")
 	}
 
 	if len(problems) > 0 {
-		return fmt.Errorf("the shell context is not renderable: %s", strings.Join(problems, "; "))
+		return fmt.Errorf("the provider-core context is not renderable: %s", strings.Join(problems, "; "))
 	}
 	return nil
 }
 
-// envPrefix renders a provider name as an environment-variable prefix:
-// uppercased, with every non-alphanumeric run collapsed to one underscore.
+// envPrefix renders a provider name as the operator environment-variable
+// prefix: TF_ then the name uppercased, with every non-alphanumeric run
+// collapsed to one underscore.
 func envPrefix(name string) string {
 	var b strings.Builder
 	lastUnderscore := false
@@ -202,5 +207,5 @@ func envPrefix(name string) string {
 			lastUnderscore = true
 		}
 	}
-	return strings.Trim(b.String(), "_")
+	return "TF_" + strings.Trim(b.String(), "_")
 }

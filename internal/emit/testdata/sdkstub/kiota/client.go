@@ -1,5 +1,5 @@
 // A hand-written stand-in for a kiota-generated SDK, exposing exactly the
-// surface the shell touches: the client type and its adapter-taking
+// surface the provider core touches: the client type and its adapter-taking
 // constructor. A real generated SDK would make this fixture larger than
 // the thing it tests.
 package sdk

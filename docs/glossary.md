@@ -25,7 +25,9 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 | **backend** | An SDK generator behind the common interface: `kiota` or `openapi-generator`. Exactly one per provider repo. |
 | **intermediate representation** | The ephemeral, never-committed derivation (`internal/intermediate_representation`) recomputed from the revised spec and config on every generation run; its model vocabulary (Model, Resource, Datasource, ListResource, Action, AttributeTree, Presence, Op, Names) is approved. |
 | **binding** | The dialect-neutral mapping from one intermediate-representation entity onto the generated SDK's surface (`internal/sdkbind`): finished call expressions, accessor names, model types. Drafted by a per-backend binder, resolved against the real SDK with go/types. Its vocabulary (Bindings, Call, FieldAccess, Segment) is approved. |
-| **prune** | To resolve drafted bindings against the generated SDK and delete, each with the SDK's recorded reason, whatever the SDK cannot carry — repairing a spelling only where the SDK admits exactly one answer, never inventing, never widening. |
+| **prune** | To resolve drafted bindings against the generated SDK and delete whatever the SDK cannot carry, recording the SDK's reason for each deletion. A spelling is repaired only where the SDK admits exactly one answer — never invented, never widened. |
+| **provider-core** | The shared plumbing the toolkit emits into every generated provider: the client, crud retry, error semantics, the conversion catalog, schema helpers, and the test harness. An emitted copy, not a shared library — every file is manifest-covered and regenerated wholesale. Templates live in `internal/templates/provider-core`. |
+| **emit** | The render-and-write layer (`internal/emit`): it turns the provider-core templates plus finished context values into provider files and reports what it wrote as manifest entries. |
 
 ## Fixed spellings
 
@@ -40,6 +42,17 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 - Shared workflows, stage-numbered: `10-generate.yml`, `20-ci.yml`,
   `30-acceptance.yml`, `40-docs.yml`, `50-release.yml`.
 - Generation branch in provider repos: `tfpfgen/run-<id>`.
+- Machine-append sentinels in provider-core registry files:
+  `// tfpfgen:<kind>:imports` and `// tfpfgen:<kind>:registrations`, where
+  `<kind>` is `resources`, `datasources`, `list_resources`, or `actions`.
+- Operator environment variables a generated provider reads:
+  `TF_<PROVIDER>_*` — `TF_` then the uppercased provider name, e.g.
+  `TF_THOUSANDEYES_API_TOKEN`. Distinct from the pipeline's
+  `TFPFGEN_AUTH_*` secrets, which only the toolkit reads.
+- Provider block attributes: `endpoint`, `api_token`, `username`,
+  `password`, `client_id`, `client_secret`, `token_url`.
+- Conversion catalog function families: `APIToFramework*` and
+  `FrameworkToAPI*`.
 - Go-idiomatic acronym casing in generated names: known acronyms uppercase
   whole in Pascal/camel spellings (`HTTPServer`, `APIKey`), and a leading
   acronym lowers whole in camel (`id`, `apiKey`). The acronym table lives in
