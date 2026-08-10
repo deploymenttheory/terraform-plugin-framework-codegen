@@ -50,74 +50,18 @@ type Result struct {
 // where a complete one stood: the previous output survives any error, and
 // the swap at the end is two renames.
 func Run(ctx context.Context, opts Options) (Result, error) {
-	backend, err := For(opts.Config)
-	if err != nil {
-		return Result{}, err
-	}
-
-	res := Result{
-		Backend:     backend.Name(),
-		Version:     backend.RequiredVersion(opts.Config),
-		RevisedPath: filepath.Join(opts.SpecDir, revise.OutputName),
-	}
-
-	revised, err := os.ReadFile(res.RevisedPath) //nolint:gosec // the fixed name under the operator-supplied dir
-	if os.IsNotExist(err) {
-		return Result{}, fmt.Errorf("%s does not exist; generation reads the revised spec — run `tfpfgen spec revise` first", res.RevisedPath)
-	}
-	if err != nil {
-		return Result{}, err
-	}
-
-	if err := backend.CheckTool(ctx, opts.Config); err != nil {
-		return Result{}, err
-	}
-
-	prenormalized, _, _, err := Prenormalize(revised)
-	if err != nil {
-		return Result{}, err
-	}
-
-	// The pre-normalized copy is an intermediate, not an output: it lives in
-	// a temp directory the run removes, and only its durable source
-	// (spec/revised.yaml) is ever recorded in generated files.
-	workDir, err := os.MkdirTemp("", "tfpfgen-sdkgen-")
-	if err != nil {
-		return Result{}, err
-	}
-	defer os.RemoveAll(workDir) //nolint:errcheck // best-effort temp cleanup
-
-	prePath := filepath.Join(workDir, "revised.prenormalized.yaml")
-	if err := os.WriteFile(prePath, prenormalized, 0o600); err != nil {
-		return Result{}, err
-	}
-
-	outAbs := opts.Out
-	if !filepath.IsAbs(outAbs) {
-		outAbs = filepath.Join(opts.Root, opts.Out)
-	}
-	outAbs, err = filepath.Abs(outAbs)
+	outAbs, err := resolveOut(opts)
 	if err != nil {
 		return Result{}, err
 	}
 
 	// Staging lives beside the final tree so the swap is a rename on one
 	// filesystem, not a copy that can half-finish.
-	if err := os.MkdirAll(filepath.Dir(outAbs), 0o750); err != nil {
-		return Result{}, err
-	}
-	staging, err := os.MkdirTemp(filepath.Dir(outAbs), ".tfpfgen-sdk-staging-")
+	res, staging, err := regenerate(ctx, opts, filepath.Dir(outAbs), ".tfpfgen-sdk-staging-")
 	if err != nil {
 		return Result{}, err
 	}
 	defer os.RemoveAll(staging) //nolint:errcheck // best-effort: gone already after a successful swap
-
-	if err := backend.Generate(ctx, prePath, opts.Config, staging); err != nil {
-		return Result{}, err
-	}
-	if err := backend.Normalize(staging, recordedPath(opts.Root, res.RevisedPath)); err != nil {
-		return Result{}, err
-	}
 
 	entries, err := inventory(staging, opts.Root, outAbs, recordedPath(opts.Root, res.RevisedPath))
 	if err != nil {
@@ -152,6 +96,91 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	}
 
 	return res, nil
+}
+
+// resolveOut renders opts.Out absolute: relative to Root unless already
+// absolute.
+func resolveOut(opts Options) (string, error) {
+	out := opts.Out
+	if !filepath.IsAbs(out) {
+		out = filepath.Join(opts.Root, opts.Out)
+	}
+	return filepath.Abs(out)
+}
+
+// regenerate runs the pipeline stages `sdk generate` and `sdk verify` share —
+// select the backend, read the revised document, gate the pinned tool,
+// pre-normalize a copy, generate into a fresh temporary directory, scrub
+// nondeterminism — and returns that directory. What becomes of the tree is
+// the caller's question: Run swaps it into place, Verify compares and
+// discards it.
+//
+// The temporary target is created under targetParent ("" means the system
+// temp directory), and only after every gate has passed, so a refusal leaves
+// no mark near the repo. The caller removes the returned directory.
+func regenerate(ctx context.Context, opts Options, targetParent, targetPrefix string) (Result, string, error) {
+	backend, err := For(opts.Config)
+	if err != nil {
+		return Result{}, "", err
+	}
+
+	res := Result{
+		Backend:     backend.Name(),
+		Version:     backend.RequiredVersion(opts.Config),
+		RevisedPath: filepath.Join(opts.SpecDir, revise.OutputName),
+	}
+
+	revised, err := os.ReadFile(res.RevisedPath) //nolint:gosec // the fixed name under the operator-supplied dir
+	if os.IsNotExist(err) {
+		return Result{}, "", fmt.Errorf("%s does not exist; generation reads the revised spec — run `tfpfgen spec revise` first", res.RevisedPath)
+	}
+	if err != nil {
+		return Result{}, "", err
+	}
+
+	if err := backend.CheckTool(ctx, opts.Config); err != nil {
+		return Result{}, "", err
+	}
+
+	prenormalized, _, _, err := Prenormalize(revised)
+	if err != nil {
+		return Result{}, "", err
+	}
+
+	// The pre-normalized copy is an intermediate, not an output: it lives in
+	// a temp directory the run removes, and only its durable source
+	// (spec/revised.yaml) is ever recorded in generated files.
+	workDir, err := os.MkdirTemp("", "tfpfgen-sdkgen-")
+	if err != nil {
+		return Result{}, "", err
+	}
+	defer os.RemoveAll(workDir) //nolint:errcheck // best-effort temp cleanup
+
+	prePath := filepath.Join(workDir, "revised.prenormalized.yaml")
+	if err := os.WriteFile(prePath, prenormalized, 0o600); err != nil {
+		return Result{}, "", err
+	}
+
+	if targetParent != "" {
+		if err := os.MkdirAll(targetParent, 0o750); err != nil {
+			return Result{}, "", err
+		}
+	}
+	target, err := os.MkdirTemp(targetParent, targetPrefix)
+	if err != nil {
+		return Result{}, "", err
+	}
+
+	if err := backend.Generate(ctx, prePath, opts.Config, target); err != nil {
+		os.RemoveAll(target) //nolint:errcheck // best-effort temp cleanup; the generate error is the report
+		return Result{}, "", err
+	}
+	if err := backend.Normalize(target, recordedPath(opts.Root, res.RevisedPath)); err != nil {
+		os.RemoveAll(target) //nolint:errcheck // best-effort temp cleanup; the normalize error is the report
+		return Result{}, "", err
+	}
+
+	return res, target, nil
 }
 
 // recordedPath renders the revised document's path the way durable output
