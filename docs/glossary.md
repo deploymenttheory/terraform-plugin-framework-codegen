@@ -15,7 +15,7 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 | **import** | To pin the upstream OpenAPI document by hash — `tfpfgen spec import`. The imported document is immutable evidence of what the vendor published. |
 | **validate** | The offline preflight — `tfpfgen config validate`: tfpfgen.yaml is well-formed, the auth method's secrets are present, tool pins match. Dies in seconds, before anything credentialed runs. |
 | **generate** | Code generation — `tfpfgen sdk generate`, `tfpfgen provider generate`. Every generated file carries a DO-NOT-EDIT header and a manifest entry. |
-| **verify** | The drift gate — `tfpfgen sdk verify`, `tfpfgen provider verify`: regenerate into a temporary tree, byte-compare, fail on any difference. |
+| **verify** | The drift gate — `tfpfgen spec verify`, `tfpfgen sdk verify`, `tfpfgen provider verify`: regenerate into a temporary tree, byte-compare, fail on any difference. |
 | **cleanup** | Deleting the live test objects an audit created, matched by name prefix — `tfpfgen audit cleanup`. Runs automatically at the start and end of every audit, and standalone on demand. |
 | **inputs** | The small optional committed file of operator-supplied values the audit cannot synthesize (a valid value for an example-less field, an existing parent object's id): `audit/inputs.json`. Its absence degrades gracefully — the audit covers what it can. |
 | **authored** | A committed data path generation may never write: tfpfgen.yaml, corrections, inputs. Enforced by the manifest, not by convention. There are no authored *code* files — provider repos are 100% generated code. |
@@ -32,6 +32,8 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   `TFPFGEN_AUTH_PASSWORD`, `TFPFGEN_AUTH_APP_ID`,
   `TFPFGEN_AUTH_APP_PRIVATE_KEY`.
 - OpenAPI extensions: `x-tfpfgen-*`.
+- Approved extension values:
+  `x-tfpfgen-update-style: patch-merge | put-full | replace-only`.
 - Shared workflows, stage-numbered: `10-generate.yml`, `20-ci.yml`,
   `30-acceptance.yml`, `40-docs.yml`, `50-release.yml`.
 - Generation branch in provider repos: `tfpfgen/run-<id>`.
