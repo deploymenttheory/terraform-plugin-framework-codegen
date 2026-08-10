@@ -1,0 +1,356 @@
+name: 10-generate
+
+# The eight-job generation pipeline of docs/contract.md, called by a provider
+# repo's thin caller. Each job is one verb; each arrow between jobs is a named
+# artifact, so GitHub's "Re-run failed jobs" resumes from any point. The
+# caller passes its repository secrets with `secrets: inherit`; only the
+# audit job ever reads their values.
+on:
+  workflow_call:
+    inputs:
+      audit:
+        description: Run the credentialed live-API audit even when committed observations exist.
+        type: boolean
+        required: false
+        default: false
+      reuse_audit_run_id:
+        description: Reuse the observations artifact of this earlier pipeline run instead of auditing again.
+        type: string
+        required: false
+        default: ""
+      openapi_url:
+        description: Upstream OpenAPI document URL for a first run, before tfpfgen.yaml's spec.document_url pin exists in the tree.
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  # [1] Fails in under a minute on an unknown config key, a missing role
+  # secret, or a non-tag generator pin. Secret *values* never enter this
+  # job: each role's env var carries only a presence sentinel, and
+  # `config validate --secrets` treats an empty variable as missing.
+  config-validate:
+    name: config validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - name: tfpfgen config validate --secrets
+        env:
+          TFPFGEN_AUTH_TOKEN: ${{ secrets.TFPFGEN_AUTH_TOKEN != '' && 'present' || '' }}
+          TFPFGEN_AUTH_USERNAME: ${{ secrets.TFPFGEN_AUTH_USERNAME != '' && 'present' || '' }}
+          TFPFGEN_AUTH_PASSWORD: ${{ secrets.TFPFGEN_AUTH_PASSWORD != '' && 'present' || '' }}
+          TFPFGEN_AUTH_CLIENT_ID: ${{ secrets.TFPFGEN_AUTH_CLIENT_ID != '' && 'present' || '' }}
+          TFPFGEN_AUTH_CLIENT_SECRET: ${{ secrets.TFPFGEN_AUTH_CLIENT_SECRET != '' && 'present' || '' }}
+          TFPFGEN_AUTH_APP_ID: ${{ secrets.TFPFGEN_AUTH_APP_ID != '' && 'present' || '' }}
+          TFPFGEN_AUTH_APP_PRIVATE_KEY: ${{ secrets.TFPFGEN_AUTH_APP_PRIVATE_KEY != '' && 'present' || '' }}
+        run: |
+          set -euo pipefail
+          tfpfgen config validate --secrets | tee validate-report.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: validate-report
+          path: validate-report.txt
+          if-no-files-found: error
+
+  # [2] Pins the upstream document by SHA-256. The source is the caller's
+  # openapi_url input on a first run, tfpfgen.yaml's spec.document_url pin
+  # on every run after.
+  spec-import:
+    name: spec import
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: config-validate
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - name: Resolve the document source
+        id: source
+        env:
+          OPENAPI_URL: ${{ inputs.openapi_url }}
+        run: |
+          set -euo pipefail
+          url="$OPENAPI_URL"
+          if [ -z "$url" ]; then
+            url="$(awk '
+              /^[^[:space:]#]/ { insec = ($0 ~ /^spec:/) }
+              insec && $1 == "document_url:" { gsub(/["'\'']/, "", $2); print $2; exit }
+            ' tfpfgen.yaml)"
+          fi
+          if [ -z "$url" ]; then
+            echo "::error::neither the openapi_url input nor tfpfgen.yaml's spec.document_url names the upstream document."
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+        with:
+          verb: spec import ${{ steps.source.outputs.url }}
+          produce: spec-imported
+          paths: |
+            spec/upstream.yaml
+            spec/upstream.lock.json
+
+  # [3] The only job whose environment carries secret values, and the only
+  # one that touches a network beyond GitHub. It runs when asked
+  # (audit=true), when no committed observations exist yet, or — as a
+  # download rather than a live audit — when reuse_audit_run_id names an
+  # earlier run whose observations artifact should be carried forward.
+  audit:
+    name: audit run
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    needs: spec-import
+    env:
+      TFPFGEN_AUTH_TOKEN: ${{ secrets.TFPFGEN_AUTH_TOKEN }}
+      TFPFGEN_AUTH_USERNAME: ${{ secrets.TFPFGEN_AUTH_USERNAME }}
+      TFPFGEN_AUTH_PASSWORD: ${{ secrets.TFPFGEN_AUTH_PASSWORD }}
+      TFPFGEN_AUTH_CLIENT_ID: ${{ secrets.TFPFGEN_AUTH_CLIENT_ID }}
+      TFPFGEN_AUTH_CLIENT_SECRET: ${{ secrets.TFPFGEN_AUTH_CLIENT_SECRET }}
+      TFPFGEN_AUTH_APP_ID: ${{ secrets.TFPFGEN_AUTH_APP_ID }}
+      TFPFGEN_AUTH_APP_PRIVATE_KEY: ${{ secrets.TFPFGEN_AUTH_APP_PRIVATE_KEY }}
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Decide whether this run audits
+        id: decide
+        env:
+          AUDIT: ${{ inputs.audit }}
+          REUSE_RUN_ID: ${{ inputs.reuse_audit_run_id }}
+        run: |
+          set -euo pipefail
+          if [ -n "$REUSE_RUN_ID" ]; then
+            mode=reuse
+          elif [ "$AUDIT" = "true" ]; then
+            mode=run
+          elif ! compgen -G "audit/observations/*.observations.json" > /dev/null; then
+            mode=run
+            echo "::notice::no committed observations exist; the audit runs."
+          else
+            mode=skip
+            echo "::notice::committed observations exist and audit=false; the live audit is skipped."
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+      - name: Reuse the observations of run ${{ inputs.reuse_audit_run_id }}
+        if: steps.decide.outputs.mode == 'reuse'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: observations
+          run-id: ${{ inputs.reuse_audit_run_id }}
+          github-token: ${{ github.token }}
+          path: audit/observations
+      - name: Re-produce the reused observations for this run
+        if: steps.decide.outputs.mode == 'reuse'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: observations
+          path: audit/observations
+          if-no-files-found: error
+      - if: steps.decide.outputs.mode == 'run'
+        uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - if: steps.decide.outputs.mode == 'run'
+        uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+        with:
+          restore: spec-imported
+          verb: audit run
+          produce: observations
+          paths: audit/observations
+
+  # [4] Folds observations into corrections and materializes spec/revised.yaml.
+  # The verb hard-fails while spec/corrections/proposed/ is non-empty, naming
+  # each file a human must accept or reject; no flag exists to look away.
+  # When the audit job skipped (committed observations, audit=false), no
+  # observations artifact exists and the restore pattern tolerates that: the
+  # committed observations in the checkout are the input.
+  spec-revise:
+    name: spec revise
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: audit
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+        with:
+          restore: spec-imported,observations
+          verb: spec revise
+          produce: spec-revised
+          paths: spec/revised.yaml
+
+  # [5] Generates the SDK tree with the configured backend at its exact
+  # version pin, installed just above; `tfpfgen sdk generate` itself refuses
+  # a missing or version-drifted tool. Hidden files ride along in the
+  # artifact for the .openapi-generator-ignore the tree may carry.
+  sdk-generate:
+    name: sdk generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: spec-revise
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-backend@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+        with:
+          restore: spec-imported,spec-revised
+          verb: sdk generate
+          produce: sdk-tree
+          include-hidden: "true"
+          paths: |
+            internal/sdk
+            manifest.json
+
+  # [6] Generates the complete provider tree from the revised spec and the
+  # SDK, postchecked with go mod tidy, go build and go vet. The artifact is
+  # the whole derived workspace — manifest, derived go.mod and all — with
+  # hidden files included for the emitted .gitignore and .golangci.yml,
+  # which is why .git must be excluded explicitly.
+  provider-generate:
+    name: provider generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: sdk-generate
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: stable
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+        with:
+          restore: spec-imported,spec-revised,sdk-tree
+          verb: provider generate --postcheck
+          produce: provider-tree
+          include-hidden: "true"
+          paths: |
+            .
+            !.git
+            !.git/**
+
+  # [7] The gate before anything reaches a branch: regeneration is a fixed
+  # point (tfpfgen provider verify), the tree builds, vets, lints, and its
+  # tests pass the coverage gate.
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: provider-generate
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: stable
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+        with:
+          restore: spec-imported,spec-revised,sdk-tree,provider-tree
+          verb: provider verify
+      - name: Build and vet
+        run: |
+          go build ./...
+          go vet ./...
+      - name: Test with race detector
+        run: |
+          mkdir -p verify-report
+          go test -race -covermode=atomic -coverprofile=verify-report/coverage.out ./...
+      - name: Coverage gate (total ≥90%)
+        run: |
+          set -euo pipefail
+          go tool cover -func=verify-report/coverage.out | tee verify-report/coverage-by-function.txt
+          total="$(tail -1 verify-report/coverage-by-function.txt | awk '{gsub(/%/, "", $3); print $3}')"
+          if awk -v t="$total" 'BEGIN { exit !(t < 90) }'; then
+            echo "::error::total coverage ${total}% is below the 90% gate."
+            exit 1
+          fi
+          echo "total coverage ${total}% meets the 90% gate."
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a
+        with:
+          version: latest
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: verify-report
+          path: verify-report
+          if-no-files-found: error
+
+  # [8] The only job that can write: assemble every artifact onto branch
+  # tfpfgen/run-<run_id> and open the PR a human merges. A run that changed
+  # nothing opens nothing.
+  open-pr:
+    name: open pr
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: verify
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Restore every stage's output
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          pattern: "{spec-imported,observations,spec-revised,sdk-tree,provider-tree,}"
+          merge-multiple: true
+          path: .
+      # Artifacts only add and overwrite; a file this regeneration dropped
+      # would otherwise survive from the checkout. The manifest is the
+      # ledger: any path the committed manifest lists as derived that the
+      # fresh manifest no longer carries is deleted before the commit.
+      - name: Remove derived files this regeneration dropped
+        run: |
+          set -euo pipefail
+          if git cat-file -e HEAD:manifest.json 2>/dev/null && [ -f manifest.json ]; then
+            comm -23 \
+              <(git show HEAD:manifest.json | jq -r '.files[] | select(.authored | not) | .path' | sort) \
+              <(jq -r '.files[].path' manifest.json | sort) |
+            while IFS= read -r stale; do
+              rm -f -- "$stale"
+              echo "removed stale derived file ${stale}"
+            done
+          fi
+      - name: Open the generation PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "::notice::generation changed nothing; no PR to open."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          branch="tfpfgen/run-${RUN_ID}"
+          git checkout -B "$branch"
+          git add -A
+          git commit -m "chore(tfpfgen): regeneration from pipeline run ${RUN_ID}"
+          git push --force origin "HEAD:${branch}"
+          gh pr create --base "$BASE" --head "$branch" \
+            --title "tfpfgen: generation run ${RUN_ID}" \
+            --body "$(printf 'Automated regeneration by the tfpfgen pipeline (run %s).\n\nEvery change is derived output: the pinned spec, observations, the revised spec, the SDK tree and the provider tree, as verified by run %s. Review and merge; hand edits belong in tfpfgen.yaml, spec/corrections/ or audit/inputs.json, never here.\n\nRun: %s/%s/actions/runs/%s\n' "$RUN_ID" "$RUN_ID" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RUN_ID")"

@@ -6,17 +6,54 @@ description: >-
 
 inputs:
   version:
-    description: Exact release tag to install, e.g. v0.1.0.
-    required: true
+    description: >-
+      Exact release tag to install, e.g. v0.1.0. When omitted,
+      generator.version is read from the config file instead, so a pipeline
+      installs precisely the toolkit its repo's tfpfgen.yaml pins.
+    required: false
+    default: ""
+  config:
+    description: Config file to read generator.version from when version is omitted.
+    required: false
+    default: tfpfgen.yaml
 
 runs:
   using: composite
   steps:
+    - name: Resolve the version to install
+      id: resolve
+      shell: bash
+      env:
+        TFPFGEN_VERSION: ${{ inputs.version }}
+        TFPFGEN_CONFIG: ${{ inputs.config }}
+      run: |
+        set -euo pipefail
+        version="${TFPFGEN_VERSION}"
+        if [ -z "$version" ]; then
+          if [ ! -f "$TFPFGEN_CONFIG" ]; then
+            echo "::error::setup-tfpfgen: no version input and no ${TFPFGEN_CONFIG} to read generator.version from."
+            exit 1
+          fi
+          # A two-line awk instead of a YAML library: find the generator:
+          # section, take its version: value, strip quotes. The config's
+          # real parser (tfpfgen config validate) has already run or will
+          # run in the same pipeline; this only needs the one scalar.
+          version="$(awk '
+            /^[^[:space:]#]/ { insec = ($0 ~ /^generator:/) }
+            insec && $1 == "version:" { gsub(/["'\'']/, "", $2); print $2; exit }
+          ' "$TFPFGEN_CONFIG")"
+          if [ -z "$version" ]; then
+            echo "::error::setup-tfpfgen: ${TFPFGEN_CONFIG} declares no generator.version."
+            exit 1
+          fi
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
     - name: Download, verify and install tfpfgen
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-        TFPFGEN_VERSION: ${{ inputs.version }}
+        TFPFGEN_VERSION: ${{ steps.resolve.outputs.version }}
       run: |
         set -euo pipefail
         version="${TFPFGEN_VERSION}"
@@ -82,7 +119,7 @@ runs:
     - name: Assert tfpfgen reports the requested version
       shell: bash
       env:
-        TFPFGEN_VERSION: ${{ inputs.version }}
+        TFPFGEN_VERSION: ${{ steps.resolve.outputs.version }}
       run: |
         set -euo pipefail
         # goreleaser stamps the version without its leading v, so tag

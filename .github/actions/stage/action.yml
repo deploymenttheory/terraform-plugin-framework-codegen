@@ -23,6 +23,13 @@ inputs:
     description: Paths to upload as the produced artifact.
     required: false
     default: ""
+  include-hidden:
+    description: >-
+      Include hidden files in the produced artifact. Needed when a tree
+      carries dotfiles (.gitignore, .openapi-generator-ignore); the paths
+      must then exclude .git explicitly.
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -65,6 +72,7 @@ runs:
       with:
         name: ${{ inputs.produce }}
         path: ${{ inputs.paths }}
+        include-hidden-files: ${{ inputs.include-hidden }}
         # An empty artifact is a stage that silently produced nothing; the
         # next stage would fail further from the cause.
         if-no-files-found: error

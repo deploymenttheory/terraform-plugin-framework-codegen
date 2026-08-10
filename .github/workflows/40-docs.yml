@@ -1,0 +1,76 @@
+name: 40-docs
+
+# Registry documentation as a fixed point: terraform fmt the examples,
+# regenerate docs/ from the provider schema with tfplugindocs, and open a PR
+# when anything moved. The provider name comes from the repository name,
+# which the registry requires to be terraform-provider-<name>. Adapted from
+# the v1 template's generate-docs chain.
+on:
+  workflow_call:
+    inputs:
+      terraform_version:
+        description: Terraform CLI version tfplugindocs renders examples with.
+        type: string
+        required: false
+        default: 1.12.1
+      tfplugindocs_version:
+        description: terraform-plugin-docs release used to generate.
+        type: string
+        required: false
+        default: v0.19.4
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: generate provider docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          terraform_wrapper: false
+      - name: Format the Terraform examples
+        run: find . -type f -name '*.tf' -exec terraform fmt {} +
+      - name: Generate the docs
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+          TFPLUGINDOCS_VERSION: ${{ inputs.tfplugindocs_version }}
+        run: |
+          set -euo pipefail
+          provider_name="${REPO_NAME#terraform-provider-}"
+          go run "github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@${TFPLUGINDOCS_VERSION}" \
+            generate --provider-name "$provider_name"
+      - name: Open a PR when the docs drifted
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "::notice::docs and examples are a fixed point; nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          branch="tfpfgen/docs-${RUN_ID}"
+          git checkout -B "$branch"
+          git add -A
+          git commit -m "docs: regenerate provider documentation"
+          git push --force origin "HEAD:${branch}"
+          gh pr create --base "$BASE" --head "$branch" \
+            --title "docs: regenerate provider documentation" \
+            --body "$(printf 'The committed docs drifted from the provider schema; this run regenerated them.\n\nRun: %s/%s/actions/runs/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RUN_ID")"
