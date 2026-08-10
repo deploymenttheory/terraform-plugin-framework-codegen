@@ -575,3 +575,65 @@ func TestUnit_Specmodel_EscapedReferenceNamesDecode(t *testing.T) {
 		t.Errorf("escaped reference did not resolve to a/b")
 	}
 }
+
+// default and example are read as decoded values, in whatever scalar or
+// structured shape the document wrote them.
+func TestUnit_Specmodel_LoadReadsDefaultAndExample(t *testing.T) {
+	doc, err := Load([]byte(minimal(`components:
+  schemas:
+    Thing:
+      type: object
+      properties:
+        mode:
+          type: string
+          default: basic
+          example: advanced
+        retention:
+          type: integer
+          default: 30
+        shape:
+          type: object
+          example:
+            x: 1
+        plain:
+          type: string
+`)))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	thing := doc.Schemas["Thing"]
+
+	mode, _ := thing.Property("mode")
+	if mode.Default != "basic" || mode.Example != "advanced" {
+		t.Errorf("mode default/example = %#v / %#v", mode.Default, mode.Example)
+	}
+	retention, _ := thing.Property("retention")
+	if retention.Default != 30 {
+		t.Errorf("retention default = %#v, want 30", retention.Default)
+	}
+	shape, _ := thing.Property("shape")
+	if m, ok := shape.Example.(map[string]any); !ok || m["x"] != 1 {
+		t.Errorf("structured example = %#v", shape.Example)
+	}
+	plain, _ := thing.Property("plain")
+	if plain.Default != nil || plain.Example != nil {
+		t.Errorf("absent default/example decoded non-nil: %#v / %#v", plain.Default, plain.Example)
+	}
+}
+
+// A default that is not decodable YAML content is refused at load with its
+// location.
+func TestUnit_Specmodel_LoadRefusesUndecodableDefault(t *testing.T) {
+	_, err := Load([]byte(minimal(`components:
+  schemas:
+    Thing:
+      type: object
+      properties:
+        mode:
+          type: string
+          default: !!binary "not*valid*base64"
+`)))
+	if err == nil || !strings.Contains(err.Error(), "default") {
+		t.Fatalf("Load = %v, want a default decode error", err)
+	}
+}

@@ -421,6 +421,24 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 			s.Enum = append(s.Enum, v)
 		}
 	}
+	// default and example are read as decoded values: the audit planner's
+	// value synthesis prefers what the document demonstrates over what it
+	// would otherwise invent.
+	for _, field := range []struct {
+		key string
+		dst *any
+	}{
+		{"default", &s.Default},
+		{"example", &s.Example},
+	} {
+		if n := deref(lookup(node, field.key)); n != nil {
+			var v any
+			if err := n.Decode(&v); err != nil {
+				return nil, fmt.Errorf("%s.%s: %w", at, field.key, err)
+			}
+			*field.dst = v
+		}
+	}
 	if req := deref(lookup(node, "required")); req != nil {
 		for _, rn := range req.Content {
 			s.Required = append(s.Required, deref(rn).Value)
