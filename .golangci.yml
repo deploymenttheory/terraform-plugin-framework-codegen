@@ -6,6 +6,14 @@ linters:
     - misspell
     - unconvert
     - unparam
+  settings:
+    errcheck:
+      # Terminal output to caller-supplied writers: a failed write to a
+      # closed stderr has no useful recovery in a CLI.
+      exclude-functions:
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - fmt.Fprint
 
 run:
   timeout: 5m
