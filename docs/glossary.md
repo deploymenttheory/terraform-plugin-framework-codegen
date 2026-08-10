@@ -17,6 +17,7 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 | **generate** | Code generation — `tfpfgen sdk generate`, `tfpfgen provider generate`. Every generated file carries a DO-NOT-EDIT header and a manifest entry. |
 | **verify** | The drift gate — `tfpfgen spec verify`, `tfpfgen sdk verify`, `tfpfgen provider verify`: regenerate into a temporary tree, byte-compare, fail on any difference. |
 | **cleanup** | Deleting the live test objects an audit created, matched by name prefix — `tfpfgen audit cleanup`. Runs automatically at the start and end of every audit, and standalone on demand. |
+| **activity ledger** | The audit's durable record of every object a run brings into existence, written and fsynced before each create request is sent: `audit/runs/<runid>.activity.jsonl`, one line per event (intent, created, rejected, deleted). Never committed — it records live objects in somebody's tenant. Cleanup replays it to delete by id after a crash. |
 | **inputs** | The small optional committed file of operator-supplied values the audit cannot synthesize (a valid value for an example-less field, an existing parent object's id): `audit/inputs.json`. Its absence degrades gracefully — the audit covers what it can. |
 | **authored** | A committed data path generation may never write: tfpfgen.yaml, corrections, inputs. Enforced by the manifest, not by convention. There are no authored *code* files — provider repos are 100% generated code. |
 | **manifest** | The ledger of every derived file (path, digest, source, origin) and every authored path. `manifest.json` at the provider-repo root. |
@@ -31,6 +32,8 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 | **fixtures** | The single derivation of one entity's test fixture values (`internal/fixtures`), rendered twice — HCL and wire JSON — from one result so the two can never disagree. Its vocabulary is approved: a `Fixture` carries `Entries` (one `Entry` per supported attribute) and `Omissions` (one `Omission` per refused attribute, with its reason); a `Form` (`ConfigMinimal`, `ConfigMaximal`, `ResponseMinimal`, `ResponseMaximal`) selects which entries a rendering carries; `NamePrefix` (`tfpfgen-test-`) marks every synthesised name-bearing string. |
 | **step kind** | One audit derivation rule's output, named for what the step does. The set is closed, twelve strong, spelled identically in Go (`Step*`) and in plan JSON: `createMinimal`, `readWithRetry`, `readConsecutive`, `updateField`, `deleteWithConfirmation`, `createMaximal`, `omitRequired`, `undocumentedEnumValue`, `undeclaredSpecField`, `createPerEnumValue`, `read`, `cleanupDelete`. |
 | **outcome** | How far the audit got with one claim. The set is closed, four strong, spelled identically in Go (`Outcome*`) and in observation JSON: `confirmed`, `inconclusive`, `blocked`, `timeoutExhausted`. Despite its name's emphasis on time, `timeoutExhausted` covers every exhausted run budget alike — request, live-object and time. |
+| **undocumentedFieldInSpec** | The observation kind (the fifteenth, `Kind*` in Go) claiming a real field the API demonstrably carries that the spec omits: read-back and consecutive-read responses show it with one stable JSON type, and the value is that type name (`string`, `number`, `boolean`, `object`, `array`). Its correction adds the property, with the observed type, to the entity schema's properties. |
+| **rejectsUnknownFields** | The audit summary's per-entity report of the made-up-field probe (`undeclaredSpecField`): `true` when the API rejected a body field no schema declares, `false` when it accepted and ignored it. When true, that entity's refusal-based findings need caution. A summary field, never an observation. |
 
 ## Fixed spellings
 
@@ -64,6 +67,13 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   `{"observationID": "…", "reason": "…", "rejectedAt": "…"}`. A marker
   suppresses re-proposal of that observation permanently; deleting the
   marker is the only way back.
+- Audit runs directory: `audit/runs/` holds the activity ledgers, one
+  `<runid>.activity.jsonl` per run. Never committed.
+- Audit force flag: `--force-api-audit` on `tfpfgen audit run` proceeds
+  despite foreign objects beyond the object budget in the tenant. There is
+  no consent environment variable: the audit creates and deletes real
+  objects, running it only against sandbox/non-production tenants is the
+  operator's responsibility, and the toolkit does not police it.
 - Audit plan tokens: `<runid>` is the run-id placeholder execution
   substitutes into synthesised names; `${VAR}` marks an operator input
   read from the named environment variable at execution time;

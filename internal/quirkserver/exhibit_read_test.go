@@ -194,7 +194,7 @@ var readExhibits = map[string]func(*testing.T){
 	"IgnoresUnknownQueryParams": func(t *testing.T) {
 		t.Parallel()
 
-		// Real APIs do exactly this, and it calibrates every audit check that
+		// Real APIs do exactly this, and it grounds every audit check that
 		// depends on unknown *body* fields being ignored.
 		strict := New(t, Quirks{})
 		lax := New(t, Quirks{IgnoresUnknownQueryParams: true})

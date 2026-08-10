@@ -265,6 +265,7 @@ var compilableKinds = []string{
 	string(observe.KindServerForced), string(observe.KindVolatile),
 	string(observe.KindValues), string(observe.KindUpdateStyle),
 	string(observe.KindDeleteNotFoundOK), string(observe.KindReadAfterWrite),
+	string(observe.KindUndocumentedFieldInSpec),
 }
 
 func checkAutoAccept(kinds []string) error {

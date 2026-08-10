@@ -33,6 +33,7 @@ func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *p
 			ent.ev.got = res.object()
 			ent.ev.readProof = &res.excerpt
 			ent.lastRead = res.object()
+			r.observeUndeclaredFields(ent, ent.lastRead, res.excerpt)
 			return nil
 		}
 		if time.Now().Add(interval).After(deadline) {
@@ -79,6 +80,8 @@ func (r *runner) runReadConsecutive(ctx context.Context, ent *entityState, step 
 		ent.ev.volatile[f] = true
 		r.record(ent.plan.Entity, f, observe.KindVolatile, true, nil, observe.OutcomeConfirmed, first.excerpt, second.excerpt)
 	}
+	r.observeUndeclaredFields(ent, a, first.excerpt)
+	r.observeUndeclaredFields(ent, b, second.excerpt)
 	ent.lastRead = b
 	if ent.ev.got == nil {
 		// A lookup entity has no readWithRetry; its consecutive read is

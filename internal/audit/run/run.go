@@ -1,9 +1,15 @@
 // Package run executes an audit plan against a live API. It is the only
 // code in the toolkit that touches a network with credentials, and every
-// piece of it is shaped by that: a sandbox guard sits in front of every
-// mutating request, every created object is recorded in a durable ledger
-// before the request that creates it is sent, budgets bound what a run may
-// spend, and everything written or logged passes through redaction first.
+// piece of it is shaped by that: a host allowlist derived from the base
+// URL sits in front of every mutating request, a foreign-object pre-flight
+// refuses a tenant that does not look like a sandbox, every created object
+// is recorded in a durable activity ledger before the request that creates
+// it is sent, budgets bound what a run may spend, and everything written
+// or logged passes through redaction first.
+//
+// The audit creates and deletes real objects in the tenant the base URL
+// points at. Run it only against sandbox or non-production tenants; the
+// toolkit does not police this — it is the operator's responsibility.
 //
 // Run walks the plan's entities in order, executes each entity's step
 // sequence over HTTP, and derives observations from the responses — the
@@ -74,17 +80,18 @@ type Options struct {
 	RateLimitRPS int
 	// RequestTimeout bounds one HTTP request. Zero means 15s.
 	RequestTimeout time.Duration
-	// WorkDir holds the created-object ledgers. Empty refuses: a mutating
+	// RunsDir holds the audit activity ledgers. Empty refuses: a mutating
 	// run without a durable ledger cannot promise cleanup after a crash.
-	WorkDir string
+	RunsDir string
 	// SpecHash stamps every observation with the pinned document hash it
 	// was observed against.
 	SpecHash string
-	// AllowSharedTenant skips the pre-flight foreign-object refusal.
-	AllowSharedTenant bool
-	Logger            zerolog.Logger
-	// Lookup reads the environment: secrets, ${VAR} inputs and the
-	// sandbox acknowledgement. Nil means os.LookupEnv.
+	// ForceAPIAudit skips the pre-flight foreign-object refusal: proceed
+	// despite foreign objects beyond the object budget.
+	ForceAPIAudit bool
+	Logger        zerolog.Logger
+	// Lookup reads the environment: secrets and ${VAR} inputs. Nil means
+	// os.LookupEnv.
 	Lookup func(string) (string, bool)
 	// RunID overrides the generated run id. Leave empty outside tests.
 	RunID string
@@ -93,11 +100,6 @@ type Options struct {
 	// immediately before each request is sent. Test hook.
 	beforeSend func(*http.Request)
 }
-
-// SandboxEnv is the environment variable an operator sets to 1 to
-// acknowledge that the tenant BaseURL points at may have objects created
-// and deleted in it. Without it no mutating request is ever sent.
-const SandboxEnv = "TFPFGEN_SANDBOX_OK"
 
 // minPrefixChars bounds NamePrefix from below: every prefix pass deletes
 // whatever matches it, and a short prefix widens that to objects the audit
@@ -155,32 +157,30 @@ type Summary struct {
 	// Cleanup results at the two run boundaries.
 	CleanupStart CleanupSummary `json:"cleanupStart"`
 	CleanupEnd   CleanupSummary `json:"cleanupEnd"`
-	// Tolerance records the undeclaredSpecField calibration per entity:
-	// whether the API ignored or rejected a body field no schema declares.
-	// Recorded here rather than as an observation because the observation
-	// kind set is closed and calibration is about how to read the other
-	// findings, not a finding itself.
-	Tolerance map[string]string `json:"tolerance,omitempty"`
+	// RejectsUnknownFields records the undeclaredSpecField probe's finding
+	// per entity: true when the API rejected a body field no schema
+	// declares, false when it accepted and ignored it. When true, that
+	// entity's refusal-based findings need caution — a refusal may have
+	// been about the unknown field, not the claim under test. Recorded
+	// here rather than as an observation because it is about how to read
+	// the other findings, not a finding itself.
+	RejectsUnknownFields map[string]bool `json:"rejectsUnknownFields,omitempty"`
 }
 
 // Run executes the plan and returns every observation it derived, however
 // far it got. The error reports a run that could not be attempted — bad
-// options, a refused sandbox guard, a cancelled context — never a budget
-// or a misbehaving entity, which are recorded and moved past.
+// options, a cancelled context — never a budget or a misbehaving entity,
+// which are recorded and moved past.
+//
+// A mutating plan creates and deletes real objects in the tenant. Point
+// the run only at sandbox or non-production tenants — the toolkit does
+// not police this; it is the operator's responsibility.
 func Run(ctx context.Context, opts Options) ([]observe.Observation, Summary, error) {
 	r, err := newRunner(opts)
 	if err != nil {
 		return nil, Summary{}, err
 	}
 	defer r.ledger.close()
-
-	// The sandbox guard is checked before the first request of any kind
-	// when the plan mutates at all: even the pre-run cleanup pass deletes.
-	if planMutates(opts.Plan) {
-		if err := r.checkSandboxEnv(); err != nil {
-			return nil, Summary{}, err
-		}
-	}
 
 	r.started = time.Now()
 	r.deadline = r.started.Add(r.budget.Duration)
@@ -218,7 +218,7 @@ type runner struct {
 	client *http.Client
 	auth   authenticator
 	bucket *bucket
-	ledger *ledger
+	ledger *activityLedger
 	base   *url.URL
 	runID  string
 	budget Budgets
@@ -277,8 +277,8 @@ func newRunner(opts Options) (*runner, error) {
 	if err := checkPrefix(opts.NamePrefix); err != nil {
 		return nil, err
 	}
-	if opts.WorkDir == "" && planMutates(opts.Plan) {
-		return nil, fmt.Errorf("audit run: no work directory for the created-object ledger; a mutating run without a durable ledger cannot promise cleanup after a crash")
+	if opts.RunsDir == "" && planMutates(opts.Plan) {
+		return nil, fmt.Errorf("audit run: no runs directory for the activity ledger; a mutating run without a durable ledger cannot promise cleanup after a crash")
 	}
 
 	auth, err := newAuthenticator(opts.Auth, opts.Lookup, opts.RequestTimeoutOrDefault())
@@ -312,7 +312,7 @@ func newRunner(opts Options) (*runner, error) {
 		runID = newRunID()
 	}
 
-	led, err := openLedger(opts.WorkDir, runID)
+	led, err := openActivityLedger(opts.RunsDir, runID)
 	if err != nil {
 		return nil, err
 	}
@@ -330,10 +330,10 @@ func newRunner(opts Options) (*runner, error) {
 		registry: map[string]*createdObject{},
 		recipes:  map[string]*entityRecipe{},
 		summary: Summary{
-			RunID:     runID,
-			ByKind:    map[observe.Kind]int{},
-			ByOutcome: map[observe.Outcome]int{},
-			Tolerance: map[string]string{},
+			RunID:                runID,
+			ByKind:               map[observe.Kind]int{},
+			ByOutcome:            map[observe.Outcome]int{},
+			RejectsUnknownFields: map[string]bool{},
 		},
 	}
 	return r, nil
@@ -354,17 +354,6 @@ func checkPrefix(prefix string) error {
 		return fmt.Errorf("audit run: name prefix %q is shorter than %d characters; every prefix pass deletes whatever matches it, and a short prefix widens that beyond the audit's own objects", prefix, minPrefixChars)
 	case !strings.Contains(prefix, requiredPrefixToken):
 		return fmt.Errorf("audit run: name prefix %q does not contain %q; anybody who finds an audit object in a UI needs to be able to tell what made it", prefix, requiredPrefixToken)
-	}
-	return nil
-}
-
-// checkSandboxEnv is the first tier of the sandbox guard: the operator's
-// explicit acknowledgement, required before any request when the plan
-// mutates.
-func (r *runner) checkSandboxEnv() error {
-	if v, ok := r.opts.Lookup(SandboxEnv); !ok || v != "1" {
-		return fmt.Errorf("audit run: %s is not set to 1; this plan creates and deletes real objects in the tenant %s points at, and the acknowledgement is required every time",
-			SandboxEnv, r.base.Host)
 	}
 	return nil
 }

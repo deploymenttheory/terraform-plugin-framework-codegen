@@ -364,6 +364,43 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
+			name: "undocumentedFieldInSpec adds the property with its observed type",
+			attr: "serial", kind: observe.KindUndocumentedFieldInSpec, value: "string",
+			want: `{
+  "justification": "the audit confirmed an undocumentedFieldInSpec observation on tag.serial: read responses carry the field with the stable JSON type string, and no schema declares it",
+  "evidence": "audit/observations/tag.observations.json#%s",
+  "operations": [
+    {
+      "op": "add",
+      "path": "/components/schemas/Tag/properties/serial",
+      "value": {
+        "type": "string"
+      }
+    }
+  ]
+}
+`,
+		},
+		{
+			name: "undocumentedFieldInSpec array carries an items stub",
+			attr: "labels", kind: observe.KindUndocumentedFieldInSpec, value: "array",
+			want: `{
+  "justification": "the audit confirmed an undocumentedFieldInSpec observation on tag.labels: read responses carry the field with the stable JSON type array, and no schema declares it",
+  "evidence": "audit/observations/tag.observations.json#%s",
+  "operations": [
+    {
+      "op": "add",
+      "path": "/components/schemas/Tag/properties/labels",
+      "value": {
+        "items": {},
+        "type": "array"
+      }
+    }
+  ]
+}
+`,
+		},
+		{
 			name: "ignoredOnUpdate becomes its extension",
 			attr: "mode", kind: observe.KindIgnoredOnUpdate, value: true,
 			want: `{
@@ -404,6 +441,26 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 }
 
 func boolPtr(b bool) *bool { return &b }
+
+// TestUnit_Propose_UndocumentedFieldAlreadyDeclaredProposesNothing: the
+// convergence half — once the property exists, a re-observed
+// undocumentedFieldInSpec states an existing fact.
+func TestUnit_Propose_UndocumentedFieldAlreadyDeclaredProposesNothing(t *testing.T) {
+	t.Parallel()
+	root, specDir, lock := pinnedTree(t)
+	commitObs(t, root, confirmedObs("name", observe.KindUndocumentedFieldInSpec, "string", nil, lock.SHA256))
+
+	p, err := Propose(specDir)
+	if err != nil {
+		t.Fatalf("Propose: %v", err)
+	}
+	if len(p.Proposed) != 0 {
+		t.Errorf("Proposed = %+v; the declared property must compile to nothing", p.Proposed)
+	}
+	if len(p.AlreadyStated) != 1 {
+		t.Fatalf("AlreadyStated = %+v, want the declared-property note", p.AlreadyStated)
+	}
+}
 
 func TestUnit_Propose_ReportsKindsWithoutACorrectionForm(t *testing.T) {
 	t.Parallel()

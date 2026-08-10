@@ -20,7 +20,7 @@ func TestUnit_Ledger_IntentIsDurableBeforeTheRequestIsSent(t *testing.T) {
 	s := quirkserver.New(t, quirkserver.Quirks{})
 
 	opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
-	ledgerPath := filepath.Join(opts.WorkDir, "testrun1"+ledgerFileSuffix)
+	ledgerPath := filepath.Join(opts.RunsDir, "testrun1"+activityFileSuffix)
 
 	creates := 0
 	opts.beforeSend = func(req *http.Request) {
@@ -54,14 +54,14 @@ func TestUnit_Ledger_IntentIsDurableBeforeTheRequestIsSent(t *testing.T) {
 	}
 }
 
-func decodeLedger(t *testing.T, raw []byte) []ledgerEntry {
+func decodeLedger(t *testing.T, raw []byte) []activityEntry {
 	t.Helper()
-	var out []ledgerEntry
+	var out []activityEntry
 	for _, line := range strings.Split(strings.TrimSpace(string(raw)), "\n") {
 		if line == "" {
 			continue
 		}
-		var e ledgerEntry
+		var e activityEntry
 		if err := json.Unmarshal([]byte(line), &e); err != nil {
 			t.Fatalf("ledger line %q: %v", line, err)
 		}
@@ -74,18 +74,18 @@ func decodeLedger(t *testing.T, raw []byte) []ledgerEntry {
 // creation order, so children go before parents.
 func TestUnit_Ledger_UnresolvedIsNewestFirst(t *testing.T) {
 	t.Parallel()
-	l := &ledger{}
+	l := &activityLedger{}
 	seqA, _ := l.intent("parent", "tfpfgen-a", "/parents/{id}")
 	seqB, _ := l.intent("child", "tfpfgen-b", "/parents/1/children/{id}")
-	l.resolve(seqA, ledgerCreated, "1", 201)
-	l.resolve(seqB, ledgerCreated, "2", 201)
+	l.resolve(seqA, activityCreated, "1", 201)
+	l.resolve(seqB, activityCreated, "2", 201)
 
 	open := l.unresolved()
 	if len(open) != 2 || open[0].Entity != "child" || open[1].Entity != "parent" {
 		t.Fatalf("unresolved = %+v, want the child first", open)
 	}
 
-	l.resolve(seqB, ledgerDeleted, "2", 204)
+	l.resolve(seqB, activityDeleted, "2", 204)
 	if open := l.unresolved(); len(open) != 1 || open[0].Entity != "parent" {
 		t.Fatalf("after deleting the child: %+v", open)
 	}
@@ -97,16 +97,16 @@ func TestUnit_Ledger_UnresolvedIsNewestFirst(t *testing.T) {
 func TestUnit_Ledger_TruncatedFinalLineReadsAsAnIntent(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	path := filepath.Join(dir, "old"+ledgerFileSuffix)
+	path := filepath.Join(dir, "old"+activityFileSuffix)
 	content := `{"kind":"intent","seq":1,"entity":"thing","name":"tfpfgen-x","itemPath":"/things/{thingId}"}
 {"kind":"created","seq":1,"entity":"thing","id":"9"}
 {"kind":"intent","seq":2,"ent` // torn mid-write
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := readLedgerFile(path)
+	entries, err := readActivityFile(path)
 	if err != nil {
-		t.Fatalf("readLedgerFile: %v", err)
+		t.Fatalf("readActivityFile: %v", err)
 	}
 	open := unresolvedOf(entries)
 	if len(open) != 2 {
@@ -114,11 +114,11 @@ func TestUnit_Ledger_TruncatedFinalLineReadsAsAnIntent(t *testing.T) {
 	}
 
 	// A malformed line anywhere else is a real error.
-	bad := filepath.Join(dir, "bad"+ledgerFileSuffix)
+	bad := filepath.Join(dir, "bad"+activityFileSuffix)
 	if err := os.WriteFile(bad, []byte("not json\n{\"kind\":\"intent\",\"seq\":1}\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := readLedgerFile(bad); err == nil {
+	if _, err := readActivityFile(bad); err == nil {
 		t.Fatal("a malformed middle line must be an error")
 	}
 }

@@ -12,27 +12,10 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/quirkserver"
 )
 
-// TestUnit_Guard_RefusesWithoutTheSandboxAcknowledgement is the first
-// tier: no TFPFGEN_SANDBOX_OK, no request of any kind for a mutating
-// plan.
-func TestUnit_Guard_RefusesWithoutTheSandboxAcknowledgement(t *testing.T) {
-	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
-
-	env := testEnv()
-	delete(env, SandboxEnv)
-	_, _, err := Run(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), env, nil))
-	if err == nil || !strings.Contains(err.Error(), SandboxEnv) {
-		t.Fatalf("err = %v, want a refusal naming %s", err, SandboxEnv)
-	}
-	if s.Requests() != 0 {
-		t.Fatalf("the server saw %d request(s) from a refused run", s.Requests())
-	}
-}
-
-// TestUnit_Guard_ReadOnlyPlanNeedsNoSandboxAcknowledgement: a plan that
-// never mutates — a lookup-only audit — runs without the acknowledgement.
-func TestUnit_Guard_ReadOnlyPlanNeedsNoSandboxAcknowledgement(t *testing.T) {
+// TestUnit_Guard_ReadOnlyPlanNeedsNoRunsDir: a plan that never mutates —
+// a lookup-only audit — runs without a runs directory, because nothing it
+// does needs an activity ledger.
+func TestUnit_Guard_ReadOnlyPlanNeedsNoRunsDir(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 	seeded := s.Seed(map[string]any{"name": "target"})
@@ -44,20 +27,18 @@ func TestUnit_Guard_ReadOnlyPlanNeedsNoSandboxAcknowledgement(t *testing.T) {
 		PathValues: map[string]string{"thingId": seeded},
 	}}
 
-	env := testEnv()
-	delete(env, SandboxEnv)
-	opts := testOptions(t, s, p, env, nil)
-	opts.WorkDir = ""
+	opts := testOptions(t, s, p, testEnv(), nil)
+	opts.RunsDir = ""
 	_, sum := mustRun(t, opts)
 	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
-		t.Fatalf("lookup entity = %+v, want audited without the sandbox variable", got)
+		t.Fatalf("lookup entity = %+v, want audited without a runs directory", got)
 	}
 }
 
 // TestUnit_Guard_SharedTenantRefusalBlocksMutation seeds more foreign
 // objects than the object ceiling: the pre-flight must refuse the
 // entity's mutating steps, record them blocked, and leave the tenant
-// untouched — unless AllowSharedTenant.
+// untouched — unless ForceAPIAudit.
 func TestUnit_Guard_SharedTenantRefusalBlocksMutation(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
@@ -74,7 +55,7 @@ func TestUnit_Guard_SharedTenantRefusalBlocksMutation(t *testing.T) {
 		t.Fatalf("a shared-tenant refusal blocks the entity, not the run: %v", err)
 	}
 	blocked := entityStatus(t, sum, "thing")
-	if blocked.Status != StatusBlocked || !strings.Contains(blocked.Reason, "--allow-shared-tenant") {
+	if blocked.Status != StatusBlocked || !strings.Contains(blocked.Reason, "--force-api-audit") {
 		t.Fatalf("thing = %+v, want blocked pointing at the flag", blocked)
 	}
 	if o := findObs(obs, "thing", "", observe.KindDeleteNotFoundOK); o == nil || o.Outcome != observe.OutcomeBlocked {
@@ -85,8 +66,8 @@ func TestUnit_Guard_SharedTenantRefusalBlocksMutation(t *testing.T) {
 	}
 }
 
-// TestUnit_Guard_AllowSharedTenantProceeds is the explicit override.
-func TestUnit_Guard_AllowSharedTenantProceeds(t *testing.T) {
+// TestUnit_Guard_ForceAPIAuditProceeds is the explicit override.
+func TestUnit_Guard_ForceAPIAuditProceeds(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 	for range 3 {
@@ -95,11 +76,11 @@ func TestUnit_Guard_AllowSharedTenantProceeds(t *testing.T) {
 
 	opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
 	opts.Budgets = Budgets{Objects: 2}
-	opts.AllowSharedTenant = true
+	opts.ForceAPIAudit = true
 
 	_, sum := mustRun(t, opts)
 	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
-		t.Fatalf("thing = %+v, want audited under --allow-shared-tenant", got)
+		t.Fatalf("thing = %+v, want audited under --force-api-audit", got)
 	}
 	if len(s.Objects()) != 3 {
 		t.Errorf("foreign objects were touched: %v", s.Objects())
@@ -143,13 +124,13 @@ func TestUnit_Guard_NamePrefixBounds(t *testing.T) {
 	}
 }
 
-// TestUnit_Guard_MutatingRunNeedsAWorkDir: no durable ledger, no
+// TestUnit_Guard_MutatingRunNeedsARunsDir: no durable activity ledger, no
 // mutating run.
-func TestUnit_Guard_MutatingRunNeedsAWorkDir(t *testing.T) {
+func TestUnit_Guard_MutatingRunNeedsARunsDir(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 	opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
-	opts.WorkDir = ""
+	opts.RunsDir = ""
 	if _, _, err := Run(context.Background(), opts); err == nil || !strings.Contains(err.Error(), "ledger") {
 		t.Fatalf("err = %v, want a refusal about the ledger", err)
 	}

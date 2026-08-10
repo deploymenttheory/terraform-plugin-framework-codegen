@@ -181,11 +181,11 @@ func (r *runner) runUndocumentedEnumValue(ctx context.Context, ent *entityState,
 	return nil
 }
 
-// runUndeclaredSpecField sends one field no schema declares, calibrating
-// how to read every omission-based check against this API. The finding is
-// recorded on the summary rather than as an observation because the
-// observation kind set is closed and this is about how to read the other
-// findings, not a finding in its own right.
+// runUndeclaredSpecField sends one field no schema declares and reports
+// whether the API rejects unknown body fields. The finding lands on the
+// summary as rejectsUnknownFields rather than as an observation because it
+// is about how to read the other findings — when true, this entity's
+// refusal-based findings need caution — not a finding in its own right.
 func (r *runner) runUndeclaredSpecField(ctx context.Context, ent *entityState, step *plan.Step) error {
 	obj, res, err := r.createObject(ctx, ent, ent.recipe, step.Body)
 	if err != nil {
@@ -196,10 +196,10 @@ func (r *runner) runUndeclaredSpecField(ctx context.Context, ent *entityState, s
 	}
 	switch {
 	case obj != nil:
-		r.summary.Tolerance[ent.plan.Entity] = "ignores unknown body fields"
+		r.summary.RejectsUnknownFields[ent.plan.Entity] = false
 		_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
 	case res.refused():
-		r.summary.Tolerance[ent.plan.Entity] = "rejects unknown body fields"
+		r.summary.RejectsUnknownFields[ent.plan.Entity] = true
 	}
 	return nil
 }

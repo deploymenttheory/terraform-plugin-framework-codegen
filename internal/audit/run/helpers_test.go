@@ -129,7 +129,6 @@ components:
 // testEnv is the environment every run test starts from.
 func testEnv() map[string]string {
 	return map[string]string{
-		SandboxEnv:               "1",
 		config.SecretToken:       testToken,
 		"TFPFGEN_TEST_PARENT_ID": "seeded-parent",
 	}
@@ -186,7 +185,7 @@ func testOptions(t *testing.T, s *quirkserver.Server, p *plan.Plan, env map[stri
 		Auth:         Auth{Method: config.AuthBearerToken},
 		NamePrefix:   "tfpfgen",
 		RateLimitRPS: 500,
-		WorkDir:      t.TempDir(),
+		RunsDir:      t.TempDir(),
 		SpecHash:     "testspechash",
 		Logger:       zerolog.New(logs).Level(zerolog.DebugLevel),
 		Lookup:       lookupOf(env),

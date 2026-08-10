@@ -159,8 +159,9 @@ type Quirks struct {
 	// IgnoresUnknownQueryParams returns 200 for an unrecognised query
 	// parameter rather than 400.
 	//
-	// Calibrates every audit check that depends on unknown *body* fields being
-	// ignored rather than rejected.
+	// Ground truth for the checks that depend on unknown *body* fields
+	// being ignored rather than rejected — what the audit summary reports
+	// as rejectsUnknownFields.
 	IgnoresUnknownQueryParams bool
 
 	// TypedQueryParams reject a bad value, which is how the error-envelope

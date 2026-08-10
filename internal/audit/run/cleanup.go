@@ -21,22 +21,19 @@ type CleanupSummary struct {
 }
 
 // Cleanup clears the tenant of audit debris: every unresolved entry of
-// every ledger in the work directory is deleted by id, then every
+// every activity ledger in the runs directory is deleted by id, then every
 // resource collection the plan names is read and every object carrying
 // the name prefix is deleted. Standalone counterpart of the cleanup passes a run
 // performs at both of its boundaries; `tfpfgen audit cleanup` calls it.
 //
-// Deletes are mutating requests, so the sandbox guard's acknowledgement
-// and host allowlist apply here exactly as in a run.
+// Deletes are mutating requests, so the host allowlist applies here
+// exactly as in a run.
 func Cleanup(ctx context.Context, opts Options) (CleanupSummary, error) {
 	r, err := newRunner(opts)
 	if err != nil {
 		return CleanupSummary{}, err
 	}
 	defer r.ledger.close()
-	if err := r.checkSandboxEnv(); err != nil {
-		return CleanupSummary{}, err
-	}
 	r.inCleanup = true
 	sum := r.cleanupDebris(ctx)
 	r.ledger.remove()
@@ -46,7 +43,7 @@ func Cleanup(ctx context.Context, opts Options) (CleanupSummary, error) {
 	return sum, nil
 }
 
-// cleanupDebris is the shared removal pass: prior ledgers first (delete by id, newest
+// cleanupDebris is the shared removal pass: prior activity ledgers first (delete by id, newest
 // first), then the prefix pass over every reachable collection. At the
 // start of a run it must not fail the run — leftovers are reported and
 // the run proceeds on a tenant it has done its best to level.
@@ -77,31 +74,31 @@ func (r *runner) cleanupOwn(ctx context.Context) CleanupSummary {
 	return sum
 }
 
-// cleanupLedgers replays every previous run's ledger in the work directory:
-// unresolved entries with ids are deleted, and a file whose entries all
-// reconcile is removed. A file that still names possible objects is kept
-// — it is the only record of them.
+// cleanupLedgers replays every previous run's activity ledger in the runs
+// directory: unresolved entries with ids are deleted, and a file whose
+// entries all reconcile is removed. A file that still names possible
+// objects is kept — it is the only record of them.
 func (r *runner) cleanupLedgers(ctx context.Context, sum *CleanupSummary) {
-	if r.opts.WorkDir == "" {
+	if r.opts.RunsDir == "" {
 		return
 	}
-	entries, err := os.ReadDir(r.opts.WorkDir)
+	entries, err := os.ReadDir(r.opts.RunsDir)
 	if err != nil {
 		return
 	}
 	names := make([]string, 0, len(entries))
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ledgerFileSuffix) {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), activityFileSuffix) {
 			names = append(names, e.Name())
 		}
 	}
 	sort.Strings(names)
 	for _, name := range names {
-		path := filepath.Join(r.opts.WorkDir, name)
+		path := filepath.Join(r.opts.RunsDir, name)
 		if path == r.ledger.path {
 			continue
 		}
-		recorded, err := readLedgerFile(path)
+		recorded, err := readActivityFile(path)
 		if err != nil {
 			sum.Orphans = append(sum.Orphans, fmt.Sprintf("ledger %s could not be read: %v", path, err))
 			continue
@@ -123,7 +120,7 @@ func (r *runner) cleanupLedgers(ctx context.Context, sum *CleanupSummary) {
 // cleanupLedgerEntry deletes one recorded object by id, reporting whether
 // the entry is settled. An entry with no id cannot be addressed — it is
 // the prefix pass's job, and settles only if that pass can run.
-func (r *runner) cleanupLedgerEntry(ctx context.Context, e ledgerEntry, sum *CleanupSummary) bool {
+func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, sum *CleanupSummary) bool {
 	if e.ID == "" || e.ItemPath == "" {
 		// No identifier was ever learned; the prefix pass is this
 		// object's only chance.
@@ -139,7 +136,7 @@ func (r *runner) cleanupLedgerEntry(ctx context.Context, e ledgerEntry, sum *Cle
 		return false
 	}
 	if res.ok() || res.status == 404 {
-		r.ledger.resolve(e.Seq, ledgerDeleted, e.ID, res.status)
+		r.ledger.resolve(e.Seq, activityDeleted, e.ID, res.status)
 		if res.ok() {
 			sum.LedgerDeletes++
 		}
@@ -225,7 +222,7 @@ func (r *runner) cleanupCollection(ctx context.Context, rec *entityRecipe, sum *
 func (r *runner) resolveByName(name, id string, status int) {
 	for _, e := range r.ledger.unresolved() {
 		if e.Name == name {
-			r.ledger.resolve(e.Seq, ledgerDeleted, id, status)
+			r.ledger.resolve(e.Seq, activityDeleted, id, status)
 			return
 		}
 	}
@@ -242,7 +239,7 @@ func referencesCreated(values map[string]string) bool {
 	return false
 }
 
-func orphanLine(e ledgerEntry) string {
+func orphanLine(e activityEntry) string {
 	id := e.ID
 	if id == "" {
 		id = "(id never learned)"

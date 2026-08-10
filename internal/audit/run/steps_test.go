@@ -126,7 +126,7 @@ func TestUnit_Steps_LookupReadOfAMissingKeyBlocks(t *testing.T) {
 		PathValues: map[string]string{"thingId": "does-not-exist"},
 	}}
 	opts := testOptions(t, s, p, testEnv(), nil)
-	opts.WorkDir = ""
+	opts.RunsDir = ""
 	_, sum, err := Run(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
@@ -145,7 +145,7 @@ func TestUnit_Steps_UnknownStepKindBlocks(t *testing.T) {
 	s := quirkserver.New(t, quirkserver.Quirks{})
 	p := thingPlan([]plan.Step{{Kind: plan.StepKind("teleport"), Method: "GET", Path: "/things"}}, 10)
 	opts := testOptions(t, s, p, testEnv(), nil)
-	opts.WorkDir = ""
+	opts.RunsDir = ""
 	_, sum, err := Run(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
@@ -155,10 +155,11 @@ func TestUnit_Steps_UnknownStepKindBlocks(t *testing.T) {
 	}
 }
 
-// TestUnit_Steps_UnknownFieldRejectionCalibrates: an API that refuses a
-// body carrying an undeclared field calibrates as rejecting, via a quirk
+// TestUnit_Steps_UnknownFieldRejectionIsReported: an API that refuses a
+// body carrying an undeclared field reports rejectsUnknownFields true —
+// the signal that its refusal-based findings need caution — via a quirk
 // keyed to the injected field's value.
-func TestUnit_Steps_UnknownFieldRejectionCalibrates(t *testing.T) {
+func TestUnit_Steps_UnknownFieldRejectionIsReported(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{
 		RejectsDocumentedValue: map[string]string{"tfpfgen_unknown_field": "true"},
@@ -172,8 +173,41 @@ func TestUnit_Steps_UnknownFieldRejectionCalibrates(t *testing.T) {
 		{Kind: plan.StepCleanupDelete, Method: "DELETE", Path: "/things/{thingId}", PathValues: item},
 	}
 	_, sum := mustRun(t, testOptions(t, s, thingPlan(steps, 60), testEnv(), nil))
-	if got := sum.Tolerance["thing"]; got != "rejects unknown body fields" {
-		t.Fatalf("tolerance = %q, want the rejecting calibration", got)
+	if got, ok := sum.RejectsUnknownFields["thing"]; !ok || !got {
+		t.Fatalf("rejectsUnknownFields = %v (recorded %v), want true", got, ok)
+	}
+}
+
+// TestUnit_Steps_UndocumentedResponseFieldIsObserved: the server answers a
+// field the spec omits with a stable type on every read, and the audit
+// writes it down as undocumentedFieldInSpec; a field whose type wobbles
+// between reads claims nothing.
+func TestUnit_Steps_UndocumentedResponseFieldIsObserved(t *testing.T) {
+	t.Parallel()
+	s := quirkserver.New(t, quirkserver.Quirks{
+		// "serial" appears in every response and no thingSpec schema
+		// declares it.
+		ConstantDefaults: map[string]any{"serial": "sn-100"},
+	})
+
+	p := thingPlan(resourceSteps(), 60)
+	p.Entities[0].DeclaredProperties = []string{"id", "name", "mode", "code", "notes", "color", "label", "enabled", "retention", "query"}
+
+	obs, _ := mustRun(t, testOptions(t, s, p, testEnv(), nil))
+	o := wantConfirmed(t, obs, "thing", "serial", observe.KindUndocumentedFieldInSpec)
+	if o.Value != "string" {
+		t.Errorf("undocumentedFieldInSpec(serial) = %v, want %q", o.Value, "string")
+	}
+	if len(o.Excerpts) == 0 {
+		t.Error("the observation carries no excerpt")
+	}
+
+	// A plan with no schema knowledge claims nothing.
+	p2 := thingPlan(resourceSteps(), 60)
+	s2 := quirkserver.New(t, quirkserver.Quirks{ConstantDefaults: map[string]any{"serial": "sn-100"}})
+	obs2, _ := mustRun(t, testOptions(t, s2, p2, testEnv(), nil))
+	if o := findObs(obs2, "thing", "serial", observe.KindUndocumentedFieldInSpec); o != nil {
+		t.Errorf("a plan with no declared properties still claimed %+v", o)
 	}
 }
 

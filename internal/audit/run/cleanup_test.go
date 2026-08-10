@@ -46,7 +46,7 @@ func TestUnit_Cleanup_ReplaysACrashedRunsLedger(t *testing.T) {
 	orphan := s.Seed(map[string]any{"name": "unprefixed-but-ledgered"})
 
 	opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
-	old := filepath.Join(opts.WorkDir, "crashed1"+ledgerFileSuffix)
+	old := filepath.Join(opts.RunsDir, "crashed1"+activityFileSuffix)
 	lines := []string{
 		`{"kind":"intent","seq":1,"entity":"thing","name":"unprefixed-but-ledgered","itemPath":"/things/{thingId}"}`,
 		`{"kind":"created","seq":1,"entity":"thing","id":"` + orphan + `"}`,
@@ -67,21 +67,6 @@ func TestUnit_Cleanup_ReplaysACrashedRunsLedger(t *testing.T) {
 	}
 	if _, err := os.Stat(old); !os.IsNotExist(err) {
 		t.Error("the reconciled crash ledger was not removed")
-	}
-}
-
-// TestUnit_Cleanup_RequiresTheSandboxAcknowledgement: cleanup deletes,
-// and deletes are mutations.
-func TestUnit_Cleanup_RequiresTheSandboxAcknowledgement(t *testing.T) {
-	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
-	env := testEnv()
-	delete(env, SandboxEnv)
-	if _, err := Cleanup(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), env, nil)); err == nil {
-		t.Fatal("cleanup without the sandbox acknowledgement must refuse")
-	}
-	if s.Requests() != 0 {
-		t.Fatalf("the server saw %d request(s)", s.Requests())
 	}
 }
 
@@ -148,7 +133,7 @@ func TestUnit_Cleanup_ResolveByNameSettlesIdlessIntents(t *testing.T) {
 	if !referencesCreated(map[string]string{"a": "$created:thing"}) || referencesCreated(map[string]string{"a": "literal"}) {
 		t.Error("referencesCreated")
 	}
-	if got := orphanLine(ledgerEntry{Entity: "thing", Name: "n", ItemPath: "/things/{id}"}); !strings.Contains(got, "id never learned") {
+	if got := orphanLine(activityEntry{Entity: "thing", Name: "n", ItemPath: "/things/{id}"}); !strings.Contains(got, "id never learned") {
 		t.Errorf("orphanLine without an id = %q", got)
 	}
 	if excerptsOf(nil) != nil {

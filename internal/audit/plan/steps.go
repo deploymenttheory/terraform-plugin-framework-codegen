@@ -1,6 +1,8 @@
 package plan
 
 import (
+	"sort"
+
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
 )
@@ -73,11 +75,12 @@ func (d *deriver) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped
 	steps = append(steps, onItem(StepCleanupDelete, c.Delete.Method))
 
 	return EntityPlan{
-		Entity:  c.Key,
-		Role:    "resource",
-		Parents: parents,
-		Budget:  Budget{Requests: entityRequestBudget},
-		Steps:   steps,
+		Entity:             c.Key,
+		Role:               "resource",
+		Parents:            parents,
+		DeclaredProperties: declaredProperties(createSchema, successSchemaOf(readOp)),
+		Budget:             Budget{Requests: entityRequestBudget},
+		Steps:              steps,
 	}, nil
 }
 
@@ -94,12 +97,46 @@ func (d *deriver) lookupPlan(c specmodel.Classification) (EntityPlan, *Skipped) 
 	double := read
 	double.Kind = StepReadConsecutive
 	return EntityPlan{
-		Entity:  c.Key,
-		Role:    "lookup",
-		Parents: parents,
-		Budget:  Budget{Requests: entityRequestBudget},
-		Steps:   []Step{read, double},
+		Entity:             c.Key,
+		Role:               "lookup",
+		Parents:            parents,
+		DeclaredProperties: declaredProperties(successSchemaOf(d.operation(c.Read))),
+		Budget:             Budget{Requests: entityRequestBudget},
+		Steps:              []Step{read, double},
 	}, nil
+}
+
+// successSchemaOf is a nil-tolerant Operation.SuccessSchema.
+func successSchemaOf(op *specmodel.Operation) *specmodel.Schema {
+	if op == nil {
+		return nil
+	}
+	return op.SuccessSchema()
+}
+
+// declaredProperties flattens the given schemas into the sorted union of
+// their property names — what the executor diffs read responses against
+// when it looks for a field the spec omits.
+func declaredProperties(schemas ...*specmodel.Schema) []string {
+	seen := map[string]bool{}
+	for _, s := range schemas {
+		if s == nil {
+			continue
+		}
+		props, _ := flatProps(s)
+		for _, p := range props {
+			seen[p.Name] = true
+		}
+	}
+	if len(seen) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(seen))
+	for name := range seen {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // updateSteps derives one update per writable scalar field, capped. Each

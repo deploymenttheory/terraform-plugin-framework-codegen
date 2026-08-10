@@ -129,6 +129,17 @@ const (
 	// the read-back polling measured. Becomes an
 	// x-tfpfgen-eventual-consistency correction.
 	KindReadAfterWrite Kind = "readAfterWrite"
+
+	// KindUndocumentedFieldInSpec: the API returned or accepted a field
+	// the spec's schema does not declare — a real field the document
+	// omits. The Value is the field's stable JSON type: "string",
+	// "number", "boolean", "object" or "array". Learned from fields
+	// present in read-back and consecutive-read responses that the
+	// entity's declared schema lacks, envelope noise excluded — only the
+	// entity object itself is diffed, never a collection wrapper. Becomes
+	// a correction adding the property, with the observed type, to the
+	// entity schema's properties.
+	KindUndocumentedFieldInSpec Kind = "undocumentedFieldInSpec"
 )
 
 // knownKinds is the closed set, for validation.
@@ -138,6 +149,7 @@ var knownKinds = map[Kind]bool{
 	KindNormalisation: true, KindIgnoredOnUpdate: true, KindServerForced: true,
 	KindVolatile: true, KindValues: true, KindUpdateStyle: true,
 	KindDeleteNotFoundOK: true, KindReadAfterWrite: true,
+	KindUndocumentedFieldInSpec: true,
 }
 
 // Outcome says how far the audit got with this claim.
@@ -188,6 +200,13 @@ type Values struct {
 // approved x-tfpfgen-update-style spellings.
 var updateStyles = map[string]bool{
 	"patch-merge": true, "put-full": true, "replace-only": true,
+}
+
+// jsonTypes are the values a KindUndocumentedFieldInSpec observation may
+// carry: the JSON type the field was observed with. "null" is absent on
+// purpose — a field only ever seen null has no stable type to declare.
+var jsonTypes = map[string]bool{
+	"string": true, "number": true, "boolean": true, "object": true, "array": true,
 }
 
 // Observation is one recorded finding of an audit.
@@ -334,6 +353,11 @@ func valueShape(kind Kind, v any) error {
 		}
 		if d, err := time.ParseDuration(s); err != nil || d < 0 {
 			return fmt.Errorf("value %q is not a non-negative duration", s)
+		}
+	case KindUndocumentedFieldInSpec:
+		s, ok := v.(string)
+		if !ok || !jsonTypes[s] {
+			return fmt.Errorf("value must be a JSON type name (string, number, boolean, object, array), got %v", v)
 		}
 	case KindValues:
 		return valuesShape(v)
