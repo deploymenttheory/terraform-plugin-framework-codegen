@@ -1,0 +1,61 @@
+# Release packaging for the tfpfgen command.
+#
+# The toolkit is pure Go and cross-compiles without cgo, so every platform
+# builds from one runner. There is no signing: consumers fetch archives over
+# TLS from this repo's GitHub releases and verify them against the checksums
+# file, which is exactly what the setup-tfpfgen action does.
+version: 2
+
+project_name: tfpfgen
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: tfpfgen
+    main: ./cmd/tfpfgen
+    binary: tfpfgen
+    env:
+      # No cgo anywhere in the toolkit. Setting it explicitly keeps a
+      # cgo-enabled runner from producing binaries that will not run
+      # elsewhere.
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      # -s -w drop the symbol and DWARF tables, which a released binary does
+      # not need. The version is stamped so `tfpfgen version` names the
+      # release it was cut from rather than a constant someone has to
+      # remember to bump. One symbol: internal/version owns the version and
+      # everything else asks it. {{ .Version }} carries no leading v, so tag
+      # v0.1.0 reports 0.1.0 — setup-tfpfgen compares accordingly.
+      - -s -w
+      - -X github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/version.value={{ .Version }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: tfpfgen
+    ids: [tfpfgen]
+    # A predictable name: tfpfgen_0.1.0_darwin_arm64.tar.gz. setup-tfpfgen
+    # reconstructs this from the tag and the runner's OS/arch, so the
+    # template is part of the cross-repo contract.
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+changelog:
+  # Release notes are written by whoever cuts the tag; a generated commit
+  # list would only restate the merge history.
+  disable: true

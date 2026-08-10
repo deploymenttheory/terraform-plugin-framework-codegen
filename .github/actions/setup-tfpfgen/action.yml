@@ -1,0 +1,95 @@
+name: setup-tfpfgen
+description: >-
+  Install a released tfpfgen binary onto the runner, verified against the
+  release's checksums file. Takes an exact tag, never a branch, so a pipeline
+  runs precisely the toolkit version its config declares.
+
+inputs:
+  version:
+    description: Exact release tag to install, e.g. v0.1.0.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Download, verify and install tfpfgen
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TFPFGEN_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        version="${TFPFGEN_VERSION}"
+        bare="${version#v}"
+
+        case "${RUNNER_OS}" in
+          Linux)   os=linux ;;
+          macOS)   os=darwin ;;
+          Windows) os=windows ;;
+          *) echo "::error::setup-tfpfgen: unsupported runner OS '${RUNNER_OS}'"; exit 1 ;;
+        esac
+        case "${RUNNER_ARCH}" in
+          X64)   arch=amd64 ;;
+          ARM64) arch=arm64 ;;
+          *) echo "::error::setup-tfpfgen: unsupported runner arch '${RUNNER_ARCH}'"; exit 1 ;;
+        esac
+
+        ext=tar.gz
+        if [ "$os" = windows ]; then ext=zip; fi
+        archive="tfpfgen_${bare}_${os}_${arch}.${ext}"
+        sums="tfpfgen_${bare}_checksums.txt"
+
+        # When another repo uses this action, GITHUB_ACTION_REPOSITORY names
+        # this repo; when this repo uses it locally, it is empty and
+        # GITHUB_REPOSITORY is this repo. Either way: our own releases.
+        repo="${GITHUB_ACTION_REPOSITORY:-${GITHUB_REPOSITORY}}"
+
+        dir="${RUNNER_TEMP}/setup-tfpfgen"
+        mkdir -p "$dir"
+        cd "$dir"
+
+        if ! gh release download "$version" --repo "$repo" \
+            --pattern "$archive" --pattern "$sums"; then
+          echo "::error::setup-tfpfgen: no release '${version}' in ${repo}, or it lacks asset '${archive}'. The version must be an exact published tag."
+          exit 1
+        fi
+        if [ ! -f "$archive" ] || [ ! -f "$sums" ]; then
+          echo "::error::setup-tfpfgen: release '${version}' in ${repo} is missing '${archive}' or '${sums}'."
+          exit 1
+        fi
+
+        # Verify before extracting: --ignore-missing checks only the one
+        # archive present, and both tools fail if nothing was verified.
+        if command -v sha256sum >/dev/null 2>&1; then
+          sha256sum --check --ignore-missing "$sums"
+        else
+          shasum -a 256 --check --ignore-missing "$sums"
+        fi
+
+        case "$archive" in
+          *.zip)
+            if command -v unzip >/dev/null 2>&1; then
+              unzip -oq "$archive"
+            else
+              python -m zipfile -e "$archive" .
+            fi
+            ;;
+          *) tar -xzf "$archive" ;;
+        esac
+
+        echo "$dir" >> "$GITHUB_PATH"
+
+    - name: Assert tfpfgen reports the requested version
+      shell: bash
+      env:
+        TFPFGEN_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        # goreleaser stamps the version without its leading v, so tag
+        # v0.1.0 reports 0.1.0. Accept either spelling, nothing else — a
+        # "dev" here means an unstamped binary sneaked onto the PATH.
+        reported="$(tfpfgen version)"
+        if [ "$reported" != "${TFPFGEN_VERSION#v}" ] && [ "$reported" != "${TFPFGEN_VERSION}" ]; then
+          echo "::error::setup-tfpfgen: tfpfgen on PATH reports '${reported}', wanted '${TFPFGEN_VERSION}'."
+          exit 1
+        fi
