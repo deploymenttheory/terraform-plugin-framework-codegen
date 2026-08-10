@@ -30,7 +30,7 @@ paths:
   /things/{thingId}:
     patch:
       operationId: updateThing
-      x-tfpfgen-update-style: merge
+      x-tfpfgen-update-style: patch-merge
       responses: {}
     delete:
       operationId: deleteThing
@@ -107,7 +107,7 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	if d, ok := byID["createThing"].Extensions.EventualConsistency(); !ok || d != 90*time.Second {
 		t.Errorf("EventualConsistency = %v, %v", d, ok)
 	}
-	if s, ok := byID["updateThing"].Extensions.UpdateStyle(); !ok || s != "merge" {
+	if s, ok := byID["updateThing"].Extensions.UpdateStyle(); !ok || s != "patch-merge" {
 		t.Errorf("UpdateStyle = %v, %v", s, ok)
 	}
 	if v, ok := byID["deleteThing"].Extensions.DeleteNotFoundOK(); !ok || !v {
@@ -209,9 +209,15 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
 		{"eventual-consistency must be a scalar",
 			minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-eventual-consistency: [30s]\n      responses: {}\n"),
 			"must be a duration string"},
-		{"update-style must be a non-empty string",
-			minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-update-style: \"\"\n      responses: {}\n"),
-			"must be a non-empty string"},
+		{"update-style refuses a value outside the closed set",
+			minimal("paths:\n  /a:\n    patch:\n      x-tfpfgen-update-style: merge\n      responses: {}\n"),
+			`must be one of "patch-merge", "put-full" or "replace-only", got "merge"`},
+		{"update-style refuses an empty value",
+			minimal("paths:\n  /a:\n    patch:\n      x-tfpfgen-update-style: \"\"\n      responses: {}\n"),
+			`must be one of "patch-merge", "put-full" or "replace-only"`},
+		{"update-style must be a scalar",
+			minimal("paths:\n  /a:\n    patch:\n      x-tfpfgen-update-style: [patch-merge]\n      responses: {}\n"),
+			`must be one of "patch-merge", "put-full" or "replace-only"`},
 
 		{"required-when must be a mapping", schemaWith("x-tfpfgen-required-when: matchType"),
 			`must be a mapping with "property" and "equals"`},
@@ -233,6 +239,27 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("error = %q, want it to contain %q", err, tc.want)
+			}
+		})
+	}
+}
+
+// x-tfpfgen-update-style is a closed enum: each approved value loads and
+// reads back verbatim. The rejection cases live in the refusals table.
+func TestUnit_Specmodel_UpdateStyleAcceptsEachApprovedValue(t *testing.T) {
+	for _, style := range []string{"patch-merge", "put-full", "replace-only"} {
+		t.Run(style, func(t *testing.T) {
+			doc, err := Load([]byte(minimal(
+				"paths:\n  /a/{id}:\n    patch:\n      x-tfpfgen-update-style: " + style + "\n      responses: {}\n")))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			ops := doc.Operations()
+			if len(ops) != 1 {
+				t.Fatalf("operations = %+v", ops)
+			}
+			if s, ok := ops[0].Extensions.UpdateStyle(); !ok || s != style {
+				t.Errorf("UpdateStyle = %q, %v; want %q, true", s, ok, style)
 			}
 		})
 	}

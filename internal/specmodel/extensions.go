@@ -28,7 +28,7 @@ const (
 	// ExtEventualConsistency records how long a read may lag a write.
 	ExtEventualConsistency = "x-tfpfgen-eventual-consistency"
 	// ExtUpdateStyle records how the update operation treats omitted
-	// fields.
+	// fields: "patch-merge", "put-full" or "replace-only".
 	ExtUpdateStyle = "x-tfpfgen-update-style"
 	// ExtDeleteNotFoundOK marks a delete whose 404 means "already gone".
 	ExtDeleteNotFoundOK = "x-tfpfgen-delete-not-found-ok"
@@ -60,7 +60,7 @@ var extensionShapes = map[string]func(n *yaml.Node, at string) (any, error){
 	ExtCreateOnly:              extBool,
 	ExtRequiredWhen:            extRequiredWhen,
 	ExtEventualConsistency:     extDuration,
-	ExtUpdateStyle:             extString,
+	ExtUpdateStyle:             extUpdateStyle,
 	ExtDeleteNotFoundOK:        extBool,
 	ExtValuesOpen:              extBool,
 	ExtVolatile:                extBool,
@@ -117,11 +117,18 @@ func extBool(n *yaml.Node, at string) (any, error) {
 	return b, nil
 }
 
-func extString(n *yaml.Node, at string) (any, error) {
-	if n.Kind != yaml.ScalarNode || n.Value == "" {
-		return nil, fmt.Errorf("%s: must be a non-empty string", at)
+// extUpdateStyle accepts the closed set of update styles and nothing else.
+// The value steers what generated update logic sends for omitted fields, so
+// an unlisted spelling is refused at load, where the error can name the
+// document location, rather than surfacing as a silent wrong request later.
+func extUpdateStyle(n *yaml.Node, at string) (any, error) {
+	if n.Kind == yaml.ScalarNode {
+		switch n.Value {
+		case "patch-merge", "put-full", "replace-only":
+			return n.Value, nil
+		}
 	}
-	return n.Value, nil
+	return nil, fmt.Errorf("%s: must be one of \"patch-merge\", \"put-full\" or \"replace-only\", got %q", at, n.Value)
 }
 
 func extDuration(n *yaml.Node, at string) (any, error) {
@@ -179,7 +186,9 @@ func (e Extensions) EventualConsistency() (time.Duration, bool) {
 	return d, ok
 }
 
-// UpdateStyle reads x-tfpfgen-update-style.
+// UpdateStyle reads x-tfpfgen-update-style. The value is one of
+// "patch-merge", "put-full" or "replace-only" — anything else was already
+// refused at load.
 func (e Extensions) UpdateStyle() (string, bool) {
 	s, ok := e[ExtUpdateStyle].(string)
 	return s, ok
