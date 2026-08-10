@@ -110,6 +110,10 @@ type Schema struct {
 	ReadOnly bool
 	// Enum lists the declared enum values as decoded scalars.
 	Enum []any
+	// Default is the declared default value, decoded; nil when absent.
+	Default any
+	// Example is the declared example value, decoded; nil when absent.
+	Example any
 	// Required lists the property names the schema requires.
 	Required []string
 	// Properties preserves document order, which is load-bearing

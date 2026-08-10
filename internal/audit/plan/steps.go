@@ -1,0 +1,279 @@
+package plan
+
+import (
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+)
+
+// undocumentedEnumValue is what the undocumented-value check sends: a
+// string no sane document lists, recognisably the toolkit's.
+const undocumentedEnumValue = "tfpfgen-undocumented"
+
+// unknownFieldName is the field the unknown-field check adds to an
+// otherwise valid body.
+const unknownFieldName = "tfpfgen_unknown_field"
+
+// resourcePlan derives one resource's full lifecycle: create minimal,
+// read back, double read, per-field updates, delete and confirm, create
+// maximal, the negative checks, the conditional checks, and the final
+// delete. The step order is fixed; the caps in derive.go bound each rule.
+func (d *deriver) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped) {
+	ei := d.inputs.forEntity(c.Key)
+	sy := synth{entity: c.Key, prefix: d.cfg.Audit.NamePrefix, inputs: ei}
+
+	createOp := d.operation(c.Create)
+	readOp := d.operation(c.Read)
+	updateOp := d.operation(c.Update)
+
+	itemValues, parents, reason := d.pathValues(c.ItemPath, c.Key, ei)
+	if reason != "" {
+		return EntityPlan{}, &Skipped{Entity: c.Key, Reason: reason}
+	}
+	collectionValues, _, reason := d.pathValues(c.CollectionPath, "", ei)
+	if reason != "" {
+		return EntityPlan{}, &Skipped{Entity: c.Key, Reason: reason}
+	}
+
+	createSchema := createOp.RequestBody
+	minimal, reason := sy.minimalBody(createSchema)
+	if reason != "" {
+		return EntityPlan{}, &Skipped{Entity: c.Key, Reason: reason}
+	}
+
+	post := func(kind StepKind, attribute string, body map[string]any) Step {
+		return Step{
+			Kind: kind, Method: c.Create.Method, Path: c.CollectionPath,
+			Attribute: attribute, Body: body, PathValues: collectionValues,
+		}
+	}
+	onItem := func(kind StepKind, method string) Step {
+		return Step{Kind: kind, Method: method, Path: c.ItemPath, PathValues: itemValues}
+	}
+
+	steps := []Step{post(StepCreateMinimal, "", minimal)}
+
+	readBack := onItem(StepReadBack, c.Read.Method)
+	readBack.Poll = pollSpec(readOp, createOp)
+	steps = append(steps, readBack, onItem(StepDoubleRead, c.Read.Method))
+
+	if updateOp != nil {
+		steps = append(steps, d.updateSteps(c, sy, createSchema, minimal, itemValues)...)
+	}
+
+	steps = append(steps, onItem(StepDeleteAndConfirm, c.Delete.Method))
+
+	maximal, optional := sy.maximalBody(createSchema)
+	createMaximal := post(StepCreateMaximal, "", maximal)
+	createMaximal.BisectionAllowance = bisectionAllowance(optional)
+	steps = append(steps, createMaximal)
+
+	steps = append(steps, negativeSteps(createSchema, minimal, post)...)
+	steps = append(steps, conditionalSteps(sy, createSchema, minimal, post)...)
+	steps = append(steps, onItem(StepFinalDelete, c.Delete.Method))
+
+	return EntityPlan{
+		Entity:  c.Key,
+		Role:    "resource",
+		Parents: parents,
+		Budget:  Budget{Requests: entityRequestBudget},
+		Steps:   steps,
+	}, nil
+}
+
+// lookupPlan derives a lookup datasource's read checks: fetch by the
+// operator-supplied key, then read twice for volatility. Nothing is
+// created, so a missing key is a graceful skip, not an error.
+func (d *deriver) lookupPlan(c specmodel.Classification) (EntityPlan, *Skipped) {
+	ei := d.inputs.forEntity(c.Key)
+	values, parents, reason := d.pathValues(c.ItemPath, "", ei)
+	if reason != "" {
+		return EntityPlan{}, &Skipped{Entity: c.Key, Reason: reason}
+	}
+	read := Step{Kind: StepRead, Method: c.Read.Method, Path: c.ItemPath, PathValues: values}
+	double := read
+	double.Kind = StepDoubleRead
+	return EntityPlan{
+		Entity:  c.Key,
+		Role:    "lookup",
+		Parents: parents,
+		Budget:  Budget{Requests: entityRequestBudget},
+		Steps:   []Step{read, double},
+	}, nil
+}
+
+// updateSteps derives one update per writable scalar field, capped. Each
+// body is the minimal body with that one field moved to a variant value,
+// so a refusal names the field and nothing else.
+func (d *deriver) updateSteps(c specmodel.Classification, sy synth, schema *specmodel.Schema, minimal map[string]any, itemValues map[string]string) []Step {
+	props, _ := flatProps(schema)
+	var steps []Step
+	for _, p := range props {
+		if len(steps) == maxUpdateFields {
+			break
+		}
+		if p.Schema.Resolved().ReadOnly {
+			continue
+		}
+		base := minimal[p.Name]
+		if base == nil {
+			if v, ok := sy.value(p.Name, p.Schema, 0, true); ok {
+				base = v
+			}
+		}
+		variant, ok := sy.variant(p.Name, p.Schema, base)
+		if !ok {
+			continue
+		}
+		body := cloneBody(minimal)
+		body[p.Name] = variant
+		steps = append(steps, Step{
+			Kind: StepUpdateField, Method: c.Update.Method, Path: c.ItemPath,
+			Attribute: p.Name, Body: body, PathValues: itemValues,
+		})
+	}
+	return steps
+}
+
+// negativeSteps derives the checks that expect refusal: omit each
+// required field (capped), send an undocumented enum value, send an
+// unknown field.
+func negativeSteps(schema *specmodel.Schema, minimal map[string]any, post func(StepKind, string, map[string]any) Step) []Step {
+	props, required := flatProps(schema)
+	var steps []Step
+
+	omitted := 0
+	for _, p := range props {
+		if omitted == maxOmitRequired {
+			break
+		}
+		if !required[p.Name] || minimal[p.Name] == nil {
+			continue
+		}
+		body := cloneBody(minimal)
+		delete(body, p.Name)
+		steps = append(steps, post(StepOmitRequired, p.Name, body))
+		omitted++
+	}
+
+	for _, p := range props {
+		r := p.Schema.Resolved()
+		if r.ReadOnly || len(r.Enum) == 0 {
+			continue
+		}
+		if _, isString := r.Enum[0].(string); !isString {
+			continue
+		}
+		body := cloneBody(minimal)
+		body[p.Name] = undocumentedEnumValue
+		steps = append(steps, post(StepUndocumentedEnumValue, p.Name, body))
+		break
+	}
+
+	body := cloneBody(minimal)
+	body[unknownFieldName] = true
+	steps = append(steps, post(StepUnknownField, "", body))
+	return steps
+}
+
+// conditionalSteps derives the value-conditional creates, only where the
+// document hints that behaviour varies: an x-tfpfgen-required-when
+// annotation, or an enum-typed field with siblings whose behaviour could
+// depend on it. Enum values are capped across the entity.
+func conditionalSteps(sy synth, schema *specmodel.Schema, minimal map[string]any, post func(StepKind, string, map[string]any) Step) []Step {
+	props, _ := flatProps(schema)
+	var steps []Step
+
+	writable := 0
+	for _, p := range props {
+		if !p.Schema.Resolved().ReadOnly {
+			writable++
+		}
+	}
+
+	// The required-when hints: for each annotated property, create with
+	// the gate pinned and the property present, then with the gate pinned
+	// and the property omitted — acceptance of one and refusal of the
+	// other is the observation.
+	for _, p := range props {
+		rw, ok := requiredWhenHint(p.Schema)
+		if !ok {
+			continue
+		}
+		with := cloneBody(minimal)
+		with[rw.Property] = rw.Equals
+		if v, ok := sy.value(p.Name, p.Schema, 0, true); ok {
+			with[p.Name] = v
+		}
+		without := cloneBody(minimal)
+		without[rw.Property] = rw.Equals
+		delete(without, p.Name)
+
+		for _, body := range []map[string]any{with, without} {
+			step := post(StepConditionalCreate, p.Name, body)
+			step.Condition = &observe.Condition{Attribute: rw.Property, Equals: rw.Equals}
+			steps = append(steps, step)
+		}
+	}
+
+	// The enum-sibling hints: pin each documented value in turn, capped,
+	// so value-conditional requirements and defaults surface. An enum
+	// with no siblings conditions nothing.
+	if writable > 1 {
+		pinned := 0
+		for _, p := range props {
+			r := p.Schema.Resolved()
+			if r.ReadOnly || len(r.Enum) == 0 {
+				continue
+			}
+			for _, v := range r.Enum {
+				if pinned == maxConditionalValues {
+					break
+				}
+				body := cloneBody(minimal)
+				body[p.Name] = v
+				step := post(StepConditionalCreate, p.Name, body)
+				step.Condition = &observe.Condition{Attribute: p.Name, Equals: v}
+				steps = append(steps, step)
+				pinned++
+			}
+		}
+	}
+	return steps
+}
+
+// requiredWhenHint reads x-tfpfgen-required-when from a property, checking
+// the written node first — an annotation can sit beside a $ref — and the
+// resolved schema second.
+func requiredWhenHint(s *specmodel.Schema) (specmodel.RequiredWhen, bool) {
+	if rw, ok := s.Extensions.RequiredWhen(); ok {
+		return rw, true
+	}
+	return s.Resolved().Extensions.RequiredWhen()
+}
+
+// pollSpec bounds a readBack: the document's eventual-consistency hint on
+// the read or create operation when present, the default ceiling
+// otherwise.
+func pollSpec(readOp, createOp *specmodel.Operation) *Poll {
+	timeout := defaultPollTimeout
+	for _, op := range []*specmodel.Operation{readOp, createOp} {
+		if op == nil {
+			continue
+		}
+		if d, ok := op.Extensions.EventualConsistency(); ok {
+			timeout = d
+			break
+		}
+	}
+	return &Poll{Interval: pollInterval.String(), Timeout: timeout.String()}
+}
+
+// cloneBody is the shallow copy each step mutates: top-level fields are
+// per-step, nested values are shared and never mutated.
+func cloneBody(body map[string]any) map[string]any {
+	out := make(map[string]any, len(body))
+	for k, v := range body {
+		out[k] = v
+	}
+	return out
+}
