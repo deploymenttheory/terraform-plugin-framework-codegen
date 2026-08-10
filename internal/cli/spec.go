@@ -13,7 +13,7 @@ func newSpecCommand() *cobra.Command {
 		Use:   "spec",
 		Short: "work with the pinned OpenAPI document",
 	}
-	group.AddCommand(newSpecImportCommand(), newSpecVerifyCommand())
+	group.AddCommand(newSpecImportCommand(), newSpecVerifyCommand(), newSpecReviseCommand())
 	return group
 }
 
