@@ -126,7 +126,7 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 			}
 			for _, want := range []string{"NewModuleResource,", "NewBeaconResource,", "NewDockResource,"} {
 				if !strings.Contains(string(registry), want) {
-					t.Errorf("resources.go carries no spliced %s", want)
+					t.Errorf("resources.go carries no registered %s", want)
 				}
 			}
 

@@ -24,8 +24,8 @@ func (p *Provider) Resources(_ context.Context) []func() resource.Resource {
 }
 `
 
-func TestUnit_Splice_IsIdempotentSortedAndSentinelPreserving(t *testing.T) {
-	set := RegistrationSet{
+func TestUnit_Register_IsIdempotentSortedAndSentinelPreserving(t *testing.T) {
+	set := Registrations{
 		Imports: []string{
 			`zebra "example.test/provider/internal/services/resources/z/v1/zebra"`,
 			`aard "example.test/provider/internal/services/resources/a/v1/aard"`,
@@ -37,16 +37,16 @@ func TestUnit_Splice_IsIdempotentSortedAndSentinelPreserving(t *testing.T) {
 		},
 	}
 
-	once, err := Splice([]byte(registryFixture), "resources", set)
+	once, err := Register([]byte(registryFixture), "resources", set)
 	if err != nil {
-		t.Fatalf("Splice: %v", err)
+		t.Fatalf("Register: %v", err)
 	}
-	twice, err := Splice(once, "resources", set)
+	twice, err := Register(once, "resources", set)
 	if err != nil {
-		t.Fatalf("second Splice: %v", err)
+		t.Fatalf("second Register: %v", err)
 	}
 	if !bytes.Equal(once, twice) {
-		t.Fatalf("splicing is not idempotent:\n%s\nvs\n%s", once, twice)
+		t.Fatalf("registering is not idempotent:\n%s\nvs\n%s", once, twice)
 	}
 
 	text := string(once)
@@ -59,51 +59,51 @@ func TestUnit_Splice_IsIdempotentSortedAndSentinelPreserving(t *testing.T) {
 		t.Fatalf("duplicate import lines must collapse:\n%s", text)
 	}
 	if strings.Index(text, `aard "example.test`) > strings.Index(text, `zebra "example.test`) {
-		t.Fatalf("spliced lines must sort:\n%s", text)
+		t.Fatalf("registered lines must sort:\n%s", text)
 	}
 	if strings.Index(text, "aard.NewAardResource,") > strings.Index(text, "zebra.NewZebraResource,") {
 		t.Fatalf("registrations must sort:\n%s", text)
 	}
 
-	// Re-splicing a smaller set replaces the block rather than appending.
-	smaller, err := Splice(once, "resources", RegistrationSet{
+	// Re-registering a smaller set replaces the block rather than appending.
+	smaller, err := Register(once, "resources", Registrations{
 		Imports:       []string{`aard "example.test/provider/internal/services/resources/a/v1/aard"`},
 		Registrations: []string{"aard.NewAardResource,"},
 	})
 	if err != nil {
-		t.Fatalf("Splice with a smaller set: %v", err)
+		t.Fatalf("Register with a smaller set: %v", err)
 	}
 	if strings.Contains(string(smaller), "zebra") {
-		t.Fatalf("a removed entity's lines must not survive a re-splice:\n%s", smaller)
+		t.Fatalf("a removed entity's lines must not survive a re-register:\n%s", smaller)
 	}
 }
 
-func TestUnit_Splice_RefusesMissingSentinelsAndUnknownKinds(t *testing.T) {
-	if _, err := Splice([]byte("package provider\n"), "resources", RegistrationSet{}); err == nil ||
+func TestUnit_Register_RefusesMissingSentinelsAndUnknownKinds(t *testing.T) {
+	if _, err := Register([]byte("package provider\n"), "resources", Registrations{}); err == nil ||
 		!strings.Contains(err.Error(), "sentinel") {
 		t.Fatalf("a missing sentinel must be named: %v", err)
 	}
 
-	if _, err := Splice([]byte(registryFixture), "gadgets", RegistrationSet{}); err == nil ||
+	if _, err := Register([]byte(registryFixture), "gadgets", Registrations{}); err == nil ||
 		!strings.Contains(err.Error(), "gadgets") {
 		t.Fatalf("an unknown kind must be named: %v", err)
 	}
 
 	unclosed := "package provider\n// tfpfgen:resources:imports\nno closing delimiter"
-	if _, err := Splice([]byte(unclosed), "resources", RegistrationSet{}); err == nil ||
+	if _, err := Register([]byte(unclosed), "resources", Registrations{}); err == nil ||
 		!strings.Contains(err.Error(), "closing delimiter") {
 		t.Fatalf("a sentinel without a closing delimiter must be refused: %v", err)
 	}
 }
 
-func TestUnit_Registrations_ByKindCoversEverySentinelKind(t *testing.T) {
-	var r Registrations
+func TestUnit_Registry_ByKindCoversEveryRegistrySlot(t *testing.T) {
+	var r Registry
 	r.Resources.add("i1", "r1")
 	r.Datasources.add("i2", "r2")
 	r.ListResources.add("i3", "r3")
 	r.Actions.add("i4", "r4")
 
-	for i, kind := range SentinelKinds {
+	for i, kind := range RegistrySlots {
 		set, err := r.ByKind(kind)
 		if err != nil {
 			t.Fatalf("ByKind(%s): %v", kind, err)

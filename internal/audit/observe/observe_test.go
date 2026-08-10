@@ -52,7 +52,7 @@ func valid() Observation {
 		Entity:  "tag",
 		Kind:    KindDeleteNotFoundOK,
 		Value:   true,
-		Outcome: OutcomeObserved,
+		Outcome: OutcomeConfirmed,
 		RunID:   "r1",
 		Excerpts: []Excerpt{{
 			Method: "DELETE", PathTemplate: "/tags/{tagId}", Status: 404,
@@ -162,7 +162,7 @@ func TestUnit_Observe_ValidateAcceptsEveryKindsValueShape(t *testing.T) {
 }
 
 func TestUnit_Observe_NonObservedOutcomesCarryNoValueCheck(t *testing.T) {
-	for _, outcome := range []Outcome{OutcomeUndetermined, OutcomeBlocked, OutcomeBudgetExhausted} {
+	for _, outcome := range []Outcome{OutcomeInconclusive, OutcomeBlocked, OutcomeTimeoutExhausted} {
 		o := valid()
 		o.Outcome, o.Value = outcome, nil
 		if err := o.Validate(); err != nil {

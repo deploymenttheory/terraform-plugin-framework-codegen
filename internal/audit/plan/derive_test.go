@@ -238,7 +238,7 @@ func testConfig() *config.Config {
 // widgetInputs supplies the lookup key the widget datasource needs.
 func widgetInputs(t *testing.T) *Inputs {
 	t.Helper()
-	in, err := ParseInputs([]byte(`{"widget": {"parentRefs": {"widgetName": "$env:WIDGET_NAME"}}}`))
+	in, err := ParseInputs([]byte(`{"widget": {"parentRefs": {"widgetName": "${WIDGET_NAME}"}}}`))
 	if err != nil {
 		t.Fatalf("ParseInputs: %v", err)
 	}
@@ -327,15 +327,15 @@ func TestUnit_Plan_ResourceStepOrder(t *testing.T) {
 	project := entityByKey(t, p, "project")
 
 	want := []StepKind{
-		StepCreateMinimal, StepReadBack, StepDoubleRead,
+		StepCreateMinimal, StepReadWithRetry, StepReadConsecutive,
 		StepUpdateField, StepUpdateField, StepUpdateField, StepUpdateField,
 		StepUpdateField, StepUpdateField, StepUpdateField, StepUpdateField,
-		StepDeleteAndConfirm, StepCreateMaximal,
+		StepDeleteWithConfirmation, StepCreateMaximal,
 		StepOmitRequired, StepOmitRequired,
-		StepUndocumentedEnumValue, StepUnknownField,
-		StepConditionalCreate, StepConditionalCreate, // required-when: with, without
-		StepConditionalCreate, StepConditionalCreate, // enum values: basic, advanced
-		StepFinalDelete,
+		StepUndocumentedEnumValue, StepUndeclaredSpecField,
+		StepCreatePerEnumValue, StepCreatePerEnumValue, // required-when: with, without
+		StepCreatePerEnumValue, StepCreatePerEnumValue, // enum values: basic, advanced
+		StepCleanupDelete,
 	}
 	if got := kinds(project.Steps); !reflect.DeepEqual(got, want) {
 		t.Fatalf("project step kinds = %v, want %v", got, want)
@@ -362,13 +362,13 @@ func TestUnit_Plan_StepDetails(t *testing.T) {
 		t.Errorf("minimal body = %v, want %v", create.Body, wantMinimal)
 	}
 
-	readBack := steps[1]
-	if readBack.Path != "/projects/{projectId}" ||
-		readBack.PathValues["projectId"] != CreatedRef("project") {
-		t.Errorf("readBack = %+v", readBack)
+	readWithRetry := steps[1]
+	if readWithRetry.Path != "/projects/{projectId}" ||
+		readWithRetry.PathValues["projectId"] != CreatedRef("project") {
+		t.Errorf("readWithRetry = %+v", readWithRetry)
 	}
-	if readBack.Poll == nil || readBack.Poll.Timeout != "5s" || readBack.Poll.Interval != "2s" {
-		t.Errorf("readBack poll = %+v, want the 5s eventual-consistency hint", readBack.Poll)
+	if readWithRetry.Poll == nil || readWithRetry.Poll.Timeout != "5s" || readWithRetry.Poll.Interval != "2s" {
+		t.Errorf("readWithRetry poll = %+v, want the 5s eventual-consistency hint", readWithRetry.Poll)
 	}
 
 	// The update of mode moves it to the other documented value.
@@ -412,8 +412,8 @@ func TestUnit_Plan_StepDetails(t *testing.T) {
 		t.Errorf("undocumentedEnumValue = %+v", undoc)
 	}
 	unknown := steps[16]
-	if unknown.Body[unknownFieldName] != true {
-		t.Errorf("unknownField body = %v", unknown.Body)
+	if unknown.Body[undeclaredSpecFieldName] != true {
+		t.Errorf("undeclaredSpecField body = %v", unknown.Body)
 	}
 
 	// The required-when pair: gate pinned, property present then omitted.
@@ -438,8 +438,8 @@ func TestUnit_Plan_StepDetails(t *testing.T) {
 	}
 
 	last := steps[len(steps)-1]
-	if last.Kind != StepFinalDelete || last.Method != "DELETE" || last.PathValues["projectId"] != CreatedRef("project") {
-		t.Errorf("finalDelete = %+v", last)
+	if last.Kind != StepCleanupDelete || last.Method != "DELETE" || last.PathValues["projectId"] != CreatedRef("project") {
+		t.Errorf("cleanupDelete = %+v", last)
 	}
 }
 
@@ -460,14 +460,14 @@ func TestUnit_Plan_ParentOrderingAndTokens(t *testing.T) {
 		t.Errorf("tag read path values = %v", read.PathValues)
 	}
 	if read.Poll.Timeout != "30s" {
-		t.Errorf("tag readBack timeout = %s, want the 30s default", read.Poll.Timeout)
+		t.Errorf("tag readWithRetry timeout = %s, want the 30s default", read.Poll.Timeout)
 	}
 
 	// An operator-supplied parent id outranks creating one: with
 	// parentRefs, the tag plan uses the literal and depends on nothing.
 	in, err := ParseInputs([]byte(`{
 		"projects_tag": {"parentRefs": {"projectId": "existing-123"}},
-		"widget": {"parentRefs": {"widgetName": "$env:WIDGET_NAME"}}
+		"widget": {"parentRefs": {"widgetName": "${WIDGET_NAME}"}}
 	}`))
 	if err != nil {
 		t.Fatalf("ParseInputs: %v", err)
@@ -495,10 +495,10 @@ func TestUnit_Plan_LookupChecks(t *testing.T) {
 	// With it, the lookup gets its read checks.
 	p = mustDerive(t, loadDoc(t, fixtureSpec), testConfig(), widgetInputs(t))
 	widget := entityByKey(t, p, "widget")
-	if got := kinds(widget.Steps); !reflect.DeepEqual(got, []StepKind{StepRead, StepDoubleRead}) {
+	if got := kinds(widget.Steps); !reflect.DeepEqual(got, []StepKind{StepRead, StepReadConsecutive}) {
 		t.Fatalf("widget steps = %v", got)
 	}
-	if widget.Steps[0].PathValues["widgetName"] != "$env:WIDGET_NAME" {
+	if widget.Steps[0].PathValues["widgetName"] != "${WIDGET_NAME}" {
 		t.Errorf("widget path values = %v", widget.Steps[0].PathValues)
 	}
 }

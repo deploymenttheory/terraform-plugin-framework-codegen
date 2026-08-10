@@ -10,9 +10,9 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
 )
 
-// TestUnit_RenderEntities_TheRenderedTreeCompiles is the full-strength
+// TestUnit_RenderServices_TheRenderedTreeCompiles is the full-strength
 // gate for per-entity emission, once per backend dialect: render the
-// provider core and the fictional entity tree, splice the registrations
+// provider core and the fictional entity tree, register the registrations
 // into the registry files, stand the hand-written stub SDK where `sdk
 // generate` would put the real one, and hold everything — generated
 // tests included — to `go mod tidy`, `go build` and `go vet` against the
@@ -21,7 +21,7 @@ import (
 // Like the provider-core compile test, an offline failure skips rather
 // than fails; the render tests already prove everything that does not
 // need the module proxy.
-func TestUnit_RenderEntities_TheRenderedTreeCompiles(t *testing.T) {
+func TestUnit_RenderServices_TheRenderedTreeCompiles(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping the toolchain compile in -short mode")
 	}
@@ -59,9 +59,9 @@ func TestUnit_RenderEntities_TheRenderedTreeCompiles(t *testing.T) {
 			if err != nil {
 				t.Fatalf("RenderProviderCore: %v", err)
 			}
-			entities, err := RenderEntities(tc.pc, tc.model, tc.bindings)
+			entities, err := RenderServices(tc.pc, tc.model, tc.bindings)
 			if err != nil {
-				t.Fatalf("RenderEntities: %v", err)
+				t.Fatalf("RenderServices: %v", err)
 			}
 
 			root := t.TempDir()
@@ -72,7 +72,7 @@ func TestUnit_RenderEntities_TheRenderedTreeCompiles(t *testing.T) {
 				t.Fatalf("writing the entity tree: %v", err)
 			}
 
-			// Splice every kind's registrations into its registry file,
+			// Register every kind's registrations into its registry file,
 			// the way `provider generate` will.
 			registryFiles := map[string]string{
 				"resources":      "internal/provider/resources.go",
@@ -90,11 +90,11 @@ func TestUnit_RenderEntities_TheRenderedTreeCompiles(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				spliced, err := Splice(content, kind, set)
+				registered, err := Register(content, kind, set)
 				if err != nil {
-					t.Fatalf("splicing %s: %v", rel, err)
+					t.Fatalf("registering %s: %v", rel, err)
 				}
-				if err := os.WriteFile(target, spliced, 0o600); err != nil {
+				if err := os.WriteFile(target, registered, 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}

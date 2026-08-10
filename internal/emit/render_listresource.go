@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixturespec"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
 )
@@ -42,7 +42,7 @@ type listResourceData struct {
 }
 
 // listResource renders one list-only entity's file set.
-func (e *entityRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListResourceBinding) ([]File, error) {
+func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListResourceBinding) ([]File, error) {
 	if lb.List == nil {
 		return nil, fmt.Errorf("a list resource needs a bound list call")
 	}
@@ -109,7 +109,7 @@ func (e *entityRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListResou
 	spec := deriveFixtures(lr.Schema, nodes)
 	d.CollectionURL = mockURL(listOp.PathTemplate)
 	d.ListWrap = "value"
-	item := strings.TrimSuffix(string(spec.WireJSON(fixturespec.ResponseMaximal)), "\n")
+	item := strings.TrimSuffix(string(spec.WireJSON(fixtures.ResponseMaximal)), "\n")
 	d.ListResponse = "{\n  \"value\": [\n" + reindentJSON(item, "    ") + "\n  ]\n}\n"
 	d.ExpectedFirstID = expectedID(spec)
 	d.TestClientConfig = e.testClientConfig()
@@ -132,7 +132,7 @@ func (e *entityRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListResou
 	var files []File
 	renderGo := func(tmpl, out string) error {
 		d.Source = "entity/list-resource/" + tmpl
-		f, ferr := e.renderEntityFile("list-resource/"+tmpl, path.Join(dir, out), lr.Names.Key, d)
+		f, ferr := e.renderServiceFile("list-resource/"+tmpl, path.Join(dir, out), lr.Names.Key, d)
 		if ferr != nil {
 			return ferr
 		}
@@ -213,8 +213,8 @@ func readStringLocal(local string, n node, depth int) string {
 }
 
 // expectedID is the fixture id the list test asserts on.
-func expectedID(spec fixturespec.Spec) string {
-	for _, v := range spec.Values {
+func expectedID(spec fixtures.Fixture) string {
+	for _, v := range spec.Entries {
 		if v.Name == "id" {
 			return checkValue(v.Scalar)
 		}
@@ -224,7 +224,7 @@ func expectedID(spec fixturespec.Spec) string {
 
 // testClientConfig renders the client.Config literal fields a direct-call
 // unit test needs beyond the endpoint, per auth method.
-func (e *entityRenderer) testClientConfig() string {
+func (e *serviceRenderer) testClientConfig() string {
 	switch {
 	case e.pc.AuthBearerToken, e.pc.AuthAPIKeyHeader:
 		return `, APIToken: "unit-test-token"`

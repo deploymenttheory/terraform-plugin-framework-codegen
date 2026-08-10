@@ -18,11 +18,11 @@ func sample() []Observation {
 		{
 			Entity: "tag", Attribute: "color", Kind: KindValues,
 			Value:   Values{Accepted: []string{"red", "blue"}, Rejected: []string{"mauve"}, Closed: &closed},
-			Outcome: OutcomeObserved, RunID: "r1", SpecHash: "h1", ObservedAt: at,
+			Outcome: OutcomeConfirmed, RunID: "r1", SpecHash: "h1", ObservedAt: at,
 		},
 		{
 			Entity: "tag", Kind: KindUpdateStyle, Value: "patch-merge",
-			Outcome: OutcomeObserved, RunID: "r1", SpecHash: "h1", ObservedAt: at,
+			Outcome: OutcomeConfirmed, RunID: "r1", SpecHash: "h1", ObservedAt: at,
 			Excerpts: []Excerpt{{
 				Method: "PATCH", PathTemplate: "/tags/{tagId}", Status: 200,
 				RequestFragment:  []byte(`{"color":"blue"}`),
@@ -31,16 +31,16 @@ func sample() []Observation {
 		},
 		{
 			Entity: "project", Attribute: "name", Kind: KindWritable, Value: true,
-			Outcome: OutcomeObserved, RunID: "r1", SpecHash: "h1", ObservedAt: at,
+			Outcome: OutcomeConfirmed, RunID: "r1", SpecHash: "h1", ObservedAt: at,
 		},
 		{
 			Entity: "tag", Attribute: "query", Kind: KindRequiredWhen, Value: true,
 			Condition: &Condition{Attribute: "type", Equals: "dynamic"},
-			Outcome:   OutcomeObserved, RunID: "r1", SpecHash: "h1", ObservedAt: at,
+			Outcome:   OutcomeConfirmed, RunID: "r1", SpecHash: "h1", ObservedAt: at,
 		},
 		{
 			Entity: "tag", Attribute: "updated_at", Kind: KindVolatile,
-			Outcome: OutcomeUndetermined, RunID: "r1", SpecHash: "h1", ObservedAt: at,
+			Outcome: OutcomeInconclusive, RunID: "r1", SpecHash: "h1", ObservedAt: at,
 		},
 	}
 }
@@ -156,17 +156,17 @@ func TestUnit_Observe_ReadRefusesWhatItCannotTrust(t *testing.T) {
 		},
 		{
 			"observation about another entity", "tag" + FileSuffix,
-			`{"entity":"tag","observations":[{"id":"` + id + `","entity":"project","kind":"deleteNotFoundOK","value":true,"outcome":"observed","runId":"r","specHash":"h","observedAt":"2026-01-01T00:00:00Z"}]}`,
+			`{"entity":"tag","observations":[{"id":"` + id + `","entity":"project","kind":"deleteNotFoundOK","value":true,"outcome":"confirmed","runId":"r","specHash":"h","observedAt":"2026-01-01T00:00:00Z"}]}`,
 			`about entity "project"`,
 		},
 		{
 			"observation with no id", "tag" + FileSuffix,
-			`{"entity":"tag","observations":[{"entity":"tag","kind":"deleteNotFoundOK","value":true,"outcome":"observed","runId":"r","specHash":"h","observedAt":"2026-01-01T00:00:00Z"}]}`,
+			`{"entity":"tag","observations":[{"entity":"tag","kind":"deleteNotFoundOK","value":true,"outcome":"confirmed","runId":"r","specHash":"h","observedAt":"2026-01-01T00:00:00Z"}]}`,
 			"no id",
 		},
 		{
 			"hand-edited id", "tag" + FileSuffix,
-			`{"entity":"tag","observations":[{"id":"beefbeefbeefbeef","entity":"tag","kind":"deleteNotFoundOK","value":true,"outcome":"observed","runId":"r","specHash":"h","observedAt":"2026-01-01T00:00:00Z"}]}`,
+			`{"entity":"tag","observations":[{"id":"beefbeefbeefbeef","entity":"tag","kind":"deleteNotFoundOK","value":true,"outcome":"confirmed","runId":"r","specHash":"h","observedAt":"2026-01-01T00:00:00Z"}]}`,
 			"does not match the computed",
 		},
 		{
@@ -208,7 +208,7 @@ func TestUnit_Observe_ReadTreatsAbsenceAsEmpty(t *testing.T) {
 	// refused by Validate on read.
 	raw := `{"entity":"tag","observations":[{"id":"` +
 		ComputeID("tag", "", "sideEffect", nil) +
-		`","entity":"tag","kind":"sideEffect","value":true,"outcome":"observed","runId":"r","specHash":"h","observedAt":"2026-01-01T00:00:00Z"}]}`
+		`","entity":"tag","kind":"sideEffect","value":true,"outcome":"confirmed","runId":"r","specHash":"h","observedAt":"2026-01-01T00:00:00Z"}]}`
 	if err := os.WriteFile(filepath.Join(dir, "tag"+FileSuffix), []byte(raw), 0o644); err != nil {
 		t.Fatal(err)
 	}

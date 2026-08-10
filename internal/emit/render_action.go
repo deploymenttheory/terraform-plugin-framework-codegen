@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixturespec"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
 )
@@ -46,7 +46,7 @@ type actionData struct {
 }
 
 // action renders one action's file set.
-func (e *entityRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]File, error) {
+func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]File, error) {
 	if ab.Invoke == nil {
 		return nil, fmt.Errorf("an action needs a bound invoke call")
 	}
@@ -133,7 +133,7 @@ func (e *entityRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]File
 	} else {
 		d.InvokeMatcher = mockURL(a.InvokeOp.PathTemplate)
 	}
-	d.ConfigValue = tftypesValue(spec.Values, 1)
+	d.ConfigValue = tftypesValue(spec.Entries, 1)
 	d.TestClientConfig = e.testClientConfig()
 
 	testImports := newImportSet(e.pc.Module)
@@ -152,7 +152,7 @@ func (e *entityRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]File
 	var files []File
 	renderGo := func(tmpl, out string) error {
 		d.Source = "entity/action/" + tmpl
-		f, ferr := e.renderEntityFile("action/"+tmpl, path.Join(dir, out), a.Names.Key, d)
+		f, ferr := e.renderServiceFile("action/"+tmpl, path.Join(dir, out), a.Names.Key, d)
 		if ferr != nil {
 			return ferr
 		}
@@ -171,7 +171,7 @@ func (e *entityRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]File
 	}
 
 	exampleHeader := fmt.Sprintf("action %q %q", a.Names.TerraformType, "example")
-	exampleBody := "  config {\n" + reindent(spec.HCL(fixturespec.ConfigMaximal), "  ") + "  }\n"
+	exampleBody := "  config {\n" + reindent(spec.HCL(fixtures.ConfigMaximal), "  ") + "  }\n"
 	example, err := hclBlock(a.Names.Key, exampleHeader, exampleBody, nil)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func actionParamNodes(op *ir.Op) []node {
 			kind = ir.TypeString
 		}
 		out = append(out, node{attr: ir.Attribute{
-			Name:     ir.SnakeName(p.Name),
+			Name:     ir.TerraformName(p.Name),
 			WireName: p.Name,
 			Kind:     kind,
 			Presence: ir.PresenceRequired,
@@ -217,7 +217,7 @@ func actionTree(paramNodes []node, request *ir.AttributeTree) *ir.AttributeTree 
 // tftypesValue renders the finished tftypes.NewValue expression carrying
 // the fixture values — how the unit test hands Invoke a configuration
 // without running terraform.
-func tftypesValue(values []fixturespec.Value, depth int) string {
+func tftypesValue(values []fixtures.Entry, depth int) string {
 	indent := strings.Repeat("\t", depth)
 	var types_, vals strings.Builder
 	for _, v := range values {
@@ -229,7 +229,7 @@ func tftypesValue(values []fixturespec.Value, depth int) string {
 }
 
 // tftype is the tftypes type expression of one fixture value.
-func tftype(v fixturespec.Value) string {
+func tftype(v fixtures.Entry) string {
 	switch {
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		return "tftypes.List{ElementType: " + tftypeObject(v.Nested) + "}"
@@ -243,7 +243,7 @@ func tftype(v fixturespec.Value) string {
 }
 
 // tftypeObject renders a nested object's tftypes type.
-func tftypeObject(values []fixturespec.Value) string {
+func tftypeObject(values []fixtures.Entry) string {
 	var b strings.Builder
 	b.WriteString("tftypes.Object{AttributeTypes: map[string]tftypes.Type{")
 	for i, v := range values {
@@ -269,7 +269,7 @@ func tftypeScalar(k ir.TypeKind) string {
 }
 
 // tftypeNewValue renders one fixture value as a tftypes.NewValue call.
-func tftypeNewValue(v fixturespec.Value) string {
+func tftypeNewValue(v fixtures.Entry) string {
 	switch {
 	case v.Nested != nil && v.Kind == ir.TypeList:
 		return fmt.Sprintf("tftypes.NewValue(%s, []tftypes.Value{%s})",
@@ -285,7 +285,7 @@ func tftypeNewValue(v fixturespec.Value) string {
 }
 
 // tftypeNewObject renders a nested object's value expression.
-func tftypeNewObject(values []fixturespec.Value) string {
+func tftypeNewObject(values []fixtures.Entry) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "tftypes.NewValue(%s, map[string]tftypes.Value{", tftypeObject(values))
 	for i, v := range values {

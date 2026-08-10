@@ -311,7 +311,7 @@ func paramField(p sdkbind.CallParam, nodes []node, idFallback bool) (string, err
 			return ir.GoName(n.attr.Name), nil
 		}
 	}
-	snake := ir.SnakeName(p.Wire)
+	snake := ir.TerraformName(p.Wire)
 	for _, n := range nodes {
 		if n.attr.Name == snake {
 			return ir.GoName(n.attr.Name), nil

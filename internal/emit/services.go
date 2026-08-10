@@ -10,21 +10,21 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixturespec"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/templates"
 )
 
-// EntityOutput is everything per-entity emission produced: the files to
-// write, and the registration lines `provider generate` splices into the
+// ServiceFiles is everything per-entity emission produced: the files to
+// write, and the registration lines `provider generate` registers into the
 // provider-core registry files.
-type EntityOutput struct {
+type ServiceFiles struct {
 	Files         []File
-	Registrations Registrations
+	Registrations Registry
 }
 
-// RenderEntities renders every entity the model carries and the bindings
+// RenderServices renders every entity the model carries and the bindings
 // can serve: the four service-kind file sets, their tests, mocks and
 // fixtures, and the examples tree. The provider-core context supplies the
 // module identity and the backend and auth presence booleans; entities the
@@ -34,7 +34,7 @@ type EntityOutput struct {
 // Rendered Go files are gofmt-clean as rendered: the assembled source is
 // held to go/format inside the renderer, and a file that does not parse is
 // reported against its template, never written.
-func RenderEntities(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*EntityOutput, error) {
+func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*ServiceFiles, error) {
 	if err := pc.check(); err != nil {
 		return nil, err
 	}
@@ -42,8 +42,8 @@ func RenderEntities(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*EntityO
 		return nil, fmt.Errorf("entity emission needs both the intermediate representation and the bindings")
 	}
 
-	e := &entityRenderer{pc: pc, bindings: b}
-	out := &EntityOutput{}
+	e := &serviceRenderer{pc: pc, bindings: b}
+	out := &ServiceFiles{}
 
 	for i := range m.Resources {
 		r := &m.Resources[i]
@@ -113,25 +113,25 @@ const (
 	kindActions       = "actions"
 )
 
-// entityRenderer carries what every per-entity render needs.
-type entityRenderer struct {
+// serviceRenderer carries what every per-entity render needs.
+type serviceRenderer struct {
 	pc       ProviderCore
 	bindings *sdkbind.Bindings
 }
 
 // dir is the entity's directory relative to the provider root.
-func (e *entityRenderer) dir(kind string, n ir.Names) string {
+func (e *serviceRenderer) dir(kind string, n ir.Names) string {
 	return path.Join("internal/services", kind, n.Service, n.APIVersionDir, n.Key)
 }
 
 // packagePath is the entity package's import path.
-func (e *entityRenderer) packagePath(kind string, n ir.Names) string {
+func (e *serviceRenderer) packagePath(kind string, n ir.Names) string {
 	return e.pc.Module + "/" + e.dir(kind, n)
 }
 
 // registration builds one entity's import and registration lines for the
 // provider-core registry sentinels.
-func (e *entityRenderer) registration(kind string, n ir.Names, constructor string) (string, string) {
+func (e *serviceRenderer) registration(kind string, n ir.Names, constructor string) (string, string) {
 	alias := importAlias(n)
 	importLine := alias + " " + `"` + e.packagePath(kind, n) + `"`
 	return importLine, alias + "." + constructor + ","
@@ -163,18 +163,18 @@ func lowerCamel(snake string) string {
 	return b.String()
 }
 
-// renderEntityFile renders one entity template against its view and holds
+// renderServiceFile renders one entity template against its view and holds
 // Go output to the gofmt fixed point. Unlike the provider core's static
 // templates — whose shape is fully known when the template is written —
 // entity files interpolate computed declarations, so the assembled source
 // is normalised through go/format here and a file that does not parse is
 // an error naming the template.
-func (e *entityRenderer) renderEntityFile(templatePath, outPath, source string, view any) (File, error) {
+func (e *serviceRenderer) renderServiceFile(templatePath, outPath, source string, view any) (File, error) {
 	partial, err := fs.ReadFile(templates.ProviderCore, headerPartial)
 	if err != nil {
 		return File{}, fmt.Errorf("reading the shared header partial: %w", err)
 	}
-	body, err := fs.ReadFile(templates.Entity, "entity/"+templatePath)
+	body, err := fs.ReadFile(templates.Services, "services/"+templatePath)
 	if err != nil {
 		return File{}, fmt.Errorf("reading %s: %w", templatePath, err)
 	}
@@ -246,7 +246,7 @@ func joinTree(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding) []node {
 
 // supportedTree rebuilds an attribute tree containing only the joined
 // nodes, so the fixture derivation covers exactly what the schema carries.
-// Unsupported attributes are kept: fixturespec turns them into skips with
+// Unsupported attributes are kept: fixtures turns them into omissions with
 // their stated reasons.
 func supportedTree(tree *ir.AttributeTree, nodes []node) *ir.AttributeTree {
 	if tree == nil {
@@ -276,9 +276,9 @@ func supportedTree(tree *ir.AttributeTree, nodes []node) *ir.AttributeTree {
 }
 
 // deriveFixtures is the one fixture derivation per entity: the joined
-// tree, handed to fixturespec.
-func deriveFixtures(tree *ir.AttributeTree, nodes []node) fixturespec.Spec {
-	return fixturespec.Derive(supportedTree(tree, nodes))
+// tree, handed to fixtures.
+func deriveFixtures(tree *ir.AttributeTree, nodes []node) fixtures.Fixture {
+	return fixtures.Derive(supportedTree(tree, nodes))
 }
 
 // importSet collects the import lines of one file, grouped the way the

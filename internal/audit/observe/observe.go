@@ -96,7 +96,7 @@ const (
 	KindServerForced Kind = "serverForced"
 
 	// KindVolatile: the attribute differs between two identical reads.
-	// Learned from the double read. Becomes an x-tfpfgen-volatile
+	// Learned from the consecutive read. Becomes an x-tfpfgen-volatile
 	// correction, which downstream excludes from drift comparison.
 	KindVolatile Kind = "volatile"
 
@@ -119,7 +119,7 @@ const (
 
 	// KindDeleteNotFoundOK: a delete answered 404 for an object that is
 	// already gone, which generated delete logic should treat as success.
-	// Learned from the confirm half of deleteAndConfirm: delete, verify
+	// Learned from the confirm half of deleteWithConfirmation: delete, verify
 	// gone, delete again. Becomes an x-tfpfgen-delete-not-found-ok
 	// correction.
 	KindDeleteNotFoundOK Kind = "deleteNotFoundOK"
@@ -144,22 +144,24 @@ var knownKinds = map[Kind]bool{
 type Outcome string
 
 const (
-	// OutcomeObserved: the finding was made and the Value holds it.
-	OutcomeObserved Outcome = "observed"
-	// OutcomeUndetermined: the steps ran but the responses did not
+	// OutcomeConfirmed: the finding was made and the Value holds it.
+	OutcomeConfirmed Outcome = "confirmed"
+	// OutcomeInconclusive: the steps ran but the responses did not
 	// discriminate between readings; no Value is claimed.
-	OutcomeUndetermined Outcome = "undetermined"
+	OutcomeInconclusive Outcome = "inconclusive"
 	// OutcomeBlocked: a precondition failed — a parent could not be
 	// created, an input was missing — so the steps never ran.
 	OutcomeBlocked Outcome = "blocked"
-	// OutcomeBudgetExhausted: the entity or plan budget ran out before
-	// this claim's steps could run.
-	OutcomeBudgetExhausted Outcome = "budgetExhausted"
+	// OutcomeTimeoutExhausted: a run limit ran out before this claim's
+	// steps could run. Despite the name's emphasis on time, it covers
+	// every exhausted budget alike — the request budget, the live-object
+	// budget and the time budget.
+	OutcomeTimeoutExhausted Outcome = "timeoutExhausted"
 )
 
 var knownOutcomes = map[Outcome]bool{
-	OutcomeObserved: true, OutcomeUndetermined: true,
-	OutcomeBlocked: true, OutcomeBudgetExhausted: true,
+	OutcomeConfirmed: true, OutcomeInconclusive: true,
+	OutcomeBlocked: true, OutcomeTimeoutExhausted: true,
 }
 
 // Condition scopes a value-conditional observation: the claim held while
@@ -202,7 +204,7 @@ type Observation struct {
 	// finding such as updateStyle or deleteNotFoundOK.
 	Attribute string `json:"attribute,omitempty"`
 	Kind      Kind   `json:"kind"`
-	// Value is the finding itself, present when Outcome is observed. It is
+	// Value is the finding itself, present when Outcome is confirmed. It is
 	// JSON-marshalable: bool, string, number, []string, a duration string
 	// for readAfterWrite, or a Values record for the values kind.
 	Value any `json:"value,omitempty"`
@@ -286,7 +288,7 @@ func (o *Observation) Validate() error {
 	if want := ComputeID(o.Entity, o.Attribute, o.Kind, o.Condition); o.ID != "" && o.ID != want {
 		return fmt.Errorf("%s (%s): id %q does not match the computed %q — hand-edited or corrupted", at, o.Kind, o.ID, want)
 	}
-	if o.Outcome == OutcomeObserved {
+	if o.Outcome == OutcomeConfirmed {
 		if err := valueShape(o.Kind, o.Value); err != nil {
 			return fmt.Errorf("%s (%s): %w", at, o.Kind, err)
 		}

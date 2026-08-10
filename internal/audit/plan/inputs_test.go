@@ -10,7 +10,7 @@ func TestUnit_Plan_ParseInputsReadsTheFile(t *testing.T) {
 	in, err := ParseInputs([]byte(`{
 		"tag": {
 			"values": {"name": "given", "retention": 5},
-			"parentRefs": {"projectId": "$env:PROJECT_ID"},
+			"parentRefs": {"projectId": "${PROJECT_ID}"},
 			"skip": false
 		},
 		"project": {"skip": true}
@@ -23,7 +23,7 @@ func TestUnit_Plan_ParseInputsReadsTheFile(t *testing.T) {
 	if tag.Values["name"] != "given" || tag.Values["retention"] != float64(5) {
 		t.Errorf("tag values = %#v", tag.Values)
 	}
-	if tag.ParentRefs["projectId"] != "$env:PROJECT_ID" || tag.Skip {
+	if tag.ParentRefs["projectId"] != "${PROJECT_ID}" || tag.Skip {
 		t.Errorf("tag = %#v", tag)
 	}
 	if !in.forEntity("project").Skip {
@@ -64,7 +64,7 @@ func TestUnit_Plan_ParseInputsStrictness(t *testing.T) {
 		{"unknown key parentRef", `{"tag": {"parentRef": {}}}`, `did you mean "parentRefs"?`},
 		{"skip mistyped", `{"tag": {"skip": "yes"}}`, `entity "tag"`},
 		{"empty parent ref", `{"tag": {"parentRefs": {"projectId": ""}}}`, "parentRefs.projectId"},
-		{"bare env prefix", `{"tag": {"parentRefs": {"projectId": "$env:"}}}`, "parentRefs.projectId"},
+		{"bare env reference", `{"tag": {"parentRefs": {"projectId": "${}"}}}`, "parentRefs.projectId"},
 		{"values not an object", `{"tag": {"values": 3}}`, `entity "tag"`},
 	}
 	for _, tc := range cases {
@@ -81,7 +81,7 @@ func TestUnit_Plan_TokensAndSuggestions(t *testing.T) {
 	if CreatedRef("project") != "$created:project" {
 		t.Errorf("CreatedRef = %q", CreatedRef("project"))
 	}
-	if !isEnvRef("$env:X") || isEnvRef("literal") {
+	if !isEnvRef("${X}") || isEnvRef("literal") {
 		t.Error("isEnvRef misclassifies")
 	}
 	if got := didYouMean("valuess", entityInputKeys); got != ` (did you mean "values"?)` {

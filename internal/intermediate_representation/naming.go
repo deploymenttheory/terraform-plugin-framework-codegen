@@ -133,10 +133,10 @@ func GoName(snake string) string {
 	return pascalCase(snake)
 }
 
-// SnakeName is snakeCase for consumers outside the derivation: the emitter
+// TerraformName is snakeCase for consumers outside the derivation: the emitter
 // derives terraform spellings for names the model does not carry
 // pre-spelled, such as an action's path parameters.
-func SnakeName(wire string) string {
+func TerraformName(wire string) string {
 	return snakeCase(wire)
 }
 

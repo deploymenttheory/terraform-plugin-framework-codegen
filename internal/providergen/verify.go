@@ -40,7 +40,7 @@ type Report struct {
 func (r Report) Clean() bool { return len(r.Drifts) == 0 }
 
 // Verify is the provider drift gate: regenerate with the exact pipeline
-// `provider generate` runs — derive, bind, prune, verify, render, splice —
+// `provider generate` runs — derive, bind, prune, verify, render, register —
 // into a temporary tree, byte-compare it against the committed files at
 // Root, and check the committed files against the digests the manifest
 // recorded under the empty origin. It writes nothing under the repo.

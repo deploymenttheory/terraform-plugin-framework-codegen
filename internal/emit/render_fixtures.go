@@ -7,7 +7,7 @@ import (
 	"path"
 	"text/template"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixturespec"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/templates"
 )
@@ -32,7 +32,7 @@ func hashHeader(source string) (string, error) {
 
 // hclBlock renders one terraform block around a fixture body, with the
 // shared header above it.
-func hclBlock(source, blockHeader, body string, skips []fixturespec.Skip) ([]byte, error) {
+func hclBlock(source, blockHeader, body string, skips []fixtures.Omission) ([]byte, error) {
 	header, err := hashHeader(source)
 	if err != nil {
 		return nil, err
@@ -50,16 +50,16 @@ func hclBlock(source, blockHeader, body string, skips []fixturespec.Skip) ([]byt
 
 // resourceFixtures emits a resource's terraform fixtures, response
 // fixtures and examples.
-func (e *entityRenderer) resourceFixtures(r *ir.Resource, spec fixturespec.Spec, dir string) ([]File, error) {
+func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture, dir string) ([]File, error) {
 	key := r.Names.Key
 	source := key
 	blockHeader := fmt.Sprintf("resource %q %q", r.Names.TerraformType, "test")
 
-	minimal, err := hclBlock(source, blockHeader, spec.HCL(fixturespec.ConfigMinimal), nil)
+	minimal, err := hclBlock(source, blockHeader, spec.HCL(fixtures.ConfigMinimal), nil)
 	if err != nil {
 		return nil, err
 	}
-	maximal, err := hclBlock(source, blockHeader, spec.HCL(fixturespec.ConfigMaximal), spec.Skipped)
+	maximal, err := hclBlock(source, blockHeader, spec.HCL(fixtures.ConfigMaximal), spec.Omissions)
 	if err != nil {
 		return nil, err
 	}
@@ -72,18 +72,18 @@ func (e *entityRenderer) resourceFixtures(r *ir.Resource, spec fixturespec.Spec,
 		)
 	}
 	files = append(files,
-		rawFile(path.Join(dir, "tests/responses/resource_minimal.json"), source, spec.WireJSON(fixturespec.ResponseMinimal)),
-		rawFile(path.Join(dir, "tests/responses/resource_maximal.json"), source, spec.WireJSON(fixturespec.ResponseMaximal)),
+		rawFile(path.Join(dir, "tests/responses/resource_minimal.json"), source, spec.WireJSON(fixtures.ResponseMinimal)),
+		rawFile(path.Join(dir, "tests/responses/resource_maximal.json"), source, spec.WireJSON(fixtures.ResponseMaximal)),
 	)
 
 	exampleHeader := fmt.Sprintf("resource %q %q", r.Names.TerraformType, "example")
-	example, err := hclBlock(source, exampleHeader, spec.HCL(fixturespec.ConfigMaximal), nil)
+	example, err := hclBlock(source, exampleHeader, spec.HCL(fixtures.ConfigMaximal), nil)
 	if err != nil {
 		return nil, err
 	}
 	files = append(files, rawFile(path.Join("examples/resources", r.Names.TerraformType, "resource.tf"), source, example))
 
-	importID := fixturespec.TestPrefix + "id"
+	importID := fixtures.NamePrefix + "id"
 	importSh, err := importScript(source, r.Names.TerraformType, importID)
 	if err != nil {
 		return nil, err

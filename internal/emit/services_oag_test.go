@@ -210,13 +210,13 @@ func oagProviderCore() ProviderCore {
 	return pc
 }
 
-// TestUnit_RenderEntities_TheOpenAPIGeneratorDialectRenders drives the
+// TestUnit_RenderServices_TheOpenAPIGeneratorDialectRenders drives the
 // value-typed accessor and Execute-result shapes through the same
 // renderer and holds the conversions to the catalog's value family.
-func TestUnit_RenderEntities_TheOpenAPIGeneratorDialectRenders(t *testing.T) {
-	out, err := RenderEntities(oagProviderCore(), oagModel(), oagBindings())
+func TestUnit_RenderServices_TheOpenAPIGeneratorDialectRenders(t *testing.T) {
+	out, err := RenderServices(oagProviderCore(), oagModel(), oagBindings())
 	if err != nil {
-		t.Fatalf("RenderEntities: %v", err)
+		t.Fatalf("RenderServices: %v", err)
 	}
 
 	construct := string(fileByPath(t, out, "internal/services/resources/tags/v7/tag/construct.go").Content)

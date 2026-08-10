@@ -29,8 +29,8 @@ type EntityInputs struct {
 	Values map[string]any `json:"values,omitempty"`
 	// ParentRefs supplies path-parameter values the audit cannot create
 	// its way to: an existing parent object's id, or a lookup key. A
-	// value is either a literal or an EnvRefPrefix reference resolved at
-	// execution time.
+	// value is either a literal or a ${VAR} environment reference
+	// resolved at execution time.
 	ParentRefs map[string]string `json:"parentRefs,omitempty"`
 	// Skip excludes the entity from the audit; it is listed in the plan
 	// as skipped rather than silently absent.
@@ -100,9 +100,9 @@ func parseEntityInputs(entity string, raw json.RawMessage) (EntityInputs, error)
 	}
 	sort.Strings(params)
 	for _, param := range params {
-		if val := ei.ParentRefs[param]; val == "" || (isEnvRef(val) && val == EnvRefPrefix) {
-			return EntityInputs{}, fmt.Errorf("%s: entity %q: parentRefs.%s: must be a value or %q followed by a variable name",
-				InputsPath, entity, param, EnvRefPrefix)
+		if val := ei.ParentRefs[param]; val == "" || val == envRefOpen+envRefClose {
+			return EntityInputs{}, fmt.Errorf("%s: entity %q: parentRefs.%s: must be a literal or ${VAR} naming an environment variable",
+				InputsPath, entity, param)
 		}
 	}
 	return ei, nil

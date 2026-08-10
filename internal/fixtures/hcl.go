@@ -1,4 +1,4 @@
-package fixturespec
+package fixtures
 
 import (
 	"fmt"
@@ -8,23 +8,23 @@ import (
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 )
 
-// HCL renders the audience's values as the body of a terraform block:
+// HCL renders the form's values as the body of a terraform block:
 // attribute assignments, two-space indented one level deep, aligned the
 // way terraform fmt aligns them. The caller wraps the body in its own
 // block header and footer.
-func (s Spec) HCL(a Audience) string {
+func (s Fixture) HCL(a Form) string {
 	var b strings.Builder
-	writeHCLLevel(&b, selected(s.Values, a), a, 1)
+	writeHCLLevel(&b, selected(s.Entries, a), a, 1)
 	return b.String()
 }
 
 // writeHCLLevel renders one level of attribute assignments. Alignment
 // follows terraform fmt: consecutive single-line assignments align their
 // equals signs, and a multi-line value ends the run.
-func writeHCLLevel(b *strings.Builder, values []Value, a Audience, depth int) {
+func writeHCLLevel(b *strings.Builder, values []Entry, a Form, depth int) {
 	indent := strings.Repeat("  ", depth)
 
-	flushRun := func(run []Value) {
+	flushRun := func(run []Entry) {
 		width := 0
 		for _, v := range run {
 			if len(v.Name) > width {
@@ -36,7 +36,7 @@ func writeHCLLevel(b *strings.Builder, values []Value, a Audience, depth int) {
 		}
 	}
 
-	var run []Value
+	var run []Entry
 	for _, v := range values {
 		if v.Nested == nil {
 			run = append(run, v)
@@ -51,7 +51,7 @@ func writeHCLLevel(b *strings.Builder, values []Value, a Audience, depth int) {
 
 // writeNestedHCL renders an object attribute or a list of objects as a
 // multi-line value.
-func writeNestedHCL(b *strings.Builder, v Value, a Audience, depth int) {
+func writeNestedHCL(b *strings.Builder, v Entry, a Form, depth int) {
 	indent := strings.Repeat("  ", depth)
 	nested := selected(v.Nested, a)
 
@@ -69,7 +69,7 @@ func writeNestedHCL(b *strings.Builder, v Value, a Audience, depth int) {
 
 // scalarHCL renders a scalar value, or the single-element list carrying
 // one.
-func scalarHCL(v Value) string {
+func scalarHCL(v Entry) string {
 	literal := hclLiteral(v.Scalar)
 	if v.Kind == ir.TypeList {
 		return "[" + literal + "]"
