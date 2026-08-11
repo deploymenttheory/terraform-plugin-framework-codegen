@@ -167,9 +167,9 @@ func buildGroup(entity string, kind observe.Kind, members []proposal) Group {
 		KindTitle:  ex.Title,
 		KindPlural: ex.Plural,
 		Summary:    ex.Summary(len(members)),
-		Branch:    GroupBranch(entity, kind),
-		Merging:   ex.Merging,
-		Closing:   ex.Closing,
+		Branch:     GroupBranch(entity, kind),
+		Merging:    ex.Merging,
+		Closing:    ex.Closing,
 	}
 	for _, m := range members {
 		spelling := describeValue(m.obs)

@@ -16,8 +16,8 @@ succeeded jobs' artifacts persist within the run.
 | 1 | config-validate | `tfpfgen config validate --secrets` | `validate-report` | Fails in under a minute on an unknown key, a missing role secret, a non-tag generator pin, or caller drift. |
 | 2 | spec-import | `tfpfgen spec import` | `spec-imported` | Pins the upstream document by SHA-256. |
 | 3 | audit | `tfpfgen audit run` | `observations` | The only job that receives the `TFPFGEN_AUTH_*` values. Runs when asked (`audit=true`) or when no committed observations exist. |
-| 4 | spec-propose | `tfpfgen spec revise --propose-only` | `corrections-proposed` | Compiles observations into `spec/corrections/proposed/` and stops, exiting 0 whatever it proposed. Publishes the proposals off the runner. |
-| 5 | open-correction-prs | — | one PR per proposal | Runs beside [6], never before it. Write permissions; skipped when nothing was proposed. |
+| 4 | spec-propose | `tfpfgen spec revise --propose-only` | `corrections-proposed` | Compiles observations into `spec/corrections/proposed/` and stops, exiting 0 whatever it proposed. Publishes the proposals, and the report describing them, off the runner. |
+| 5 | open-correction-prs | — | one PR per (entity, kind) group | Runs beside [6], never before it. Write permissions; skipped when nothing was proposed. |
 | 6 | spec-revise | `tfpfgen spec revise` | `spec-revised` | Hard-fails while `spec/corrections/proposed/` is non-empty, naming each file a human must accept or reject. No ignore flag exists. |
 | 7 | sdk-generate | `tfpfgen sdk generate` | `sdk-tree` | The configured backend, at its exact version pin. |
 | 8 | provider-generate | `tfpfgen provider generate` | `provider-tree` | Includes the manifest and the derived go.mod. |
@@ -39,39 +39,87 @@ rejection markers alike. Job [6] restores it, so the gate sees exactly what
 corrections committed produces no artifact at all; the restore pattern
 tolerates a missing artifact, and job [5] is skipped rather than failed.
 
-**One PR per proposal.** Job [5] opens each on branch
-`tfpfgen/correction-<observationID>` — the observation ID, 16 hex characters,
-because it is stable across runs where the `NNN-` ordinal is not, so a re-run
-updates the same PR instead of opening a second one for a decision already
-pending. Each PR carries exactly one file, moved from
+**The proposal report.** Beside the proposals, `--propose-only` writes
+`spec/corrections/proposed/report.json`: the same proposals grouped by
+(entity, kind), each finding carrying its observation ID, its observed value,
+the redacted request/response excerpts it was read from, and the plain-English
+account of what the API did and what each decision costs. It exists because a
+correction file cannot narrate — it is a justification, some RFC 6902 and a
+pointer — and a reviewer needs the exchange, not the mechanism. It is
+deterministic, it is never applied, and it is not a correction: everything
+that scans that directory keys on the `.correction.json` suffix, so the gate
+does not count it as a pending decision.
+
+**One PR per entity per kind.** Job [5] opens each on branch
+`tfpfgen/correction-<entity>-<kind>`, the kind in kebab case, sanitised to
+what a git ref may hold. The branch is stable across runs, so a re-run updates
+the pending decision instead of opening a second one beside it. It was one PR
+per *correction*, which is one per attribute: the first live run opened
+fifty-seven, twenty-five of them recording a single field's default. Each PR
+carries every correction file of its group, moved from
 `spec/corrections/proposed/` to `spec/corrections/`:
 
-- **Title** — `tfpfgen: <entity>.<attribute> (<kind>)`, read from the
-  correction's justification prose.
+- **Title** — `tfpfgen: <entity> — <N> <human kind title>`, e.g.
+  `tfpfgen: tag — 3 server-assigned defaults`.
 - **Label** — `tfpfgen-correction`, created if the repository lacks it.
-- **Body** — the justification, the RFC-6902 operations as fenced JSON, the
-  `audit/observations/<entity>.observations.json#<observationID>` evidence
-  pointer, and a machine-readable `tfpfgen-run-id: <id>` line naming the run
-  that proposed it.
+- **Body** — a lead sentence, then one section per finding narrating what was
+  asked of the API, what the document led us to expect, what actually came
+  back (the real status and the redacted response fragment) and what it means
+  for a practitioner; then what merging and closing each do; then the RFC 6902
+  operations in a collapsed `<details>`. Three machine-readable lines close
+  it: `tfpfgen-run-id: <id>`, `tfpfgen-observations: <ids>` — this group's
+  observations — and `tfpfgen-groups: <entity>/<kind>=<id>+<id>;…`, the whole
+  run's manifest.
 
-**Merging accepts; closing rejects.** A merge puts the correction on the
-default branch, which is what accepting means. A close without a merge is
-recorded by `20-corrections.yml` as
-`spec/corrections/rejected/<observationID>.json` — `observationID`, `reason`
-(the PR's closing comment, else `closed without merging`) and `rejectedAt`,
-those three keys and no others, because the decoder is strict. The marker
-suppresses re-proposal until someone deletes it.
+**Merging accepts; closing rejects — the whole group.** A merge puts the
+corrections on the default branch, which is what accepting means. A close
+without a merge is recorded by `20-corrections.yml` as one
+`spec/corrections/rejected/<observationID>.json` per observation in the group
+— `observationID`, `reason` (the PR's closing comment, else `closed without
+merging`) and `rejectedAt`, those three keys and no others, because the
+decoder is strict. The IDs are read from the body's `tfpfgen-observations`
+line rather than from the branch name, which a group has no way to encode; a
+PR from before grouping still falls back to the observation ID in its branch.
+Each marker suppresses re-proposal until someone deletes it.
 
-Job [5] opens nothing for a proposal already accepted on the default branch,
-already carrying a rejection marker, or already the subject of an open PR.
+Job [5] filters each group down to what is still undecided — dropping
+observations already accepted on the default branch or already carrying a
+marker — skips a group with nothing left, and skips a group whose branch
+already has an open PR.
 
-**The continuation is debounced.** Corrections arrive in batches and are
-answered one at a time, so `20-corrections.yml` dispatches the caller's
-generate workflow only on the close that leaves no open `tfpfgen-correction`
-PR behind — passing `reuse_audit_run_id` read back from the PR body, so the
-pipeline resumes at revise against the observations it already paid for. A
-repository-wide concurrency group keeps two simultaneous closes from both
-dispatching.
+**Recording a decision is never cancelled.** The `record` job's concurrency
+group is keyed on the pull request number, so no two closes contend. It used
+to be repository-wide, and GitHub keeps only one *pending* run per group: a
+bulk close of fifty-nine correction PRs produced four runs and zero markers,
+because each new close cancelled the pending run before it wrote anything.
+The marker commit rebuilds on the branch tip and retries a losing push up to
+eight times — many closes push to the same branch at once — then asserts every
+marker is present on the default branch and fails the job if it is not.
+
+**The continuation waits for every decision, not for an empty queue.** A run
+opens a dozen PRs; if the operator starts merging while job [5] is still
+creating the rest, the open count passes through zero, and continuing there
+would generate a provider from a half-decided spec. So the `continue` job
+resolves the `tfpfgen-groups` manifest instead: a group counts as decided only
+when every observation in it is either accepted on the default branch or
+carries a marker. It dispatches only when all of them are, and no
+`tfpfgen-correction` PR is open; it warns by name when a group was never
+opened, telling the operator to re-dispatch; and it continues at once for a
+run whose manifest is empty. The manifest lives in the PR body because that is
+the one place readable from the close event itself — no artifact to expire, no
+extra push to race the marker commits, and every sibling PR of the run carries
+it, so a group whose own PR was never opened is still accounted for. The
+dispatch passes `reuse_audit_run_id` from the same body, so the pipeline
+resumes at revise against the observations it already paid for. That job's
+concurrency group is repository-wide, which is the debounce: GitHub keeps the
+newest queued run, and the newest is the last close.
+
+**Verifying the concurrent close.** The race is not reproducible in CI, so it
+is rehearsed: clone the default branch into N working copies, run the `record`
+step's script in each against a different set of observation IDs
+simultaneously, and assert `spec/corrections/rejected/` holds one marker per
+ID afterwards. Twelve grouped closes of five observations each must yield
+sixty markers and no worker failures.
 
 **The App, and life without it.** A `workflow_dispatch` made with
 `GITHUB_TOKEN` starts no run, and a merge it authored raises no event, so

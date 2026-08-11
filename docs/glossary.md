@@ -60,8 +60,15 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   `10-generate.yml`, `20-corrections.yml`, `30-ci.yml`,
   `40-acceptance.yml`, `50-docs.yml`, `60-release.yml`.
 - Generation branch in provider repos: `tfpfgen/run-<id>`.
-- Correction branch in provider repos: `tfpfgen/correction-<observationID>`,
-  labelled `tfpfgen-correction`.
+- Correction branch in provider repos:
+  `tfpfgen/correction-<entity>-<kind>`, the kind in kebab case and both
+  parts sanitised to lower-case letters, digits, underscores and hyphens;
+  labelled `tfpfgen-correction`. One branch per entity per observation
+  kind, so one pull request answers every finding of that kind on that
+  entity at once. The earlier per-observation spelling
+  `tfpfgen/correction-<observationID>` is retired: a grouped decision has
+  no single observation to name, and the observation IDs a rejection needs
+  travel in the pull request body instead.
 - Machine-append sentinels in provider-core registry files:
   `// tfpfgen:<slot>:imports` and `// tfpfgen:<slot>:registrations`, where
   `<slot>` is `resources`, `datasources`, `list_resources`, or `actions` —
