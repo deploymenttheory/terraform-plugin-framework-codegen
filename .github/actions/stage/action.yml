@@ -66,12 +66,49 @@ runs:
         # shellcheck disable=SC2086
         tfpfgen ${VERB}
 
+    # upload-artifact makes entries relative to the deepest directory every
+    # listed path shares, so a stage producing spec/upstream.yaml and
+    # spec/upstream.lock.json would upload them as upstream.yaml and
+    # upstream.lock.json — and the stage that restores them would find them
+    # loose in the workspace root instead of under spec/. Copying the paths
+    # into one staging tree first, and uploading that tree's contents, keeps
+    # every artifact entry at the path the next stage expects. The staging
+    # tree is outside the workspace so it can never itself be collected.
+    - name: Collect the produced paths, preserving their tree shape
+      if: inputs.produce != ''
+      id: collect
+      shell: bash
+      env:
+        PATHS: ${{ inputs.paths }}
+      run: |
+        set -euo pipefail
+        staged="${RUNNER_TEMP}/stage-produce"
+        rm -rf "$staged"
+        mkdir -p "$staged"
+        found=0
+        while IFS= read -r p; do
+          p="$(printf '%s' "$p" | tr -d '[:space:]')"
+          [ -z "$p" ] && continue
+          if [ ! -e "$p" ]; then
+            echo "::error::stage: the verb produced no '${p}' to upload."
+            exit 1
+          fi
+          mkdir -p "$staged/$(dirname "$p")"
+          cp -R "$p" "$staged/$(dirname "$p")/"
+          found=1
+        done <<< "$PATHS"
+        if [ "$found" -eq 0 ]; then
+          echo "::error::stage: produce was set but paths named nothing."
+          exit 1
+        fi
+        echo "dir=$staged" >> "$GITHUB_OUTPUT"
+
     - name: Upload the produced artifact
       if: inputs.produce != ''
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: ${{ inputs.produce }}
-        path: ${{ inputs.paths }}
+        path: ${{ steps.collect.outputs.dir }}/
         include-hidden-files: ${{ inputs.include-hidden }}
         # An empty artifact is a stage that silently produced nothing; the
         # next stage would fail further from the cause.
