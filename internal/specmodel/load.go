@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -407,6 +408,12 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 	if f := lookup(node, "format"); f != nil {
 		s.Format = f.Value
 	}
+	if pat := lookup(node, "pattern"); pat != nil {
+		s.Pattern = pat.Value
+	}
+	if desc := lookup(node, "description"); desc != nil {
+		s.Description = desc.Value
+	}
 	if ro := deref(lookup(node, "readOnly")); ro != nil {
 		if err := ro.Decode(&s.ReadOnly); err != nil {
 			return nil, fmt.Errorf("%s.readOnly: must be true or false, got %q", at, ro.Value)
@@ -481,7 +488,67 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 		}
 	}
 
+	if disc := deref(lookup(node, "discriminator")); disc != nil {
+		d, err := discriminator(disc, at+".discriminator")
+		if err != nil {
+			return nil, err
+		}
+		s.Discriminator = d
+	}
+	if dr := deref(lookup(node, "dependentRequired")); dr != nil {
+		for name, listNode := range pairs(dr) {
+			var reqs []string
+			for _, rn := range deref(listNode).Content {
+				reqs = append(reqs, deref(rn).Value)
+			}
+			s.DependentRequired = append(s.DependentRequired, DependentRequired{Property: name, Requires: reqs})
+		}
+		sort.Slice(s.DependentRequired, func(i, j int) bool {
+			return s.DependentRequired[i].Property < s.DependentRequired[j].Property
+		})
+	}
+	if ds := deref(lookup(node, "dependentSchemas")); ds != nil {
+		for name, sn := range pairs(ds) {
+			child, err := l.schema(sn, at+".dependentSchemas."+name)
+			if err != nil {
+				return nil, err
+			}
+			s.DependentSchemas = append(s.DependentSchemas, DependentSchema{Property: name, Schema: child})
+		}
+		sort.Slice(s.DependentSchemas, func(i, j int) bool {
+			return s.DependentSchemas[i].Property < s.DependentSchemas[j].Property
+		})
+	}
+
 	return s, nil
+}
+
+// discriminator reads an OpenAPI discriminator object: a required propertyName
+// and an optional value→schema mapping, whose reference values are reduced to
+// the target component name so a consumer never re-parses a pointer.
+func discriminator(node *yaml.Node, at string) (*Discriminator, error) {
+	pn := lookup(node, "propertyName")
+	if pn == nil || pn.Value == "" {
+		return nil, fmt.Errorf("%s: a discriminator needs a non-empty propertyName", at)
+	}
+	d := &Discriminator{PropertyName: pn.Value}
+	if m := deref(lookup(node, "mapping")); m != nil {
+		d.Mapping = map[string]string{}
+		for value, refNode := range pairs(m) {
+			d.Mapping[value] = discriminatorTarget(deref(refNode).Value)
+		}
+	}
+	return d, nil
+}
+
+// discriminatorTarget reduces a discriminator mapping value to a schema name:
+// a "#/components/schemas/Name" reference becomes "Name", and a bare name is
+// taken as written.
+func discriminatorTarget(ref string) string {
+	if i := strings.LastIndex(ref, "/"); i >= 0 {
+		return ref[i+1:]
+	}
+	return ref
 }
 
 // schemaType reads a type declaration, collapsing a 3.1 type array to its

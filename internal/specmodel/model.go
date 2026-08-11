@@ -106,6 +106,11 @@ type Schema struct {
 	Type string
 	// Format is the declared format.
 	Format string
+	// Pattern is the declared regular-expression constraint on a string.
+	Pattern string
+	// Description is the declared human description. The audit's strategy
+	// compiler mines it for weak conditional hints; nothing else reads it.
+	Description string
 	// ReadOnly is the declared readOnly flag.
 	ReadOnly bool
 	// Enum lists the declared enum values as decoded scalars.
@@ -126,12 +131,50 @@ type Schema struct {
 	AllOf []*Schema
 	OneOf []*Schema
 	AnyOf []*Schema
+	// Discriminator is the OpenAPI discriminator object when the schema
+	// declares one: the property whose value selects a oneOf/anyOf branch,
+	// plus any explicit value→branch mapping. Nil when absent.
+	Discriminator *Discriminator
+	// DependentRequired holds JSON-Schema dependentRequired entries, sorted
+	// by the triggering property: when the property is present, the listed
+	// siblings become required.
+	DependentRequired []DependentRequired
+	// DependentSchemas holds JSON-Schema dependentSchemas entries, sorted by
+	// the triggering property: when the property is present, the subschema
+	// additionally applies.
+	DependentSchemas []DependentSchema
 	// Extensions holds the schema's x-tfpfgen-* keys.
 	Extensions Extensions
 
 	// resolved is the target schema when Ref is set, wired by the
 	// resolution pass after every named schema exists.
 	resolved *Schema
+}
+
+// Discriminator is the OpenAPI discriminator object: the property whose value
+// selects which composition branch applies, and an optional explicit mapping
+// from a value to the named component schema it selects.
+type Discriminator struct {
+	// PropertyName is the wire name of the discriminating property.
+	PropertyName string
+	// Mapping maps a discriminator value to the referenced schema's name.
+	// Nil or empty when the document declares no explicit mapping, in which
+	// case branches are matched by the value their own property enum admits.
+	Mapping map[string]string
+}
+
+// DependentRequired is one JSON-Schema dependentRequired entry: when Property
+// is present, every name in Requires is required too.
+type DependentRequired struct {
+	Property string
+	Requires []string
+}
+
+// DependentSchema is one JSON-Schema dependentSchemas entry: when Property is
+// present, Schema additionally constrains the object.
+type DependentSchema struct {
+	Property string
+	Schema   *Schema
 }
 
 // Property is one named property, in document order.
