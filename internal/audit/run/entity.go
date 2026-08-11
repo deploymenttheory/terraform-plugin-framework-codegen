@@ -33,6 +33,12 @@ type entityState struct {
 	lastRead map[string]any
 	// preflighted marks the foreign-object pre-flight as done.
 	preflighted bool
+	// idUnknown records that a create succeeded but no id could be learned
+	// from its response. The object still exists — the prefix pass cleans it —
+	// but it cannot be addressed by id, so the id-derived steps (read, update,
+	// delete-with-confirmation) record inconclusive instead of driving a
+	// request at an empty id.
+	idUnknown bool
 	// declared is the plan's DeclaredProperties as a set, built on first
 	// use by observeUndeclaredFields.
 	declared map[string]bool
@@ -286,10 +292,20 @@ func (r *runner) createObject(ctx context.Context, ent *entityState, rec *entity
 
 	switch {
 	case res.ok():
-		id := identifierOf(res.object())
+		id := learnID(rec.entity, res)
 		r.ledger.resolve(seq, activityCreated, id, res.status)
 		r.summary.ObjectsCreated++
 		r.observeOmittedSamples(ent, resolved, res.object())
+		if id == "" {
+			// The object exists but its id could not be learned from any known
+			// response shape. The prefix pass still deletes it, but nothing can
+			// address it by id, so its read/update/delete probing is impaired —
+			// recorded, never silent.
+			r.log.Warn().Str("entity", rec.entity).Int("status", res.status).Msg("a created object's id was never learned; it is addressable only by the cleanup prefix pass and its id-derived observations are inconclusive")
+			if ent != nil {
+				ent.idUnknown = true
+			}
+		}
 		return &createdObject{entity: rec.entity, id: id, seq: seq}, res, nil
 	case res.refused():
 		r.ledger.resolve(seq, activityRejected, "", res.status)

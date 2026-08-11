@@ -47,6 +47,12 @@ func (r *runner) adjustUpdate(ctx context.Context, ent *entityState, step *plan.
 // finding.
 func (r *runner) runUpdateField(ctx context.Context, ent *entityState, step *plan.Step) error {
 	entity := ent.plan.Entity
+	if ent.idUnknown {
+		// No item URL to update the object at; whether the field is mutable
+		// cannot be told, so the claim is inconclusive rather than skipped.
+		r.record(entity, step.Attribute, observe.KindImmutable, nil, nil, observe.OutcomeInconclusive)
+		return nil
+	}
 	before := ent.lastRead
 
 	res, sent, err := r.adjustUpdate(ctx, ent, step)

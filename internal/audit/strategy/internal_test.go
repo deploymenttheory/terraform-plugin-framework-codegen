@@ -4,8 +4,32 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
 )
+
+// TestStepRequestsCoversEveryKind asserts each step kind's request reserve is
+// positive and that the read and default arms answer their documented weights,
+// so the budget can never be summed from a zero-weight step.
+func TestStepRequestsCoversEveryKind(t *testing.T) {
+	kinds := []plan.StepKind{
+		stepCreateMinimal, stepReadWithRetry, stepReadConsecutive, stepUpdateField,
+		stepDeleteWithConfirmation, stepCreateMaximal, stepOmitRequired,
+		stepUndocumentedEnumValue, stepUndeclaredSpecField, stepCreatePerEnumValue,
+		stepRead, stepCleanupDelete,
+	}
+	for _, k := range kinds {
+		if got := stepRequests(k); got < 1 {
+			t.Errorf("stepRequests(%s) = %d, want >= 1", k, got)
+		}
+	}
+	if got := stepRequests(stepRead); got != 1 {
+		t.Errorf("stepRequests(read) = %d, want 1", got)
+	}
+	if got := stepRequests(plan.StepKind("nonesuch")); got != negativeReserve {
+		t.Errorf("stepRequests(unknown) = %d, want the negative reserve %d", got, negativeReserve)
+	}
+}
 
 func TestStringifyScalar(t *testing.T) {
 	cases := []struct {

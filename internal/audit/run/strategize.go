@@ -216,6 +216,13 @@ func collectionStep(kind plan.StepKind, attr string, addr addressing, body map[s
 // updateStep builds a one-field update to a distinct value, or reports that
 // the field has no second value worth sending (a single-value enum, say).
 func updateStep(field string, addr addressing, entity string, hints map[string]strategy.SynthHint, baseMinimal map[string]any) (plan.Step, bool) {
+	if addr.updateMethod == "" {
+		// The resource declares no update operation, so there is no method to
+		// send a field update with. Probing one anyway would issue a
+		// method-less request (which defaults to GET) and mislabel the read as
+		// an accepted-but-ignored update. Skip update probing entirely.
+		return plan.Step{}, false
+	}
 	h, ok := hints[field]
 	if !ok {
 		return plan.Step{}, false
