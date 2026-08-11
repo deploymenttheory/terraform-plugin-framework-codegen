@@ -184,17 +184,13 @@ func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Docu
 		return nil, nil, nil, store.Lock{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
 	}
 
-	revisedPath := filepath.Join(dir, revise.OutputName)
-	data, err := os.ReadFile(revisedPath) //nolint:gosec // the fixed name under the operator-supplied dir
-	if os.IsNotExist(err) {
-		return nil, nil, nil, store.Lock{}, fmt.Errorf("%s does not exist; the audit reads the revised spec — run `tfpfgen spec revise` first", revisedPath)
-	}
+	data, srcPath, err := auditSpecBytes(dir)
 	if err != nil {
 		return nil, nil, nil, store.Lock{}, err
 	}
 	doc, err := specmodel.Load(data)
 	if err != nil {
-		return nil, nil, nil, store.Lock{}, fmt.Errorf("%s: %w", revisedPath, err)
+		return nil, nil, nil, store.Lock{}, fmt.Errorf("%s: %w", srcPath, err)
 	}
 
 	lock, err := store.Verify(dir)
@@ -227,14 +223,39 @@ func auditBaseURL(flag string, cfg *config.Config, dir string) (string, error) {
 	if cfg.Audit.BaseURLOverride != "" {
 		return cfg.Audit.BaseURLOverride, nil
 	}
-	revisedPath := filepath.Join(dir, revise.OutputName)
-	data, err := os.ReadFile(revisedPath) //nolint:gosec // the fixed name under the operator-supplied dir
-	if err == nil {
+	if data, _, err := auditSpecBytes(dir); err == nil {
 		if doc, err := specmodel.Load(data); err == nil && len(doc.Servers) > 0 && doc.Servers[0].URL != "" {
 			return doc.Servers[0].URL, nil
 		}
 	}
 	return "", fmt.Errorf("no base URL: the document declares no servers; pass --base-url or set audit.base_url_override")
+}
+
+// auditSpecBytes returns the document the audit interrogates against. It
+// prefers dir/revised.yaml — the pinned upstream plus every accepted
+// correction — so that a re-audit is informed by decisions already made.
+// On a first run no correction has been accepted yet and `spec revise` has
+// not materialised revised.yaml; the audit then reads the pinned upstream
+// document directly, which is exactly what an unrevised spec is. It returns
+// the bytes and the path they came from, for error messages.
+func auditSpecBytes(dir string) ([]byte, string, error) {
+	revisedPath := filepath.Join(dir, revise.OutputName)
+	data, err := os.ReadFile(revisedPath) //nolint:gosec // the fixed name under the operator-supplied dir
+	if err == nil {
+		return data, revisedPath, nil
+	}
+	if !os.IsNotExist(err) {
+		return nil, revisedPath, err
+	}
+	upstreamPath := filepath.Join(dir, store.DocumentName)
+	data, err = os.ReadFile(upstreamPath) //nolint:gosec // the fixed name under the operator-supplied dir
+	if os.IsNotExist(err) {
+		return nil, upstreamPath, fmt.Errorf("neither %s nor %s exists; run `tfpfgen spec import` first", revisedPath, upstreamPath)
+	}
+	if err != nil {
+		return nil, upstreamPath, err
+	}
+	return data, upstreamPath, nil
 }
 
 // auditLogger builds the run's zerolog logger. Requests log at debug;

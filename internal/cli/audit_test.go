@@ -168,13 +168,35 @@ func TestUnit_AuditRun_FullRunWritesObservationsAndATable(t *testing.T) {
 	}
 }
 
-func TestUnit_AuditRun_RefusesWithoutTheRevisedSpec(t *testing.T) {
+func TestUnit_AuditRun_FallsBackToUpstreamWithoutRevised(t *testing.T) {
+	s := quirkserver.New(t, quirkserver.Quirks{})
 	auditRepo(t)
+	// A first run: `spec revise` has not materialised revised.yaml yet, so
+	// the audit interrogates against the pinned upstream document instead.
 	if err := os.Remove(filepath.Join("spec", "revised.yaml")); err != nil {
 		t.Fatal(err)
 	}
+	t.Setenv("TFPFGEN_AUTH_TOKEN", "cli-test-token-123456")
+
+	code, stdout, stderr := run(t, "audit", "run", "--base-url", s.BaseURL())
+	if code != ExitOK {
+		t.Fatalf("the audit should fall back to the pinned upstream; exit = %d\nstderr: %s", code, stderr)
+	}
+	if !strings.Contains(stdout, "audit run") {
+		t.Errorf("no summary table:\n%s", stdout)
+	}
+}
+
+func TestUnit_AuditRun_RefusesWithoutAnySpec(t *testing.T) {
+	auditRepo(t)
+	t.Setenv("TFPFGEN_AUTH_TOKEN", "cli-test-token-123456")
+	for _, f := range []string{"revised.yaml", "upstream.yaml"} {
+		if err := os.Remove(filepath.Join("spec", f)); err != nil {
+			t.Fatal(err)
+		}
+	}
 	code, _, stderr := run(t, "audit", "run", "--base-url", "https://api.example.invalid")
-	if code != ExitFailure || !strings.Contains(stderr, "spec revise") {
+	if code != ExitFailure || !strings.Contains(stderr, "spec import") {
 		t.Fatalf("exit = %d, stderr = %s", code, stderr)
 	}
 }
