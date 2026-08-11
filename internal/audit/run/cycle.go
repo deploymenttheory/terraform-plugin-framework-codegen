@@ -2,7 +2,7 @@ package run
 
 // Value-cycling is what keeps a free-form conditional refusal from blocking a
 // whole entity. A real API often value-gates one enum field on another —
-// ThousandEyes: a dynamic tag is valid only for certain object types — and
+// A real API may make one enum value valid only for certain values of a sibling field — and
 // enforces it with prose the refusal grammar cannot parse. The executor
 // synthesises the first enum value of every field, so the first body it sends
 // carries the combination least likely to be right, and a conditional API
