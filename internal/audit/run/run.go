@@ -320,7 +320,7 @@ func newRunner(opts Options) (*runner, error) {
 	r := &runner{
 		opts:     opts,
 		log:      opts.Logger.With().Str("runId", runID).Logger(),
-		client:   &http.Client{},
+		client:   &http.Client{Transport: newTransport()},
 		auth:     auth,
 		bucket:   newBucket(rps),
 		ledger:   led,
@@ -473,4 +473,17 @@ func (r *runner) finishSummary(obs []observe.Observation) {
 	r.summary.ObjectBudget = r.budget.Objects
 	r.summary.Elapsed = time.Since(r.started).Round(time.Millisecond)
 	r.summary.DurationBudget = r.budget.Duration
+}
+
+// newTransport gives a runner's client its own connection pool. The
+// default transport is process-wide, and anything that closes its idle
+// connections — httptest.Server.Close does, on every server, which under
+// parallel tests means constantly — can tear a pooled connection out from
+// under an in-flight audit request, surfacing as "transport connection
+// broken". An owned pool makes the runner immune to its neighbours.
+func newTransport() http.RoundTripper {
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		return t.Clone()
+	}
+	return http.DefaultTransport
 }
