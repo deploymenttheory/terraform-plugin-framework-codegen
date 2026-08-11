@@ -76,10 +76,14 @@ runs:
         archive="tfpfgen_${bare}_${os}_${arch}.${ext}"
         sums="tfpfgen_${bare}_checksums.txt"
 
-        # When another repo uses this action, GITHUB_ACTION_REPOSITORY names
-        # this repo; when this repo uses it locally, it is empty and
-        # GITHUB_REPOSITORY is this repo. Either way: our own releases.
-        repo="${GITHUB_ACTION_REPOSITORY:-${GITHUB_REPOSITORY}}"
+        # tfpfgen is only ever released from this toolkit repo, so that is
+        # where the binary is fetched from. GITHUB_ACTION_REPOSITORY names it
+        # when the action is referenced by another repo, but it comes back
+        # empty when a reusable workflow in this same repo references the
+        # action by its full path — GitHub treats that as local. Falling back
+        # to GITHUB_REPOSITORY there would (wrongly) look in the caller's
+        # provider repo, so the fallback is the toolkit repo by name.
+        repo="${GITHUB_ACTION_REPOSITORY:-deploymenttheory/terraform-plugin-framework-codegen-1}"
 
         dir="${RUNNER_TEMP}/setup-tfpfgen"
         mkdir -p "$dir"
