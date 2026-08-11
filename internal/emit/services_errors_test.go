@@ -93,6 +93,45 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 		{Property: "kind", Equals: "advanced", Required: []string{"ghost"}}}
 	expectRenderError(t, pc, m, b, "http_server", "ghost")
 
+	// A valid-when gated on a missing attribute.
+	m, b = fictionalModel(), fictionalBindings()
+	m.Resources[0].Schema.ConditionalValidities = []ir.ConditionalValidity{
+		{Property: "ghost", Equals: "x", Valid: []string{"name"}}}
+	expectRenderError(t, pc, m, b, "http_server", "ghost")
+
+	// A valid-when allowing a missing attribute.
+	m, b = fictionalModel(), fictionalBindings()
+	m.Resources[0].Schema.ConditionalValidities = []ir.ConditionalValidity{
+		{Property: "kind", Equals: "advanced", Valid: []string{"ghost"}}}
+	expectRenderError(t, pc, m, b, "http_server", "ghost")
+
+	// A dependency whose subject is a missing attribute.
+	m, b = fictionalModel(), fictionalBindings()
+	m.Resources[0].Schema.Dependencies = []ir.Dependency{{Attribute: "ghost", Requires: []string{"name"}}}
+	expectRenderError(t, pc, m, b, "http_server", "ghost")
+
+	// A dependency requiring a missing attribute.
+	m, b = fictionalModel(), fictionalBindings()
+	m.Resources[0].Schema.Dependencies = []ir.Dependency{{Attribute: "ratio", Requires: []string{"ghost"}}}
+	expectRenderError(t, pc, m, b, "http_server", "ghost")
+
+	// A mutually-exclusive group naming a missing attribute.
+	m, b = fictionalModel(), fictionalBindings()
+	m.Resources[0].Schema.MutuallyExclusiveGroups = [][]string{{"name", "ghost"}}
+	expectRenderError(t, pc, m, b, "http_server", "ghost")
+
+	// A valid configuration on a missing discriminator.
+	m, b = fictionalModel(), fictionalBindings()
+	m.Resources[0].Schema.ValidConfigurations = []ir.ValidConfiguration{
+		{Discriminator: "ghost", Variants: []ir.ConfigVariant{{Value: "x", Valid: []string{"name"}}}}}
+	expectRenderError(t, pc, m, b, "http_server", "ghost")
+
+	// A valid configuration admitting a missing attribute.
+	m, b = fictionalModel(), fictionalBindings()
+	m.Resources[0].Schema.ValidConfigurations = []ir.ValidConfiguration{
+		{Discriminator: "kind", Variants: []ir.ConfigVariant{{Value: "basic", Valid: []string{"ghost"}}}}}
+	expectRenderError(t, pc, m, b, "http_server", "ghost")
+
 	// A path parameter no attribute can feed.
 	m, b = fictionalModel(), fictionalBindings()
 	b.Resources["http_server"].Read.Params = []sdkbind.CallParam{
@@ -158,6 +197,42 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	m, b = fictionalModel(), fictionalBindings()
 	b.Actions["http_server_restart"].Invoke = nil
 	expectRenderError(t, pc, m, b, "http_server_restart", "invoke")
+}
+
+func TestUnit_Emit_ValidatorHelperSpellings(t *testing.T) {
+	orLists := []struct {
+		in   []string
+		want string
+	}{
+		{nil, ""},
+		{[]string{"a"}, `"a"`},
+		{[]string{"a", "b"}, `"a" or "b"`},
+		{[]string{"a", "b", "c"}, `"a", "b" or "c"`},
+	}
+	for _, tc := range orLists {
+		if got := orList(tc.in); got != tc.want {
+			t.Fatalf("orList(%v) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+
+	if got := listPayloadExpr("", "items"); got != "items" {
+		t.Fatalf("bare payload = %q", got)
+	}
+	if got := listPayloadExpr("things", "items"); got != `map[string]any{"things": items}` {
+		t.Fatalf("wrapped payload = %q", got)
+	}
+	if got := listResponseJSON("", "  {}"); !strings.HasPrefix(got, "[\n") || strings.Contains(got, "{") == false {
+		t.Fatalf("bare list json = %q", got)
+	}
+	if got := listResponseJSON("data", "{}"); !strings.Contains(got, `"data": [`) {
+		t.Fatalf("wrapped list json = %q", got)
+	}
+
+	// A mutually-exclusive group whose first member is missing is named at
+	// fault too, not only the second.
+	m, b := fictionalModel(), fictionalBindings()
+	m.Resources[0].Schema.MutuallyExclusiveGroups = [][]string{{"ghost", "name"}}
+	expectRenderError(t, fictionalProviderCore(), m, b, "http_server", "ghost")
 }
 
 func TestUnit_Emit_HelperSpellings(t *testing.T) {

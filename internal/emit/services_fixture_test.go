@@ -58,6 +58,20 @@ func fictionalModel() *ir.Model {
 		ConditionalRequirements: []ir.ConditionalRequirement{
 			{Property: "kind", Equals: "advanced", Required: []string{"settings"}},
 		},
+		ConditionalValidities: []ir.ConditionalValidity{
+			{Property: "kind", Equals: "advanced", Valid: []string{"rules"}},
+		},
+		Dependencies: []ir.Dependency{
+			{Attribute: "ratio", Requires: []string{"port"}},
+		},
+		MutuallyExclusiveGroups: [][]string{{"protocols", "tags"}},
+		ValidConfigurations: []ir.ValidConfiguration{{
+			Discriminator: "kind",
+			Variants: []ir.ConfigVariant{
+				{Value: "advanced", Valid: []string{"settings"}},
+				{Value: "basic", Valid: []string{"port"}},
+			},
+		}},
 	}
 
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
@@ -85,6 +99,7 @@ func fictionalModel() *ir.Model {
 				UpdateStyle:         ir.UpdateStylePatchMerge,
 				EventualConsistency: 30 * time.Second,
 				DeleteNotFoundOK:    true,
+				ListEnvelopeKey:     "value",
 				Timeouts: ir.Timeouts{
 					Create: 30 * time.Minute, Read: 5 * time.Minute,
 					Update: 30 * time.Minute, Delete: 30 * time.Minute,
@@ -126,6 +141,7 @@ func fictionalModel() *ir.Model {
 					{Name: "items", WireName: "items", Kind: ir.TypeList, ElemKind: ir.TypeObject,
 						Presence: ir.PresenceComputed, Nested: itemTree},
 				}},
+				ListEnvelopeKey: "value",
 			},
 			{
 				Names: names("license", "License", "licenses"),
@@ -150,6 +166,7 @@ func fictionalModel() *ir.Model {
 					{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
 					{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceComputed},
 				}},
+				ListEnvelopeKey: "value",
 			},
 		},
 		Actions: []ir.Action{

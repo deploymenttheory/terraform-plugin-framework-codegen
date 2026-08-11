@@ -85,7 +85,7 @@ type resourceData struct {
 	UpdateMethod    string
 	DeleteStatus    int
 	HasList         bool
-	ListWrap        string
+	ListPayload     string
 	HasDelete       bool
 }
 
@@ -249,9 +249,9 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	e.addSDKImports(stateImports, stateBody, d.ReadModel)
 	d.StateImports = stateImports.render()
 
-	// Conditional validators.
-	if len(r.Schema.ConditionalRequirements) > 0 {
-		body, err := validatorBody(r.Schema.ConditionalRequirements, nodes)
+	// Config validators.
+	if treeHasValidators(r.Schema) {
+		body, err := validatorBody(r.Schema, nodes)
 		if err != nil {
 			return err
 		}
@@ -352,49 +352,6 @@ func importAttr(r *ir.Resource, nodes []node) string {
 	return ""
 }
 
-// validatorBody renders the value-conditional requirement checks.
-func validatorBody(reqs []ir.ConditionalRequirement, nodes []node) (string, error) {
-	byName := map[string]node{}
-	for _, n := range nodes {
-		byName[n.attr.Name] = n
-	}
-	var b strings.Builder
-	for _, req := range reqs {
-		prop, ok := byName[req.Property]
-		if !ok {
-			return "", fmt.Errorf("conditional requirement names %q, which is not an attribute", req.Property)
-		}
-		if prop.attr.Kind != ir.TypeString || prop.attr.Nested != nil {
-			return "", fmt.Errorf("conditional requirement on %q needs a string attribute", req.Property)
-		}
-		fmt.Fprintf(&b, "\tif data.%s.Value%s() == %s {\n",
-			ir.GoName(req.Property), "String", strconv.Quote(req.Equals))
-		for _, required := range req.Required {
-			target, ok := byName[required]
-			if !ok {
-				return "", fmt.Errorf("conditional requirement requires %q, which is not an attribute", required)
-			}
-			fmt.Fprintf(&b, "\t\tif %s {\n", nullCheck(target))
-			fmt.Fprintf(&b, "\t\t\tresp.Diagnostics.AddAttributeError(path.Root(%q),\n", required)
-			fmt.Fprintf(&b, "\t\t\t\t\"Missing required attribute\",\n")
-			fmt.Fprintf(&b, "\t\t\t\t%s)\n", strconv.Quote(
-				fmt.Sprintf("%s must be set when %s is %q.", required, req.Property, req.Equals)))
-			b.WriteString("\t\t}\n")
-		}
-		b.WriteString("\t}\n")
-	}
-	return b.String(), nil
-}
-
-// nullCheck is the absent-value test for one attribute's model field.
-func nullCheck(n node) string {
-	field := "data." + ir.GoName(n.attr.Name)
-	if n.attr.Nested != nil {
-		return field + " == nil"
-	}
-	return field + ".IsNull()"
-}
-
 // resourceMocks builds the stateful responder context from the operations
 // and the fixture derivation.
 func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdkbind.ResourceBinding, spec fixtures.Fixture) error {
@@ -417,7 +374,7 @@ func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdk
 	}
 	if r.Ops.List != nil {
 		d.HasList = true
-		d.ListWrap = "value"
+		d.ListPayload = listPayloadExpr(r.ListEnvelopeKey, "items")
 	}
 
 	imports := newImportSet(e.pc.Module)
