@@ -131,7 +131,67 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+
+	// Postcheck's `go mod tidy` rewrites go.mod and writes go.sum after the
+	// manifest recorded the emitted bytes; refreshing their entries makes
+	// the manifest describe the committed truth, which is what `provider
+	// verify` holds those files to.
+	if err := recordPostcheckOwned(opts.Root); err != nil {
+		return Result{}, err
+	}
 	return g.res, nil
+}
+
+// postcheckOwned are the paths the toolchain finalises after install:
+// `go mod tidy` rewrites go.mod (the go directive, the indirect require
+// closure) and writes go.sum, which no template emits. No regeneration
+// reproduces them without running the toolchain, so the drift gate holds
+// them to the manifest digests recorded here instead.
+var postcheckOwned = []string{"go.mod", "go.sum"}
+
+// recordPostcheckOwned re-records the toolchain-finalised files in the
+// manifest, as they stand on disk after postcheck. Idempotent, and cheap
+// enough to run whether or not postcheck did: a digest recomputed from
+// unchanged bytes changes nothing.
+func recordPostcheckOwned(root string) error {
+	m, _, err := manifest.Load(root)
+	if err != nil {
+		return err
+	}
+
+	index := make(map[string]int, len(m.Files))
+	for i, e := range m.Files {
+		index[e.Path] = i
+	}
+
+	changed := false
+	for _, path := range postcheckOwned {
+		sum, there, err := fileDigest(root, path)
+		if err != nil {
+			return err
+		}
+		if !there {
+			continue
+		}
+		if i, ok := index[path]; ok {
+			if m.Files[i].SHA256 != sum {
+				m.Files[i].SHA256 = sum
+				changed = true
+			}
+			continue
+		}
+		m.Files = append(m.Files, manifest.Entry{
+			Path:   path,
+			SHA256: sum,
+			Source: "go mod tidy",
+			Origin: manifest.OriginPostcheck,
+		})
+		changed = true
+	}
+	if !changed {
+		return nil
+	}
+	return manifest.Save(root, manifest.New(m.ToolVersion, m.Files))
 }
 
 // IR derives the intermediate representation for the given inputs and
