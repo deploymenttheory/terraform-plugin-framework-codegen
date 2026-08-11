@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -23,9 +24,8 @@ const sdkRelPath = "internal/sdk"
 // place, against the committed go.mod and go.sum, and nothing is copied. A
 // repo not yet generated has no go.mod — the first `provider generate` is
 // what writes it — so the SDK is copied into a temporary module harness
-// declaring exactly the module path the bindings expect. The harness go.mod
-// declares no requirements: an SDK importing beyond the standard library
-// needs the committed module context, which every run after the first has.
+// declaring exactly the module path the bindings expect, and `go mod tidy`
+// resolves the SDK's own imports there before anything type-checks.
 //
 // The returned cleanup releases whatever the answer allocated.
 func bindContext(root, module, sdkAbs string) (string, func(), error) {
@@ -69,6 +69,21 @@ func bindContext(root, module, sdkAbs string) (string, func(), error) {
 		cleanup()
 		return "", noop, err
 	}
+
+	// The harness go.mod declares no requirements, and a real SDK imports
+	// beyond the standard library — a kiota tree pulls the kiota runtime on
+	// every page. `go mod tidy` here is what lets the first generate of a
+	// repo, the run with no committed go.mod, type-check such an SDK at
+	// all; without it the bind fails on the SDK's own imports. The go tool
+	// is already a hard requirement of binding (go/types loads through it),
+	// so there is no toolchain-less path to preserve.
+	tidy := exec.Command("go", "mod", "tidy")
+	tidy.Dir = harness
+	if out, err := tidy.CombinedOutput(); err != nil {
+		cleanup()
+		return "", noop, fmt.Errorf("resolving the SDK's dependencies in the bind harness (go mod tidy): %v\n%s", err, out)
+	}
+
 	return target, cleanup, nil
 }
 

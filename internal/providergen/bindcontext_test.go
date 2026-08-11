@@ -76,3 +76,19 @@ func TestUnit_ModuleLine_ReadsTheDeclaration(t *testing.T) {
 		t.Errorf("moduleLine on a module-less file = %q", got)
 	}
 }
+
+func TestUnit_BindContext_HarnessSurfacesAnUnresolvableSDKDependency(t *testing.T) {
+	// An SDK importing a module the proxy cannot serve must fail the bind
+	// with the harness tidy's own explanation, not a bare type-check error.
+	root, opts := curatedRepo(t, "kiota")
+	poison := "package sdk\n\nimport _ \"example.invalid/unresolvable\"\n"
+	if err := os.WriteFile(filepath.Join(root, "internal", "sdk", "poison.go"), []byte(poison), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GOPROXY", "off")
+
+	_, err := Run(context.Background(), opts)
+	if err == nil || !strings.Contains(err.Error(), "bind harness") {
+		t.Fatalf("err = %v, want the harness tidy refusal", err)
+	}
+}
