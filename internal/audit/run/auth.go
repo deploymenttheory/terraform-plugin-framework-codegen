@@ -57,7 +57,7 @@ func newAuthenticator(a Auth, lookup func(string) (string, bool), timeout time.D
 			tokenURL:     a.TokenURL,
 			clientID:     get(config.SecretClientID),
 			clientSecret: get(config.SecretClientSecret),
-			client:       &http.Client{Timeout: timeout},
+			client:       &http.Client{Timeout: timeout, Transport: newTransport()},
 		}, nil
 	case config.AuthGitHubApp:
 		return nil, fmt.Errorf("audit run: auth method %s is not supported yet; the app-installation token exchange has not been built", a.Method)

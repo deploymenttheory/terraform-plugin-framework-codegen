@@ -57,7 +57,7 @@ func get(url string) ([]byte, error) {
 		return nil, fmt.Errorf("building the request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -76,4 +76,18 @@ func get(url string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+// httpClient owns this package's connection pool. http.DefaultClient rides
+// the process-wide default transport, whose idle connections
+// httptest.Server.Close closes — under parallel tests a pooled connection
+// can be torn out from under an in-flight request, surfacing as
+// "transport connection broken". An owned pool is immune to neighbours.
+var httpClient = newOwnedClient()
+
+func newOwnedClient() *http.Client {
+	if t, ok := http.DefaultTransport.(*http.Transport); ok {
+		return &http.Client{Transport: t.Clone()}
+	}
+	return &http.Client{}
 }
