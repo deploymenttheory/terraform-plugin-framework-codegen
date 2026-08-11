@@ -205,6 +205,12 @@ components:
     ThingCreate:
       type: object
       required: [name]
+      x-tfpfgen-mutually-exclusive: [region, tier]
+      x-tfpfgen-valid-configuration:
+        discriminator: mode
+        variants:
+          standard: [count]
+          custom: [proxyHost]
       properties:
         name: {type: string}
         mode:
@@ -223,8 +229,12 @@ components:
         notes:
           type: string
           x-tfpfgen-silently-ignored-on-update: true
-        count: {type: integer}
-        ratio: {type: number}
+        count:
+          type: integer
+          x-tfpfgen-valid-when: {property: mode, equals: standard}
+        ratio:
+          type: number
+          x-tfpfgen-depends-on: {requires: count}
         enabled: {type: boolean}
         labels:
           type: array

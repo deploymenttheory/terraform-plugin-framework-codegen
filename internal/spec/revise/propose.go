@@ -157,7 +157,7 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 	}
 
 	observe.Sort(obs)
-	comp := &compiler{entities: entities, state: state, vetoes: vetoSet(obs)}
+	comp := &compiler{entities: entities, state: state, vetoes: vetoSet(obs), variants: variantSets(obs)}
 
 	type candidate struct {
 		written Written
@@ -312,6 +312,8 @@ var compilableKinds = []string{
 	string(observe.KindValues), string(observe.KindUpdateStyle),
 	string(observe.KindDeleteNotFoundOK), string(observe.KindReadAfterWrite),
 	string(observe.KindUndocumentedFieldInSpec),
+	string(observe.KindValidWhen), string(observe.KindDependsOn),
+	string(observe.KindMutuallyExclusive), string(observe.KindValidConfiguration),
 }
 
 func checkAutoAccept(kinds []string) error {
@@ -334,6 +336,26 @@ func vetoSet(obs []observe.Observation) map[[2]string]bool {
 		}
 	}
 	return vetoes
+}
+
+// variantSets gathers, from every confirmed validWhen observation, which
+// subject fields are valid under each gate value — keyed by (entity, gate
+// field). A validConfiguration correction reads this to fill its per-value
+// field sets, which no single validConfiguration observation carries.
+func variantSets(obs []observe.Observation) map[[2]string]map[string][]string {
+	out := map[[2]string]map[string][]string{}
+	for _, o := range obs {
+		if o.Kind != observe.KindValidWhen || o.Outcome != observe.OutcomeConfirmed || o.Condition == nil {
+			continue
+		}
+		key := [2]string{o.Entity, o.Condition.Attribute}
+		if out[key] == nil {
+			out[key] = map[string][]string{}
+		}
+		value := literalSpelling(o.Condition.Equals)
+		out[key][value] = append(out[key][value], o.Attribute)
+	}
+	return out
 }
 
 // revisedState builds the current revised state — the pinned upstream

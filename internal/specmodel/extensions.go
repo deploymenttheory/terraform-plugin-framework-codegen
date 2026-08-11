@@ -2,6 +2,7 @@ package specmodel
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -42,6 +43,18 @@ const (
 	// ExtSilentlyIgnoredOnUpdate marks a property updates accept and
 	// discard.
 	ExtSilentlyIgnoredOnUpdate = "x-tfpfgen-silently-ignored-on-update"
+	// ExtValidWhen records a value-conditional validity: this property is
+	// valid only when a sibling gate equals a value.
+	ExtValidWhen = "x-tfpfgen-valid-when"
+	// ExtDependsOn records a co-requirement: this property is settable only
+	// when the named sibling is also present, whatever its value.
+	ExtDependsOn = "x-tfpfgen-depends-on"
+	// ExtMutuallyExclusive records, at the schema level, a set of sibling
+	// properties of which at most one may be set.
+	ExtMutuallyExclusive = "x-tfpfgen-mutually-exclusive"
+	// ExtValidConfiguration records, at the schema level, a discriminator
+	// property and the per-value sets of properties valid under each value.
+	ExtValidConfiguration = "x-tfpfgen-valid-configuration"
 )
 
 // RequiredWhen is one value-conditional requirement: the annotated property
@@ -51,6 +64,41 @@ type RequiredWhen struct {
 	Property string
 	// Equals is the gating value, in its literal spelling.
 	Equals string
+}
+
+// ValidWhen is one value-conditional validity: the annotated property is
+// valid only when the named sibling property equals the value.
+type ValidWhen struct {
+	// Property is the gating sibling's wire name.
+	Property string
+	// Equals is the gating value, in its literal spelling.
+	Equals string
+}
+
+// DependsOn is one co-requirement: the annotated property may be set only
+// when the required sibling property is also present.
+type DependsOn struct {
+	// Requires is the sibling property's wire name that must be present.
+	Requires string
+}
+
+// ValidConfiguration is a schema-level variant structure: a discriminator
+// property whose value selects which further properties are valid, and the
+// per-value sets of valid property names. Variants are sorted by Value and
+// each variant's Fields are sorted, so two loads present identically.
+type ValidConfiguration struct {
+	// Discriminator is the gate property's wire name.
+	Discriminator string
+	// Variants lists, per discriminator value, the property names valid
+	// under that value.
+	Variants []ValidVariant
+}
+
+// ValidVariant is one discriminator value and the property names valid
+// under it.
+type ValidVariant struct {
+	Value  string
+	Fields []string
 }
 
 // extensionShapes maps each known key to its value parser. The shape is
@@ -66,6 +114,10 @@ var extensionShapes = map[string]func(n *yaml.Node, at string) (any, error){
 	ExtVolatile:                extBool,
 	ExtServerForced:            extBool,
 	ExtSilentlyIgnoredOnUpdate: extBool,
+	ExtValidWhen:               extValidWhen,
+	ExtDependsOn:               extDependsOn,
+	ExtMutuallyExclusive:       extMutuallyExclusive,
+	ExtValidConfiguration:      extValidConfiguration,
 }
 
 // parseExtensions collects and shape-checks a mapping node's x-tfpfgen-*
@@ -167,6 +219,134 @@ func extRequiredWhen(n *yaml.Node, at string) (any, error) {
 	return rw, nil
 }
 
+// extValidWhen parses x-tfpfgen-valid-when: a mapping with "property" and
+// "equals", the same shape as required-when.
+func extValidWhen(n *yaml.Node, at string) (any, error) {
+	if n.Kind != yaml.MappingNode {
+		return nil, fmt.Errorf("%s: must be a mapping with \"property\" and \"equals\"", at)
+	}
+	var vw ValidWhen
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		key, val := n.Content[i].Value, deref(n.Content[i+1])
+		switch key {
+		case "property":
+			vw.Property = val.Value
+		case "equals":
+			vw.Equals = val.Value
+		default:
+			return nil, fmt.Errorf("%s: unknown key %q; only \"property\" and \"equals\" are allowed", at, key)
+		}
+		if val.Kind != yaml.ScalarNode || val.Value == "" {
+			return nil, fmt.Errorf("%s.%s: must be a non-empty scalar", at, key)
+		}
+	}
+	if vw.Property == "" || vw.Equals == "" {
+		return nil, fmt.Errorf("%s: both \"property\" and \"equals\" are required", at)
+	}
+	return vw, nil
+}
+
+// extDependsOn parses x-tfpfgen-depends-on: a mapping with a single
+// "requires" naming the property that must be present.
+func extDependsOn(n *yaml.Node, at string) (any, error) {
+	if n.Kind != yaml.MappingNode {
+		return nil, fmt.Errorf("%s: must be a mapping with \"requires\"", at)
+	}
+	var do DependsOn
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		key, val := n.Content[i].Value, deref(n.Content[i+1])
+		switch key {
+		case "requires":
+			do.Requires = val.Value
+		default:
+			return nil, fmt.Errorf("%s: unknown key %q; only \"requires\" is allowed", at, key)
+		}
+		if val.Kind != yaml.ScalarNode || val.Value == "" {
+			return nil, fmt.Errorf("%s.%s: must be a non-empty scalar", at, key)
+		}
+	}
+	if do.Requires == "" {
+		return nil, fmt.Errorf("%s: \"requires\" is required", at)
+	}
+	return do, nil
+}
+
+// extMutuallyExclusive parses x-tfpfgen-mutually-exclusive: a non-empty
+// sequence of at least two distinct property names, sorted for determinism.
+func extMutuallyExclusive(n *yaml.Node, at string) (any, error) {
+	if n.Kind != yaml.SequenceNode {
+		return nil, fmt.Errorf("%s: must be a list of property names", at)
+	}
+	seen := map[string]bool{}
+	var names []string
+	for _, item := range n.Content {
+		item = deref(item)
+		if item.Kind != yaml.ScalarNode || item.Value == "" {
+			return nil, fmt.Errorf("%s: each entry must be a non-empty property name", at)
+		}
+		if seen[item.Value] {
+			return nil, fmt.Errorf("%s: property %q is listed twice", at, item.Value)
+		}
+		seen[item.Value] = true
+		names = append(names, item.Value)
+	}
+	if len(names) < 2 {
+		return nil, fmt.Errorf("%s: a mutually-exclusive set needs at least two properties", at)
+	}
+	sort.Strings(names)
+	return names, nil
+}
+
+// extValidConfiguration parses x-tfpfgen-valid-configuration: a mapping with
+// "discriminator" (a property name) and "variants" (a mapping from a
+// discriminator value to the list of property names valid under it).
+func extValidConfiguration(n *yaml.Node, at string) (any, error) {
+	if n.Kind != yaml.MappingNode {
+		return nil, fmt.Errorf("%s: must be a mapping with \"discriminator\" and \"variants\"", at)
+	}
+	var vc ValidConfiguration
+	var variantsNode *yaml.Node
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		key, val := n.Content[i].Value, deref(n.Content[i+1])
+		switch key {
+		case "discriminator":
+			if val.Kind != yaml.ScalarNode || val.Value == "" {
+				return nil, fmt.Errorf("%s.discriminator: must be a non-empty property name", at)
+			}
+			vc.Discriminator = val.Value
+		case "variants":
+			variantsNode = val
+		default:
+			return nil, fmt.Errorf("%s: unknown key %q; only \"discriminator\" and \"variants\" are allowed", at, key)
+		}
+	}
+	if vc.Discriminator == "" {
+		return nil, fmt.Errorf("%s: \"discriminator\" is required", at)
+	}
+	if variantsNode == nil || variantsNode.Kind != yaml.MappingNode || len(variantsNode.Content) == 0 {
+		return nil, fmt.Errorf("%s.variants: must be a non-empty mapping from value to property names", at)
+	}
+	for i := 0; i+1 < len(variantsNode.Content); i += 2 {
+		value := variantsNode.Content[i].Value
+		list := deref(variantsNode.Content[i+1])
+		if list.Kind != yaml.SequenceNode {
+			return nil, fmt.Errorf("%s.variants.%s: must be a list of property names", at, value)
+		}
+		var fields []string
+		for _, item := range list.Content {
+			item = deref(item)
+			if item.Kind != yaml.ScalarNode || item.Value == "" {
+				return nil, fmt.Errorf("%s.variants.%s: each entry must be a non-empty property name", at, value)
+			}
+			fields = append(fields, item.Value)
+		}
+		sort.Strings(fields)
+		vc.Variants = append(vc.Variants, ValidVariant{Value: value, Fields: fields})
+	}
+	sort.Slice(vc.Variants, func(i, j int) bool { return vc.Variants[i].Value < vc.Variants[j].Value })
+	return vc, nil
+}
+
 // The accessors all return (value, ok) so a consumer can tell an explicit
 // false from an absent key — the audit planner treats "observed false" and
 // "never observed" differently, and collapsing them here would lose that.
@@ -178,6 +358,30 @@ func (e Extensions) CreateOnly() (bool, bool) { return e.boolKey(ExtCreateOnly) 
 func (e Extensions) RequiredWhen() (RequiredWhen, bool) {
 	rw, ok := e[ExtRequiredWhen].(RequiredWhen)
 	return rw, ok
+}
+
+// ValidWhen reads x-tfpfgen-valid-when.
+func (e Extensions) ValidWhen() (ValidWhen, bool) {
+	vw, ok := e[ExtValidWhen].(ValidWhen)
+	return vw, ok
+}
+
+// DependsOn reads x-tfpfgen-depends-on.
+func (e Extensions) DependsOn() (DependsOn, bool) {
+	do, ok := e[ExtDependsOn].(DependsOn)
+	return do, ok
+}
+
+// MutuallyExclusive reads x-tfpfgen-mutually-exclusive.
+func (e Extensions) MutuallyExclusive() ([]string, bool) {
+	names, ok := e[ExtMutuallyExclusive].([]string)
+	return names, ok
+}
+
+// ValidConfiguration reads x-tfpfgen-valid-configuration.
+func (e Extensions) ValidConfiguration() (ValidConfiguration, bool) {
+	vc, ok := e[ExtValidConfiguration].(ValidConfiguration)
+	return vc, ok
 }
 
 // EventualConsistency reads x-tfpfgen-eventual-consistency.

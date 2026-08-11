@@ -33,7 +33,6 @@ type listResourceData struct {
 	ResultLines       string
 
 	CollectionURL    string
-	ListWrap         string
 	ListResponse     string
 	ExpectedFirstID  string
 	TestClientConfig string
@@ -108,9 +107,8 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 
 	spec := deriveFixtures(lr.Schema, nodes)
 	d.CollectionURL = mockURL(listOp.PathTemplate)
-	d.ListWrap = "value"
 	item := strings.TrimSuffix(string(spec.WireJSON(fixtures.ResponseMaximal)), "\n")
-	d.ListResponse = "{\n  \"value\": [\n" + reindentJSON(item, "    ") + "\n  ]\n}\n"
+	d.ListResponse = listResponseJSON(lr.ListEnvelopeKey, item)
 	d.ExpectedFirstID = expectedID(spec)
 	d.TestClientConfig = e.testClientConfig()
 

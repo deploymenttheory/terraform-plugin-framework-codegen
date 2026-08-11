@@ -126,6 +126,98 @@ func TestAttributes_ConditionalRequirement(t *testing.T) {
 	}
 }
 
+// TestDerive_ListEnvelopeKey_BareArray: the main fixture's list is a bare
+// array, so the derived envelope key is empty — the mock emits a bare array,
+// not a wrapper.
+func TestDerive_ListEnvelopeKey_BareArray(t *testing.T) {
+	r := resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing")
+	if r.ListEnvelopeKey != "" {
+		t.Errorf("bare-array list derived envelope key %q, want empty", r.ListEnvelopeKey)
+	}
+}
+
+// TestDerive_ListEnvelopeKey_Wrapped: a list response wrapping its items
+// under a vendor key is read from the schema, not assumed to be "value".
+func TestDerive_ListEnvelopeKey_Wrapped(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /gizmos:
+    post:
+      requestBody:
+        content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}
+      responses:
+        "201": {content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}}
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nextPage: {type: string}
+                  gizmos:
+                    type: array
+                    items: {$ref: '#/components/schemas/Gizmo'}
+  /gizmos/{gizmoId}:
+    get:
+      responses:
+        "200": {content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}}
+    delete:
+      responses: {"204": {description: gone}}
+components:
+  schemas:
+    Gizmo:
+      type: object
+      properties:
+        id: {type: string}
+        label: {type: string}
+`
+	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "gizmo")
+	if r.ListEnvelopeKey != "gizmos" {
+		t.Errorf("wrapped list derived envelope key %q, want %q", r.ListEnvelopeKey, "gizmos")
+	}
+}
+
+func TestAttributes_ConditionalValidity(t *testing.T) {
+	tree := thingTree(t)
+	want := []ConditionalValidity{{Property: "mode", Equals: "standard", Valid: []string{"count"}}}
+	if !reflect.DeepEqual(tree.ConditionalValidities, want) {
+		t.Errorf("conditional validities = %+v, want %+v", tree.ConditionalValidities, want)
+	}
+}
+
+func TestAttributes_Dependencies(t *testing.T) {
+	tree := thingTree(t)
+	want := []Dependency{{Attribute: "ratio", Requires: []string{"count"}}}
+	if !reflect.DeepEqual(tree.Dependencies, want) {
+		t.Errorf("dependencies = %+v, want %+v", tree.Dependencies, want)
+	}
+}
+
+func TestAttributes_MutuallyExclusiveGroups(t *testing.T) {
+	tree := thingTree(t)
+	want := [][]string{{"region", "tier"}}
+	if !reflect.DeepEqual(tree.MutuallyExclusiveGroups, want) {
+		t.Errorf("mutually exclusive groups = %+v, want %+v", tree.MutuallyExclusiveGroups, want)
+	}
+}
+
+func TestAttributes_ValidConfigurations(t *testing.T) {
+	tree := thingTree(t)
+	want := []ValidConfiguration{{
+		Discriminator: "mode",
+		Variants: []ConfigVariant{
+			{Value: "custom", Valid: []string{"proxy_host"}},
+			{Value: "standard", Valid: []string{"count"}},
+		},
+	}}
+	if !reflect.DeepEqual(tree.ValidConfigurations, want) {
+		t.Errorf("valid configurations = %+v, want %+v", tree.ValidConfigurations, want)
+	}
+}
+
 func TestAttributes_SilentlyIgnoredOnUpdate(t *testing.T) {
 	if a := attribute(t, thingTree(t), "notes"); !a.SilentlyIgnoredOnUpdate {
 		t.Errorf("x-tfpfgen-silently-ignored-on-update not carried: %+v", a)

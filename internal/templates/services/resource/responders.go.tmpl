@@ -172,7 +172,7 @@ func listResponder() httpmock.Responder {
 			items = append(items, mockState.objects[id])
 		}
 		mockState.Unlock()
-		return providermocks.SuccessResponse(200, map[string]any{"{{ .ListWrap }}": items})(req)
+		return providermocks.SuccessResponse(200, {{ .ListPayload }})(req)
 	}
 }
 {{ end }}

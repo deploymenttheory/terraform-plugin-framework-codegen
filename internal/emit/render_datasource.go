@@ -58,7 +58,7 @@ type datasourceData struct {
 	ItemPattern     string
 	HasItemMock     bool
 	ResponseMaximal string
-	ListWrap        string
+	ListPayload     string
 	UnitChecks      string
 }
 
@@ -402,7 +402,7 @@ func (e *serviceRenderer) datasourceModelImports(models string) string {
 func (e *serviceRenderer) datasourceMocks(d *datasourceData, ds *ir.Datasource, spec fixtures.Fixture) {
 	d.RegistryName = ds.Names.TerraformType + ".data"
 	d.ResponseMaximal = string(spec.WireJSON(fixtures.ResponseMaximal))
-	d.ListWrap = "value"
+	d.ListPayload = listPayloadExpr(ds.ListEnvelopeKey, "[]map[string]any{object()}")
 	if ds.Ops.List != nil {
 		d.CollectionURL = mockURL(ds.Ops.List.PathTemplate)
 	}

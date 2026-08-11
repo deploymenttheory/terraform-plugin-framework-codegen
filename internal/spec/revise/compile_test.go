@@ -401,6 +401,85 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
+			name: "validWhen becomes the conditional-validity extension",
+			attr: "port", kind: observe.KindValidWhen, value: true,
+			cond: &observe.Condition{Attribute: "protocol", Equals: "tcp"},
+			want: `{
+  "justification": "the audit confirmed a validWhen observation on tag.port: the property is valid only when protocol equals \"tcp\" (x-tfpfgen-valid-when)",
+  "evidence": "audit/observations/tag.observations.json#%s",
+  "operations": [
+    {
+      "op": "add",
+      "path": "/components/schemas/Tag/properties/port/x-tfpfgen-valid-when",
+      "value": {
+        "equals": "tcp",
+        "property": "protocol"
+      }
+    }
+  ]
+}
+`,
+		},
+		{
+			name: "dependsOn becomes its extension on a 3.0 document",
+			attr: "port", kind: observe.KindDependsOn, value: "protocol",
+			want: `{
+  "justification": "the audit confirmed a dependsOn observation on tag.port: the property is settable only when protocol is also present (x-tfpfgen-depends-on)",
+  "evidence": "audit/observations/tag.observations.json#%s",
+  "operations": [
+    {
+      "op": "add",
+      "path": "/components/schemas/Tag/properties/port/x-tfpfgen-depends-on",
+      "value": {
+        "requires": "protocol"
+      }
+    }
+  ]
+}
+`,
+		},
+		{
+			name: "mutuallyExclusive annotates the entity schema",
+			kind: observe.KindMutuallyExclusive, value: []string{"size", "mode"},
+			want: `{
+  "justification": "the audit confirmed a mutuallyExclusive observation on tag: at most one of mode, size may be set (x-tfpfgen-mutually-exclusive)",
+  "evidence": "audit/observations/tag.observations.json#%s",
+  "operations": [
+    {
+      "op": "add",
+      "path": "/components/schemas/Tag/x-tfpfgen-mutually-exclusive",
+      "value": [
+        "mode",
+        "size"
+      ]
+    }
+  ]
+}
+`,
+		},
+		{
+			name: "validConfiguration annotates the discriminator schema",
+			attr: "mode", kind: observe.KindValidConfiguration, value: []string{"manual", "auto"},
+			want: `{
+  "justification": "the audit confirmed a validConfiguration observation on tag.mode: the property gates the valid field set, one variant per value (x-tfpfgen-valid-configuration)",
+  "evidence": "audit/observations/tag.observations.json#%s",
+  "operations": [
+    {
+      "op": "add",
+      "path": "/components/schemas/Tag/x-tfpfgen-valid-configuration",
+      "value": {
+        "discriminator": "mode",
+        "variants": {
+          "auto": [],
+          "manual": []
+        }
+      }
+    }
+  ]
+}
+`,
+		},
+		{
 			name: "ignoredOnUpdate becomes its extension",
 			attr: "mode", kind: observe.KindIgnoredOnUpdate, value: true,
 			want: `{

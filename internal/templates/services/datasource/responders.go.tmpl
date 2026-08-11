@@ -40,7 +40,7 @@ func object() map[string]any {
 func (m *{{ .Pascal }}DatasourceMock) RegisterMocks() {
 {{- if .CollectionURL }}
 	httpmock.RegisterResponder("GET", collectionURL,
-		providermocks.SuccessResponse(200, map[string]any{"{{ .ListWrap }}": []map[string]any{object()}}))
+		providermocks.SuccessResponse(200, {{ .ListPayload }}))
 {{- end }}
 {{- if .HasItemMock }}
 	httpmock.RegisterResponder("GET", itemPattern,

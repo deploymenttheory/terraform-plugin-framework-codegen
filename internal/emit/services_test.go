@@ -209,9 +209,27 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 	}
 
 	validators := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/conditional_validators.go").Content)
-	if !strings.Contains(validators, `data.Kind.ValueString() == "advanced"`) ||
-		!strings.Contains(validators, "data.Settings == nil") {
-		t.Fatalf("conditional_validators.go misses the requirement:\n%s", validators)
+	for _, want := range []string{
+		// required-when
+		`data.Kind.ValueString() == "advanced"`,
+		"data.Settings == nil",
+		// valid-when: rules valid only under kind == advanced
+		`data.Kind.ValueString() != "advanced"`,
+		"if data.Rules != nil {",
+		// depends-on: ratio requires port
+		"if !data.Ratio.IsNull() {",
+		"data.Port.IsNull()",
+		"ratio may be set only when port is also set.",
+		// mutually-exclusive: protocols vs tags
+		"if !data.Protocols.IsNull() && !data.Tags.IsNull() {",
+		"protocols and tags are mutually exclusive; set at most one.",
+		// valid-configuration: port only under basic, settings only under advanced
+		`if data.Settings != nil && data.Kind.ValueString() != "advanced" {`,
+		`if !data.Port.IsNull() && data.Kind.ValueString() != "basic" {`,
+	} {
+		if !strings.Contains(validators, want) {
+			t.Fatalf("conditional_validators.go misses %q:\n%s", want, validators)
+		}
 	}
 
 	license := string(fileByPath(t, out, "internal/services/datasources/licenses/v7/license/datasource.go").Content)
@@ -243,5 +261,50 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 	}
 	if !strings.Contains(regs.Resources.Imports[0], `serversV7HttpServer "example.test/provider/internal/services/resources/servers/v7/http_server"`) {
 		t.Fatalf("import line = %q", regs.Resources.Imports[0])
+	}
+}
+
+// TestUnit_RenderServices_ListEnvelopeIsDataDriven proves the ListWrap defect
+// is closed: the generated list mock keys its envelope on the entity's
+// observed list envelope key, not a hardcoded "value" — and unwraps a bare
+// array when the response carries no envelope.
+func TestUnit_RenderServices_ListEnvelopeIsDataDriven(t *testing.T) {
+	pc := fictionalProviderCore()
+
+	// A vendor that wraps its collection under its own key.
+	m := fictionalModel()
+	m.Resources[0].ListEnvelopeKey = "http_servers"
+	m.Datasources[0].ListEnvelopeKey = "http_servers"
+	m.ListResources[0].ListEnvelopeKey = "records"
+	out, err := RenderServices(pc, m, fictionalBindings())
+	if err != nil {
+		t.Fatalf("RenderServices: %v", err)
+	}
+	resResp := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/mocks/responders.go").Content)
+	if !strings.Contains(resResp, `providermocks.SuccessResponse(200, map[string]any{"http_servers": items})`) {
+		t.Fatalf("resource list mock ignores the envelope key:\n%s", resResp)
+	}
+	dsResp := string(fileByPath(t, out, "internal/services/datasources/servers/v7/http_server/mocks/responders.go").Content)
+	if !strings.Contains(dsResp, `map[string]any{"http_servers": []map[string]any{object()}}`) {
+		t.Fatalf("datasource list mock ignores the envelope key:\n%s", dsResp)
+	}
+	listJSON := string(fileByPath(t, out, "internal/services/list-resources/audit/v7/audit_event/tests/responses/list.json").Content)
+	if !strings.Contains(listJSON, `"records": [`) {
+		t.Fatalf("list-resource fixture ignores the envelope key:\n%s", listJSON)
+	}
+
+	// A vendor that returns a bare array: no wrapper object at all.
+	m = fictionalModel()
+	m.Resources[0].ListEnvelopeKey = ""
+	out, err = RenderServices(pc, m, fictionalBindings())
+	if err != nil {
+		t.Fatalf("RenderServices: %v", err)
+	}
+	bare := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/mocks/responders.go").Content)
+	if !strings.Contains(bare, "providermocks.SuccessResponse(200, items)") {
+		t.Fatalf("a bare-array list must not be wrapped:\n%s", bare)
+	}
+	if strings.Contains(bare, `map[string]any{"`) {
+		t.Fatalf("a bare-array list must emit no envelope object:\n%s", bare)
 	}
 }
