@@ -130,6 +130,8 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 				}
 			}
 
+			assertBeaconListEnvelope(t, root)
+
 			rep, err := Verify(context.Background(), opts)
 			if err != nil {
 				t.Fatalf("Verify after Run: %v", err)
@@ -138,6 +140,37 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 				t.Errorf("Verify after Run found drift: %v", rep.Drifts)
 			}
 		})
+	}
+}
+
+// assertBeaconListEnvelope holds the generated beacon datasource to the
+// envelope the fixture's x-tfpfgen-list-response-shape declares. The
+// document's own list response is a bare array, so a schema-derived envelope
+// would be empty: every wrapper below exists only because the extension
+// carried the audit's finding all the way through derivation into the
+// emitted list code.
+func assertBeaconListEnvelope(t *testing.T, root string) {
+	t.Helper()
+	read := func(parts ...string) string {
+		raw, err := os.ReadFile(filepath.Join(append([]string{root}, parts...)...))
+		if err != nil {
+			t.Fatalf("reading the generated beacon list code: %v", err)
+		}
+		return string(raw)
+	}
+
+	ds := filepath.Join("internal", "services", "datasources", "beacons", "v1", "beacon")
+	if got := read(ds, "mocks", "responders.go"); !strings.Contains(got,
+		`map[string]any{"beacons": []map[string]any{object()}}`) {
+		t.Errorf("the beacon datasource list mock ignores the declared envelope:\n%s", got)
+	}
+	if got := read(ds, "tests", "responses", "datasource.json"); !strings.Contains(got, `"beacons": [`) {
+		t.Errorf("the beacon datasource list fixture ignores the declared envelope:\n%s", got)
+	}
+	res := filepath.Join("internal", "services", "resources", "beacons", "v1", "beacon")
+	if got := read(res, "mocks", "responders.go"); !strings.Contains(got,
+		`map[string]any{"beacons": items}`) {
+		t.Errorf("the beacon resource list mock ignores the declared envelope:\n%s", got)
 	}
 }
 

@@ -41,7 +41,7 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 | **validWhen** | The observation kind claiming a field or block is valid only when a sibling gate field equals a specific value — the core conditional edge. The attribute is the subject field, the condition names the gate field and value, the value is `true`. Extension key `x-tfpfgen-valid-when`; it generates a config validator. Learned by variant diffing: accepted under exactly one gate value, removed under at least one other. |
 | **dependsOn** | The observation kind claiming a field is settable only when a second field is present, whatever that second field's value. The attribute is the dependent field, the value is the name of the field it requires. Extension key `x-tfpfgen-depends-on`. Learned from a `requires` adjustment the API forced and the retry accepted. |
 | **mutuallyExclusive** | The observation kind claiming at most one of a set of fields may be set. Entity-level (empty attribute); the value is the sorted list of the mutually-exclusive field names. Extension key `x-tfpfgen-mutually-exclusive`. Learned when each field is accepted alone but the pair is refused together. |
-| **listResponseShape** | The observation kind recording a collection response's structure: a wrapped envelope (with its key) versus a bare array, plus the pagination style (`cursor`, `offset`, `page`, `none`). Entity-level; read from the live response body, never from the document. |
+| **listResponseShape** | The observation kind recording a collection response's structure: a wrapped envelope (with its key) versus a bare array, plus the pagination style (`cursor`, `offset`, `page`, `none`). Entity-level; read from the live response body, never from the document. Extension key `x-tfpfgen-list-response-shape`, compiled onto the entity's list operation; derivation reads it in preference to the list response schema, which is exactly what the observation exists to contradict. |
 
 ## Fixed spellings
 
@@ -52,7 +52,10 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   `TFPFGEN_AUTH_APP_PRIVATE_KEY`.
 - OpenAPI extensions: `x-tfpfgen-*`.
 - Approved extension values:
-  `x-tfpfgen-update-style: patch-merge | put-full | replace-only`.
+  `x-tfpfgen-update-style: patch-merge | put-full | replace-only`;
+  `x-tfpfgen-list-response-shape: {envelope: wrapped | bare, key: <wrapping
+  key, wrapped only>, pagination: cursor | offset | page | none}` — an
+  omitted `pagination` reads as `none`.
 - Shared workflows, stage-numbered in pipeline order:
   `10-generate.yml`, `20-corrections.yml`, `30-ci.yml`,
   `40-acceptance.yml`, `50-docs.yml`, `60-release.yml`.

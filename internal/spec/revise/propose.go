@@ -302,7 +302,11 @@ func highestOrdinal(dirs ...string) (int, error) {
 }
 
 // compilableKinds is the closed observation-kind vocabulary, for validating
-// the configured auto-accept list before anything is written.
+// the configured auto-accept list before anything is written. Two of its
+// entries — normalisation and derivedDefault — have no correction form yet
+// and compile to a NoForm note; naming them is a no-op rather than an error,
+// because the auto-accept list says which kinds skip review, not which kinds
+// exist.
 var compilableKinds = []string{
 	string(observe.KindWritable), string(observe.KindImmutable),
 	string(observe.KindRequiredByAPI), string(observe.KindRequiredWhen),
@@ -314,13 +318,24 @@ var compilableKinds = []string{
 	string(observe.KindUndocumentedFieldInSpec),
 	string(observe.KindValidWhen), string(observe.KindDependsOn),
 	string(observe.KindMutuallyExclusive), string(observe.KindValidConfiguration),
+	string(observe.KindListResponseShape),
+}
+
+// CompilableKinds is the sorted vocabulary an audit.auto_accept entry must
+// name, as a fresh slice no caller can mutate. Config validation consumes
+// exactly this, so the check a human meets at `tfpfgen config validate` and
+// the one `tfpfgen spec revise` enforces cannot drift apart.
+func CompilableKinds() []string {
+	out := slices.Clone(compilableKinds)
+	slices.Sort(out)
+	return out
 }
 
 func checkAutoAccept(kinds []string) error {
 	for _, k := range kinds {
 		if !slices.Contains(compilableKinds, k) {
 			return fmt.Errorf("audit.auto_accept: %q is not an observation kind (one of %s)",
-				k, strings.Join(compilableKinds, ", "))
+				k, strings.Join(CompilableKinds(), ", "))
 		}
 	}
 	return nil

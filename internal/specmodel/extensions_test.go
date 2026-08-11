@@ -28,6 +28,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Thing'
+    get:
+      operationId: listThings
+      x-tfpfgen-list-response-shape:
+        envelope: wrapped
+        key: things
+        pagination: cursor
+      responses: {}
   /things/{thingId}:
     patch:
       operationId: updateThing
@@ -149,6 +156,10 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	if v, ok := byID["deleteThing"].Extensions.DeleteNotFoundOK(); !ok || !v {
 		t.Errorf("DeleteNotFoundOK = %v, %v", v, ok)
 	}
+	if s, ok := byID["listThings"].Extensions.ListResponseShape(); !ok || !s.Wrapped() ||
+		s.Key != "things" || s.Pagination != "cursor" {
+		t.Errorf("ListResponseShape = %+v, %v", s, ok)
+	}
 
 	// Absence is distinguishable from an explicit false everywhere.
 	unannotated, _ := thing.Property("matchType")
@@ -192,6 +203,54 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	if _, ok := e.ValidConfiguration(); ok {
 		t.Errorf("ValidConfiguration should be absent")
 	}
+	if _, ok := e.ListResponseShape(); ok {
+		t.Errorf("ListResponseShape should be absent")
+	}
+}
+
+// x-tfpfgen-list-response-shape round-trips through the loader in each of
+// its legal forms: wrapped under a key, bare, and either with the pagination
+// style omitted — which reads as "none", the same spelling the compiled
+// correction writes, so a hand-authored document and a generated one settle
+// on one value.
+func TestUnit_Specmodel_ListResponseShapeForms(t *testing.T) {
+	listOp := func(body string) string {
+		return minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-list-response-shape:\n" +
+			indent(body, "        ") + "      responses: {}\n")
+	}
+	cases := []struct {
+		name string
+		body string
+		want ListResponseShape
+	}{
+		{"wrapped", "envelope: wrapped\nkey: items\npagination: cursor",
+			ListResponseShape{Envelope: ListEnvelopeWrapped, Key: "items", Pagination: "cursor"}},
+		{"wrapped without pagination", "envelope: wrapped\nkey: value",
+			ListResponseShape{Envelope: ListEnvelopeWrapped, Key: "value", Pagination: "none"}},
+		{"bare", "envelope: bare\npagination: none",
+			ListResponseShape{Envelope: ListEnvelopeBare, Pagination: "none"}},
+		{"bare without pagination", "envelope: bare",
+			ListResponseShape{Envelope: ListEnvelopeBare, Pagination: "none"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			doc, err := Load([]byte(listOp(tc.body)))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			ops := doc.Operations()
+			if len(ops) != 1 {
+				t.Fatalf("operations = %+v", ops)
+			}
+			got, ok := ops[0].Extensions.ListResponseShape()
+			if !ok || got != tc.want {
+				t.Errorf("ListResponseShape = %+v, %v; want %+v", got, ok, tc.want)
+			}
+			if got.Wrapped() != (tc.want.Envelope == ListEnvelopeWrapped) {
+				t.Errorf("Wrapped() = %v for %+v", got.Wrapped(), got)
+			}
+		})
+	}
 }
 
 // Keys outside the x-tfpfgen- namespace belong to other tools and are
@@ -209,6 +268,12 @@ func TestUnit_Specmodel_ForeignExtensionsPassBy(t *testing.T) {
 	if len(doc.Schemas["A"].Extensions) != 0 {
 		t.Errorf("Extensions = %+v; foreign keys should not be recorded", doc.Schemas["A"].Extensions)
 	}
+}
+
+// listShapeWith puts one inline x-tfpfgen-list-response-shape value on a
+// list operation, for the refusal table.
+func listShapeWith(value string) string {
+	return minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-list-response-shape: " + value + "\n      responses: {}\n")
 }
 
 func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
@@ -318,6 +383,24 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
 		{"valid-configuration variant entries must be scalars",
 			schemaWith("x-tfpfgen-valid-configuration: {discriminator: mode, variants: {a: [[x]]}}"),
 			"each entry must be a non-empty property name"},
+
+		{"list-response-shape must be a mapping", listShapeWith("wrapped"),
+			`must be a mapping with "envelope"`},
+		{"list-response-shape refuses unknown keys", listShapeWith("{envelope: bare, cursorParam: after}"),
+			`unknown key "cursorParam"`},
+		{"list-response-shape refuses an unknown envelope", listShapeWith("{envelope: nested, key: items}"),
+			`must be "wrapped" or "bare", got "nested"`},
+		{"list-response-shape needs an envelope", listShapeWith("{key: items}"),
+			`must be "wrapped" or "bare", got ""`},
+		{"a wrapped envelope needs its key", listShapeWith("{envelope: wrapped, pagination: page}"),
+			`a wrapped envelope needs the "key"`},
+		{"a bare envelope refuses a key", listShapeWith("{envelope: bare, key: items}"),
+			`"key" is meaningless`},
+		{"list-response-shape refuses an unknown pagination style",
+			listShapeWith("{envelope: bare, pagination: spiral}"),
+			`must be one of "cursor", "offset", "page" or "none", got "spiral"`},
+		{"list-response-shape values must be scalars", listShapeWith("{envelope: [bare]}"),
+			"must be a non-empty scalar"},
 	}
 
 	for _, tc := range cases {

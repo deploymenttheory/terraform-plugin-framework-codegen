@@ -292,13 +292,25 @@ func (d *deriver) resource(c specmodel.Classification, names Names) Resource {
 }
 
 // listEnvelopeKey is the wire property a list response wraps its item array
-// under, read from the operation's success schema: empty when the response is
-// a bare array (or absent), otherwise the first array-typed property's wire
-// name. The generated list mock keys its envelope on this instead of assuming
-// every API wraps under "value" — the SDK's collection accessor is derived
-// from the same schema, so the two agree.
+// under: empty when the response is a bare array (or absent), otherwise the
+// wrapping key. The generated list mock keys its envelope on this instead of
+// assuming every API wraps under "value" — the SDK's collection accessor is
+// derived from the same answer, so the two agree.
+//
+// x-tfpfgen-list-response-shape wins where it is present: it carries what a
+// live collection response actually contained, and it is written onto the
+// operation precisely when the document's own list schema was found to be
+// wrong. Absent it, the schema is read as before — the first array-typed
+// property of a wrapping object — so an unaudited document behaves exactly
+// as it did.
 func listEnvelopeKey(list *specmodel.Operation) string {
 	if list == nil {
+		return ""
+	}
+	if shape, ok := list.Extensions.ListResponseShape(); ok {
+		if shape.Wrapped() {
+			return shape.Key
+		}
 		return ""
 	}
 	f := flatten(list.SuccessSchema())

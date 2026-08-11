@@ -1,6 +1,7 @@
 package intermediate_representation
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -177,6 +178,72 @@ components:
 	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "gizmo")
 	if r.ListEnvelopeKey != "gizmos" {
 		t.Errorf("wrapped list derived envelope key %q, want %q", r.ListEnvelopeKey, "gizmos")
+	}
+}
+
+// TestDerive_ListEnvelopeKey_ExtensionBeatsTheSchema: where a list operation
+// carries x-tfpfgen-list-response-shape, the audit's observed envelope is the
+// answer and the response schema is not consulted — the document's own list
+// schema being wrong is the whole reason the key exists.
+func TestDerive_ListEnvelopeKey_ExtensionBeatsTheSchema(t *testing.T) {
+	// The document declares a wrapper keyed "items"; the live API was
+	// observed wrapping under "records".
+	const wrappedDoc = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /gizmos:
+    post:
+      requestBody:
+        content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}
+      responses:
+        "201": {content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}}
+    get:
+      x-tfpfgen-list-response-shape: {envelope: %s}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: {$ref: '#/components/schemas/Gizmo'}
+  /gizmos/{gizmoId}:
+    get:
+      responses:
+        "200": {content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}}
+    delete:
+      responses: {"204": {description: gone}}
+components:
+  schemas:
+    Gizmo:
+      type: object
+      properties:
+        id: {type: string}
+        label: {type: string}
+`
+	cases := []struct {
+		name     string
+		envelope string
+		want     string
+	}{
+		{"a wrapped shape names the real key, not the declared one",
+			"wrapped, key: records, pagination: cursor", "records"},
+		{"a bare shape unwraps a response the document wraps", "bare", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			doc := fmt.Sprintf(wrappedDoc, tc.envelope)
+			r := resourceByKey(t, mustDerive(t, doc, testConfig()), "gizmo")
+			if r.ListEnvelopeKey != tc.want {
+				t.Errorf("resource envelope key = %q, want %q", r.ListEnvelopeKey, tc.want)
+			}
+			d := datasourceByKey(t, mustDerive(t, doc, testConfig()), "gizmo")
+			if d.ListEnvelopeKey != tc.want {
+				t.Errorf("datasource envelope key = %q, want %q", d.ListEnvelopeKey, tc.want)
+			}
+		})
 	}
 }
 
