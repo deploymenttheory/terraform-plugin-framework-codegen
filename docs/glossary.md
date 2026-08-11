@@ -53,9 +53,12 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
 - OpenAPI extensions: `x-tfpfgen-*`.
 - Approved extension values:
   `x-tfpfgen-update-style: patch-merge | put-full | replace-only`.
-- Shared workflows, stage-numbered: `10-generate.yml`, `20-ci.yml`,
-  `30-acceptance.yml`, `40-docs.yml`, `50-release.yml`.
+- Shared workflows, stage-numbered in pipeline order:
+  `10-generate.yml`, `20-corrections.yml`, `30-ci.yml`,
+  `40-acceptance.yml`, `50-docs.yml`, `60-release.yml`.
 - Generation branch in provider repos: `tfpfgen/run-<id>`.
+- Correction branch in provider repos: `tfpfgen/correction-<observationID>`,
+  labelled `tfpfgen-correction`.
 - Machine-append sentinels in provider-core registry files:
   `// tfpfgen:<slot>:imports` and `// tfpfgen:<slot>:registrations`, where
   `<slot>` is `resources`, `datasources`, `list_resources`, or `actions` —

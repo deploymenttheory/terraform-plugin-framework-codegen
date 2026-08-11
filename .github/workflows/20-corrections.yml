@@ -1,0 +1,161 @@
+name: 20-corrections
+
+# The other half of the decision gate. 10-generate.yml opens one PR per
+# proposed correction; this workflow reads the answer back. A merge needs
+# nothing recorded — the correction is already on the default branch, which
+# is what accepting it means. A close without a merge is a rejection, and a
+# rejection has to become a durable marker or the next audit proposes the
+# same correction again forever.
+#
+# Then it continues the pipeline. Corrections arrive in batches and are
+# answered one at a time, so the continuation is debounced: only the close
+# that leaves no open correction PR behind dispatches the generate workflow,
+# and it dispatches with the originating run's ID so the audit is reused
+# rather than repeated. No new API calls, no second bill.
+on:
+  workflow_call:
+    inputs:
+      generate_workflow:
+        description: File name of the caller's generate workflow, dispatched when the last correction PR closes.
+        type: string
+        required: false
+        default: generate.yml
+    secrets:
+      # The same optional App as 10-generate.yml. A workflow_dispatch made
+      # with GITHUB_TOKEN starts no run, so without the App the continuation
+      # cannot dispatch itself; the workflow says so and stops rather than
+      # failing.
+      TFPFGEN_APP_ID:
+        description: App ID of the GitHub App that records decisions and dispatches the continuation.
+        required: false
+      TFPFGEN_APP_PRIVATE_KEY:
+        description: PEM private key of that same GitHub App.
+        required: false
+
+permissions:
+  contents: read
+
+# One at a time, repository-wide. Two PRs closed in the same minute would
+# otherwise both count zero open PRs left and both dispatch a continuation.
+# Queueing rather than cancelling matters: a cancelled run is a rejection
+# that never got written down.
+concurrency:
+  group: tfpfgen-corrections-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  record:
+    name: record the decision
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: contains(github.event.pull_request.labels.*.name, 'tfpfgen-correction')
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: write
+    env:
+      HAS_APP: ${{ secrets.TFPFGEN_APP_ID != '' && secrets.TFPFGEN_APP_PRIVATE_KEY != '' }}
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - name: Mint an App token when the App is installed
+        id: app-token
+        if: env.HAS_APP == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ secrets.TFPFGEN_APP_ID }}
+          private-key: ${{ secrets.TFPFGEN_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      # A merged PR needs no marker: spec/corrections/ on the default branch
+      # already holds the accepted file, and Propose sees an observation
+      # whose fact the revised document now states and proposes nothing.
+      - name: Record the rejection
+        if: github.event.pull_request.merged == false
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          # The branch name is the identity: 10-generate.yml built it from
+          # the observation ID precisely so it could be read back here.
+          obs="${HEAD_REF#tfpfgen/correction-}"
+          if [ "$obs" = "$HEAD_REF" ] || ! printf '%s' "$obs" | grep -Eq '^[0-9a-f]{16}$'; then
+            echo "::error::head branch ${HEAD_REF} names no observation; nothing recorded."
+            exit 1
+          fi
+
+          if [ -f "spec/corrections/rejected/${obs}.json" ]; then
+            echo "::notice::${obs} is already marked rejected."
+            exit 0
+          fi
+
+          # The operator's own words if they left any, so the marker says why
+          # rather than merely that.
+          reason="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/comments" \
+            --paginate --jq 'map(select(.body != "")) | last | .body // empty' 2>/dev/null | head -c 500 || true)"
+          [ -n "$reason" ] || reason="closed without merging"
+
+          mkdir -p spec/corrections/rejected
+          jq -n --arg id "$obs" --arg reason "$reason" \
+                --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                '{observationID: $id, reason: $reason, rejectedAt: $at}' \
+            > "spec/corrections/rejected/${obs}.json"
+
+          # Proposals normally live only in the artifact, but a tree that
+          # committed one must not keep it: the gate would refuse forever.
+          for p in spec/corrections/proposed/*.correction.json; do
+            case "$(jq -r '.evidence // ""' "$p")" in
+              *"#${obs}") git rm -q -- "$p" ;;
+            esac
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -- spec/corrections
+          git commit -q -m "spec(corrections): reject ${obs}" \
+            -m "PR #${PR} was closed without merging. The marker suppresses re-proposal until it is deleted."
+          git push -q origin "HEAD:${BASE}"
+
+      # Corrections are decided one PR at a time; only the last close
+      # continues the pipeline.
+      - name: Continue when nothing is left to decide
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          HAS_TOKEN: ${{ steps.app-token.outputs.token != '' }}
+          BODY: ${{ github.event.pull_request.body }}
+          GENERATE_WORKFLOW: ${{ inputs.generate_workflow }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          open="$(gh pr list --label tfpfgen-correction --state open --json number --jq 'length')"
+          if [ "$open" -ne 0 ]; then
+            echo "::notice::${open} correction PRs are still open; the continuation waits for them."
+            exit 0
+          fi
+
+          # 10-generate.yml writes this line into every correction PR body so
+          # the continuation can resume at revise against the audit that
+          # produced the proposal, instead of paying for a fresh one.
+          run_id="$(printf '%s' "$BODY" | sed -E -n 's/^tfpfgen-run-id: *([0-9]+) *$/\1/p' | tail -1)"
+          if [ -z "$run_id" ]; then
+            echo "::warning::this PR body carries no tfpfgen-run-id line; the continuation cannot reuse the audit."
+            exit 0
+          fi
+
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::notice::every correction is decided. Dispatch ${GENERATE_WORKFLOW} with reuse_audit_run_id=${run_id} to continue — a GITHUB_TOKEN dispatch starts no run, so install the tfpfgen App to have this happen by itself."
+            exit 0
+          fi
+
+          gh workflow run "$GENERATE_WORKFLOW" --ref "$BASE" \
+            -f reuse_audit_run_id="$run_id"
+          echo "::notice::every correction is decided; dispatched ${GENERATE_WORKFLOW} reusing the observations of run ${run_id}."

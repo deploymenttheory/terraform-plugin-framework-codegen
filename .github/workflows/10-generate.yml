@@ -1,12 +1,51 @@
 name: 10-generate
 
-# The eight-job generation pipeline of docs/contract.md, called by a provider
+# The ten-job generation pipeline of docs/contract.md, called by a provider
 # repo's thin caller. Each job is one verb; each arrow between jobs is a named
 # artifact, so GitHub's "Re-run failed jobs" resumes from any point. The
 # caller passes its repository secrets with `secrets: inherit`; only the
-# audit job ever reads their values.
+# audit job ever reads the TFPFGEN_AUTH_* values.
 on:
   workflow_call:
+    # Every secret is declared and none is required: a provider repo sets
+    # only the roles its auth.method needs, and `config validate --secrets`
+    # is what refuses a missing one, with a message naming the role. Declaring
+    # them here is documentation — `secrets: inherit` would hand them over
+    # undeclared — and it keeps the workflow's own secrets context honest.
+    secrets:
+      TFPFGEN_AUTH_TOKEN:
+        description: Bearer token or API key for the audited API.
+        required: false
+      TFPFGEN_AUTH_USERNAME:
+        description: Basic-auth user for the audited API.
+        required: false
+      TFPFGEN_AUTH_PASSWORD:
+        description: Basic-auth password for the audited API.
+        required: false
+      TFPFGEN_AUTH_CLIENT_ID:
+        description: OAuth2 client-credentials client ID for the audited API.
+        required: false
+      TFPFGEN_AUTH_CLIENT_SECRET:
+        description: OAuth2 client-credentials client secret for the audited API.
+        required: false
+      TFPFGEN_AUTH_APP_ID:
+        description: App ID of the GitHub App that authenticates the audited API.
+        required: false
+      TFPFGEN_AUTH_APP_PRIVATE_KEY:
+        description: PEM private key of that same audited-API App.
+        required: false
+      # The pipeline's own GitHub App, distinct from the TFPFGEN_AUTH_APP_*
+      # role above. Correction PRs are opened with this App so that merging
+      # one triggers the caller's workflows; GITHUB_TOKEN-authored pushes
+      # deliberately do not. Without it the job falls back to github.token,
+      # opens the same PRs, and warns that the continuation will not resume
+      # itself.
+      TFPFGEN_APP_ID:
+        description: App ID of the GitHub App that opens correction PRs.
+        required: false
+      TFPFGEN_APP_PRIVATE_KEY:
+        description: PEM private key of that same pipeline App.
+        required: false
     inputs:
       audit:
         description: Run the credentialed live-API audit even when committed observations exist.
@@ -167,17 +206,231 @@ jobs:
           produce: observations
           paths: audit/observations
 
-  # [4] Folds observations into corrections and materializes spec/revised.yaml.
-  # The verb hard-fails while spec/corrections/proposed/ is non-empty, naming
-  # each file a human must accept or reject; no flag exists to look away.
-  # When the audit job skipped (committed observations, audit=false), no
+  # [4] The compiling half of revision, split out so that what the audit
+  # found survives the runner. `--propose-only` folds observations into
+  # spec/corrections/proposed/ and stops, exiting 0 whatever it proposed;
+  # the tree then leaves as the corrections-proposed artifact. Before this
+  # split the one revise job wrote the proposals into the ephemeral
+  # workspace and exited 1 on them, so the upload never ran and every
+  # proposal died with the runner — the decision gate had nothing to decide
+  # on. When the audit job skipped (committed observations, audit=false) no
   # observations artifact exists and the restore pattern tolerates that: the
   # committed observations in the checkout are the input.
+  spec-propose:
+    name: spec propose
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: audit
+    outputs:
+      # How many proposals await a decision. Job [5] reads it rather than
+      # unpacking the artifact to find out whether it has work.
+      proposals: ${{ steps.collect.outputs.proposals }}
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - name: Make the corrections tree the verb writes into
+        run: mkdir -p spec/corrections/proposed spec/corrections/rejected
+      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+        with:
+          restore: spec-imported,observations
+          verb: spec revise --propose-only
+      # The stage action's own `produce` is not used here, and this is the
+      # one place in the pipeline where that is right: a run that proposes
+      # nothing and has no corrections committed yet leaves spec/corrections/
+      # holding only empty directories, which upload-artifact reports as no
+      # files at all. Producing through the stage would fail that legitimate
+      # run. Collecting first and uploading only when a file exists keeps
+      # `if-no-files-found: error` meaningful — it fires when this step
+      # counted files and the upload then found none, which is a real fault.
+      # The staging copy is the stage action's own idiom: uploading
+      # spec/corrections directly would strip the entries to that directory,
+      # and the job that restores them expects them under spec/corrections/.
+      # One root, not two: spec/corrections/proposed/ nests inside it, and
+      # naming both would copy the inner tree into itself.
+      - name: Collect the proposals, preserving their tree shape
+        id: collect
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          proposals=(spec/corrections/proposed/[0-9][0-9][0-9]-*.correction.json)
+          echo "proposals=${#proposals[@]}" >> "$GITHUB_OUTPUT"
+          staged="${RUNNER_TEMP}/corrections-proposed"
+          rm -rf "$staged"
+          mkdir -p "$staged/spec"
+          cp -R spec/corrections "$staged/spec/"
+          echo "dir=$staged" >> "$GITHUB_OUTPUT"
+          if [ -n "$(find "$staged" -type f -print -quit)" ]; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::this run proposed nothing and no corrections are committed; no corrections-proposed artifact."
+          fi
+      - if: steps.collect.outputs.any == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: corrections-proposed
+          path: ${{ steps.collect.outputs.dir }}/
+          if-no-files-found: error
+
+  # [5] One pull request per proposed correction, so the decision the gate
+  # demands is made in the place decisions are made. Merging a PR moves that
+  # correction from proposed/ into spec/corrections/ — accepting it, exactly
+  # as the CLI's accept step does. Closing it unmerged is a rejection, which
+  # 20-corrections.yml records as a marker. The job never blocks the
+  # pipeline: it runs beside [6], not before it.
+  open-correction-prs:
+    name: open correction prs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: spec-propose
+    if: needs.spec-propose.outputs.proposals != '' && needs.spec-propose.outputs.proposals != '0'
+    permissions:
+      contents: write
+      pull-requests: write
+      # Labels are the issues API even on a pull request.
+      issues: write
+    env:
+      # The `secrets` context reaches a step's `if` only through here.
+      HAS_APP: ${{ secrets.TFPFGEN_APP_ID != '' && secrets.TFPFGEN_APP_PRIVATE_KEY != '' }}
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - name: Mint an App token when the App is installed
+        id: app-token
+        if: env.HAS_APP == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ secrets.TFPFGEN_APP_ID }}
+          private-key: ${{ secrets.TFPFGEN_APP_PRIVATE_KEY }}
+      - name: Say so when it is not
+        if: env.HAS_APP != 'true'
+        run: |
+          echo "::warning::TFPFGEN_APP_ID/TFPFGEN_APP_PRIVATE_KEY are unset; correction PRs are opened with github.token. They open and merge normally, but a merge authored by GITHUB_TOKEN raises no event, so the continuation run must be dispatched by hand."
+      # The default branch is the reference for every skip decision below:
+      # what is already accepted, and what is already rejected.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ steps.app-token.outputs.token || github.token }}
+      - name: Restore the proposals beside the workspace, not into it
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: corrections-proposed
+          path: ${{ runner.temp }}/proposed
+      - name: Open one PR per proposal
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          RUN_ID: ${{ github.run_id }}
+          BASE: ${{ github.event.repository.default_branch }}
+          PROPOSED: ${{ runner.temp }}/proposed/spec/corrections/proposed
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          start="$(git rev-parse HEAD)"
+
+          gh label create tfpfgen-correction --color 1D76DB \
+            --description "One audit-derived spec correction awaiting a decision" \
+            >/dev/null 2>&1 || true
+
+          opened=0 skipped=0
+          for f in "$PROPOSED"/[0-9][0-9][0-9]-*.correction.json; do
+            base="$(basename "$f")"
+
+            # The observation ID is the stable identity. The NNN- ordinal is
+            # not: it renumbers whenever an earlier proposal is accepted, so
+            # branching on the file name would open a second PR for a
+            # decision already pending.
+            obs="$(jq -r '.evidence // ""' "$f" | sed -E -n 's|^audit/observations/.*#([0-9a-f]{16})$|\1|p')"
+            if [ -z "$obs" ]; then
+              echo "::warning::${base}: evidence names no observation; skipped."
+              skipped=$((skipped + 1))
+              continue
+            fi
+            branch="tfpfgen/correction-${obs}"
+
+            accepted=(spec/corrections/*.correction.json)
+            if [ ${#accepted[@]} -gt 0 ] &&
+               jq -e -s --arg id "$obs" 'any(.[]; (.evidence // "") | endswith("#" + $id))' \
+                 "${accepted[@]}" >/dev/null; then
+              echo "::notice::${base}: already accepted on ${BASE}; nothing to decide."
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            markers=(spec/corrections/rejected/*.json)
+            if [ ${#markers[@]} -gt 0 ] &&
+               jq -e -s --arg id "$obs" 'any(.[]; .observationID == $id)' \
+                 "${markers[@]}" >/dev/null; then
+              echo "::notice::${base}: rejected on ${BASE}; not re-proposed."
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
+              echo "::notice::${base}: a PR on ${branch} is already open."
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            # The justification prose is where entity, attribute and kind are
+            # spelled; the correction JSON itself carries no such fields.
+            just="$(jq -r '.justification // ""' "$f")"
+            expr='s/^the audit confirmed (an? )?([A-Za-z]+) observation on ([^:]+):.*$'
+            kind="$(printf '%s' "$just" | sed -E -n "${expr}/\\2/p")"
+            subject="$(printf '%s' "$just" | sed -E -n "${expr}/\\3/p")"
+            if [ -z "$subject" ]; then
+              subject="${base#[0-9][0-9][0-9]-}"
+              subject="${subject%.correction.json}"
+            fi
+            [ -n "$kind" ] || kind=correction
+
+            git checkout -q -B "$branch" "$start"
+            mkdir -p spec/corrections
+            cp "$f" "spec/corrections/${base}"
+            git add -- "spec/corrections/${base}"
+            git commit -q -m "spec(corrections): accept ${subject} (${kind})"
+            git push -q --force origin "HEAD:${branch}"
+
+            body="${RUNNER_TEMP}/body.md"
+            {
+              printf 'One audit-derived correction, for one decision.\n\n'
+              printf '**Merging accepts it.** The file below moves from `spec/corrections/proposed/` into `spec/corrections/`, which is exactly what accepting it at the CLI does; the next pipeline run then applies it and the gate stops naming it.\n\n'
+              printf '**Closing it unmerged rejects it.** `20-corrections.yml` writes `spec/corrections/rejected/%s.json`, and the observation is never proposed again until that marker is deleted.\n\n' "$obs"
+              printf '### Justification\n\n%s\n\n' "$just"
+              printf '### Operations (RFC 6902)\n\n```json\n'
+              jq '.operations' "$f"
+              printf '\n```\n\n### Evidence\n\n`%s`\n\n' "$(jq -r '.evidence' "$f")"
+              printf 'Run: %s/%s/actions/runs/%s\n\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RUN_ID"
+              printf 'tfpfgen-run-id: %s\n' "$RUN_ID"
+            } > "$body"
+
+            gh pr create --base "$BASE" --head "$branch" \
+              --label tfpfgen-correction \
+              --title "tfpfgen: ${subject} (${kind})" \
+              --body-file "$body"
+            opened=$((opened + 1))
+          done
+
+          git checkout -q -f "$start"
+          echo "::notice::opened ${opened} correction PRs; skipped ${skipped}."
+
+  # [6] The applying half of revision, and still the gate: plain
+  # `tfpfgen spec revise` hard-fails while spec/corrections/proposed/ holds
+  # anything, naming each file a human must accept or reject. No flag exists
+  # to look away, and [4] adds none — it only publishes the same proposals
+  # first, so the operator now has PRs to answer instead of a lost log.
   spec-revise:
     name: spec revise
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: audit
+    needs: spec-propose
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
         with:
@@ -186,12 +439,12 @@ jobs:
       - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
       - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
         with:
-          restore: spec-imported,observations
+          restore: spec-imported,observations,corrections-proposed
           verb: spec revise
           produce: spec-revised
           paths: spec/revised.yaml
 
-  # [5] Generates the SDK tree with the configured backend at its exact
+  # [7] Generates the SDK tree with the configured backend at its exact
   # version pin, installed just above; `tfpfgen sdk generate` itself refuses
   # a missing or version-drifted tool. Hidden files ride along in the
   # artifact for the .openapi-generator-ignore the tree may carry.
@@ -217,7 +470,7 @@ jobs:
             internal/sdk
             manifest.json
 
-  # [6] Generates the complete provider tree from the revised spec and the
+  # [8] Generates the complete provider tree from the revised spec and the
   # SDK, postchecked with go mod tidy, go build and go vet. The artifact is
   # the whole derived workspace — manifest, derived go.mod and all — with
   # hidden files included for the emitted .gitignore and .golangci.yml,
@@ -247,7 +500,7 @@ jobs:
             !.git
             !.git/**
 
-  # [7] The gate before anything reaches a branch: regeneration is a fixed
+  # [9] The gate before anything reaches a branch: regeneration is a fixed
   # point (tfpfgen provider verify), the tree builds, vets, lints, and its
   # tests pass the coverage gate.
   verify:
@@ -295,7 +548,7 @@ jobs:
           path: verify-report
           if-no-files-found: error
 
-  # [8] The only job that can write: assemble every artifact onto branch
+  # [10] The only job that can write: assemble every artifact onto branch
   # tfpfgen/run-<run_id> and open the PR a human merges. A run that changed
   # nothing opens nothing.
   open-pr:

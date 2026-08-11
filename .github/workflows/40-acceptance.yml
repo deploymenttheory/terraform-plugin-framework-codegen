@@ -1,4 +1,4 @@
-name: 30-acceptance
+name: 40-acceptance
 
 # Live acceptance tests against the real API. The caller wires this to
 # schedule and workflow_dispatch only — never push or pull_request, because
