@@ -40,6 +40,15 @@ type Server struct {
 	objects map[string]map[string]any
 	nextID  int
 	counter int
+
+	// monitors, assignments and agents are the v2 shape resources: fixed,
+	// always-on ground truth the adaptive executor and triangulating
+	// inference are asserted against. Unlike /things they are not driven by
+	// Quirks -- each carries its own store and its behaviour is unconditional,
+	// so a test never has to opt one in. See shapes.go.
+	monitors    *collection
+	assignments *collection
+	agents      *collection
 	// reads counts reads per object, for the eventual-consistency quirk.
 	reads map[string]int
 	// deletes counts delete attempts, for the flaky-delete quirk.
@@ -78,6 +87,7 @@ func New(t interface {
 		nextID:  1,
 		reads:   map[string]int{},
 	}
+	s.initShapes()
 
 	s.Server = httptest.NewServer(http.HandlerFunc(s.handle))
 	t.Cleanup(s.Close)
@@ -163,6 +173,11 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(path, itemPrefix) && r.Method == http.MethodDelete:
 		s.delete(w, r, path)
 	default:
+		// The v2 shape resources live off the /things routes and answer for
+		// themselves; only when none of them claims the request is it a 405.
+		if s.routeShape(w, r, path) {
+			return
+		}
 		s.fail(w, http.StatusMethodNotAllowed, "unsupported", "")
 	}
 }

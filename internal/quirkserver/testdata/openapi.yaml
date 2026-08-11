@@ -69,6 +69,153 @@ paths:
       responses:
         "204":
           description: gone
+  # monitors is the multi-variant shape resource. The document declares its
+  # fields flat and names only kind as required: it does not encode that kind
+  # gates which other fields are valid, nor that interval — declared optional —
+  # is really enforced. That partial oracle is the point: the audit discovers
+  # the variant structure and the true requirement the document omits.
+  /monitors:
+    get:
+      operationId: listMonitors
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Monitor'
+    post:
+      operationId: createMonitor
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonitorCreate'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Monitor'
+  /monitors/{monitorId}:
+    parameters:
+      - name: monitorId
+        in: path
+        schema:
+          type: string
+    get:
+      operationId: getMonitor
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Monitor'
+    put:
+      operationId: updateMonitor
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonitorCreate'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Monitor'
+    delete:
+      operationId: deleteMonitor
+      responses:
+        "204":
+          description: gone
+  # assignments is the reference-requiring shape resource. agent_id is declared
+  # a plain required string; that it must be the id of an agent /agents serves
+  # is the semantic the audit discovers.
+  /assignments:
+    get:
+      operationId: listAssignments
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Assignment'
+    post:
+      operationId: createAssignment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignmentCreate'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+  /assignments/{assignmentId}:
+    parameters:
+      - name: assignmentId
+        in: path
+        schema:
+          type: string
+    get:
+      operationId: getAssignment
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+    put:
+      operationId: updateAssignment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignmentCreate'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+    delete:
+      operationId: deleteAssignment
+      responses:
+        "204":
+          description: gone
+  # agents is the fixed pool assignment.agent_id draws from: list and read
+  # only, no create.
+  /agents:
+    get:
+      operationId: listAgents
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Agent'
+  /agents/{agentId}:
+    parameters:
+      - name: agentId
+        in: path
+        schema:
+          type: string
+    get:
+      operationId: getAgent
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
 components:
   schemas:
     ThingCreate:
@@ -108,3 +255,64 @@ components:
             id:
               type: string
               readOnly: true
+    MonitorCreate:
+      type: object
+      # Only kind is declared required. interval is really required too and the
+      # per-kind fields are gated by kind's value, but the document says none of
+      # that — the audit finds it.
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [ping, web, dns]
+        name:
+          type: string
+        interval:
+          type: integer
+        target_host:
+          type: string
+        domain:
+          type: string
+        dnssec:
+          type: boolean
+        web:
+          type: object
+          properties:
+            url:
+              type: string
+            method:
+              type: string
+    Monitor:
+      allOf:
+        - $ref: '#/components/schemas/MonitorCreate'
+        - type: object
+          properties:
+            id:
+              type: string
+              readOnly: true
+    AssignmentCreate:
+      type: object
+      required: [name, agent_id]
+      properties:
+        name:
+          type: string
+        agent_id:
+          type: string
+    Assignment:
+      allOf:
+        - $ref: '#/components/schemas/AssignmentCreate'
+        - type: object
+          properties:
+            id:
+              type: string
+              readOnly: true
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        name:
+          type: string
+        region:
+          type: string

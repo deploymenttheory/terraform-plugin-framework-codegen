@@ -110,11 +110,13 @@ func TestUnit_Standalone_RefusesAnUnusableAddress(t *testing.T) {
 	}
 }
 
-// TestUnit_Spec_ClassifiesAsAFullLifecycleEntity holds the embedded
-// document to the promise its name makes: specmodel loads it and classifies
-// the /things surface as one entity with every lifecycle role filled — the
-// shape the audit planner and both generators need.
-func TestUnit_Spec_ClassifiesAsAFullLifecycleEntity(t *testing.T) {
+// TestUnit_Spec_ClassifiesTheDocumentedSurface holds the embedded document to
+// the promise its name makes: specmodel loads it and classifies every surface
+// the server serves. /things, /monitors and /assignments are full-lifecycle
+// resources; /agents is the read-only pool, a datasource. This is the shape
+// the audit planner and both generators need — and it is what lets
+// specmodel/strategy meet the v2 shape resources at all.
+func TestUnit_Spec_ClassifiesTheDocumentedSurface(t *testing.T) {
 	t.Parallel()
 	doc, err := specmodel.Load(Spec())
 	if err != nil {
@@ -122,20 +124,54 @@ func TestUnit_Spec_ClassifiesAsAFullLifecycleEntity(t *testing.T) {
 	}
 
 	cls := specmodel.Classify(doc)
-	if len(cls.Entities) != 1 {
-		t.Fatalf("classified %d entities, want exactly 1: %+v", len(cls.Entities), cls.Entities)
+	byPath := make(map[string]specmodel.Classification, len(cls.Entities))
+	for _, e := range cls.Entities {
+		byPath[e.CollectionPath] = e
 	}
-	e := cls.Entities[0]
-	if e.CollectionPath != collectionPath {
-		t.Errorf("collection path = %q, want %q", e.CollectionPath, collectionPath)
-	}
-	for role, op := range map[string]*specmodel.Op{
-		"create": e.Create, "read": e.Read, "update": e.Update, "delete": e.Delete, "list": e.List,
-	} {
-		if op == nil {
-			t.Errorf("the document declares no %s operation", role)
+
+	// The full-lifecycle resources: every role filled.
+	for _, path := range []string{collectionPath, "/monitors", "/assignments"} {
+		e, ok := byPath[path]
+		if !ok {
+			t.Errorf("the document declares no entity at %q", path)
+			continue
+		}
+		for role, op := range map[string]*specmodel.Op{
+			"create": e.Create, "read": e.Read, "update": e.Update, "delete": e.Delete, "list": e.List,
+		} {
+			if op == nil {
+				t.Errorf("%s: the document declares no %s operation", path, role)
+			}
+		}
+		if !hasKind(e.Kinds, specmodel.KindResource) {
+			t.Errorf("%s: classified %v, want a resource", path, e.Kinds)
 		}
 	}
+
+	// /agents is list + read, no create/update/delete: a datasource, not a
+	// resource — the read-only pool assignments borrow from.
+	agents, ok := byPath["/agents"]
+	if !ok {
+		t.Fatalf("the document declares no /agents entity: %+v", cls.Entities)
+	}
+	if agents.Create != nil || agents.Delete != nil {
+		t.Errorf("/agents should be read-only, got create=%v delete=%v", agents.Create, agents.Delete)
+	}
+	if !hasKind(agents.Kinds, specmodel.KindDatasource) {
+		t.Errorf("/agents classified %v, want a datasource", agents.Kinds)
+	}
+	if hasKind(agents.Kinds, specmodel.KindResource) {
+		t.Errorf("/agents classified as a resource; it has no create/delete: %v", agents.Kinds)
+	}
+}
+
+func hasKind(kinds []specmodel.Kind, want specmodel.Kind) bool {
+	for _, k := range kinds {
+		if k == want {
+			return true
+		}
+	}
+	return false
 }
 
 // TestUnit_Spec_ReturnsACopy asserts a caller scribbling on the returned
