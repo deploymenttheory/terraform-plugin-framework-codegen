@@ -7,6 +7,39 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
 )
 
+// refineUpdate sends the update and refines its body against a 4xx exactly as
+// a create is refined: a full-replace update that the API rejects for a
+// missing required field has that field added and is retried, so an update
+// refusal reads as immutability only when the request shape was actually
+// right. It returns the final response and the resolved body it was sent with.
+func (r *runner) refineUpdate(ctx context.Context, ent *entityState, step *plan.Step) (*httpResult, map[string]any, error) {
+	body := cloneAnyMap(step.Body)
+	applied := map[string]bool{}
+	var last *httpResult
+	var sent map[string]any
+	for i := 0; i < maxRefineIters; i++ {
+		resolved, err := r.resolveBody(ctx, ent, body)
+		if err != nil {
+			return nil, nil, err
+		}
+		sent = resolved
+		res, err := r.do(ctx, ent, reqSpec{
+			method: step.Method, path: step.Path, pathValues: step.PathValues, body: resolved,
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+		last = res
+		if res.ok() || !res.refused() {
+			return res, sent, nil
+		}
+		if !r.applyRefinement(ctx, ent, body, res, applied) {
+			return res, sent, nil
+		}
+	}
+	return last, sent, nil
+}
+
 // runUpdateField updates exactly one attribute to a variant value and
 // re-reads the object. What the API did with that one field separates
 // immutable from silently-ignored from server-forced; what it did with
@@ -16,13 +49,7 @@ func (r *runner) runUpdateField(ctx context.Context, ent *entityState, step *pla
 	entity := ent.plan.Entity
 	before := ent.lastRead
 
-	sent, err := r.resolveBody(ctx, ent, step.Body)
-	if err != nil {
-		return err
-	}
-	res, err := r.do(ctx, ent, reqSpec{
-		method: step.Method, path: step.Path, pathValues: step.PathValues, body: sent,
-	})
+	res, sent, err := r.refineUpdate(ctx, ent, step)
 	if err != nil {
 		return err
 	}

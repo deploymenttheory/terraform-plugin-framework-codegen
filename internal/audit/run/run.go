@@ -35,6 +35,9 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/strategy"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
 )
 
 // Auth names how requests authenticate. Secret values are never carried
@@ -66,7 +69,14 @@ type Budgets struct {
 
 // Options is everything Run needs.
 type Options struct {
-	Plan    *plan.Plan
+	Plan *plan.Plan
+	// Doc and Config, when both set, make the run strategy-driven: each
+	// entity's uniform plan steps are replaced by the program its compiled
+	// strategy.Strategy describes, under a complexity-scaled per-entity
+	// budget. When Doc is nil the plan is executed as given — the path the
+	// executor's own unit tests take.
+	Doc     *specmodel.Document
+	Config  *config.Config
 	BaseURL string
 	Auth    Auth
 	// NamePrefix marks every created object's name-bearing fields and
@@ -165,6 +175,12 @@ type Summary struct {
 	// here rather than as an observation because it is about how to read
 	// the other findings, not a finding itself.
 	RejectsUnknownFields map[string]bool `json:"rejectsUnknownFields,omitempty"`
+	// Refinements is every change the adaptive loop made to a body to get it
+	// accepted — a field added, removed, borrowed, or added because another
+	// required it. It is the raw signal a later inference wave folds into
+	// conditional-edge findings; the required-field adds already surface as
+	// requiredByAPI or requiredWhen observations here.
+	Refinements []Refinement `json:"refinements,omitempty"`
 }
 
 // Run executes the plan and returns every observation it derived, however
@@ -176,10 +192,15 @@ type Summary struct {
 // the run only at sandbox or non-production tenants — the toolkit does
 // not police this; it is the operator's responsibility.
 func Run(ctx context.Context, opts Options) ([]observe.Observation, Summary, error) {
+	var hints map[string]map[string]strategy.SynthHint
+	if opts.Plan != nil && opts.Doc != nil && opts.Config != nil {
+		opts.Plan, hints = strategize(opts.Plan, opts.Doc, opts.Config, opts.NamePrefix)
+	}
 	r, err := newRunner(opts)
 	if err != nil {
 		return nil, Summary{}, err
 	}
+	r.hints = hints
 	defer r.ledger.close()
 
 	r.started = time.Now()
@@ -238,6 +259,16 @@ type runner struct {
 	// recipes remembers how each executed entity creates and addresses
 	// its objects, for re-creation and end-of-run deletion.
 	recipes map[string]*entityRecipe
+	// hints carries, per entity, the field synthesis material the refinement
+	// loop draws on when it must add a field a refusal named. Nil on a
+	// non-strategy run.
+	hints map[string]map[string]strategy.SynthHint
+	// borrowed caches one real id per collection the run has borrowed a
+	// reference from, so a second create needing it costs no extra request.
+	borrowed map[string]string
+	// refinements accumulates every change the adaptive loop made, for a
+	// later inference wave.
+	refinements []Refinement
 
 	obs     []observe.Observation
 	summary Summary
@@ -329,6 +360,7 @@ func newRunner(opts Options) (*runner, error) {
 		budget:   budget,
 		registry: map[string]*createdObject{},
 		recipes:  map[string]*entityRecipe{},
+		borrowed: map[string]string{},
 		summary: Summary{
 			RunID:                runID,
 			ByKind:               map[observe.Kind]int{},
@@ -467,6 +499,7 @@ func (r *runner) finishSummary(obs []observe.Observation) {
 			r.summary.TimedOut++
 		}
 	}
+	r.summary.Refinements = sortedRefinements(r.refinements)
 	r.summary.Skipped = len(r.opts.Plan.Skipped)
 	r.summary.Requests = r.reqTotal
 	r.summary.RequestBudget = r.budget.Requests

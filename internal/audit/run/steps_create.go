@@ -11,54 +11,67 @@ import (
 )
 
 // runCreateMinimal creates the object everything later reads, mutates and
-// deletes. A refusal blocks the entity: with no object, nothing further
-// discriminates anything.
+// deletes, refining the body against any 4xx the API answers — a
+// spec-optional-but-really-required field named in a 400 is added and the
+// create retried, yielding a requiredByAPI observation rather than a blocked
+// entity. A refusal the loop cannot heal blocks the entity only when no prior
+// variant has already established the object; a later variant that cannot be
+// built is recorded and skipped.
 func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *plan.Step) error {
-	sent, err := r.resolveBody(ctx, ent, step.Body)
+	body := cloneAnyMap(step.Body)
+	rr, err := r.refineCreate(ctx, ent, ent.recipe, body)
 	if err != nil {
 		return err
 	}
-	obj, res, err := r.createObject(ctx, ent, ent.recipe, step.Body)
-	if err != nil {
-		return err
-	}
-	if obj == nil {
-		if res != nil {
-			ent.cause = &res.excerpt
-			return blockedError{reason: fmt.Sprintf("the minimal create was refused with status %d", res.status)}
+	if rr.obj != nil {
+		sent, err := r.resolveBody(ctx, ent, rr.body)
+		if err != nil {
+			return err
 		}
-		return blockedError{reason: "the minimal create produced no object"}
+		r.registry[ent.plan.Entity] = rr.obj
+		ent.createdAt = time.Now()
+		ent.ev.sent = sent
+		ent.ev.createProof = &rr.res.excerpt
+		return nil
 	}
-	r.registry[ent.plan.Entity] = obj
-	ent.createdAt = time.Now()
-	ent.ev.sent = sent
-	ent.ev.createProof = &res.excerpt
-	return nil
+	if _, exists := r.registry[ent.plan.Entity]; exists {
+		// A prior variant already made the object everything reads; this
+		// variant's create could not be built, which is not a reason to
+		// abandon the entity.
+		return nil
+	}
+	if rr.res != nil {
+		ent.cause = &rr.res.excerpt
+		return blockedError{reason: fmt.Sprintf("the minimal create was refused with status %d", rr.res.status)}
+	}
+	return blockedError{reason: "the minimal create produced no object"}
 }
 
-// runCreateMaximal creates with every writable field populated. Accepted,
-// it extends the per-field evidence to the optional fields; refused, a
-// bounded bisection over the optional set names the field the API
-// objects to, recorded as a rejected value.
+// runCreateMaximal creates with every writable field populated, refining the
+// body against a 4xx: a field the API says is not valid for this variant is
+// removed and the create retried, feeding the validWhen evidence. Accepted, it
+// extends the per-field evidence to the optional fields; refused without a
+// field the loop can act on, a bounded bisection names the culprit.
 func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *plan.Step) error {
-	sent, err := r.resolveBody(ctx, ent, step.Body)
+	body := cloneAnyMap(step.Body)
+	rr, err := r.refineCreate(ctx, ent, ent.recipe, body)
 	if err != nil {
 		return err
 	}
-	obj, res, err := r.createObject(ctx, ent, ent.recipe, step.Body)
-	if err != nil {
-		return err
-	}
-	if obj != nil {
+	if rr.obj != nil {
+		sent, err := r.resolveBody(ctx, ent, rr.body)
+		if err != nil {
+			return err
+		}
 		ent.ev.maximalSent = sent
-		ent.ev.maximalGot = res.object()
-		_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
+		ent.ev.maximalGot = rr.res.object()
+		_, _ = r.deleteObject(ctx, ent, ent.recipe, rr.obj)
 		return nil
 	}
-	if res == nil || !res.refused() {
+	if rr.res == nil || !rr.res.refused() {
 		return nil
 	}
-	return r.bisectMaximal(ctx, ent, step, res)
+	return r.bisectMaximal(ctx, ent, step, rr.res)
 }
 
 // bisectMaximal narrows a refused maximal create to the optional field
@@ -210,10 +223,12 @@ func (r *runner) runUndeclaredSpecField(ctx context.Context, ent *entityState, s
 // one half of a required-when pair — created with the attribute present
 // or omitted under the pinned sibling value.
 func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, ent, ent.recipe, step.Body)
+	body := cloneAnyMap(step.Body)
+	rr, err := r.refineCreate(ctx, ent, ent.recipe, body)
 	if err != nil {
 		return err
 	}
+	obj, res := rr.obj, rr.res
 	if res == nil {
 		return nil
 	}
@@ -229,6 +244,15 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, st
 		return nil
 	}
 	if cond.Attribute == step.Attribute {
+		if !accepted && rr.refined {
+			// The create was partly built by the refinement loop and then
+			// stuck on a sibling requirement it could not satisfy, so the
+			// pinned value itself is not what was refused. Recording it
+			// rejected would be a lie; leave the value unclaimed. A value
+			// refused as sent, with no refinement, is a genuine rejection and
+			// falls through to be recorded.
+			return nil
+		}
 		v := ent.ev.valuesFor(step.Attribute)
 		if accepted {
 			v.Accepted = append(v.Accepted, fmt.Sprint(cond.Equals))

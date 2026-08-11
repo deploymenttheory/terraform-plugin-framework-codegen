@@ -58,7 +58,7 @@ func newAuditRunCommand() *cobra.Command {
 			"responsibility.",
 		Args: exactArgs("tfpfgen audit run [--dir spec] [--config tfpfgen.yaml] [--out audit/observations] [--base-url URL] [--force-api-audit]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, p, lock, err := auditPlan(dir, cfgFile)
+			cfg, p, doc, lock, err := auditPlan(dir, cfgFile)
 			if err != nil {
 				return err
 			}
@@ -72,6 +72,8 @@ func newAuditRunCommand() *cobra.Command {
 
 			obs, sum, runErr := auditrun.Run(cmd.Context(), auditrun.Options{
 				Plan:    p,
+				Doc:     doc,
+				Config:  cfg,
 				BaseURL: base,
 				Auth: auditrun.Auth{
 					Method:       cfg.Auth.Method,
@@ -125,7 +127,7 @@ func newAuditCleanupCommand() *cobra.Command {
 		Short: "delete the live test objects a previous audit left behind",
 		Args:  exactArgs("tfpfgen audit cleanup [--dir spec] [--config tfpfgen.yaml] [--base-url URL] [--prefix NAME]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, p, _, err := auditPlan(dir, cfgFile)
+			cfg, p, _, _, err := auditPlan(dir, cfgFile)
 			if err != nil {
 				return err
 			}
@@ -173,47 +175,47 @@ func newAuditCleanupCommand() *cobra.Command {
 // auditPlan loads everything both audit verbs derive from: the config,
 // the revised document, the operator inputs, and the upstream pin the
 // observations are stamped with.
-func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, store.Lock, error) {
+func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Document, store.Lock, error) {
 	cfg, err := config.Load(cfgFile)
 	if err != nil {
-		return nil, nil, store.Lock{}, err
+		return nil, nil, nil, store.Lock{}, err
 	}
 	if !cfg.Audit.Enabled {
-		return nil, nil, store.Lock{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
+		return nil, nil, nil, store.Lock{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
 	}
 
 	revisedPath := filepath.Join(dir, revise.OutputName)
 	data, err := os.ReadFile(revisedPath) //nolint:gosec // the fixed name under the operator-supplied dir
 	if os.IsNotExist(err) {
-		return nil, nil, store.Lock{}, fmt.Errorf("%s does not exist; the audit reads the revised spec — run `tfpfgen spec revise` first", revisedPath)
+		return nil, nil, nil, store.Lock{}, fmt.Errorf("%s does not exist; the audit reads the revised spec — run `tfpfgen spec revise` first", revisedPath)
 	}
 	if err != nil {
-		return nil, nil, store.Lock{}, err
+		return nil, nil, nil, store.Lock{}, err
 	}
 	doc, err := specmodel.Load(data)
 	if err != nil {
-		return nil, nil, store.Lock{}, fmt.Errorf("%s: %w", revisedPath, err)
+		return nil, nil, nil, store.Lock{}, fmt.Errorf("%s: %w", revisedPath, err)
 	}
 
 	lock, err := store.Verify(dir)
 	if err != nil {
-		return nil, nil, store.Lock{}, err
+		return nil, nil, nil, store.Lock{}, err
 	}
 
 	rawInputs, err := os.ReadFile(plan.InputsPath)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, nil, store.Lock{}, err
+		return nil, nil, nil, store.Lock{}, err
 	}
 	inputs, err := plan.ParseInputs(rawInputs)
 	if err != nil {
-		return nil, nil, store.Lock{}, err
+		return nil, nil, nil, store.Lock{}, err
 	}
 
 	p, err := plan.Derive(doc, cfg, inputs)
 	if err != nil {
-		return nil, nil, store.Lock{}, err
+		return nil, nil, nil, store.Lock{}, err
 	}
-	return cfg, p, lock, nil
+	return cfg, p, doc, lock, nil
 }
 
 // auditBaseURL picks the audited API's root: the flag, then the config
@@ -290,5 +292,13 @@ func printSummary(w io.Writer, out string, obsCount int, sum auditrun.Summary) {
 			continue
 		}
 		fmt.Fprintf(w, "rejectsUnknownFields: %s false\n", e)
+	}
+
+	for _, r := range sum.Refinements {
+		gate := ""
+		if r.GateField != "" {
+			gate = fmt.Sprintf(" (gate %s=%s)", r.GateField, r.GateValue)
+		}
+		fmt.Fprintf(w, "refinement: %s %s.%s%s\n", r.Action, r.Entity, r.Field, gate)
 	}
 }
