@@ -20,7 +20,7 @@ package run
 //	anything else                               -> STOP    (inconclusive)
 //
 // A real API's value-conditional refusals do not always fit that grammar:
-// ThousandEyes answers a dynamic-tag create with "type: Dynamic tags are not
+// A real API may answer a create with a free-form message such as "field X is not
 // supported for the provided object type", which names a field (type) in prose
 // no clause matches. When classification stops, the loop falls back on
 // generalized field extraction (namedKnownFields) — a refusal that names any
