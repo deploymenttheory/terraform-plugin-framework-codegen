@@ -1,4 +1,4 @@
-name: 20-ci
+name: 30-ci
 
 # Push/PR CI for a generated provider repo: the tree builds, vets, lints and
 # tests at the coverage gate, and nothing drifted from what the pinned

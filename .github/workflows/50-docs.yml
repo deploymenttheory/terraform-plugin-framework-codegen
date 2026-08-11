@@ -1,4 +1,4 @@
-name: 40-docs
+name: 50-docs
 
 # Registry documentation as a fixed point: terraform fmt the examples,
 # regenerate docs/ from the provider schema with tfplugindocs, and open a PR

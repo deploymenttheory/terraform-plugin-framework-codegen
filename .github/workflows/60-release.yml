@@ -1,4 +1,4 @@
-name: 50-release
+name: 60-release
 
 # Publishes a provider release to the Terraform Registry: preflight the tree,
 # import the signing key, and let goreleaser build, sign and upload. The

@@ -59,10 +59,11 @@ The caller's `permissions` are the ceiling the called jobs downscope from:
 only `open-pr` keeps write. `secrets: inherit` hands the repo's
 `TFPFGEN_AUTH_*` secrets across; only the audit job reads their values.
 
-The same shape calls `20-ci.yml` (push/PR triggers, no inputs, no
-secrets), `30-acceptance.yml` (schedule/dispatch only, an `environment`
-input whose protection rules gate the run), `40-docs.yml`
-(schedule/dispatch) and `50-release.yml` (tag push, plus the GPG secrets).
+The same shape calls `20-corrections.yml` (a `pull_request: closed`
+trigger, plus the optional App secrets), `30-ci.yml` (push/PR triggers,
+no inputs, no secrets), `40-acceptance.yml` (schedule/dispatch only, an
+`environment` input whose protection rules gate the run), `50-docs.yml`
+(schedule/dispatch) and `60-release.yml` (tag push, plus the GPG secrets).
 
 **The `@v0` pin rule:** until the 1.0.0 contract freeze, callers pin
 `@v0`, which fast-forwards with every compatible pre-1.0 release. The
