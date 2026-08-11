@@ -5,58 +5,171 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
 )
 
-// render_validators.go builds the resource ValidateConfig body from the
-// attribute tree's cross-attribute rules. Each rule becomes exactly one check,
-// keyed on its gate and erroring with a path expression at plan time; common
-// attributes carry no validator. The rule sets arrive in a fixed order from
-// the IR, so the rendered body is deterministic. Templates carry only the
-// method skeleton — every statement here is a finished string.
+// render_validators.go realizes the attribute tree's cross-attribute rules as
+// stock terraform-plugin-framework validator idioms. The mechanical edges use
+// stock validators — mutually-exclusive groups become resourcevalidator.
+// Conflicting in the resource's ConfigValidators, dependencies become
+// attribute-level AlsoRequires in the schema — and the value-conditional edges,
+// which no stock validator covers, become named custom validator types wired
+// through the same ConfigValidators method, one type per edge keyed on its
+// gate. The rule sets arrive in a fixed order from the IR, so every rendered
+// expression is deterministic. Templates carry only the method skeleton — every
+// statement here is a finished string.
 
-// treeHasValidators reports whether a tree declares any cross-attribute rule
-// the ValidateConfig method must enforce.
-func treeHasValidators(t *ir.AttributeTree) bool {
+// treeHasConfigValidators reports whether a tree declares any rule the resource
+// realizes through its ConfigValidators method: the value-conditional customs
+// and the mutually-exclusive stock Conflicting. Dependencies are excluded —
+// they become attribute-level AlsoRequires on the subject attribute instead.
+func treeHasConfigValidators(t *ir.AttributeTree) bool {
 	return t != nil && (len(t.ConditionalRequirements) > 0 || len(t.ConditionalValidities) > 0 ||
-		len(t.Dependencies) > 0 || len(t.MutuallyExclusiveGroups) > 0 || len(t.ValidConfigurations) > 0)
+		len(t.ValidConfigurations) > 0 || len(t.MutuallyExclusiveGroups) > 0)
 }
 
-// validatorBody renders the ValidateConfig body: the requirement, validity,
-// dependency, exclusion and variant checks, in that fixed order.
-func validatorBody(t *ir.AttributeTree, nodes []node) (string, error) {
+// validatorNamer allocates a unique, deterministic Go identifier for each
+// generated custom validator type. The name is keyed on the gate the edge
+// enforces; a numeric suffix disambiguates a gate that carries more than one
+// edge of the same kind.
+type validatorNamer struct{ used map[string]int }
+
+func (vn *validatorNamer) name(base string) string {
+	if vn.used == nil {
+		vn.used = map[string]int{}
+	}
+	n := vn.used[base]
+	vn.used[base]++
+	if n == 0 {
+		return base + "Validator"
+	}
+	return fmt.Sprintf("%s%dValidator", base, n)
+}
+
+// configValidators renders the two halves of the conditional_validators file:
+// exprs, the elements of the ConfigValidators return slice — one finished
+// expression per line — and decls, the named custom validator type
+// declarations those elements refer to. typeName is the resource's Go type.
+func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (exprs, decls string, err error) {
 	byName := map[string]node{}
 	for _, n := range nodes {
 		byName[n.attr.Name] = n
 	}
-	var b strings.Builder
+	var declB, exprB strings.Builder
+	namer := &validatorNamer{}
+
 	for _, req := range t.ConditionalRequirements {
-		if err := emitRequiredWhen(&b, byName, req); err != nil {
-			return "", err
+		var body strings.Builder
+		if err := emitRequiredWhen(&body, byName, req); err != nil {
+			return "", "", err
 		}
+		name := namer.name(lowerFirst(ir.GoName(req.Property)) + "RequiredWhen")
+		desc := fmt.Sprintf("%s must be set when %s is %q.",
+			strings.Join(req.Required, ", "), req.Property, req.Equals)
+		declB.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
+		fmt.Fprintf(&exprB, "\t\t%s{},\n", name)
 	}
 	for _, v := range t.ConditionalValidities {
-		if err := emitValidWhen(&b, byName, v); err != nil {
-			return "", err
+		var body strings.Builder
+		if err := emitValidWhen(&body, byName, v); err != nil {
+			return "", "", err
 		}
-	}
-	for _, dep := range t.Dependencies {
-		if err := emitDependsOn(&b, byName, dep); err != nil {
-			return "", err
-		}
-	}
-	for _, group := range t.MutuallyExclusiveGroups {
-		if err := emitMutuallyExclusive(&b, byName, group); err != nil {
-			return "", err
-		}
+		name := namer.name(lowerFirst(ir.GoName(v.Property)) + "ValidWhen")
+		desc := fmt.Sprintf("%s may be set only when %s is %q.",
+			strings.Join(v.Valid, ", "), v.Property, v.Equals)
+		declB.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
+		fmt.Fprintf(&exprB, "\t\t%s{},\n", name)
 	}
 	for _, vc := range t.ValidConfigurations {
-		if err := emitValidConfiguration(&b, byName, vc); err != nil {
-			return "", err
+		var body strings.Builder
+		if err := emitValidConfiguration(&body, byName, vc); err != nil {
+			return "", "", err
 		}
+		name := namer.name(lowerFirst(ir.GoName(vc.Discriminator)) + "ValidConfiguration")
+		desc := fmt.Sprintf("only the attributes each %s value admits are set.", vc.Discriminator)
+		declB.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
+		fmt.Fprintf(&exprB, "\t\t%s{},\n", name)
 	}
-	return b.String(), nil
+	for _, group := range t.MutuallyExclusiveGroups {
+		expr, err := conflictingExpr(byName, group)
+		if err != nil {
+			return "", "", err
+		}
+		fmt.Fprintf(&exprB, "\t\t%s,\n", expr)
+	}
+	return exprB.String(), declB.String(), nil
+}
+
+// renderCustomValidator renders one named custom validator type: an empty
+// struct implementing resource.ConfigValidator whose ValidateResource fetches
+// the config into the model and runs the edge's checks. body is the finished
+// check block, already indented for a method body.
+func renderCustomValidator(name, typeName, desc, body string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "// %s enforces that %s\n", name, desc)
+	fmt.Fprintf(&b, "type %s struct{}\n\n", name)
+	fmt.Fprintf(&b, "func (v %s) Description(_ context.Context) string {\n\treturn %s\n}\n\n",
+		name, strconv.Quote(desc))
+	fmt.Fprintf(&b, "func (v %s) MarkdownDescription(ctx context.Context) string {\n\treturn v.Description(ctx)\n}\n\n",
+		name)
+	fmt.Fprintf(&b, "func (v %s) ValidateResource(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {\n",
+		name)
+	fmt.Fprintf(&b, "\tvar data %sModel\n", typeName)
+	b.WriteString("\tresp.Diagnostics.Append(req.Config.Get(ctx, &data)...)\n")
+	b.WriteString("\tif resp.Diagnostics.HasError() {\n\t\treturn\n\t}\n\n")
+	b.WriteString(body)
+	b.WriteString("}\n\n")
+	return b.String()
+}
+
+// conflictingExpr renders the stock resourcevalidator.Conflicting for one
+// mutually-exclusive group, validating every named attribute exists.
+func conflictingExpr(byName map[string]node, group []string) (string, error) {
+	paths := make([]string, len(group))
+	for i, name := range group {
+		if _, ok := byName[name]; !ok {
+			return "", fmt.Errorf("mutually-exclusive group names %q, which is not an attribute", name)
+		}
+		paths[i] = fmt.Sprintf("path.MatchRoot(%q)", name)
+	}
+	return fmt.Sprintf("resourcevalidator.Conflicting(%s)", strings.Join(paths, ", ")), nil
+}
+
+// dependencyMap builds the subject→required map the schema builder turns into
+// attribute-level AlsoRequires, validating that every named attribute exists.
+// A dependency is asymmetric — the subject requires its partners, not the
+// other way round — so AlsoRequires attached to the subject is the exact
+// stock idiom, whereas RequiredTogether would over-constrain.
+func dependencyMap(t *ir.AttributeTree, byName map[string]node) (map[string][]string, error) {
+	if len(t.Dependencies) == 0 {
+		return nil, nil
+	}
+	out := make(map[string][]string, len(t.Dependencies))
+	for _, dep := range t.Dependencies {
+		if _, ok := byName[dep.Attribute]; !ok {
+			return nil, fmt.Errorf("dependency names %q, which is not an attribute", dep.Attribute)
+		}
+		for _, req := range dep.Requires {
+			if _, ok := byName[req]; !ok {
+				return nil, fmt.Errorf("dependency requires %q, which is not an attribute", req)
+			}
+		}
+		out[dep.Attribute] = append(out[dep.Attribute], dep.Requires...)
+	}
+	return out, nil
+}
+
+// lowerFirst lowercases the first rune, turning an exported Go name into the
+// unexported identifier a package-private validator type takes.
+func lowerFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	r := []rune(s)
+	r[0] = unicode.ToLower(r[0])
+	return string(r)
 }
 
 // emitRequiredWhen renders x-tfpfgen-required-when: when the gate holds the
@@ -98,50 +211,6 @@ func emitValidWhen(b *strings.Builder, byName map[string]node, v ir.ConditionalV
 		b.WriteString("\t\t}\n")
 	}
 	b.WriteString("\t}\n")
-	return nil
-}
-
-// emitDependsOn renders x-tfpfgen-depends-on / dependentRequired: an attribute
-// may be set only when every attribute it requires is set too.
-func emitDependsOn(b *strings.Builder, byName map[string]node, dep ir.Dependency) error {
-	subject, ok := byName[dep.Attribute]
-	if !ok {
-		return fmt.Errorf("dependency names %q, which is not an attribute", dep.Attribute)
-	}
-	fmt.Fprintf(b, "\tif %s {\n", notNull(subject))
-	for _, req := range dep.Requires {
-		target, ok := byName[req]
-		if !ok {
-			return fmt.Errorf("dependency requires %q, which is not an attribute", req)
-		}
-		fmt.Fprintf(b, "\t\tif %s {\n", nullCheck(target))
-		writeError(b, "\t\t\t", dep.Attribute, "Missing dependency",
-			fmt.Sprintf("%s may be set only when %s is also set.", dep.Attribute, req))
-		b.WriteString("\t\t}\n")
-	}
-	b.WriteString("\t}\n")
-	return nil
-}
-
-// emitMutuallyExclusive renders x-tfpfgen-mutually-exclusive: at most one of
-// the group may be set, checked pairwise so each conflict names both sides.
-func emitMutuallyExclusive(b *strings.Builder, byName map[string]node, group []string) error {
-	for i := 0; i < len(group); i++ {
-		a, ok := byName[group[i]]
-		if !ok {
-			return fmt.Errorf("mutually-exclusive group names %q, which is not an attribute", group[i])
-		}
-		for j := i + 1; j < len(group); j++ {
-			other, ok := byName[group[j]]
-			if !ok {
-				return fmt.Errorf("mutually-exclusive group names %q, which is not an attribute", group[j])
-			}
-			fmt.Fprintf(b, "\tif %s && %s {\n", notNull(a), notNull(other))
-			writeError(b, "\t\t", group[i], "Conflicting attributes",
-				fmt.Sprintf("%s and %s are mutually exclusive; set at most one.", group[i], group[j]))
-			b.WriteString("\t}\n")
-		}
-	}
 	return nil
 }
 

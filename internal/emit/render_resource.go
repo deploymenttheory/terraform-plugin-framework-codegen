@@ -66,11 +66,12 @@ type resourceData struct {
 	HasEC      bool
 	ECDuration string
 
-	HasValidators  bool
-	ValidatorBody  string
-	MinimalChecks  string
-	MaximalChecks  string
-	ProviderModule string
+	HasValidators        bool
+	ConfigValidatorExprs string
+	CustomValidatorDecls string
+	MinimalChecks        string
+	MaximalChecks        string
+	ProviderModule       string
 
 	// Mock responder fields.
 	RegistryName    string
@@ -187,7 +188,16 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	imports.add("sdk", e.bindings.SDK.ImportPath)
 	imports.add("commonschema", e.pc.Module+"/internal/services/common/schema")
 
-	sb := &schemaBuilder{kind: schemaResource, imports: imports}
+	byName := map[string]node{}
+	for _, n := range nodes {
+		byName[n.attr.Name] = n
+	}
+	deps, err := dependencyMap(r.Schema, byName)
+	if err != nil {
+		return err
+	}
+
+	sb := &schemaBuilder{kind: schemaResource, imports: imports, deps: deps, rootDepth: 3}
 	d.SchemaAttributes = sb.attributeDecls(nodes, 3)
 
 	description := "Manages the " + r.Names.Key + " entity."
@@ -249,18 +259,25 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	e.addSDKImports(stateImports, stateBody, d.ReadModel)
 	d.StateImports = stateImports.render()
 
-	// Config validators.
-	if treeHasValidators(r.Schema) {
-		body, err := validatorBody(r.Schema, nodes)
+	// Config validators. Dependencies are already realized as attribute-level
+	// AlsoRequires in the schema above; this file carries the resource's
+	// ConfigValidators method — the stock Conflicting for mutually-exclusive
+	// groups and the named custom validators for the value-conditional edges.
+	if treeHasConfigValidators(r.Schema) {
+		exprs, decls, err := configValidators(d.Type, r.Schema, nodes)
 		if err != nil {
 			return err
 		}
 		d.HasValidators = true
-		d.ValidatorBody = body
+		d.ConfigValidatorExprs = exprs
+		d.CustomValidatorDecls = decls
 		validatorImports := newImportSet(e.pc.Module)
 		validatorImports.add("", "context")
 		validatorImports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
 		validatorImports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
+		if len(r.Schema.MutuallyExclusiveGroups) > 0 {
+			validatorImports.add("", "github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator")
+		}
 		d.ValidatorImports = validatorImports.render()
 	}
 	return nil

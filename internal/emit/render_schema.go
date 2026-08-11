@@ -24,6 +24,13 @@ const (
 type schemaBuilder struct {
 	kind    schemaKind
 	imports *importSet
+	// deps maps a subject attribute to the attributes it requires, realized
+	// as attribute-level AlsoRequires. Set only for a resource schema, and
+	// applied only to the root attributes the dependencies name.
+	deps map[string][]string
+	// rootDepth is the depth the root attributes render at, so AlsoRequires
+	// lands on the top-level subject and never on a same-named nested one.
+	rootDepth int
 }
 
 // attributeDecls renders one level of attribute declarations, one line
@@ -54,16 +61,7 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, frameworkElemType(n.attr.ElemKind))
 	}
 
-	if len(n.attr.OneOf) > 0 && n.attr.Kind == ir.TypeString && n.attr.Nested == nil {
-		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator")
-		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/schema/validator")
-		quoted := make([]string, len(n.attr.OneOf))
-		for i, v := range n.attr.OneOf {
-			quoted[i] = strconv.Quote(v)
-		}
-		fmt.Fprintf(&b, "%s\tValidators: []validator.String{stringvalidator.OneOf(%s)},\n",
-			indent, strings.Join(quoted, ", "))
-	}
+	b.WriteString(sb.validatorLines(n, indent+"\t", depth))
 
 	b.WriteString(sb.planModifierLines(n, indent+"\t"))
 
@@ -82,6 +80,64 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 
 	fmt.Fprintf(&b, "%s},\n", indent)
 	return b.String()
+}
+
+// validatorLines renders one attribute's Validators declaration, combining
+// every stock validator it carries into a single typed slice: the enum OneOf
+// on a closed-set string, and the AlsoRequires that realizes a dependency
+// whose subject is this root attribute. Empty when the attribute carries none.
+func (sb *schemaBuilder) validatorLines(n node, indent string, depth int) string {
+	var exprs []string
+
+	if len(n.attr.OneOf) > 0 && n.attr.Kind == ir.TypeString && n.attr.Nested == nil {
+		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator")
+		quoted := make([]string, len(n.attr.OneOf))
+		for i, v := range n.attr.OneOf {
+			quoted[i] = strconv.Quote(v)
+		}
+		exprs = append(exprs, fmt.Sprintf("stringvalidator.OneOf(%s)", strings.Join(quoted, ", ")))
+	}
+
+	if depth == sb.rootDepth {
+		if reqs, ok := sb.deps[n.attr.Name]; ok {
+			pkg := validatorPackage(n)
+			sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework-validators/"+pkg)
+			sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
+			paths := make([]string, len(reqs))
+			for i, r := range reqs {
+				paths[i] = fmt.Sprintf("path.MatchRoot(%q)", r)
+			}
+			exprs = append(exprs, fmt.Sprintf("%s.AlsoRequires(%s)", pkg, strings.Join(paths, ", ")))
+		}
+	}
+
+	if len(exprs) == 0 {
+		return ""
+	}
+	sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/schema/validator")
+	return fmt.Sprintf("%sValidators: []validator.%s{%s},\n",
+		indent, planModifierValue(n), strings.Join(exprs, ", "))
+}
+
+// validatorPackage is the per-type validator package name, mirroring the
+// per-type plan modifier packages.
+func validatorPackage(n node) string {
+	switch {
+	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
+		return "listvalidator"
+	case n.attr.Nested != nil:
+		return "objectvalidator"
+	case n.attr.Kind == ir.TypeList:
+		return "listvalidator"
+	case n.attr.Kind == ir.TypeBool:
+		return "boolvalidator"
+	case n.attr.Kind == ir.TypeInt64:
+		return "int64validator"
+	case n.attr.Kind == ir.TypeFloat64:
+		return "float64validator"
+	default:
+		return "stringvalidator"
+	}
 }
 
 // attributeType is the schema type name for one attribute.
