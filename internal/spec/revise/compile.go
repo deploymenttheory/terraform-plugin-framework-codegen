@@ -504,8 +504,8 @@ func (c *compiler) deleteNotFoundOK(loc *locator, cls specmodel.Classification, 
 }
 
 // readAfterWrite compiles the measured read lag onto the read operation —
-// unless any of the entity's operations already declares a lag at least as
-// long, since derivation takes the maximum across them.
+// unless the lag is zero, or any of the entity's operations already declares
+// a lag at least as long, since derivation takes the maximum across them.
 func (c *compiler) readAfterWrite(loc *locator, cls specmodel.Classification, o observe.Observation) compiled {
 	if cls.Read == nil {
 		return unplaceable(fmt.Sprintf("entity %s has no read operation to annotate", o.Entity))
@@ -515,6 +515,14 @@ func (c *compiler) readAfterWrite(loc *locator, cls specmodel.Classification, o 
 	if err != nil {
 		// Validate refused this shape on read; reaching here is drift.
 		return unplaceable(fmt.Sprintf("the observed lag %q is not a duration", lag))
+	}
+	// A zero lag is a finding, not a correction: the read never lagged the
+	// write. Compiling it produces an eventual-consistency annotation of "0s",
+	// which changes no generated behaviour and costs a human a decision on a
+	// no-op. The audit is right to record it; revision is right to stop here.
+	if observed <= 0 {
+		return stated(fmt.Sprintf(
+			"the measured read-after-write lag is %s: reads never lagged a write, so there is nothing to declare", lag))
 	}
 	for _, op := range []*specmodel.Op{cls.Create, cls.Read, cls.Update, cls.Delete} {
 		if op == nil {
