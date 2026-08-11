@@ -110,6 +110,10 @@ func stubArgs(t *testing.T, argsFile string) []string {
 // testConfig builds a config selecting the given backend at pin 1.2.3.
 func testConfig(backend string, include, exclude []string) *config.Config {
 	return &config.Config{
+		// Provider and Auth are filled because the kiota backend derives its
+		// --namespace-name through emit.FromConfig, which validates them.
+		Provider: config.Provider{Name: "petstore", RegistryNamespace: "exampleco"},
+		Auth:     config.Auth{Method: config.AuthBearerToken},
 		SDK: config.SDK{
 			Backend:        backend,
 			BackendVersion: "1.2.3",
