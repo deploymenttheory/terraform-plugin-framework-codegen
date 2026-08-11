@@ -1,11 +1,67 @@
 package quirkserver
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
 )
+
+// standaloneClient gives each standalone test its own connection pool.
+// The shared http.DefaultClient is unusable here: httptest.Server.Close —
+// which every parallel test in this package calls at cleanup — closes
+// http.DefaultTransport's idle connections, and a pooled connection torn
+// down mid-flight surfaces as "transport connection broken" in whichever
+// unlucky test was reusing it.
+func standaloneClient(t *testing.T) *http.Client {
+	t.Helper()
+	tr := &http.Transport{}
+	t.Cleanup(tr.CloseIdleConnections)
+	return &http.Client{Transport: tr}
+}
+
+// call performs one request with the test's own client and decodes the
+// JSON answer, if any.
+func call(t *testing.T, c *http.Client, method, url string, body map[string]any) (int, map[string]any) {
+	t.Helper()
+
+	var r io.Reader
+	if body != nil {
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			t.Fatalf("Marshal: %v", err)
+		}
+		r = bytes.NewReader(encoded)
+	}
+
+	req, err := http.NewRequest(method, url, r) //nolint:noctx // a test fixture
+	if err != nil {
+		t.Fatalf("NewRequest: %v", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		t.Fatalf("%s %s: %v", method, url, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("reading the body: %v", err)
+	}
+
+	var out map[string]any
+	if len(bytes.TrimSpace(raw)) > 0 {
+		_ = json.Unmarshal(raw, &out)
+	}
+	return resp.StatusCode, out
+}
 
 // TestUnit_Standalone_ServesTheDocumentedLifecycle boots the standalone
 // server on a real listener and walks every operation the embedded document
@@ -19,9 +75,10 @@ func TestUnit_Standalone_ServesTheDocumentedLifecycle(t *testing.T) {
 		t.Fatalf("Standalone: %v", err)
 	}
 	t.Cleanup(s.Close)
+	c := standaloneClient(t)
 
 	body := map[string]any{"name": "one", "mode": "basic", "code": "abc", "notes": "n"}
-	status, created := post(t, s.CollectionURL(), body)
+	status, created := call(t, c, http.MethodPost, s.CollectionURL(), body)
 	if status != http.StatusCreated {
 		t.Fatalf("POST %s = %d, want 201 (%v)", s.CollectionURL(), status, created)
 	}
@@ -30,16 +87,16 @@ func TestUnit_Standalone_ServesTheDocumentedLifecycle(t *testing.T) {
 		t.Fatalf("the created object carries no id: %v", created)
 	}
 
-	if status, listed := get(t, s.CollectionURL()); status != http.StatusOK || listed[envelopeKey] == nil {
+	if status, listed := call(t, c, http.MethodGet, s.CollectionURL(), nil); status != http.StatusOK || listed[envelopeKey] == nil {
 		t.Fatalf("GET %s = %d %v, want 200 with %q", s.CollectionURL(), status, listed, envelopeKey)
 	}
-	if status, _ := get(t, s.ItemURL(id)); status != http.StatusOK {
+	if status, _ := call(t, c, http.MethodGet, s.ItemURL(id), nil); status != http.StatusOK {
 		t.Fatalf("GET %s = %d, want 200", s.ItemURL(id), status)
 	}
-	if status, _ := put(t, s.ItemURL(id), map[string]any{"name": "two"}); status != http.StatusOK {
+	if status, _ := call(t, c, http.MethodPut, s.ItemURL(id), map[string]any{"name": "two"}); status != http.StatusOK {
 		t.Fatalf("PUT %s = %d, want 200", s.ItemURL(id), status)
 	}
-	if status, _ := do(t, http.MethodDelete, s.ItemURL(id), nil); status != http.StatusNoContent {
+	if status, _ := call(t, c, http.MethodDelete, s.ItemURL(id), nil); status != http.StatusNoContent {
 		t.Fatalf("DELETE %s = %d, want 204", s.ItemURL(id), status)
 	}
 }
@@ -104,15 +161,16 @@ func TestUnit_StandaloneQuirks_DeviatesFromTheDocument(t *testing.T) {
 		t.Fatalf("Standalone: %v", err)
 	}
 	t.Cleanup(s.Close)
+	c := standaloneClient(t)
 
-	status, created := post(t, s.CollectionURL(),
+	status, created := call(t, c, http.MethodPost, s.CollectionURL(),
 		map[string]any{"name": "one", "mode": "basic", "code": "MiXeD", "notes": "kept?"})
 	if status != http.StatusCreated {
 		t.Fatalf("POST = %d, want 201 (%v)", status, created)
 	}
 	id, _ := created["id"].(string)
 
-	_, read := get(t, s.ItemURL(id))
+	_, read := call(t, c, http.MethodGet, s.ItemURL(id), nil)
 	if _, present := read["notes"]; present {
 		t.Errorf("notes survived a read; the profile says it is silently discarded: %v", read)
 	}
@@ -123,7 +181,7 @@ func TestUnit_StandaloneQuirks_DeviatesFromTheDocument(t *testing.T) {
 		t.Errorf("code = %v, want the normalised %q", got, "mixed")
 	}
 	first, _ := read["etag"].(string)
-	_, again := get(t, s.ItemURL(id))
+	_, again := call(t, c, http.MethodGet, s.ItemURL(id), nil)
 	if second, _ := again["etag"].(string); first == "" || first == second {
 		t.Errorf("etag = %q then %q, want a volatile undeclared field", first, second)
 	}

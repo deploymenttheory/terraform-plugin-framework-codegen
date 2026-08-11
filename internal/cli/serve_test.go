@@ -80,8 +80,14 @@ func TestUnit_ServeQuirkserver_ServesWritesTheSpecAndStopsOnCancel(t *testing.T)
 		t.Error("the written spec differs from quirkserver.Spec()")
 	}
 
-	// The announced URL serves the documented surface.
-	resp, err := http.Post(base+"/things", "application/json", //nolint:noctx // a test
+	// The announced URL serves the documented surface. A private transport,
+	// not http.DefaultClient: parallel tests elsewhere close httptest
+	// servers, and that closes the default transport's idle connections
+	// mid-flight.
+	tr := &http.Transport{}
+	t.Cleanup(tr.CloseIdleConnections)
+	client := &http.Client{Transport: tr}
+	resp, err := client.Post(base+"/things", "application/json", //nolint:noctx // a test
 		strings.NewReader(`{"name":"one","mode":"basic","code":"abc","notes":"n"}`))
 	if err != nil {
 		t.Fatalf("POST %s/things: %v", base, err)
