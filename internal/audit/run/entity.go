@@ -166,10 +166,15 @@ func recipeOf(ep *plan.EntityPlan) *entityRecipe {
 		s := &ep.Steps[i]
 		switch s.Kind {
 		case plan.StepCreateMinimal:
-			rec.collectionPath = s.Path
-			rec.collectionValues = s.PathValues
-			rec.createMethod = s.Method
-			rec.minimalBody = s.Body
+			// First wins: a strategy program carries one createMinimal per
+			// variant, and the baseline (first) is the simplest body to
+			// re-create a parent or seed the cleanup recipe from.
+			if rec.collectionPath == "" {
+				rec.collectionPath = s.Path
+				rec.collectionValues = s.PathValues
+				rec.createMethod = s.Method
+				rec.minimalBody = s.Body
+			}
 		case plan.StepReadWithRetry, plan.StepRead:
 			if rec.itemPath == "" {
 				rec.itemPath = s.Path
