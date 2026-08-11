@@ -111,9 +111,17 @@ func Load(dir string) ([]Correction, error) {
 	return corrections, nil
 }
 
-// Apply applies every correction in order to the YAML document and
-// re-encodes it, preserving document order and node styles so the revised
-// copy differs from the imported document by exactly the corrected nodes.
+// Apply applies every correction to the YAML document and re-encodes it,
+// preserving document order and node styles so the revised copy differs from
+// the imported document by exactly the corrected nodes.
+//
+// Operations run in a dependency order, not raw file order: an add that
+// creates a container node runs before any operation addressing a descendant
+// of it, so a serverDefault on /properties/aid can be accepted in one file
+// while the undocumentedFieldInSpec that adds /properties/aid lives in
+// another that sorts later. Independent operations keep their file order, and
+// the order within a single correction is preserved, so an enum edit's
+// test-then-remove pair stays adjacent and in sequence.
 func Apply(specYAML []byte, corrections []Correction) ([]byte, error) {
 	var root yaml.Node
 	if err := yaml.Unmarshal(specYAML, &root); err != nil {
@@ -123,11 +131,9 @@ func Apply(specYAML []byte, corrections []Correction) ([]byte, error) {
 		return nil, fmt.Errorf("the imported document is not a single YAML document")
 	}
 
-	for _, c := range corrections {
-		for i, op := range c.Operations {
-			if err := apply(root.Content[0], op); err != nil {
-				return nil, fmt.Errorf("%s operation %d (%s %s): %w", c.File, i+1, op.Op, op.Path, err)
-			}
+	for _, fo := range dependencyOrder(flatten(corrections)) {
+		if err := apply(root.Content[0], fo.op); err != nil {
+			return nil, fmt.Errorf("%s operation %d (%s %s): %w", fo.file, fo.opIndex, fo.op.Op, fo.op.Path, err)
 		}
 	}
 
@@ -138,6 +144,102 @@ func Apply(specYAML []byte, corrections []Correction) ([]byte, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// flatOp is one operation lifted out of its correction, keeping enough of its
+// origin — the file it came from and its 1-based index within that file — to
+// name it in an error exactly as before once ordering has moved it.
+type flatOp struct {
+	file    string
+	opIndex int
+	op      Operation
+}
+
+// flatten lists every correction's operations in file order, the order that
+// is preserved among operations no dependency reorders.
+func flatten(corrections []Correction) []flatOp {
+	var flat []flatOp
+	for _, c := range corrections {
+		for i, op := range c.Operations {
+			flat = append(flat, flatOp{file: c.File, opIndex: i + 1, op: op})
+		}
+	}
+	return flat
+}
+
+// dependencyOrder is a stable topological sort of the flattened operations:
+// an operation whose path descends from an add's path runs after that add,
+// and operations unrelated by that rule keep their input order. The relation
+// is a strict partial order (a proper prefix is strictly shorter), so it can
+// never cycle; the guarded fallback exists only so a future non-prefix rule
+// cannot deadlock silently.
+func dependencyOrder(flat []flatOp) []flatOp {
+	n := len(flat)
+	tokens := make([][]string, n)
+	for i := range flat {
+		// A malformed path yields no tokens; it constrains nothing and
+		// surfaces its own error when apply reaches it.
+		if toks, err := pointerTokens(flat[i].op.Path); err == nil {
+			tokens[i] = toks
+		}
+	}
+
+	indegree := make([]int, n)
+	dependents := make([][]int, n)
+	for i := range flat {
+		for j := range flat {
+			if i == j {
+				continue
+			}
+			// j must run before i when j creates a container i lives inside.
+			if flat[j].op.Op == "add" && len(tokens[j]) > 0 && properPrefix(tokens[j], tokens[i]) {
+				dependents[j] = append(dependents[j], i)
+				indegree[i]++
+			}
+		}
+	}
+
+	ordered := make([]flatOp, 0, n)
+	done := make([]bool, n)
+	for len(ordered) < n {
+		next := -1
+		for i := 0; i < n; i++ {
+			if !done[i] && indegree[i] == 0 {
+				next = i
+				break
+			}
+		}
+		if next == -1 {
+			for i := 0; i < n; i++ {
+				if !done[i] {
+					ordered = append(ordered, flat[i])
+					done[i] = true
+				}
+			}
+			break
+		}
+		done[next] = true
+		ordered = append(ordered, flat[next])
+		for _, d := range dependents[next] {
+			indegree[d]--
+		}
+	}
+	return ordered
+}
+
+// properPrefix reports whether a addresses a strict ancestor of b: every
+// token of a matches b's, and b has more. Compared token by token, never as
+// strings, so /a/b is not read as a prefix of /a/bc.
+func properPrefix(a, b []string) bool {
+	if len(a) >= len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // apply performs one operation against the document's top node.
