@@ -37,7 +37,7 @@ var descriptions = map[string]string{
 	"audit.name_prefix":           "Prefix every live object the audit creates carries; cleanup matches on it.",
 	"audit.max_objects":           "Budget of live objects one audit run may create.",
 	"audit.rate_limit_rps":        "Requests per second the audit may send to the live API.",
-	"audit.auto_accept":           "Correction categories folded in by `tfpfgen spec revise` without waiting for a human.",
+	"audit.auto_accept":           "Observation kinds whose compiled corrections `tfpfgen spec revise` accepts without waiting for a human.",
 	"services.exclude":            "Spec entities that become no provider code.",
 }
 
@@ -45,8 +45,9 @@ var descriptions = map[string]string{
 // the same constants the validator enforces.
 func allowedValues() map[string][]string {
 	return map[string][]string{
-		"sdk.backend": {BackendKiota, BackendOpenAPIGenerator},
-		"auth.method": authMethods(),
+		"sdk.backend":       {BackendKiota, BackendOpenAPIGenerator},
+		"auth.method":       authMethods(),
+		"audit.auto_accept": autoAcceptKinds(),
 	}
 }
 
@@ -161,7 +162,15 @@ func Reference() string {
 			fmt.Fprintf(&b, "| `%s` | %s | %s | %s |\n", l.path, l.typ, def, descriptions[l.path])
 		}
 		for _, l := range s.leaves {
-			if vals, ok := enums[l.path]; ok {
+			vals, ok := enums[l.path]
+			switch {
+			case !ok:
+			case strings.HasPrefix(l.typ, "list of"):
+				// A list key's closed set constrains each entry, not the
+				// whole value; saying so keeps the reference readable as a
+				// rule rather than as a required value.
+				fmt.Fprintf(&b, "\nEach `%s` entry is one of: %s.\n", l.path, backtickList(vals))
+			default:
 				fmt.Fprintf(&b, "\n`%s` is a closed set: %s.\n", l.path, backtickList(vals))
 			}
 		}

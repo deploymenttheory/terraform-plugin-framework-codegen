@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/revise"
 )
 
 // dnsLabel matches the names the registry and file layout accept.
@@ -99,9 +102,28 @@ func (c *Config) problems() []string {
 	if c.Audit.RateLimitRPS < 1 {
 		report("audit.rate_limit_rps: %d is not a positive request rate", c.Audit.RateLimitRPS)
 	}
+	for i, kind := range c.Audit.AutoAccept {
+		if !slices.Contains(autoAcceptKinds(), kind) {
+			report("audit.auto_accept[%d]: %q is not an observation kind (one of %s)",
+				i, kind, strings.Join(autoAcceptKinds(), ", "))
+		}
+	}
 
 	return p
 }
+
+// autoAcceptKinds is the closed set an audit.auto_accept entry must name,
+// taken from the revision stage itself rather than copied here: `tfpfgen
+// spec revise` refuses the same list at the same vocabulary, and two
+// hand-kept copies of a closed set drift the moment a kind is added.
+// internal/spec/revise imports nothing from internal/config, so consuming it
+// costs no cycle.
+//
+// The set is every observation kind revision knows, which includes the two
+// with no correction form yet: listing one is inert — the observation is
+// reported as NoForm and nothing is written — where refusing it here would
+// fail a config that `spec revise` runs happily.
+func autoAcceptKinds() []string { return revise.CompilableKinds() }
 
 func authMethods() []string {
 	return []string{AuthBearerToken, AuthAPIKeyHeader, AuthBasic, AuthOAuth2ClientCredentials, AuthGitHubApp}

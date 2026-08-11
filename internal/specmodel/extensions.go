@@ -55,7 +55,33 @@ const (
 	// ExtValidConfiguration records, at the schema level, a discriminator
 	// property and the per-value sets of properties valid under each value.
 	ExtValidConfiguration = "x-tfpfgen-valid-configuration"
+	// ExtListResponseShape records, on a list operation, how the live
+	// collection response is really structured: wrapped under a key or a
+	// bare array, plus the pagination style it advertises. It sits on the
+	// operation rather than the response schema because it exists precisely
+	// where the document's own list schema is wrong.
+	ExtListResponseShape = "x-tfpfgen-list-response-shape"
 )
+
+// The envelope spellings x-tfpfgen-list-response-shape admits.
+const (
+	// ListEnvelopeWrapped: the items sit under a key of an object.
+	ListEnvelopeWrapped = "wrapped"
+	// ListEnvelopeBare: the response is the item array itself.
+	ListEnvelopeBare = "bare"
+)
+
+// listPaginations are the pagination styles the extension admits, matching
+// the observation vocabulary the audit records them in.
+var listPaginations = map[string]bool{
+	"cursor": true, "offset": true, "page": true, "none": true,
+}
+
+// ValidListPagination reports whether s is a pagination style
+// x-tfpfgen-list-response-shape admits. Whatever compiles the key must be
+// able to ask before writing it, or a vocabulary drift would land as a
+// document this package then refuses to load.
+func ValidListPagination(s string) bool { return listPaginations[s] }
 
 // RequiredWhen is one value-conditional requirement: the annotated property
 // is required when the named sibling property equals the value.
@@ -101,6 +127,22 @@ type ValidVariant struct {
 	Fields []string
 }
 
+// ListResponseShape is one list operation's collection-response structure,
+// as the audit found it on the wire rather than as the document declares it.
+type ListResponseShape struct {
+	// Envelope is ListEnvelopeWrapped when the items sit under a key of an
+	// object, ListEnvelopeBare when the response is the array itself.
+	Envelope string
+	// Key is the wrapping key when the envelope is wrapped, empty for bare.
+	Key string
+	// Pagination names the advertised style: "cursor", "offset", "page" or
+	// "none". A document that omits it means "none".
+	Pagination string
+}
+
+// Wrapped reports whether the response wraps its items under Key.
+func (s ListResponseShape) Wrapped() bool { return s.Envelope == ListEnvelopeWrapped }
+
 // extensionShapes maps each known key to its value parser. The shape is
 // checked once at load, against the document, where the error can carry a
 // location — not at access time, where it could only panic or lie.
@@ -118,6 +160,7 @@ var extensionShapes = map[string]func(n *yaml.Node, at string) (any, error){
 	ExtDependsOn:               extDependsOn,
 	ExtMutuallyExclusive:       extMutuallyExclusive,
 	ExtValidConfiguration:      extValidConfiguration,
+	ExtListResponseShape:       extListResponseShape,
 }
 
 // parseExtensions collects and shape-checks a mapping node's x-tfpfgen-*
@@ -347,6 +390,55 @@ func extValidConfiguration(n *yaml.Node, at string) (any, error) {
 	return vc, nil
 }
 
+// extListResponseShape parses x-tfpfgen-list-response-shape: a mapping with
+// "envelope" ("wrapped" or "bare"), "key" (the wrapping key, required by and
+// only meaningful for a wrapped envelope) and an optional "pagination"
+// naming the advertised style. A wrapped envelope with no key is refused
+// here, at the document, rather than downstream where it could only be read
+// as "bare" and quietly unwrap a response that is not an array.
+func extListResponseShape(n *yaml.Node, at string) (any, error) {
+	if n.Kind != yaml.MappingNode {
+		return nil, fmt.Errorf("%s: must be a mapping with \"envelope\" and, when wrapped, \"key\"", at)
+	}
+	var s ListResponseShape
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		key, val := n.Content[i].Value, deref(n.Content[i+1])
+		switch key {
+		case "envelope":
+			s.Envelope = val.Value
+		case "key":
+			s.Key = val.Value
+		case "pagination":
+			s.Pagination = val.Value
+		default:
+			return nil, fmt.Errorf("%s: unknown key %q; only \"envelope\", \"key\" and \"pagination\" are allowed", at, key)
+		}
+		if val.Kind != yaml.ScalarNode || val.Value == "" {
+			return nil, fmt.Errorf("%s.%s: must be a non-empty scalar", at, key)
+		}
+	}
+	switch s.Envelope {
+	case ListEnvelopeWrapped:
+		if s.Key == "" {
+			return nil, fmt.Errorf("%s: a wrapped envelope needs the \"key\" its items sit under", at)
+		}
+	case ListEnvelopeBare:
+		if s.Key != "" {
+			return nil, fmt.Errorf("%s: a bare envelope wraps nothing, so \"key\" is meaningless", at)
+		}
+	default:
+		return nil, fmt.Errorf("%s.envelope: must be %q or %q, got %q",
+			at, ListEnvelopeWrapped, ListEnvelopeBare, s.Envelope)
+	}
+	if s.Pagination == "" {
+		s.Pagination = "none"
+	}
+	if !listPaginations[s.Pagination] {
+		return nil, fmt.Errorf("%s.pagination: must be one of \"cursor\", \"offset\", \"page\" or \"none\", got %q", at, s.Pagination)
+	}
+	return s, nil
+}
+
 // The accessors all return (value, ok) so a consumer can tell an explicit
 // false from an absent key — the audit planner treats "observed false" and
 // "never observed" differently, and collapsing them here would lose that.
@@ -382,6 +474,12 @@ func (e Extensions) MutuallyExclusive() ([]string, bool) {
 func (e Extensions) ValidConfiguration() (ValidConfiguration, bool) {
 	vc, ok := e[ExtValidConfiguration].(ValidConfiguration)
 	return vc, ok
+}
+
+// ListResponseShape reads x-tfpfgen-list-response-shape.
+func (e Extensions) ListResponseShape() (ListResponseShape, bool) {
+	s, ok := e[ExtListResponseShape].(ListResponseShape)
+	return s, ok
 }
 
 // EventualConsistency reads x-tfpfgen-eventual-consistency.

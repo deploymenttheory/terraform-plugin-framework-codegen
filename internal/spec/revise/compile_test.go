@@ -480,6 +480,51 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
+			name: "listResponseShape annotates the list operation with the observed envelope",
+			kind: observe.KindListResponseShape,
+			value: observe.ListResponseShape{
+				Envelope: "wrapped", Key: "tags", Pagination: "cursor",
+			},
+			want: `{
+  "justification": "the audit confirmed a listResponseShape observation on tag: the live list response wraps its item array under \"tags\", pagination cursor (x-tfpfgen-list-response-shape)",
+  "evidence": "audit/observations/tag.observations.json#%s",
+  "operations": [
+    {
+      "op": "add",
+      "path": "/paths/~1tags/get/x-tfpfgen-list-response-shape",
+      "value": {
+        "envelope": "wrapped",
+        "key": "tags",
+        "pagination": "cursor"
+      }
+    }
+  ]
+}
+`,
+		},
+		{
+			name: "a bare list response is marked bare, not left implicit",
+			kind: observe.KindListResponseShape,
+			value: observe.ListResponseShape{
+				Envelope: "bare", Pagination: "none",
+			},
+			want: `{
+  "justification": "the audit confirmed a listResponseShape observation on tag: the live list response is a bare item array, pagination none (x-tfpfgen-list-response-shape)",
+  "evidence": "audit/observations/tag.observations.json#%s",
+  "operations": [
+    {
+      "op": "add",
+      "path": "/paths/~1tags/get/x-tfpfgen-list-response-shape",
+      "value": {
+        "envelope": "bare",
+        "pagination": "none"
+      }
+    }
+  ]
+}
+`,
+		},
+		{
 			name: "ignoredOnUpdate becomes its extension",
 			attr: "mode", kind: observe.KindIgnoredOnUpdate, value: true,
 			want: `{

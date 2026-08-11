@@ -61,7 +61,9 @@ The schema is owned by `internal/config`; this page is generated from it, so eve
 | `audit.name_prefix` | string | `"tfpfgen"` | Prefix every live object the audit creates carries; cleanup matches on it. |
 | `audit.max_objects` | integer | `25` | Budget of live objects one audit run may create. |
 | `audit.rate_limit_rps` | integer | `2` | Requests per second the audit may send to the live API. |
-| `audit.auto_accept` | list of string | — | Correction categories folded in by `tfpfgen spec revise` without waiting for a human. |
+| `audit.auto_accept` | list of string | — | Observation kinds whose compiled corrections `tfpfgen spec revise` accepts without waiting for a human. |
+
+Each `audit.auto_accept` entry is one of: `deleteNotFoundOK`, `dependsOn`, `derivedDefault`, `ignoredOnUpdate`, `immutable`, `listResponseShape`, `mutuallyExclusive`, `normalisation`, `readAfterWrite`, `requiredByAPI`, `requiredWhen`, `serverDefault`, `serverForced`, `undocumentedFieldInSpec`, `updateStyle`, `validConfiguration`, `validWhen`, `values`, `volatile`, `writable`.
 
 ## `services`
 

@@ -112,6 +112,14 @@ paths:
                 $ref: '#/components/schemas/Beacon'
     get:
       operationId: ListBeacons
+      # The document below declares a bare array; the live API wraps its
+      # items under "beacons". The audit's listResponseShape observation is
+      # what this key records, and generation reads it in preference to the
+      # schema — the fixture's one deliberately-lying response.
+      x-tfpfgen-list-response-shape:
+        envelope: wrapped
+        key: beacons
+        pagination: none
       responses:
         "200":
           description: Every beacon.

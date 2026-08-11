@@ -123,13 +123,7 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 	case observe.KindValidConfiguration:
 		return c.validConfiguration(loc, cls, o), nil
 	case observe.KindListResponseShape:
-		// A list-response-shape finding is diagnostic: it records what the
-		// live collection envelope actually is so a human can see whether the
-		// document's list response schema matches reality. The emitter reads
-		// the envelope from that schema in the revised document, so there is
-		// no x-tfpfgen-* correction to compile here.
-		return compiled{category: catNoForm,
-			reason: "list-response-shape is diagnostic; the emitter reads the envelope from the list response schema"}, nil
+		return c.listResponseShape(loc, cls, o)
 	default:
 		// observe.Read validates kinds against the closed set, so reaching
 		// here means the sets have drifted — the failure mode an evidence
@@ -539,6 +533,99 @@ func (c *compiler) readAfterWrite(loc *locator, cls specmodel.Classification, o 
 		justification: fmt.Sprintf("the audit confirmed a readAfterWrite observation on %s: "+
 			"a read may lag a write by up to %s (%s)", o.Entity, lag, specmodel.ExtEventualConsistency),
 	}
+}
+
+// listResponseShape compiles the observed collection-response structure onto
+// the entity's list operation. It is annotated beside the operation rather
+// than left to the document's own list response schema because that schema
+// is exactly what the observation was recorded to contradict: every API
+// spells its envelope differently and the document routinely gets it wrong,
+// so derivation must be able to read what the wire actually carried.
+func (c *compiler) listResponseShape(loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
+	var shape observe.ListResponseShape
+	raw, err := json.Marshal(o.Value)
+	if err == nil {
+		err = json.Unmarshal(raw, &shape)
+	}
+	if err != nil {
+		return compiled{}, fmt.Errorf("observation %s: its value is not a list-response-shape record: %w", o.ID, err)
+	}
+	if cls.List == nil {
+		return unplaceable(fmt.Sprintf("entity %s has no list operation to annotate", o.Entity)), nil
+	}
+	// Everything the extension will carry is checked here, against the
+	// vocabulary specmodel enforces at load: a correction that compiles into
+	// a document the loader then refuses would break every later stage, and
+	// the observation store is hand-editable enough for that to happen.
+	wrapped := shape.Envelope == specmodel.ListEnvelopeWrapped
+	switch {
+	case !wrapped && shape.Envelope != specmodel.ListEnvelopeBare:
+		return unplaceable(fmt.Sprintf("the observed list response on %s names the envelope %q, "+
+			"which is neither %q nor %q", o.Entity, shape.Envelope,
+			specmodel.ListEnvelopeWrapped, specmodel.ListEnvelopeBare)), nil
+	case wrapped && shape.Key == "":
+		return unplaceable(fmt.Sprintf(
+			"the observed list response on %s is wrapped but names no envelope key", o.Entity)), nil
+	case !wrapped && shape.Key != "":
+		return unplaceable(fmt.Sprintf("the observed list response on %s is bare but names the "+
+			"envelope key %q, so what it found cannot be stated", o.Entity, shape.Key)), nil
+	}
+	if shape.Pagination == "" {
+		shape.Pagination = "none"
+	}
+	if !specmodel.ValidListPagination(shape.Pagination) {
+		return unplaceable(fmt.Sprintf("the observed list response on %s names the pagination style %q, "+
+			"which is not one of cursor, offset, page, none", o.Entity, shape.Pagination)), nil
+	}
+
+	// Sorted map keys make the correction's JSON byte-stable, and the key is
+	// carried only where it means something.
+	value := map[string]string{"envelope": shape.Envelope, "pagination": shape.Pagination}
+	finding := fmt.Sprintf("the live list response is a bare item array, pagination %s", shape.Pagination)
+	if wrapped {
+		value["key"] = shape.Key
+		finding = fmt.Sprintf("the live list response wraps its item array under %q, pagination %s",
+			shape.Key, shape.Pagination)
+	}
+
+	opPtr := opPointer(cls.List)
+	if ext := mapValue(loc.nodeAt(opPtr), specmodel.ExtListResponseShape); ext != nil && shapeStated(ext, value) {
+		return stated("the document already declares this list response shape"), nil
+	}
+	return compiled{
+		ops: []correction.Operation{{
+			Op: "add", Path: opPtr + "/" + specmodel.ExtListResponseShape, Value: value,
+		}},
+		justification: fmt.Sprintf("the audit confirmed a listResponseShape observation on %s: %s (%s)",
+			o.Entity, finding, specmodel.ExtListResponseShape),
+	}, nil
+}
+
+// shapeStated reports whether an existing x-tfpfgen-list-response-shape node
+// already says exactly what the compiled value would say — key for key, so a
+// re-audit of an unchanged API proposes nothing.
+func shapeStated(ext *yaml.Node, value map[string]string) bool {
+	if ext.Kind != yaml.MappingNode {
+		return false
+	}
+	declared := map[string]string{}
+	for i := 0; i+1 < len(ext.Content); i += 2 {
+		declared[ext.Content[i].Value] = ext.Content[i+1].Value
+	}
+	// An absent pagination reads as "none", the same default the document
+	// model applies, so the two spellings converge rather than oscillate.
+	if declared["pagination"] == "" {
+		declared["pagination"] = "none"
+	}
+	if len(declared) != len(value) {
+		return false
+	}
+	for k, v := range value {
+		if declared[k] != v {
+			return false
+		}
+	}
+	return true
 }
 
 // literalSpelling renders a condition or default value the way a document
