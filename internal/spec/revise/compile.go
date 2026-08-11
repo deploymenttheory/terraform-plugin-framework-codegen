@@ -57,6 +57,12 @@ type compiler struct {
 	// vetoes marks entity/attribute pairs where a confirmed derivedDefault
 	// observation blocks a static serverDefault correction.
 	vetoes map[[2]string]bool
+	// variants gathers, per (entity, gate field), the validWhen edges the
+	// run confirmed: gate value -> the subject fields valid under it. A
+	// validConfiguration correction reads it to assemble its per-value field
+	// sets, since one validConfiguration observation carries only the gate
+	// values, not which fields each admits.
+	variants map[[2]string]map[string][]string
 }
 
 // compile turns one confirmed observation into correction operations, or
@@ -108,14 +114,22 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 	case observe.KindNormalisation, observe.KindDerivedDefault:
 		return compiled{category: catNoForm,
 			reason: "no correction form exists yet; adding an x-tfpfgen-* key is an owner decision"}, nil
-	case observe.KindValidConfiguration, observe.KindValidWhen, observe.KindDependsOn,
-		observe.KindMutuallyExclusive, observe.KindListResponseShape:
-		// The triangulating inference asserts these conditional-edge and
-		// list-shape findings; emitting their x-tfpfgen-* corrections is a
-		// later wave's work, so here they are recognised and carried without a
-		// correction rather than rejected as an unknown kind.
+	case observe.KindValidWhen:
+		return c.validWhen(loc, cls, o), nil
+	case observe.KindDependsOn:
+		return c.dependsOn(loc, cls, o), nil
+	case observe.KindMutuallyExclusive:
+		return c.mutuallyExclusive(loc, cls, o), nil
+	case observe.KindValidConfiguration:
+		return c.validConfiguration(loc, cls, o), nil
+	case observe.KindListResponseShape:
+		// A list-response-shape finding is diagnostic: it records what the
+		// live collection envelope actually is so a human can see whether the
+		// document's list response schema matches reality. The emitter reads
+		// the envelope from that schema in the revised document, so there is
+		// no x-tfpfgen-* correction to compile here.
 		return compiled{category: catNoForm,
-			reason: "the correction form for this inferred edge is not built yet"}, nil
+			reason: "list-response-shape is diagnostic; the emitter reads the envelope from the list response schema"}, nil
 	default:
 		// observe.Read validates kinds against the closed set, so reaching
 		// here means the sets have drifted — the failure mode an evidence

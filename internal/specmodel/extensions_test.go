@@ -1,6 +1,7 @@
 package specmodel
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -64,6 +65,25 @@ components:
             equals: custom
         matchType:
           type: string
+        proxyHost:
+          type: string
+          x-tfpfgen-valid-when:
+            property: mode
+            equals: custom
+        clientSecret:
+          type: string
+          x-tfpfgen-depends-on:
+            requires: clientId
+        clientId:
+          type: string
+        mode:
+          type: string
+      x-tfpfgen-mutually-exclusive: [alpha, beta]
+      x-tfpfgen-valid-configuration:
+        discriminator: mode
+        variants:
+          custom: [proxyHost, beta]
+          basic: [alpha]
 `
 
 func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
@@ -98,6 +118,22 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	}
 	if rw, ok := prop("matchValue").RequiredWhen(); !ok || rw.Property != "matchType" || rw.Equals != "custom" {
 		t.Errorf("RequiredWhen = %+v, %v", rw, ok)
+	}
+	if vw, ok := prop("proxyHost").ValidWhen(); !ok || vw.Property != "mode" || vw.Equals != "custom" {
+		t.Errorf("ValidWhen = %+v, %v", vw, ok)
+	}
+	if do, ok := prop("clientSecret").DependsOn(); !ok || do.Requires != "clientId" {
+		t.Errorf("DependsOn = %+v, %v", do, ok)
+	}
+	if names, ok := thing.Extensions.MutuallyExclusive(); !ok || !reflect.DeepEqual(names, []string{"alpha", "beta"}) {
+		t.Errorf("MutuallyExclusive = %+v, %v", names, ok)
+	}
+	if vc, ok := thing.Extensions.ValidConfiguration(); !ok || vc.Discriminator != "mode" ||
+		!reflect.DeepEqual(vc.Variants, []ValidVariant{
+			{Value: "basic", Fields: []string{"alpha"}},
+			{Value: "custom", Fields: []string{"beta", "proxyHost"}},
+		}) {
+		t.Errorf("ValidConfiguration = %+v, %v", vc, ok)
 	}
 
 	byID := map[string]Operation{}
@@ -143,6 +179,18 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	}
 	if _, ok := e.SilentlyIgnoredOnUpdate(); ok {
 		t.Errorf("SilentlyIgnoredOnUpdate should be absent")
+	}
+	if _, ok := e.ValidWhen(); ok {
+		t.Errorf("ValidWhen should be absent")
+	}
+	if _, ok := e.DependsOn(); ok {
+		t.Errorf("DependsOn should be absent")
+	}
+	if _, ok := e.MutuallyExclusive(); ok {
+		t.Errorf("MutuallyExclusive should be absent")
+	}
+	if _, ok := e.ValidConfiguration(); ok {
+		t.Errorf("ValidConfiguration should be absent")
 	}
 }
 
@@ -229,6 +277,47 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
 			`both "property" and "equals" are required`},
 		{"required-when values must be scalars", schemaWith("x-tfpfgen-required-when: {property: a, equals: [b]}"),
 			"must be a non-empty scalar"},
+
+		{"valid-when must be a mapping", schemaWith("x-tfpfgen-valid-when: mode"),
+			`must be a mapping with "property" and "equals"`},
+		{"valid-when refuses unknown keys", schemaWith("x-tfpfgen-valid-when: {property: a, equals: b, when: c}"),
+			`unknown key "when"`},
+		{"valid-when needs both", schemaWith("x-tfpfgen-valid-when: {property: a}"),
+			`both "property" and "equals" are required`},
+
+		{"depends-on must be a mapping", schemaWith("x-tfpfgen-depends-on: clientId"),
+			`must be a mapping with "requires"`},
+		{"depends-on refuses unknown keys", schemaWith("x-tfpfgen-depends-on: {requires: a, when: b}"),
+			`unknown key "when"`},
+		{"depends-on needs requires", schemaWith("x-tfpfgen-depends-on: {}"),
+			`"requires" is required`},
+
+		{"mutually-exclusive must be a list", schemaWith("x-tfpfgen-mutually-exclusive: alpha"),
+			"must be a list of property names"},
+		{"mutually-exclusive needs at least two", schemaWith("x-tfpfgen-mutually-exclusive: [alpha]"),
+			"at least two properties"},
+		{"mutually-exclusive refuses duplicates", schemaWith("x-tfpfgen-mutually-exclusive: [alpha, alpha]"),
+			`listed twice`},
+		{"mutually-exclusive entries must be scalars", schemaWith("x-tfpfgen-mutually-exclusive: [alpha, [beta]]"),
+			"each entry must be a non-empty property name"},
+
+		{"valid-configuration must be a mapping", schemaWith("x-tfpfgen-valid-configuration: mode"),
+			`must be a mapping with "discriminator" and "variants"`},
+		{"valid-configuration refuses unknown keys",
+			schemaWith("x-tfpfgen-valid-configuration: {discriminator: mode, variants: {a: [x]}, extra: 1}"),
+			`unknown key "extra"`},
+		{"valid-configuration needs a discriminator",
+			schemaWith("x-tfpfgen-valid-configuration: {variants: {a: [x]}}"),
+			`"discriminator" is required`},
+		{"valid-configuration needs variants",
+			schemaWith("x-tfpfgen-valid-configuration: {discriminator: mode}"),
+			"must be a non-empty mapping"},
+		{"valid-configuration variant must be a list",
+			schemaWith("x-tfpfgen-valid-configuration: {discriminator: mode, variants: {a: x}}"),
+			"must be a list of property names"},
+		{"valid-configuration variant entries must be scalars",
+			schemaWith("x-tfpfgen-valid-configuration: {discriminator: mode, variants: {a: [[x]]}}"),
+			"each entry must be a non-empty property name"},
 	}
 
 	for _, tc := range cases {
