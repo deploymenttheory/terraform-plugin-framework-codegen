@@ -287,7 +287,30 @@ func (d *deriver) resource(c specmodel.Classification, names Names) Resource {
 		EventualConsistency: maxEventualConsistency(createFull, readFull, updateFull, deleteFull),
 		DeleteNotFoundOK:    deleteNotFoundOK,
 		Timeouts:            defaultTimeouts(),
+		ListEnvelopeKey:     listEnvelopeKey(d.full(c.List)),
 	}
+}
+
+// listEnvelopeKey is the wire property a list response wraps its item array
+// under, read from the operation's success schema: empty when the response is
+// a bare array (or absent), otherwise the first array-typed property's wire
+// name. The generated list mock keys its envelope on this instead of assuming
+// every API wraps under "value" — the SDK's collection accessor is derived
+// from the same schema, so the two agree.
+func listEnvelopeKey(list *specmodel.Operation) string {
+	if list == nil {
+		return ""
+	}
+	f := flatten(list.SuccessSchema())
+	if f.typ == "array" {
+		return ""
+	}
+	for _, p := range f.props {
+		if flatten(p.Schema).typ == "array" {
+			return p.Name
+		}
+	}
+	return ""
 }
 
 func (d *deriver) datasource(c specmodel.Classification, names Names) Datasource {
@@ -323,6 +346,7 @@ func (d *deriver) datasource(c specmodel.Classification, names Names) Datasource
 			{Name: "filter_value", WireName: "filter_value", Kind: TypeString, Presence: PresenceOptional},
 			{Name: "items", WireName: "items", Kind: TypeList, ElemKind: TypeObject, Presence: PresenceComputed, Nested: itemTree},
 		}},
+		ListEnvelopeKey: listEnvelopeKey(d.full(c.List)),
 	}
 }
 
@@ -339,9 +363,10 @@ func (d *deriver) listResource(c specmodel.Classification, names Names) ListReso
 		element = f.items
 	}
 	return ListResource{
-		Names:  names,
-		ListOp: *d.op(c.List, OpList),
-		Schema: buildTree(nil, element, false),
+		Names:           names,
+		ListOp:          *d.op(c.List, OpList),
+		Schema:          buildTree(nil, element, false),
+		ListEnvelopeKey: listEnvelopeKey(listFull),
 	}
 }
 

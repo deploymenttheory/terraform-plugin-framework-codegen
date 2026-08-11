@@ -21,6 +21,10 @@ type flat struct {
 	items    *specmodel.Schema
 	hasUnion bool
 	ext      specmodel.Extensions
+	// dependentRequired accumulates every dependentRequired entry across the
+	// folded schema, so a 3.1 co-requirement reaches the tree alongside the
+	// x-tfpfgen-depends-on form a 3.0 document uses.
+	dependentRequired []specmodel.DependentRequired
 }
 
 // flatten folds a schema and its allOf branches flat. Extensions written
@@ -74,6 +78,7 @@ func flatten(s *specmodel.Schema) flat {
 		if len(s.OneOf)+len(s.AnyOf) > 0 {
 			f.hasUnion = true
 		}
+		f.dependentRequired = append(f.dependentRequired, s.DependentRequired...)
 		for _, branch := range s.AllOf {
 			walk(branch)
 		}
@@ -101,10 +106,12 @@ func (f flat) prop(name string) *specmodel.Schema {
 func buildTree(create, read *specmodel.Schema, replaceAll bool) *AttributeTree {
 	fc, fr := flatten(create), flatten(read)
 	tree := &AttributeTree{}
-	conditionals := map[[2]string][]string{}
+	required := map[[2]string][]string{}
+	valid := map[[2]string][]string{}
+	deps := map[string][]string{}
 
 	addAttr := func(name string, createSide, readSide *specmodel.Schema) {
-		attr, rw := buildAttribute(name, site{
+		attr, edges := buildAttribute(name, site{
 			create:         createSide,
 			read:           readSide,
 			requiredCreate: fc.required[name],
@@ -112,9 +119,16 @@ func buildTree(create, read *specmodel.Schema, replaceAll bool) *AttributeTree {
 			replaceAll:     replaceAll,
 		})
 		tree.Attributes = append(tree.Attributes, attr)
-		if rw != nil {
-			gate := [2]string{snakeCase(rw.Property), rw.Equals}
-			conditionals[gate] = append(conditionals[gate], attr.Name)
+		if edges.requiredWhen != nil {
+			gate := [2]string{snakeCase(edges.requiredWhen.Property), edges.requiredWhen.Equals}
+			required[gate] = append(required[gate], attr.Name)
+		}
+		if edges.validWhen != nil {
+			gate := [2]string{snakeCase(edges.validWhen.Property), edges.validWhen.Equals}
+			valid[gate] = append(valid[gate], attr.Name)
+		}
+		if edges.dependsOn != nil {
+			deps[attr.Name] = append(deps[attr.Name], snakeCase(edges.dependsOn.Requires))
 		}
 	}
 
@@ -127,8 +141,36 @@ func buildTree(create, read *specmodel.Schema, replaceAll bool) *AttributeTree {
 		}
 	}
 
-	tree.ConditionalRequirements = sortedConditionals(conditionals)
+	// dependentRequired (JSON Schema 3.1) folds into the same dependency set
+	// as x-tfpfgen-depends-on, both keyed by the dependent attribute.
+	for _, dr := range append(append([]specmodel.DependentRequired(nil), fc.dependentRequired...), fr.dependentRequired...) {
+		for _, req := range dr.Requires {
+			deps[snakeCase(dr.Property)] = append(deps[snakeCase(dr.Property)], snakeCase(req))
+		}
+	}
+
+	tree.ConditionalRequirements = sortedConditionals(required)
+	tree.ConditionalValidities = sortedValidities(valid)
+	tree.Dependencies = sortedDependencies(deps)
+	schemaExt := mergeExtensions(fc.ext, fr.ext)
+	if names, ok := schemaExt.MutuallyExclusive(); ok {
+		tree.MutuallyExclusiveGroups = [][]string{sortedUnique(snakeAll(names))}
+	}
+	if vc, ok := schemaExt.ValidConfiguration(); ok {
+		tree.ValidConfigurations = []ValidConfiguration{convertValidConfiguration(vc)}
+	}
 	return tree
+}
+
+// convertValidConfiguration renders a specmodel variant structure into the IR
+// form, attribute names snake-cased and order fixed.
+func convertValidConfiguration(vc specmodel.ValidConfiguration) ValidConfiguration {
+	out := ValidConfiguration{Discriminator: snakeCase(vc.Discriminator)}
+	for _, v := range vc.Variants {
+		out.Variants = append(out.Variants, ConfigVariant{Value: v.Value, Valid: sortedUnique(snakeAll(v.Fields))})
+	}
+	sort.Slice(out.Variants, func(i, j int) bool { return out.Variants[i].Value < out.Variants[j].Value })
+	return out
 }
 
 // sortedConditionals renders the gathered value-conditional rules in a
@@ -151,6 +193,65 @@ func sortedConditionals(gates map[[2]string][]string) []ConditionalRequirement {
 	return out
 }
 
+// sortedValidities renders the value-conditional validity rules in a fixed
+// order, mirroring sortedConditionals for the valid-when edge.
+func sortedValidities(gates map[[2]string][]string) []ConditionalValidity {
+	if len(gates) == 0 {
+		return nil
+	}
+	out := make([]ConditionalValidity, 0, len(gates))
+	for gate, names := range gates {
+		sort.Strings(names)
+		out = append(out, ConditionalValidity{Property: gate[0], Equals: gate[1], Valid: names})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Property != out[j].Property {
+			return out[i].Property < out[j].Property
+		}
+		return out[i].Equals < out[j].Equals
+	})
+	return out
+}
+
+// sortedDependencies renders the co-requirements in a fixed order, one entry
+// per dependent attribute with its required attributes sorted and de-duped.
+func sortedDependencies(deps map[string][]string) []Dependency {
+	if len(deps) == 0 {
+		return nil
+	}
+	out := make([]Dependency, 0, len(deps))
+	for attr, requires := range deps {
+		out = append(out, Dependency{Attribute: attr, Requires: sortedUnique(requires)})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Attribute < out[j].Attribute })
+	return out
+}
+
+// snakeAll snake-cases a slice of wire names, preserving order.
+func snakeAll(wire []string) []string {
+	out := make([]string, len(wire))
+	for i, w := range wire {
+		out[i] = snakeCase(w)
+	}
+	return out
+}
+
+// sortedUnique sorts a copy of the names and drops duplicates.
+func sortedUnique(names []string) []string {
+	if len(names) == 0 {
+		return nil
+	}
+	cp := append([]string(nil), names...)
+	sort.Strings(cp)
+	out := cp[:0:0]
+	for i, s := range cp {
+		if i == 0 || s != cp[i-1] {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 // site is one property seen from both sides of the create/read fold.
 type site struct {
 	create         *specmodel.Schema // nil when response-only
@@ -160,9 +261,18 @@ type site struct {
 	replaceAll     bool
 }
 
-// buildAttribute decides one attribute, returning any value-conditional
-// requirement declared on it for the tree to aggregate.
-func buildAttribute(wire string, at site) (Attribute, *specmodel.RequiredWhen) {
+// attrEdges carries the per-attribute cross-attribute rules buildAttribute
+// reads off one property for buildTree to aggregate: a value-conditional
+// requirement, a value-conditional validity, and a co-requirement.
+type attrEdges struct {
+	requiredWhen *specmodel.RequiredWhen
+	validWhen    *specmodel.ValidWhen
+	dependsOn    *specmodel.DependsOn
+}
+
+// buildAttribute decides one attribute, returning the cross-attribute rules
+// declared on it for the tree to aggregate.
+func buildAttribute(wire string, at site) (Attribute, attrEdges) {
 	attr := Attribute{Name: snakeCase(wire), WireName: wire}
 
 	writable := at.create != nil
@@ -212,10 +322,17 @@ func buildAttribute(wire string, at site) (Attribute, *specmodel.RequiredWhen) {
 		}
 	}
 
+	var edges attrEdges
 	if rw, ok := ext.RequiredWhen(); ok {
-		return attr, &rw
+		edges.requiredWhen = &rw
 	}
-	return attr, nil
+	if vw, ok := ext.ValidWhen(); ok {
+		edges.validWhen = &vw
+	}
+	if do, ok := ext.DependsOn(); ok {
+		edges.dependsOn = &do
+	}
+	return attr, edges
 }
 
 // deriveType maps the schema shape onto an attribute type, refusing the

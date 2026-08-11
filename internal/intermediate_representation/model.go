@@ -93,6 +93,11 @@ type Resource struct {
 	// the generated schema description verbatim. Empty for an entity with
 	// no siblings.
 	CoManagementNote string `json:"co_management_note,omitempty"`
+	// ListEnvelopeKey is the wire property the list response wraps its item
+	// array under, read from the list operation's response schema; empty when
+	// the response is a bare array. It drives the generated list-mock
+	// envelope, replacing the assumption that every API wraps under "value".
+	ListEnvelopeKey string `json:"list_envelope_key,omitempty"`
 }
 
 // Datasource is one entity readable outside Terraform's ownership. Every
@@ -115,6 +120,9 @@ type Datasource struct {
 	KeyParameter string `json:"key_parameter,omitempty"`
 	// CoManagementNote is the sibling-entity prose; see Resource.
 	CoManagementNote string `json:"co_management_note,omitempty"`
+	// ListEnvelopeKey is the list response's item-array wrapper key; see
+	// Resource. Empty for a bare array or a lookup-by-key datasource.
+	ListEnvelopeKey string `json:"list_envelope_key,omitempty"`
 }
 
 // ListResource is a list-only entity: enumerable but not addressable.
@@ -125,6 +133,9 @@ type ListResource struct {
 	Schema *AttributeTree `json:"schema"`
 	// CoManagementNote is the sibling-entity prose; see Resource.
 	CoManagementNote string `json:"co_management_note,omitempty"`
+	// ListEnvelopeKey is the list response's item-array wrapper key; see
+	// Resource. Empty for a bare array.
+	ListEnvelopeKey string `json:"list_envelope_key,omitempty"`
 }
 
 // Action is a POST with no lifecycle complement — an invocation.
@@ -210,15 +221,28 @@ const (
 	PresenceOptionalComputed Presence = "optional-computed"
 )
 
-// AttributeTree is one object's attributes plus the value-conditional
-// requirements declared among them. Attribute order preserves document
-// property order — load-bearing for stable output — with response-only
-// attributes appended in response order.
+// AttributeTree is one object's attributes plus the cross-attribute rules
+// declared among them. Attribute order preserves document property order —
+// load-bearing for stable output — with response-only attributes appended in
+// response order. Every rule slice names attributes in terraform spelling and
+// is emitted in a fixed order, so the tree cannot leak map iteration order.
 type AttributeTree struct {
 	Attributes []Attribute `json:"attributes,omitempty"`
 	// ConditionalRequirements aggregates x-tfpfgen-required-when: when
 	// Property equals Equals, the Required attributes must be set.
 	ConditionalRequirements []ConditionalRequirement `json:"conditional_requirements,omitempty"`
+	// ConditionalValidities aggregates x-tfpfgen-valid-when: the Valid
+	// attributes may be set only when Property equals Equals.
+	ConditionalValidities []ConditionalValidity `json:"conditional_validities,omitempty"`
+	// Dependencies aggregates x-tfpfgen-depends-on and dependentRequired: an
+	// attribute may be set only when every attribute it Requires is set too.
+	Dependencies []Dependency `json:"dependencies,omitempty"`
+	// MutuallyExclusiveGroups aggregates x-tfpfgen-mutually-exclusive: at
+	// most one attribute in each group may be set.
+	MutuallyExclusiveGroups [][]string `json:"mutually_exclusive_groups,omitempty"`
+	// ValidConfigurations aggregates x-tfpfgen-valid-configuration: a
+	// discriminator attribute whose value selects which attributes are valid.
+	ValidConfigurations []ValidConfiguration `json:"valid_configurations,omitempty"`
 }
 
 // ConditionalRequirement is one value-conditional rule, attribute names in
@@ -227,6 +251,34 @@ type ConditionalRequirement struct {
 	Property string   `json:"property"`
 	Equals   string   `json:"equals"`
 	Required []string `json:"required"`
+}
+
+// ConditionalValidity is one value-conditional validity rule: the Valid
+// attributes are valid only while Property equals Equals.
+type ConditionalValidity struct {
+	Property string   `json:"property"`
+	Equals   string   `json:"equals"`
+	Valid    []string `json:"valid"`
+}
+
+// Dependency is one co-requirement: Attribute may be set only when every name
+// in Requires is also set.
+type Dependency struct {
+	Attribute string   `json:"attribute"`
+	Requires  []string `json:"requires"`
+}
+
+// ValidConfiguration is a discriminator variant structure: Discriminator's
+// value selects which attributes each variant admits.
+type ValidConfiguration struct {
+	Discriminator string          `json:"discriminator"`
+	Variants      []ConfigVariant `json:"variants"`
+}
+
+// ConfigVariant is one discriminator value and the attributes valid under it.
+type ConfigVariant struct {
+	Value string   `json:"value"`
+	Valid []string `json:"valid"`
 }
 
 // Attribute is one schema attribute, fully decided.
