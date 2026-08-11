@@ -302,6 +302,10 @@ func TestUnit_RenderServices_ListEnvelopeIsDataDriven(t *testing.T) {
 	if !strings.Contains(dsResp, `map[string]any{"http_servers": []map[string]any{object()}}`) {
 		t.Fatalf("datasource list mock ignores the envelope key:\n%s", dsResp)
 	}
+	dsJSON := string(fileByPath(t, out, "internal/services/datasources/servers/v7/http_server/tests/responses/datasource.json").Content)
+	if !strings.Contains(dsJSON, `"http_servers": [`) {
+		t.Fatalf("datasource list fixture ignores the envelope key:\n%s", dsJSON)
+	}
 	listJSON := string(fileByPath(t, out, "internal/services/list-resources/audit/v7/audit_event/tests/responses/list.json").Content)
 	if !strings.Contains(listJSON, `"records": [`) {
 		t.Fatalf("list-resource fixture ignores the envelope key:\n%s", listJSON)
@@ -310,6 +314,7 @@ func TestUnit_RenderServices_ListEnvelopeIsDataDriven(t *testing.T) {
 	// A vendor that returns a bare array: no wrapper object at all.
 	m = fictionalModel()
 	m.Resources[0].ListEnvelopeKey = ""
+	m.Datasources[0].ListEnvelopeKey = ""
 	out, err = RenderServices(pc, m, fictionalBindings())
 	if err != nil {
 		t.Fatalf("RenderServices: %v", err)
@@ -320,5 +325,9 @@ func TestUnit_RenderServices_ListEnvelopeIsDataDriven(t *testing.T) {
 	}
 	if strings.Contains(bare, `map[string]any{"`) {
 		t.Fatalf("a bare-array list must emit no envelope object:\n%s", bare)
+	}
+	bareJSON := string(fileByPath(t, out, "internal/services/datasources/servers/v7/http_server/tests/responses/datasource.json").Content)
+	if strings.HasPrefix(strings.TrimSpace(bareJSON), "{") {
+		t.Fatalf("a bare-array datasource fixture must not wrap in an object:\n%s", bareJSON)
 	}
 }

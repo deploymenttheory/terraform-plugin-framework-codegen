@@ -3,6 +3,7 @@ package providergen
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -83,12 +84,47 @@ func postcheck(ctx context.Context, root string, enabled bool) (PostcheckReport,
 
 // runBounded runs one toolchain command under the step timeout and returns
 // its combined output.
+//
+// The generate output tree is not yet a git repository on a first run, and
+// `go build`/`go vet` there fail trying to stamp VCS information ("error
+// obtaining VCS status … Use -buildvcs=false"). GOFLAGS carries the opt-out
+// to every build-flag-aware command; `go mod tidy`, which does not take the
+// flag, ignores it. This keeps the toolkit's own postcheck working in a
+// fresh directory without touching the generated provider's makefile or CI,
+// which run inside a real repository.
 func runBounded(ctx context.Context, goTool, dir string, args []string) (string, error) {
 	stepCtx, cancel := context.WithTimeout(ctx, postcheckStepTimeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(stepCtx, goTool, args...) //nolint:gosec // the resolved go tool with fixed arguments
 	cmd.Dir = dir
+	cmd.Env = envWithBuildVCSOff(os.Environ())
 	out, err := cmd.CombinedOutput()
 	return string(out), err
+}
+
+// envWithBuildVCSOff returns env with -buildvcs=false folded into GOFLAGS,
+// preserving any GOFLAGS the caller already set rather than overwriting it.
+func envWithBuildVCSOff(env []string) []string {
+	const flag = "-buildvcs=false"
+	out := make([]string, 0, len(env)+1)
+	found := false
+	for _, e := range env {
+		if value, ok := strings.CutPrefix(e, "GOFLAGS="); ok {
+			found = true
+			if strings.Contains(value, "-buildvcs") {
+				out = append(out, e)
+			} else if value == "" {
+				out = append(out, "GOFLAGS="+flag)
+			} else {
+				out = append(out, "GOFLAGS="+value+" "+flag)
+			}
+			continue
+		}
+		out = append(out, e)
+	}
+	if !found {
+		out = append(out, "GOFLAGS="+flag)
+	}
+	return out
 }

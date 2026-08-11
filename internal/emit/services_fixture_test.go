@@ -141,7 +141,7 @@ func fictionalModel() *ir.Model {
 					{Name: "items", WireName: "items", Kind: ir.TypeList, ElemKind: ir.TypeObject,
 						Presence: ir.PresenceComputed, Nested: itemTree},
 				}},
-				ListEnvelopeKey: "value",
+				ListEnvelopeKey: "http_servers",
 			},
 			{
 				Names: names("license", "License", "licenses"),
@@ -307,7 +307,8 @@ func fictionalBindings() *sdkbind.Bindings {
 				List:             call("client.HttpServers().Get(ctx, nil)", nil, "", "models.HttpServerCollectionResponseable", "error"),
 				ReadModel:        able,
 				ElementType:      able,
-				CollectionAccess: "GetValue()",
+				CollectionAccess: "GetHttpServers()",
+				EnvelopeKey:      "http_servers",
 				Fields: []sdkbind.FieldBinding{
 					{Attr: "id", Wire: "id", Kind: ir.TypeString,
 						Access: readOnly(kAccess("Id", "*string", "FromPtrString", "", ""))},

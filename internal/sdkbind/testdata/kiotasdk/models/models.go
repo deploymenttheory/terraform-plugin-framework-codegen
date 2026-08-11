@@ -213,3 +213,33 @@ func (r *TagCollectionResponse) SetValue(v []Tagable) { r.value = v }
 type TagCollectionResponseable interface {
 	GetValue() []Tagable
 }
+
+// Gizmoable is the element of a wrapped list whose envelope is an
+// interface with a single slice getter named for the wire key — the
+// ThousandEyes Tagsable shape, where GET /gizmos answers
+// {"gizmos":[...]} and kiota models it as GetGizmos rather than GetValue.
+type Gizmoable interface {
+	GetId() *string
+	GetName() *string
+}
+
+// GizmoCollectionResponseable is the wrapped-list envelope: a single
+// slice getter named for the "gizmos" wire key, with no GetValue to fall
+// back on. Binding reaches its elements through GetGizmos().
+type GizmoCollectionResponseable interface {
+	GetGizmos() []Gizmoable
+}
+
+// Blobable is the element of a list whose envelope carries several
+// equally-plausible slice getters and no wire key to choose between them
+// — the ambiguous shape a binding refuses rather than guesses.
+type Blobable interface {
+	GetName() *string
+}
+
+// BlobCollectionResponseable offers two slice getters with no envelope
+// key naming either, so resolution stays ambiguous and the entity prunes.
+type BlobCollectionResponseable interface {
+	GetPrimary() []Blobable
+	GetSecondary() []Blobable
+}

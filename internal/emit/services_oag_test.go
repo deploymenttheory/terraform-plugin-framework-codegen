@@ -69,6 +69,24 @@ func oagModel() *ir.Model {
 				Update: 30 * time.Minute, Delete: 500 * time.Millisecond,
 			},
 		}},
+		Datasources: []ir.Datasource{{
+			Names: names("tag", "Tag", "tags"),
+			Ops: ir.Ops{
+				List: &ir.Op{Kind: ir.OpList, Method: "GET", PathTemplate: "/tags", SuccessCode: 200},
+			},
+			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				{Name: "filter_type", WireName: "filter_type", Kind: ir.TypeString, Presence: ir.PresenceRequired},
+				{Name: "filter_value", WireName: "filter_value", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+				{Name: "items", WireName: "items", Kind: ir.TypeList, ElemKind: ir.TypeObject, Presence: ir.PresenceComputed,
+					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
+						{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
+						{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceComputed},
+					}}},
+			}},
+			// A wrapped list whose openapi-generator envelope is a struct
+			// with a single slice field named for the "tags" wire key.
+			ListEnvelopeKey: "tags",
+		}},
 		Actions: []ir.Action{{
 			Names: names("tag_rotate", "TagRotate", "tags"),
 			InvokeOp: ir.Op{Kind: ir.OpInvoke, Method: "POST", PathTemplate: "/tags/{tagId}/rotate",
@@ -159,6 +177,21 @@ func oagBindings() *sdkbind.Bindings {
 							{Attr: "pattern", Wire: "pattern", Kind: ir.TypeString,
 								Access: oagAccess("Pattern", "string", "FromString", "ToString", "")},
 						}},
+				},
+			},
+		},
+		Datasources: map[string]*sdkbind.DatasourceBinding{
+			"tag": {
+				Key:              "tag",
+				List:             call("client.TagsAPI.ListTags(ctx).Execute()", nil, "*sdk.TagList", "*sdk.TagList", "*http.Response", "error"),
+				ElementType:      "sdk.Tag",
+				CollectionAccess: "Tags",
+				EnvelopeKey:      "tags",
+				Fields: []sdkbind.FieldBinding{
+					{Attr: "id", Wire: "id", Kind: ir.TypeString,
+						Access: readOnly(oagAccess("Id", "string", "FromString", "", ""))},
+					{Attr: "name", Wire: "name", Kind: ir.TypeString,
+						Access: readOnly(oagAccess("Name", "string", "FromString", "", ""))},
 				},
 			},
 		},

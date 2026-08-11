@@ -175,6 +175,98 @@ func TestPruneDatasourceRemovals(t *testing.T) {
 	}
 }
 
+// TestPruneKiotaWrappedList resolves a wrapped-list collection whose kiota
+// envelope is an interface with a slice getter named for the wire key —
+// the ThousandEyes Tagsable shape (GET /gizmos → {"gizmos":[...]}) that
+// used to be pruned for carrying "no single way to reach its elements".
+// The observed envelope key names GetGizmos directly, so the entity now
+// survives with its element reached through GetGizmos().
+func TestPruneKiotaWrappedList(t *testing.T) {
+	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
+		attr("id", "id", ir.TypeString, ir.PresenceComputed),
+		attr("name", "name", ir.TypeString, ir.PresenceComputed),
+	}}
+	items := attr("items", "items", ir.TypeList, ir.PresenceComputed)
+	items.ElemKind = ir.TypeObject
+	items.Nested = itemTree
+
+	t.Run("the envelope key names the getter", func(t *testing.T) {
+		m := &ir.Model{
+			Provider: ir.Provider{Name: "example"},
+			Datasources: []ir.Datasource{{
+				Names: names("gizmos", "gizmos"),
+				Ops:   ir.Ops{List: op(ir.OpList, "GET", "/gizmos", "")},
+				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+					attr("filter_type", "filter_type", ir.TypeString, ir.PresenceRequired),
+					attr("filter_value", "filter_value", ir.TypeString, ir.PresenceOptional),
+					items,
+				}},
+				ListEnvelopeKey: "gizmos",
+			}},
+		}
+		b, removed := pruneKiotaVariant(t, m)
+		db := b.Datasources["gizmos"]
+		if db == nil {
+			t.Fatalf("wrapped-list datasource gizmos did not survive: %v", removed)
+		}
+		if db.CollectionAccess != "GetGizmos()" || db.ElementType != "models.Gizmoable" {
+			t.Errorf("element = %q via %q, want models.Gizmoable via GetGizmos()", db.ElementType, db.CollectionAccess)
+		}
+		if !fieldNamed(db.Fields, "id") || !fieldNamed(db.Fields, "name") {
+			t.Errorf("wrapped element lost its fields: %+v", db.Fields)
+		}
+	})
+
+	t.Run("a lone getter needs no envelope key", func(t *testing.T) {
+		// The same wrapper, reached as a list resource with no observed
+		// key: exactly one slice getter is unambiguous on its own.
+		m := &ir.Model{
+			Provider: ir.Provider{Name: "example"},
+			ListResources: []ir.ListResource{{
+				Names:  names("gizmos", "gizmos"),
+				ListOp: *op(ir.OpList, "GET", "/gizmos", ""),
+				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+					attr("name", "name", ir.TypeString, ir.PresenceComputed),
+				}},
+			}},
+		}
+		b, removed := pruneKiotaVariant(t, m)
+		lb := b.ListResources["gizmos"]
+		if lb == nil {
+			t.Fatalf("gizmos list resource did not survive: %v", removed)
+		}
+		if lb.CollectionAccess != "GetGizmos()" || lb.ElementType != "models.Gizmoable" {
+			t.Errorf("element = %q via %q, want models.Gizmoable via GetGizmos()", lb.ElementType, lb.CollectionAccess)
+		}
+	})
+}
+
+// TestPruneKiotaAmbiguousWrapper keeps pruning a wrapped list whose
+// envelope offers several slice getters with no wire key to choose among
+// them: guessing would be invention, so the entity is dropped with the
+// SDK's shape in the reason.
+func TestPruneKiotaAmbiguousWrapper(t *testing.T) {
+	m := &ir.Model{
+		Provider: ir.Provider{Name: "example"},
+		ListResources: []ir.ListResource{{
+			Names:  names("blobs", "blobs"),
+			ListOp: *op(ir.OpList, "GET", "/blobs", ""),
+			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
+				attr("name", "name", ir.TypeString, ir.PresenceComputed),
+			}},
+			// No envelope key, and the envelope carries two slice getters.
+		}},
+	}
+	b, removed := pruneKiotaVariant(t, m)
+	if _, ok := b.ListResources["blobs"]; ok {
+		t.Error("blobs survived against an ambiguous envelope")
+	}
+	r := findRemoval(t, removed, "list_resource", "blobs", "")
+	if !strings.Contains(r.Reason, "no single way to reach its elements") {
+		t.Errorf("reason = %q, want the ambiguity reason", r.Reason)
+	}
+}
+
 // TestPruneActionRemovals covers an invocation whose call the SDK
 // refuses: a bodyless draft against a verb that takes one.
 func TestPruneActionRemovals(t *testing.T) {

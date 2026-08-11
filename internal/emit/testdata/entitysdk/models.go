@@ -176,18 +176,20 @@ func NewHttpServerRule() *HttpServerRule { return &HttpServerRule{} }
 func (m *HttpServerRule) GetPattern() *string  { return m.pattern }
 func (m *HttpServerRule) SetPattern(v *string) { m.pattern = v }
 
-// HttpServerCollectionResponseable is the list envelope's read interface.
+// HttpServerCollectionResponseable is the list envelope's read interface:
+// a wrapped list whose single slice getter is named for the "http_servers"
+// wire key — the ThousandEyes Tagsable shape, not a generic GetValue.
 type HttpServerCollectionResponseable interface {
-	GetValue() []HttpServerable
+	GetHttpServers() []HttpServerable
 }
 
 // HttpServerCollectionResponse is the list envelope.
 type HttpServerCollectionResponse struct {
-	value []HttpServerable
+	httpServers []HttpServerable
 }
 
-// GetValue answers the elements.
-func (m *HttpServerCollectionResponse) GetValue() []HttpServerable { return m.value }
+// GetHttpServers answers the elements, keyed on the wire envelope name.
+func (m *HttpServerCollectionResponse) GetHttpServers() []HttpServerable { return m.httpServers }
 
 // HttpServerRestartRequestable is the invocation body's interface.
 type HttpServerRestartRequestable interface {
