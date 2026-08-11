@@ -230,3 +230,117 @@ func TestUnit_Fixturespec_WireJSONKeepsTreeOrderAndParses(t *testing.T) {
 		t.Fatalf("an empty spec must render an empty object, got %q", empty)
 	}
 }
+
+// variantTree is a multi-variant entity in the shape the audit discovers for a
+// discriminated resource: kind gates which sibling attributes are valid, one
+// per variant, with a value-conditional requirement each. name and interval are
+// common to every variant; target_host belongs to ping, domain and dnssec to
+// dns, web to its own variant. The tree-level edges are what a revised spec
+// carries after the inference confirms them.
+func variantTree() *ir.AttributeTree {
+	return &ir.AttributeTree{
+		Attributes: []ir.Attribute{
+			{Name: "kind", WireName: "kind", Kind: ir.TypeString, Presence: ir.PresenceRequired,
+				OneOf: []string{"ping", "web", "dns"}},
+			{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+			{Name: "interval", WireName: "interval", Kind: ir.TypeInt64, Presence: ir.PresenceRequired},
+			{Name: "target_host", WireName: "target_host", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+			{Name: "domain", WireName: "domain", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+			{Name: "dnssec", WireName: "dnssec", Kind: ir.TypeBool, Presence: ir.PresenceOptional},
+			{Name: "web", WireName: "web", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
+				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "url", WireName: "url", Kind: ir.TypeString, Presence: ir.PresenceRequired},
+				}}},
+			{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
+		},
+		ConditionalValidities: []ir.ConditionalValidity{
+			{Property: "kind", Equals: "dns", Valid: []string{"dnssec", "domain"}},
+			{Property: "kind", Equals: "ping", Valid: []string{"target_host"}},
+		},
+		ConditionalRequirements: []ir.ConditionalRequirement{
+			{Property: "kind", Equals: "dns", Required: []string{"domain"}},
+			{Property: "kind", Equals: "ping", Required: []string{"target_host"}},
+			{Property: "kind", Equals: "web", Required: []string{"web"}},
+		},
+		ValidConfigurations: []ir.ValidConfiguration{{
+			Discriminator: "kind",
+			Variants: []ir.ConfigVariant{
+				{Value: "dns", Valid: []string{"dnssec", "domain"}},
+				{Value: "ping", Valid: []string{"target_host"}},
+			},
+		}},
+	}
+}
+
+func TestUnit_Fixturespec_VariantGatesToOneDiscriminatorValue(t *testing.T) {
+	s := Derive(variantTree())
+
+	// The discriminator is pinned to the first enum value that names a known
+	// variant — "ping" — and its value drives which siblings appear.
+	if got := valueByName(t, s, "kind").Scalar; got != "ping" {
+		t.Fatalf("discriminator kind should be pinned to ping, got %v", got)
+	}
+
+	minHCL := s.HCL(ConfigMinimal)
+	maxHCL := s.HCL(ConfigMaximal)
+
+	// The chosen variant's value-conditional requirement (target_host when
+	// kind=ping) is forced into the minimal config even though the attribute is
+	// optional at the document level, or the minimal create would be refused.
+	for _, want := range []string{`kind`, `interval`, `target_host`} {
+		if !strings.Contains(minHCL, want) {
+			t.Fatalf("minimal config must carry %q, got:\n%s", want, minHCL)
+		}
+	}
+	// Attributes owned by another variant never appear — a config that set them
+	// would fail the generated value-conditional validator.
+	for _, banned := range []string{"domain", "dnssec", "web"} {
+		if strings.Contains(minHCL, banned) {
+			t.Fatalf("minimal config must not carry other-variant attr %q, got:\n%s", banned, minHCL)
+		}
+		if strings.Contains(maxHCL, banned) {
+			t.Fatalf("maximal config must not carry other-variant attr %q, got:\n%s", banned, maxHCL)
+		}
+	}
+	// The maximal config still carries the common writable attributes and the
+	// chosen variant's own field.
+	for _, want := range []string{"kind", "name", "interval", "target_host"} {
+		if !strings.Contains(maxHCL, want) {
+			t.Fatalf("maximal config must carry %q, got:\n%s", want, maxHCL)
+		}
+	}
+
+	// The wire renderings gate identically, so a create built from the HCL meets
+	// a mock built from the same variant.
+	max := s.WireValue(ResponseMaximal)
+	for _, banned := range []string{"domain", "dnssec", "web"} {
+		if _, ok := max[banned]; ok {
+			t.Fatalf("maximal wire must not carry other-variant key %q, got %v", banned, max)
+		}
+	}
+	if _, ok := max["target_host"]; !ok {
+		t.Fatalf("maximal wire must carry target_host, got %v", max)
+	}
+	minWire := s.WireValue(ResponseMinimal)
+	if _, ok := minWire["target_host"]; !ok {
+		t.Fatalf("minimal wire must carry the forced target_host, got %v", minWire)
+	}
+}
+
+func TestUnit_Fixturespec_SingleVariantEntityIsUngated(t *testing.T) {
+	// testTree carries no conditional edges: the variant gate must be a no-op,
+	// so no entry is pruned, no requirement is forced, and every enum keeps its
+	// first value.
+	s := Derive(testTree())
+	if s.requiredForVariant != nil {
+		t.Fatalf("a single-variant entity must force no requirement, got %v", s.requiredForVariant)
+	}
+	// No entry is pruned: every optional sibling the gate might have dropped is
+	// still present.
+	for _, name := range []string{"enabled", "port", "ratio", "tags", "settings"} {
+		_ = valueByName(t, s, name)
+	}
+	if got := valueByName(t, s, "kind").Scalar; got != "basic" {
+		t.Fatalf("ungated enum keeps its first value basic, got %v", got)
+	}
+}

@@ -15,7 +15,7 @@ import (
 // derived order itself.
 func (s Fixture) WireJSON(a Form) []byte {
 	var b strings.Builder
-	writeWireObject(&b, selected(s.Entries, a), a, 0)
+	writeWireObject(&b, s.topLevel(a), a, 0)
 	b.WriteString("\n")
 	return []byte(b.String())
 }
@@ -24,7 +24,7 @@ func (s Fixture) WireJSON(a Form) []byte {
 // encoder or a mock responder consumes: map keys are wire names, scalars
 // stay typed, and nesting mirrors the tree.
 func (s Fixture) WireValue(a Form) map[string]any {
-	return wireLevel(selected(s.Entries, a), a)
+	return wireLevel(s.topLevel(a), a)
 }
 
 // wireLevel builds one object level of the wire shape.

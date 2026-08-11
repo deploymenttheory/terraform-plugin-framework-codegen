@@ -203,8 +203,11 @@ func stateNested(n node, modelPrefix, src, dst string, depth int) (string, error
 	}
 
 	// A value-typed nested accessor cannot be nil; interface and pointer
-	// ones can, and nil maps to a null object.
-	nilable := n.fb.Access.SDKType != n.fb.NestedModel
+	// ones can, and nil maps to a null object. The binder decides this from
+	// the accessor's real type — the SDK-type spelling alone cannot, because a
+	// kiota interface return spells identically to its own model name yet is
+	// nil-comparable.
+	nilable := n.fb.Access.NestedNilable
 
 	var b strings.Builder
 	if nilable {

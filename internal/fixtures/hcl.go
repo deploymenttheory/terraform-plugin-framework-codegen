@@ -14,7 +14,7 @@ import (
 // block header and footer.
 func (s Fixture) HCL(a Form) string {
 	var b strings.Builder
-	writeHCLLevel(&b, selected(s.Entries, a), a, 1)
+	writeHCLLevel(&b, s.topLevel(a), a, 1)
 	return b.String()
 }
 

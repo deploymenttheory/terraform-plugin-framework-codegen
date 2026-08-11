@@ -273,6 +273,12 @@ type FieldAccess struct {
 	// with its package qualifier, e.g. "models.ParseTag_kind"; empty for
 	// anything that is not an enumeration.
 	ParseFunc string `json:"parse_func,omitempty"`
+	// NestedNilable reports whether a nested-object accessor's return can be
+	// nil — a pointer, an interface (every kiota model is one) or another
+	// reference type — so the state mapping guards the read before it
+	// dereferences. False for a value-typed nested accessor, which cannot be
+	// nil. Meaningful only on a nested-object field.
+	NestedNilable bool `json:"nested_nilable,omitempty"`
 }
 
 // Removal is one thing pruning deleted, with the SDK's reason.

@@ -99,6 +99,7 @@ func (p *pruner) resolveNested(fb *FieldBinding, basis types.Type, kind, key, at
 	}
 	fb.Access.SDKType = shortType(basis)
 	fb.NestedModel = qualifiedName(named)
+	fb.Access.NestedNilable = nilableType(basis)
 
 	readModel := types.Type(named)
 	var writeModel types.Type
@@ -121,6 +122,20 @@ func (p *pruner) resolveNested(fb *FieldBinding, basis types.Type, kind, key, at
 		return "every field of its nested object went, leaving nothing to map"
 	}
 	return ""
+}
+
+// nilableType reports whether a value of t can be nil — a pointer,
+// interface, slice, map or channel. Every kiota model accessor returns an
+// interface, so a kiota nested read is always nilable; a value-typed struct
+// return is not. The state mapping uses this to decide whether to guard a
+// nested read before dereferencing it.
+func nilableType(t types.Type) bool {
+	switch t.(type) {
+	case *types.Pointer, *types.Slice, *types.Map, *types.Chan:
+		return true
+	}
+	_, isInterface := t.Underlying().(*types.Interface)
+	return isInterface
 }
 
 // nestedModelOf reaches the named model under a nested accessor's type:

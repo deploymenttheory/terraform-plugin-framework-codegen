@@ -36,6 +36,21 @@ type Fixture struct {
 	// Omissions lists the attributes no value could be derived for, with
 	// the reason each was refused.
 	Omissions []Omission
+
+	// requiredForVariant gates the top-level entries when the entity is
+	// multi-variant — a discriminator attribute whose value selects which
+	// other attributes are valid. It names the top-level attributes the chosen
+	// variant requires, forced into the minimal renderings even when the
+	// document marks them optional, because the minimal create must satisfy the
+	// variant's value-conditional requirement. Empty for a single-variant
+	// entity, leaving selection driven by presence alone.
+	//
+	// The complementary gate — attributes owned by another variant — is
+	// applied by pruning them from Entries in Derive, so every consumer of the
+	// fixture (renderings, generated checks, config values) sees the one
+	// variant-consistent attribute set and none can reintroduce a field the
+	// generated value-conditional validator would reject.
+	requiredForVariant map[string]bool
 }
 
 // Entry is one attribute's derived fixture value.
@@ -94,7 +109,177 @@ func Derive(tree *ir.AttributeTree) Fixture {
 		return s
 	}
 	s.Entries, s.Omissions = deriveTree(tree, nil)
+	s.applyVariant(tree)
 	return s
+}
+
+// applyVariant reads the tree's conditional-edge facts and, when the entity is
+// multi-variant, pins the discriminator to one value and records which
+// top-level attributes that value excludes and which it forces. A
+// single-variant entity — no discriminator — is left untouched.
+func (s *Fixture) applyVariant(tree *ir.AttributeTree) {
+	m := buildVariantModel(tree)
+	if m.discriminator == "" {
+		return
+	}
+
+	value := m.choose(discriminatorOrder(tree, m.discriminator))
+	if value == "" {
+		return
+	}
+
+	// Drop the attributes another variant owns: a top-level entry whose owning
+	// variant is not the chosen one is invalid under this discriminator value,
+	// so no rendering or check may carry it.
+	kept := s.Entries[:0]
+	for _, e := range s.Entries {
+		if owner, gated := m.ownerOf[e.Name]; gated && owner != value {
+			continue
+		}
+		kept = append(kept, e)
+	}
+	s.Entries = kept
+
+	s.requiredForVariant = map[string]bool{}
+	for field := range m.requiredFor[value] {
+		s.requiredForVariant[field] = true
+	}
+
+	// The discriminator's own value must name the chosen variant, or the gated
+	// config would set fields the discriminator's value forbids.
+	if disc := s.entry(m.discriminator); disc != nil {
+		disc.Scalar = value
+	}
+}
+
+// entry returns a pointer to the top-level entry of the given terraform name,
+// or nil. The pointer aliases the slice element so a caller can pin its value.
+func (s *Fixture) entry(name string) *Entry {
+	for i := range s.Entries {
+		if s.Entries[i].Name == name {
+			return &s.Entries[i]
+		}
+	}
+	return nil
+}
+
+// variantModel is the discriminator picture assembled from a tree's
+// conditional-edge facts: which attribute discriminates, which variant value
+// owns each gated attribute, and which attributes each value requires. All
+// names are terraform spelling, matching Entry.Name.
+type variantModel struct {
+	discriminator string
+	ownerOf       map[string]string          // gated field -> the variant value that owns it
+	requiredFor   map[string]map[string]bool // variant value -> its required fields
+	values        map[string]bool            // every variant value seen
+}
+
+// buildVariantModel gathers the discriminator, per-variant ownership and
+// per-variant requirements from the three tree-level edge kinds a discriminator
+// produces. Only a single discriminating property is modelled; edges naming a
+// different property are ignored, so a fixture is never gated by two
+// discriminators at once.
+func buildVariantModel(tree *ir.AttributeTree) variantModel {
+	m := variantModel{
+		ownerOf:     map[string]string{},
+		requiredFor: map[string]map[string]bool{},
+		values:      map[string]bool{},
+	}
+	own := func(field, value string) {
+		if _, seen := m.ownerOf[field]; !seen {
+			m.ownerOf[field] = value
+		}
+	}
+
+	for _, vc := range tree.ValidConfigurations {
+		if m.discriminator == "" {
+			m.discriminator = vc.Discriminator
+		}
+		if vc.Discriminator != m.discriminator {
+			continue
+		}
+		for _, variant := range vc.Variants {
+			m.values[variant.Value] = true
+			for _, f := range variant.Valid {
+				own(f, variant.Value)
+			}
+		}
+	}
+	for _, cv := range tree.ConditionalValidities {
+		if m.discriminator == "" {
+			m.discriminator = cv.Property
+		}
+		if cv.Property != m.discriminator {
+			continue
+		}
+		m.values[cv.Equals] = true
+		for _, f := range cv.Valid {
+			own(f, cv.Equals)
+		}
+	}
+	for _, cr := range tree.ConditionalRequirements {
+		if m.discriminator == "" {
+			m.discriminator = cr.Property
+		}
+		if cr.Property != m.discriminator {
+			continue
+		}
+		m.values[cr.Equals] = true
+		if m.requiredFor[cr.Equals] == nil {
+			m.requiredFor[cr.Equals] = map[string]bool{}
+		}
+		for _, f := range cr.Required {
+			own(f, cr.Equals)
+			m.requiredFor[cr.Equals][f] = true
+		}
+	}
+	return m
+}
+
+// discriminatorOrder returns the discriminator attribute's declared enum
+// values, in document order, so the variant choice can honour them. Empty when
+// the discriminator carries no enum.
+func discriminatorOrder(tree *ir.AttributeTree, discriminator string) []string {
+	for _, a := range tree.Attributes {
+		if a.Name == discriminator {
+			return a.OneOf
+		}
+	}
+	return nil
+}
+
+// choose picks the variant value the fixture builds: the first of the
+// discriminator's declared enum values that names a known variant, so the
+// choice honours the document's order and is a value the enum admits; failing
+// that, the lexically first variant value seen.
+func (m variantModel) choose(order []string) string {
+	for _, candidate := range order {
+		if m.known(candidate) {
+			return candidate
+		}
+	}
+	best := ""
+	for value := range m.values {
+		if m.known(value) && (best == "" || value < best) {
+			best = value
+		}
+	}
+	return best
+}
+
+// known reports whether a variant value owns any attribute or requires any —
+// a value with no gated fields would produce a fixture indistinguishable from
+// an ungated one, so it is not worth pinning.
+func (m variantModel) known(value string) bool {
+	if len(m.requiredFor[value]) > 0 {
+		return true
+	}
+	for _, owner := range m.ownerOf {
+		if owner == value {
+			return true
+		}
+	}
+	return false
 }
 
 // deriveTree walks one attribute tree, carrying the dotted path for omission
@@ -178,6 +363,29 @@ func selected(values []Entry, a Form) []Entry {
 	out := make([]Entry, 0, len(values))
 	for _, v := range values {
 		if v.wanted(a) {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// topLevel filters the entity's top-level entries for a form, applying the
+// variant gate's minimal-forcing half: an attribute the chosen variant requires
+// is forced into the minimal forms even when the document marks it optional, so
+// the minimal create satisfies the variant's value-conditional requirement. The
+// complementary half — dropping other-variant attributes — is already done in
+// Derive by pruning Entries. For a single-variant entity requiredForVariant is
+// empty and this reduces to selected. Nested levels are never gated — only the
+// discriminator's own siblings are conditional — so the renderers keep using
+// selected as they recurse.
+func (s Fixture) topLevel(a Form) []Entry {
+	out := make([]Entry, 0, len(s.Entries))
+	for _, v := range s.Entries {
+		include := v.wanted(a)
+		if (a == ConfigMinimal || a == ResponseMinimal) && s.requiredForVariant[v.Name] {
+			include = true
+		}
+		if include {
 			out = append(out, v)
 		}
 	}
