@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
 )
@@ -57,6 +58,12 @@ func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
 	}
 
 	r.finalizeEvidence(ent)
+	r.evidence[ep.Entity] = &infer.Evidence{
+		Entity:           ep.Entity,
+		AcceptedBodies:   ent.ev.acceptedBodies,
+		ListBodies:       ent.ev.listBodies,
+		CombinedRefusals: ent.ev.combinedRefusals,
+	}
 	r.summary.Entities = append(r.summary.Entities, EntityResult{
 		Entity: ep.Entity, Status: ent.status, Reason: ent.reason,
 	})
@@ -139,6 +146,11 @@ func (r *runner) preflight(ctx context.Context, ent *entityState, step *plan.Ste
 	}
 	if !res.ok() {
 		return blockedError{reason: fmt.Sprintf("the pre-flight read of %s answered %d, so the tenant's size is unknown", ent.recipe.collectionPath, res.status)}
+	}
+	// The collection response is the evidence the list-response-shape finding
+	// is read from — its structure only, never a value from it.
+	if len(res.body) > 0 && len(ent.ev.listBodies) == 0 {
+		ent.ev.listBodies = append(ent.ev.listBodies, append([]byte(nil), res.body...))
 	}
 	foreign := 0
 	for _, item := range items(res.body) {

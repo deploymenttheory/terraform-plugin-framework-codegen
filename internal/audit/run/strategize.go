@@ -37,10 +37,12 @@ const (
 )
 
 // strategize rewrites every entity of p to execute its compiled strategy,
-// returning the new plan and the per-entity field synthesis hints the
-// refinement loop draws on when it has to add a field live. The input plan is
-// left untouched: a new plan is built so the caller's copy is never mutated.
-func strategize(p *plan.Plan, doc *specmodel.Document, cfg *config.Config, prefix string) (*plan.Plan, map[string]map[string]strategy.SynthHint) {
+// returning the new plan, the per-entity field synthesis hints the adjustment
+// loop draws on when it has to add a field live, and the compiled strategies
+// themselves, which the triangulating inference reads for the hypotheses each
+// run was meant to confirm. The input plan is left untouched: a new plan is
+// built so the caller's copy is never mutated.
+func strategize(p *plan.Plan, doc *specmodel.Document, cfg *config.Config, prefix string) (*plan.Plan, map[string]map[string]strategy.SynthHint, map[string]*strategy.Strategy) {
 	cls := specmodel.Classify(doc)
 	byKey := make(map[string]specmodel.Classification, len(cls.Entities))
 	for _, c := range cls.Entities {
@@ -49,6 +51,7 @@ func strategize(p *plan.Plan, doc *specmodel.Document, cfg *config.Config, prefi
 
 	out := &plan.Plan{Skipped: p.Skipped, Budget: p.Budget}
 	hints := map[string]map[string]strategy.SynthHint{}
+	strategies := map[string]*strategy.Strategy{}
 	total := 0
 	for i := range p.Entities {
 		ep := p.Entities[i]
@@ -68,13 +71,14 @@ func strategize(p *plan.Plan, doc *specmodel.Document, cfg *config.Config, prefi
 		ep.Steps = translateProgram(compiled, addr, ep.Entity, prefix)
 		ep.Budget = plan.Budget{Requests: compiled.Budget.Requests}
 		hints[ep.Entity] = collectHints(compiled)
+		strategies[ep.Entity] = compiled
 		out.Entities = append(out.Entities, ep)
 		total += compiled.Budget.Requests
 	}
 	// The run-wide request ceiling becomes the sum of the strategy budgets;
 	// the object and duration ceilings stay as the config derived them.
 	out.Budget.Requests = total
-	return out, hints
+	return out, hints, strategies
 }
 
 // addressing is everything the translator needs to place a strategy step onto
@@ -315,7 +319,7 @@ func synthSkeletonBody(sk strategy.Skeleton, entity, prefix, gateField, gateValu
 	return body
 }
 
-// synthField synthesises one field the refinement loop must add live, from its
+// synthField synthesises one field the adjustment loop must add live, from its
 // strategy hint when known and from its name and a string default otherwise.
 func (r *runner) synthField(ent *entityState, field string) any {
 	if hints := r.hints[ent.plan.Entity]; hints != nil {

@@ -33,6 +33,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/strategy"
@@ -175,12 +176,18 @@ type Summary struct {
 	// here rather than as an observation because it is about how to read
 	// the other findings, not a finding itself.
 	RejectsUnknownFields map[string]bool `json:"rejectsUnknownFields,omitempty"`
-	// Refinements is every change the adaptive loop made to a body to get it
+	// Adjustments is every change the adaptive loop made to a body to get it
 	// accepted — a field added, removed, borrowed, or added because another
-	// required it. It is the raw signal a later inference wave folds into
+	// required it. It is the raw signal the triangulating inference folds into
 	// conditional-edge findings; the required-field adds already surface as
 	// requiredByAPI or requiredWhen observations here.
-	Refinements []Refinement `json:"refinements,omitempty"`
+	Adjustments []infer.RequestAdjustment `json:"adjustments,omitempty"`
+	// EdgesConfirmed and EdgesInconclusive count the conditional-edge
+	// observations the inference produced — validConfiguration, validWhen,
+	// dependsOn and mutuallyExclusive — by outcome, so the run table can say
+	// how many edges were asserted versus tested-but-unconfirmed.
+	EdgesConfirmed    int `json:"edgesConfirmed"`
+	EdgesInconclusive int `json:"edgesInconclusive"`
 }
 
 // Run executes the plan and returns every observation it derived, however
@@ -193,14 +200,16 @@ type Summary struct {
 // not police this; it is the operator's responsibility.
 func Run(ctx context.Context, opts Options) ([]observe.Observation, Summary, error) {
 	var hints map[string]map[string]strategy.SynthHint
+	var strategies map[string]*strategy.Strategy
 	if opts.Plan != nil && opts.Doc != nil && opts.Config != nil {
-		opts.Plan, hints = strategize(opts.Plan, opts.Doc, opts.Config, opts.NamePrefix)
+		opts.Plan, hints, strategies = strategize(opts.Plan, opts.Doc, opts.Config, opts.NamePrefix)
 	}
 	r, err := newRunner(opts)
 	if err != nil {
 		return nil, Summary{}, err
 	}
 	r.hints = hints
+	r.strategies = strategies
 	defer r.ledger.close()
 
 	r.started = time.Now()
@@ -214,6 +223,11 @@ func Run(ctx context.Context, opts Options) ([]observe.Observation, Summary, err
 		}
 		r.runEntity(ctx, &opts.Plan.Entities[i])
 	}
+
+	// The triangulating inference runs after every entity, over all of the
+	// run's evidence at once: the conditional edges no single probe could
+	// justify are asserted here, or reported inconclusive, never guessed.
+	r.inferEdges()
 
 	// End-of-run cleanup is detached from the run's cancellation and its
 	// budgets: the commonest reason to be cleaning up is that one of them
@@ -259,16 +273,23 @@ type runner struct {
 	// recipes remembers how each executed entity creates and addresses
 	// its objects, for re-creation and end-of-run deletion.
 	recipes map[string]*entityRecipe
-	// hints carries, per entity, the field synthesis material the refinement
+	// hints carries, per entity, the field synthesis material the adjustment
 	// loop draws on when it must add a field a refusal named. Nil on a
 	// non-strategy run.
 	hints map[string]map[string]strategy.SynthHint
+	// strategies carries each entity's compiled strategy, so the inference
+	// can read the hypotheses the run was meant to confirm. Nil on a
+	// non-strategy run, which is what makes such a run skip inference.
+	strategies map[string]*strategy.Strategy
+	// evidence accumulates, per entity, the raw record the inference reads —
+	// accepted bodies, forced adjustments, list responses.
+	evidence map[string]*infer.Evidence
 	// borrowed caches one real id per collection the run has borrowed a
 	// reference from, so a second create needing it costs no extra request.
 	borrowed map[string]string
-	// refinements accumulates every change the adaptive loop made, for a
-	// later inference wave.
-	refinements []Refinement
+	// adjustments accumulates every change the adaptive loop made, for the
+	// triangulating inference and the run summary.
+	adjustments []infer.RequestAdjustment
 
 	obs     []observe.Observation
 	summary Summary
@@ -360,6 +381,7 @@ func newRunner(opts Options) (*runner, error) {
 		budget:   budget,
 		registry: map[string]*createdObject{},
 		recipes:  map[string]*entityRecipe{},
+		evidence: map[string]*infer.Evidence{},
 		borrowed: map[string]string{},
 		summary: Summary{
 			RunID:                runID,
@@ -460,13 +482,15 @@ func outcomeRank(o observe.Outcome) int {
 
 // finishObservations deduplicates by ID, keeping the most-informed outcome:
 // a claim confirmed by one step is not re-listed as blocked because a later
-// step could not re-earn it. On equal outcomes the later record wins —
-// the finalize-time conclusions are drawn from the create/read pair,
-// which is the canonical evidence for a per-field claim.
+// step could not re-earn it. On equal outcomes the record with excerpt proof
+// wins over one without — a per-probe finding keeps its evidence where the
+// inference derived the same claim without an excerpt — and otherwise the
+// later record wins, the finalize-time conclusions being the canonical
+// evidence for a per-field claim.
 func (r *runner) finishObservations() []observe.Observation {
 	best := map[string]int{}
 	for i, o := range r.obs {
-		if j, ok := best[o.ID]; !ok || outcomeRank(o.Outcome) >= outcomeRank(r.obs[j].Outcome) {
+		if j, ok := best[o.ID]; !ok || moreInformed(o, r.obs[j]) {
 			best[o.ID] = i
 		}
 	}
@@ -483,11 +507,33 @@ func (r *runner) finishObservations() []observe.Observation {
 	return out
 }
 
+// moreInformed reports whether observation a should displace b when the two
+// share an ID: a stronger outcome wins; on equal outcome the one carrying
+// excerpt proof wins, and failing that the later (a).
+func moreInformed(a, b observe.Observation) bool {
+	ra, rb := outcomeRank(a.Outcome), outcomeRank(b.Outcome)
+	if ra != rb {
+		return ra > rb
+	}
+	if len(a.Excerpts) != len(b.Excerpts) {
+		return len(a.Excerpts) > len(b.Excerpts)
+	}
+	return true
+}
+
 // finishSummary fills the counters a table prints.
 func (r *runner) finishSummary(obs []observe.Observation) {
 	for _, o := range obs {
 		r.summary.ByKind[o.Kind]++
 		r.summary.ByOutcome[o.Outcome]++
+		if infer.EdgeKinds[o.Kind] {
+			switch o.Outcome {
+			case observe.OutcomeConfirmed:
+				r.summary.EdgesConfirmed++
+			case observe.OutcomeInconclusive:
+				r.summary.EdgesInconclusive++
+			}
+		}
 	}
 	for _, e := range r.summary.Entities {
 		switch e.Status {
@@ -499,7 +545,7 @@ func (r *runner) finishSummary(obs []observe.Observation) {
 			r.summary.TimedOut++
 		}
 	}
-	r.summary.Refinements = sortedRefinements(r.refinements)
+	r.summary.Adjustments = sortedAdjustments(r.adjustments)
 	r.summary.Skipped = len(r.opts.Plan.Skipped)
 	r.summary.Requests = r.reqTotal
 	r.summary.RequestBudget = r.budget.Requests

@@ -149,6 +149,14 @@ func TestUnit_Observe_ValidateAcceptsEveryKindsValueShape(t *testing.T) {
 		{KindUpdateStyle, "", "patch-merge", nil},
 		{KindDeleteNotFoundOK, "", true, nil},
 		{KindReadAfterWrite, "", "2.5s", nil},
+		{KindValidWhen, "target_host", true, &Condition{Attribute: "kind", Equals: "ping"}},
+		{KindValidConfiguration, "kind", []string{"dns", "ping", "web"}, nil},
+		{KindValidConfiguration, "kind", []any{"a", "b"}, nil},
+		{KindDependsOn, "dnssec", "domain", nil},
+		{KindMutuallyExclusive, "", []string{"a", "b"}, nil},
+		{KindListResponseShape, "", ListResponseShape{Envelope: "wrapped", Key: "items", Pagination: "cursor"}, nil},
+		{KindListResponseShape, "", &ListResponseShape{Envelope: "bare", Pagination: "none"}, nil},
+		{KindListResponseShape, "", map[string]any{"envelope": "wrapped", "key": "data", "pagination": "offset"}, nil},
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.kind), func(t *testing.T) {

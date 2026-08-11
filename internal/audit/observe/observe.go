@@ -140,6 +140,63 @@ const (
 	// a correction adding the property, with the observed type, to the
 	// entity schema's properties.
 	KindUndocumentedFieldInSpec Kind = "undocumentedFieldInSpec"
+
+	// The conditional-edge kinds below are never drawn from one probe.
+	// They are asserted only by the triangulating inference
+	// (internal/audit/infer), which builds one model per entity from all
+	// of a run's evidence — the per-variant create outcomes, the request
+	// adjustments the executor was forced to make, and the strategy's
+	// declared hypotheses — and confirms an edge only where those signals
+	// converge in both directions. A lone ambiguous 4xx is by design not
+	// enough to assert one. Each carries a Provenance saying whether a
+	// structural or prose hypothesis grounded it or it was derived from
+	// probing alone.
+
+	// KindValidConfiguration: the entity has several distinct valid
+	// configurations, selected by a discriminator value — the variant
+	// structure the executor probed one gate value at a time. The
+	// Attribute is the discriminator (gate) field; the Value is the sorted
+	// list of gate values each of which produced a valid object. Learned
+	// when two or more gate values each created successfully and at least
+	// one field is valid under one value and refused under another. Emitted
+	// as x-tfpfgen-valid-configuration by a later wave.
+	KindValidConfiguration Kind = "validConfiguration"
+
+	// KindValidWhen: a field or block is valid only when a sibling gate
+	// field holds a specific value — the core conditional edge. The
+	// Attribute is the subject field; the Condition names the gate field
+	// and value it is valid under; the Value is true. Learned by variant
+	// diffing: the field is accepted in a create under exactly one gate
+	// value and removed (as not valid) under at least one other, both
+	// directions observed. Emitted as x-tfpfgen-valid-when by a later wave.
+	KindValidWhen Kind = "validWhen"
+
+	// KindDependsOn: a field is settable only when a second field is also
+	// present, whatever that second field's value — a co-requirement, not a
+	// value condition. The Attribute is the dependent field; the Value is
+	// the name of the field it requires. Learned when a create carrying the
+	// dependent field but not its requirement is refused naming both, the
+	// executor adds the requirement, and the retry succeeds — corroborated,
+	// not read from a single ambiguous refusal. Emitted as
+	// x-tfpfgen-depends-on by a later wave.
+	KindDependsOn Kind = "dependsOn"
+
+	// KindMutuallyExclusive: at most one of a set of fields may be set. The
+	// Attribute is empty (the finding is about the set, not one field); the
+	// Value is the sorted list of the mutually-exclusive field names.
+	// Learned when each field is accepted on its own but a create carrying
+	// two of them together is refused, reproducibly. Emitted as
+	// x-tfpfgen-mutually-exclusive by a later wave.
+	KindMutuallyExclusive Kind = "mutuallyExclusive"
+
+	// KindListResponseShape: the structural shape of a list (collection)
+	// response — whether the items come wrapped in an envelope object or as
+	// a bare array, the wrapping key when wrapped, and any pagination style
+	// the response advertises. Entity-level (empty Attribute); the Value is
+	// a ListResponseShape record. Learned from the collection reads the
+	// executor captured, not from the document, because every API spells
+	// its envelope differently and the document often lies about it.
+	KindListResponseShape Kind = "listResponseShape"
 )
 
 // knownKinds is the closed set, for validation.
@@ -150,7 +207,44 @@ var knownKinds = map[Kind]bool{
 	KindVolatile: true, KindValues: true, KindUpdateStyle: true,
 	KindDeleteNotFoundOK: true, KindReadAfterWrite: true,
 	KindUndocumentedFieldInSpec: true,
+	KindValidConfiguration:      true, KindValidWhen: true,
+	KindDependsOn: true, KindMutuallyExclusive: true,
+	KindListResponseShape: true,
 }
+
+// Provenance records how strongly an inferred edge is grounded: a structural
+// hypothesis (the document's own composition keywords) is strongest, a prose
+// hypothesis (mined description text) weaker, and derived means the edge was
+// concluded from live probing alone with no declared hypothesis behind it. It
+// mirrors the strategy package's vocabulary and is carried only on the
+// conditional-edge kinds the inference asserts.
+type Provenance string
+
+const (
+	ProvenanceStructural Provenance = "structural"
+	ProvenanceProse      Provenance = "prose"
+	ProvenanceDerived    Provenance = "derived"
+)
+
+var knownProvenances = map[Provenance]bool{
+	ProvenanceStructural: true, ProvenanceProse: true, ProvenanceDerived: true,
+}
+
+// ListResponseShape is the Value shape of a KindListResponseShape
+// observation: how a collection response is structured.
+type ListResponseShape struct {
+	// Envelope is "wrapped" when the items sit under a key of an object,
+	// "bare" when the response is the array itself.
+	Envelope string `json:"envelope"`
+	// Key is the wrapping key when Envelope is "wrapped", empty for bare.
+	Key string `json:"key,omitempty"`
+	// Pagination names the pagination style the response advertises:
+	// "cursor", "offset", "page" or "none".
+	Pagination string `json:"pagination"`
+}
+
+var listEnvelopes = map[string]bool{"wrapped": true, "bare": true}
+var listPaginations = map[string]bool{"cursor": true, "offset": true, "page": true, "none": true}
 
 // Outcome says how far the audit got with this claim.
 type Outcome string
@@ -227,9 +321,16 @@ type Observation struct {
 	// JSON-marshalable: bool, string, number, []string, a duration string
 	// for readAfterWrite, or a Values record for the values kind.
 	Value any `json:"value,omitempty"`
-	// Condition scopes value-conditional kinds; required for requiredWhen.
+	// Condition scopes value-conditional kinds; required for requiredWhen
+	// and validWhen.
 	Condition *Condition `json:"condition,omitempty"`
-	Outcome   Outcome    `json:"outcome"`
+	// Provenance says how an inferred conditional edge was grounded —
+	// structural, prose or derived. Empty on the scalar kinds an executor
+	// reads from one probe, since those are not grounded in a hypothesis.
+	// It does not participate in the ID: the same edge grounded two ways in
+	// two runs keeps one identity.
+	Provenance Provenance `json:"provenance,omitempty"`
+	Outcome    Outcome    `json:"outcome"`
 	// Excerpts is the redacted proof: fragments of the requests and
 	// responses the finding was read from. Every excerpt passes through
 	// Redact before it is stored.
@@ -303,6 +404,10 @@ func (o *Observation) Validate() error {
 		return fmt.Errorf("%s (%s): a condition with no attribute constrains nothing", at, o.Kind)
 	case o.Kind == KindRequiredWhen && o.Condition == nil:
 		return fmt.Errorf("%s: a requiredWhen observation needs the condition it is about", at)
+	case o.Kind == KindValidWhen && o.Condition == nil:
+		return fmt.Errorf("%s: a validWhen observation needs the gate condition it is about", at)
+	case o.Provenance != "" && !knownProvenances[o.Provenance]:
+		return fmt.Errorf("%s (%s): unknown provenance %q", at, o.Kind, o.Provenance)
 	}
 	if want := ComputeID(o.Entity, o.Attribute, o.Kind, o.Condition); o.ID != "" && o.ID != want {
 		return fmt.Errorf("%s (%s): id %q does not match the computed %q — hand-edited or corrupted", at, o.Kind, o.ID, want)
@@ -327,7 +432,7 @@ func valueShape(kind Kind, v any) error {
 	switch kind {
 	case KindWritable, KindImmutable, KindRequiredByAPI, KindRequiredWhen,
 		KindDerivedDefault, KindIgnoredOnUpdate, KindServerForced,
-		KindVolatile, KindDeleteNotFoundOK:
+		KindVolatile, KindDeleteNotFoundOK, KindValidWhen:
 		if _, ok := v.(bool); !ok {
 			return fmt.Errorf("value must be a bool, got %T", v)
 		}
@@ -361,6 +466,72 @@ func valueShape(kind Kind, v any) error {
 		}
 	case KindValues:
 		return valuesShape(v)
+	case KindDependsOn:
+		s, ok := v.(string)
+		if !ok || s == "" {
+			return fmt.Errorf("value must be the name of the required field, got %v", v)
+		}
+	case KindValidConfiguration, KindMutuallyExclusive:
+		if !isStringList(v) {
+			return fmt.Errorf("value must be a list of field or gate-value names, got %T", v)
+		}
+	case KindListResponseShape:
+		return listShape(v)
+	}
+	return nil
+}
+
+// isStringList accepts a []string or the []any-of-strings a JSON round trip
+// produces.
+func isStringList(v any) bool {
+	switch t := v.(type) {
+	case []string:
+		return len(t) > 0
+	case []any:
+		if len(t) == 0 {
+			return false
+		}
+		for _, e := range t {
+			if _, ok := e.(string); !ok {
+				return false
+			}
+		}
+		return true
+	default:
+		return false
+	}
+}
+
+// listShape accepts a ListResponseShape in typed or decoded form, checking
+// the envelope and pagination vocabularies.
+func listShape(v any) error {
+	var s ListResponseShape
+	switch t := v.(type) {
+	case ListResponseShape:
+		s = t
+	case *ListResponseShape:
+		if t == nil {
+			return fmt.Errorf("value must be a list-response-shape record, got a nil one")
+		}
+		s = *t
+	case map[string]any:
+		for k := range t {
+			switch k {
+			case "envelope", "key", "pagination":
+			default:
+				return fmt.Errorf("list-response-shape has unknown key %q", k)
+			}
+		}
+		s.Envelope, _ = t["envelope"].(string)
+		s.Pagination, _ = t["pagination"].(string)
+	default:
+		return fmt.Errorf("value must be a list-response-shape record, got %T", v)
+	}
+	if !listEnvelopes[s.Envelope] {
+		return fmt.Errorf("list-response-shape envelope must be \"wrapped\" or \"bare\", got %q", s.Envelope)
+	}
+	if !listPaginations[s.Pagination] {
+		return fmt.Errorf("list-response-shape pagination must be one of cursor, offset, page, none, got %q", s.Pagination)
 	}
 	return nil
 }

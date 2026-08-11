@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
 )
 
@@ -54,6 +55,17 @@ type evidence struct {
 	// proof excerpts for the finalize-time observations.
 	createProof *observe.Excerpt
 	readProof   *observe.Excerpt
+
+	// The raw material the triangulating inference reads, gathered across
+	// every step. acceptedBodies is every create body the API accepted,
+	// resolved as sent — the positive half of variant diffing. listBodies is
+	// the collection responses the pre-flight captured, for the list-shape
+	// finding. combinedRefusals holds any field pairs a create was refused
+	// for carrying together — the mutual-exclusion signal, empty unless the
+	// refusal grammar names one.
+	acceptedBodies   []map[string]any
+	listBodies       [][]byte
+	combinedRefusals []infer.FieldPair
 }
 
 // requiredWhenPair tracks the with/without halves of one required-when

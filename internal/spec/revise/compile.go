@@ -108,6 +108,14 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 	case observe.KindNormalisation, observe.KindDerivedDefault:
 		return compiled{category: catNoForm,
 			reason: "no correction form exists yet; adding an x-tfpfgen-* key is an owner decision"}, nil
+	case observe.KindValidConfiguration, observe.KindValidWhen, observe.KindDependsOn,
+		observe.KindMutuallyExclusive, observe.KindListResponseShape:
+		// The triangulating inference asserts these conditional-edge and
+		// list-shape findings; emitting their x-tfpfgen-* corrections is a
+		// later wave's work, so here they are recognised and carried without a
+		// correction rather than rejected as an unknown kind.
+		return compiled{category: catNoForm,
+			reason: "the correction form for this inferred edge is not built yet"}, nil
 	default:
 		// observe.Read validates kinds against the closed set, so reaching
 		// here means the sets have drifted — the failure mode an evidence
