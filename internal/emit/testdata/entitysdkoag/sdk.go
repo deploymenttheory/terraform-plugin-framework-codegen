@@ -119,6 +119,25 @@ func (s *TagsAPIService) RotateTag(_ context.Context, _ int64) ApiRotateTagReque
 	return ApiRotateTagRequest{}
 }
 
+// ApiListTagsRequest is the list request builder.
+type ApiListTagsRequest struct{}
+
+// Execute runs the request, answering a wrapped envelope.
+func (r ApiListTagsRequest) Execute() (*TagList, *http.Response, error) { return nil, nil, errStub }
+
+// ListTags begins a collection read.
+func (s *TagsAPIService) ListTags(_ context.Context) ApiListTagsRequest {
+	return ApiListTagsRequest{}
+}
+
+// TagList is the openapi-generator wrapped-list envelope: a struct whose
+// single exported slice field is named for the "tags" wire key. The
+// generator emits no getter on the envelope, so the collection is reached
+// through the field directly.
+type TagList struct {
+	Tags []Tag `json:"tags"`
+}
+
 // TagStatus is a generated string enumeration.
 type TagStatus string
 

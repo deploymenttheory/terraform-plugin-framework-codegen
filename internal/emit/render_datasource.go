@@ -474,7 +474,11 @@ func (e *serviceRenderer) datasourceFixtures(ds *ir.Datasource, spec fixtures.Fi
 		response = spec.WireJSON(fixtures.ResponseMaximal)
 	} else {
 		item := strings.TrimSuffix(string(spec.WireJSON(fixtures.ResponseMaximal)), "\n")
-		response = []byte("{\n  \"value\": [\n" + reindentJSON(item, "    ") + "\n  ]\n}\n")
+		// The committed list-response fixture wraps under the observed
+		// envelope key, or is a bare array, so it and the unit-test mock
+		// agree on the shape the API actually returns — never an assumed
+		// "value".
+		response = []byte(listResponseJSON(ds.ListEnvelopeKey, item))
 	}
 
 	exampleHeader := fmt.Sprintf("data %q %q", ds.Names.TerraformType, "example")
