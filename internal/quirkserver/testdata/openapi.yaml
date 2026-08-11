@@ -1,0 +1,110 @@
+# The OpenAPI 3 document the quirk server implements: a /things collection
+# with the full create/read/update/delete lifecycle. This is the document a
+# pipeline exercised against the standalone quirk server imports as its
+# upstream — deliberately imperfect, the way a vendor's document is. The
+# standalone quirks profile (StandaloneQuirks) deviates from what is written
+# here in exactly the ways the audit exists to catch: fields this document
+# calls writable are discarded, a documented default is not the served one,
+# a documented requirement is not enforced, and fields the document never
+# declares ride along on every read.
+openapi: 3.0.3
+info:
+  title: quirkserver
+  description: the deliberately-misbehaving stub API the toolkit rehearses against
+  version: "1.0"
+paths:
+  /things:
+    get:
+      operationId: listThings
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Thing'
+    post:
+      operationId: createThing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThingCreate'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+  /things/{thingId}:
+    parameters:
+      - name: thingId
+        in: path
+        schema:
+          type: string
+    get:
+      operationId: getThing
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+    put:
+      operationId: updateThing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThingCreate'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+    delete:
+      operationId: deleteThing
+      responses:
+        "204":
+          description: gone
+components:
+  schemas:
+    ThingCreate:
+      type: object
+      required: [name, mode, code, notes]
+      properties:
+        name:
+          type: string
+        mode:
+          type: string
+          enum: [basic, advanced]
+        query:
+          type: string
+          x-tfpfgen-required-when:
+            property: mode
+            equals: advanced
+        code:
+          type: string
+          example: MiXeD
+        notes:
+          type: string
+          example: some notes
+        color:
+          type: string
+        label:
+          type: string
+        enabled:
+          type: boolean
+        retention:
+          type: integer
+          default: 30
+    Thing:
+      allOf:
+        - $ref: '#/components/schemas/ThingCreate'
+        - type: object
+          properties:
+            id:
+              type: string
+              readOnly: true
