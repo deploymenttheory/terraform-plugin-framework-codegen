@@ -1,8 +1,11 @@
 package config
 
 import (
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/revise"
 )
 
 // valid is a complete, correct tfpfgen.yaml. Each table case below mutates
@@ -83,6 +86,24 @@ func TestUnit_Config_GoldenTable(t *testing.T) {
 		{"empty audit name prefix is refused", valid + "audit:\n  name_prefix: \"\"\n",
 			"audit.name_prefix: must not be empty"},
 		{"malformed yaml is refused", "version: [1\n", "yaml"},
+
+		// audit.auto_accept names observation kinds, checked against the
+		// vocabulary the revision stage itself enforces.
+		{"an absent auto-accept list parses", valid, ""},
+		{"an empty auto-accept list parses", valid + "audit:\n  auto_accept: []\n", ""},
+		{"known auto-accept kinds parse",
+			valid + "audit:\n  auto_accept: [listResponseShape, deleteNotFoundOK, updateStyle]\n", ""},
+		{"a kind with no correction form yet still parses",
+			// normalisation compiles to a NoForm note rather than a
+			// correction; naming it is inert, not an error, because the
+			// list says which kinds skip review, not which kinds exist.
+			valid + "audit:\n  auto_accept: [normalisation]\n", ""},
+		{"a mistyped auto-accept kind is refused with the valid set",
+			valid + "audit:\n  auto_accept: [listResponse]\n",
+			`audit.auto_accept[0]: "listResponse" is not an observation kind (one of `},
+		{"the offending entry is named by position",
+			valid + "audit:\n  auto_accept: [writable, nonsense]\n",
+			`audit.auto_accept[1]: "nonsense" is not an observation kind`},
 	}
 
 	for _, tc := range cases {
@@ -104,6 +125,30 @@ func TestUnit_Config_GoldenTable(t *testing.T) {
 				t.Fatalf("error = %q, want it to contain %q", err, tc.wantErr)
 			}
 		})
+	}
+}
+
+// TestUnit_Config_AutoAcceptVocabularyComesFromTheRevisionStage: the valid set is
+// not a copy kept in step by hand — it is `tfpfgen spec revise`'s own, so a
+// config this package accepts is one that stage accepts. The refusal spells
+// the whole set out, since a human choosing kinds needs to see the choices.
+func TestUnit_Config_AutoAcceptVocabularyComesFromTheRevisionStage(t *testing.T) {
+	kinds := revise.CompilableKinds()
+	if !slices.Contains(kinds, "listResponseShape") {
+		t.Errorf("the vocabulary %v omits listResponseShape", kinds)
+	}
+	if !slices.Equal(autoAcceptKinds(), kinds) {
+		t.Errorf("autoAcceptKinds() = %v, want the revision stage's %v", autoAcceptKinds(), kinds)
+	}
+
+	_, err := Parse([]byte(valid+"audit:\n  auto_accept: [listResponse]\n"), "tfpfgen.yaml")
+	if err == nil {
+		t.Fatal("a mistyped observation kind parsed")
+	}
+	for _, kind := range kinds {
+		if !strings.Contains(err.Error(), kind) {
+			t.Errorf("the refusal does not offer %q:\n%v", kind, err)
+		}
 	}
 }
 
