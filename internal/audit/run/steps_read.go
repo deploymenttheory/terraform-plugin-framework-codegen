@@ -10,14 +10,19 @@ import (
 )
 
 // runReadWithRetry polls the item read until it shows the created object,
-// within the step's poll bounds. The lag between the create and the first
-// successful read is the readAfterWrite finding; the read body is the
-// evidence every per-field conclusion draws on.
+// within the step's poll bounds. The readAfterWrite finding is how long the
+// object took to become readable, measured as the number of failed polls times
+// the poll interval — a wall-clock duration would fold request latency and
+// scheduling noise into the value and never reproduce across runs, so the same
+// tenant would revise to a different spec each audit. An object readable on the
+// first attempt lagged not at all: zero. The read body is the evidence every
+// per-field conclusion draws on.
 func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *plan.Step) error {
 	interval, timeout := pollBounds(step.Poll)
 	deadline := time.Now().Add(timeout)
 
 	var last *httpResult
+	polls := 0
 	for {
 		res, err := r.do(ctx, ent, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
 		if err != nil {
@@ -25,10 +30,7 @@ func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *p
 		}
 		last = res
 		if res.ok() && res.object() != nil {
-			lag := time.Since(ent.createdAt).Round(10 * time.Millisecond)
-			if lag < 0 {
-				lag = 0
-			}
+			lag := time.Duration(polls) * interval
 			r.record(ent.plan.Entity, "", observe.KindReadAfterWrite, lag.String(), nil, observe.OutcomeConfirmed, res.excerpt)
 			ent.ev.got = res.object()
 			ent.ev.readProof = &res.excerpt
@@ -36,6 +38,7 @@ func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *p
 			r.observeUndeclaredFields(ent, ent.lastRead, res.excerpt)
 			return nil
 		}
+		polls++
 		if time.Now().Add(interval).After(deadline) {
 			break
 		}
