@@ -4,16 +4,15 @@ package {{ .Package }}
 
 {{ .ValidatorImports }}
 
-var _ resource.ResourceWithValidateConfig = (*{{ .Type }})(nil)
+var _ resource.ResourceWithConfigValidators = (*{{ .Type }})(nil)
 
-// ValidateConfig enforces the value-conditional requirements the document
-// declares: when the deciding attribute takes the stated value, the
-// dependent attributes must be set.
-func (r *{{ .Type }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var data {{ .Type }}Model
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+// ConfigValidators returns the cross-attribute validators the document
+// declares: stock validators for the mechanical edges and named custom
+// validators for the value-conditional ones the framework has no stock
+// idiom for.
+func (r *{{ .Type }}) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+{{ .ConfigValidatorExprs }}	}
+}
 
-{{ .ValidatorBody }}}
+{{ .CustomValidatorDecls }}

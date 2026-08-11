@@ -210,19 +210,24 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 
 	validators := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/conditional_validators.go").Content)
 	for _, want := range []string{
-		// required-when
+		// The edges are wired through the resource's ConfigValidators method.
+		"var _ resource.ResourceWithConfigValidators = (*HTTPServerResource)(nil)",
+		"func (r *HTTPServerResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {",
+		// mutually-exclusive: the stock Conflicting, not a hand-rolled check.
+		`resourcevalidator.Conflicting(path.MatchRoot("protocols"), path.MatchRoot("tags")),`,
+		// The value-conditional edges are named custom validators, each keyed
+		// on its gate and wired into the same slice.
+		"kindRequiredWhenValidator{},",
+		"kindValidWhenValidator{},",
+		"kindValidConfigurationValidator{},",
+		"type kindRequiredWhenValidator struct{}",
+		"func (v kindRequiredWhenValidator) ValidateResource(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {",
+		// required-when: settings required when kind == advanced
 		`data.Kind.ValueString() == "advanced"`,
 		"data.Settings == nil",
 		// valid-when: rules valid only under kind == advanced
 		`data.Kind.ValueString() != "advanced"`,
 		"if data.Rules != nil {",
-		// depends-on: ratio requires port
-		"if !data.Ratio.IsNull() {",
-		"data.Port.IsNull()",
-		"ratio may be set only when port is also set.",
-		// mutually-exclusive: protocols vs tags
-		"if !data.Protocols.IsNull() && !data.Tags.IsNull() {",
-		"protocols and tags are mutually exclusive; set at most one.",
 		// valid-configuration: port only under basic, settings only under advanced
 		`if data.Settings != nil && data.Kind.ValueString() != "advanced" {`,
 		`if !data.Port.IsNull() && data.Kind.ValueString() != "basic" {`,
@@ -230,6 +235,15 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 		if !strings.Contains(validators, want) {
 			t.Fatalf("conditional_validators.go misses %q:\n%s", want, validators)
 		}
+	}
+	// depends-on is realized as an attribute-level AlsoRequires on the subject
+	// attribute in the schema, not as a check in the validators file.
+	resourceGo := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/resource.go").Content)
+	if want := `[]validator.Float64{float64validator.AlsoRequires(path.MatchRoot("port"))}`; !strings.Contains(resourceGo, want) {
+		t.Fatalf("resource.go misses the AlsoRequires dependency validator %q:\n%s", want, resourceGo)
+	}
+	if strings.Contains(validators, "mutually exclusive") || strings.Contains(validators, "may be set only when port is also set") {
+		t.Fatalf("the hand-rolled dependency/exclusion prose must be gone:\n%s", validators)
 	}
 
 	license := string(fileByPath(t, out, "internal/services/datasources/licenses/v7/license/datasource.go").Content)
