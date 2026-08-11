@@ -1,208 +1,239 @@
-# Pipeline rehearsal: the offline zero-touch chain, end to end
+# Pipeline rehearsal: the v2 audit engine, end to end
 
-This is the record of the first full local run of the pipeline against the
-quirkserver — the stand-in live API — using a `tfpfgen` built from `main`
-(post `v0.2.0`, with #30–#33 and #35 merged). The goal was the project's central
-claim: supply the spec, and everything cascades — import, audit, revision,
-SDK, provider, verification — with no hand-written provider code and no
-human step except the one the design demands (accepting or rejecting
-proposed corrections).
+This is the record of the first full local run of the v2 audit engine —
+strategy compiler, adaptive executor, triangulating inference, and the
+corrections-plus-validators layer of Waves 1–4 — driven against the
+quirkserver's shape resources with a `tfpfgen` built from `main` after
+`#42` (stock-idiom conditional validators). The goal was the project's
+central claim, now for a *multi-variant* API: supply the spec, and
+everything cascades — import, audit, revision, SDK, provider, verification —
+with no hand-written provider code and the one human step the design demands
+(accepting or rejecting proposed corrections).
 
-**Verdict: the chain works end to end.** Every verb ran against a real
-HTTP server, a real kiota 1.34.1, and a real Go toolchain; the generated
-provider compiled and every drift gate answered clean. Four toolkit
-defects stood between `v0.2.0` and a green board — each invisible to the
-stubbed test suite and caught only by this run — and one defect remains
-open in the emitted unit-test layer, documented below.
+**Verdict: the v2 chain works end to end, and is deterministic.** Every
+verb ran against a real HTTP server (the quirkserver's `monitor` /
+`assignment` / `agent` shapes), a real kiota 1.34.1, and a real Go
+toolchain; the adaptive executor self-healed the optional-but-required
+field and borrowed a live reference, the inference emitted the conditional
+edges, revision folded them into the spec as `x-tfpfgen-*` extensions, and
+the generated provider — including a genuinely multi-variant resource —
+built, vetted, tested green, and passed every drift gate. Two independent
+full runs produced a byte-identical `revised.yaml` and provider tree.
+
+Three toolkit defects stood between a rebuilt `main` and that green board.
+Each was invisible to the stubbed suite and caught only by generating and
+running a real multi-variant provider; each is fixed in **PR #43**
+(`fix/fixtures-variant-config`), and the rehearsal was re-run green on the
+rebased branch.
 
 ## Setup
 
 | Piece | Value |
 |---|---|
-| Toolkit | built from `main` after #30, #31, #32, #33 |
-| Live API stand-in | `tfpfgen __serve-quirkserver --addr 127.0.0.1:8179 --spec quirkserver.openapi.yaml` (hidden dev verb, #30) |
-| Quirks profile | `quirkserver.StandaloneQuirks()`: discarded `notes`, immutable `color`, served default 45 vs documented 30, volatile undeclared `etag`, normalised `code`, unenforced documented requirements, closed enum on `mode`, conditional `query`, update-ignored `label` |
+| Toolkit | built from `main` after `#41`, `#42`, plus the three fixes in `#43` |
+| Live API stand-in | `tfpfgen __serve-quirkserver --addr 127.0.0.1:PORT --spec ./monitor.openapi.yaml` (hidden dev verb) |
+| Shapes served | `monitor` (multi-variant, `kind` ∈ {ping, web, dns} gating which siblings are valid), `assignment` (its `agent_id` must reference a live `/agents` object), `agent` (a fixed read-only pool). The legacy `/things` quirk surface is also served. |
 | Provider under rehearsal | `orbit` (`registry_namespace: deploymenttheory`), `auth.method: bearer_token`, `sdk.backend: kiota@1.34.1` |
 | Credential | a synthetic `TFPFGEN_AUTH_TOKEN`, distinctive so redaction could be grepped for |
 
 The quirkserver writes the OpenAPI document it implements at boot; that
-file is what `spec import` pinned. The document is deliberately imperfect
-in exactly the ways the serving profile misbehaves, so the audit has real
-findings to earn.
+file is what `spec import` pinned (sha256 `d47ccb0bcc54`). The document is
+honest-but-partial: it declares `monitor`'s fields flat, marks only `kind`
+required, and says nothing of the variant structure, the real requirement of
+`interval`, or that `agent_id` must reference a live object. The audit
+discovers all of it.
 
 ## The run, stage by stage
 
-Every stage below is one verb of the installed binary, in order, in one
-scratch provider repo. Timings are wall clock on a warm module cache.
+Every stage is one verb of the built binary, in order, in one scratch
+provider repo (a `git init` repo, so Go's `-buildvcs` stamping succeeds).
 
-| # | Verb | Exit | Time | What happened |
-|---|---|---|---|---|
-| 1 | `config validate --secrets` (secret unset) | 1 | 7 ms | Refused, naming `TFPFGEN_AUTH_TOKEN` — the preflight dies in milliseconds, before anything credentialed. |
-| 2 | `config validate --secrets` | 0 | 6 ms | `tfpfgen.yaml is valid: provider orbit, backend kiota@1.34.1, auth bearer_token`. |
-| 3 | `spec import quirkserver.openapi.yaml` | 0 | 11 ms | Pinned as `spec/upstream.yaml`, sha256 `d0782979b059`, openapi 3.0.3. |
-| 4 | `spec revise` (no observations) | 0 | 7 ms | `spec/revised.yaml` = the upstream document, 0 corrections. |
-| 5 | `audit run` | 0 | 812 ms | 1 entity audited, 24 observations, 43 of 60 budgeted requests, 8 objects created (ceiling 25), cleanup left the tenant empty. |
-| 6 | `spec revise` (observations present) | 1 | 17 ms | Proposed 11 corrections, then **hard-failed by design**, naming all 11 files and refusing to continue while `spec/corrections/proposed/` is non-empty. No ignore flag exists. |
-| 7 | accept: `mv proposed/*.correction.json corrections/` | — | — | The one human step the design demands. |
-| 8 | `spec revise` (rerun) | 0 | 10 ms | Converged: 0 new proposals; `spec/revised.yaml` written with all 11 corrections applied. |
-| 9 | `sdk generate` | 0 | 0.65 s | 7 files with kiota 1.34.1 from `spec/revised.yaml`. |
-| 10 | `provider generate` | 0 | 3.5 s | 53 files: 1 resource, 1 datasource; postcheck passed (`go mod tidy`, `go build`, `go vet`). |
-| 11 | `go build ./...` (independent) | 0 | 0.6 s | The generated provider compiles on its own. |
-| 12 | `provider verify` | 0 | 0.8 s | `. matches regeneration from spec/revised.yaml: 53 files, no drift`. |
-| 13 | `sdk verify` | 0 | 1.0 s | `internal/sdk matches regeneration with kiota 1.34.1: 7 files, no drift`. |
-| 14 | `spec verify` | 0 | 7 ms | The pin matches its lock. |
+| # | Verb | Exit | What happened |
+|---|---|---|---|
+| 1 | `config validate --secrets` (secret unset) | 1 | Refused, naming `TFPFGEN_AUTH_TOKEN` — the preflight dies in milliseconds. |
+| 2 | `config validate --secrets` | 0 | `tfpfgen.yaml is valid: provider orbit, backend kiota@1.34.1, auth bearer_token`. |
+| 3 | `spec import ./monitor.openapi.yaml` | 0 | Pinned `spec/upstream.yaml`, sha256 `d47ccb0bcc54`, openapi 3.0.3. |
+| 4 | `spec revise` (no observations) | 0 | `spec/revised.yaml` = the upstream document, 0 corrections. |
+| 5 | `audit run --base-url …` | 0 | 54 observations; `monitor` and `assignment` exercised, `thing` blocked; 4 confirmed edges; cleanup left the tenant empty; token redacted. |
+| 6 | `spec revise` (observations present) | 1 | Proposed 10 corrections, then **hard-failed by design**, naming all 10 files. No ignore flag exists. |
+| 7 | accept: `mv proposed/*.correction.json corrections/` | — | The one human step the design demands. |
+| 8 | `spec revise` (rerun) | 0 | Converged: 0 new proposals; `revised.yaml` written with all 10 corrections and their `x-tfpfgen-*` edge extensions. |
+| 9 | `sdk generate` | 0 | 20 files with kiota 1.34.1 from `spec/revised.yaml`. |
+| 10 | `provider generate` | 0 | 115 files: 3 resources, 4 datasources; postcheck passed (`go mod tidy`, `go build`, `go vet`). |
+| 11 | `go build && go vet && go test ./...` (independent) | 0 | The generated provider compiles, vets, and its unit tests pass — including the multi-variant `monitor` resource and datasource. |
+| 12 | `provider verify` | 0 | `. matches regeneration from spec/revised.yaml: 115 files, no drift`. |
+| 13 | `sdk verify` | 0 | `internal/sdk matches regeneration with kiota 1.34.1: 20 files, no drift`. |
+| 14 | `spec verify` | 0 | The pin matches its lock. |
 
 ## What the audit observed
 
-24 observations, all `confirmed`, across 13 kinds, in 43 requests and
-803 ms:
+54 observations across the three shapes. The findings the v2 engine exists
+to earn all landed:
 
-| Kind | Count | The finding |
-|---|---|---|
-| `writable` | 8 | Seven fields round-trip; `notes` is accepted and never stored (`writable: false`) — the silent-discard trap caught. |
-| `requiredByAPI` | 4 | `name` genuinely enforced; `mode` documented required but **not** enforced (`false`) — a documented requirement the API ignores. |
-| `ignoredOnUpdate` | 2 | `label` (and `notes`) accepted on update with a 2xx and not applied — distinguished from immutability, which refuses. |
-| `immutable` | 1 | `color` refused on update, named in the error. |
-| `serverDefault` | 1 | Omitted `retention` comes back 45; the document claims 30. |
-| `normalisation` | 1 | `MiXeD` in, `mixed` back on `code`. |
-| `volatile` | 1 | `etag` differs between two identical reads. |
-| `undocumentedFieldInSpec` | 1 | `etag` is real, stable-typed `string`, and absent from the document. |
-| `values` | 1 | `mode` accepted `basic`, rejected `advanced` (refused because the probe body omitted `query`), closed enum. |
-| `requiredWhen` | 1 | `query` required exactly when `mode=advanced`, matching the document's `x-tfpfgen-required-when`. |
-| `updateStyle` | 1 | `patch-merge`: PUT preserves omitted fields. |
-| `deleteNotFoundOK` | 1 | Second delete answers 404. |
-| `readAfterWrite` | 1 | No read lag (0s). |
+**The adaptive executor self-healed and borrowed.** Its request
+adjustments, reported on the summary:
 
-The summary also reported `rejectsUnknownFields: thing false` — the API
-accepts and ignores an undeclared body field, so refusal-based findings
-needed no caution flag.
+- `add monitor.interval` — the document marks `interval` optional; the
+  server enforces it. The executor read the `field interval is required`
+  400, added the field, and retried.
+- `add monitor.target_host` (gate `kind=ping`), `add monitor.domain` (gate
+  `kind=dns`), `add monitor.web` (gate `kind=web`), and the matching
+  `remove` of each variant's fields under the wrong `kind` — the variant
+  grammar, learned by diffing what each `kind` accepts.
+- `borrow assignment.agent_id` — the executor `GET /agents`, took a live
+  id, and the create it had refused as `agent_id must reference an existing
+  agent` succeeded. `assignment`'s create, read and list all confirmed.
 
-**Redaction held**: the bearer token appears nowhere under `audit/` or
-`spec/` (grepped for the exact value). Observation excerpts carry method,
-path template, status, and response fragments only. The activity ledger
-was consumed by the run's own cleanup; the tenant ended empty.
+**The triangulating inference emitted the conditional edges** — 4
+confirmed, 0 inconclusive:
 
-## Corrections: proposed, accepted, applied
+| Edge kind | Subject | Condition | Extension |
+|---|---|---|---|
+| `validConfiguration` | `kind` | variants `dns:[dnssec,domain]`, `ping:[target_host]` | `x-tfpfgen-valid-configuration` |
+| `validWhen` | `dnssec` | `kind = dns` | `x-tfpfgen-valid-when` |
+| `validWhen` | `domain` | `kind = dns` | `x-tfpfgen-valid-when` |
+| `validWhen` | `target_host` | `kind = ping` | `x-tfpfgen-valid-when` |
+| `requiredWhen` | `domain` / `target_host` / `web` | `kind = dns` / `ping` / `web` | `x-tfpfgen-required-when` |
 
-11 proposals compiled from the 24 observations; all were accepted for the
-rehearsal. Applied to the pinned document they produced a revised spec in
-which:
+The `dnssec`-requires-`domain` co-requirement surfaced as
+`validWhen(dnssec, kind=dns)` rather than a separate `dependsOn`: on a `dns`
+monitor `domain` is itself required, so `dnssec` never lacks it, and the
+inference recorded the edge the evidence actually supported. No
+`mutuallyExclusive` edge arose on this surface.
 
-- `notes` is `readOnly` with `x-tfpfgen-silently-ignored-on-update` — the
-  provider no longer offers a field the API discards;
-- `color` carries `x-tfpfgen-create-only` — emitted as a
-  `RequiresReplace` plan modifier in the generated resource;
-- `retention`'s default reads 45, the value actually served;
-- `etag` exists, typed `string`, marked `x-tfpfgen-volatile`;
-- `mode`'s enum shrank to `[basic]` (see the epistemics note below);
-- the operation level gained `x-tfpfgen-update-style: patch-merge`,
-  `x-tfpfgen-delete-not-found-ok: true`, and
-  `x-tfpfgen-eventual-consistency: 0s`.
+**Redaction held.** The distinctive bearer token appears in **zero** files
+under `audit/` or `spec/` (grepped for the exact value, including the
+observation JSON and the activity ledger). Observation excerpts carry
+method, path template, status, and response fragments only.
 
-The rerun after acceptance proposed nothing — the convergence property
-(accept, re-revise, settle) held in practice.
+**Cleanup left the tenant empty.** The run created 8 objects and removed
+every one — ledger-tracked ids plus a name-prefix sweep for a monitor whose
+id was never learned. `GET /monitors` and `GET /assignments` answered empty
+after the run.
 
-One observation compiled into no correction: `normalisation` on `code`
-reported `no correction form exists yet` — an honest, designed gap in the
-correction vocabulary, not a failure.
+## Corrections → the revised spec
 
-An epistemics note worth keeping: the `values` correction removed
-`advanced` from `mode`'s enum because the probe's candidate body omitted
-`query`, and `advanced` requires it. The audit itself recorded the vetoed
-combination correctly, but the compiled correction states more than the
-evidence supports. A human reviewing proposal 008 with the observation
-excerpt in hand could reasonably have rejected it; the rehearsal accepted
-everything deliberately to exercise the apply path.
+10 proposals compiled from the 54 observations; all accepted for the
+rehearsal. Applied to the pinned document they produced a `revised.yaml`
+carrying, on `MonitorCreate`, `x-tfpfgen-valid-configuration` (the
+discriminator and its per-variant valid field sets),
+`x-tfpfgen-valid-when` on `dnssec` / `domain` / `target_host`,
+`x-tfpfgen-required-when` on `domain` / `target_host` / `web`, and
+`x-tfpfgen-eventual-consistency` on the read operations. The rerun after
+acceptance proposed nothing — convergence held.
+
+## Validators generated from the edges
+
+`provider generate` emitted `internal/services/resources/monitors/v1/monitor/conditional_validators.go`,
+realizing every edge as a stock-idiom config validator (the `#42` form):
+`kindRequiredWhenValidator` (×3), `kindValidWhenValidator` (×2) and
+`kindValidConfigurationValidator`, each a `resource.ConfigValidator`, plus
+`stringvalidator.OneOf("ping","web","dns")` on the `kind` attribute. These
+are the value-conditional equivalent of `AlsoRequires` / `ConflictsWith`:
+the config is refused when a variant's required field is missing or when a
+field is set under the wrong `kind`. The generated resource unit tests
+apply variant-consistent configurations and pass against them.
+
+## ListWrap closed
+
+The document declares every collection response a bare array; the server
+answers a wrapped envelope (`{"monitors":[…]}`). The v1 rehearsal left a
+defect here — the emitted mock responders hardcoded `{"value":[…]}`,
+disagreeing with the SDK the bare-array document produced, and the
+datasource unit test failed to parse it. In v2 the emit layer derives the
+list shape from the declared envelope: the generated mock now serves a bare
+array (`SuccessResponse(200, []map[string]any{object()})`), the datasource
+`Read` iterates the SDK's returned slice directly, and **all four datasource
+unit tests pass**. The defect is closed.
+
+The audit *does* record the server's true wrapped shape as a
+`listResponseShape` observation, but that kind still compiles to *no
+correction* (`no correction form exists yet`), so the generated provider
+follows the document's declared bare-array shape rather than the observed
+wrapper. Reconciling the two — and the acceptance test that would exercise
+it against the live wrapped server — remains deferred.
+
+## Determinism
+
+Two independent full chains, each against a fresh quirkserver process, were
+run end to end. Their `spec/revised.yaml` and their entire generated
+provider tree (`internal/**`, `go.mod`, `manifest.json`, `spec/corrections/**`)
+were **byte-identical** (aggregate tree hash matched). The only per-run
+variation lived where the design puts it: the audit's non-committed
+evidence — each observation's `runId`, `observedAt`, and the run-id embedded
+in synthesised object names, plus the activity ledger — and the import
+`fetchedAt` timestamp. None of it reaches the generated code.
+
+Determinism was not free: closing it required the third fix below.
 
 ## Defects found — each caught only by this run
 
-The toolkit's own suite (92.5% coverage, all green) stubs the SDK
-backends and uses a stdlib-only curated SDK fixture. The first three
-shipping defects lived exactly in the seams the stubs cover; the fourth
-lived in what the whole suite shares.
+1. **Multi-variant fixtures failed the entity's own validators** (`#43`,
+   blocking). The generated `conditional_validators.go` enforces the variant
+   grammar, but the fixture generator ignored the edges: the minimal
+   `monitor` config omitted `target_host` (required when `kind=ping`) and
+   the maximal config set every variant's fields at once. `go test ./...`
+   failed at the pre-apply plan. `emit.supportedTree` was also dropping
+   every tree-level edge but `ConditionalRequirements` before the fixtures
+   saw them. Fixed: the derivation pins one variant, prunes the attributes
+   other variants own, and forces the chosen variant's requirement into the
+   minimal renderings — HCL and wire gate identically.
 
-1. **kiota generated an unimportable tree** (#31, merged). No
-   `--namespace-name` was passed, so kiota defaulted to `ApiSdk`:
-   `package ApiSdk` importing `"ApiSdk/things"`, which type-checks in no
-   provider repo. First `provider generate` failed with
-   `could not import ApiSdk/things`. Fixed by deriving the namespace from
-   `emit.FromConfig` — the module path plus `internal/sdk`, one
-   definition site.
+2. **Nil dereference in the generated nested-object state mapping** (`#43`,
+   blocking). Once fixtures correctly omitted the `web` block from a `ping`
+   monitor, `MapRemoteStateToTerraform` panicked on `remote.GetWeb()`. The
+   nil-guard was decided by comparing SDK-type spellings, which are equal
+   for a kiota interface getter (`GetWeb() MonitorCreate_webable`) even
+   though the interface is nil-comparable. Fixed: nilability is decided in
+   the binder from the accessor's real `types.Type` and recorded on
+   `FieldAccess`, so the read is guarded whenever the API can omit the
+   object.
 
-2. **The first-run bind harness could not resolve the SDK's own
-   dependencies** (#32, merged). A repo's first generate has no committed
-   `go.mod`, so binding copies the SDK into a temporary module harness —
-   whose `go.mod` declared no requirements. A real kiota tree imports the
-   kiota runtime everywhere; the bind failed with `undefined: …Parsable`.
-   The harness now runs `go mod tidy` before type-checking.
+3. **Non-deterministic read-after-write lag** (`#43`). `readAfterWrite`
+   recorded `time.Since(create)` — wall-clock, ~340 ms one run and ~350 ms
+   the next — which folded into `x-tfpfgen-eventual-consistency` and made
+   `revised.yaml` non-reproducible across audits. Fixed: the lag is now
+   `failedPolls × interval`, zero on an immediate read and a clean multiple
+   of the deterministic interval under real eventual consistency.
 
-3. **`provider verify` could never pass after a postchecked generate**
-   (#33, merged). Postcheck's `go mod tidy` rewrites `go.mod` and writes
-   `go.sum` *after* the manifest recorded the emitted bytes, so verify
-   flagged `go.mod` as `changed` and `hand-edited` on every run — pipeline
-   jobs 6 and 7 were mutually exclusive for a kiota provider. The
-   toolchain-finalised files are now re-recorded after postcheck (go.sum
-   under the new `postcheck` manifest origin) and verify holds them to
-   those digests; a hand edit is still caught.
+None of the three changed a CLI verb, a config key, a workflow, or the
+template contract, so the provider-template repo needs no mirror.
 
-4. **A suite-wide shared-connection-pool flake** (#35, merged). CI failed
-   this very report's PR on a docs-only diff:
-   `transport connection broken: http: CloseIdleConnections called`. Every
-   client built as `&http.Client{}` (the audit runner, the oauth2 token
-   client, corpus fetch, spec store retrieve) rode
-   `http.DefaultTransport`, whose idle connections
-   `httptest.Server.Close` closes — and every parallel test closes one.
-   Each client now owns a cloned transport. The failure had landed
-   wherever the scheduler put it, which is what made it look like three
-   different bugs before it was one.
+## Deferred / inconclusive — honestly
 
-## Known defect, left open deliberately
-
-**The emitted unit-test mocks assume a `value`-enveloped list response.**
-`render_datasource.go`, `render_resource.go` and `render_listresource.go`
-hardcode `ListWrap = "value"`, so generated mock responders serve
-`{"value": [...]}` regardless of what the document declares. This
-document (and the curated fixture) declare the list response as a bare
-array, so the generated kiota SDK expects an array, fails to parse the
-mock (`value is not a collection`), and the generated
-`TestUnitThingDatasource_Read` fails. Everything up to and including
-build, vet and the drift gates passes; the emitted test layer is
-self-inconsistent for any API whose list response is not `value`-wrapped.
-
-The fix needs the intermediate representation to carry the declared list
-envelope (bare array vs. named wrapper) from `specmodel` through to the
-emitters — a new IR field, and IR vocabulary is owner-approved, so the
-naming decision is deferred to the repository owner rather than coined
-here.
-
-Related, smaller: the quirkserver actually answers `{"things": [...]}`
-for list while its own document declares a bare array, and the audit
-never notices — the twelve step kinds exercise the item lifecycle, never
-the list shape. A list-envelope observation kind would close that hole;
-it is also a vocabulary decision.
-
-## Deferred
-
-- **The CI drill** (running this chain as a workflow) — deferred; the
-  runner would need kiota 1.34.1 installed at the pin, and the local run
-  is the authoritative proof this rehearsal was after.
-- **Acceptance against the running quirkserver** (`terraform plan/apply`
-  with the generated provider pointed at the live stand-in) — blocked on
-  the list-envelope defect above for the datasource; not attempted.
-- **A `normalisation` correction form**, reported by revise itself.
-- Nothing here changed the cross-repo contract: the serve verb is hidden
-  dev tooling, and #31–#33 changed no CLI surface, config key, or
-  workflow, so the provider template repo needs no mirror for any of it.
+- **The `web` variant is absent from `validConfiguration`.** The confirmed
+  variants are `dns` and `ping`; `web` was under-explored. `web` is a nested
+  block whose `web.url` the executor could not synthesise a value for inside
+  the monitor's complexity-scaled request budget (base 10 + writable ×
+  variants = 38), so the `validWhen(web, kind=web)` edge was **withheld**
+  rather than asserted on thin evidence — a nested-block `validWhen` held
+  back exactly because a value could not be synthesised. `requiredWhen(web,
+  kind=web)` was still learned, so the generated validator does require the
+  block; only its per-variant *validity* is uncaptured.
+- **`monitor` and `assignment` finished `timeoutExhausted`.** Their edge
+  findings are confirmed, but the request budget was spent on variant
+  discovery and reference-borrowing before the lifecycle probes completed,
+  so `immutable` / `values` / `updateStyle` / `deleteNotFoundOK` came out
+  `timeoutExhausted` rather than `confirmed`. The chain is unaffected — the
+  budget under-provisions a full multi-variant / reference lifecycle, a
+  tuning question, not a correctness one.
+- **`thing` is blocked.** The legacy `/things` surface answers a different
+  400 grammar (`title: missing required field`, `detail: query`) than the
+  shape validators' `field <name> …` sentences the adaptive executor parses,
+  so it cannot self-heal the `mode=advanced` → `query` requirement. `thing`
+  is not a v2 shape; its block is an artefact of mixing the old surface with
+  the new executor.
+- **`listResponseShape` compiles to no correction** (above), so acceptance
+  against the live wrapped server is not yet possible for the datasources.
+- **`dependsOn` and `mutuallyExclusive`** are not exercised by this surface;
+  their emission is proven only by unit tests, not by this rehearsal.
+- **The CI drill** (running this chain as a workflow) remains deferred; the
+  runner would need kiota 1.34.1 at the pin, and the local run is the
+  authoritative proof.
 
 ## The evidence trail
 
-- #30 — `feat(quirkserver): the fixture can run as a real HTTP server`
-- #31 — `fix(sdkgen): kiota generates at the provider module's SDK import path`
-- #32 — `fix(providergen): the bind harness resolves the SDK's own dependencies`
-- #33 — `fix(providergen): verify tolerates the toolchain-finalised go.mod and go.sum`
-- #35 — `fix(audit): the runner's HTTP clients own their connection pools` (and corpus/store)
-
-The full transcript (every verb, exit code, and timing quoted above) was
-captured from the clean-room run in a fresh scratch repo against a fresh
-quirkserver process, with the toolkit built from `main` after all four
-merges.
+- `#41` — audit corrections + validators (Wave 4)
+- `#42` — conditional-edge validators realized with stock framework idioms
+- `#43` — the three fixes above: multi-variant fixtures, nilable nested
+  state read, deterministic read-after-write lag
