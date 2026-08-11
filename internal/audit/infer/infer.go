@@ -55,6 +55,10 @@ func Infer(ev Evidence, compiled *strategy.Strategy) []observe.Observation {
 	}
 	out = append(out, valid...)
 	out = append(out, m.validConfiguration(valid)...)
+	for _, o := range m.valueConditionalConfig() {
+		confirmed[keyOf(o)] = true
+		out = append(out, o)
+	}
 
 	for _, o := range m.dependsOn() {
 		confirmed[keyOf(o)] = true
@@ -168,6 +172,65 @@ func (m *model) validConfiguration(validEdges []observe.Observation) []observe.O
 	}
 	values := make([]string, len(m.created))
 	copy(values, m.created)
+	sort.Strings(values)
+	prov := observe.ProvenanceDerived
+	if p, ok := m.variantProvenance(); ok {
+		prov = p
+	}
+	return []observe.Observation{
+		m.edgeAttr(m.gate.field, observe.KindValidConfiguration, values, nil, prov, observe.OutcomeConfirmed),
+	}
+}
+
+// valueConditionalConfig asserts a validConfiguration the executor learned by
+// value-cycling: a free-form conditional refusal it could not classify, healed
+// by trying alternate enum values for a sibling field. The edge is confirmed
+// only with both-direction corroboration — a sibling value the API accepted
+// under one discriminator value and refused under another — and only when at
+// least two discriminator values each yielded a valid object, so the
+// "configurations" are genuinely distinct rather than the same object twice.
+//
+// It is the value-level counterpart of validConfiguration's field-set rule:
+// where that reads distinct field sets per gate value (a validWhen edge), this
+// reads distinct accepted value sets per gate value (a value-cycling edge). One
+// is enough to make the entity's several gate values a real discriminator.
+func (m *model) valueConditionalConfig() []observe.Observation {
+	if m.gate.field == "" || len(m.created) < 2 {
+		return nil
+	}
+	accepted := map[[2]string]map[string]bool{}
+	refused := map[[2]string]map[string]bool{}
+	for _, cv := range m.ev.ConditionalValues {
+		if cv.GateField != m.gate.field || cv.Field == "" || cv.Value == "" {
+			continue
+		}
+		key := [2]string{cv.Field, cv.Value}
+		set := refused
+		if cv.Accepted {
+			set = accepted
+		}
+		if set[key] == nil {
+			set[key] = map[string]bool{}
+		}
+		set[key][cv.GateValue] = true
+	}
+
+	bothDirections := false
+	for key, accGates := range accepted {
+		refGates := refused[key]
+		for g := range accGates {
+			for rg := range refGates {
+				if rg != g {
+					bothDirections = true
+				}
+			}
+		}
+	}
+	if !bothDirections {
+		return nil
+	}
+
+	values := append([]string(nil), m.created...)
 	sort.Strings(values)
 	prov := observe.ProvenanceDerived
 	if p, ok := m.variantProvenance(); ok {

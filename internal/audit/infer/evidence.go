@@ -74,6 +74,21 @@ type FieldPair struct {
 	B string `json:"b"`
 }
 
+// ConditionalValue is one value-cycling outcome: under discriminator GateField
+// = GateValue, sibling field Field carrying value Value was either accepted or
+// refused. It is the value-level analogue of a variant diff — the same sibling
+// value accepted under one discriminator value and refused under another is the
+// both-direction corroboration of a value-conditional edge — recorded when the
+// executor cycles an enum field's value to heal a free-form conditional
+// refusal the refusal grammar could not classify.
+type ConditionalValue struct {
+	GateField string `json:"gateField"`
+	GateValue string `json:"gateValue"`
+	Field     string `json:"field"`
+	Value     string `json:"value"`
+	Accepted  bool   `json:"accepted"`
+}
+
 // Evidence is everything one entity's run gathered that inference reads. The
 // run populates it; Infer consumes it alongside that entity's compiled
 // strategy. Every slice is the executor's raw record — inference does the
@@ -91,6 +106,12 @@ type Evidence struct {
 	// together — the mutual-exclusion signal. Empty for most entities; the
 	// executor records one only on the specific refusal grammar.
 	CombinedRefusals []FieldPair
+	// ConditionalValues lists the value-cycling outcomes the executor gathered
+	// healing free-form conditional refusals: each (discriminator value,
+	// sibling field, sibling value) the API accepted or refused. A sibling
+	// value accepted under one discriminator value and refused under another is
+	// the both-direction signal for a value-conditional validConfiguration.
+	ConditionalValues []ConditionalValue
 	// ListBodies is the raw collection responses the executor captured, for
 	// the list-response-shape finding. Only the structure is read; no value
 	// is stored on the observation.

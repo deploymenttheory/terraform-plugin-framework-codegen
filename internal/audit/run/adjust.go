@@ -19,6 +19,15 @@ package run
 //	field X must reference an existing <coll>   -> BORROW a real id for X
 //	anything else                               -> STOP    (inconclusive)
 //
+// A real API's value-conditional refusals do not always fit that grammar:
+// ThousandEyes answers a dynamic-tag create with "type: Dynamic tags are not
+// supported for the provided object type", which names a field (type) in prose
+// no clause matches. When classification stops, the loop falls back on
+// generalized field extraction (namedKnownFields) — a refusal that names any
+// field the entity declares is a conditional constraint, not an unintelligible
+// refusal — and value-cycling (cycleConditional), which tries alternate enum
+// values for the implicated sibling to find a body the API accepts. See cycle.go.
+//
 // Every change is recorded as a requestAdjustment so the triangulating
 // inference can read what the live API forced, and a required-field add also
 // emits the observation the existing vocabulary already carries.
@@ -59,6 +68,13 @@ type adjustResult struct {
 	// not be classified into an action, an action made no progress, a borrow
 	// found nothing, or the iteration bound was hit.
 	gaveUp bool
+	// conditional reports that the final refusal named a field the entity
+	// declares even though the grammar could not classify it — a free-form
+	// conditional constraint. A caller that would otherwise block treats this
+	// as captured edge-evidence and continues instead: value-cycling has
+	// already recorded what it could, and blocking would lose the variants and
+	// probes the entity can still exercise.
+	conditional bool
 }
 
 // refusal action kinds.
@@ -141,7 +157,11 @@ func cleanField(s string) string {
 // loop. It returns as soon as a create succeeds, and otherwise applies one
 // adjustment per iteration until the refusal stops being actionable, the
 // bound is hit, or the entity budget is exhausted (surfaced as the error).
-func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any) (adjustResult, error) {
+// held names the field this create pins and value-cycling must not vary — the
+// variant's discriminator for a minimal or maximal create, the value under test
+// for a per-enum-value create — so cycling searches the other enum fields for a
+// body the API accepts without abandoning what the step is exercising.
+func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any, held string) (adjustResult, error) {
 	applied := map[string]bool{}
 	var last *httpResult
 	adjusted := false
@@ -157,12 +177,26 @@ func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entity
 		if res == nil || !res.refused() {
 			return adjustResult{res: res, body: body, adjusted: adjusted, gaveUp: true}, nil
 		}
-		if !r.applyAdjustment(ctx, ent, body, res, applied) {
-			return adjustResult{res: res, body: body, adjusted: adjusted, gaveUp: true}, nil
+		if r.applyAdjustment(ctx, ent, body, res, applied) {
+			adjusted = true
+			continue
 		}
-		adjusted = true
+		// The grammar could not heal the refusal. Before giving up, try
+		// value-cycling: a free-form conditional refusal that names an enum
+		// field the entity declares is often satisfied by another of that
+		// field's values.
+		cobj, cres, healed, err := r.cycleConditional(ctx, ent, rec, body, held, res, applied)
+		if err != nil {
+			return adjustResult{}, err
+		}
+		if healed {
+			return adjustResult{obj: cobj, res: cres, body: body, adjusted: true}, nil
+		}
+		return adjustResult{res: res, body: body, adjusted: adjusted, gaveUp: true,
+			conditional: r.isConditionalRefusal(ent, res)}, nil
 	}
-	return adjustResult{res: last, body: body, adjusted: adjusted, gaveUp: true}, nil
+	return adjustResult{res: last, body: body, adjusted: adjusted, gaveUp: true,
+		conditional: r.isConditionalRefusal(ent, last)}, nil
 }
 
 // applyAdjustment classifies one refusal and mutates body toward acceptance,
