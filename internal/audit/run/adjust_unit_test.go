@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/strategy"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/quirkserver"
@@ -38,10 +39,10 @@ func TestUnit_Borrow_BorrowsCachesAndReportsEmpty(t *testing.T) {
 	}
 }
 
-// TestUnit_Refine_ClassifyRefusalGrammar pins the whole refusal-classification
+// TestUnit_Adjust_ClassifyRefusalGrammar pins the whole refusal-classification
 // table: each sentence the quirk server's stable grammar emits, plus the
 // envelope variants a real API might wrap it in, and the unintelligible case.
-func TestUnit_Refine_ClassifyRefusalGrammar(t *testing.T) {
+func TestUnit_Adjust_ClassifyRefusalGrammar(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name  string
@@ -90,30 +91,30 @@ func TestUnit_Refine_ClassifyRefusalGrammar(t *testing.T) {
 	}
 }
 
-// TestUnit_Refine_SortedRefinementsDedupsAndOrders checks the summary signal
+// TestUnit_Adjust_SortedAdjustmentsDedupsAndOrders checks the summary signal
 // is stable and duplicate-free however the variants ran.
-func TestUnit_Refine_SortedRefinementsDedupsAndOrders(t *testing.T) {
+func TestUnit_Adjust_SortedAdjustmentsDedupsAndOrders(t *testing.T) {
 	t.Parallel()
-	in := []Refinement{
-		{Entity: "monitor", Action: RefineAdd, Field: "interval"},
-		{Entity: "monitor", Action: RefineAdd, Field: "interval"},
-		{Entity: "assignment", Action: RefineBorrow, Field: "agent_id"},
-		{Entity: "monitor", Action: RefineRemove, Field: "domain", GateField: "kind", GateValue: "ping"},
+	in := []infer.RequestAdjustment{
+		{Entity: "monitor", Action: infer.AdjustAdd, Field: "interval"},
+		{Entity: "monitor", Action: infer.AdjustAdd, Field: "interval"},
+		{Entity: "assignment", Action: infer.AdjustBorrow, Field: "agent_id"},
+		{Entity: "monitor", Action: infer.AdjustRemove, Field: "domain", GateField: "kind", GateValue: "ping"},
 	}
-	out := sortedRefinements(in)
+	out := sortedAdjustments(in)
 	if len(out) != 3 {
 		t.Fatalf("len = %d, want 3 (one duplicate dropped): %+v", len(out), out)
 	}
 	if out[0].Entity != "assignment" {
 		t.Errorf("not sorted by entity first: %+v", out)
 	}
-	if sortedRefinements(nil) != nil {
+	if sortedAdjustments(nil) != nil {
 		t.Error("empty input must yield nil")
 	}
 }
 
 // TestUnit_Strategize_SynthesisHelpers exercises the value synthesis the
-// refinement loop and the translator both draw on, across every branch.
+// adjustment loop and the translator both draw on, across every branch.
 func TestUnit_Strategize_SynthesisHelpers(t *testing.T) {
 	t.Parallel()
 	h := func(hh strategy.SynthHint) strategy.SynthHint { return hh }

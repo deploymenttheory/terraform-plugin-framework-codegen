@@ -1,13 +1,13 @@
 package run
 
-// The adaptive refinement loop is what makes the executor learn from a
-// refusal instead of merely recording it. A create or update the API rejects
-// with a 4xx often names, in a machine-legible sentence, exactly what is
-// wrong: a field that must be present, a field that is not valid for this
-// variant, a field that requires a sibling, or a field that must reference a
-// live object in another collection. The loop parses that sentence, changes
-// the body accordingly, and retries — bounded hard, so a server that keeps
-// refusing can never spin the loop forever.
+// The adaptive adjustment loop is what makes the executor learn from a refusal
+// instead of merely recording it. A create or update the API rejects with a
+// 4xx often names, in a machine-legible sentence, exactly what is wrong: a
+// field that must be present, a field that is not valid for this variant, a
+// field that requires a sibling, or a field that must reference a live object
+// in another collection. The loop parses that sentence, adjusts the body
+// accordingly, and retries — bounded hard, so a server that keeps refusing can
+// never spin the loop forever.
 //
 // The classification grammar is the quirk server's stable 400 vocabulary
 // (documented on its validators), parsed defensively so a real API that
@@ -19,9 +19,9 @@ package run
 //	field X must reference an existing <coll>   -> BORROW a real id for X
 //	anything else                               -> STOP    (inconclusive)
 //
-// Every change is recorded as a Refinement so a later inference wave can read
-// what the live API forced, and a required-field add also emits the
-// observation the existing vocabulary already carries.
+// Every change is recorded as a requestAdjustment so the triangulating
+// inference can read what the live API forced, and a required-field add also
+// emits the observation the existing vocabulary already carries.
 
 import (
 	"context"
@@ -31,61 +31,30 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
 )
 
-// maxRefineIters bounds one create-or-update attempt's refinements. Combined
+// maxAdjustIters bounds one create-or-update attempt's adjustments. Combined
 // with the no-progress guard and the entity request budget, it guarantees the
 // loop terminates: six sequential edits is already more than any single body
 // the compiler emits can legitimately need.
-const maxRefineIters = 6
+const maxAdjustIters = 6
 
-// RefineAction names one kind of change the refinement loop made to a body.
-// These are working identifiers for the raw signal a later inference wave
-// consumes; the committed observation vocabulary they feed is a separate
-// decision.
-type RefineAction string
-
-const (
-	// RefineAdd: a field was added because the API said it was required.
-	RefineAdd RefineAction = "add"
-	// RefineRemove: a field was removed because the API said it was not valid
-	// for the variant under test.
-	RefineRemove RefineAction = "remove"
-	// RefineRequires: a field was added because the API said another field
-	// requires it.
-	RefineRequires RefineAction = "requires"
-	// RefineBorrow: a field's value was replaced with a real id borrowed from
-	// another collection, because the API said it must reference a live one.
-	RefineBorrow RefineAction = "borrow"
-)
-
-// Refinement is one change the adaptive loop made, recorded so a later wave
-// can infer the conditional edge it implies without re-running the audit. It
-// carries no excerpt: the proof lives on the observations the add path emits,
-// and keeping the summary excerpt-free keeps redaction trivial.
-type Refinement struct {
-	Entity    string       `json:"entity"`
-	Action    RefineAction `json:"action"`
-	Field     string       `json:"field"`
-	GateField string       `json:"gateField,omitempty"`
-	GateValue string       `json:"gateValue,omitempty"`
-}
-
-// refineResult is the outcome of a bounded refinement loop.
-type refineResult struct {
+// adjustResult is the outcome of a bounded adjustment loop.
+type adjustResult struct {
 	// obj is the created object when a create attempt finally succeeded.
 	obj *createdObject
 	// res is the last response seen — the success or the refusal that ended
 	// the loop.
 	res *httpResult
-	// body is the final body, with every refinement applied.
+	// body is the final body, with every adjustment applied.
 	body map[string]any
-	// refined reports that the loop changed the body at least once. A create
-	// that failed with refined false was refused as sent, unhealably; one
-	// that failed with refined true was partly built and then stuck, which is
+	// adjusted reports that the loop changed the body at least once. A create
+	// that failed with adjusted false was refused as sent, unhealably; one
+	// that failed with adjusted true was partly built and then stuck, which is
 	// a weaker signal about the body it started from.
-	refined bool
+	adjusted bool
 	// gaveUp reports that the loop ended without success: the refusal could
 	// not be classified into an action, an action made no progress, a borrow
 	// found nothing, or the iteration bound was hit.
@@ -103,8 +72,8 @@ const (
 	actBorrow
 )
 
-// refineAction is one parsed instruction from a refusal.
-type refineAction struct {
+// refusalAction is one parsed instruction from a refusal.
+type refusalAction struct {
 	kind       actKind
 	field      string
 	collection string
@@ -124,24 +93,24 @@ var (
 // order is deliberate: the two-field grammars (requires, reference) and the
 // removal grammar are checked before the bare "is required", because "requires
 // field Y" and "is required" share a stem.
-func classifyRefusal(res *httpResult) refineAction {
+func classifyRefusal(res *httpResult) refusalAction {
 	msg := refusalMessage(res.body)
 	if msg == "" {
-		return refineAction{kind: actStop}
+		return refusalAction{kind: actStop}
 	}
 	if m := reRequires.FindStringSubmatch(msg); m != nil {
-		return refineAction{kind: actRequires, field: cleanField(m[2]), trigger: cleanField(m[1])}
+		return refusalAction{kind: actRequires, field: cleanField(m[2]), trigger: cleanField(m[1])}
 	}
 	if m := reNotValid.FindStringSubmatch(msg); m != nil {
-		return refineAction{kind: actRemove, field: cleanField(m[1]), condGate: m[2], condVal: cleanField(m[3])}
+		return refusalAction{kind: actRemove, field: cleanField(m[1]), condGate: m[2], condVal: cleanField(m[3])}
 	}
 	if m := reReference.FindStringSubmatch(msg); m != nil {
-		return refineAction{kind: actBorrow, field: cleanField(m[1]), collection: strings.ToLower(m[2])}
+		return refusalAction{kind: actBorrow, field: cleanField(m[1]), collection: strings.ToLower(m[2])}
 	}
 	if m := reRequired.FindStringSubmatch(msg); m != nil {
-		return refineAction{kind: actAdd, field: cleanField(m[1]), condGate: m[2], condVal: cleanField(m[3])}
+		return refusalAction{kind: actAdd, field: cleanField(m[1]), condGate: m[2], condVal: cleanField(m[3])}
 	}
-	return refineAction{kind: actStop}
+	return refusalAction{kind: actStop}
 }
 
 // refusalMessage pulls the human-legible sentence out of whichever error
@@ -168,40 +137,40 @@ func cleanField(s string) string {
 	return strings.TrimRight(s, ".,;:")
 }
 
-// refineCreate wraps a guarded, ledgered create in the bounded refinement
+// adjustCreate wraps a guarded, ledgered create in the bounded adjustment
 // loop. It returns as soon as a create succeeds, and otherwise applies one
-// refinement per iteration until the refusal stops being actionable, the
+// adjustment per iteration until the refusal stops being actionable, the
 // bound is hit, or the entity budget is exhausted (surfaced as the error).
-func (r *runner) refineCreate(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any) (refineResult, error) {
+func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any) (adjustResult, error) {
 	applied := map[string]bool{}
 	var last *httpResult
-	refined := false
-	for i := 0; i < maxRefineIters; i++ {
+	adjusted := false
+	for i := 0; i < maxAdjustIters; i++ {
 		obj, res, err := r.createObject(ctx, ent, rec, body)
 		if err != nil {
-			return refineResult{}, err
+			return adjustResult{}, err
 		}
 		last = res
 		if obj != nil {
-			return refineResult{obj: obj, res: res, body: body, refined: refined}, nil
+			return adjustResult{obj: obj, res: res, body: body, adjusted: adjusted}, nil
 		}
 		if res == nil || !res.refused() {
-			return refineResult{res: res, body: body, refined: refined, gaveUp: true}, nil
+			return adjustResult{res: res, body: body, adjusted: adjusted, gaveUp: true}, nil
 		}
-		if !r.applyRefinement(ctx, ent, body, res, applied) {
-			return refineResult{res: res, body: body, refined: refined, gaveUp: true}, nil
+		if !r.applyAdjustment(ctx, ent, body, res, applied) {
+			return adjustResult{res: res, body: body, adjusted: adjusted, gaveUp: true}, nil
 		}
-		refined = true
+		adjusted = true
 	}
-	return refineResult{res: last, body: body, refined: refined, gaveUp: true}, nil
+	return adjustResult{res: last, body: body, adjusted: adjusted, gaveUp: true}, nil
 }
 
-// applyRefinement classifies one refusal and mutates body toward acceptance,
+// applyAdjustment classifies one refusal and mutates body toward acceptance,
 // reporting whether it made progress. It refuses to loop: an add of a field
 // already present, a remove of a field already absent, a nested "a.b" target
 // it cannot synthesise, or a borrow that returns the same value all stop the
 // loop rather than spin it.
-func (r *runner) applyRefinement(ctx context.Context, ent *entityState, body map[string]any, res *httpResult, applied map[string]bool) bool {
+func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map[string]any, res *httpResult, applied map[string]bool) bool {
 	act := classifyRefusal(res)
 	switch act.kind {
 	case actAdd:
@@ -210,7 +179,7 @@ func (r *runner) applyRefinement(ctx context.Context, ent *entityState, body map
 		}
 		body[act.field] = r.synthField(ent, act.field)
 		applied["a:"+act.field] = true
-		r.recordRefineAdd(ent, act.field, act.condGate, act.condVal, res.excerpt)
+		r.recordAdjustAdd(ent, act.field, act.condGate, act.condVal, res.excerpt)
 		return true
 	case actRequires:
 		if strings.Contains(act.field, ".") || applied["a:"+act.field] || present(body, act.field) {
@@ -218,7 +187,7 @@ func (r *runner) applyRefinement(ctx context.Context, ent *entityState, body map
 		}
 		body[act.field] = r.synthField(ent, act.field)
 		applied["a:"+act.field] = true
-		r.recordRefinement(ent, RefineRequires, act.field, act.trigger, "")
+		r.recordAdjustment(ent, infer.AdjustRequires, act.field, act.trigger, "")
 		return true
 	case actRemove:
 		if !present(body, act.field) || applied["r:"+act.field] {
@@ -226,7 +195,7 @@ func (r *runner) applyRefinement(ctx context.Context, ent *entityState, body map
 		}
 		delete(body, act.field)
 		applied["r:"+act.field] = true
-		r.recordRefinement(ent, RefineRemove, act.field, act.condGate, act.condVal)
+		r.recordAdjustment(ent, infer.AdjustRemove, act.field, act.condGate, act.condVal)
 		return true
 	case actBorrow:
 		id, ok := r.borrow(ctx, ent, act.collection)
@@ -235,18 +204,20 @@ func (r *runner) applyRefinement(ctx context.Context, ent *entityState, body map
 		}
 		body[act.field] = id
 		applied["b:"+act.field] = true
-		r.recordRefinement(ent, RefineBorrow, act.field, act.collection, "")
+		r.recordAdjustment(ent, infer.AdjustBorrow, act.field, act.collection, "")
 		return true
 	default:
 		return false
 	}
 }
 
-// recordRefineAdd records an add and emits the observation the committed
+// recordAdjustAdd records an add and emits the observation the committed
 // vocabulary already carries: a plain required field is requiredByAPI, a
 // value-conditional one is requiredWhen scoped to the gate the refusal named.
-func (r *runner) recordRefineAdd(ent *entityState, field, condGate, condVal string, ex observe.Excerpt) {
-	r.recordRefinement(ent, RefineAdd, field, condGate, condVal)
+// The triangulating inference also derives these from the raw adjustment; this
+// per-probe emission keeps the excerpt proof of the specific refusal.
+func (r *runner) recordAdjustAdd(ent *entityState, field, condGate, condVal string, ex observe.Excerpt) {
+	r.recordAdjustment(ent, infer.AdjustAdd, field, condGate, condVal)
 	if condGate == "" {
 		r.record(ent.plan.Entity, field, observe.KindRequiredByAPI, true, nil, observe.OutcomeConfirmed, ex)
 		return
@@ -255,26 +226,26 @@ func (r *runner) recordRefineAdd(ent *entityState, field, condGate, condVal stri
 	r.record(ent.plan.Entity, field, observe.KindRequiredWhen, true, cond, observe.OutcomeConfirmed, ex)
 }
 
-// recordRefinement appends one raw refinement signal for a later wave.
-func (r *runner) recordRefinement(ent *entityState, action RefineAction, field, gateField, gateValue string) {
-	r.refinements = append(r.refinements, Refinement{
+// recordAdjustment appends one raw adjustment signal for the inference to read.
+func (r *runner) recordAdjustment(ent *entityState, action infer.AdjustAction, field, gateField, gateValue string) {
+	r.adjustments = append(r.adjustments, infer.RequestAdjustment{
 		Entity: ent.plan.Entity, Action: action, Field: field,
 		GateField: gateField, GateValue: gateValue,
 	})
 }
 
-// sortedRefinements deduplicates and orders the raw refinement signals so the
+// sortedAdjustments deduplicates and orders the raw adjustment signals so the
 // summary is stable across runs: the same field added under three variants is
 // one signal, and the ordering never depends on which variant ran first.
-func sortedRefinements(in []Refinement) []Refinement {
-	seen := map[Refinement]bool{}
-	out := make([]Refinement, 0, len(in))
-	for _, r := range in {
-		if seen[r] {
+func sortedAdjustments(in []infer.RequestAdjustment) []infer.RequestAdjustment {
+	seen := map[infer.RequestAdjustment]bool{}
+	out := make([]infer.RequestAdjustment, 0, len(in))
+	for _, a := range in {
+		if seen[a] {
 			continue
 		}
-		seen[r] = true
-		out = append(out, r)
+		seen[a] = true
+		out = append(out, a)
 	}
 	sort.Slice(out, func(i, j int) bool {
 		a, b := out[i], out[j]
@@ -303,7 +274,7 @@ func present(body map[string]any, field string) bool {
 	return ok
 }
 
-// cloneAnyMap is a shallow copy the refinement loop mutates at the top level;
+// cloneAnyMap is a shallow copy the adjustment loop mutates at the top level;
 // nested values are shared and never mutated.
 func cloneAnyMap(body map[string]any) map[string]any {
 	out := make(map[string]any, len(body))

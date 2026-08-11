@@ -19,7 +19,7 @@ import (
 // built is recorded and skipped.
 func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.refineCreate(ctx, ent, ent.recipe, body)
+	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body)
 	if err != nil {
 		return err
 	}
@@ -32,6 +32,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		ent.createdAt = time.Now()
 		ent.ev.sent = sent
 		ent.ev.createProof = &rr.res.excerpt
+		ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(rr.body))
 		return nil
 	}
 	if _, exists := r.registry[ent.plan.Entity]; exists {
@@ -54,7 +55,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 // field the loop can act on, a bounded bisection names the culprit.
 func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.refineCreate(ctx, ent, ent.recipe, body)
+	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body)
 	if err != nil {
 		return err
 	}
@@ -65,6 +66,7 @@ func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *p
 		}
 		ent.ev.maximalSent = sent
 		ent.ev.maximalGot = rr.res.object()
+		ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(rr.body))
 		_, _ = r.deleteObject(ctx, ent, ent.recipe, rr.obj)
 		return nil
 	}
@@ -224,7 +226,7 @@ func (r *runner) runUndeclaredSpecField(ctx context.Context, ent *entityState, s
 // or omitted under the pinned sibling value.
 func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.refineCreate(ctx, ent, ent.recipe, body)
+	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body)
 	if err != nil {
 		return err
 	}
@@ -234,6 +236,7 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, st
 	}
 	accepted := obj != nil
 	if accepted {
+		ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(rr.body))
 		_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
 	} else if !res.refused() {
 		return nil
@@ -244,12 +247,12 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, st
 		return nil
 	}
 	if cond.Attribute == step.Attribute {
-		if !accepted && rr.refined {
-			// The create was partly built by the refinement loop and then
+		if !accepted && rr.adjusted {
+			// The create was partly built by the adjustment loop and then
 			// stuck on a sibling requirement it could not satisfy, so the
 			// pinned value itself is not what was refused. Recording it
 			// rejected would be a lie; leave the value unclaimed. A value
-			// refused as sent, with no refinement, is a genuine rejection and
+			// refused as sent, with no adjustment, is a genuine rejection and
 			// falls through to be recorded.
 			return nil
 		}

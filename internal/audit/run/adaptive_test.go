@@ -13,6 +13,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
@@ -287,9 +288,9 @@ func collectionCount(t *testing.T, base, path, key string) int {
 	return len(env[key])
 }
 
-func hasRefinement(sum Summary, entity string, action RefineAction, field string) bool {
-	for _, r := range sum.Refinements {
-		if r.Entity == entity && r.Action == action && r.Field == field {
+func hasAdjustment(sum Summary, entity string, action infer.AdjustAction, field string) bool {
+	for _, a := range sum.Adjustments {
+		if a.Entity == entity && a.Action == action && a.Field == field {
 			return true
 		}
 	}
@@ -315,8 +316,8 @@ func TestUnit_Adaptive_MonitorSelfHealsTheIntervalRequirement(t *testing.T) {
 	if o == nil || o.Outcome != observe.OutcomeConfirmed || o.Value != true {
 		t.Fatalf("requiredByAPI(interval) = %+v, want a confirmed true", o)
 	}
-	if !hasRefinement(sum, "monitor", RefineAdd, "interval") {
-		t.Errorf("no add refinement recorded for interval: %+v", sum.Refinements)
+	if !hasAdjustment(sum, "monitor", infer.AdjustAdd, "interval") {
+		t.Errorf("no add adjustment recorded for interval: %+v", sum.Adjustments)
 	}
 	if collectionCount(t, s.BaseURL(), "/monitors", "monitors") != 0 {
 		t.Errorf("monitors remain after the run: cleanup did not level the tenant")
@@ -336,8 +337,8 @@ func TestUnit_Adaptive_AssignmentBorrowsARealAgentID(t *testing.T) {
 	if got.Status == StatusBlocked {
 		t.Fatalf("assignment blocked; the borrow did not satisfy agent_id: %+v", got)
 	}
-	if !hasRefinement(sum, "assignment", RefineBorrow, "agent_id") {
-		t.Fatalf("no borrow refinement recorded for agent_id: %+v", sum.Refinements)
+	if !hasAdjustment(sum, "assignment", infer.AdjustBorrow, "agent_id") {
+		t.Fatalf("no borrow adjustment recorded for agent_id: %+v", sum.Adjustments)
 	}
 	if sum.ObjectsCreated == 0 {
 		t.Error("nothing was created; the borrowed reference did not yield an object")
@@ -357,13 +358,13 @@ func TestUnit_Adaptive_MaximalRemovesWrongVariantFields(t *testing.T) {
 	_, sum := mustRun(t, strategyOptions(t, s, nil))
 
 	removed := false
-	for _, r := range sum.Refinements {
-		if r.Entity == "monitor" && r.Action == RefineRemove {
+	for _, a := range sum.Adjustments {
+		if a.Entity == "monitor" && a.Action == infer.AdjustRemove {
 			removed = true
 		}
 	}
 	if !removed {
-		t.Fatalf("no remove refinement recorded; the wrong-variant fields were never rejected: %+v", sum.Refinements)
+		t.Fatalf("no remove adjustment recorded; the wrong-variant fields were never rejected: %+v", sum.Adjustments)
 	}
 }
 
@@ -396,8 +397,8 @@ func TestUnit_Adaptive_RequiresFieldIsAdded(t *testing.T) {
 	if got := entityStatus(t, sum, "monitor"); got.Status != StatusAudited {
 		t.Fatalf("monitor = %+v, want audited via the added domain", got)
 	}
-	if !hasRefinement(sum, "monitor", RefineRequires, "domain") {
-		t.Fatalf("no requires refinement recorded for domain: %+v", sum.Refinements)
+	if !hasAdjustment(sum, "monitor", infer.AdjustRequires, "domain") {
+		t.Fatalf("no requires adjustment recorded for domain: %+v", sum.Adjustments)
 	}
 	if collectionCount(t, s.BaseURL(), "/monitors", "monitors") != 0 {
 		t.Errorf("the dns monitor was not cleaned up")

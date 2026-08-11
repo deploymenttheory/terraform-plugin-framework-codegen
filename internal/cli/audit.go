@@ -294,11 +294,15 @@ func printSummary(w io.Writer, out string, obsCount int, sum auditrun.Summary) {
 		fmt.Fprintf(w, "rejectsUnknownFields: %s false\n", e)
 	}
 
-	for _, r := range sum.Refinements {
+	for _, a := range sum.Adjustments {
 		gate := ""
-		if r.GateField != "" {
-			gate = fmt.Sprintf(" (gate %s=%s)", r.GateField, r.GateValue)
+		if a.GateField != "" {
+			gate = fmt.Sprintf(" (gate %s=%s)", a.GateField, a.GateValue)
 		}
-		fmt.Fprintf(w, "refinement: %s %s.%s%s\n", r.Action, r.Entity, r.Field, gate)
+		fmt.Fprintf(w, "adjustment: %s %s.%s%s\n", a.Action, a.Entity, a.Field, gate)
+	}
+
+	if sum.EdgesConfirmed > 0 || sum.EdgesInconclusive > 0 {
+		fmt.Fprintf(w, "edges: %d confirmed, %d inconclusive\n", sum.EdgesConfirmed, sum.EdgesInconclusive)
 	}
 }
