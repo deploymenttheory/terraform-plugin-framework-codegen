@@ -86,6 +86,7 @@ func newRootCommand() *cobra.Command {
 		newSDKCommand(),
 		newProviderCommand(),
 		newVersionCommand(),
+		newServeQuirkserverCommand(),
 	)
 	return root
 }
