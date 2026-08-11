@@ -189,6 +189,66 @@ paths:
       responses:
         "204":
           description: gone
+  # streams is the free-form-conditional shape resource. format and mode are
+  # declared plain required enums; that format value-gates which mode is valid,
+  # and that the API enforces it with vendor prose rather than the monitor's
+  # parseable grammar, is what the audit discovers by value-cycling.
+  /streams:
+    get:
+      operationId: listStreams
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stream'
+    post:
+      operationId: createStream
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamCreate'
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stream'
+  /streams/{streamId}:
+    parameters:
+      - name: streamId
+        in: path
+        schema:
+          type: string
+    get:
+      operationId: getStream
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stream'
+    put:
+      operationId: updateStream
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamCreate'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stream'
+    delete:
+      operationId: deleteStream
+      responses:
+        "204":
+          description: gone
   # agents is the fixed pool assignment.agent_id draws from: list and read
   # only, no create.
   /agents:
@@ -316,3 +376,27 @@ components:
           type: string
         region:
           type: string
+    StreamCreate:
+      type: object
+      # format and mode are declared plain required enums. That format
+      # value-gates which mode is valid — and that the API says so in vendor
+      # prose, not the monitor's parseable grammar — is what the audit finds by
+      # value-cycling.
+      required: [name, format, mode]
+      properties:
+        name:
+          type: string
+        format:
+          type: string
+          enum: [avro, json, locked]
+        mode:
+          type: string
+          enum: [batch, streaming]
+    Stream:
+      allOf:
+        - $ref: '#/components/schemas/StreamCreate'
+        - type: object
+          properties:
+            id:
+              type: string
+              readOnly: true
