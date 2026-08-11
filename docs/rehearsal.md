@@ -2,7 +2,7 @@
 
 This is the record of the first full local run of the pipeline against the
 quirkserver — the stand-in live API — using a `tfpfgen` built from `main`
-(post `v0.2.0`, with #30–#33 merged). The goal was the project's central
+(post `v0.2.0`, with #30–#33 and #35 merged). The goal was the project's central
 claim: supply the spec, and everything cascades — import, audit, revision,
 SDK, provider, verification — with no hand-written provider code and no
 human step except the one the design demands (accepting or rejecting
@@ -10,8 +10,8 @@ proposed corrections).
 
 **Verdict: the chain works end to end.** Every verb ran against a real
 HTTP server, a real kiota 1.34.1, and a real Go toolchain; the generated
-provider compiled and every drift gate answered clean. Three toolkit
-defects stood between `v0.2.0` and that sentence — each invisible to the
+provider compiled and every drift gate answered clean. Four toolkit
+defects stood between `v0.2.0` and a green board — each invisible to the
 stubbed test suite and caught only by this run — and one defect remains
 open in the emitted unit-test layer, documented below.
 
@@ -117,8 +117,9 @@ everything deliberately to exercise the apply path.
 ## Defects found — each caught only by this run
 
 The toolkit's own suite (92.5% coverage, all green) stubs the SDK
-backends and uses a stdlib-only curated SDK fixture. All three shipping
-defects lived exactly in the seams the stubs cover.
+backends and uses a stdlib-only curated SDK fixture. The first three
+shipping defects lived exactly in the seams the stubs cover; the fourth
+lived in what the whole suite shares.
 
 1. **kiota generated an unimportable tree** (#31, merged). No
    `--namespace-name` was passed, so kiota defaulted to `ApiSdk`:
@@ -143,6 +144,17 @@ defects lived exactly in the seams the stubs cover.
    toolchain-finalised files are now re-recorded after postcheck (go.sum
    under the new `postcheck` manifest origin) and verify holds them to
    those digests; a hand edit is still caught.
+
+4. **A suite-wide shared-connection-pool flake** (#35, merged). CI failed
+   this very report's PR on a docs-only diff:
+   `transport connection broken: http: CloseIdleConnections called`. Every
+   client built as `&http.Client{}` (the audit runner, the oauth2 token
+   client, corpus fetch, spec store retrieve) rode
+   `http.DefaultTransport`, whose idle connections
+   `httptest.Server.Close` closes — and every parallel test closes one.
+   Each client now owns a cloned transport. The failure had landed
+   wherever the scheduler put it, which is what made it look like three
+   different bugs before it was one.
 
 ## Known defect, left open deliberately
 
@@ -188,6 +200,7 @@ it is also a vocabulary decision.
 - #31 — `fix(sdkgen): kiota generates at the provider module's SDK import path`
 - #32 — `fix(providergen): the bind harness resolves the SDK's own dependencies`
 - #33 — `fix(providergen): verify tolerates the toolchain-finalised go.mod and go.sum`
+- #35 — `fix(audit): the runner's HTTP clients own their connection pools` (and corpus/store)
 
 The full transcript (every verb, exit code, and timing quoted above) was
 captured from the clean-room run in a fresh scratch repo against a fresh
