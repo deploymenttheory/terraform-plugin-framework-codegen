@@ -108,6 +108,60 @@ func TestUnit_RenderServices_TheRenderedTreeCompiles(t *testing.T) {
 	}
 }
 
+// writeFictionalKiotaModule renders the fictional provider core and entity
+// tree, writes them to a temp module, wires the registrations and installs the
+// kiota stub SDK — everything the tree needs to build and test bar the
+// toolchain run itself. It returns the module root.
+func writeFictionalKiotaModule(t *testing.T, pc ProviderCore) string {
+	t.Helper()
+	core, err := RenderProviderCore(pc)
+	if err != nil {
+		t.Fatalf("RenderProviderCore: %v", err)
+	}
+	entities, err := RenderServices(pc, fictionalModel(), fictionalBindings())
+	if err != nil {
+		t.Fatalf("RenderServices: %v", err)
+	}
+
+	root := t.TempDir()
+	if _, err := Write(root, core); err != nil {
+		t.Fatalf("writing the provider core: %v", err)
+	}
+	if _, err := Write(root, entities.Files); err != nil {
+		t.Fatalf("writing the entity tree: %v", err)
+	}
+
+	for kind, rel := range map[string]string{
+		"resources":      "internal/provider/resources.go",
+		"datasources":    "internal/provider/datasources.go",
+		"list_resources": "internal/provider/list_resources.go",
+		"actions":        "internal/provider/actions.go",
+	} {
+		target := filepath.Join(root, filepath.FromSlash(rel))
+		content, err := os.ReadFile(target)
+		if err != nil {
+			t.Fatalf("reading %s: %v", rel, err)
+		}
+		set, err := entities.Registrations.ByKind(kind)
+		if err != nil {
+			t.Fatal(err)
+		}
+		registered, err := Register(content, kind, set)
+		if err != nil {
+			t.Fatalf("registering %s: %v", rel, err)
+		}
+		if err := os.WriteFile(target, registered, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	installEntityStubSDK(t, root, map[string]string{
+		"testdata/entitysdk/client.go": "internal/sdk/client.go",
+		"testdata/entitysdk/models.go": "internal/sdk/models/models.go",
+	})
+	return root
+}
+
 // installEntityStubSDK copies the stub SDK files into the tree at the
 // paths the SDK import expects.
 func installEntityStubSDK(t *testing.T, root string, files map[string]string) {
