@@ -87,6 +87,7 @@ func TestUnit_KiotaGenerate_PassesTheDocumentedFlagsAndPathGlobs(t *testing.T) {
 		"--openapi", spec,
 		"--output", out,
 		"--class-name", "APIClient",
+		"--namespace-name", "github.com/exampleco/terraform-provider-petstore/internal/sdk",
 		"--exclude-backward-compatible",
 		"--clean-output",
 		"--include-path", "/widgets/**",
@@ -172,5 +173,21 @@ func TestUnit_KiotaNormalize_RefusesWhenTheLockIsMissingOrBroken(t *testing.T) {
 	}
 	if err := backend.Normalize(dir, "spec/revised.yaml"); err == nil || !strings.Contains(err.Error(), "not usable JSON") {
 		t.Errorf("a broken lock should refuse, got %v", err)
+	}
+}
+
+// TestUnit_KiotaGenerate_RefusesAConfigTheNamespaceCannotDeriveFrom covers
+// the namespace derivation's own gate: without a provider name there is no
+// module path to root the generated imports at, and the refusal must come
+// from the derivation rather than from a half-run tool.
+func TestUnit_KiotaGenerate_RefusesAConfigTheNamespaceCannotDeriveFrom(t *testing.T) {
+	installStub(t, "kiota", kiotaStub, "1.2.3")
+	cfg := testConfig(config.BackendKiota, nil, nil)
+	cfg.Provider.Name = ""
+
+	backend, _ := For(cfg)
+	err := backend.Generate(context.Background(), "in.yaml", cfg, t.TempDir())
+	if err == nil || !strings.Contains(err.Error(), "provider.name") {
+		t.Fatalf("err = %v, want a provider.name refusal", err)
 	}
 }

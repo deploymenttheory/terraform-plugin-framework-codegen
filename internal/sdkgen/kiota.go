@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/emit"
 )
 
 // KiotaLockName is kiota's own record of a generation, written into the
@@ -47,12 +48,24 @@ func (b kiotaBackend) CheckTool(ctx context.Context, cfg *config.Config) error {
 }
 
 func (kiotaBackend) Generate(ctx context.Context, revisedSpecPath string, cfg *config.Config, outDir string) error {
+	// The root namespace must be the import path the provider module gives
+	// the SDK tree, or kiota's generated cross-package imports ("<ns>/things",
+	// "<ns>/models") resolve nowhere. emit owns that spelling — module path
+	// plus internal/sdk — and deriving it here keeps one definition site.
+	// Without the flag kiota defaults to "ApiSdk", which type-checks in no
+	// provider repo.
+	pc, err := emit.FromConfig(cfg, "")
+	if err != nil {
+		return err
+	}
+
 	args := []string{
 		"generate",
 		"--language", "go",
 		"--openapi", revisedSpecPath,
 		"--output", outDir,
 		"--class-name", cfg.SDK.ClientTypeName,
+		"--namespace-name", pc.SDKImport,
 		// The deprecated string indexers double the surface for nothing a
 		// generated provider would ever call.
 		"--exclude-backward-compatible",
