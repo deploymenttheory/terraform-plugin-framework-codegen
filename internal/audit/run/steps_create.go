@@ -19,7 +19,7 @@ import (
 // built is recorded and skipped.
 func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body)
+	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, r.primaryGate(ent))
 	if err != nil {
 		return err
 	}
@@ -41,6 +41,13 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		// abandon the entity.
 		return nil
 	}
+	if rr.conditional {
+		// A free-form conditional refusal the loop could not heal within the
+		// cap. Value-cycling has already captured what evidence it could and
+		// recorded an inconclusive edge; blocking the whole entity would lose
+		// the other variants and probes it can still run, so continue instead.
+		return nil
+	}
 	if rr.res != nil {
 		ent.cause = &rr.res.excerpt
 		return blockedError{reason: fmt.Sprintf("the minimal create was refused with status %d", rr.res.status)}
@@ -55,7 +62,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 // field the loop can act on, a bounded bisection names the culprit.
 func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body)
+	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, r.primaryGate(ent))
 	if err != nil {
 		return err
 	}
@@ -226,7 +233,11 @@ func (r *runner) runUndeclaredSpecField(ctx context.Context, ent *entityState, s
 // or omitted under the pinned sibling value.
 func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body)
+	held := ""
+	if step.Condition != nil {
+		held = step.Condition.Attribute
+	}
+	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, held)
 	if err != nil {
 		return err
 	}

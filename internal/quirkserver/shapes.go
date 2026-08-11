@@ -19,10 +19,18 @@ package quirkserver
 //     executor has to GET /agents and borrow a real id rather than synthesise
 //     one.
 //   - agent is the referenced collection: a small fixed set, list + get only.
+//   - stream is the free-form-conditional resource. A required `format`
+//     discriminator value-gates which `mode` is valid, and the refusal that
+//     enforces it is real-world vendor prose ("mode: streaming is not supported
+//     for the json format") -- it names the field but not in the parseable
+//     grammar, so the executor must fall back on generalized field extraction
+//     and value-cycling. See validateStream.
 //
-// The exact 400 grammar these emit is documented on validateMonitor and
-// validateAssignment; every sentence begins `field <name> ...` so a parser can
-// pull the offending field out with one expression.
+// The exact 400 grammar the monitor and assignment emit is documented on
+// validateMonitor and validateAssignment; every sentence begins `field <name>
+// ...` so a parser can pull the offending field out with one expression. The
+// stream's value-conditional refusal deliberately does not, which is the whole
+// point of it.
 
 import (
 	"fmt"
@@ -125,6 +133,7 @@ func (s *Server) initShapes() {
 	s.monitors = newCollection("monitor-")
 	s.assignments = newCollection("assignment-")
 	s.agents = newCollection("agent-")
+	s.streams = newCollection("stream-")
 	for _, a := range seededAgents {
 		s.agents.store(a.id, a.fields)
 	}
@@ -162,6 +171,18 @@ func (s *Server) routeShape(w http.ResponseWriter, r *http.Request, path string)
 		s.shapeUpdate(w, r, s.assignments, path, "/assignments/", s.validateAssignment)
 	case strings.HasPrefix(path, "/assignments/") && r.Method == http.MethodDelete:
 		s.shapeDelete(w, s.assignments, path, "/assignments/")
+
+	case path == "/streams" && r.Method == http.MethodPost:
+		s.shapeCreate(w, r, s.streams, s.validateStream)
+	case path == "/streams" && r.Method == http.MethodGet:
+		s.shapeList(w, s.streams, "streams")
+	case strings.HasPrefix(path, "/streams/") && r.Method == http.MethodGet:
+		s.shapeRead(w, s.streams, path, "/streams/")
+	case strings.HasPrefix(path, "/streams/") &&
+		(r.Method == http.MethodPut || r.Method == http.MethodPatch):
+		s.shapeUpdate(w, r, s.streams, path, "/streams/", s.validateStream)
+	case strings.HasPrefix(path, "/streams/") && r.Method == http.MethodDelete:
+		s.shapeDelete(w, s.streams, path, "/streams/")
 
 	// agents are read-only: a fixed set to be listed and looked up, the pool
 	// assignment.agent_id draws from.

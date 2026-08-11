@@ -439,3 +439,86 @@ func TestUnit_Infer_NilStrategyIsSafe(t *testing.T) {
 		}
 	}
 }
+
+// TestUnit_Infer_ValueConditionalConfiguration confirms a validConfiguration
+// learned by value-cycling: a sibling value (mode=batch) accepted under one gate
+// value and refused under another, with two gate values each created. The
+// distinguishing signal is a value difference, not a field-presence difference,
+// which is what makes this rule distinct from the field-set validConfiguration.
+func TestUnit_Infer_ValueConditionalConfiguration(t *testing.T) {
+	t.Parallel()
+	compiled := &strategy.Strategy{
+		Entity:   "stream",
+		Gates:    []strategy.Gate{{Field: "format", Kind: strategy.GateRequiredEnum, Values: []string{"avro", "json"}}},
+		Variants: []strategy.Variant{{}, {GateField: "format", GateValue: "avro"}, {GateField: "format", GateValue: "json"}},
+	}
+	ev := Evidence{
+		Entity: "stream",
+		AcceptedBodies: []map[string]any{
+			{"format": "avro", "mode": "streaming", "name": "n"},
+			{"format": "json", "mode": "batch", "name": "n"},
+		},
+		ConditionalValues: []ConditionalValue{
+			{GateField: "format", GateValue: "avro", Field: "mode", Value: "batch", Accepted: false},
+			{GateField: "format", GateValue: "avro", Field: "mode", Value: "streaming", Accepted: true},
+			{GateField: "format", GateValue: "json", Field: "mode", Value: "batch", Accepted: true},
+		},
+	}
+	o := find(Infer(ev, compiled), "format", observe.KindValidConfiguration)
+	if o == nil || o.Outcome != observe.OutcomeConfirmed {
+		t.Fatalf("validConfiguration(format) = %+v, want confirmed", o)
+	}
+	got, _ := json.Marshal(o.Value)
+	if string(got) != `["avro","json"]` {
+		t.Errorf("validConfiguration values = %s, want [avro json]", got)
+	}
+}
+
+// TestUnit_Infer_ValueConditionalNeedsBothDirections: a sibling value only ever
+// refused is one-directional and asserts nothing, even with two gate values
+// created — the conservative discipline the whole package holds to.
+func TestUnit_Infer_ValueConditionalNeedsBothDirections(t *testing.T) {
+	t.Parallel()
+	compiled := &strategy.Strategy{
+		Entity:   "stream",
+		Gates:    []strategy.Gate{{Field: "format", Values: []string{"avro", "json"}}},
+		Variants: []strategy.Variant{{}, {GateField: "format", GateValue: "avro"}, {GateField: "format", GateValue: "json"}},
+	}
+	ev := Evidence{
+		Entity: "stream",
+		AcceptedBodies: []map[string]any{
+			{"format": "avro", "mode": "streaming", "name": "n"},
+			{"format": "json", "mode": "streaming", "name": "n"},
+		},
+		ConditionalValues: []ConditionalValue{
+			{GateField: "format", GateValue: "avro", Field: "mode", Value: "batch", Accepted: false},
+			{GateField: "format", GateValue: "json", Field: "mode", Value: "batch", Accepted: false},
+		},
+	}
+	if o := find(Infer(ev, compiled), "format", observe.KindValidConfiguration); o != nil {
+		t.Fatalf("validConfiguration asserted %+v from one-directional evidence", o)
+	}
+}
+
+// TestUnit_Infer_ValueConditionalNeedsTwoCreatedValues: both-direction evidence
+// for a sibling value but only one gate value ever created is not two distinct
+// configurations, so nothing is asserted.
+func TestUnit_Infer_ValueConditionalNeedsTwoCreatedValues(t *testing.T) {
+	t.Parallel()
+	compiled := &strategy.Strategy{
+		Entity:   "stream",
+		Gates:    []strategy.Gate{{Field: "format", Values: []string{"avro", "json"}}},
+		Variants: []strategy.Variant{{}, {GateField: "format", GateValue: "avro"}, {GateField: "format", GateValue: "json"}},
+	}
+	ev := Evidence{
+		Entity:         "stream",
+		AcceptedBodies: []map[string]any{{"format": "avro", "mode": "streaming", "name": "n"}},
+		ConditionalValues: []ConditionalValue{
+			{GateField: "format", GateValue: "avro", Field: "mode", Value: "batch", Accepted: false},
+			{GateField: "format", GateValue: "json", Field: "mode", Value: "batch", Accepted: true},
+		},
+	}
+	if o := find(Infer(ev, compiled), "format", observe.KindValidConfiguration); o != nil {
+		t.Fatalf("validConfiguration asserted %+v from a single created gate value", o)
+	}
+}

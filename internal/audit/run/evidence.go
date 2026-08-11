@@ -66,6 +66,11 @@ type evidence struct {
 	acceptedBodies   []map[string]any
 	listBodies       [][]byte
 	combinedRefusals []infer.FieldPair
+	// conditionalValues records the value-cycling outcomes the executor
+	// gathered healing free-form conditional refusals — each (discriminator
+	// value, sibling field, sibling value) the API accepted or refused — the
+	// both-direction signal for a value-conditional validConfiguration.
+	conditionalValues []infer.ConditionalValue
 }
 
 // requiredWhenPair tracks the with/without halves of one required-when

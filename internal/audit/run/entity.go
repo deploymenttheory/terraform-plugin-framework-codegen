@@ -65,10 +65,11 @@ func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
 
 	r.finalizeEvidence(ent)
 	r.evidence[ep.Entity] = &infer.Evidence{
-		Entity:           ep.Entity,
-		AcceptedBodies:   ent.ev.acceptedBodies,
-		ListBodies:       ent.ev.listBodies,
-		CombinedRefusals: ent.ev.combinedRefusals,
+		Entity:            ep.Entity,
+		AcceptedBodies:    ent.ev.acceptedBodies,
+		ListBodies:        ent.ev.listBodies,
+		CombinedRefusals:  ent.ev.combinedRefusals,
+		ConditionalValues: ent.ev.conditionalValues,
 	}
 	r.summary.Entities = append(r.summary.Entities, EntityResult{
 		Entity: ep.Entity, Status: ent.status, Reason: ent.reason,

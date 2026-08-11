@@ -49,6 +49,7 @@ type Server struct {
 	monitors    *collection
 	assignments *collection
 	agents      *collection
+	streams     *collection
 	// reads counts reads per object, for the eventual-consistency quirk.
 	reads map[string]int
 	// deletes counts delete attempts, for the flaky-delete quirk.
