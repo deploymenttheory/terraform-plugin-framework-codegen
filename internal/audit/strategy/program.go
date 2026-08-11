@@ -29,11 +29,10 @@ const (
 // The program caps. Each bounds one rule, so a wide schema widens the program
 // sub-linearly and the budget stays honest.
 const (
-	// budgetBase is the fixed request cost every resource pays: the baseline
-	// create/read/read cycle, the negatives, and teardown.
-	budgetBase = 10
 	// perObjectCost is how many requests one live object is worth when the
-	// request ceiling is derived from the object budget.
+	// per-entity request ceiling is derived from the object budget. It is the
+	// safety guard on the request budget, not the budget itself: the budget is
+	// summed from the program (deriveBudget) and only clamped to this ceiling.
 	perObjectCost = 12
 	// readOnlyBudget is a read-only entity's budget: a read and a consecutive
 	// read.
@@ -45,6 +44,81 @@ const (
 	// maxPerEnumValues caps the value-conditional creates one gate spends.
 	maxPerEnumValues = 6
 )
+
+// The per-step request reserves the entity budget is summed from. Each is the
+// requests one step of that kind is expected to spend in a normal (non-
+// pathological) run: the happy-path call plus headroom for what that step kind
+// legitimately retries. The create-family kinds reserve the executor's adaptive
+// adjustment loop; the read-family kinds reserve their poll/retry reads; the
+// delete-with-confirmation kind reserves its confirm-and-repeat.
+//
+// The reserves are deliberately generous. Audit cost is expected to grow with a
+// resource's complexity, and the guards against a runaway are the object ceiling
+// above and the run-wide duration and rate limits — never a tight request cap. A
+// budget too small to let a resource's whole program complete is the exhaustion
+// this weighting exists to prevent: the multi-variant monitor's 33-step program
+// spends ~92 requests live, which the old base(10)+fields×variants=38 could not
+// cover, so it exhausted before completing.
+const (
+	// refineReserve is a create-family step's reserve: one create plus the
+	// retries the adaptive loop makes as it adds, removes or borrows a field a
+	// refusal named. It mirrors the executor's adjustment cap (maxAdjustIters in
+	// internal/audit/run) so a body that needs several honest adjustments to be
+	// accepted never exhausts the entity mid-program.
+	refineReserve = 5
+	// maximalReserve is a maximal create's reserve: the adaptive create, the
+	// bounded bisection that narrows a refused optional field, and the delete
+	// that levels the object afterward.
+	maximalReserve = 6
+	// updateReserve is a per-field update's reserve: the adaptive update and the
+	// read-back that classifies what the API did with the field.
+	updateReserve = 4
+	// pollReserve is a read-with-retry's reserve: the reads it may spend polling
+	// for the created object to become readable.
+	pollReserve = 3
+	// deleteConfirmReserve is a delete-with-confirmation's reserve: the delete,
+	// the read that confirms it gone, and the second delete that observes the
+	// 404 semantics.
+	deleteConfirmReserve = 3
+	// cleanupReserve is an end-of-entity cleanup's reserve: the deletes it may
+	// spend clearing whatever objects the entity left unresolved.
+	cleanupReserve = 3
+	// negativeReserve is a single-shot negative create's reserve: the create and
+	// the delete that follows an unexpected acceptance.
+	negativeReserve = 2
+	// preflightReserve is the one foreign-object pre-flight read every mutating
+	// entity spends before its first create.
+	preflightReserve = 1
+)
+
+// stepRequests is the request weight one program step of the given kind
+// contributes to the entity budget. The default is the negative-create reserve:
+// a kind the budget does not specially recognise still gets create-shaped
+// headroom rather than a bare single request.
+func stepRequests(kind plan.StepKind) int {
+	switch kind {
+	case stepCreateMinimal, stepCreatePerEnumValue:
+		return refineReserve
+	case stepCreateMaximal:
+		return maximalReserve
+	case stepUpdateField:
+		return updateReserve
+	case stepReadWithRetry:
+		return pollReserve
+	case stepReadConsecutive:
+		return 2
+	case stepRead:
+		return 1
+	case stepOmitRequired, stepUndocumentedEnumValue, stepUndeclaredSpecField:
+		return negativeReserve
+	case stepDeleteWithConfirmation:
+		return deleteConfirmReserve
+	case stepCleanupDelete:
+		return cleanupReserve
+	default:
+		return negativeReserve
+	}
+}
 
 // buildProgram composes the ordered steps for a resource, shaped by its
 // variants, gates and hypotheses. The order is fixed and every rule iterates a
@@ -142,16 +216,27 @@ func gatedStep(kind plan.StepKind, v Variant) Step {
 	return Step{Kind: kind, GateField: v.GateField, GateValue: v.GateValue}
 }
 
-// deriveBudget sizes the per-resource request budget with complexity: a fixed
-// base plus the writable-field count times the variant count, capped by a
-// ceiling drawn from the configured live-object budget. The formula string
-// records the arithmetic for a plan dump.
+// deriveBudget sizes the per-resource request budget from the resource's actual
+// step program: the one-time pre-flight read plus the summed per-step request
+// reserve of every step the program will run. Because the program grows with the
+// resource's variants, writable fields and gates, so does the budget — a
+// multi-variant resource is budgeted for the many creates, reads, updates and
+// per-value probes its program actually contains, each with headroom for the
+// adaptive adjustment loop and its poll/confirm reads.
 //
-//	requests = base + writableFields × variants   (capped at maxObjects × perObjectCost)
-func deriveBudget(createBody *specmodel.Schema, variants []Variant, cfg *config.Config) Budget {
-	writable := len(flatFields(createBody))
-	nVariants := len(variants)
-	requests := budgetBase + writable*nVariants
+// The result is clamped to a ceiling drawn from the configured live-object
+// budget (maxObjects × perObjectCost). That ceiling is the safety guard against
+// a pathologically wide schema, not the budget itself; a resource of ordinary
+// complexity stays well under it. The run-wide duration and rate limits are the
+// other guards. The formula string records the arithmetic for a plan dump.
+//
+//	requests = preflight + Σ step-request reserve over the program
+//	           (capped at maxObjects × perObjectCost)
+func deriveBudget(program []Step, cfg *config.Config) Budget {
+	requests := preflightReserve
+	for i := range program {
+		requests += stepRequests(program[i].Kind)
+	}
 
 	maxObjects := cfg.Audit.MaxObjects
 	if maxObjects < 1 {
@@ -166,6 +251,6 @@ func deriveBudget(createBody *specmodel.Schema, variants []Variant, cfg *config.
 	}
 	return Budget{
 		Requests: requests,
-		Formula:  fmt.Sprintf("base(%d) + writableFields(%d)×variants(%d)%s", budgetBase, writable, nVariants, capped),
+		Formula:  fmt.Sprintf("preflight(%d) + Σ step-request reserve over %d program steps%s", preflightReserve, len(program), capped),
 	}
 }

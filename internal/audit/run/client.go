@@ -43,6 +43,7 @@ type reqSpec struct {
 type httpResult struct {
 	status  int
 	body    []byte
+	header  http.Header
 	elapsed time.Duration
 	// excerpt is the redactable proof fragment for observations.
 	excerpt observe.Excerpt
@@ -147,6 +148,7 @@ func (r *runner) do(ctx context.Context, ent *entityState, spec reqSpec) (*httpR
 	res := &httpResult{
 		status:  resp.StatusCode,
 		body:    body,
+		header:  resp.Header.Clone(),
 		elapsed: time.Since(start),
 		excerpt: observe.Excerpt{
 			Method:           strings.ToUpper(spec.method),

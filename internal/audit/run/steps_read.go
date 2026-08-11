@@ -18,6 +18,14 @@ import (
 // first attempt lagged not at all: zero. The read body is the evidence every
 // per-field conclusion draws on.
 func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *plan.Step) error {
+	if ent.idUnknown {
+		// The object was created but its id could not be learned, so there is
+		// no item URL to read it back at. The read-after-write claim is
+		// inconclusive — recorded, not silently skipped — and the entity keeps
+		// going: its create-only findings are still worth gathering.
+		r.record(ent.plan.Entity, "", observe.KindReadAfterWrite, nil, nil, observe.OutcomeInconclusive)
+		return nil
+	}
 	interval, timeout := pollBounds(step.Poll)
 	deadline := time.Now().Add(timeout)
 
@@ -61,6 +69,10 @@ func (r *runner) runReadWithRetry(ctx context.Context, ent *entityState, step *p
 // that differed as volatile — the perpetual-diff class a generated
 // provider must exclude from drift comparison.
 func (r *runner) runReadConsecutive(ctx context.Context, ent *entityState, step *plan.Step) error {
+	if ent.idUnknown {
+		// No item URL to read the object at, so volatility cannot be observed.
+		return nil
+	}
 	first, err := r.do(ctx, ent, reqSpec{method: step.Method, path: step.Path, pathValues: step.PathValues})
 	if err != nil {
 		return err

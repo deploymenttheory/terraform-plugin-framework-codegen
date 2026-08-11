@@ -14,7 +14,15 @@ import (
 func (r *runner) runDeleteWithConfirmation(ctx context.Context, ent *entityState, step *plan.Step) error {
 	entity := ent.plan.Entity
 	obj := r.registry[entity]
-	if obj == nil || obj.id == "" {
+	if obj != nil && obj.id == "" {
+		// The object was created but its id was never learned, so it cannot be
+		// deleted by id here — the boundary prefix pass is what removes it. The
+		// 404-on-second-delete claim is inconclusive rather than a blocked
+		// entity.
+		r.record(entity, "", observe.KindDeleteNotFoundOK, nil, nil, observe.OutcomeInconclusive)
+		return nil
+	}
+	if obj == nil {
 		return blockedError{reason: "no created object to delete"}
 	}
 

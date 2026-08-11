@@ -165,6 +165,52 @@ components:
           dns: '#/components/schemas/Dns'
 `
 
+// monitorLikeSpec mirrors the quirkserver monitor: a three-value discriminator
+// (kind) and seven writable fields, so its compiled program is the multi-variant
+// shape whose budget the live rehearsal found under-sized.
+const monitorLikeSpec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /monitors:
+    post:
+      operationId: createMonitor
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/MonitorCreate'}
+      responses: {"201": {description: made, content: {application/json: {schema: {$ref: '#/components/schemas/Monitor'}}}}}
+  /monitors/{id}:
+    get:
+      operationId: getMonitor
+      responses: {"200": {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Monitor'}}}}}
+    put:
+      operationId: updateMonitor
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/MonitorCreate'}
+      responses: {"200": {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Monitor'}}}}}
+    delete:
+      operationId: deleteMonitor
+      responses: {"204": {description: gone}}
+components:
+  schemas:
+    Monitor:
+      type: object
+      properties: {id: {type: string, readOnly: true}}
+    MonitorCreate:
+      type: object
+      required: [kind]
+      properties:
+        kind: {type: string, enum: [ping, web, dns]}
+        name: {type: string}
+        interval: {type: integer}
+        target_host: {type: string}
+        domain: {type: string}
+        dnssec: {type: boolean}
+        web: {type: object, properties: {url: {type: string}}}
+`
+
 // dependentSpec: a resource with dependentRequired and dependentSchemas.
 const dependentSpec = `openapi: 3.0.3
 info: {title: T, version: "1"}
@@ -583,6 +629,48 @@ func TestBudgetDefaultsMaxObjects(t *testing.T) {
 	s := compile(t, flatSpec, "widget", cfg)
 	if s.Budget.Requests == 0 {
 		t.Fatalf("budget should be non-zero with defaulted maxObjects")
+	}
+}
+
+// TestBudgetCoversProgram is the regression for the exhaustion the live
+// quirkserver rehearsal surfaced: a multi-variant resource's budget must be
+// derived from its actual program with enough headroom that the whole program
+// can run. The monitor-shaped resource here (a three-value discriminator, seven
+// writable fields) compiles a ~30-step program; the old base+fields×variants
+// formula sized it at 38, below the ~92 requests the program spends live. The
+// program-summed budget must clear a generous multiple of the step count.
+func TestBudgetCoversProgram(t *testing.T) {
+	s := compile(t, monitorLikeSpec, "monitor", defaultCfg())
+
+	if len(s.Variants) != 4 { // baseline + ping/web/dns
+		t.Fatalf("variants=%d, want 4 (baseline + three gate values)", len(s.Variants))
+	}
+	steps := len(s.Program)
+	// Every step is worth at least one request and the create/update-heavy ones
+	// several, so the budget must clear twice the step count — headroom for the
+	// adaptive adjustment loop and the poll/confirm reads.
+	const headroomFloor = 2
+	if s.Budget.Requests < steps*headroomFloor {
+		t.Fatalf("budget=%d for a %d-step program, want >= %d (steps × %d headroom)",
+			s.Budget.Requests, steps, steps*headroomFloor, headroomFloor)
+	}
+	// And it must clear the request count the program actually spends live
+	// (~92 for this shape), which the retired formula (38) could not.
+	if s.Budget.Requests <= 92 {
+		t.Fatalf("budget=%d does not cover the ~92 requests this program spends live", s.Budget.Requests)
+	}
+	if !strings.Contains(s.Budget.Formula, "program steps") {
+		t.Fatalf("formula %q should record the program-summed arithmetic", s.Budget.Formula)
+	}
+}
+
+// TestBudgetDeterministic: the program-summed budget is a pure function of the
+// program, so two compilations of the same resource agree byte for byte.
+func TestBudgetDeterministic(t *testing.T) {
+	a := compile(t, monitorLikeSpec, "monitor", defaultCfg())
+	b := compile(t, monitorLikeSpec, "monitor", defaultCfg())
+	if a.Budget != b.Budget {
+		t.Fatalf("budget not deterministic: %+v vs %+v", a.Budget, b.Budget)
 	}
 }
 

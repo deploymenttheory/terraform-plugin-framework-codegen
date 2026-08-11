@@ -323,7 +323,7 @@ func compileResource(doc *specmodel.Document, class specmodel.Classification, cf
 		Hypotheses: hyps,
 	}
 	s.Program = buildProgram(createBody, gates, variants, hyps)
-	s.Budget = deriveBudget(createBody, variants, cfg)
+	s.Budget = deriveBudget(s.Program, cfg)
 	return s, nil
 }
 
