@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -229,18 +230,27 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 		auto[k] = true
 	}
 
-	// One shared ordinal sequence over the sorted candidates, so file order
-	// is compilation order — the order the operations were derived to apply
-	// in.
-	for i, cand := range candidates {
-		ordinal := i + 1
+	// One shared ordinal sequence, continuing past every ordinal already
+	// claimed — accepted corrections/, auto-accepted auto-NNN-, and any
+	// proposal still in proposed/. A first round's proposals accepted into
+	// corrections/ raise the floor, so a second round can never reissue a
+	// number the first already committed and thereby clobber accepted
+	// evidence when its proposals are accepted in turn.
+	next, err := highestOrdinal(correctionsDir, proposedDir)
+	if err != nil {
+		return p, err
+	}
+	next++
+
+	for i := range candidates {
+		cand := &candidates[i]
 		var path string
-		var err error
 		if auto[string(cand.written.Kind)] {
-			path, err = writeAuto(correctionsDir, ordinal, cand.written.Entity, cand.corr)
+			path, next, err = writeAutoAccepted(correctionsDir, next, cand.written.Entity, cand.corr)
 		} else {
-			path = filepath.Join(proposedDir, fmt.Sprintf("%03d-%s%s", ordinal, cand.written.Entity, correction.Suffix))
+			path = filepath.Join(proposedDir, fmt.Sprintf("%03d-%s%s", next, cand.written.Entity, correction.Suffix))
 			err = writeCorrection(path, cand.corr)
+			next++
 		}
 		if err != nil {
 			return p, err
@@ -253,6 +263,42 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 		}
 	}
 	return p, nil
+}
+
+// ordinalName matches any correction file that leads with an ordinal, whether
+// a proposed NNN- or an accepted auto-NNN-, capturing the ordinal.
+var ordinalName = regexp.MustCompile(`^(?:auto-)?(\d{3})-.+\.correction\.json$`)
+
+// autoName matches an accepted auto-NNN- correction file.
+var autoName = regexp.MustCompile(`^auto-\d{3}-.+\.correction\.json$`)
+
+// highestOrdinal is the largest ordinal any correction file across the given
+// directories already carries, or zero when none do. Fresh proposals number
+// from one past it so they never collide with an accepted file's ordinal.
+func highestOrdinal(dirs ...string) (int, error) {
+	highest := 0
+	for _, dir := range dirs {
+		entries, err := os.ReadDir(dir)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return 0, err
+		}
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			m := ordinalName.FindStringSubmatch(e.Name())
+			if m == nil {
+				continue
+			}
+			if n, convErr := strconv.Atoi(m[1]); convErr == nil && n > highest {
+				highest = n
+			}
+		}
+	}
+	return highest, nil
 }
 
 // compilableKinds is the closed observation-kind vocabulary, for validating
@@ -377,25 +423,53 @@ func readMarkers(dir string) (map[string]Marker, error) {
 	return markers, nil
 }
 
-// writeAuto writes an auto-accepted correction into the accepted directory.
-// A name collision with an earlier run's file for a different observation
-// bumps the ordinal rather than silently replacing committed evidence; the
-// same observation recompiled (its value moved) overwrites its own file.
-func writeAuto(correctionsDir string, ordinal int, entity string, corr correction.Correction) (string, error) {
-	for ; ; ordinal++ {
-		path := filepath.Join(correctionsDir, fmt.Sprintf("auto-%03d-%s%s", ordinal, entity, correction.Suffix))
-		existing, err := os.ReadFile(path) //nolint:gosec // the computed name under the corrections dir
-		if os.IsNotExist(err) {
-			return path, writeCorrection(path, corr)
+// writeAutoAccepted writes an auto-accepted correction into the accepted
+// directory and reports the next free ordinal. The same observation
+// recompiled — its value moved — overwrites its own file wherever it already
+// sits, so no stale duplicate is left beside the new value and the ordinal is
+// not consumed; a fresh observation lands at the collision-free ordinal it
+// was handed, which the shared sequence has already advanced past every
+// accepted file.
+func writeAutoAccepted(correctionsDir string, next int, entity string, corr correction.Correction) (string, int, error) {
+	if path, ok, err := autoFileFor(correctionsDir, corr.Evidence); err != nil {
+		return "", next, err
+	} else if ok {
+		return path, next, writeCorrection(path, corr)
+	}
+	path := filepath.Join(correctionsDir, fmt.Sprintf("auto-%03d-%s%s", next, entity, correction.Suffix))
+	return path, next + 1, writeCorrection(path, corr)
+}
+
+// autoFileFor finds an already-accepted auto- correction compiled from the
+// same evidence — the same observation, recompiled — so a moved value
+// overwrites in place rather than accreting a second file. Evidence is unique
+// per observation, so at most one file matches.
+func autoFileFor(correctionsDir, evidence string) (string, bool, error) {
+	if evidence == "" {
+		return "", false, nil
+	}
+	entries, err := os.ReadDir(correctionsDir)
+	if os.IsNotExist(err) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	for _, e := range entries {
+		if e.IsDir() || !autoName.MatchString(e.Name()) {
+			continue
 		}
+		path := filepath.Join(correctionsDir, e.Name())
+		raw, err := os.ReadFile(path) //nolint:gosec // enumerated from the corrections dir
 		if err != nil {
-			return "", err
+			return "", false, err
 		}
 		var prev correction.Correction
-		if json.Unmarshal(existing, &prev) == nil && prev.Evidence == corr.Evidence {
-			return path, writeCorrection(path, corr)
+		if json.Unmarshal(raw, &prev) == nil && prev.Evidence == evidence {
+			return path, true, nil
 		}
 	}
+	return "", false, nil
 }
 
 // writeCorrection encodes one correction file deterministically: fixed field

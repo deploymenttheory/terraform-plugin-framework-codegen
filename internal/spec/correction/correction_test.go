@@ -60,6 +60,143 @@ func TestUnit_Correction_AddsAnEnumValue(t *testing.T) {
 	}
 }
 
+// The container schema T carries no properties yet: a serverDefault
+// correction adds x's default, an undocumentedFieldInSpec correction adds x
+// itself, and only the second creates the node the first writes inside.
+const containerSpec = `
+openapi: 3.0.1
+components:
+  schemas:
+    T:
+      type: object
+      properties: {}
+`
+
+func propsOf(t *testing.T, doc map[string]any) map[string]any {
+	t.Helper()
+	return doc["components"].(map[string]any)["schemas"].(map[string]any)["T"].(map[string]any)["properties"].(map[string]any)
+}
+
+// The exact ThousandEyes shape: 001 (sorting first) adds a property's default,
+// 006 (sorting later) adds the property. File order would apply the default
+// against a node that does not exist yet; the dependency order applies the
+// property-creating add first.
+func TestUnit_Correction_AppliesAContainerAddBeforeItsDescendant(t *testing.T) {
+	t.Parallel()
+
+	first := Correction{
+		File:          "001-x.correction.json",
+		Justification: "serverDefault on x",
+		Operations:    []Operation{{Op: "add", Path: "/components/schemas/T/properties/x/default", Value: "d"}},
+	}
+	sixth := Correction{
+		File:          "006-x.correction.json",
+		Justification: "undocumentedFieldInSpec x",
+		Operations:    []Operation{{Op: "add", Path: "/components/schemas/T/properties/x", Value: map[string]any{"type": "object"}}},
+	}
+
+	out, err := Apply([]byte(containerSpec), []Correction{first, sixth})
+	if err != nil {
+		t.Fatalf("Apply must order the property add before the default add: %v", err)
+	}
+	x, ok := propsOf(t, decode(t, out))["x"].(map[string]any)
+	if !ok {
+		t.Fatalf("property x was not created")
+	}
+	if x["type"] != "object" {
+		t.Errorf("x.type = %v, want object", x["type"])
+	}
+	if x["default"] != "d" {
+		t.Errorf("x.default = %v, want d — the default did not survive onto the created node", x["default"])
+	}
+}
+
+// A batch of add-property/add-default pairs in adversarial filename order:
+// every default sorts before the property it must land on. All three must end
+// up carrying both their type and their default.
+func TestUnit_Correction_OrdersManyContainerAddsBeforeTheirDescendants(t *testing.T) {
+	t.Parallel()
+
+	def := func(file, name, val string) Correction {
+		return Correction{File: file, Justification: "serverDefault",
+			Operations: []Operation{{Op: "add", Path: "/components/schemas/T/properties/" + name + "/default", Value: val}}}
+	}
+	prop := func(file, name string) Correction {
+		return Correction{File: file, Justification: "undocumentedFieldInSpec",
+			Operations: []Operation{{Op: "add", Path: "/components/schemas/T/properties/" + name, Value: map[string]any{"type": "string"}}}}
+	}
+	corrections := []Correction{
+		def("001-a", "a", "a-def"), def("002-b", "b", "b-def"), def("003-c", "c", "c-def"),
+		prop("010-a", "a"), prop("011-b", "b"), prop("012-c", "c"),
+	}
+
+	out, err := Apply([]byte(containerSpec), corrections)
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	props := propsOf(t, decode(t, out))
+	for _, name := range []string{"a", "b", "c"} {
+		p, ok := props[name].(map[string]any)
+		if !ok {
+			t.Fatalf("property %s was not created", name)
+		}
+		if p["type"] != "string" || p["default"] != name+"-def" {
+			t.Errorf("%s = %v, want type string with default %s-def", name, p, name)
+		}
+	}
+}
+
+// The reorder is confined to the dependency: an enum edit's test-then-remove
+// pair, index-sensitive across two removals, must stay adjacent and in
+// sequence even while a cross-file property add is pulled ahead of its
+// default. A split or reordered pair fails the second test op.
+func TestUnit_Correction_KeepsAnEnumEditSequencedThroughReordering(t *testing.T) {
+	t.Parallel()
+
+	spec := `
+openapi: 3.0.1
+components:
+  schemas:
+    T:
+      type: object
+      properties:
+        color:
+          type: string
+          enum:
+            - a
+            - b
+            - c
+            - d
+`
+	corrections := []Correction{
+		{File: "001-default", Justification: "serverDefault on newf",
+			Operations: []Operation{{Op: "add", Path: "/components/schemas/T/properties/newf/default", Value: "n"}}},
+		{File: "005-values", Justification: "values on color",
+			Operations: []Operation{
+				{Op: "test", Path: "/components/schemas/T/properties/color/enum/1", Value: "b"},
+				{Op: "remove", Path: "/components/schemas/T/properties/color/enum/1"},
+				{Op: "test", Path: "/components/schemas/T/properties/color/enum/2", Value: "d"},
+				{Op: "remove", Path: "/components/schemas/T/properties/color/enum/2"},
+			}},
+		{File: "009-newf", Justification: "undocumentedFieldInSpec newf",
+			Operations: []Operation{{Op: "add", Path: "/components/schemas/T/properties/newf", Value: map[string]any{"type": "string"}}}},
+	}
+
+	out, err := Apply([]byte(spec), corrections)
+	if err != nil {
+		t.Fatalf("Apply must keep the enum edit sequenced: %v", err)
+	}
+	props := propsOf(t, decode(t, out))
+	enum := props["color"].(map[string]any)["enum"].([]any)
+	if len(enum) != 2 || enum[0] != "a" || enum[1] != "c" {
+		t.Errorf("enum = %v, want [a c] — the index-sensitive removals were disturbed", enum)
+	}
+	newf := props["newf"].(map[string]any)
+	if newf["type"] != "string" || newf["default"] != "n" {
+		t.Errorf("newf = %v, want type string with default n", newf)
+	}
+}
+
 func TestUnit_Correction_RefusesAStaleAdd(t *testing.T) {
 	t.Parallel()
 

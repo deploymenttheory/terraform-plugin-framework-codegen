@@ -1,0 +1,352 @@
+package revise
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"gopkg.in/yaml.v3"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/correction"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/store"
+)
+
+// acceptedFiles lists the accepted corrections currently in corrections/,
+// the counterpart to proposedFiles for what a round's acceptance committed.
+func acceptedFiles(t *testing.T, specDir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(filepath.Join(specDir, correction.DirName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), correction.Suffix) {
+			out = append(out, e.Name())
+		}
+	}
+	return out
+}
+
+// TestUnit_Propose_SecondRoundOrdinalsContinuePastAcceptedOnes is Bug 1's
+// reproduction. A serverDefault on an undocumented field is unplaceable until
+// its undocumentedFieldInSpec correction is accepted, so it only proposes in a
+// second round. That second round must number past the accepted first round,
+// never reissuing an ordinal whose acceptance would then clobber committed
+// evidence.
+func TestUnit_Propose_SecondRoundOrdinalsContinuePastAcceptedOnes(t *testing.T) {
+	t.Parallel()
+	root, specDir, lock := pinnedTree(t)
+	commitObs(t, root,
+		// aid is undocumented: the serverDefault cannot land until the field
+		// the undocumentedFieldInSpec correction adds exists.
+		confirmedObs("aid", observe.KindServerDefault, float64(100), nil, lock.SHA256),
+		confirmedObs("aid", observe.KindUndocumentedFieldInSpec, "number", nil, lock.SHA256),
+	)
+
+	// Round one: only the field-adding correction is placeable.
+	p1, err := Propose(specDir)
+	if err != nil {
+		t.Fatalf("round-one Propose: %v", err)
+	}
+	if len(p1.Proposed) != 1 || p1.Proposed[0].Kind != observe.KindUndocumentedFieldInSpec {
+		t.Fatalf("round one Proposed = %+v, want only the undocumentedFieldInSpec", p1.Proposed)
+	}
+	if len(p1.Unplaceable) != 1 || p1.Unplaceable[0].Kind != observe.KindServerDefault {
+		t.Fatalf("round one Unplaceable = %+v, want the serverDefault held back", p1.Unplaceable)
+	}
+	round1Accepted := filepath.Base(p1.Proposed[0].Path)
+	acceptAll(t, specDir)
+
+	// Round two: the serverDefault is now placeable and must not reuse the
+	// ordinal round one already committed.
+	p2, err := Propose(specDir)
+	if err != nil {
+		t.Fatalf("round-two Propose: %v", err)
+	}
+	if len(p2.Proposed) != 1 || p2.Proposed[0].Kind != observe.KindServerDefault {
+		t.Fatalf("round two Proposed = %+v, want the now-placeable serverDefault", p2.Proposed)
+	}
+	round2Proposed := filepath.Base(p2.Proposed[0].Path)
+	if round2Proposed == round1Accepted {
+		t.Fatalf("round two proposed %s, which collides with the accepted %s", round2Proposed, round1Accepted)
+	}
+	// No proposed filename may equal any accepted filename.
+	accepted := map[string]bool{}
+	for _, name := range acceptedFiles(t, specDir) {
+		accepted[name] = true
+	}
+	for _, name := range proposedFiles(t, specDir) {
+		if accepted[name] {
+			t.Errorf("proposed %s also exists accepted; accepting it would clobber committed evidence", name)
+		}
+	}
+
+	// Accepting round two must leave round one's correction untouched.
+	firstBody, err := os.ReadFile(filepath.Join(specDir, correction.DirName, round1Accepted))
+	if err != nil {
+		t.Fatal(err)
+	}
+	acceptAll(t, specDir)
+	afterBody, err := os.ReadFile(filepath.Join(specDir, correction.DirName, round1Accepted))
+	if err != nil {
+		t.Fatalf("round one's correction %s vanished after accepting round two: %v", round1Accepted, err)
+	}
+	if string(firstBody) != string(afterBody) {
+		t.Errorf("round one's correction %s was overwritten by round two", round1Accepted)
+	}
+	if !strings.Contains(string(afterBody), "undocumentedFieldInSpec") {
+		t.Errorf("round one's correction no longer holds the undocumentedFieldInSpec it committed:\n%s", afterBody)
+	}
+}
+
+// An auto-accepted correction whose evidence recompiles with a moved value
+// overwrites its own file in place — the shared ordinal has advanced past it,
+// so without the in-place overwrite a second file would accrete beside the
+// first and both defaults would apply.
+func TestUnit_Propose_AnAutoAcceptedValueThatMovesOverwritesItsOwnFile(t *testing.T) {
+	t.Parallel()
+	root, specDir, lock := pinnedTree(t)
+	commitObs(t, root, confirmedObs("mode", observe.KindServerDefault, "auto", nil, lock.SHA256))
+
+	p1, err := ProposeWith(specDir, Options{AutoAccept: []string{"serverDefault"}})
+	if err != nil {
+		t.Fatalf("first ProposeWith: %v", err)
+	}
+	if len(p1.AutoAccepted) != 1 {
+		t.Fatalf("AutoAccepted = %+v, want the serverDefault", p1.AutoAccepted)
+	}
+	firstPath := p1.AutoAccepted[0].Path
+
+	// The same observation, its default moved to a new constant.
+	commitObs(t, root, confirmedObs("mode", observe.KindServerDefault, "manual", nil, lock.SHA256))
+	p2, err := ProposeWith(specDir, Options{AutoAccept: []string{"serverDefault"}})
+	if err != nil {
+		t.Fatalf("second ProposeWith: %v", err)
+	}
+	if len(p2.AutoAccepted) != 1 || p2.AutoAccepted[0].Path != firstPath {
+		t.Fatalf("AutoAccepted = %+v, want the same file %s overwritten in place", p2.AutoAccepted, firstPath)
+	}
+	autos := 0
+	for _, name := range acceptedFiles(t, specDir) {
+		if strings.HasPrefix(name, "auto-") {
+			autos++
+		}
+	}
+	if autos != 1 {
+		t.Errorf("found %d auto- files, want exactly one — the moved value duplicated its correction", autos)
+	}
+	raw, err := os.ReadFile(firstPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), "manual") {
+		t.Errorf("the auto correction was not updated to the moved value:\n%s", raw)
+	}
+}
+
+// tagInfoSpec is the ThousandEyes tag surface in miniature: a full-lifecycle
+// entity whose documented schema omits the aid and builtIn fields the live API
+// carries, whose color has a server-applied default, whose objectType is
+// immutable, and whose type enum documents a value the API rejects.
+const tagInfoSpec = `openapi: 3.0.3
+info:
+  title: tag surface
+  version: 1.0.0
+paths:
+  /tags:
+    post:
+      operationId: createTag
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagInfo'
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagInfo'
+    get:
+      operationId: listTags
+      responses:
+        "200":
+          description: listed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagInfo'
+  /tags/{tagId}:
+    parameters:
+      - name: tagId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getTag
+      responses:
+        "200":
+          description: read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagInfo'
+    put:
+      operationId: updateTag
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagInfo'
+      responses:
+        "200":
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagInfo'
+    delete:
+      operationId: deleteTag
+      responses:
+        "204":
+          description: deleted
+components:
+  schemas:
+    TagInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+        objectType:
+          type: string
+        type:
+          type: string
+          enum:
+            - static
+            - dynamic
+`
+
+// pinnedSpec imports an arbitrary spec into <root>/spec, the multi-schema
+// counterpart to pinnedTree.
+func pinnedSpec(t *testing.T, spec string) (root, specDir string, lock store.Lock) {
+	t.Helper()
+	root = t.TempDir()
+	specDir = filepath.Join(root, "spec")
+	res, err := store.Import(specDir, []byte(spec), "published.yaml")
+	if err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	return root, specDir, res.Lock
+}
+
+// TestIntegration_Revise_ThousandEyesTagConvergesAcrossRounds mirrors the live
+// audit that surfaced both bugs: corrections that only become placeable after
+// an earlier round is accepted, proposed and accepted round by round until a
+// re-propose yields nothing, then materialized. The revised document must
+// carry the added fields with their defaults, the corrected enum, and the
+// annotations — proof the accepted evidence was neither clobbered (Bug 1) nor
+// applied against a node that did not exist yet (Bug 2).
+func TestIntegration_Revise_ThousandEyesTagConvergesAcrossRounds(t *testing.T) {
+	t.Parallel()
+	root, specDir, lock := pinnedSpec(t, tagInfoSpec)
+	commitObs(t, root,
+		confirmedObs("aid", observe.KindUndocumentedFieldInSpec, "number", nil, lock.SHA256),
+		confirmedObs("builtIn", observe.KindUndocumentedFieldInSpec, "boolean", nil, lock.SHA256),
+		confirmedObs("aid", observe.KindServerDefault, float64(4530), nil, lock.SHA256),
+		confirmedObs("builtIn", observe.KindServerDefault, false, nil, lock.SHA256),
+		confirmedObs("color", observe.KindServerDefault, "#A7EB10", nil, lock.SHA256),
+		confirmedObs("objectType", observe.KindImmutable, true, nil, lock.SHA256),
+		confirmedObs("type", observe.KindValues,
+			observe.Values{Rejected: []string{"dynamic"}}, nil, lock.SHA256),
+		confirmedObs("", observe.KindUpdateStyle, "put-full", nil, lock.SHA256),
+	)
+
+	// Accept round after round until a propose settles with nothing new.
+	rounds := 0
+	for {
+		p, err := Propose(specDir)
+		if err != nil {
+			t.Fatalf("round %d Propose: %v", rounds+1, err)
+		}
+		if len(p.Proposed) == 0 {
+			break
+		}
+		acceptAll(t, specDir)
+		rounds++
+		if rounds > 5 {
+			t.Fatal("the loop did not converge within five rounds")
+		}
+	}
+	if rounds < 2 {
+		t.Fatalf("converged in %d round(s); the scenario needs a second round for the deferred serverDefaults", rounds)
+	}
+
+	// Every accepted ordinal is unique — nothing was clobbered along the way.
+	seen := map[string]bool{}
+	for _, name := range acceptedFiles(t, specDir) {
+		if seen[name] {
+			t.Errorf("duplicate accepted correction %s", name)
+		}
+		seen[name] = true
+	}
+
+	res, err := Materialize(specDir)
+	if err != nil {
+		t.Fatalf("Materialize: %v", err)
+	}
+	if len(res.Applied) != 8 {
+		t.Errorf("Applied = %d corrections, want the 8 accepted across the rounds", len(res.Applied))
+	}
+
+	revised, err := os.ReadFile(filepath.Join(specDir, OutputName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]any
+	if err := yaml.Unmarshal(revised, &doc); err != nil {
+		t.Fatalf("revised.yaml is not usable YAML: %v", err)
+	}
+	tagInfo := doc["components"].(map[string]any)["schemas"].(map[string]any)["TagInfo"].(map[string]any)
+	props := tagInfo["properties"].(map[string]any)
+
+	aid, ok := props["aid"].(map[string]any)
+	if !ok || aid["type"] != "number" || aid["default"] != 4530 {
+		t.Errorf("aid = %v, want an added number field with default 4530", props["aid"])
+	}
+	builtIn, ok := props["builtIn"].(map[string]any)
+	if !ok || builtIn["type"] != "boolean" || builtIn["default"] != false {
+		t.Errorf("builtIn = %v, want an added boolean field with default false", props["builtIn"])
+	}
+	if def := props["color"].(map[string]any)["default"]; def != "#A7EB10" {
+		t.Errorf("color.default = %v, want #A7EB10", def)
+	}
+	if co := props["objectType"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
+		t.Errorf("objectType create-only = %v, want true", co)
+	}
+	enum, ok := props["type"].(map[string]any)["enum"].([]any)
+	if !ok || len(enum) != 1 || enum[0] != "static" {
+		t.Errorf("type.enum = %v, want [static] with dynamic removed", props["type"].(map[string]any)["enum"])
+	}
+	put := doc["paths"].(map[string]any)["/tags/{tagId}"].(map[string]any)["put"].(map[string]any)
+	if style := put["x-tfpfgen-update-style"]; style != "put-full" {
+		t.Errorf("update style = %v, want put-full", style)
+	}
+
+	// The loop is a fixed point: a further propose adds nothing.
+	p, err := Propose(specDir)
+	if err != nil {
+		t.Fatalf("converged re-Propose: %v", err)
+	}
+	if len(p.Proposed)+len(p.AutoAccepted) != 0 {
+		t.Errorf("re-propose wrote %+v %+v; the loop must converge", p.Proposed, p.AutoAccepted)
+	}
+}
