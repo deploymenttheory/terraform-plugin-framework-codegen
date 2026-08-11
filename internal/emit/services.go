@@ -256,7 +256,17 @@ func supportedTree(tree *ir.AttributeTree, nodes []node) *ir.AttributeTree {
 	for i := range nodes {
 		kept[nodes[i].attr.Name] = &nodes[i]
 	}
-	out := &ir.AttributeTree{ConditionalRequirements: tree.ConditionalRequirements}
+	// The tree-level conditional-edge facts travel with the pruned tree: the
+	// fixture derivation reads them to pick one discriminator variant and keep
+	// only the fields valid under it, so the generated configuration satisfies
+	// the same value-conditional validators emitted from these edges.
+	out := &ir.AttributeTree{
+		ConditionalRequirements: tree.ConditionalRequirements,
+		ConditionalValidities:   tree.ConditionalValidities,
+		Dependencies:            tree.Dependencies,
+		MutuallyExclusiveGroups: tree.MutuallyExclusiveGroups,
+		ValidConfigurations:     tree.ValidConfigurations,
+	}
 	for _, a := range tree.Attributes {
 		if a.Unsupported {
 			out.Attributes = append(out.Attributes, a)
