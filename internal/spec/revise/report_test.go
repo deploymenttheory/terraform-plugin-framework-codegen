@@ -264,6 +264,8 @@ func TestUnit_Report_GroupBranchIsStableAndSanitised(t *testing.T) {
 			"tfpfgen/correction-endpoint_tests_http_server-read-after-write"},
 		{"tag", observe.KindUndocumentedFieldInSpec,
 			"tfpfgen/correction-tag-undocumented-field-in-spec"},
+		// An acronym stays whole rather than becoming required-by-a-p-i.
+		{"tag", observe.KindRequiredByAPI, "tfpfgen/correction-tag-required-by-api"},
 		{"a b/c..d", observe.KindValues, "tfpfgen/correction-a-b-c-d-values"},
 	} {
 		if got := GroupBranch(tc.entity, tc.kind); got != tc.want {

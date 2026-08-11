@@ -50,8 +50,12 @@ type Report struct {
 type Group struct {
 	Entity string       `json:"entity"`
 	Kind   observe.Kind `json:"kind"`
-	// KindTitle is the kind's human title, singular.
-	KindTitle string `json:"kindTitle"`
+	// KindTitle and KindPlural are the kind's human title, counted and
+	// uncounted. Both are carried because the pull-request job may open a
+	// pull request for only part of a group — the rest already decided — and
+	// must be able to recount without knowing English.
+	KindTitle  string `json:"kindTitle"`
+	KindPlural string `json:"kindPlural"`
 	// Summary counts the findings in the kind's own words — "3
 	// server-assigned defaults" — and is what the pull request title says
 	// after the entity.
@@ -158,10 +162,11 @@ func buildGroup(entity string, kind observe.Kind, members []proposal) Group {
 	ex, _ := Explain(kind)
 
 	g := Group{
-		Entity:    entity,
-		Kind:      kind,
-		KindTitle: ex.Title,
-		Summary:   ex.Summary(len(members)),
+		Entity:     entity,
+		Kind:       kind,
+		KindTitle:  ex.Title,
+		KindPlural: ex.Plural,
+		Summary:    ex.Summary(len(members)),
 		Branch:    GroupBranch(entity, kind),
 		Merging:   ex.Merging,
 		Closing:   ex.Closing,
@@ -234,18 +239,27 @@ func GroupBranch(entity string, kind observe.Kind) string {
 }
 
 // kebab spells a camelCase kind with hyphens: readAfterWrite reads back as
-// read-after-write, which is what a branch name should look like.
+// read-after-write. An acronym stays whole — requiredByAPI is
+// required-by-api, not required-by-a-p-i — by breaking only where a word
+// actually starts: after a lower-case letter or digit, or at the last capital
+// of a run that a lower-case letter follows.
 func kebab(s string) string {
+	r := []rune(s)
 	var b strings.Builder
-	for i, r := range s {
-		if r >= 'A' && r <= 'Z' {
-			if i > 0 {
+	for i, c := range r {
+		upper := c >= 'A' && c <= 'Z'
+		if upper && i > 0 {
+			prev := r[i-1]
+			prevLower := (prev >= 'a' && prev <= 'z') || (prev >= '0' && prev <= '9')
+			nextLower := i+1 < len(r) && r[i+1] >= 'a' && r[i+1] <= 'z'
+			if prevLower || nextLower {
 				b.WriteByte('-')
 			}
-			b.WriteRune(r - 'A' + 'a')
-			continue
 		}
-		b.WriteRune(r)
+		if upper {
+			c = c - 'A' + 'a'
+		}
+		b.WriteRune(c)
 	}
 	return b.String()
 }

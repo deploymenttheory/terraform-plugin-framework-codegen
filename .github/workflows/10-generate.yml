@@ -275,12 +275,22 @@ jobs:
           path: ${{ steps.collect.outputs.dir }}/
           if-no-files-found: error
 
-  # [5] One pull request per proposed correction, so the decision the gate
-  # demands is made in the place decisions are made. Merging a PR moves that
-  # correction from proposed/ into spec/corrections/ — accepting it, exactly
-  # as the CLI's accept step does. Closing it unmerged is a rejection, which
-  # 20-corrections.yml records as a marker. The job never blocks the
-  # pipeline: it runs beside [6], not before it.
+  # [5] One pull request per (entity, kind) group of proposed corrections, so
+  # the decision the gate demands is made in the place decisions are made.
+  # Merging moves that group's correction files from proposed/ into
+  # spec/corrections/ — accepting them, exactly as the CLI's accept step does.
+  # Closing unmerged rejects the whole group, which 20-corrections.yml records
+  # as one marker per observation in it. The job never blocks the pipeline: it
+  # runs beside [6], not before it.
+  #
+  # It was one pull request per *correction*, which is one per attribute: the
+  # first live run against a real API opened fifty-seven, twenty-five of them
+  # recording one field's default each. Grouping turns that into a claim about
+  # an entity a reviewer can accept or refuse as a unit. Everything the body
+  # needs comes from the proposal report `spec revise --propose-only` now
+  # writes beside the proposals — the correction files themselves carry only a
+  # justification and some RFC 6902, which is why the old bodies could only
+  # quote jargon.
   open-correction-prs:
     name: open correction prs
     runs-on: ubuntu-latest
@@ -321,7 +331,7 @@ jobs:
         with:
           name: corrections-proposed
           path: ${{ runner.temp }}/proposed
-      - name: Open one PR per proposal
+      - name: Open one PR per entity and kind
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
           RUN_ID: ${{ github.run_id }}
@@ -331,89 +341,154 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
+          report="${PROPOSED}/report.json"
+          if [ ! -f "$report" ]; then
+            echo "::error::${report} is missing. spec revise --propose-only writes it whenever it proposes anything, so proposals without a report mean the toolkit pin predates grouped correction PRs."
+            exit 1
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           start="$(git rev-parse HEAD)"
 
           gh label create tfpfgen-correction --color 1D76DB \
-            --description "One audit-derived spec correction awaiting a decision" \
+            --description "One audit-derived group of spec corrections awaiting a decision" \
             >/dev/null 2>&1 || true
 
-          opened=0 skipped=0
-          for f in "$PROPOSED"/[0-9][0-9][0-9]-*.correction.json; do
-            base="$(basename "$f")"
-
-            # The observation ID is the stable identity. The NNN- ordinal is
-            # not: it renumbers whenever an earlier proposal is accepted, so
-            # branching on the file name would open a second PR for a
-            # decision already pending.
-            obs="$(jq -r '.evidence // ""' "$f" | sed -E -n 's|^audit/observations/.*#([0-9a-f]{16})$|\1|p')"
-            if [ -z "$obs" ]; then
-              echo "::warning::${base}: evidence names no observation; skipped."
-              skipped=$((skipped + 1))
-              continue
-            fi
-            branch="tfpfgen/correction-${obs}"
-
+          # Everything already answered on the default branch: accepted
+          # corrections name their observation in the evidence pointer,
+          # rejections leave a marker named for it. A group is filtered down
+          # to what is still undecided, and skipped entirely when nothing is.
+          {
             accepted=(spec/corrections/*.correction.json)
-            if [ ${#accepted[@]} -gt 0 ] &&
-               jq -e -s --arg id "$obs" 'any(.[]; (.evidence // "") | endswith("#" + $id))' \
-                 "${accepted[@]}" >/dev/null; then
-              echo "::notice::${base}: already accepted on ${BASE}; nothing to decide."
-              skipped=$((skipped + 1))
-              continue
-            fi
-
+            [ ${#accepted[@]} -eq 0 ] || jq -r '.evidence // ""' "${accepted[@]}" |
+              sed -E -n 's|^audit/observations/.*#([0-9a-f]{16})$|\1|p'
             markers=(spec/corrections/rejected/*.json)
-            if [ ${#markers[@]} -gt 0 ] &&
-               jq -e -s --arg id "$obs" 'any(.[]; .observationID == $id)' \
-                 "${markers[@]}" >/dev/null; then
-              echo "::notice::${base}: rejected on ${BASE}; not re-proposed."
-              skipped=$((skipped + 1))
-              continue
+            [ ${#markers[@]} -eq 0 ] || jq -r '.observationID // ""' "${markers[@]}"
+          } | grep -E '^[0-9a-f]{16}$' | sort -u > "${RUNNER_TEMP}/decided.txt" || true
+          decided="$(jq -R -s 'split("\n") | map(select(length > 0))' < "${RUNNER_TEMP}/decided.txt")"
+
+          # The run manifest: every group this run created a decision for,
+          # with the observations each speaks for. It goes into every body of
+          # the run, because that is the one place 20-corrections.yml can read
+          # it back from with no artifact and no guessing — see the debounce
+          # there.
+          manifest="$(jq -r '[.groups[] | .entity + "/" + .kind + "=" + (.observationIDs | join("+"))] | join(";")' "$report")"
+
+          work="${RUNNER_TEMP}/work.json"
+          jq --argjson decided "$decided" '
+            .groups
+            | map(.findings |= map(select(.observationID as $i | ($decided | index($i)) == null)))
+            | map(select((.findings | length) > 0))
+            | map(.observationIDs = (.findings | map(.observationID) | sort))
+            | map(.files = (.findings | map(.file) | unique))
+          ' "$report" > "$work"
+
+          total="$(jq '.groups | length' "$report")"
+          count="$(jq 'length' "$work")"
+          echo "::notice::${total} proposed groups, ${count} still undecided."
+
+          opened=0 skipped=$((total - count))
+          for i in $(seq 0 $((count - 1))); do
+            group="${RUNNER_TEMP}/group.json"
+            jq ".[$i]" "$work" > "$group"
+
+            entity="$(jq -r '.entity' "$group")"
+            branch="$(jq -r '.branch' "$group")"
+            n="$(jq '.findings | length' "$group")"
+            if [ "$n" -eq 1 ]; then
+              summary="1 $(jq -r '.kindTitle' "$group")"
+            else
+              summary="${n} $(jq -r '.kindPlural' "$group")"
             fi
 
+            # The branch is derived from (entity, kind) and is stable across
+            # runs, so a re-run updates the pending decision instead of
+            # opening a second pull request beside it. The old scheme keyed
+            # the branch on a single observation ID, which a group cannot have.
             if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
-              echo "::notice::${base}: a PR on ${branch} is already open."
+              echo "::notice::${entity}: a PR on ${branch} is already open."
               skipped=$((skipped + 1))
               continue
             fi
-
-            # The justification prose is where entity, attribute and kind are
-            # spelled; the correction JSON itself carries no such fields.
-            just="$(jq -r '.justification // ""' "$f")"
-            expr='s/^the audit confirmed (an? )?([A-Za-z]+) observation on ([^:]+):.*$'
-            kind="$(printf '%s' "$just" | sed -E -n "${expr}/\\2/p")"
-            subject="$(printf '%s' "$just" | sed -E -n "${expr}/\\3/p")"
-            if [ -z "$subject" ]; then
-              subject="${base#[0-9][0-9][0-9]-}"
-              subject="${subject%.correction.json}"
-            fi
-            [ -n "$kind" ] || kind=correction
 
             git checkout -q -B "$branch" "$start"
             mkdir -p spec/corrections
-            cp "$f" "spec/corrections/${base}"
-            git add -- "spec/corrections/${base}"
-            git commit -q -m "spec(corrections): accept ${subject} (${kind})"
+            while IFS= read -r f; do
+              cp "${PROPOSED}/${f}" "spec/corrections/${f}"
+              git add -- "spec/corrections/${f}"
+            done < <(jq -r '.files[]' "$group")
+            git commit -q -m "spec(corrections): accept ${summary} on ${entity}"
             git push -q --force origin "HEAD:${branch}"
 
             body="${RUNNER_TEMP}/body.md"
             {
-              printf 'One audit-derived correction, for one decision.\n\n'
-              printf '**Merging accepts it.** The file below moves from `spec/corrections/proposed/` into `spec/corrections/`, which is exactly what accepting it at the CLI does; the next pipeline run then applies it and the gate stops naming it.\n\n'
-              printf '**Closing it unmerged rejects it.** `20-corrections.yml` writes `spec/corrections/rejected/%s.json`, and the observation is never proposed again until that marker is deleted.\n\n' "$obs"
-              printf '### Justification\n\n%s\n\n' "$just"
-              printf '### Operations (RFC 6902)\n\n```json\n'
-              jq '.operations' "$f"
-              printf '\n```\n\n### Evidence\n\n`%s`\n\n' "$(jq -r '.evidence' "$f")"
+              printf 'The audit found %s on `%s`. They are one decision: merging accepts all of them, closing rejects all of them.\n\n' \
+                "$summary" "$entity"
+
+              # The order is the argument: what we asked, what the document
+              # said would happen, what happened, what it costs. Each fragment
+              # sits under the claim it proves rather than in a block of
+              # evidence at the end.
+              jq -r --arg entity "$entity" '
+                def heading: if (.attribute // "") == "" then "### `" + $entity + "`" else "### `" + .attribute + "`" end;
+                def frag($label; $f):
+                  if $f == null then empty
+                  else "<sub>" + $label + "</sub>", "", "```json", ($f | tojson), "```", "" end;
+                .findings[] |
+                  (.excerpts[0] // null) as $e |
+                  heading,
+                  "",
+                  ( if $e == null then "**What we asked.** The observation kept no excerpt of the exchange."
+                    else "**What we asked.** `" + $e.method + " " + $e.pathTemplate + "`."
+                    end ),
+                  "",
+                  ( if $e == null then empty else frag("request body"; $e.requestFragment) end ),
+                  "**What the document led us to expect.** " + .expected,
+                  "",
+                  ( if $e == null then "**What actually happened.** " + .observed
+                    else "**What actually happened.** The API answered `" + ($e.status | tostring) + "`. " + .observed
+                    end ),
+                  "",
+                  ( if $e == null then empty else frag("response body"; $e.responseFragment) end ),
+                  "**What it means.** " + .means,
+                  "",
+                  ( if .stale then "> Recorded against a superseded document. Revision flags it and still compiles it; the correction refuses at apply time if the fact has moved.\n" else empty end )
+              ' "$group"
+
+              printf '## The decision\n\n'
+              printf '**%s** The files below move from `spec/corrections/proposed/` into `spec/corrections/`, which is exactly what accepting them at the CLI does; the next pipeline run applies them and the gate stops naming them.\n\n' \
+                "$(jq -r '.merging' "$group")"
+              printf '**%s** Closing this without merging writes one `spec/corrections/rejected/<observation>.json` marker for every finding above, and none of them is ever proposed again until the marker is deleted.\n\n' \
+                "$(jq -r '.closing' "$group")"
+
+              printf '<details>\n<summary>The RFC 6902 operations, and the observations they came from</summary>\n\n```json\n'
+              jq '[.findings[] | {file, observationID, evidence, operations}]' "$group"
+              printf '\n```\n\n</details>\n\n'
+
               printf 'Run: %s/%s/actions/runs/%s\n\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RUN_ID"
               printf 'tfpfgen-run-id: %s\n' "$RUN_ID"
+              printf 'tfpfgen-observations: %s\n' "$(jq -r '.observationIDs | join(",")' "$group")"
+              printf 'tfpfgen-groups: %s\n' "$manifest"
             } > "$body"
+
+            # A pull request body caps at 65536 characters and a group of
+            # twenty-five findings with excerpts can approach it. Truncating
+            # loses evidence; failing loses the decision, which is worse.
+            if [ "$(wc -c < "$body")" -gt 60000 ]; then
+              head -c 59000 "$body" > "${body}.cut"
+              {
+                printf '\n\n_Truncated. The full narrative is the proposal report in the `corrections-proposed` artifact of the run linked above._\n\n'
+                printf 'tfpfgen-run-id: %s\n' "$RUN_ID"
+                printf 'tfpfgen-observations: %s\n' "$(jq -r '.observationIDs | join(",")' "$group")"
+                printf 'tfpfgen-groups: %s\n' "$manifest"
+              } >> "${body}.cut"
+              mv "${body}.cut" "$body"
+            fi
 
             gh pr create --base "$BASE" --head "$branch" \
               --label tfpfgen-correction \
-              --title "tfpfgen: ${subject} (${kind})" \
+              --title "tfpfgen: ${entity} — ${summary}" \
               --body-file "$body"
             opened=$((opened + 1))
           done
