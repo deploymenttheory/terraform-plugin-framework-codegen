@@ -130,20 +130,29 @@ type DatasourceBinding struct {
 	// ElementType is one list element's finished type expression.
 	ElementType string `json:"element_type,omitempty"`
 	// CollectionAccess is the rendered access from the list call's result
-	// to its element slice: a method call like "GetValue()", a field name
-	// like "Items", or empty when the result is the slice itself.
+	// to its element slice: a method call like "GetValue()" or "GetTags()",
+	// a field name like "Items", or empty when the result is the slice
+	// itself.
 	CollectionAccess string `json:"collection_access,omitempty"`
+	// EnvelopeKey is the observed wire key the list response wraps its item
+	// array under (the IR's ListEnvelopeKey), empty for a bare array. Prune
+	// reads it to pick the wrapper's getter or field by name rather than
+	// guessing among several slices.
+	EnvelopeKey string `json:"envelope_key,omitempty"`
 	// Fields are the element's field accesses, read direction only.
 	Fields []FieldBinding `json:"fields,omitempty"`
 }
 
 // ListResourceBinding carries a list-only entity's call and element.
 type ListResourceBinding struct {
-	Key              string         `json:"key"`
-	List             *Call          `json:"list,omitempty"`
-	ElementType      string         `json:"element_type,omitempty"`
-	CollectionAccess string         `json:"collection_access,omitempty"`
-	Fields           []FieldBinding `json:"fields,omitempty"`
+	Key              string `json:"key"`
+	List             *Call  `json:"list,omitempty"`
+	ElementType      string `json:"element_type,omitempty"`
+	CollectionAccess string `json:"collection_access,omitempty"`
+	// EnvelopeKey is the observed list-envelope wire key; see
+	// DatasourceBinding.EnvelopeKey.
+	EnvelopeKey string         `json:"envelope_key,omitempty"`
+	Fields      []FieldBinding `json:"fields,omitempty"`
 }
 
 // ActionBinding carries an invocation's call and its argument accesses.

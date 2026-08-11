@@ -78,6 +78,32 @@ func (b *TagsItemAssignRequestBuilder) Post(ctx context.Context, body models.Tag
 	return body, nil
 }
 
+// Gizmos reaches a wrapped-list collection whose envelope is an interface
+// with a single slice getter named for the "gizmos" wire key.
+func (c *APIClient) Gizmos() *GizmosRequestBuilder { return &GizmosRequestBuilder{} }
+
+// GizmosRequestBuilder is the wrapped collection builder.
+type GizmosRequestBuilder struct{}
+
+// Get lists the collection, wrapped under the "gizmos" key.
+func (b *GizmosRequestBuilder) Get(ctx context.Context, cfg *RequestConfiguration) (models.GizmoCollectionResponseable, error) {
+	_, _ = ctx, cfg
+	return nil, nil
+}
+
+// Blobs reaches a collection whose envelope carries two slice getters and
+// no wire key to choose between them.
+func (c *APIClient) Blobs() *BlobsRequestBuilder { return &BlobsRequestBuilder{} }
+
+// BlobsRequestBuilder is the ambiguous collection builder.
+type BlobsRequestBuilder struct{}
+
+// Get lists the collection through an ambiguous envelope.
+func (b *BlobsRequestBuilder) Get(ctx context.Context, cfg *RequestConfiguration) (models.BlobCollectionResponseable, error) {
+	_, _ = ctx, cfg
+	return nil, nil
+}
+
 // Orphans reaches a collection whose body model has no constructor.
 func (c *APIClient) Orphans() *OrphansRequestBuilder { return &OrphansRequestBuilder{} }
 
