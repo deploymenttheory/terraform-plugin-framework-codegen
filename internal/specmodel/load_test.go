@@ -637,3 +637,81 @@ func TestUnit_Specmodel_LoadRefusesUndecodableDefault(t *testing.T) {
 		t.Fatalf("Load = %v, want a default decode error", err)
 	}
 }
+
+// TestLoadStructuralFields covers the schema fields the audit strategy compiler
+// reads: description, pattern, discriminator (with a mapping reduced to a
+// component name and a bare-name mapping), dependentRequired and
+// dependentSchemas, each sorted by triggering property.
+func TestLoadStructuralFields(t *testing.T) {
+	doc, err := Load([]byte(`openapi: 3.0.3
+info: {title: T, version: "1"}
+paths: {}
+components:
+  schemas:
+    Http: {type: object, properties: {url: {type: string}}}
+    Body:
+      type: object
+      required: [type]
+      properties:
+        type: {type: string, enum: [http, dns]}
+        code:
+          type: string
+          pattern: "^[a-z]+$"
+          description: "A short code."
+      oneOf:
+        - {$ref: '#/components/schemas/Http'}
+      discriminator:
+        propertyName: type
+        mapping:
+          http: '#/components/schemas/Http'
+          dns: Dns
+      dependentRequired:
+        z: [b]
+        a: [c]
+      dependentSchemas:
+        p:
+          required: [q]
+`))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	body := doc.Schemas["Body"]
+
+	code, _ := body.Property("code")
+	if code.Pattern != "^[a-z]+$" || code.Description != "A short code." {
+		t.Fatalf("pattern=%q description=%q", code.Pattern, code.Description)
+	}
+	if body.Discriminator == nil || body.Discriminator.PropertyName != "type" {
+		t.Fatalf("discriminator not parsed: %+v", body.Discriminator)
+	}
+	if body.Discriminator.Mapping["http"] != "Http" {
+		t.Fatalf("mapping http=%q, want Http (reference reduced to name)", body.Discriminator.Mapping["http"])
+	}
+	if body.Discriminator.Mapping["dns"] != "Dns" {
+		t.Fatalf("mapping dns=%q, want Dns (bare name)", body.Discriminator.Mapping["dns"])
+	}
+	if len(body.DependentRequired) != 2 || body.DependentRequired[0].Property != "a" || body.DependentRequired[1].Property != "z" {
+		t.Fatalf("dependentRequired not sorted by property: %+v", body.DependentRequired)
+	}
+	if len(body.DependentSchemas) != 1 || body.DependentSchemas[0].Property != "p" {
+		t.Fatalf("dependentSchemas: %+v", body.DependentSchemas)
+	}
+	if len(body.DependentSchemas[0].Schema.Resolved().Required) != 1 {
+		t.Fatalf("dependentSchemas subschema required not parsed")
+	}
+}
+
+func TestLoadDiscriminatorRejectsEmptyPropertyName(t *testing.T) {
+	_, err := Load([]byte(`openapi: 3.0.3
+info: {title: T, version: "1"}
+paths: {}
+components:
+  schemas:
+    Body:
+      type: object
+      discriminator: {mapping: {a: A}}
+`))
+	if err == nil || !strings.Contains(err.Error(), "propertyName") {
+		t.Fatalf("Load = %v, want a propertyName error", err)
+	}
+}
