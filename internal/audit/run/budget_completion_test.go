@@ -17,6 +17,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
 )
 
 // TestUnit_Run_MonitorAndAssignmentCompleteWithoutExhaustion is the budget
@@ -41,6 +42,81 @@ func TestUnit_Run_MonitorAndAssignmentCompleteWithoutExhaustion(t *testing.T) {
 	}
 	if sum.Requests > sum.RequestBudget {
 		t.Errorf("run spent %d of a %d budget", sum.Requests, sum.RequestBudget)
+	}
+}
+
+// noUpdateSpec is a full lifecycle without an update operation: get, post and
+// delete only. A resource like this must not be probed for field updates —
+// there is no method to send one with.
+const noUpdateSpec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /things:
+    get:
+      operationId: listThings
+      responses: {"200": {description: ok, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Thing'}}}}}}
+    post:
+      operationId: createThing
+      requestBody: {content: {application/json: {schema: {$ref: '#/components/schemas/ThingCreate'}}}}
+      responses: {"201": {description: made, content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}}}
+  /things/{thingId}:
+    parameters: [{name: thingId, in: path, schema: {type: string}}]
+    get:
+      operationId: getThing
+      responses: {"200": {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/Thing'}}}}}
+    delete:
+      operationId: deleteThing
+      responses: {"204": {description: gone}}
+components:
+  schemas:
+    ThingCreate:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string}
+        mode: {type: string, enum: [basic, advanced]}
+    Thing:
+      allOf:
+        - $ref: '#/components/schemas/ThingCreate'
+        - {type: object, properties: {id: {type: string, readOnly: true}}}
+`
+
+// TestUnit_Run_NoUpdateOperationSkipsUpdateProbing: a resource with no update
+// operation must run its whole program without issuing a method-less "update"
+// (which defaults to GET and mislabels the read as an accepted-but-ignored
+// update, then fails to commit for want of an excerpt method). The budget
+// increase that lets such a resource reach its update steps is what first
+// surfaced this — so the entity completes audited, every observation it emits is
+// committable, and no immutable/ignored/update-style claim appears at all.
+func TestUnit_Run_NoUpdateOperationSkipsUpdateProbing(t *testing.T) {
+	t.Parallel()
+	doc, err := specmodel.Load([]byte(noUpdateSpec))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	cfg := &config.Config{Audit: config.Audit{NamePrefix: "tfpfgen", MaxObjects: 25, RateLimitRPS: 2}}
+	s := quirkserver.New(t, quirkserver.Quirks{})
+	p, err := plan.Derive(doc, cfg, nil)
+	if err != nil {
+		t.Fatalf("Derive: %v", err)
+	}
+	shrinkPolls(p)
+	opts := testOptions(t, s, p, testEnv(), nil)
+	opts.Doc = doc
+	opts.Config = cfg
+	obs, sum := mustRun(t, opts)
+
+	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
+		t.Fatalf("thing = %+v, want audited", got)
+	}
+	for i := range obs {
+		if err := obs[i].Validate(); err != nil {
+			t.Errorf("observation %s.%s (%s) is not committable: %v", obs[i].Entity, obs[i].Attribute, obs[i].Kind, err)
+		}
+		switch obs[i].Kind {
+		case observe.KindImmutable, observe.KindIgnoredOnUpdate, observe.KindUpdateStyle:
+			t.Errorf("update-derived observation %s emitted for a resource with no update operation: %+v", obs[i].Kind, obs[i])
+		}
 	}
 }
 
