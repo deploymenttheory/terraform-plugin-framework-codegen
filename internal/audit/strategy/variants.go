@@ -42,8 +42,11 @@ func deriveVariants(createBody *specmodel.Schema, gates []Gate) []Variant {
 		values = values[:maxVariantValues]
 	}
 	for _, value := range values {
-		branch := matchBranch(gate.Field, value, branches, disc)
-		variants = append(variants, buildVariant(gate.Field, value, base, branch))
+		// Branch matching and the variant's identity are textual; only the
+		// value the executor sends needs its declared type back.
+		label := stringifyScalar(value)
+		branch := matchBranch(gate.Field, label, branches, disc)
+		variants = append(variants, buildVariant(gate.Field, label, base, branch))
 	}
 	return variants
 }

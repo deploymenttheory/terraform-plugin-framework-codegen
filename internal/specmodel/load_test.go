@@ -715,3 +715,42 @@ components:
 		t.Fatalf("Load = %v, want a propertyName error", err)
 	}
 }
+
+// Numeric bounds reach the model because the audit sends values. Without them
+// a probe lands wherever the synthesiser happens to put it — the live run sent
+// 2 into a field declaring minimum 5, and read the refusal as behaviour.
+func TestUnit_Specmodel_NumericBoundsAreLoaded(t *testing.T) {
+	doc, err := Load([]byte(`openapi: 3.0.3
+info: {title: t, version: "1"}
+paths: {}
+components:
+  schemas:
+    Bounded:
+      type: object
+      properties:
+        limit:
+          type: integer
+          minimum: 5
+          maximum: 60
+        unbounded:
+          type: integer
+`))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	s := doc.Schemas["Bounded"]
+	limit, ok := s.Property("limit")
+	if !ok {
+		t.Fatal("limit not loaded")
+	}
+	if limit.Minimum == nil || *limit.Minimum != 5 {
+		t.Errorf("minimum = %v, want 5", limit.Minimum)
+	}
+	if limit.Maximum == nil || *limit.Maximum != 60 {
+		t.Errorf("maximum = %v, want 60", limit.Maximum)
+	}
+	un, _ := s.Property("unbounded")
+	if un.Minimum != nil || un.Maximum != nil {
+		t.Errorf("an undeclared bound must stay nil, got %v/%v", un.Minimum, un.Maximum)
+	}
+}

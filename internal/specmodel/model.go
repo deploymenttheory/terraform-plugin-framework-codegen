@@ -119,6 +119,12 @@ type Schema struct {
 	Default any
 	// Example is the declared example value, decoded; nil when absent.
 	Example any
+	// Minimum and Maximum are the declared numeric bounds; nil when absent.
+	// The audit reads them to keep a probe value inside what the document
+	// says is acceptable, so that a refusal means something about the field
+	// rather than about the probe.
+	Minimum *float64
+	Maximum *float64
 	// Required lists the property names the schema requires.
 	Required []string
 	// Properties preserves document order, which is load-bearing

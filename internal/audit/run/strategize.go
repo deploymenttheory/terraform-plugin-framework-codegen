@@ -17,6 +17,8 @@ package run
 // prefix and run-id placeholder.
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/bits"
 	"strconv"
 	"strings"
@@ -383,11 +385,20 @@ func synthValue(h strategy.SynthHint, entity, prefix string) any {
 // variantValue derives a second, distinct value for an update — scalars only,
 // because updating one element of a nested value is a claim about the nested
 // field, not the attribute.
+// The value must be one the document says is acceptable. A probe the schema
+// itself forbids — a string into an integer enum, a number under the declared
+// minimum — tests the API's validation rather than the field, and whatever
+// comes back is then read as behaviour: a coerced echo becomes "the server
+// forced its own value", an unchanged field becomes "silently ignored on
+// update". Both are conclusions about the probe.
 func variantValue(h strategy.SynthHint, base any) (any, bool) {
 	if len(h.Enum) > 0 {
-		bs, _ := base.(string)
+		// Compared as text so a float64 from a decoded body matches an int
+		// from the document; returned as declared so the wire value keeps the
+		// type the schema gave it.
+		bs := fmt.Sprint(base)
 		for _, e := range h.Enum {
-			if e != bs {
+			if fmt.Sprint(e) != bs {
 				return e, true
 			}
 		}
@@ -400,9 +411,15 @@ func variantValue(h strategy.SynthHint, base any) (any, bool) {
 		}
 		return false, true
 	case "integer":
-		return 2, true
+		if v, ok := numericVariant(h, base); ok {
+			return int64(v), true
+		}
+		return nil, false
 	case "number":
-		return 2.5, true
+		if v, ok := numericVariant(h, base); ok {
+			return v, true
+		}
+		return nil, false
 	case "string":
 		if s, ok := base.(string); ok {
 			return s + "-2", true
@@ -411,6 +428,65 @@ func variantValue(h strategy.SynthHint, base any) (any, bool) {
 	default:
 		return nil, false
 	}
+}
+
+// numericVariant moves a number one step away from its current value and keeps
+// it inside the declared bounds, stepping the other way when the first
+// direction would leave them. It gives up rather than send a value the
+// document forbids: a field pinned to a single legal value has no variant, and
+// probing it anyway only proves the API enforces its own schema.
+func numericVariant(h strategy.SynthHint, base any) (float64, bool) {
+	cur, ok := asFloat(base)
+	if !ok {
+		// No current value to move away from: start from the low bound, or
+		// from a value no bound excludes.
+		switch {
+		case h.Minimum != nil:
+			cur = *h.Minimum
+		case h.Maximum != nil:
+			cur = *h.Maximum - 1
+		default:
+			return 2, true
+		}
+		if inBounds(h, cur) {
+			return cur, true
+		}
+		return 0, false
+	}
+	for _, cand := range []float64{cur + 1, cur - 1} {
+		if inBounds(h, cand) {
+			return cand, true
+		}
+	}
+	return 0, false
+}
+
+func inBounds(h strategy.SynthHint, v float64) bool {
+	if h.Minimum != nil && v < *h.Minimum {
+		return false
+	}
+	if h.Maximum != nil && v > *h.Maximum {
+		return false
+	}
+	return true
+}
+
+// asFloat reads a JSON-decoded or document-decoded number as a float.
+func asFloat(v any) (float64, bool) {
+	switch t := v.(type) {
+	case float64:
+		return t, true
+	case float32:
+		return float64(t), true
+	case int:
+		return float64(t), true
+	case int64:
+		return float64(t), true
+	case json.Number:
+		f, err := t.Float64()
+		return f, err == nil
+	}
+	return 0, false
 }
 
 // typedGate converts a gate value string to the type the gate field declares,

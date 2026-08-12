@@ -126,7 +126,7 @@ func TestUnit_Strategize_SynthesisHelpers(t *testing.T) {
 	if v := synthValue(h(strategy.SynthHint{Field: "x", Default: "df"}), "e", "p"); v != "df" {
 		t.Errorf("default not used: %v", v)
 	}
-	if v := synthValue(h(strategy.SynthHint{Field: "x", Enum: []string{"a", "b"}}), "e", "p"); v != "a" {
+	if v := synthValue(h(strategy.SynthHint{Field: "x", Enum: []any{"a", "b"}}), "e", "p"); v != "a" {
 		t.Errorf("enum not used: %v", v)
 	}
 	if v := synthValue(h(strategy.SynthHint{Field: "x", Format: "email"}), "e", "p"); v == nil {
@@ -173,10 +173,10 @@ func TestUnit_Strategize_SynthesisHelpers(t *testing.T) {
 	}
 
 	// variantValue produces a distinct second value per type.
-	if v, ok := variantValue(strategy.SynthHint{Enum: []string{"a", "b"}}, "a"); !ok || v != "b" {
+	if v, ok := variantValue(strategy.SynthHint{Enum: []any{"a", "b"}}, "a"); !ok || v != "b" {
 		t.Errorf("enum variant = %v", v)
 	}
-	if _, ok := variantValue(strategy.SynthHint{Enum: []string{"only"}}, "only"); ok {
+	if _, ok := variantValue(strategy.SynthHint{Enum: []any{"only"}}, "only"); ok {
 		t.Error("single-value enum should have no variant")
 	}
 	if v, ok := variantValue(strategy.SynthHint{Type: "boolean"}, true); !ok || v != false {
@@ -185,7 +185,7 @@ func TestUnit_Strategize_SynthesisHelpers(t *testing.T) {
 	if v, ok := variantValue(strategy.SynthHint{Type: "string", Field: "n"}, "base"); !ok || v != "base-2" {
 		t.Errorf("string variant = %v", v)
 	}
-	if v, ok := variantValue(strategy.SynthHint{Type: "integer"}, 1); !ok || v != 2 {
+	if v, ok := variantValue(strategy.SynthHint{Type: "integer"}, 1); !ok || v != int64(2) {
 		t.Errorf("int variant = %v", v)
 	}
 	if _, ok := variantValue(strategy.SynthHint{Type: "object"}, nil); ok {

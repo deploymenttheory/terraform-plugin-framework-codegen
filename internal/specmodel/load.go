@@ -446,6 +446,25 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 			*field.dst = v
 		}
 	}
+	// Numeric bounds are read because the audit sends values: a probe outside
+	// the declared range tests the API's validation, not the field, and a
+	// clamp or refusal read as behaviour is a finding the document already
+	// predicted.
+	for _, field := range []struct {
+		key string
+		dst **float64
+	}{
+		{"minimum", &s.Minimum},
+		{"maximum", &s.Maximum},
+	} {
+		if n := deref(lookup(node, field.key)); n != nil {
+			var v float64
+			if err := n.Decode(&v); err != nil {
+				return nil, fmt.Errorf("%s.%s: %w", at, field.key, err)
+			}
+			*field.dst = &v
+		}
+	}
 	if req := deref(lookup(node, "required")); req != nil {
 		for _, rn := range req.Content {
 			s.Required = append(s.Required, deref(rn).Value)

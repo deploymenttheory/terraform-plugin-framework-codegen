@@ -552,7 +552,7 @@ func TestBoolGate(t *testing.T) {
 	if len(s.Gates) != 1 || s.Gates[0].Kind != strategy.GateBool || s.Gates[0].Field != "enabled" {
 		t.Fatalf("gates=%+v, want one bool gate on enabled", s.Gates)
 	}
-	if !reflect.DeepEqual(s.Gates[0].Values, []string{"false", "true"}) {
+	if !reflect.DeepEqual(s.Gates[0].Values, []any{false, true}) {
 		t.Fatalf("bool values=%v, want [false true]", s.Gates[0].Values)
 	}
 	// baseline + false + true, both derived (a bool declares no branch fields).
