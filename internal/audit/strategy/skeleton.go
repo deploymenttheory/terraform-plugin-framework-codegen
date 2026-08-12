@@ -83,9 +83,11 @@ func synthHint(f field) SynthHint {
 		Pattern:  r.Pattern,
 		Example:  r.Example,
 		Default:  r.Default,
+		Minimum:  r.Minimum,
+		Maximum:  r.Maximum,
 	}
 	if len(r.Enum) > 0 {
-		h.Enum = stringifyValues(r.Enum)
+		h.Enum = dedupeValues(r.Enum)
 	}
 	return h
 }
@@ -129,9 +131,28 @@ func isBool(s *specmodel.Schema) bool {
 	return s.Resolved().Type == "boolean"
 }
 
+// dedupeValues drops repeated scalars while keeping the document's order and
+// each value's decoded type. Order is kept because an enum's first member is
+// the one synthesis reaches for, and the document's first member is a better
+// guess at a workable value than whichever one sorts first as text. Type is
+// kept because these values are sent on the wire.
+func dedupeValues(vals []any) []any {
+	seen := map[string]bool{}
+	out := make([]any, 0, len(vals))
+	for _, v := range vals {
+		s := stringifyScalar(v)
+		if !seen[s] {
+			seen[s] = true
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
 // stringifyValues renders decoded scalar values as strings, sorted and
-// de-duplicated, so a gate's or a hint's value list is byte-stable however the
-// document spelled the scalars.
+// de-duplicated, so a value list is byte-stable however the document spelled
+// the scalars. It is for prose and comparison only — never for a value that
+// goes on the wire, which must keep the type dedupeValues preserves.
 func stringifyValues(vals []any) []string {
 	seen := map[string]bool{}
 	out := make([]string, 0, len(vals))

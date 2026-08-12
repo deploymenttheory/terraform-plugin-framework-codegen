@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/infer"
@@ -363,7 +364,40 @@ func sortedFieldUnion(a, b map[string]any) []string {
 func equalJSON(a, b any) bool {
 	ja, errA := json.Marshal(a)
 	jb, errB := json.Marshal(b)
-	return errA == nil && errB == nil && string(ja) == string(jb)
+	if errA == nil && errB == nil && string(ja) == string(jb) {
+		return true
+	}
+	return sameNumber(a, b)
+}
+
+// sameNumber reports whether two values are the same number wearing different
+// JSON types — 120 and "120", or an int against the float64 a decoded body
+// yields.
+//
+// An API that accepts "120" for an integer field and answers 120 has applied
+// exactly what it was given. Compared strictly it looks like the server
+// substituted a value of its own, which is recorded as serverForced, which
+// makes the attribute Computed, which takes a writable field away from the
+// practitioner. The strict comparison is right about the bytes and wrong about
+// the API.
+func sameNumber(a, b any) bool {
+	af, okA := numeric(a)
+	bf, okB := numeric(b)
+	return okA && okB && af == bf
+}
+
+// numeric reads a value as a number, including one spelled as a string. It
+// deliberately does not accept booleans: true is not 1 to any API worth
+// modelling.
+func numeric(v any) (float64, bool) {
+	if f, ok := asFloat(v); ok {
+		return f, true
+	}
+	if s, ok := v.(string); ok {
+		f, err := strconv.ParseFloat(strings.TrimSpace(s), 64)
+		return f, err == nil
+	}
+	return 0, false
 }
 
 // normalisedForm reports whether got is a recognisable transform of sent

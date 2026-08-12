@@ -112,9 +112,13 @@ type Gate struct {
 	Field string `json:"field"`
 	// Kind ranks the gate by discriminating power.
 	Kind GateKind `json:"kind"`
-	// Values lists the gate's candidate values as strings, sorted: the enum
-	// members, or "false" and "true" for a boolean.
-	Values []string `json:"values"`
+	// Values lists the gate's candidate values as the document declares them,
+	// decoded and in document order: the enum members, or false and true for a
+	// boolean. They keep their JSON type because they are sent on the wire —
+	// a boolean gate pinned to the string "false" is a different request from
+	// one pinned to false, and an API that accepts the second may refuse the
+	// first.
+	Values []any `json:"values"`
 }
 
 // SynthHint is the raw material the live executor synthesises a field's value
@@ -133,12 +137,24 @@ type SynthHint struct {
 	Format string `json:"format,omitempty"`
 	// Pattern is the declared regular-expression constraint.
 	Pattern string `json:"pattern,omitempty"`
-	// Enum lists the declared enum values as strings, sorted.
-	Enum []string `json:"enum,omitempty"`
+	// Enum lists the declared enum values, decoded and in document order.
+	//
+	// Type and order both matter. These values go on the wire, so rendering
+	// an integer enum as strings sends "120" where the document says 120; an
+	// API that coerces it answers with the integer, the echo no longer matches
+	// what was sent, and the run concludes the server forced a value of its
+	// own. Sorting them as strings compounded it by making "120" the first
+	// member of [60, 120, 300, 600, 900, 1800, 3600].
+	Enum []any `json:"enum,omitempty"`
 	// Example is the declared example value, decoded; nil when absent.
 	Example any `json:"example,omitempty"`
 	// Default is the declared default value, decoded; nil when absent.
 	Default any `json:"default,omitempty"`
+	// Minimum and Maximum are the declared numeric bounds; nil when absent.
+	// A probe value outside them tells the API nothing about the field, only
+	// about its validation.
+	Minimum *float64 `json:"minimum,omitempty"`
+	Maximum *float64 `json:"maximum,omitempty"`
 }
 
 // Skeleton is a field list plus the per-field synthesis hints for one shape of

@@ -20,7 +20,7 @@ func detectGates(createBody *specmodel.Schema) []Gate {
 		r := f.schema.Resolved()
 		switch {
 		case isEnum(r):
-			values := stringifyValues(r.Enum)
+			values := dedupeValues(r.Enum)
 			if len(values) < 2 {
 				continue
 			}
@@ -30,7 +30,7 @@ func detectGates(createBody *specmodel.Schema) []Gate {
 			}
 			gates = append(gates, Gate{Field: f.name, Kind: kind, Values: values})
 		case isBool(r):
-			gates = append(gates, Gate{Field: f.name, Kind: GateBool, Values: []string{"false", "true"}})
+			gates = append(gates, Gate{Field: f.name, Kind: GateBool, Values: []any{false, true}})
 		}
 	}
 	sort.Slice(gates, func(i, j int) bool {

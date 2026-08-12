@@ -449,7 +449,7 @@ func TestUnit_Infer_ValueConditionalConfiguration(t *testing.T) {
 	t.Parallel()
 	compiled := &strategy.Strategy{
 		Entity:   "stream",
-		Gates:    []strategy.Gate{{Field: "format", Kind: strategy.GateRequiredEnum, Values: []string{"avro", "json"}}},
+		Gates:    []strategy.Gate{{Field: "format", Kind: strategy.GateRequiredEnum, Values: []any{"avro", "json"}}},
 		Variants: []strategy.Variant{{}, {GateField: "format", GateValue: "avro"}, {GateField: "format", GateValue: "json"}},
 	}
 	ev := Evidence{
@@ -481,7 +481,7 @@ func TestUnit_Infer_ValueConditionalNeedsBothDirections(t *testing.T) {
 	t.Parallel()
 	compiled := &strategy.Strategy{
 		Entity:   "stream",
-		Gates:    []strategy.Gate{{Field: "format", Values: []string{"avro", "json"}}},
+		Gates:    []strategy.Gate{{Field: "format", Values: []any{"avro", "json"}}},
 		Variants: []strategy.Variant{{}, {GateField: "format", GateValue: "avro"}, {GateField: "format", GateValue: "json"}},
 	}
 	ev := Evidence{
@@ -507,7 +507,7 @@ func TestUnit_Infer_ValueConditionalNeedsTwoCreatedValues(t *testing.T) {
 	t.Parallel()
 	compiled := &strategy.Strategy{
 		Entity:   "stream",
-		Gates:    []strategy.Gate{{Field: "format", Values: []string{"avro", "json"}}},
+		Gates:    []strategy.Gate{{Field: "format", Values: []any{"avro", "json"}}},
 		Variants: []strategy.Variant{{}, {GateField: "format", GateValue: "avro"}, {GateField: "format", GateValue: "json"}},
 	}
 	ev := Evidence{

@@ -69,11 +69,14 @@ func (r *runner) cycleConditional(ctx context.Context, ent *entityState, rec *en
 		r.recordConditional(ent, gate, disc, cf, cv, false)
 
 		for _, v := range tgt.Enum {
-			if v == cur || attempts >= maxCycleAttempts {
+			// Compared as text because the body holds whatever JSON decoding
+			// produced, but sent as declared: the hint now keeps each enum
+			// member's type, so there is nothing left to convert.
+			if fmt.Sprint(v) == cur || attempts >= maxCycleAttempts {
 				continue
 			}
 			attempts++
-			body[tgt.Field] = typedGate(tgt, v)
+			body[tgt.Field] = v
 			obj, res, err := r.createObject(ctx, ent, rec, body)
 			if err != nil {
 				return nil, nil, false, err

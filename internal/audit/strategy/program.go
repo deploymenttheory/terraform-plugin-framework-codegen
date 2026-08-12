@@ -185,8 +185,11 @@ func perValueSteps(gates []Gate, hyps []Hypothesis) []Step {
 			if i == maxPerEnumValues {
 				break
 			}
-			steps = append(steps, Step{Kind: stepCreatePerEnumValue, Field: g.Field, GateField: g.Field, GateValue: value})
-			covered[g.Field+"\x00"+value] = true
+			// A step carries the gate value as a label; the executor restores
+			// its declared type from the field's hint before sending it.
+			label := stringifyScalar(value)
+			steps = append(steps, Step{Kind: stepCreatePerEnumValue, Field: g.Field, GateField: g.Field, GateValue: label})
+			covered[g.Field+"\x00"+label] = true
 		}
 	}
 	for _, h := range hyps {
