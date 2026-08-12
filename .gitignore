@@ -15,3 +15,4 @@ coverage.html
 
 # Agent worktrees and local session state.
 .claude/
+.worktrees/
