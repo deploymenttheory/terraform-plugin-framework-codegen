@@ -237,15 +237,15 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "serverDefault becomes a schema default",
+			name: "serverDefault records the filled value on the property",
 			attr: "mode", kind: observe.KindServerDefault, value: "auto",
 			want: `{
-  "justification": "the audit confirmed a serverDefault observation on tag.mode: omitting the property stores the constant auto",
+  "justification": "the audit confirmed a serverDefault observation on tag.mode: omitting the property stores auto, so the generated attribute is Optional and Computed (x-tfpfgen-server-default)",
   "evidence": "audit/observations/tag.observations.json#%s",
   "operations": [
     {
       "op": "add",
-      "path": "/components/schemas/Tag/properties/mode/default",
+      "path": "/components/schemas/Tag/properties/mode/x-tfpfgen-server-default",
       "value": "auto"
     }
   ]

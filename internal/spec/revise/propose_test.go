@@ -408,8 +408,8 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	if co := props["name"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
 		t.Errorf("name create-only = %v, want true", co)
 	}
-	if def := props["mode"].(map[string]any)["default"]; def != "auto" {
-		t.Errorf("mode.default = %v, want auto", def)
+	if def := props["mode"].(map[string]any)["x-tfpfgen-server-default"]; def != "auto" {
+		t.Errorf("mode server-default = %v, want auto", def)
 	}
 	rw, ok := props["port"].(map[string]any)["x-tfpfgen-required-when"].(map[string]any)
 	if !ok || rw["property"] != "protocol" || rw["equals"] != "tcp" {

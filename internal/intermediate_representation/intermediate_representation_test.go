@@ -219,6 +219,9 @@ components:
         region:
           type: string
           x-tfpfgen-create-only: true
+        filled:
+          type: integer
+          x-tfpfgen-server-default: 1000
         tier:
           type: string
           enum: [gold, silver]

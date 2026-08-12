@@ -135,6 +135,34 @@ record everything identically, and print a warning and a `::notice::` naming
 the run ID to dispatch by hand. Note these are the pipeline's own App, not
 the `TFPFGEN_AUTH_APP_*` role that authenticates an audited API.
 
+## What an observation is worth
+
+Every attribute the generator emits lands in exactly one of five outcomes, and
+nothing else exists. A correction is only worth compiling if it moves an
+attribute between them, or changes a plan modifier or a validator.
+
+| Outcome | When | Decided by |
+|---|---|---|
+| Omitted entirely | The type cannot be represented | `deriveType` marks it unsupported |
+| `Required` | Writable and required on create | the create body's `required` |
+| `Optional` + `Computed` | Writable, and the response carries a value whether or not the request supplied one | `x-tfpfgen-server-default`, or the response schema's `required` |
+| `Computed` | The practitioner cannot set it | absent from the create body, `readOnly`, `x-tfpfgen-server-forced`, `x-tfpfgen-volatile` |
+| `Optional` | Writable, and the server leaves it absent when omitted | none of the above |
+
+`Optional` alone is the rare one. Most APIs answer with a value for every field
+they accept, so a writable attribute usually belongs in `Optional` + `Computed`;
+emitting it as `Optional` alone gives the practitioner a perpetual diff, because
+Terraform holds null in config against a value in state.
+
+That is why `x-tfpfgen-server-default` exists rather than OpenAPI's `default`.
+The response schema's `required` list was the only route to `Optional` +
+`Computed`, and a document that declares nothing required in its responses — as
+real ones do — sends every writable attribute to plain `Optional`. The audit
+measures the same fact by omitting the attribute and reading what comes back,
+and the extension is where that reading is recorded. OpenAPI's `default` says
+what the document declares, is read by nothing in the generation path, and on a
+`$ref`'d property is written onto a schema every other use of that type shares.
+
 ## Calling the workflows
 
 A provider repo runs the pipeline through a thin caller — triggers,

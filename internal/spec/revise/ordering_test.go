@@ -318,16 +318,20 @@ func TestIntegration_Revise_ThousandEyesTagConvergesAcrossRounds(t *testing.T) {
 	tagInfo := doc["components"].(map[string]any)["schemas"].(map[string]any)["TagInfo"].(map[string]any)
 	props := tagInfo["properties"].(map[string]any)
 
+	// A value the server fills is recorded as x-tfpfgen-server-default on the
+	// property — the fact that makes the generated attribute Optional and
+	// Computed. It does not go into OpenAPI's own `default`, which states what
+	// the document declares and steers nothing downstream.
 	aid, ok := props["aid"].(map[string]any)
-	if !ok || aid["type"] != "number" || aid["default"] != 4530 {
-		t.Errorf("aid = %v, want an added number field with default 4530", props["aid"])
+	if !ok || aid["type"] != "number" || aid["x-tfpfgen-server-default"] != 4530 {
+		t.Errorf("aid = %v, want an added number field the server fills with 4530", props["aid"])
 	}
 	builtIn, ok := props["builtIn"].(map[string]any)
-	if !ok || builtIn["type"] != "boolean" || builtIn["default"] != false {
-		t.Errorf("builtIn = %v, want an added boolean field with default false", props["builtIn"])
+	if !ok || builtIn["type"] != "boolean" || builtIn["x-tfpfgen-server-default"] != false {
+		t.Errorf("builtIn = %v, want an added boolean field the server fills with false", props["builtIn"])
 	}
-	if def := props["color"].(map[string]any)["default"]; def != "#A7EB10" {
-		t.Errorf("color.default = %v, want #A7EB10", def)
+	if def := props["color"].(map[string]any)["x-tfpfgen-server-default"]; def != "#A7EB10" {
+		t.Errorf("color server-default = %v, want #A7EB10", def)
 	}
 	if co := props["objectType"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
 		t.Errorf("objectType create-only = %v, want true", co)
