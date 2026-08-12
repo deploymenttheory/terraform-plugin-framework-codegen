@@ -427,33 +427,64 @@ jobs:
                 "$summary" "$entity"
 
               # The order is the argument: what we asked, what the document
-              # said would happen, what happened, what it costs. Each fragment
-              # sits under the claim it proves rather than in a block of
-              # evidence at the end.
+              # said would happen, what happened, what it costs.
+              #
+              # Findings in one group usually come from a single exchange —
+              # three server-assigned defaults are three readings of one
+              # create. Printing that request and response once per finding
+              # turned a twelve-attribute group into a wall of identical
+              # JSON, so an exchange every finding shares is hoisted above
+              # them and each attribute contributes only its own claim.
+              # Where findings genuinely differ, each keeps its evidence.
               jq -r --arg entity "$entity" '
                 def heading: if (.attribute // "") == "" then "### `" + $entity + "`" else "### `" + .attribute + "`" end;
+                # The fragment is emitted as a value rather than through
+                # tojson: jq -r prints a value pretty, and a reviewer reading
+                # a response body needs the line breaks and indentation a
+                # single-line encoding takes away.
                 def frag($label; $f):
                   if $f == null then empty
-                  else "<sub>" + $label + "</sub>", "", "```json", ($f | tojson), "```", "" end;
-                .findings[] |
+                  else "<sub>" + $label + "</sub>", "", "```json", $f, "```", "" end;
+                def exchange($e):
+                  "**What we asked.** `" + $e.method + " " + $e.pathTemplate + "`.",
+                  "",
+                  frag("request body"; $e.requestFragment),
+                  "**What came back.** The API answered `" + ($e.status | tostring) + "`.",
+                  "",
+                  frag("response body"; $e.responseFragment);
+
+                # The exchange is shared when every finding kept one and they
+                # are all identical.
+                ( [ .findings[] | .excerpts[0] // null ] ) as $ex |
+                ( if ($ex | length) > 1 and ([$ex[] | select(. == null)] | length) == 0
+                       and ([$ex[] | tojson] | unique | length) == 1
+                  then $ex[0] else null end ) as $shared |
+
+                ( if $shared != null then
+                    "## The exchange every finding below came from",
+                    "",
+                    exchange($shared),
+                    ""
+                  else empty end ),
+
+                ( .findings[] |
                   (.excerpts[0] // null) as $e |
                   heading,
                   "",
-                  ( if $e == null then "**What we asked.** The observation kept no excerpt of the exchange."
-                    else "**What we asked.** `" + $e.method + " " + $e.pathTemplate + "`."
+                  ( if $shared != null then empty
+                    elif $e == null then "**What we asked.** The observation kept no excerpt of the exchange.", ""
+                    else exchange($e)
                     end ),
-                  "",
-                  ( if $e == null then empty else frag("request body"; $e.requestFragment) end ),
                   "**What the document led us to expect.** " + .expected,
                   "",
-                  ( if $e == null then "**What actually happened.** " + .observed
-                    else "**What actually happened.** The API answered `" + ($e.status | tostring) + "`. " + .observed
+                  ( if $shared != null or $e == null then "**What actually happened.** " + .observed
+                    else "**What actually happened.** " + .observed
                     end ),
                   "",
-                  ( if $e == null then empty else frag("response body"; $e.responseFragment) end ),
                   "**What it means.** " + .means,
                   "",
                   ( if .stale then "> Recorded against a superseded document. Revision flags it and still compiles it; the correction refuses at apply time if the fact has moved.\n" else empty end )
+                )
               ' "$group"
 
               printf '## The decision\n\n'
