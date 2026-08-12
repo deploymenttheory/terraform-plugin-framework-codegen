@@ -74,14 +74,21 @@ func TestAttributes_Presence(t *testing.T) {
 		name string
 		want Presence
 	}{
-		{"name", PresenceRequired},         // required and writable
-		{"region", PresenceOptional},       // writable, not required
-		{"mode", PresenceOptionalComputed}, // writable, server fills it: required only in the response
-		{"stamp", PresenceComputed},        // readOnly
-		{"etag", PresenceComputed},         // response-only
-		{"forced", PresenceComputed},       // x-tfpfgen-server-forced
-		{"flaky", PresenceComputed},        // x-tfpfgen-volatile
-		{"id", PresenceComputed},           // always
+		// Every attribute reaches exactly one of these; a fifth outcome,
+		// omitted from the schema entirely, is the unsupported-type path.
+		{"name", PresenceRequired},   // required and writable
+		{"region", PresenceOptional}, // writable, and the server leaves it absent: the rare one
+		// The two routes to Optional+Computed. `mode` takes the weak one — the
+		// response schema happens to list it as required — and `filled` takes
+		// the one the audit measures, which is the only route available on an
+		// API that declares nothing required in its responses.
+		{"mode", PresenceOptionalComputed},
+		{"filled", PresenceOptionalComputed}, // x-tfpfgen-server-default
+		{"stamp", PresenceComputed},          // readOnly
+		{"etag", PresenceComputed},           // response-only
+		{"forced", PresenceComputed},         // x-tfpfgen-server-forced
+		{"flaky", PresenceComputed},          // x-tfpfgen-volatile
+		{"id", PresenceComputed},             // always
 	} {
 		if a := attribute(t, tree, tc.name); a.Presence != tc.want {
 			t.Errorf("%s: presence = %q, want %q", tc.name, a.Presence, tc.want)
@@ -307,7 +314,7 @@ func TestAttributes_OrderFollowsTheDocument(t *testing.T) {
 		got = append(got, a.Name)
 	}
 	want := []string{
-		"name", "mode", "region", "tier", "proxy_host", "notes", "count",
+		"name", "mode", "region", "filled", "tier", "proxy_host", "notes", "count",
 		"ratio", "enabled", "labels", "rules", "settings", "extras",
 		"forced", "flaky", "stamp", "id", "etag",
 	}

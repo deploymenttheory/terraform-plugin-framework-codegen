@@ -282,20 +282,26 @@ func (c *compiler) serverDefault(loc *locator, cls specmodel.Classification, o o
 	if !ok {
 		return why
 	}
-	target, targetPtr, ok := loc.followSchemaRefs(site.prop, site.propPtr)
-	if !ok {
-		return unplaceable(fmt.Sprintf("the schema of %s.%s resolves outside the document", o.Entity, o.Attribute))
-	}
-	if existing := mapValue(target, "default"); existing != nil {
+	// The reading lands on the property, never on the schema its $ref
+	// resolves to, and never in OpenAPI's own `default`.
+	//
+	// The resolved schema is often a shared scalar type: the live run put one
+	// account group's identifier into components/schemas/…AccountGroupId,
+	// restating a single object's id as the default for every use of that type
+	// in the document. And `default` says what the document declares, which
+	// nothing in the generation path reads — the attribute's presence is
+	// decided from writability and from this extension.
+	if ext := loc.extensionNode(site.prop, site.propPtr, specmodel.ExtServerDefault); ext != nil {
 		var current any
-		if existing.Decode(&current) == nil && jsonEqual(current, o.Value) {
-			return stated("the document already declares this default")
+		if ext.Decode(&current) == nil && jsonEqual(current, o.Value) {
+			return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtServerDefault))
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{Op: "add", Path: targetPtr + "/default", Value: o.Value}},
-		justification: fmt.Sprintf("the audit confirmed a serverDefault observation on %s.%s: "+
-			"omitting the property stores the constant %s", o.Entity, o.Attribute, literalSpelling(o.Value)),
+		ops: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + specmodel.ExtServerDefault, Value: o.Value}},
+		justification: fmt.Sprintf("the audit confirmed a serverDefault observation on %s.%s: omitting the "+
+			"property stores %s, so the generated attribute is Optional and Computed (%s)",
+			o.Entity, o.Attribute, literalSpelling(o.Value), specmodel.ExtServerDefault),
 	}
 }
 

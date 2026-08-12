@@ -40,6 +40,13 @@ const (
 	// ExtServerForced marks a property the server overwrites regardless
 	// of what was sent.
 	ExtServerForced = "x-tfpfgen-server-forced"
+	// ExtServerDefault carries the value the server stores for a writable
+	// property the request omitted. It is deliberately not OpenAPI's own
+	// `default`, which declares what the document says should happen; this
+	// records what the API was observed to do, and it is what makes the
+	// attribute Optional and Computed — the practitioner may set it, and
+	// Terraform must accept the server's value when they do not.
+	ExtServerDefault = "x-tfpfgen-server-default"
 	// ExtSilentlyIgnoredOnUpdate marks a property updates accept and
 	// discard.
 	ExtSilentlyIgnoredOnUpdate = "x-tfpfgen-silently-ignored-on-update"
@@ -155,6 +162,7 @@ var extensionShapes = map[string]func(n *yaml.Node, at string) (any, error){
 	ExtValuesOpen:              extBool,
 	ExtVolatile:                extBool,
 	ExtServerForced:            extBool,
+	ExtServerDefault:           extScalar,
 	ExtSilentlyIgnoredOnUpdate: extBool,
 	ExtValidWhen:               extValidWhen,
 	ExtDependsOn:               extDependsOn,
@@ -210,6 +218,35 @@ func extBool(n *yaml.Node, at string) (any, error) {
 		return nil, fmt.Errorf("%s: must be true or false, got %q", at, n.Value)
 	}
 	return b, nil
+}
+
+// extScalar accepts any single value and keeps the type YAML decoded it as.
+// The value is a reading, not a vocabulary: whatever the API stored is what
+// belongs here, and the type is load-bearing because it is compared against
+// what a live response carries.
+func extScalar(n *yaml.Node, at string) (any, error) {
+	if n.Kind != yaml.ScalarNode {
+		return nil, fmt.Errorf("%s: must be a single value, got a %s", at, nodeKind(n))
+	}
+	var v any
+	if err := n.Decode(&v); err != nil {
+		return nil, fmt.Errorf("%s: %w", at, err)
+	}
+	return v, nil
+}
+
+// nodeKind names a YAML node kind for an error message.
+func nodeKind(n *yaml.Node) string {
+	switch n.Kind {
+	case yaml.MappingNode:
+		return "mapping"
+	case yaml.SequenceNode:
+		return "sequence"
+	case yaml.AliasNode:
+		return "alias"
+	default:
+		return "value"
+	}
 }
 
 // extUpdateStyle accepts the closed set of update styles and nothing else.
@@ -507,6 +544,14 @@ func (e Extensions) Volatile() (bool, bool) { return e.boolKey(ExtVolatile) }
 
 // ServerForced reads x-tfpfgen-server-forced.
 func (e Extensions) ServerForced() (bool, bool) { return e.boolKey(ExtServerForced) }
+
+// ServerDefault reads x-tfpfgen-server-default: the value the API stores for
+// this property when the request omits it. Present means the attribute is
+// Optional and Computed.
+func (e Extensions) ServerDefault() (any, bool) {
+	v, ok := e[ExtServerDefault]
+	return v, ok
+}
 
 // SilentlyIgnoredOnUpdate reads x-tfpfgen-silently-ignored-on-update.
 func (e Extensions) SilentlyIgnoredOnUpdate() (bool, bool) {

@@ -286,19 +286,35 @@ func buildAttribute(wire string, at site) (Attribute, attrEdges) {
 	serverForced, _ := ext.ServerForced()
 	volatile, _ := ext.Volatile()
 	createOnly, _ := ext.CreateOnly()
+	_, serverFills := ext.ServerDefault()
 	attr.SilentlyIgnoredOnUpdate, _ = ext.SilentlyIgnoredOnUpdate()
 
+	// Every attribute lands in exactly one of five outcomes, and this is where
+	// four of them are chosen (the fifth, omitted entirely, is decided by
+	// deriveType marking the attribute unsupported).
 	switch {
 	case !writable || fp.readOnly || serverForced || volatile:
+		// The practitioner cannot set it: not in the create body, declared
+		// read-only, overwritten by the server, or different on every read.
 		attr.Presence = PresenceComputed
 	case at.requiredCreate:
 		attr.Presence = PresenceRequired
-	case at.requiredRead:
-		// Writable, optional, yet the response always carries it: the
-		// server fills a default, so the practitioner may set it and
-		// Terraform must tolerate the server's value when they do not.
+	case serverFills || at.requiredRead:
+		// Writable, and the response carries a value whether or not the
+		// request supplied one: the practitioner may set it and Terraform
+		// must accept the server's choice when they do not.
+		//
+		// requiredRead alone is too weak to find these. It reads the response
+		// schema's `required` list, and an API that declares none — as the
+		// ThousandEyes document does throughout — sends every writable
+		// optional field to plain Optional below, which is a perpetual diff
+		// for any field the server fills. x-tfpfgen-server-default is the
+		// audit's measurement of the same fact, and it does not depend on the
+		// document being diligent.
 		attr.Presence = PresenceOptionalComputed
 	default:
+		// Writable, and the server leaves it absent when the request omits it.
+		// Genuinely rare: most APIs answer with something.
 		attr.Presence = PresenceOptional
 	}
 	if attr.Presence != PresenceComputed && (createOnly || at.replaceAll) {

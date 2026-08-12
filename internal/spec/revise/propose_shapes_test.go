@@ -273,7 +273,7 @@ components:
           readOnly: true
         mode:
           type: string
-          default: auto
+          x-tfpfgen-server-default: auto
           x-tfpfgen-volatile: true
         port:
           type: integer
@@ -359,13 +359,20 @@ func TestUnit_Propose_RendersANonStringDefaultInItsJSONForm(t *testing.T) {
 	}
 	got := readProposed(t, p)
 	for _, want := range []string{
-		"stores the constant 8080",
-		`"path": "/components/schemas/Tag/properties/port/default"`,
+		"stores 8080",
+		// The reading lands on the property as an extension, not in OpenAPI's
+		// own `default` — which says what the document declares, is read by
+		// nothing in the generation path, and on a $ref'd property would be
+		// written onto a schema every other use of that type shares.
+		`"path": "/components/schemas/Tag/properties/port/x-tfpfgen-server-default"`,
 		`"value": 8080`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("proposal missing %q:\n%s", want, got)
 		}
+	}
+	if strings.Contains(got, `/properties/port/default"`) {
+		t.Errorf("proposal still writes OpenAPI's own default:\n%s", got)
 	}
 }
 
