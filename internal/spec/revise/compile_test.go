@@ -696,3 +696,42 @@ func TestUnit_Propose_ReportsAnUnplaceableObservation(t *testing.T) {
 }
 
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
+
+// TestUnit_Propose_AZeroReadAfterWriteLagProposesNothing is the defect the
+// first live run surfaced: five pull requests, each asking a human to approve
+// an eventual-consistency annotation of "0s". A zero lag means the read never
+// lagged the write, so there is nothing to declare and nothing to decide.
+func TestUnit_Propose_AZeroReadAfterWriteLagProposesNothing(t *testing.T) {
+	t.Parallel()
+	for _, lag := range []string{"0s", "0ms", "0"} {
+		root, specDir, lock := pinnedTree(t)
+		commitObs(t, root, confirmedObs("", observe.KindReadAfterWrite, lag, nil, lock.SHA256))
+
+		p, err := Propose(specDir)
+		if err != nil {
+			t.Fatalf("Propose(%s): %v", lag, err)
+		}
+		if len(p.Proposed) != 0 {
+			t.Errorf("lag %s proposed %+v; a zero lag is a no-op correction", lag, p.Proposed)
+		}
+		if len(p.AlreadyStated) != 1 || !contains(p.AlreadyStated[0].Reason, "never lagged") {
+			t.Errorf("lag %s: AlreadyStated = %+v, want it reported as needing no correction", lag, p.AlreadyStated)
+		}
+	}
+}
+
+// A measurable lag still compiles — the suppression is of zero, not of the
+// kind.
+func TestUnit_Propose_ANonZeroReadAfterWriteLagStillCompiles(t *testing.T) {
+	t.Parallel()
+	root, specDir, lock := pinnedTree(t)
+	commitObs(t, root, confirmedObs("", observe.KindReadAfterWrite, "1ms", nil, lock.SHA256))
+
+	p, err := Propose(specDir)
+	if err != nil {
+		t.Fatalf("Propose: %v", err)
+	}
+	if len(p.Proposed) != 1 {
+		t.Fatalf("Proposed = %+v, want the measurable lag compiled", p.Proposed)
+	}
+}

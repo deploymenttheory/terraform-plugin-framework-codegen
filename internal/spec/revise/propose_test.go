@@ -32,11 +32,15 @@ func proposedFiles(t *testing.T, specDir string) []string {
 }
 
 // acceptAll moves every proposed correction into the accepted directory, the
-// way a human accepts.
+// way a human accepts. Only the corrections move: the report describing them
+// is not one, and the pull-request job leaves it where it is.
 func acceptAll(t *testing.T, specDir string) {
 	t.Helper()
 	correctionsDir := filepath.Join(specDir, correction.DirName)
 	for _, name := range proposedFiles(t, specDir) {
+		if !strings.HasSuffix(name, correction.Suffix) {
+			continue
+		}
 		from := filepath.Join(correctionsDir, ProposedDirName, name)
 		if err := os.Rename(from, filepath.Join(correctionsDir, name)); err != nil {
 			t.Fatal(err)
@@ -284,8 +288,9 @@ func TestUnit_Propose_ClearsItsOwnStaleProposalsAndLeavesHandAuthoredOnes(t *tes
 		t.Fatalf("Propose: %v", err)
 	}
 	files := proposedFiles(t, specDir)
-	want := []string{"001-tag.correction.json", "hand-authored.correction.json"}
-	if len(files) != 2 || files[0] != want[0] || files[1] != want[1] {
+	// The report describing this run's proposals lands beside them.
+	want := []string{"001-tag.correction.json", "hand-authored.correction.json", ReportName}
+	if len(files) != 3 || files[0] != want[0] || files[1] != want[1] || files[2] != want[2] {
 		t.Errorf("proposed/ = %v, want %v — compiled files replaced, hand-authored kept", files, want)
 	}
 }

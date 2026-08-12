@@ -1,17 +1,20 @@
 name: 20-corrections
 
 # The other half of the decision gate. 10-generate.yml opens one PR per
-# proposed correction; this workflow reads the answer back. A merge needs
-# nothing recorded — the correction is already on the default branch, which
-# is what accepting it means. A close without a merge is a rejection, and a
-# rejection has to become a durable marker or the next audit proposes the
-# same correction again forever.
+# (entity, kind) group of proposed corrections; this workflow reads the answer
+# back. A merge needs nothing recorded — the corrections are already on the
+# default branch, which is what accepting them means. A close without a merge
+# rejects the whole group, and every observation in it needs a durable marker
+# or the next audit proposes the same corrections again forever.
 #
-# Then it continues the pipeline. Corrections arrive in batches and are
-# answered one at a time, so the continuation is debounced: only the close
-# that leaves no open correction PR behind dispatches the generate workflow,
-# and it dispatches with the originating run's ID so the audit is reused
-# rather than repeated. No new API calls, no second bill.
+# Then it continues the pipeline, once every decision the generate run created
+# has actually been made.
+#
+# Two jobs, because they want opposite things from concurrency. Recording a
+# decision must never be skipped, dropped or cancelled: it is the only record
+# that a human said no. Continuing the pipeline must happen exactly once, at
+# the end, however many decisions were answered. A single workflow-level
+# concurrency group cannot be both, and trying made it neither — see below.
 on:
   workflow_call:
     inputs:
@@ -35,24 +38,33 @@ on:
 permissions:
   contents: read
 
-# One at a time, repository-wide. Two PRs closed in the same minute would
-# otherwise both count zero open PRs left and both dispatch a continuation.
-# Queueing rather than cancelling matters: a cancelled run is a rejection
-# that never got written down.
-concurrency:
-  group: tfpfgen-corrections-${{ github.repository }}
-  cancel-in-progress: false
-
 jobs:
+  # [1] Write the decision down. Never cancelled, never debounced.
+  #
+  # This job used to share a repository-wide concurrency group with the
+  # continuation below. GitHub keeps at most one *pending* run per group and
+  # cancels the rest, so closing fifty-nine correction PRs in a couple of
+  # minutes produced four runs and zero markers: each new close cancelled the
+  # pending run before it recorded anything, and a cancelled run is a
+  # rejection that was never written down. Keying the group on the pull
+  # request number instead means no two closes ever contend — every close gets
+  # its own group, its own run, and its own marker commit.
   record:
     name: record the decision
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: contains(github.event.pull_request.labels.*.name, 'tfpfgen-correction')
+    # The label is the intent; the branch prefix is the belt to its braces,
+    # because a label removed before the close would otherwise lose the
+    # decision silently.
+    if: >-
+      contains(github.event.pull_request.labels.*.name, 'tfpfgen-correction') ||
+      startsWith(github.event.pull_request.head.ref, 'tfpfgen/correction-')
+    concurrency:
+      group: tfpfgen-corrections-record-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: read
-      actions: write
     env:
       HAS_APP: ${{ secrets.TFPFGEN_APP_ID != '' && secrets.TFPFGEN_APP_PRIVATE_KEY != '' }}
     steps:
@@ -72,30 +84,41 @@ jobs:
           token: ${{ steps.app-token.outputs.token || github.token }}
 
       # A merged PR needs no marker: spec/corrections/ on the default branch
-      # already holds the accepted file, and Propose sees an observation
-      # whose fact the revised document now states and proposes nothing.
+      # already holds the accepted files, and Propose sees observations whose
+      # facts the revised document now states and proposes nothing.
       - name: Record the rejection
         if: github.event.pull_request.merged == false
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BODY: ${{ github.event.pull_request.body }}
           PR: ${{ github.event.pull_request.number }}
           BASE: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
           shopt -s nullglob
 
-          # The branch name is the identity: 10-generate.yml built it from
-          # the observation ID precisely so it could be read back here.
-          obs="${HEAD_REF#tfpfgen/correction-}"
-          if [ "$obs" = "$HEAD_REF" ] || ! printf '%s' "$obs" | grep -Eq '^[0-9a-f]{16}$'; then
-            echo "::error::head branch ${HEAD_REF} names no observation; nothing recorded."
-            exit 1
+          # A grouped PR speaks for many observations, and every one of them
+          # needs its own marker. The list travels in the body rather than in
+          # the branch name because a branch name is sanitised and a group's
+          # identity is not recoverable from it.
+          ids="$(printf '%s' "$BODY" | sed -n 's/^tfpfgen-observations: *//p' | tail -1 | tr ',' ' ')"
+          if [ -z "$ids" ]; then
+            # A PR opened before grouping: the branch is the observation ID.
+            legacy="${HEAD_REF#tfpfgen/correction-}"
+            if printf '%s' "$legacy" | grep -Eq '^[0-9a-f]{16}$'; then
+              ids="$legacy"
+            fi
           fi
-
-          if [ -f "spec/corrections/rejected/${obs}.json" ]; then
-            echo "::notice::${obs} is already marked rejected."
-            exit 0
+          for id in $ids; do
+            if ! printf '%s' "$id" | grep -Eq '^[0-9a-f]{16}$'; then
+              echo "::error::PR #${PR} names ${id} as an observation, which is not an observation ID; nothing recorded."
+              exit 1
+            fi
+          done
+          if [ -z "$ids" ]; then
+            echo "::error::PR #${PR} (branch ${HEAD_REF}) names no observations in its body and no observation in its branch; nothing recorded."
+            exit 1
           fi
 
           # The operator's own words if they left any, so the marker says why
@@ -104,29 +127,126 @@ jobs:
             --paginate --jq 'map(select(.body != "")) | last | .body // empty' 2>/dev/null | head -c 500 || true)"
           [ -n "$reason" ] || reason="closed without merging"
 
-          mkdir -p spec/corrections/rejected
-          jq -n --arg id "$obs" --arg reason "$reason" \
-                --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-                '{observationID: $id, reason: $reason, rejectedAt: $at}' \
-            > "spec/corrections/rejected/${obs}.json"
-
-          # Proposals normally live only in the artifact, but a tree that
-          # committed one must not keep it: the gate would refuse forever.
-          for p in spec/corrections/proposed/*.correction.json; do
-            case "$(jq -r '.evidence // ""' "$p")" in
-              *"#${obs}") git rm -q -- "$p" ;;
-            esac
-          done
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -- spec/corrections
-          git commit -q -m "spec(corrections): reject ${obs}" \
-            -m "PR #${PR} was closed without merging. The marker suppresses re-proposal until it is deleted."
-          git push -q origin "HEAD:${BASE}"
 
-      # Corrections are decided one PR at a time; only the last close
-      # continues the pipeline.
+          # Fifty-nine of these can be pushing to the same branch at once, and
+          # a non-fast-forward loses the marker without failing anything. Each
+          # attempt rebuilds the change on top of whatever the branch now holds
+          # rather than rebasing, because the markers are one file per
+          # observation and never conflict — the only thing that can go stale
+          # is the parent commit.
+          recorded=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            git fetch -q origin "$BASE"
+            git reset -q --hard "origin/${BASE}"
+
+            mkdir -p spec/corrections/rejected
+            for id in $ids; do
+              [ -f "spec/corrections/rejected/${id}.json" ] && continue
+              jq -n --arg id "$id" --arg reason "$reason" \
+                    --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                    '{observationID: $id, reason: $reason, rejectedAt: $at}' \
+                > "spec/corrections/rejected/${id}.json"
+            done
+
+            # Proposals normally live only in the artifact, but a tree that
+            # committed one must not keep it: the gate would refuse forever.
+            for p in spec/corrections/proposed/*.correction.json; do
+              evidence="$(jq -r '.evidence // ""' "$p")"
+              for id in $ids; do
+                case "$evidence" in
+                  *"#${id}") git rm -q -- "$p" ;;
+                esac
+              done
+            done
+
+            git add -- spec/corrections
+            if git diff --cached --quiet; then
+              echo "::notice::every observation of PR #${PR} is already marked rejected."
+              recorded=1
+              break
+            fi
+            git commit -q -m "spec(corrections): reject $(printf '%s' "$ids" | wc -w | tr -d ' ') observations of PR #${PR}" \
+              -m "PR #${PR} was closed without merging: ${ids}. The markers suppress re-proposal until they are deleted."
+            if git push -q origin "HEAD:${BASE}"; then
+              recorded=1
+              break
+            fi
+            echo "::notice::attempt ${attempt}: the push raced another correction close; rebuilding on the new tip."
+            sleep "$(( (RANDOM % 5) + attempt ))"
+          done
+          if [ "$recorded" -ne 1 ]; then
+            echo "::error::could not record the rejection of PR #${PR} after 8 attempts. Nothing was written, so the observations would be proposed again; re-run this job."
+            exit 1
+          fi
+
+          # A push that reported success and left nothing behind is the
+          # failure this job exists to prevent, so it is asserted rather than
+          # assumed.
+          git fetch -q origin "$BASE"
+          missing=""
+          for id in $ids; do
+            git cat-file -e "origin/${BASE}:spec/corrections/rejected/${id}.json" 2>/dev/null ||
+              missing="${missing} ${id}"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::the markers for${missing} are not on ${BASE} after a successful push."
+            exit 1
+          fi
+          echo "::notice::recorded $(printf '%s' "$ids" | wc -w | tr -d ' ') rejection markers for PR #${PR}."
+
+  # [2] Continue the pipeline, once — and only once every decision the
+  # generate run created has actually been made.
+  #
+  # "No correction PR is open" is not that test. A run opens a dozen; if the
+  # operator starts merging while the job is still creating the rest, the open
+  # count passes through zero and the pipeline would generate a provider from
+  # a half-decided spec. So the expectation is made explicit: every correction
+  # PR body carries `tfpfgen-groups`, the whole run's (entity, kind) groups
+  # and the observations each speaks for, and a group counts as decided only
+  # when every one of its observations is either accepted on the default
+  # branch or carries a rejection marker.
+  #
+  # The manifest travels in the body rather than being committed or uploaded
+  # because the body is the one place readable from the close event itself:
+  # no artifact to expire, no extra push to race the marker commits, and a
+  # group whose PR was never opened is still listed by every sibling PR of the
+  # same run, which is exactly the case a committed manifest would also cover
+  # and an artifact would not.
+  #
+  # Debounced, not parallel: a repository-wide group with cancel-in-progress
+  # false. GitHub keeps the newest queued run and drops the rest, which is the
+  # debounce — and the newest is the last close, which nothing arrives after.
+  continue-pipeline:
+    name: continue when every decision is made
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: record
+    concurrency:
+      group: tfpfgen-corrections-continue-${{ github.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+    env:
+      HAS_APP: ${{ secrets.TFPFGEN_APP_ID != '' && secrets.TFPFGEN_APP_PRIVATE_KEY != '' }}
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - name: Mint an App token when the App is installed
+        id: app-token
+        if: env.HAS_APP == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ secrets.TFPFGEN_APP_ID }}
+          private-key: ${{ secrets.TFPFGEN_APP_PRIVATE_KEY }}
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ steps.app-token.outputs.token || github.token }}
       - name: Continue when nothing is left to decide
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
@@ -136,18 +256,56 @@ jobs:
           BASE: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
-          open="$(gh pr list --label tfpfgen-correction --state open --json number --jq 'length')"
-          if [ "$open" -ne 0 ]; then
-            echo "::notice::${open} correction PRs are still open; the continuation waits for them."
-            exit 0
-          fi
+          shopt -s nullglob
 
           # 10-generate.yml writes this line into every correction PR body so
           # the continuation can resume at revise against the audit that
-          # produced the proposal, instead of paying for a fresh one.
+          # produced the proposals, instead of paying for a fresh one.
           run_id="$(printf '%s' "$BODY" | sed -E -n 's/^tfpfgen-run-id: *([0-9]+) *$/\1/p' | tail -1)"
           if [ -z "$run_id" ]; then
             echo "::warning::this PR body carries no tfpfgen-run-id line; the continuation cannot reuse the audit."
+            exit 0
+          fi
+
+          # Everything the default branch says is decided: accepted
+          # corrections name their observation in the evidence pointer,
+          # rejections leave a marker named for it.
+          {
+            accepted=(spec/corrections/*.correction.json)
+            [ ${#accepted[@]} -eq 0 ] || jq -r '.evidence // ""' "${accepted[@]}" |
+              sed -E -n 's|^audit/observations/.*#([0-9a-f]{16})$|\1|p'
+            markers=(spec/corrections/rejected/*.json)
+            [ ${#markers[@]} -eq 0 ] || jq -r '.observationID // ""' "${markers[@]}"
+          } | grep -E '^[0-9a-f]{16}$' | sort -u > "${RUNNER_TEMP}/decided.txt" || true
+
+          groups="$(printf '%s' "$BODY" | sed -n 's/^tfpfgen-groups: *//p' | tail -1)"
+          if ! printf '%s' "$BODY" | grep -q '^tfpfgen-groups:'; then
+            echo "::warning::this PR predates the run manifest, so the continuation can only check that no correction PR is open."
+          elif [ -z "$groups" ]; then
+            echo "::notice::run ${run_id} created no decisions to wait for."
+          else
+            # entity/kind=id+id+id;entity/kind=id — semicolons between groups,
+            # plus signs between the observations of one.
+            undecided=""
+            for group in ${groups//;/ }; do
+              name="${group%%=*}"
+              ids="${group#*=}"
+              for id in ${ids//+/ }; do
+                if ! grep -qx "$id" "${RUNNER_TEMP}/decided.txt"; then
+                  undecided="${undecided} ${name}"
+                  break
+                fi
+              done
+            done
+            if [ -n "$undecided" ]; then
+              echo "::warning::run ${run_id} is not fully decided. Still open or never opened:${undecided}. The pipeline will not continue until every group is merged or closed; if a group has no PR, re-dispatch ${GENERATE_WORKFLOW} with reuse_audit_run_id=${run_id} to open it."
+              exit 0
+            fi
+          fi
+
+          open="$(gh pr list --label tfpfgen-correction --state open --json number --jq 'length')"
+          if [ "$open" -ne 0 ]; then
+            echo "::notice::${open} correction PRs are still open; the continuation waits for them."
             exit 0
           fi
 

@@ -142,6 +142,12 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 	if err := clearCompiled(proposedDir); err != nil {
 		return p, err
 	}
+	// The report describes the proposals this run writes, so last run's must
+	// go before this one's are compiled: a report outliving its proposals
+	// would send the pull-request job after files that no longer exist.
+	if err := removeReport(proposedDir); err != nil {
+		return p, err
+	}
 	if len(obs) == 0 {
 		return p, nil
 	}
@@ -162,6 +168,10 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 	type candidate struct {
 		written Written
 		corr    correction.Correction
+		// obs is kept whole because the report narrates from it: the value,
+		// the excerpts and the condition are all things the correction file
+		// itself does not carry.
+		obs observe.Observation
 	}
 	var candidates []candidate
 
@@ -222,6 +232,7 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 		candidates = append(candidates, candidate{
 			written: Written{ObservationID: o.ID, Entity: o.Entity, Attribute: o.Attribute, Kind: o.Kind, Stale: stale},
 			corr:    corr,
+			obs:     o,
 		})
 	}
 
@@ -242,6 +253,7 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 	}
 	next++
 
+	var reported []proposal
 	for i := range candidates {
 		cand := &candidates[i]
 		var path string
@@ -258,8 +270,20 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 		cand.written.Path = path
 		if auto[string(cand.written.Kind)] {
 			p.AutoAccepted = append(p.AutoAccepted, cand.written)
-		} else {
-			p.Proposed = append(p.Proposed, cand.written)
+			continue
+		}
+		p.Proposed = append(p.Proposed, cand.written)
+		reported = append(reported, proposal{
+			obs: cand.obs, corr: cand.corr, file: filepath.Base(path), stale: cand.written.Stale,
+		})
+	}
+
+	// Only what awaits a decision is reported. An auto-accepted correction
+	// never becomes a pull request, so narrating it would describe a decision
+	// nobody is being asked to make.
+	if len(reported) > 0 {
+		if err := writeReport(proposedDir, buildReport(reported)); err != nil {
+			return p, err
 		}
 	}
 	return p, nil
