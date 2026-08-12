@@ -432,9 +432,13 @@ jobs:
               # evidence at the end.
               jq -r --arg entity "$entity" '
                 def heading: if (.attribute // "") == "" then "### `" + $entity + "`" else "### `" + .attribute + "`" end;
+                # The fragment is emitted as a value rather than through
+                # tojson: jq -r prints a value pretty, and a reviewer reading
+                # a response body needs the line breaks and indentation a
+                # single-line encoding takes away.
                 def frag($label; $f):
                   if $f == null then empty
-                  else "<sub>" + $label + "</sub>", "", "```json", ($f | tojson), "```", "" end;
+                  else "<sub>" + $label + "</sub>", "", "```json", $f, "```", "" end;
                 .findings[] |
                   (.excerpts[0] // null) as $e |
                   heading,
