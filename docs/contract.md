@@ -53,7 +53,12 @@ does not count it as a pending decision.
 **One PR per entity per kind.** Job [5] opens each on branch
 `tfpfgen/correction-<entity>-<kind>`, the kind in kebab case, sanitised to
 what a git ref may hold. The branch is stable across runs, so a re-run updates
-the pending decision instead of opening a second one beside it. It was one PR
+the pending decision instead of opening a second one beside it: an undecided PR
+has its title, body and branch rewritten to the current evidence, because the
+render it opened with belongs to whichever toolkit version happened to be
+current that day. The branch is only pushed when the correction files actually
+differ — commit timestamps alone move the sha — and the body is only edited
+when it differs, so a retried job is silent. It was one PR
 per *correction*, which is one per attribute: the first live run opened
 fifty-seven, twenty-five of them recording a single field's default. Each PR
 carries every correction file of its group, moved from

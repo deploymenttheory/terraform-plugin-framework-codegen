@@ -388,7 +388,7 @@ jobs:
           count="$(jq 'length' "$work")"
           echo "::notice::${total} proposed groups, ${count} still undecided."
 
-          opened=0 skipped=$((total - count))
+          opened=0 updated=0 unchanged=0 skipped=$((total - count))
           for i in $(seq 0 $((count - 1))); do
             group="${RUNNER_TEMP}/group.json"
             jq ".[$i]" "$work" > "$group"
@@ -403,14 +403,13 @@ jobs:
             fi
 
             # The branch is derived from (entity, kind) and is stable across
-            # runs, so a re-run updates the pending decision instead of
-            # opening a second pull request beside it. The old scheme keyed
-            # the branch on a single observation ID, which a group cannot have.
-            if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[].number')" ]; then
-              echo "::notice::${entity}: a PR on ${branch} is already open."
-              skipped=$((skipped + 1))
-              continue
-            fi
+            # runs, so a re-run refreshes the pending decision in place rather
+            # than opening a second pull request beside it. An open PR is not
+            # skipped: a re-run exists precisely because the corrections or the
+            # narrative changed, and a decision the operator has not answered
+            # yet must show the current evidence, not the render that shipped
+            # with whichever toolkit version happened to open it.
+            existing="$(gh pr list --head "$branch" --state open --json number --jq '.[0].number // empty')"
 
             git checkout -q -B "$branch" "$start"
             mkdir -p spec/corrections
@@ -419,7 +418,18 @@ jobs:
               git add -- "spec/corrections/${f}"
             done < <(jq -r '.files[]' "$group")
             git commit -q -m "spec(corrections): accept ${summary} on ${entity}"
-            git push -q --force origin "HEAD:${branch}"
+
+            # Commit identity carries a timestamp, so the same corrections
+            # rebuild to a different sha every run. Pushing on sha alone would
+            # rewrite twenty branches and re-request twenty reviews to deliver
+            # no change at all, so the tree is what decides.
+            remote_tree=""
+            if git fetch -q origin "$branch" 2>/dev/null; then
+              remote_tree="$(git rev-parse --quiet --verify 'FETCH_HEAD^{tree}' || true)"
+            fi
+            if [ "$remote_tree" != "$(git rev-parse 'HEAD^{tree}')" ]; then
+              git push -q --force origin "HEAD:${branch}"
+            fi
 
             body="${RUNNER_TEMP}/body.md"
             {
@@ -517,15 +527,32 @@ jobs:
               mv "${body}.cut" "$body"
             fi
 
-            gh pr create --base "$BASE" --head "$branch" \
-              --label tfpfgen-correction \
-              --title "tfpfgen: ${entity} — ${summary}" \
-              --body-file "$body"
-            opened=$((opened + 1))
+            title="tfpfgen: ${entity} — ${summary}"
+            if [ -z "$existing" ]; then
+              gh pr create --base "$BASE" --head "$branch" \
+                --label tfpfgen-correction \
+                --title "$title" \
+                --body-file "$body"
+              opened=$((opened + 1))
+            else
+              # A fresh dispatch always differs — the body carries its run id,
+              # which continuation reads back to reuse the right observations.
+              # The comparison is for the retried job: same run, same evidence,
+              # and no reason to bump twenty pull requests to say so.
+              gh pr view "$existing" --json body --jq .body > "${body}.current"
+              if cmp -s "$body" "${body}.current"; then
+                echo "::notice::${entity}: #${existing} already shows the current evidence."
+                unchanged=$((unchanged + 1))
+              else
+                gh pr edit "$existing" --title "$title" --body-file "$body"
+                echo "::notice::${entity}: refreshed #${existing}."
+                updated=$((updated + 1))
+              fi
+            fi
           done
 
           git checkout -q -f "$start"
-          echo "::notice::opened ${opened} correction PRs; skipped ${skipped}."
+          echo "::notice::correction PRs — opened ${opened}, refreshed ${updated}, already current ${unchanged}, already decided ${skipped}."
 
   # [6] The applying half of revision, and still the gate: plain
   # `tfpfgen spec revise` hard-fails while spec/corrections/proposed/ holds
