@@ -40,7 +40,7 @@ corrections committed produces no artifact at all; the restore pattern
 tolerates a missing artifact, and job [5] is skipped rather than failed.
 
 **The proposal report.** Beside the proposals, `--propose-only` writes
-`spec/corrections/proposed/report.json`: the same proposals grouped by
+`spec/corrections/proposed/proposals.json`: the same proposals grouped by
 (entity, kind), each finding carrying its observation ID, its observed value,
 the redacted request/response excerpts it was read from, and the plain-English
 account of what the API did and what each decision costs. It exists because a

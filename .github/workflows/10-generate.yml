@@ -341,7 +341,7 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
 
-          report="${PROPOSED}/report.json"
+          report="${PROPOSED}/proposals.json"
           if [ ! -f "$report" ]; then
             echo "::error::${report} is missing. spec revise --propose-only writes it whenever it proposes anything, so proposals without a report mean the toolkit pin predates grouped correction PRs."
             exit 1

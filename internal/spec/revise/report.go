@@ -30,7 +30,7 @@ import (
 // carries no operations and is never applied — so the strict correction
 // loader, the gate's pending-decision scan and Propose's own clear-and-rewrite
 // all pass it by on the `.correction.json` suffix they match.
-const ReportName = "report.json"
+const ReportName = "proposals.json"
 
 // MaxReportExcerpts caps how many excerpts one finding carries into the
 // report. A pull request body has a size limit and a reviewer has patience:
