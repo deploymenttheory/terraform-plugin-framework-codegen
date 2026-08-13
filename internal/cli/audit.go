@@ -295,6 +295,13 @@ func printSummary(w io.Writer, out string, obsCount int, sum auditrun.Summary) {
 	fmt.Fprintf(w, "budget: %d/%d requests, %d objects created (ceiling %d), %s of %s\n",
 		sum.Requests, sum.RequestBudget, sum.ObjectsCreated, sum.ObjectBudget,
 		sum.Elapsed.Round(time.Millisecond), sum.DurationBudget)
+	// A throttled run says so. Findings gathered while the API was refusing
+	// traffic are thinner than the same findings off a quiet one, and nothing
+	// in the counts above shows the difference.
+	if sum.RateLimited > 0 {
+		fmt.Fprintf(w, "rate limits: %d refusals, %d slowdowns, finished at %d rps\n",
+			sum.RateLimited, sum.Slowdowns, sum.RateLimitRPS)
+	}
 	fmt.Fprintf(w, "cleanup: %d+%d removed at start, %d+%d at end (ledger+prefix)\n",
 		sum.CleanupStart.LedgerDeletes, sum.CleanupStart.PrefixDeletes,
 		sum.CleanupEnd.LedgerDeletes, sum.CleanupEnd.PrefixDeletes)
