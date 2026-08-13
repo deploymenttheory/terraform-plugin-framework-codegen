@@ -98,7 +98,8 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, unrenderable("a resource needs bound create, read and delete calls")
 	}
 
-	nodes := joinTree(r.Schema, rb.Fields)
+	nodes := joinTree(r.Schema, rb.Fields, addressingNames(
+		r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 	d := &resourceData{
 		Package:        r.Names.Package,
 		PackagePath:    e.packagePath(kindResources, r.Names),
@@ -314,8 +315,8 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 			return fmt.Errorf("update: %w", err)
 		}
 		var copies []string
-		for _, p := range rb.Update.Params {
-			field, ferr := paramField(p, nodes, len(rb.Update.Params) == 1)
+		for position, p := range rb.Update.Params {
+			field, ferr := paramField(p, nodes, position == len(rb.Update.Params)-1)
 			if ferr != nil {
 				return fmt.Errorf("update: %w", ferr)
 			}

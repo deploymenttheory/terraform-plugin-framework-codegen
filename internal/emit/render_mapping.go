@@ -273,8 +273,15 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 	var plan callPlan
 
 	var decls []string
-	for _, p := range call.Params {
-		n, err := paramNode(p, nodes, len(call.Params) == 1)
+	for position, p := range call.Params {
+		// The last path parameter addresses the object itself, which is what
+		// the id attribute holds however the API spells the parameter. The
+		// fallback used to need the call to take exactly one parameter, which
+		// is only true of a flat API: /enterprises/{enterprise}/code-security/
+		// configurations/{configuration_id} takes two, and its id was left
+		// matching nothing because the response happened to declare an id of
+		// its own and keep that spelling.
+		n, err := paramNode(p, nodes, position == len(call.Params)-1)
 		if err != nil {
 			return callPlan{}, err
 		}

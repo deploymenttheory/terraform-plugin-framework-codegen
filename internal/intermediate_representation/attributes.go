@@ -471,6 +471,65 @@ func ensureID(tree *AttributeTree, keyParam string, keyType AttributeType) {
 	}}, tree.Attributes...)
 }
 
+// ensureParentParameters gives every path parameter above the item key an
+// attribute to be read from: required, and prepended in path order ahead of
+// the id.
+//
+// An item path is not always /things/{id}. A parent-scoped API spells it
+// /repos/{owner}/{repo}/rulesets/{ruleset_id}, and owner and repo appear in
+// no request or response body — they are addressing, not content. Emission
+// had nothing to feed them from and refused the entity, which on a
+// thoroughly parent-scoped document is most of the API.
+//
+// A parent the body does declare is left as the body declares it; the
+// document is a better authority on its own field than the URL is. Only a
+// parameter no attribute answers is added.
+func ensureParentParameters(tree *AttributeTree, parents []Parameter) {
+	if tree == nil || len(parents) == 0 {
+		return
+	}
+	declared := make(map[string]bool, len(tree.Attributes))
+	for _, attribute := range tree.Attributes {
+		declared[attribute.Name] = true
+	}
+
+	added := make([]Attribute, 0, len(parents))
+	for _, parent := range parents {
+		name := snakeCase(parent.Name)
+		if declared[name] {
+			continue
+		}
+		declared[name] = true
+		kind := parent.Type
+		if kind == "" {
+			kind = TypeString
+		}
+		added = append(added, Attribute{
+			Name:     name,
+			WireName: parent.Name,
+			Kind:     kind,
+			Presence: PresenceRequired,
+			// Addressing is not editable: an object does not move to another
+			// parent in place, and every API that admits the move spells it
+			// as its own operation.
+			RequiresReplace: true,
+		})
+	}
+	if len(added) == 0 {
+		return
+	}
+	tree.Attributes = append(added, tree.Attributes...)
+}
+
+// parentParameters is an operation's path parameters above the item key: all
+// of them but the last, which addresses the object itself and becomes the id.
+func parentParameters(parameters []Parameter) []Parameter {
+	if len(parameters) < 2 {
+		return nil
+	}
+	return parameters[:len(parameters)-1]
+}
+
 // requireKey turns the lookup key into the datasource'schema single required
 // argument: the matching attribute becomes required, or a new one is
 // prepended when the response object does not carry the key.

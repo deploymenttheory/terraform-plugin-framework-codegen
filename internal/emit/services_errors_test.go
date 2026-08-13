@@ -408,3 +408,56 @@ func TestUnit_RenderServices_ExcludesRatherThanAbortsTheWholeRun(t *testing.T) {
 		t.Fatalf("the refused entity's files must be absent: %d then %d", len(before.Files), len(after.Files))
 	}
 }
+
+func TestUnit_JoinTree_KeepsAddressingAttributesTheSDKCannotCarry(t *testing.T) {
+	// A path parameter addresses the object rather than describing it, so no
+	// request or response body declares it and no SDK model carries it. It
+	// must survive the join all the same, or nothing can fill the call.
+	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
+		{Name: "owner", WireName: "owner", Kind: ir.TypeString, Presence: ir.PresenceRequired},
+		{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
+		{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+	}}
+	bound := []sdkbind.FieldBinding{{Attr: "name", Wire: "name", Kind: ir.TypeString,
+		Access: kAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}}
+
+	nodes := joinTree(tree, bound, map[string]bool{"owner": true})
+
+	got := map[string]bool{}
+	for _, n := range nodes {
+		got[n.attr.Name] = true
+	}
+	for _, want := range []string{"owner", "id", "name"} {
+		if !got[want] {
+			t.Fatalf("%s must survive the join, got %v", want, got)
+		}
+	}
+}
+
+func TestUnit_JoinTree_DropsAnUnboundAttributeThatAddressesNothing(t *testing.T) {
+	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
+		{Name: "ghost", WireName: "ghost", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+	}}
+	if nodes := joinTree(tree, nil); len(nodes) != 0 {
+		t.Fatalf("an ordinary unbound attribute must be dropped, got %d node(s)", len(nodes))
+	}
+}
+
+func TestUnit_AddressingNames_TakesEveryPathParameterInTerraformSpelling(t *testing.T) {
+	read := &ir.Operation{PathParameters: []ir.Parameter{
+		{Name: "owner", Type: ir.TypeString},
+		{Name: "repo", Type: ir.TypeString},
+		{Name: "ruleset_id", Type: ir.TypeInt64},
+	}}
+	list := &ir.Operation{PathParameters: []ir.Parameter{{Name: "org", Type: ir.TypeString}}}
+
+	names := addressingNames(read, nil, list)
+	for _, want := range []string{"owner", "repo", "ruleset_id", "org"} {
+		if !names[want] {
+			t.Fatalf("%s must be addressing, got %v", want, names)
+		}
+	}
+	if len(names) != 4 {
+		t.Fatalf("want exactly the four parameters, got %v", names)
+	}
+}
