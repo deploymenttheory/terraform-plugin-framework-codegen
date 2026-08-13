@@ -66,6 +66,9 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 		items = append(items, mapItem(ctx, {{ .ReadItem }}))
 {{- end }}
 	default:
+{{- if .ListPlan.ParamDecls }}
+		{{ .ListPlan.ParamDecls }}
+{{- end }}
 		{{ .ListPlan.Assign }}
 		if err != nil {
 			errors.HandleDatasourceReadError(ctx, err, resp, nil)

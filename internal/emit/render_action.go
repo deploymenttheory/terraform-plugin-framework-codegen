@@ -67,7 +67,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	// parameter, then the request body's tree.
 	paramNodes := actionParamNodes(&a.InvokeOperation)
 	bodyNodes := joinTree(a.RequestSchema, ab.Fields)
-	nodes := append(append([]node{}, paramNodes...), bodyNodes...)
+	nodes := append(append([]node{}, paramNodes...), invocable(bodyNodes)...)
 
 	imports := newImportSet(e.pc.Module)
 	imports.add("", "context")
@@ -307,4 +307,28 @@ func tftypeScalarLiteral(k ir.AttributeType, scalar any) string {
 	default:
 		return strconv.Quote(fmt.Sprintf("%v", scalar))
 	}
+}
+
+// invocable keeps the arguments an action can actually take.
+//
+// An action schema has no Computed: an invocation has arguments and a result,
+// and nothing in between for the framework to fill in. The action package's
+// attribute types do not declare the field, so an attribute derived as
+// computed does not merely read oddly — the generated schema does not
+// compile. It arrives that way from a request body property the document
+// marks readOnly, which is a contradiction the document is entitled to
+// contain and the generator is not entitled to pass on: the practitioner
+// cannot send it, and there is nothing to read it back from.
+func invocable(nodes []node) []node {
+	kept := make([]node, 0, len(nodes))
+	for _, n := range nodes {
+		if n.attr.Presence == ir.PresenceComputed {
+			continue
+		}
+		if n.attr.Nested != nil {
+			n.children = invocable(n.children)
+		}
+		kept = append(kept, n)
+	}
+	return kept
 }

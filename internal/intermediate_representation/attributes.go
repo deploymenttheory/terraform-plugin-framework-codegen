@@ -488,6 +488,13 @@ func ensureParentParameters(tree *AttributeTree, parents []Parameter) {
 	if tree == nil || len(parents) == 0 {
 		return
 	}
+	// A name the tree already uses cannot be added again, whatever it holds:
+	// two attributes of one name is not a schema. Where the sitting tenant is
+	// an object, it is a different thing the document spells the same way — a
+	// repository's owner block beside the owner segment of its path — and it
+	// cannot answer the parameter either. Emission refuses the entity by
+	// name, which is a better answer than a renamed attribute nobody asked
+	// for or a schema that does not load.
 	declared := make(map[string]bool, len(tree.Attributes))
 	for _, attribute := range tree.Attributes {
 		declared[attribute.Name] = true

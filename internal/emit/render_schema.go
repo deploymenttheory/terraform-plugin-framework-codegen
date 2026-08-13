@@ -160,16 +160,26 @@ func (sb *schemaBuilder) attributeType(n node) string {
 	}
 }
 
-// presenceLines renders the presence booleans. Inside an action schema
-// everything writable stays as declared; inside a datasource, computed
-// stays computed.
+// presenceLines renders the presence booleans. Inside a datasource, computed
+// stays computed. Inside an action there is no Computed to render: the
+// action package's attribute types do not declare the field, because an
+// invocation has arguments and a result and nothing in between for the
+// framework to fill in. An attribute that is writable as well keeps the
+// writable half; one that is only computed is dropped before it reaches
+// here.
 func (sb *schemaBuilder) presenceLines(n node, indent string) string {
 	switch n.attr.Presence {
 	case ir.PresenceRequired:
 		return indent + "Required: true,\n"
 	case ir.PresenceComputed:
+		if sb.kind == schemaAction {
+			return indent + "Optional: true,\n"
+		}
 		return indent + "Computed: true,\n"
 	case ir.PresenceOptionalComputed:
+		if sb.kind == schemaAction {
+			return indent + "Optional: true,\n"
+		}
 		return indent + "Optional: true,\n" + indent + "Computed: true,\n"
 	default:
 		return indent + "Optional: true,\n"

@@ -461,3 +461,70 @@ func TestUnit_AddressingNames_TakesEveryPathParameterInTerraformSpelling(t *test
 		t.Fatalf("want exactly the four parameters, got %v", names)
 	}
 }
+
+func TestUnit_ParamNode_RefusesAnObjectOfTheSameName(t *testing.T) {
+	// A path parameter is a scalar in the URL. An attribute of the same name
+	// that is an object is a different thing the document spells the same
+	// way, and reading a value out of it does not compile.
+	nodes := []node{
+		{attr: ir.Attribute{Name: "owner", WireName: "owner", Kind: ir.TypeObject,
+			Nested: &ir.AttributeTree{}}},
+	}
+	if _, err := paramNode(sdkbind.CallParam{Local: "owner", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
+		t.Fatal("an object must not answer a path parameter")
+	}
+}
+
+func TestUnit_ParamNode_TakesTheLastParameterAsTheID(t *testing.T) {
+	// An item path with a parent takes two parameters, and its key is the
+	// last one — whatever the response happens to call its own id.
+	nodes := []node{
+		{attr: ir.Attribute{Name: "id", WireName: "id", Kind: ir.TypeString}},
+	}
+	got, err := paramNode(sdkbind.CallParam{Local: "cfg", Wire: "configuration_id", GoType: "string"}, nodes, true)
+	if err != nil {
+		t.Fatalf("the last path parameter must fall back to the id: %v", err)
+	}
+	if got.attr.Name != "id" {
+		t.Fatalf("want the id attribute, got %q", got.attr.Name)
+	}
+	if _, err := paramNode(sdkbind.CallParam{Local: "o", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
+		t.Fatal("a parent parameter must not fall back to the id")
+	}
+}
+
+func TestUnit_Invocable_DropsWhatAnActionCannotTake(t *testing.T) {
+	// An action schema has no Computed: the framework's action package does
+	// not declare the field, so a computed attribute does not compile.
+	nodes := []node{
+		{attr: ir.Attribute{Name: "kept", Presence: ir.PresenceRequired}},
+		{attr: ir.Attribute{Name: "dropped", Presence: ir.PresenceComputed}},
+		{attr: ir.Attribute{Name: "block", Presence: ir.PresenceOptional, Nested: &ir.AttributeTree{}},
+			children: []node{
+				{attr: ir.Attribute{Name: "inner_kept", Presence: ir.PresenceOptional}},
+				{attr: ir.Attribute{Name: "inner_dropped", Presence: ir.PresenceComputed}},
+			}},
+	}
+	got := invocable(nodes)
+	if len(got) != 2 || got[0].attr.Name != "kept" || got[1].attr.Name != "block" {
+		t.Fatalf("want kept and block, got %+v", got)
+	}
+	if len(got[1].children) != 1 || got[1].children[0].attr.Name != "inner_kept" {
+		t.Fatalf("a nested computed argument must go too, got %+v", got[1].children)
+	}
+}
+
+func TestUnit_PresenceLines_NeverRendersComputedInAnActionSchema(t *testing.T) {
+	for _, presence := range []ir.Presence{ir.PresenceComputed, ir.PresenceOptionalComputed} {
+		sb := &schemaBuilder{kind: schemaAction, imports: newImportSet("example.com/mod")}
+		got := sb.presenceLines(node{attr: ir.Attribute{Name: "x", Presence: presence}}, "")
+		if strings.Contains(got, "Computed") {
+			t.Fatalf("presence %s rendered %q in an action schema", presence, got)
+		}
+	}
+	// A datasource still computes.
+	sb := &schemaBuilder{kind: schemaDatasource, imports: newImportSet("example.com/mod")}
+	if got := sb.presenceLines(node{attr: ir.Attribute{Name: "x", Presence: ir.PresenceComputed}}, ""); !strings.Contains(got, "Computed") {
+		t.Fatalf("a datasource must still render Computed, got %q", got)
+	}
+}

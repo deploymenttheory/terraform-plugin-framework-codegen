@@ -345,25 +345,29 @@ func paramField(p sdkbind.CallParam, nodes []node, idFallback bool) (string, err
 // paramNode is paramField's answer before it is reduced to a spelling: the
 // attribute itself, whose declared kind decides how its value is read.
 func paramNode(p sdkbind.CallParam, nodes []node, idFallback bool) (node, error) {
+	// A path parameter is a scalar in the URL. An attribute of the same name
+	// that is an object is a different thing the document happens to spell
+	// the same way — a repository's owner block beside the owner segment of
+	// its path — and reading a value out of it does not compile.
 	for _, n := range nodes {
-		if n.attr.WireName == p.Wire {
+		if n.attr.WireName == p.Wire && n.attr.Nested == nil {
 			return n, nil
 		}
 	}
 	snake := ir.TerraformName(p.Wire)
 	for _, n := range nodes {
-		if n.attr.Name == snake {
+		if n.attr.Name == snake && n.attr.Nested == nil {
 			return n, nil
 		}
 	}
 	if idFallback {
 		for _, n := range nodes {
-			if n.attr.Name == idAttributeName {
+			if n.attr.Name == idAttributeName && n.attr.Nested == nil {
 				return n, nil
 			}
 		}
 	}
-	return node{}, unrenderable("path parameter %q matches no attribute and the entity has no id attribute", p.Wire)
+	return node{}, unrenderable("path parameter %q matches no scalar attribute and the entity has no id attribute", p.Wire)
 }
 
 // valueMethod is the framework value accessor for one attribute kind. It
