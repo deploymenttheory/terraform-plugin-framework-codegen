@@ -23,6 +23,65 @@ func expectRenderError(t *testing.T, pc ProviderCore, m *ir.Model, b *sdkbind.Bi
 	}
 }
 
+// expectRenderExclusion renders and requires that the run survived, and that
+// exactly the named entity was excluded with a reason carrying every other
+// fragment. The first fragment is the entity key.
+func expectRenderExclusion(t *testing.T, pc ProviderCore, m *ir.Model, b *sdkbind.Bindings, key string, fragments ...string) {
+	t.Helper()
+	out, err := RenderServices(pc, m, b)
+	if err != nil {
+		t.Fatalf("an entity emission cannot serve must not fail the run (%s): %v", key, err)
+	}
+	for _, e := range out.Excluded {
+		if e.Key != key {
+			continue
+		}
+		for _, fragment := range fragments {
+			if !strings.Contains(e.Reason, fragment) {
+				t.Fatalf("the reason %q does not carry %q", e.Reason, fragment)
+			}
+		}
+		return
+	}
+	t.Fatalf("%s must be excluded, got %+v", key, out.Excluded)
+}
+
+// assertQualifiedModelNames renders and requires that two nested objects
+// claiming one short model name each got the ancestor-qualified spelling,
+// consistently in the struct declarations and in the state assignments.
+func assertQualifiedModelNames(t *testing.T, pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) {
+	t.Helper()
+	out, err := RenderServices(pc, m, b)
+	if err != nil {
+		t.Fatalf("a model-name collision must be resolved, not refused: %v", err)
+	}
+	var model, state string
+	for _, f := range out.Files {
+		switch {
+		case !strings.Contains(f.Path, "/resources/"):
+			// The datasource of the same key declares its own item model.
+		case strings.HasSuffix(f.Path, "http_server/model.go"):
+			model = string(f.Content)
+		case strings.HasSuffix(f.Path, "http_server/state.go"):
+			state = string(f.Content)
+		}
+	}
+	if model == "" || state == "" {
+		t.Fatal("the resource must emit both model.go and state.go")
+	}
+	for _, want := range []string{"HTTPServerOneInnerModel", "HTTPServerTwoInnerModel"} {
+		if !strings.Contains(model, "type "+want+" struct") {
+			t.Fatalf("model.go must declare %s:\n%s", want, model)
+		}
+		if !strings.Contains(state, want) {
+			t.Fatalf("state.go must name %s, or the two halves disagree:\n%s", want, state)
+		}
+	}
+	if strings.Contains(model, "type HTTPServerInnerModel struct") {
+		t.Fatal("the contested short spelling must not survive")
+	}
+}
+
 func TestUnit_RenderServices_RefusesAnUnrenderableContext(t *testing.T) {
 	if _, err := RenderServices(ProviderCore{}, fictionalModel(), fictionalBindings()); err == nil {
 		t.Fatal("an empty provider-core context must be refused")
@@ -60,13 +119,8 @@ func TestUnit_RenderServices_SkipsEntitiesTheBindingsLack(t *testing.T) {
 func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	pc := fictionalProviderCore()
 
-	// A resource without a bound delete call.
-	m, b := fictionalModel(), fictionalBindings()
-	b.Resources["http_server"].Delete = nil
-	expectRenderError(t, pc, m, b, "http_server", "delete")
-
 	// A conversion the catalog cannot bridge.
-	m, b = fictionalModel(), fictionalBindings()
+	m, b := fictionalModel(), fictionalBindings()
 	b.Resources["http_server"].Fields[1].Access.ConvertSet = "ToWeird"
 	expectRenderError(t, pc, m, b, "http_server", "name", "ToWeird")
 
@@ -136,7 +190,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	m, b = fictionalModel(), fictionalBindings()
 	b.Resources["http_server"].Read.Params = []sdkbind.CallParam{
 		{Local: "a", GoType: "string", Wire: "aId"}, {Local: "b", GoType: "string", Wire: "bId"}}
-	expectRenderError(t, pc, m, b, "http_server", "aId")
+	expectRenderExclusion(t, pc, m, b, "http_server", "aId")
 
 	// Two nested objects claiming one model struct name.
 	m, b = fictionalModel(), fictionalBindings()
@@ -169,34 +223,34 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 			NestedModel: "models.Two", NestedWriteModel: "models.Two", NestedConstructor: "models.NewTwo()",
 			Nested: innerBinding()},
 	)
-	expectRenderError(t, pc, m, b, "HTTPServerInnerModel")
+	assertQualifiedModelNames(t, pc, m, b)
 
 	// A list resource whose element carries no id.
 	m, b = fictionalModel(), fictionalBindings()
 	m.ListResources[0].Schema.Attributes = m.ListResources[0].Schema.Attributes[1:]
 	b.ListResources["audit_event"].Fields = b.ListResources["audit_event"].Fields[1:]
-	expectRenderError(t, pc, m, b, "audit_event", "id")
+	expectRenderExclusion(t, pc, m, b, "audit_event", "id")
 
 	// A list resource whose call demands a path parameter.
 	m, b = fictionalModel(), fictionalBindings()
 	b.ListResources["audit_event"].List.Params = []sdkbind.CallParam{
 		{Local: "parentId", GoType: "string", Wire: "parentId"}}
-	expectRenderError(t, pc, m, b, "audit_event", "parentId")
+	expectRenderExclusion(t, pc, m, b, "audit_event", "parentId")
 
 	// A lookup datasource without a read call.
 	m, b = fictionalModel(), fictionalBindings()
 	b.Datasources["license"].Read = nil
-	expectRenderError(t, pc, m, b, "license", "read")
+	expectRenderExclusion(t, pc, m, b, "license", "read")
 
 	// A companion datasource without a list call.
 	m, b = fictionalModel(), fictionalBindings()
 	b.Datasources["http_server"].List = nil
-	expectRenderError(t, pc, m, b, "http_server", "list")
+	expectRenderExclusion(t, pc, m, b, "http_server", "list")
 
 	// An action without an invoke call.
 	m, b = fictionalModel(), fictionalBindings()
 	b.Actions["http_server_restart"].Invoke = nil
-	expectRenderError(t, pc, m, b, "http_server_restart", "invoke")
+	expectRenderExclusion(t, pc, m, b, "http_server_restart", "invoke")
 }
 
 func TestUnit_Emit_ValidatorHelperSpellings(t *testing.T) {
@@ -295,5 +349,62 @@ func TestUnit_Emit_HelperSpellings(t *testing.T) {
 	}
 	if companionItemTree(&ir.Datasource{}) != nil {
 		t.Fatal("a schemaless companion has no item tree")
+	}
+}
+
+// TestUnit_RenderServices_ExcludesTheEntityWhoseShapeItCannotServe covers the
+// other half of the failure contract: an entity emission cannot serve is
+// reported as excluded and the entities beside it still render, where it used
+// to abort the whole provider.
+func TestUnit_RenderServices_ExcludesTheEntityWhoseShapeItCannotServe(t *testing.T) {
+	pc := fictionalProviderCore()
+	m, b := fictionalModel(), fictionalBindings()
+	b.Resources["http_server"].Delete = nil
+
+	out, err := RenderServices(pc, m, b)
+	if err != nil {
+		t.Fatalf("one unservable entity must not fail the run: %v", err)
+	}
+	if len(out.Excluded) != 1 {
+		t.Fatalf("want exactly one exclusion, got %d: %+v", len(out.Excluded), out.Excluded)
+	}
+	if out.Excluded[0].Key != "http_server" {
+		t.Fatalf("the exclusion must name the entity, got %q", out.Excluded[0].Key)
+	}
+	if !strings.Contains(out.Excluded[0].Reason, "delete") {
+		t.Fatalf("the reason must say what was missing, got %q", out.Excluded[0].Reason)
+	}
+	for _, line := range out.Registrations.Resources.Registrations {
+		if strings.Contains(line, "HTTPServer") {
+			t.Fatal("an excluded entity must not be registered")
+		}
+	}
+}
+
+// TestUnit_RenderServices_ExcludesRatherThanAbortsTheWholeRun proves the
+// exclusion is local: a second, well-formed resource beside the refused one
+// still renders and registers.
+func TestUnit_RenderServices_ExcludesRatherThanAbortsTheWholeRun(t *testing.T) {
+	pc := fictionalProviderCore()
+	m, b := fictionalModel(), fictionalBindings()
+
+	before, err := RenderServices(pc, m, b)
+	if err != nil {
+		t.Fatalf("the fictional model must render: %v", err)
+	}
+	if len(before.Excluded) != 0 {
+		t.Fatalf("nothing should be excluded from a sound model: %+v", before.Excluded)
+	}
+
+	b.Resources["http_server"].Delete = nil
+	after, err := RenderServices(pc, m, b)
+	if err != nil {
+		t.Fatalf("rendering must survive one refusal: %v", err)
+	}
+	if len(after.Files) == 0 {
+		t.Fatal("the entities beside the refused one must still render")
+	}
+	if len(after.Files) >= len(before.Files) {
+		t.Fatalf("the refused entity's files must be absent: %d then %d", len(before.Files), len(after.Files))
 	}
 }

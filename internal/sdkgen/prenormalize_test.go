@@ -179,3 +179,141 @@ func TestUnit_FilterPaths_RefusesUnusableDocuments(t *testing.T) {
 		t.Error("a document without a paths object should refuse")
 	}
 }
+
+// unionSample carries every union shape the reduction has to answer: a union
+// inline on a response (the shape that broke a real build), a union of $refs
+// beside a discriminator, a union whose parent already declares one of the
+// branch's keys, and a branch that is itself a union.
+const unionSample = `openapi: 3.0.3
+info:
+  title: unions
+  version: 1.0.0
+paths:
+  /starred:
+    get:
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Starred'
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Repo'
+components:
+  schemas:
+    Starred:
+      type: object
+      properties:
+        at:
+          type: string
+    Repo:
+      type: object
+      properties:
+        name:
+          type: string
+    Gate:
+      description: kept from the parent
+      discriminator:
+        propertyName: kind
+      oneOf:
+        - description: dropped with the branch
+          type: object
+          properties:
+            a:
+              type: string
+        - type: object
+          properties:
+            b:
+              type: string
+    Nested:
+      anyOf:
+        - oneOf:
+            - type: string
+            - type: integer
+`
+
+func TestUnit_Prenormalize_ReducesAUnionToItsFirstBranch(t *testing.T) {
+	out, _, _, err := Prenormalize([]byte(unionSample))
+	if err != nil {
+		t.Fatalf("Prenormalize: %v", err)
+	}
+	got := string(out)
+
+	if strings.Contains(got, "anyOf") || strings.Contains(got, "oneOf") {
+		t.Fatalf("no union keyword may survive:\n%s", got)
+	}
+	// The response keeps the first branch's array-of-Starred, not Repo.
+	if !strings.Contains(got, "Starred") {
+		t.Fatalf("the first branch must survive:\n%s", got)
+	}
+	if strings.Contains(got, "'#/components/schemas/Repo'") ||
+		strings.Contains(got, "\"#/components/schemas/Repo\"") {
+		t.Fatalf("the losing branch must not be referenced by the response:\n%s", got)
+	}
+}
+
+func TestUnit_Prenormalize_UnionReductionKeepsTheParentAndDropsTheDiscriminator(t *testing.T) {
+	out, _, _, err := Prenormalize([]byte(unionSample))
+	if err != nil {
+		t.Fatalf("Prenormalize: %v", err)
+	}
+	got := string(out)
+
+	if !strings.Contains(got, "kept from the parent") {
+		t.Fatalf("a key the parent declares must win over the branch's:\n%s", got)
+	}
+	if strings.Contains(got, "dropped with the branch") {
+		t.Fatalf("the branch's own spelling of a parent key must not overwrite it:\n%s", got)
+	}
+	if strings.Contains(got, "discriminator") {
+		t.Fatalf("the discriminator must go with the union it selected between:\n%s", got)
+	}
+}
+
+func TestUnit_Prenormalize_UnionReductionFoldsUntilNoUnionRemains(t *testing.T) {
+	out, _, _, err := Prenormalize([]byte(unionSample))
+	if err != nil {
+		t.Fatalf("Prenormalize: %v", err)
+	}
+	// Nested's anyOf branch is itself a oneOf; one pass would leave it.
+	if strings.Contains(string(out), "oneOf") {
+		t.Fatalf("a union exposed by folding must be folded too:\n%s", out)
+	}
+}
+
+func TestUnit_Prenormalize_UnionReductionIsDeterministic(t *testing.T) {
+	first, _, _, err := Prenormalize([]byte(unionSample))
+	if err != nil {
+		t.Fatalf("Prenormalize: %v", err)
+	}
+	for i := range 5 {
+		again, _, _, err := Prenormalize([]byte(unionSample))
+		if err != nil {
+			t.Fatalf("Prenormalize (run %d): %v", i, err)
+		}
+		if !bytes.Equal(first, again) {
+			t.Fatalf("run %d differs; the reduction must be byte-stable", i)
+		}
+	}
+}
+
+func TestUnit_Prenormalize_LeavesADocumentWithoutUnionsAlone(t *testing.T) {
+	out, _, _, err := Prenormalize([]byte(prenormalizeSample))
+	if err != nil {
+		t.Fatalf("Prenormalize: %v", err)
+	}
+	// Zero hits is not an error: the sample carries no union, and reducing
+	// nothing must not perturb what the other passes produced.
+	again, _, _, err := Prenormalize(out)
+	if err != nil {
+		t.Fatalf("Prenormalize (second): %v", err)
+	}
+	if !bytes.Equal(out, again) {
+		t.Fatal("prenormalizing an already-prenormalized document must be a fixed point")
+	}
+}

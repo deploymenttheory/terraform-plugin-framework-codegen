@@ -2,6 +2,7 @@ package intermediate_representation
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -99,6 +100,34 @@ func TestSnakeCase(t *testing.T) {
 	} {
 		if got := snakeCase(in); got != want {
 			t.Errorf("snakeCase(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestUnit_Names_PackageEscapesAGoKeyword(t *testing.T) {
+	// A key that spells a reserved word cannot name a package: `package
+	// package` does not parse, and the failure surfaces far from its cause,
+	// as a template that "renders Go that does not parse".
+	for _, key := range []string{"package", "type", "range", "interface", "map"} {
+		got := packageName(key)
+		if goKeywords[got] {
+			t.Fatalf("packageName(%q) = %q, which is still a reserved word", key, got)
+		}
+		if !strings.HasPrefix(got, key) {
+			t.Fatalf("packageName(%q) = %q; the escape must keep the key readable", key, got)
+		}
+	}
+}
+
+func TestUnit_Names_PackageLeavesAnOrdinaryKeyAlone(t *testing.T) {
+	for key, want := range map[string]string{
+		"http_server":     "httpserver",
+		"account_group":   "accountgroup",
+		"packages":        "packages",
+		"type_definition": "typedefinition",
+	} {
+		if got := packageName(key); got != want {
+			t.Fatalf("packageName(%q) = %q, want %q", key, got, want)
 		}
 	}
 }

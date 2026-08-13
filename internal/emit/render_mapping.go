@@ -140,6 +140,15 @@ func constructNested(n node, src, dst, attrPath string, depth int) (string, bool
 // onto the framework model. src is the readable SDK value ("remote"),
 // dst the model expression ("data", "rulesElement").
 func stateLines(nodes []node, modelPrefix string, src, dst string, depth int) (string, error) {
+	return stateLinesWith(newModelNamer(modelPrefix, nodes), "", nodes, src, dst, depth)
+}
+
+// stateLinesWith is stateLines' recursion, carrying the entity's resolved
+// model names and the attribute path reached so far. Both halves of the
+// generated code — the struct declarations and these assignments — name a
+// nested model through the one namer, so a collision-qualified struct is
+// spelled identically in each.
+func stateLinesWith(namer *modelNamer, path string, nodes []node, src, dst string, depth int) (string, error) {
 	var b strings.Builder
 	indent := strings.Repeat("\t", depth)
 
@@ -148,7 +157,7 @@ func stateLines(nodes []node, modelPrefix string, src, dst string, depth int) (s
 			continue
 		}
 		if n.attr.Nested != nil {
-			lines, err := stateNested(n, modelPrefix, src, dst, depth)
+			lines, err := stateNested(namer, childPath(path, n), n, src, dst, depth)
 			if err != nil {
 				return "", err
 			}
@@ -166,10 +175,10 @@ func stateLines(nodes []node, modelPrefix string, src, dst string, depth int) (s
 }
 
 // stateNested renders a nested object or list-of-objects read.
-func stateNested(n node, modelPrefix, src, dst string, depth int) (string, error) {
+func stateNested(namer *modelNamer, path string, n node, src, dst string, depth int) (string, error) {
 	indent := strings.Repeat("\t", depth)
 	field := dst + "." + ir.GoName(n.attr.Name)
-	modelType := nestedModelName(modelPrefix, n)
+	modelType := namer.name(path)
 
 	if n.attr.Kind == ir.TypeList {
 		elementsVar := "elements" + depthSuffix(depth)
@@ -177,7 +186,7 @@ func stateNested(n node, modelPrefix, src, dst string, depth int) (string, error
 		listVar := lowerCamel(n.attr.Name) + "List" + depthSuffix(depth)
 		elemVar := lowerCamel(n.attr.Name) + "Element" + depthSuffix(depth)
 
-		inner, err := stateLines(n.children, modelPrefix, elementsVar+"["+indexVar+"]", elemVar, depth+2)
+		inner, err := stateLinesWith(namer, path, n.children, elementsVar+"["+indexVar+"]", elemVar, depth+2)
 		if err != nil {
 			return "", err
 		}
@@ -197,7 +206,7 @@ func stateNested(n node, modelPrefix, src, dst string, depth int) (string, error
 
 	valueVar := "value" + depthSuffix(depth)
 	nestedVar := lowerCamel(n.attr.Name) + "State" + depthSuffix(depth)
-	inner, err := stateLines(n.children, modelPrefix, valueVar, nestedVar, depth+1)
+	inner, err := stateLinesWith(namer, path, n.children, valueVar, nestedVar, depth+1)
 	if err != nil {
 		return "", err
 	}
@@ -327,7 +336,7 @@ func paramField(p sdkbind.CallParam, nodes []node, idFallback bool) (string, err
 			}
 		}
 	}
-	return "", fmt.Errorf("path parameter %q matches no attribute and the entity has no id attribute", p.Wire)
+	return "", unrenderable("path parameter %q matches no attribute and the entity has no id attribute", p.Wire)
 }
 
 // valueMethod is the framework value accessor for one parameter type.

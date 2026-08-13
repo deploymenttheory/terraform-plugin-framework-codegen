@@ -195,10 +195,11 @@ func TestUnit_BindContext_UnreadableGoModFails(t *testing.T) {
 
 // TestUnit_Run_ResourceWithoutListCannotEmitItsCompanion pins a known gap
 // in the chain: classification gives every resource a companion datasource
-// whether or not the API can list, and emission requires the list call —
-// so a resource whose API declares no collection GET refuses at emit time
-// with the datasource named. The curated fixture gives every resource a
-// list operation for exactly this reason.
+// whether or not the API can list, and emission requires the list call — so a
+// resource whose API declares no collection GET yields no companion. The gap
+// is reported as an exclusion naming the datasource, and the resource beside
+// it still emits; it used to fail the whole run. The curated fixture gives
+// every resource a list operation for exactly this reason.
 func TestUnit_Run_ResourceWithoutListCannotEmitItsCompanion(t *testing.T) {
 	root, opts := curatedRepo(t, "kiota")
 	doc := `openapi: 3.0.3
@@ -260,9 +261,24 @@ components:
 		t.Fatal(err)
 	}
 
-	_, err := Run(context.Background(), opts)
-	if err == nil || !strings.Contains(err.Error(), "companion datasource needs a bound list call") {
-		t.Fatalf("err = %v; the listless companion must refuse with the emit reason", err)
+	res, err := Run(context.Background(), opts)
+	if err != nil {
+		t.Fatalf("one unservable companion must not fail the run: %v", err)
+	}
+	var reason string
+	for _, e := range res.Excluded {
+		if e.Key == "beacon" && strings.Contains(e.Reason, "companion datasource needs a bound list call") {
+			reason = e.Reason
+		}
+	}
+	if reason == "" {
+		t.Fatalf("the listless companion must be excluded with the emit reason, got %+v", res.Excluded)
+	}
+	if res.Resources != 1 {
+		t.Fatalf("the resource beside the refused companion must still emit, got %d", res.Resources)
+	}
+	if res.Datasources != 0 {
+		t.Fatalf("the refused companion must not be counted as generated, got %d", res.Datasources)
 	}
 }
 

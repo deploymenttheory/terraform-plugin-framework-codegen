@@ -440,3 +440,53 @@ func shortSignature(sig *types.Signature) string {
 func unwrapDetail(err error) string {
 	return strings.TrimPrefix(err.Error(), ErrBindings.Error()+": ")
 }
+
+// DropProblems removes every entity a verification problem names, and
+// answers what was dropped, with the reason, sorted by key. An entity whose
+// binding the SDK cannot answer must not be emitted — code written against
+// it would name surface that does not exist — but the entities beside it are
+// unaffected, and refusing all of them for one is a cost with no benefit.
+//
+// One entity may collect several problems; the first reason stands for the
+// entity, and the rest are folded in behind it so nothing is lost.
+func (b *Bindings) DropProblems(problems []Problem) []Dropped {
+	if b == nil || len(problems) == 0 {
+		return nil
+	}
+
+	reasons := map[string][]string{}
+	kinds := map[string]string{}
+	for _, p := range problems {
+		if _, seen := reasons[p.Key]; !seen {
+			kinds[p.Key] = p.Kind
+		}
+		reasons[p.Key] = append(reasons[p.Key], p.Path+": "+p.Detail)
+	}
+
+	keys := make([]string, 0, len(reasons))
+	for key := range reasons {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	out := make([]Dropped, 0, len(keys))
+	for _, key := range keys {
+		delete(b.Resources, key)
+		delete(b.Datasources, key)
+		delete(b.ListResources, key)
+		delete(b.Actions, key)
+		out = append(out, Dropped{
+			Key:    key,
+			Kind:   kinds[key],
+			Reason: "the generated SDK does not carry this " + kinds[key] + "'s binding — " + strings.Join(reasons[key], "; "),
+		})
+	}
+	return out
+}
+
+// Dropped is one entity verification removed from the bindings.
+type Dropped struct {
+	Key    string
+	Kind   string
+	Reason string
+}

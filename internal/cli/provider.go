@@ -86,11 +86,14 @@ func newProviderGenerateCommand() *cobra.Command {
 				return nil
 			}
 
-			res, err := providergen.Run(cmd.Context(), opts)
-			if err != nil {
-				return err
+			res, runErr := providergen.Run(cmd.Context(), opts)
+			if runErr != nil && res.Files == 0 {
+				return runErr
 			}
 
+			for _, e := range res.Excluded {
+				fmt.Fprintf(out, "excluded %s: %s\n", e.Key, e.Reason)
+			}
 			for _, r := range res.Removals {
 				fmt.Fprintf(out, "pruned %s\n", r)
 			}
@@ -102,12 +105,15 @@ func newProviderGenerateCommand() *cobra.Command {
 				res.Files, noun, res.Root, res.RevisedPath,
 				res.Resources, res.Datasources, res.ListResources, res.Actions)
 			switch {
+			case runErr != nil:
+				// Reported above; the report is the point, and the error
+				// still decides the exit code.
 			case res.Postcheck.Ran:
 				fmt.Fprintln(out, "postcheck passed: go mod tidy, go build, go vet")
 			default:
 				fmt.Fprintf(out, "postcheck skipped: %s\n", res.Postcheck.SkippedReason)
 			}
-			return nil
+			return runErr
 		},
 	}
 	flags.register(cmd)

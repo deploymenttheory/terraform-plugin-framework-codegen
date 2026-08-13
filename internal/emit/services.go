@@ -2,6 +2,7 @@ package emit
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/format"
 	"io/fs"
@@ -22,6 +23,39 @@ import (
 type ServiceFiles struct {
 	Files         []File
 	Registrations Registry
+	// Excluded lists every entity emission refused, with the reason, in the
+	// order the model declares them. It mirrors the model's own Excluded:
+	// an entity that yields nothing is reported, never silently absent.
+	Excluded []ir.Exclusion
+}
+
+// unrenderableError marks an entity whose shape emission cannot serve — a
+// path parameter naming nothing in the schema, a call the bindings cannot
+// satisfy. It is a fact about one entity, not a defect in the emitter, so
+// RenderServices records it and carries on with the rest.
+//
+// Aborting the whole run instead was the old behaviour, and one entity took
+// every other entity with it: an item path carrying a second path parameter
+// no attribute answers is enough, and that single shape emitted nothing at
+// all for the provider. Every other error still aborts, because an emitter
+// that cannot render a shape it accepted is a bug and must say so.
+type unrenderableError struct{ reason string }
+
+func (e *unrenderableError) Error() string { return e.reason }
+
+// unrenderable builds the error entity emission refuses one entity with.
+func unrenderable(format string, args ...any) error {
+	return &unrenderableError{reason: fmt.Sprintf(format, args...)}
+}
+
+// excludes reports whether an error refuses one entity, and the reason it
+// gave, unwrapping whatever context the call stack added on the way up.
+func excludes(err error) (string, bool) {
+	var refusal *unrenderableError
+	if errors.As(err, &refusal) {
+		return refusal.reason, true
+	}
+	return "", false
 }
 
 // RenderServices renders every entity the model carries and the bindings
@@ -53,6 +87,10 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		}
 		files, err := e.resource(r, rb)
 		if err != nil {
+			if reason, refused := excludes(err); refused {
+				out.Excluded = append(out.Excluded, ir.Exclusion{Key: r.Names.Key, Reason: reason})
+				continue
+			}
 			return nil, fmt.Errorf("resource %s: %w", r.Names.Key, err)
 		}
 		out.Files = append(out.Files, files...)
@@ -67,6 +105,10 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		}
 		files, err := e.datasource(ds, db)
 		if err != nil {
+			if reason, refused := excludes(err); refused {
+				out.Excluded = append(out.Excluded, ir.Exclusion{Key: ds.Names.Key, Reason: reason})
+				continue
+			}
 			return nil, fmt.Errorf("datasource %s: %w", ds.Names.Key, err)
 		}
 		out.Files = append(out.Files, files...)
@@ -81,6 +123,10 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		}
 		files, err := e.listResource(lr, lb)
 		if err != nil {
+			if reason, refused := excludes(err); refused {
+				out.Excluded = append(out.Excluded, ir.Exclusion{Key: lr.Names.Key, Reason: reason})
+				continue
+			}
 			return nil, fmt.Errorf("list resource %s: %w", lr.Names.Key, err)
 		}
 		out.Files = append(out.Files, files...)
@@ -95,6 +141,10 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		}
 		files, err := e.action(a, ab)
 		if err != nil {
+			if reason, refused := excludes(err); refused {
+				out.Excluded = append(out.Excluded, ir.Exclusion{Key: a.Names.Key, Reason: reason})
+				continue
+			}
 			return nil, fmt.Errorf("action %s: %w", a.Names.Key, err)
 		}
 		out.Files = append(out.Files, files...)
@@ -214,6 +264,15 @@ func rawFile(outPath, source string, content []byte) File {
 // bindings lack — pruned by the SDK, refused by derivation — take no node:
 // an attribute that cannot be mapped must not appear in the schema either,
 // or the provider would carry an attribute that never travels.
+//
+// The root id is the one exception, and it carries a nil fb. Terraform
+// requires every resource and datasource to have an id; the API need not
+// agree. A read response that names its key something other than id, or omits
+// it altogether and leaves it in the URL, is an ordinary REST shape, and both
+// are common in real documents. Dropping the id node on those used to abort
+// the whole provider from render_mapping's path-parameter lookup. The id's
+// value comes from the path parameter and from whatever the create response
+// carries, neither of which needs a read binding.
 type node struct {
 	attr     ir.Attribute
 	fb       *sdkbind.FieldBinding
@@ -222,6 +281,14 @@ type node struct {
 
 // joinTree joins an attribute tree with its field bindings, in tree order.
 func joinTree(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding) []node {
+	return joinAttributes(tree, fbs, true)
+}
+
+// joinAttributes is joinTree's recursion, tracking whether it is at the root
+// so the framework-required id is kept at the top level only. A nested
+// attribute that happens to be called id is an ordinary API field: unbound,
+// it travels nowhere and is dropped like any other.
+func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, root bool) []node {
 	if tree == nil {
 		return nil
 	}
@@ -233,16 +300,24 @@ func joinTree(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding) []node {
 	for _, a := range tree.Attributes {
 		fb, ok := byAttr[a.Name]
 		if !ok {
+			if !root || a.Name != idAttributeName || a.Nested != nil {
+				continue
+			}
+			out = append(out, node{attr: a})
 			continue
 		}
 		n := node{attr: a, fb: fb}
 		if a.Nested != nil {
-			n.children = joinTree(a.Nested, fb.Nested)
+			n.children = joinAttributes(a.Nested, fb.Nested, false)
 		}
 		out = append(out, n)
 	}
 	return out
 }
+
+// idAttributeName is the terraform attribute every resource and datasource
+// carries, whatever the API calls its key.
+const idAttributeName = "id"
 
 // supportedTree rebuilds an attribute tree containing only the joined
 // nodes, so the fixture derivation covers exactly what the schema carries.

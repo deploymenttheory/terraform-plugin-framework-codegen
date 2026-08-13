@@ -94,7 +94,7 @@ type resourceData struct {
 func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) ([]File, error) {
 	if r.Operations.Create == nil || rb.Create == nil || r.Operations.Read == nil || rb.Read == nil ||
 		r.Operations.Delete == nil || rb.Delete == nil {
-		return nil, fmt.Errorf("a resource needs bound create, read and delete calls")
+		return nil, unrenderable("a resource needs bound create, read and delete calls")
 	}
 
 	nodes := joinTree(r.Schema, rb.Fields)
@@ -298,7 +298,7 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 		return fmt.Errorf("read: %w", err)
 	}
 	if d.ReadPlan.Payload == "" {
-		return fmt.Errorf("read: the bound read call yields no payload to map state from")
+		return unrenderable("read: the bound read call yields no payload to map state from")
 	}
 	if d.DeletePlan, err = buildCallPlan(rb.Delete, "", nodes, "data"); err != nil {
 		return fmt.Errorf("delete: %w", err)
@@ -377,7 +377,7 @@ func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdk
 	d.ItemPattern = mockPattern(r.Operations.Read.PathTemplate)
 	d.IDSegmentIndex = paramSegmentIndex(r.Operations.Read.PathTemplate)
 	if d.IDSegmentIndex < 0 {
-		return fmt.Errorf("the read path %s declares no parameter segment for the mock to key on", r.Operations.Read.PathTemplate)
+		return unrenderable("the read path %s declares no parameter segment for the mock to key on", r.Operations.Read.PathTemplate)
 	}
 	d.IDWire = idWire(rb.Fields)
 	d.ResponseMinimal = string(spec.WireJSON(fixtures.ResponseMinimal))
