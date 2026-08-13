@@ -22,40 +22,40 @@ const configExcludedReason = "excluded by configuration"
 // JSON. Nothing here reads a clock, the environment or the filesystem, and
 // nothing writes — the derivation exists only in memory, for exactly one
 // run.
-func Derive(doc *specmodel.Document, cfg *config.Config) (*Model, error) {
-	if doc == nil {
+func Derive(document *specmodel.Document, configuration *config.Config) (*Model, error) {
+	if document == nil {
 		return nil, errors.New("intermediate_representation: the document is nil")
 	}
-	if cfg == nil {
+	if configuration == nil {
 		return nil, errors.New("intermediate_representation: the config is nil")
 	}
-	if cfg.Provider.Name == "" {
+	if configuration.Provider.Name == "" {
 		return nil, errors.New("intermediate_representation: provider.name is empty; every terraform type name derives from it")
 	}
 
-	d := &deriver{index: indexOperations(doc)}
-	m := &Model{Provider: Provider{Name: cfg.Provider.Name}}
+	derivation := &deriver{index: indexOperations(document)}
+	model := &Model{Provider: Provider{Name: configuration.Provider.Name}}
 
 	excluded := map[string]bool{}
-	for _, e := range cfg.Services.Exclude {
-		excluded[e] = true
+	for _, excludedKey := range configuration.Services.Exclude {
+		excluded[excludedKey] = true
 	}
 
-	cls := specmodel.Classify(doc)
+	classifications := specmodel.Classify(document)
 
 	// Decide inclusion and names first: actions need every kept entity's
 	// key to resolve their parent, and a key collision must be resolved
 	// before any entity is built against an ambiguous name.
 	type kept struct {
-		c     specmodel.Classification
-		names Names
+		classification specmodel.Classification
+		names          Names
 	}
 	var keep []kept
 	claimed := map[string]string{} // final key -> the collection path that claimed it
 	family := map[string][]int{}   // pre-disambiguation key -> indices into keep
 	parentKey := map[string]string{}
-	for _, c := range cls.Entities {
-		names := deriveNames(cfg.Provider.Name, c.Key, c.CollectionPath)
+	for _, classification := range classifications.Entities {
+		names := deriveNames(configuration.Provider.Name, classification.Key, classification.CollectionPath)
 		original := names.Key
 		// Two collection paths can derive one key: sibling API versions
 		// once the version prefix factors out, or paths that differ only
@@ -64,21 +64,21 @@ func Derive(doc *specmodel.Document, cfg *config.Config) (*Model, error) {
 		// and every member of the family carries a co-management note so
 		// the generated schema description says the overlap out loud.
 		if winner, taken := claimed[names.Key]; taken {
-			names = names.withKey(cfg.Provider.Name,
-				disambiguateKey(names.Key, c.CollectionPath, winner, claimed))
+			names = names.withKey(configuration.Provider.Name,
+				disambiguateKey(names.Key, classification.CollectionPath, winner, claimed))
 		}
-		claimed[names.Key] = c.CollectionPath
+		claimed[names.Key] = classification.CollectionPath
 		if excluded[names.Service] || excluded[names.Key] {
-			m.Excluded = append(m.Excluded, Exclusion{Key: names.Key, Reason: configExcludedReason})
+			model.Excluded = append(model.Excluded, Exclusion{Key: names.Key, Reason: configExcludedReason})
 			continue
 		}
-		parentKey[c.CollectionPath] = names.Key
+		parentKey[classification.CollectionPath] = names.Key
 		family[original] = append(family[original], len(keep))
-		keep = append(keep, kept{c: c, names: names})
+		keep = append(keep, kept{classification: classification, names: names})
 	}
-	for _, e := range cls.Excluded {
-		names := deriveNames(cfg.Provider.Name, e.Key, e.CollectionPath)
-		m.Excluded = append(m.Excluded, Exclusion{Key: names.Key, Reason: e.Reason})
+	for _, excluded := range classifications.Excluded {
+		names := deriveNames(configuration.Provider.Name, excluded.Key, excluded.CollectionPath)
+		model.Excluded = append(model.Excluded, Exclusion{Key: names.Key, Reason: excluded.Reason})
 	}
 
 	// A collision family that generates more than one entity co-manages
@@ -101,32 +101,32 @@ func Derive(doc *specmodel.Document, cfg *config.Config) (*Model, error) {
 		}
 	}
 
-	for _, k := range keep {
-		note := notes[k.names.Key]
-		for _, kind := range k.c.Kinds {
+	for _, candidate := range keep {
+		note := notes[candidate.names.Key]
+		for _, kind := range candidate.classification.Kinds {
 			switch kind {
 			case specmodel.KindResource:
-				r := d.resource(k.c, k.names)
-				r.CoManagementNote = note
-				m.Resources = append(m.Resources, r)
+				resource := derivation.resource(candidate.classification, candidate.names)
+				resource.CoManagementNote = note
+				model.Resources = append(model.Resources, resource)
 			case specmodel.KindDatasource:
-				ds := d.datasource(k.c, k.names)
+				ds := derivation.datasource(candidate.classification, candidate.names)
 				ds.CoManagementNote = note
-				m.Datasources = append(m.Datasources, ds)
+				model.Datasources = append(model.Datasources, ds)
 			case specmodel.KindListResource:
-				lr := d.listResource(k.c, k.names)
+				lr := derivation.listResource(candidate.classification, candidate.names)
 				lr.CoManagementNote = note
-				m.ListResources = append(m.ListResources, lr)
+				model.ListResources = append(model.ListResources, lr)
 			case specmodel.KindAction:
-				a := d.action(k.c, k.names, parentKey)
+				a := derivation.action(candidate.classification, candidate.names, parentKey)
 				a.CoManagementNote = note
-				m.Actions = append(m.Actions, a)
+				model.Actions = append(model.Actions, a)
 			}
 		}
 	}
 
-	sortModel(m)
-	return m, nil
+	sortModel(model)
+	return model, nil
 }
 
 // disambiguateKey computes the later entity's key when two collection
@@ -146,19 +146,19 @@ func Derive(doc *specmodel.Document, cfg *config.Config) (*Model, error) {
 //     is free.
 func disambiguateKey(key, laterPath, winnerPath string, claimed map[string]string) string {
 	winner := map[string]bool{}
-	for _, seg := range pathSegments(winnerPath) {
-		winner[seg] = true
+	for _, segment := range pathSegments(winnerPath) {
+		winner[segment] = true
 	}
 	parts := []string{key}
-	for _, seg := range pathSegments(laterPath) {
-		if winner[seg] {
+	for _, segment := range pathSegments(laterPath) {
+		if winner[segment] {
 			continue
 		}
-		if strings.HasPrefix(seg, "{") {
-			parts = append(parts, "by_"+snakeCase(strings.Trim(seg, "{}")))
+		if strings.HasPrefix(segment, "{") {
+			parts = append(parts, "by_"+snakeCase(strings.Trim(segment, "{}")))
 			continue
 		}
-		parts = append(parts, snakeCase(seg))
+		parts = append(parts, snakeCase(segment))
 	}
 	candidate := strings.Join(parts, "_")
 	if _, taken := claimed[candidate]; !taken && candidate != key {
@@ -175,9 +175,9 @@ func disambiguateKey(key, laterPath, winnerPath string, claimed map[string]strin
 // pathSegments splits a path template into its non-empty segments.
 func pathSegments(path string) []string {
 	var out []string
-	for _, seg := range strings.Split(strings.Trim(path, "/"), "/") {
-		if seg != "" {
-			out = append(out, seg)
+	for _, segment := range strings.Split(strings.Trim(path, "/"), "/") {
+		if segment != "" {
+			out = append(out, segment)
 		}
 	}
 	return out
@@ -185,16 +185,16 @@ func pathSegments(path string) []string {
 
 // sortModel fixes every slice's order by entity key, so document order and
 // classification order can never leak into the model's shape.
-func sortModel(m *Model) {
-	sort.Slice(m.Resources, func(i, j int) bool { return m.Resources[i].Names.Key < m.Resources[j].Names.Key })
-	sort.Slice(m.Datasources, func(i, j int) bool { return m.Datasources[i].Names.Key < m.Datasources[j].Names.Key })
-	sort.Slice(m.ListResources, func(i, j int) bool { return m.ListResources[i].Names.Key < m.ListResources[j].Names.Key })
-	sort.Slice(m.Actions, func(i, j int) bool { return m.Actions[i].Names.Key < m.Actions[j].Names.Key })
-	sort.Slice(m.Excluded, func(i, j int) bool {
-		if m.Excluded[i].Key != m.Excluded[j].Key {
-			return m.Excluded[i].Key < m.Excluded[j].Key
+func sortModel(model *Model) {
+	sort.Slice(model.Resources, func(i, j int) bool { return model.Resources[i].Names.Key < model.Resources[j].Names.Key })
+	sort.Slice(model.Datasources, func(i, j int) bool { return model.Datasources[i].Names.Key < model.Datasources[j].Names.Key })
+	sort.Slice(model.ListResources, func(i, j int) bool { return model.ListResources[i].Names.Key < model.ListResources[j].Names.Key })
+	sort.Slice(model.Actions, func(i, j int) bool { return model.Actions[i].Names.Key < model.Actions[j].Names.Key })
+	sort.Slice(model.Excluded, func(i, j int) bool {
+		if model.Excluded[i].Key != model.Excluded[j].Key {
+			return model.Excluded[i].Key < model.Excluded[j].Key
 		}
-		return m.Excluded[i].Reason < m.Excluded[j].Reason
+		return model.Excluded[i].Reason < model.Excluded[j].Reason
 	})
 }
 
@@ -205,12 +205,12 @@ type deriver struct {
 
 // indexOperations keys every operation by path and method, so a
 // classification's operation reference finds its full operation back.
-func indexOperations(doc *specmodel.Document) map[string]*specmodel.Operation {
+func indexOperations(document *specmodel.Document) map[string]*specmodel.Operation {
 	index := map[string]*specmodel.Operation{}
-	for pi := range doc.Paths {
-		for oi := range doc.Paths[pi].Operations {
-			op := &doc.Paths[pi].Operations[oi]
-			index[op.Path+" "+op.Method] = op
+	for pi := range document.Paths {
+		for oi := range document.Paths[pi].Operations {
+			operation := &document.Paths[pi].Operations[oi]
+			index[operation.Path+" "+operation.Method] = operation
 		}
 	}
 	return index
@@ -218,33 +218,33 @@ func indexOperations(doc *specmodel.Document) map[string]*specmodel.Operation {
 
 // full resolves a classification operation reference to the document's
 // operation, nil for a nil reference.
-func (d *deriver) full(ref *specmodel.Op) *specmodel.Operation {
-	if ref == nil {
+func (derivation *deriver) full(reference *specmodel.Op) *specmodel.Operation {
+	if reference == nil {
 		return nil
 	}
-	return d.index[ref.Path+" "+ref.Method]
+	return derivation.index[reference.Path+" "+reference.Method]
 }
 
-// op renders one operation reference into the dialect-neutral form binders
+// operation renders one operation reference into the dialect-neutral form binders
 // key on, nil for a nil reference.
-func (d *deriver) op(ref *specmodel.Op, kind OpKind) *Op {
-	if ref == nil {
+func (derivation *deriver) operation(reference *specmodel.Op, kind OperationKind) *Operation {
+	if reference == nil {
 		return nil
 	}
-	full := d.full(ref)
-	return &Op{
-		Kind:         kind,
-		Method:       ref.Method,
-		PathTemplate: ref.Path,
-		OperationID:  ref.OperationID,
-		PathParams:   pathParams(ref.Path, full),
-		SuccessCode:  successCode(full),
+	full := derivation.full(reference)
+	return &Operation{
+		Kind:           kind,
+		Method:         reference.Method,
+		PathTemplate:   reference.Path,
+		OperationID:    reference.OperationID,
+		PathParameters: pathParams(reference.Path, full),
+		SuccessCode:    successCode(full),
 	}
 }
 
-func (d *deriver) resource(c specmodel.Classification, names Names) Resource {
-	createFull, readFull := d.full(c.Create), d.full(c.Read)
-	updateFull, deleteFull := d.full(c.Update), d.full(c.Delete)
+func (derivation *deriver) resource(classification specmodel.Classification, names Names) Resource {
+	createFull, readFull := derivation.full(classification.Create), derivation.full(classification.Read)
+	updateFull, deleteFull := derivation.full(classification.Update), derivation.full(classification.Delete)
 
 	var createBody, readBody *specmodel.Schema
 	if createFull != nil {
@@ -253,12 +253,12 @@ func (d *deriver) resource(c specmodel.Classification, names Names) Resource {
 	if readFull != nil {
 		readBody = readFull.SuccessSchema()
 	}
-	tree := buildTree(createBody, readBody, c.MissingUpdate)
-	keyParam, keyType := itemKeyParam(c.ItemPath, readFull)
+	tree := buildTree(createBody, readBody, classification.MissingUpdate)
+	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
 	ensureID(tree, keyParam, keyType)
 
 	updateStyle := ""
-	if c.Update != nil {
+	if classification.Update != nil {
 		updateStyle = UpdateStylePatchMerge
 		if updateFull != nil {
 			if s, ok := updateFull.Extensions.UpdateStyle(); ok {
@@ -274,20 +274,20 @@ func (d *deriver) resource(c specmodel.Classification, names Names) Resource {
 
 	return Resource{
 		Names: names,
-		Ops: Ops{
-			Create: d.op(c.Create, OpCreate),
-			Read:   d.op(c.Read, OpRead),
-			Update: d.op(c.Update, OpUpdate),
-			Delete: d.op(c.Delete, OpDelete),
-			List:   d.op(c.List, OpList),
+		Operations: Operations{
+			Create: derivation.operation(classification.Create, OperationCreate),
+			Read:   derivation.operation(classification.Read, OperationRead),
+			Update: derivation.operation(classification.Update, OperationUpdate),
+			Delete: derivation.operation(classification.Delete, OperationDelete),
+			List:   derivation.operation(classification.List, OperationList),
 		},
 		Schema:              tree,
-		MissingUpdate:       c.MissingUpdate,
+		MissingUpdate:       classification.MissingUpdate,
 		UpdateStyle:         updateStyle,
 		EventualConsistency: maxEventualConsistency(createFull, readFull, updateFull, deleteFull),
 		DeleteNotFoundOK:    deleteNotFoundOK,
 		Timeouts:            defaultTimeouts(),
-		ListEnvelopeKey:     listEnvelopeKey(d.full(c.List)),
+		ListEnvelopeKey:     listEnvelopeKey(derivation.full(classification.List)),
 	}
 }
 
@@ -313,33 +313,33 @@ func listEnvelopeKey(list *specmodel.Operation) string {
 		}
 		return ""
 	}
-	f := flatten(list.SuccessSchema())
-	if f.typ == "array" {
+	flattened := flatten(list.SuccessSchema())
+	if flattened.declaredType == "array" {
 		return ""
 	}
-	for _, p := range f.props {
-		if flatten(p.Schema).typ == "array" {
-			return p.Name
+	for _, property := range flattened.properties {
+		if flatten(property.Schema).declaredType == "array" {
+			return property.Name
 		}
 	}
 	return ""
 }
 
-func (d *deriver) datasource(c specmodel.Classification, names Names) Datasource {
-	readFull := d.full(c.Read)
+func (derivation *deriver) datasource(classification specmodel.Classification, names Names) Datasource {
+	readFull := derivation.full(classification.Read)
 	var readBody *specmodel.Schema
 	if readFull != nil {
 		readBody = readFull.SuccessSchema()
 	}
 	itemTree := buildTree(nil, readBody, false)
-	keyParam, keyType := itemKeyParam(c.ItemPath, readFull)
+	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
 	ensureID(itemTree, keyParam, keyType)
 
-	if c.LookupByKey {
+	if classification.LookupByKey {
 		requireKey(itemTree, keyParam, keyType)
 		return Datasource{
 			Names:        names,
-			Ops:          Ops{Read: d.op(c.Read, OpRead)},
+			Operations:   Operations{Read: derivation.operation(classification.Read, OperationRead)},
 			Schema:       itemTree,
 			LookupByKey:  true,
 			KeyParameter: keyParam,
@@ -351,19 +351,19 @@ func (d *deriver) datasource(c specmodel.Classification, names Names) Datasource
 	// toolkit's own vocabulary, not the API's, so they take no wire names
 	// beyond their own.
 	return Datasource{
-		Names: names,
-		Ops:   Ops{Read: d.op(c.Read, OpRead), List: d.op(c.List, OpList)},
+		Names:      names,
+		Operations: Operations{Read: derivation.operation(classification.Read, OperationRead), List: derivation.operation(classification.List, OperationList)},
 		Schema: &AttributeTree{Attributes: []Attribute{
 			{Name: "filter_type", WireName: "filter_type", Kind: TypeString, Presence: PresenceRequired},
 			{Name: "filter_value", WireName: "filter_value", Kind: TypeString, Presence: PresenceOptional},
-			{Name: "items", WireName: "items", Kind: TypeList, ElemKind: TypeObject, Presence: PresenceComputed, Nested: itemTree},
+			{Name: "items", WireName: "items", Kind: TypeList, ElementKind: TypeObject, Presence: PresenceComputed, Nested: itemTree},
 		}},
-		ListEnvelopeKey: listEnvelopeKey(d.full(c.List)),
+		ListEnvelopeKey: listEnvelopeKey(derivation.full(classification.List)),
 	}
 }
 
-func (d *deriver) listResource(c specmodel.Classification, names Names) ListResource {
-	listFull := d.full(c.List)
+func (derivation *deriver) listResource(classification specmodel.Classification, names Names) ListResource {
+	listFull := derivation.full(classification.List)
 	var listBody *specmodel.Schema
 	if listFull != nil {
 		listBody = listFull.SuccessSchema()
@@ -371,28 +371,28 @@ func (d *deriver) listResource(c specmodel.Classification, names Names) ListReso
 	// A list response is usually the element array itself; an envelope
 	// object is taken as-is rather than guessed into an element.
 	element := listBody
-	if f := flatten(listBody); f.typ == "array" && f.items != nil {
-		element = f.items
+	if flattened := flatten(listBody); flattened.declaredType == "array" && flattened.items != nil {
+		element = flattened.items
 	}
 	return ListResource{
 		Names:           names,
-		ListOp:          *d.op(c.List, OpList),
+		ListOperation:   *derivation.operation(classification.List, OperationList),
 		Schema:          buildTree(nil, element, false),
 		ListEnvelopeKey: listEnvelopeKey(listFull),
 	}
 }
 
-func (d *deriver) action(c specmodel.Classification, names Names, parentKey map[string]string) Action {
-	createFull := d.full(c.Create)
+func (derivation *deriver) action(classification specmodel.Classification, names Names, parentKey map[string]string) Action {
+	createFull := derivation.full(classification.Create)
 	var request *AttributeTree
 	if createFull != nil && createFull.RequestBody != nil {
 		request = buildTree(createFull.RequestBody, nil, false)
 	}
 	return Action{
-		Names:         names,
-		InvokeOp:      *d.op(c.Create, OpInvoke),
-		RequestSchema: request,
-		ParentEntity:  enclosingEntity(c.CollectionPath, parentKey),
+		Names:           names,
+		InvokeOperation: *derivation.operation(classification.Create, OperationInvoke),
+		RequestSchema:   request,
+		ParentEntity:    enclosingEntity(classification.CollectionPath, parentKey),
 	}
 }
 
@@ -418,31 +418,31 @@ var templateParam = regexp.MustCompile(`\{([^}]+)\}`)
 // pathParams lists an operation's path parameters in path-template order —
 // the order any call expression will take them — typed from the declared
 // parameter schema, string when the document does not say.
-func pathParams(pathTemplate string, op *specmodel.Operation) []Param {
+func pathParams(pathTemplate string, operation *specmodel.Operation) []Parameter {
 	matches := templateParam.FindAllStringSubmatch(pathTemplate, -1)
 	if len(matches) == 0 {
 		return nil
 	}
-	out := make([]Param, 0, len(matches))
-	for _, m := range matches {
-		p := Param{Name: m[1], Type: TypeString}
-		if op != nil {
-			for _, declared := range op.Parameters {
-				if declared.In == "path" && declared.Name == m[1] {
-					if k := scalarKind(declared.Schema); k != "" {
-						p.Type = k
+	out := make([]Parameter, 0, len(matches))
+	for _, model := range matches {
+		property := Parameter{Name: model[1], Type: TypeString}
+		if operation != nil {
+			for _, declared := range operation.Parameters {
+				if declared.In == "path" && declared.Name == model[1] {
+					if candidate := scalarKind(declared.Schema); candidate != "" {
+						property.Type = candidate
 					}
 				}
 			}
 		}
-		out = append(out, p)
+		out = append(out, property)
 	}
 	return out
 }
 
 // itemKeyParam names the item path's trailing parameter and its type,
 // which is what the id attribute and a lookup key derive from.
-func itemKeyParam(itemPath string, read *specmodel.Operation) (string, TypeKind) {
+func itemKeyParam(itemPath string, read *specmodel.Operation) (string, AttributeType) {
 	matches := templateParam.FindAllStringSubmatch(itemPath, -1)
 	if len(matches) == 0 {
 		return "", ""
@@ -450,10 +450,10 @@ func itemKeyParam(itemPath string, read *specmodel.Operation) (string, TypeKind)
 	name := matches[len(matches)-1][1]
 	kind := TypeString
 	if read != nil {
-		for _, p := range read.Parameters {
-			if p.In == "path" && p.Name == name {
-				if k := scalarKind(p.Schema); k != "" {
-					kind = k
+		for _, property := range read.Parameters {
+			if property.In == "path" && property.Name == name {
+				if candidate := scalarKind(property.Schema); candidate != "" {
+					kind = candidate
 				}
 			}
 		}
@@ -463,8 +463,8 @@ func itemKeyParam(itemPath string, read *specmodel.Operation) (string, TypeKind)
 
 // scalarKind maps a scalar schema type onto an attribute kind, empty for
 // anything else.
-func scalarKind(s *specmodel.Schema) TypeKind {
-	switch flatten(s).typ {
+func scalarKind(s *specmodel.Schema) AttributeType {
+	switch flatten(s).declaredType {
 	case "string":
 		return TypeString
 	case "boolean":
@@ -479,13 +479,13 @@ func scalarKind(s *specmodel.Schema) TypeKind {
 
 // successCode is the first declared 2xx status. Responses arrive sorted by
 // status string, which orders 2xx codes numerically.
-func successCode(op *specmodel.Operation) int {
-	if op == nil {
+func successCode(operation *specmodel.Operation) int {
+	if operation == nil {
 		return 0
 	}
-	for _, r := range op.Responses {
-		if strings.HasPrefix(r.Status, "2") {
-			if n, err := strconv.Atoi(r.Status); err == nil {
+	for _, resource := range operation.Responses {
+		if strings.HasPrefix(resource.Status, "2") {
+			if n, err := strconv.Atoi(resource.Status); err == nil {
 				return n
 			}
 		}
@@ -496,14 +496,14 @@ func successCode(op *specmodel.Operation) int {
 // maxEventualConsistency takes the largest declared read-after-write lag
 // across the lifecycle: whichever operation observed the worst lag governs
 // how long generated code must be prepared to wait.
-func maxEventualConsistency(ops ...*specmodel.Operation) time.Duration {
+func maxEventualConsistency(operations ...*specmodel.Operation) time.Duration {
 	var max time.Duration
-	for _, op := range ops {
-		if op == nil {
+	for _, operation := range operations {
+		if operation == nil {
 			continue
 		}
-		if d, ok := op.Extensions.EventualConsistency(); ok && d > max {
-			max = d
+		if derivation, ok := operation.Extensions.EventualConsistency(); ok && derivation > max {
+			max = derivation
 		}
 	}
 	return max

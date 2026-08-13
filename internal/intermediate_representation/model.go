@@ -70,8 +70,8 @@ const (
 
 // Resource is one entity with the full lifecycle Terraform can own.
 type Resource struct {
-	Names Names `json:"names"`
-	Ops   Ops   `json:"ops"`
+	Names      Names      `json:"names"`
+	Operations Operations `json:"operations"`
 	// Schema is the attribute tree: the create request schema combined
 	// with the read response schema, response-only fields computed.
 	Schema *AttributeTree `json:"schema"`
@@ -104,8 +104,8 @@ type Resource struct {
 // resource yields a companion datasource; an entity whose only access is
 // the item GET yields a lookup-by-key one.
 type Datasource struct {
-	Names Names `json:"names"`
-	Ops   Ops   `json:"ops"`
+	Names      Names      `json:"names"`
+	Operations Operations `json:"operations"`
 	// Schema is the datasource's attribute tree. A companion datasource
 	// follows the filter_type/filter_value/items pattern: two inputs and
 	// a computed list of the entity's objects. A lookup-by-key one is the
@@ -127,8 +127,8 @@ type Datasource struct {
 
 // ListResource is a list-only entity: enumerable but not addressable.
 type ListResource struct {
-	Names  Names `json:"names"`
-	ListOp Op    `json:"list_op"`
+	Names         Names     `json:"names"`
+	ListOperation Operation `json:"list_operation"`
 	// Schema is the element's attribute tree, everything computed.
 	Schema *AttributeTree `json:"schema"`
 	// CoManagementNote is the sibling-entity prose; see Resource.
@@ -140,8 +140,8 @@ type ListResource struct {
 
 // Action is a POST with no lifecycle complement — an invocation.
 type Action struct {
-	Names    Names `json:"names"`
-	InvokeOp Op    `json:"invoke_op"`
+	Names           Names     `json:"names"`
+	InvokeOperation Operation `json:"invoke_operation"`
 	// RequestSchema is the invocation's argument tree, nil when the POST
 	// takes no body.
 	RequestSchema *AttributeTree `json:"request_schema,omitempty"`
@@ -152,59 +152,59 @@ type Action struct {
 	CoManagementNote string `json:"co_management_note,omitempty"`
 }
 
-// Ops holds an entity's operations by role. Slots an entity lacks are nil.
-type Ops struct {
-	Create *Op `json:"create,omitempty"`
-	Read   *Op `json:"read,omitempty"`
-	Update *Op `json:"update,omitempty"`
-	Delete *Op `json:"delete,omitempty"`
-	List   *Op `json:"list,omitempty"`
+// Operations holds an entity's operations by role. Slots an entity lacks are nil.
+type Operations struct {
+	Create *Operation `json:"create,omitempty"`
+	Read   *Operation `json:"read,omitempty"`
+	Update *Operation `json:"update,omitempty"`
+	Delete *Operation `json:"delete,omitempty"`
+	List   *Operation `json:"list,omitempty"`
 }
 
-// OpKind is an operation's role in the entity's lifecycle.
-type OpKind string
+// OperationKind is an operation's role in the entity's lifecycle.
+type OperationKind string
 
 // Operation roles.
 const (
-	OpCreate OpKind = "create"
-	OpRead   OpKind = "read"
-	OpUpdate OpKind = "update"
-	OpDelete OpKind = "delete"
-	OpList   OpKind = "list"
-	OpInvoke OpKind = "invoke"
+	OperationCreate OperationKind = "create"
+	OperationRead   OperationKind = "read"
+	OperationUpdate OperationKind = "update"
+	OperationDelete OperationKind = "delete"
+	OperationList   OperationKind = "list"
+	OperationInvoke OperationKind = "invoke"
 )
 
-// Op is one operation, dialect-neutral: enough for any SDK binder to find
+// Operation is one operation, dialect-neutral: enough for any SDK binder to find
 // the call it must attach, and nothing backend-shaped. Binders produce a
 // parallel structure keyed by these fields; no backend type appears here.
-type Op struct {
-	Kind         OpKind  `json:"kind"`
-	Method       string  `json:"method"`
-	PathTemplate string  `json:"path_template"`
-	OperationID  string  `json:"operation_id,omitempty"`
-	PathParams   []Param `json:"path_params,omitempty"`
+type Operation struct {
+	Kind           OperationKind `json:"kind"`
+	Method         string        `json:"method"`
+	PathTemplate   string        `json:"path_template"`
+	OperationID    string        `json:"operation_id,omitempty"`
+	PathParameters []Parameter   `json:"path_parameters,omitempty"`
 	// SuccessCode is the first declared 2xx status, 0 when only a
 	// default response exists.
 	SuccessCode int `json:"success_code,omitempty"`
 }
 
-// Param is one path parameter, in path-template order.
-type Param struct {
-	Name string   `json:"name"`
-	Type TypeKind `json:"type"`
+// Parameter is one path parameter, in path-template order.
+type Parameter struct {
+	Name string        `json:"name"`
+	Type AttributeType `json:"type"`
 }
 
-// TypeKind is a terraform-plugin-framework attribute type.
-type TypeKind string
+// AttributeType is a terraform-plugin-framework attribute type.
+type AttributeType string
 
 // Attribute type kinds.
 const (
-	TypeString  TypeKind = "string"
-	TypeBool    TypeKind = "bool"
-	TypeInt64   TypeKind = "int64"
-	TypeFloat64 TypeKind = "float64"
-	TypeList    TypeKind = "list"
-	TypeObject  TypeKind = "object"
+	TypeString  AttributeType = "string"
+	TypeBool    AttributeType = "bool"
+	TypeInt64   AttributeType = "int64"
+	TypeFloat64 AttributeType = "float64"
+	TypeList    AttributeType = "list"
+	TypeObject  AttributeType = "object"
 )
 
 // Presence is how an attribute participates in plans.
@@ -286,11 +286,11 @@ type Attribute struct {
 	// Name is the terraform attribute name, snake_case.
 	Name string `json:"name"`
 	// WireName is the property name the API speaks.
-	WireName string   `json:"wire_name"`
-	Kind     TypeKind `json:"kind,omitempty"`
-	// ElemKind is the element kind of a list of scalars; lists of objects
+	WireName string        `json:"wire_name"`
+	Kind     AttributeType `json:"kind,omitempty"`
+	// ElementKind is the element kind of a list of scalars; lists of objects
 	// carry Nested instead.
-	ElemKind TypeKind `json:"elem_kind,omitempty"`
+	ElementKind AttributeType `json:"element_kind,omitempty"`
 	// Nested is the child tree of an object attribute or a list of
 	// objects.
 	Nested   *AttributeTree `json:"nested,omitempty"`

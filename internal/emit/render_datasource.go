@@ -130,7 +130,7 @@ func keyAttrName(ds *ir.Datasource) string {
 // datasource: the key parameter is the single required argument and the
 // entity's object comes back.
 func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixtures.Fixture, error) {
-	if ds.Ops.Read == nil || db.Read == nil {
+	if ds.Operations.Read == nil || db.Read == nil {
 		return fixtures.Fixture{}, fmt.Errorf("a lookup-by-key datasource needs a bound read call")
 	}
 
@@ -209,7 +209,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 // companionDatasource fills the render context for the
 // filter_type/filter_value/items pattern.
 func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixtures.Fixture, error) {
-	if ds.Ops.List == nil || db.List == nil {
+	if ds.Operations.List == nil || db.List == nil {
 		return fixtures.Fixture{}, fmt.Errorf("a companion datasource needs a bound list call")
 	}
 	itemTree := companionItemTree(ds)
@@ -221,7 +221,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	// The id filter needs the by-id read's payload to bridge to one list
 	// element: identical types, or a pointer the element type sits behind.
 	// A read shaped any other way keeps the filter off rather than guessed.
-	d.HasIDFilter = ds.Ops.Read != nil && db.Read != nil && len(db.Read.Params) == 1 &&
+	d.HasIDFilter = ds.Operations.Read != nil && db.Read != nil && len(db.Read.Params) == 1 &&
 		db.Read.Params[0].GoType == "string" && itemPayloadExpr(db) != ""
 
 	// Schema: the two filter inputs, then the computed items list.
@@ -403,11 +403,11 @@ func (e *serviceRenderer) datasourceMocks(d *datasourceData, ds *ir.Datasource, 
 	d.RegistryName = ds.Names.TerraformType + ".data"
 	d.ResponseMaximal = string(spec.WireJSON(fixtures.ResponseMaximal))
 	d.ListPayload = listPayloadExpr(ds.ListEnvelopeKey, "[]map[string]any{object()}")
-	if ds.Ops.List != nil {
-		d.CollectionURL = mockURL(ds.Ops.List.PathTemplate)
+	if ds.Operations.List != nil {
+		d.CollectionURL = mockURL(ds.Operations.List.PathTemplate)
 	}
-	if ds.Ops.Read != nil {
-		d.ItemPattern = mockPattern(ds.Ops.Read.PathTemplate)
+	if ds.Operations.Read != nil {
+		d.ItemPattern = mockPattern(ds.Operations.Read.PathTemplate)
 		d.HasItemMock = true
 	}
 

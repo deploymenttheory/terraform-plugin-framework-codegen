@@ -42,7 +42,7 @@ func TestIntegration_IntermediateRepresentation_DerivesAPinnedVendorDocument(t *
 		if r.Names.Key == "" || r.Names.TerraformType == "" || r.Schema == nil {
 			t.Errorf("anonymous resource: %+v", r.Names)
 		}
-		if r.Ops.Create == nil || r.Ops.Read == nil || r.Ops.Delete == nil {
+		if r.Operations.Create == nil || r.Operations.Read == nil || r.Operations.Delete == nil {
 			t.Errorf("resource %s lacks lifecycle ops", r.Names.Key)
 		}
 	}

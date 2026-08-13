@@ -59,9 +59,9 @@ type Entry struct {
 	// speaks.
 	Name string
 	Wire string
-	// Kind and ElemKind mirror the attribute's kinds.
-	Kind     ir.TypeKind
-	ElemKind ir.TypeKind
+	// Kind and ElementKind mirror the attribute's kinds.
+	Kind        ir.AttributeType
+	ElementKind ir.AttributeType
 	// Presence decides which renderings carry the value: configurations
 	// carry writable attributes, responses carry readable ones.
 	Presence ir.Presence
@@ -298,11 +298,11 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			continue
 		}
 		v := Entry{
-			Name:     a.Name,
-			Wire:     a.WireName,
-			Kind:     a.Kind,
-			ElemKind: a.ElemKind,
-			Presence: a.Presence,
+			Name:        a.Name,
+			Wire:        a.WireName,
+			Kind:        a.Kind,
+			ElementKind: a.ElementKind,
+			Presence:    a.Presence,
 		}
 		switch {
 		case a.Nested != nil:
@@ -310,7 +310,7 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			v.Nested = nested
 			skips = append(skips, nestedSkips...)
 		case a.Kind == ir.TypeList:
-			v.Scalar = scalarFor(a.ElemKind, a, at)
+			v.Scalar = scalarFor(a.ElementKind, a, at)
 		default:
 			v.Scalar = scalarFor(a.Kind, a, at)
 		}
@@ -322,7 +322,7 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 // scalarFor synthesises one scalar value: enum-driven when the document
 // declares values, type-driven otherwise, with strings carrying the test
 // prefix and the attribute path so no two attributes share a value.
-func scalarFor(kind ir.TypeKind, a ir.Attribute, path []string) any {
+func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) any {
 	switch kind {
 	case ir.TypeBool:
 		return true

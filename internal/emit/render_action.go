@@ -65,7 +65,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 
 	// The schema is the invocation's arguments: one attribute per path
 	// parameter, then the request body's tree.
-	paramNodes := actionParamNodes(&a.InvokeOp)
+	paramNodes := actionParamNodes(&a.InvokeOperation)
 	bodyNodes := joinTree(a.RequestSchema, ab.Fields)
 	nodes := append(append([]node{}, paramNodes...), bodyNodes...)
 
@@ -126,12 +126,12 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 
 	// Test wiring.
 	spec := deriveFixtures(actionTree(paramNodes, a.RequestSchema), nodes)
-	d.InvokeMethod = a.InvokeOp.Method
-	d.InvokeStatus = successStatus(&a.InvokeOp, 204)
-	if len(a.InvokeOp.PathParams) > 0 {
-		d.InvokeMatcher = mockPattern(a.InvokeOp.PathTemplate)
+	d.InvokeMethod = a.InvokeOperation.Method
+	d.InvokeStatus = successStatus(&a.InvokeOperation, 204)
+	if len(a.InvokeOperation.PathParameters) > 0 {
+		d.InvokeMatcher = mockPattern(a.InvokeOperation.PathTemplate)
 	} else {
-		d.InvokeMatcher = mockURL(a.InvokeOp.PathTemplate)
+		d.InvokeMatcher = mockURL(a.InvokeOperation.PathTemplate)
 	}
 	d.ConfigValue = tftypesValue(spec.Entries, 1)
 	d.TestClientConfig = e.testClientConfig()
@@ -184,9 +184,9 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 // actionParamNodes synthesises the argument attributes an invocation's
 // path parameters need: the model does not carry them as schema, but the
 // caller must supply them somewhere.
-func actionParamNodes(op *ir.Op) []node {
+func actionParamNodes(op *ir.Operation) []node {
 	var out []node
-	for _, p := range op.PathParams {
+	for _, p := range op.PathParameters {
 		kind := p.Type
 		if kind == "" {
 			kind = ir.TypeString
@@ -236,7 +236,7 @@ func tftype(v fixtures.Entry) string {
 	case v.Nested != nil:
 		return tftypeObject(v.Nested)
 	case v.Kind == ir.TypeList:
-		return "tftypes.List{ElementType: " + tftypeScalar(v.ElemKind) + "}"
+		return "tftypes.List{ElementType: " + tftypeScalar(v.ElementKind) + "}"
 	default:
 		return tftypeScalar(v.Kind)
 	}
@@ -257,7 +257,7 @@ func tftypeObject(values []fixtures.Entry) string {
 }
 
 // tftypeScalar is the tftypes primitive for one kind.
-func tftypeScalar(k ir.TypeKind) string {
+func tftypeScalar(k ir.AttributeType) string {
 	switch k {
 	case ir.TypeBool:
 		return "tftypes.Bool"
@@ -278,7 +278,7 @@ func tftypeNewValue(v fixtures.Entry) string {
 		return tftypeNewObject(v.Nested)
 	case v.Kind == ir.TypeList:
 		return fmt.Sprintf("tftypes.NewValue(%s, []tftypes.Value{tftypes.NewValue(%s, %s)})",
-			tftype(v), tftypeScalar(v.ElemKind), tftypeScalarLiteral(v.ElemKind, v.Scalar))
+			tftype(v), tftypeScalar(v.ElementKind), tftypeScalarLiteral(v.ElementKind, v.Scalar))
 	default:
 		return fmt.Sprintf("tftypes.NewValue(%s, %s)", tftypeScalar(v.Kind), tftypeScalarLiteral(v.Kind, v.Scalar))
 	}
@@ -299,7 +299,7 @@ func tftypeNewObject(values []fixtures.Entry) string {
 }
 
 // tftypeScalarLiteral is the Go literal one scalar travels as.
-func tftypeScalarLiteral(k ir.TypeKind, scalar any) string {
+func tftypeScalarLiteral(k ir.AttributeType, scalar any) string {
 	switch k {
 	case ir.TypeBool, ir.TypeInt64, ir.TypeFloat64:
 		return checkValue(scalar)

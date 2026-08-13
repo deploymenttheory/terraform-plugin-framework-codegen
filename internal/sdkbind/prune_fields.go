@@ -211,13 +211,13 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 		elem := slice.Elem()
 		if basic, ok := elem.Underlying().(*types.Basic); ok {
 			if named, isNamed := elem.(*types.Named); isNamed {
-				if parse, isEnum := p.enumParse(named); isEnum && fb.ElemKind == ir.TypeString {
+				if parse, isEnum := p.enumParse(named); isEnum && fb.ElementKind == ir.TypeString {
 					settle("[]"+qualifiedName(named), "FromEnumSlice", "ToEnumSlice", parse)
 					return ""
 				}
 				return cannot(shortType(t))
 			}
-			if !kindCompatible(fb.ElemKind, basic) {
+			if !kindCompatible(fb.ElementKind, basic) {
 				return cannot(shortType(t))
 			}
 			title := exportedName(basic.Name())
@@ -304,7 +304,7 @@ func (p *pruner) enumParse(named *types.Named) (string, bool) {
 // kindCompatible reports whether a basic SDK type can carry an attribute
 // kind: integers of any width carry int64 attributes, floats of either
 // width carry float64 ones.
-func kindCompatible(kind ir.TypeKind, basic *types.Basic) bool {
+func kindCompatible(kind ir.AttributeType, basic *types.Basic) bool {
 	switch kind {
 	case ir.TypeString:
 		return basic.Info()&types.IsString != 0

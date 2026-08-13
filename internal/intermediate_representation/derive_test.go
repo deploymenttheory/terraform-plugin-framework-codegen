@@ -82,22 +82,22 @@ func TestDerive_ResourceLifecycle(t *testing.T) {
 		t.Errorf("timeout defaults missing: %+v", r.Timeouts)
 	}
 
-	create, del := r.Ops.Create, r.Ops.Delete
-	if create == nil || del == nil || r.Ops.Read == nil || r.Ops.Update == nil || r.Ops.List == nil {
-		t.Fatalf("lifecycle ops missing: %+v", r.Ops)
+	create, deleteOperation := r.Operations.Create, r.Operations.Delete
+	if create == nil || deleteOperation == nil || r.Operations.Read == nil || r.Operations.Update == nil || r.Operations.List == nil {
+		t.Fatalf("lifecycle ops missing: %+v", r.Operations)
 	}
-	if create.Kind != OpCreate || create.Method != "POST" || create.SuccessCode != 201 {
+	if create.Kind != OperationCreate || create.Method != "POST" || create.SuccessCode != 201 {
 		t.Errorf("create op = %+v", create)
 	}
 	if create.OperationID != "createThing" {
 		t.Errorf("create operation id = %q", create.OperationID)
 	}
-	if del.PathTemplate != "/v7/things/{thingId}" || del.SuccessCode != 204 {
-		t.Errorf("delete op = %+v", del)
+	if deleteOperation.PathTemplate != "/v7/things/{thingId}" || deleteOperation.SuccessCode != 204 {
+		t.Errorf("delete op = %+v", deleteOperation)
 	}
-	want := []Param{{Name: "thingId", Type: TypeString}}
-	if !reflect.DeepEqual(del.PathParams, want) {
-		t.Errorf("delete path params = %+v, want %+v", del.PathParams, want)
+	want := []Parameter{{Name: "thingId", Type: TypeString}}
+	if !reflect.DeepEqual(deleteOperation.PathParameters, want) {
+		t.Errorf("delete path params = %+v, want %+v", deleteOperation.PathParameters, want)
 	}
 }
 
@@ -147,8 +147,8 @@ components:
 	if r.UpdateStyle != UpdateStylePatchMerge {
 		t.Errorf("UpdateStyle = %q, want the patch-merge default", r.UpdateStyle)
 	}
-	if r.Names.APIVersionDir != "v1" {
-		t.Errorf("APIVersionDir = %q, want the v1 default", r.Names.APIVersionDir)
+	if r.Names.APIVersionDirectory != "v1" {
+		t.Errorf("APIVersionDirectory = %q, want the v1 default", r.Names.APIVersionDirectory)
 	}
 	if r.EventualConsistency != 0 {
 		t.Errorf("EventualConsistency = %v with none declared", r.EventualConsistency)
@@ -220,8 +220,8 @@ func TestDerive_CompanionDatasource(t *testing.T) {
 	if ds.LookupByKey {
 		t.Fatalf("a resource companion marked LookupByKey")
 	}
-	if ds.Ops.Read == nil || ds.Ops.List == nil {
-		t.Fatalf("companion ops incomplete: %+v", ds.Ops)
+	if ds.Operations.Read == nil || ds.Operations.List == nil {
+		t.Fatalf("companion ops incomplete: %+v", ds.Operations)
 	}
 
 	ft := attribute(t, ds.Schema, "filter_type")
@@ -233,7 +233,7 @@ func TestDerive_CompanionDatasource(t *testing.T) {
 		t.Errorf("filter_value = %+v", fv)
 	}
 	items := attribute(t, ds.Schema, "items")
-	if items.Kind != TypeList || items.ElemKind != TypeObject || items.Presence != PresenceComputed {
+	if items.Kind != TypeList || items.ElementKind != TypeObject || items.Presence != PresenceComputed {
 		t.Errorf("items = %+v", items)
 	}
 	// Inside items everything is computed: the datasource never writes.
@@ -256,8 +256,8 @@ func TestDerive_LookupByKeyDatasource(t *testing.T) {
 	if ds.KeyParameter != "settingName" {
 		t.Errorf("KeyParameter = %q", ds.KeyParameter)
 	}
-	if ds.Ops.Read == nil || ds.Ops.List != nil {
-		t.Errorf("lookup ops = %+v", ds.Ops)
+	if ds.Operations.Read == nil || ds.Operations.List != nil {
+		t.Errorf("lookup ops = %+v", ds.Operations)
 	}
 	key := attribute(t, ds.Schema, "setting_name")
 	if key.Presence != PresenceRequired || key.Kind != TypeString || key.WireName != "settingName" {
@@ -277,8 +277,8 @@ func TestDerive_ListReadEntityYieldsDatasource(t *testing.T) {
 	if ds.LookupByKey {
 		t.Errorf("a list+read entity marked LookupByKey")
 	}
-	if ds.Ops.List == nil || ds.Ops.Read == nil {
-		t.Errorf("stream ops = %+v", ds.Ops)
+	if ds.Operations.List == nil || ds.Operations.Read == nil {
+		t.Errorf("stream ops = %+v", ds.Operations)
 	}
 	items := attribute(t, ds.Schema, "items")
 	if a := attribute(t, items.Nested, "topic"); a.Presence != PresenceComputed {
@@ -292,8 +292,8 @@ func TestDerive_ListResource(t *testing.T) {
 		if lr.Names.Key != "event" {
 			continue
 		}
-		if lr.ListOp.Kind != OpList || lr.ListOp.Method != "GET" || lr.ListOp.SuccessCode != 200 {
-			t.Errorf("list op = %+v", lr.ListOp)
+		if lr.ListOperation.Kind != OperationList || lr.ListOperation.Method != "GET" || lr.ListOperation.SuccessCode != 200 {
+			t.Errorf("list op = %+v", lr.ListOperation)
 		}
 		for _, name := range []string{"at", "level"} {
 			if a := attribute(t, lr.Schema, name); a.Presence != PresenceComputed {
@@ -317,8 +317,8 @@ func TestDerive_Action(t *testing.T) {
 	if a.ParentEntity != "thing" {
 		t.Errorf("ParentEntity = %q, want the enclosing thing entity", a.ParentEntity)
 	}
-	if a.InvokeOp.Kind != OpInvoke || a.InvokeOp.SuccessCode != 202 {
-		t.Errorf("invoke op = %+v", a.InvokeOp)
+	if a.InvokeOperation.Kind != OperationInvoke || a.InvokeOperation.SuccessCode != 202 {
+		t.Errorf("invoke op = %+v", a.InvokeOperation)
 	}
 	force := attribute(t, a.RequestSchema, "force")
 	if force.Kind != TypeBool || force.Presence != PresenceRequired {

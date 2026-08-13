@@ -10,17 +10,17 @@ import (
 // flat is one schema with references resolved and allOf composition folded
 // in, so tree derivation reads a single view of what the object declares.
 type flat struct {
-	empty    bool
-	typ      string
-	readOnly bool
-	enum     []any
-	required map[string]bool
-	// props preserves encounter order — document order first, allOf
+	empty        bool
+	declaredType string
+	readOnly     bool
+	enum         []any
+	required     map[string]bool
+	// properties preserves encounter order — document order first, allOf
 	// branches after — with the first declaration of a name winning.
-	props    []specmodel.Property
-	items    *specmodel.Schema
-	hasUnion bool
-	ext      specmodel.Extensions
+	properties []specmodel.Property
+	items      *specmodel.Schema
+	hasUnion   bool
+	extensions specmodel.Extensions
 	// dependentRequired accumulates every dependentRequired entry across the
 	// folded schema, so a 3.1 co-requirement reaches the tree alongside the
 	// x-tfpfgen-depends-on form a 3.0 document uses.
@@ -28,148 +28,148 @@ type flat struct {
 }
 
 // flatten folds a schema and its allOf branches flat. Extensions written
-// beside a $ref win over the target's own, matching how a reference site
+// beside a $ref win over the target'schema own, matching how a reference site
 // annotates the use rather than the definition.
-func flatten(s *specmodel.Schema) flat {
-	f := flat{required: map[string]bool{}, ext: specmodel.Extensions{}}
-	if s == nil {
-		f.empty = true
-		return f
+func flatten(schema *specmodel.Schema) flat {
+	flattened := flat{required: map[string]bool{}, extensions: specmodel.Extensions{}}
+	if schema == nil {
+		flattened.empty = true
+		return flattened
 	}
 	seenSchema := map[*specmodel.Schema]bool{}
 	seenProp := map[string]bool{}
 
-	var walk func(s *specmodel.Schema)
-	walk = func(s *specmodel.Schema) {
-		if s == nil || seenSchema[s] {
+	var walk func(schema *specmodel.Schema)
+	walk = func(schema *specmodel.Schema) {
+		if schema == nil || seenSchema[schema] {
 			return
 		}
-		seenSchema[s] = true
-		for k, v := range s.Extensions {
-			if _, taken := f.ext[k]; !taken {
-				f.ext[k] = v
+		seenSchema[schema] = true
+		for key, value := range schema.Extensions {
+			if _, taken := flattened.extensions[key]; !taken {
+				flattened.extensions[key] = value
 			}
 		}
-		if r := s.Resolved(); r != s {
-			walk(r)
+		if resolved := schema.Resolved(); resolved != schema {
+			walk(resolved)
 			return
 		}
-		if f.typ == "" {
-			f.typ = s.Type
+		if flattened.declaredType == "" {
+			flattened.declaredType = schema.Type
 		}
-		if s.ReadOnly {
-			f.readOnly = true
+		if schema.ReadOnly {
+			flattened.readOnly = true
 		}
-		if f.enum == nil {
-			f.enum = s.Enum
+		if flattened.enum == nil {
+			flattened.enum = schema.Enum
 		}
-		for _, name := range s.Required {
-			f.required[name] = true
+		for _, name := range schema.Required {
+			flattened.required[name] = true
 		}
-		for _, p := range s.Properties {
-			if !seenProp[p.Name] {
-				seenProp[p.Name] = true
-				f.props = append(f.props, p)
+		for _, property := range schema.Properties {
+			if !seenProp[property.Name] {
+				seenProp[property.Name] = true
+				flattened.properties = append(flattened.properties, property)
 			}
 		}
-		if f.items == nil {
-			f.items = s.Items
+		if flattened.items == nil {
+			flattened.items = schema.Items
 		}
-		if len(s.OneOf)+len(s.AnyOf) > 0 {
-			f.hasUnion = true
+		if len(schema.OneOf)+len(schema.AnyOf) > 0 {
+			flattened.hasUnion = true
 		}
-		f.dependentRequired = append(f.dependentRequired, s.DependentRequired...)
-		for _, branch := range s.AllOf {
+		flattened.dependentRequired = append(flattened.dependentRequired, schema.DependentRequired...)
+		for _, branch := range schema.AllOf {
 			walk(branch)
 		}
 	}
-	walk(s)
-	return f
+	walk(schema)
+	return flattened
 }
 
-// prop finds a flattened schema's property by wire name.
-func (f flat) prop(name string) *specmodel.Schema {
-	for _, p := range f.props {
-		if p.Name == name {
-			return p.Schema
+// findProperty finds a flattened schema'schema property by wire name.
+func (flattened flat) findProperty(name string) *specmodel.Schema {
+	for _, property := range flattened.properties {
+		if property.Name == name {
+			return property.Schema
 		}
 	}
 	return nil
 }
 
-// buildTree derives an object's attribute tree from its create request
+// buildTree derives an object'schema attribute tree from its create request
 // schema combined with its read response schema. Either side may be nil: a
 // nil create side means everything is computed (a read-only view), a nil
 // read side means the request stands alone. Response-only properties come
 // out computed. replaceAll marks every writable attribute RequiresReplace,
 // which is what a missing update operation amounts to.
 func buildTree(create, read *specmodel.Schema, replaceAll bool) *AttributeTree {
-	fc, fr := flatten(create), flatten(read)
+	flatCreate, flatRead := flatten(create), flatten(read)
 	tree := &AttributeTree{}
 	required := map[[2]string][]string{}
 	valid := map[[2]string][]string{}
-	deps := map[string][]string{}
+	dependencies := map[string][]string{}
 
-	addAttr := func(name string, createSide, readSide *specmodel.Schema) {
-		attr, edges := buildAttribute(name, site{
+	addAttribute := func(name string, createSide, readSide *specmodel.Schema) {
+		attribute, edges := buildAttribute(name, site{
 			create:         createSide,
 			read:           readSide,
-			requiredCreate: fc.required[name],
-			requiredRead:   fr.required[name],
+			requiredCreate: flatCreate.required[name],
+			requiredRead:   flatRead.required[name],
 			replaceAll:     replaceAll,
 		})
-		tree.Attributes = append(tree.Attributes, attr)
+		tree.Attributes = append(tree.Attributes, attribute)
 		if edges.requiredWhen != nil {
 			gate := [2]string{snakeCase(edges.requiredWhen.Property), edges.requiredWhen.Equals}
-			required[gate] = append(required[gate], attr.Name)
+			required[gate] = append(required[gate], attribute.Name)
 		}
 		if edges.validWhen != nil {
 			gate := [2]string{snakeCase(edges.validWhen.Property), edges.validWhen.Equals}
-			valid[gate] = append(valid[gate], attr.Name)
+			valid[gate] = append(valid[gate], attribute.Name)
 		}
 		if edges.dependsOn != nil {
-			deps[attr.Name] = append(deps[attr.Name], snakeCase(edges.dependsOn.Requires))
+			dependencies[attribute.Name] = append(dependencies[attribute.Name], snakeCase(edges.dependsOn.Requires))
 		}
 	}
 
-	for _, p := range fc.props {
-		addAttr(p.Name, p.Schema, fr.prop(p.Name))
+	for _, property := range flatCreate.properties {
+		addAttribute(property.Name, property.Schema, flatRead.findProperty(property.Name))
 	}
-	for _, p := range fr.props {
-		if fc.prop(p.Name) == nil {
-			addAttr(p.Name, nil, p.Schema)
+	for _, property := range flatRead.properties {
+		if flatCreate.findProperty(property.Name) == nil {
+			addAttribute(property.Name, nil, property.Schema)
 		}
 	}
 
 	// dependentRequired (JSON Schema 3.1) folds into the same dependency set
 	// as x-tfpfgen-depends-on, both keyed by the dependent attribute.
-	for _, dr := range append(append([]specmodel.DependentRequired(nil), fc.dependentRequired...), fr.dependentRequired...) {
-		for _, req := range dr.Requires {
-			deps[snakeCase(dr.Property)] = append(deps[snakeCase(dr.Property)], snakeCase(req))
+	for _, dependentRequired := range append(append([]specmodel.DependentRequired(nil), flatCreate.dependentRequired...), flatRead.dependentRequired...) {
+		for _, requiredName := range dependentRequired.Requires {
+			dependencies[snakeCase(dependentRequired.Property)] = append(dependencies[snakeCase(dependentRequired.Property)], snakeCase(requiredName))
 		}
 	}
 
 	tree.ConditionalRequirements = sortedConditionals(required)
 	tree.ConditionalValidities = sortedValidities(valid)
-	tree.Dependencies = sortedDependencies(deps)
-	schemaExt := mergeExtensions(fc.ext, fr.ext)
+	tree.Dependencies = sortedDependencies(dependencies)
+	schemaExt := mergeExtensions(flatCreate.extensions, flatRead.extensions)
 	if names, ok := schemaExt.MutuallyExclusive(); ok {
 		tree.MutuallyExclusiveGroups = [][]string{sortedUnique(snakeAll(names))}
 	}
-	if vc, ok := schemaExt.ValidConfiguration(); ok {
-		tree.ValidConfigurations = []ValidConfiguration{convertValidConfiguration(vc)}
+	if validConfiguration, ok := schemaExt.ValidConfiguration(); ok {
+		tree.ValidConfigurations = []ValidConfiguration{convertValidConfiguration(validConfiguration)}
 	}
 	return tree
 }
 
 // convertValidConfiguration renders a specmodel variant structure into the IR
 // form, attribute names snake-cased and order fixed.
-func convertValidConfiguration(vc specmodel.ValidConfiguration) ValidConfiguration {
-	out := ValidConfiguration{Discriminator: snakeCase(vc.Discriminator)}
-	for _, v := range vc.Variants {
-		out.Variants = append(out.Variants, ConfigVariant{Value: v.Value, Valid: sortedUnique(snakeAll(v.Fields))})
+func convertValidConfiguration(validConfiguration specmodel.ValidConfiguration) ValidConfiguration {
+	out := ValidConfiguration{Discriminator: snakeCase(validConfiguration.Discriminator)}
+	for _, value := range validConfiguration.Variants {
+		out.Variants = append(out.Variants, ConfigVariant{Value: value.Value, Valid: sortedUnique(snakeAll(value.Fields))})
 	}
-	sort.Slice(out.Variants, func(i, j int) bool { return out.Variants[i].Value < out.Variants[j].Value })
+	sort.Slice(out.Variants, func(index, j int) bool { return out.Variants[index].Value < out.Variants[j].Value })
 	return out
 }
 
@@ -184,11 +184,11 @@ func sortedConditionals(gates map[[2]string][]string) []ConditionalRequirement {
 		sort.Strings(names)
 		out = append(out, ConditionalRequirement{Property: gate[0], Equals: gate[1], Required: names})
 	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Property != out[j].Property {
-			return out[i].Property < out[j].Property
+	sort.Slice(out, func(index, j int) bool {
+		if out[index].Property != out[j].Property {
+			return out[index].Property < out[j].Property
 		}
-		return out[i].Equals < out[j].Equals
+		return out[index].Equals < out[j].Equals
 	})
 	return out
 }
@@ -204,34 +204,34 @@ func sortedValidities(gates map[[2]string][]string) []ConditionalValidity {
 		sort.Strings(names)
 		out = append(out, ConditionalValidity{Property: gate[0], Equals: gate[1], Valid: names})
 	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Property != out[j].Property {
-			return out[i].Property < out[j].Property
+	sort.Slice(out, func(index, j int) bool {
+		if out[index].Property != out[j].Property {
+			return out[index].Property < out[j].Property
 		}
-		return out[i].Equals < out[j].Equals
+		return out[index].Equals < out[j].Equals
 	})
 	return out
 }
 
 // sortedDependencies renders the co-requirements in a fixed order, one entry
 // per dependent attribute with its required attributes sorted and de-duped.
-func sortedDependencies(deps map[string][]string) []Dependency {
-	if len(deps) == 0 {
+func sortedDependencies(dependencies map[string][]string) []Dependency {
+	if len(dependencies) == 0 {
 		return nil
 	}
-	out := make([]Dependency, 0, len(deps))
-	for attr, requires := range deps {
-		out = append(out, Dependency{Attribute: attr, Requires: sortedUnique(requires)})
+	out := make([]Dependency, 0, len(dependencies))
+	for attribute, requires := range dependencies {
+		out = append(out, Dependency{Attribute: attribute, Requires: sortedUnique(requires)})
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Attribute < out[j].Attribute })
+	sort.Slice(out, func(index, j int) bool { return out[index].Attribute < out[j].Attribute })
 	return out
 }
 
 // snakeAll snake-cases a slice of wire names, preserving order.
 func snakeAll(wire []string) []string {
 	out := make([]string, len(wire))
-	for i, w := range wire {
-		out[i] = snakeCase(w)
+	for index, character := range wire {
+		out[index] = snakeCase(character)
 	}
 	return out
 }
@@ -241,12 +241,12 @@ func sortedUnique(names []string) []string {
 	if len(names) == 0 {
 		return nil
 	}
-	cp := append([]string(nil), names...)
-	sort.Strings(cp)
-	out := cp[:0:0]
-	for i, s := range cp {
-		if i == 0 || s != cp[i-1] {
-			out = append(out, s)
+	copied := append([]string(nil), names...)
+	sort.Strings(copied)
+	out := copied[:0:0]
+	for index, schema := range copied {
+		if index == 0 || schema != copied[index-1] {
+			out = append(out, schema)
 		}
 	}
 	return out
@@ -261,10 +261,10 @@ type site struct {
 	replaceAll     bool
 }
 
-// attrEdges carries the per-attribute cross-attribute rules buildAttribute
+// attributeEdges carries the per-attribute cross-attribute rules buildAttribute
 // reads off one property for buildTree to aggregate: a value-conditional
 // requirement, a value-conditional validity, and a co-requirement.
-type attrEdges struct {
+type attributeEdges struct {
 	requiredWhen *specmodel.RequiredWhen
 	validWhen    *specmodel.ValidWhen
 	dependsOn    *specmodel.DependsOn
@@ -272,165 +272,165 @@ type attrEdges struct {
 
 // buildAttribute decides one attribute, returning the cross-attribute rules
 // declared on it for the tree to aggregate.
-func buildAttribute(wire string, at site) (Attribute, attrEdges) {
-	attr := Attribute{Name: snakeCase(wire), WireName: wire}
+func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges) {
+	attribute := Attribute{Name: snakeCase(wire), WireName: wire}
 
-	writable := at.create != nil
-	fc, fr := flatten(at.create), flatten(at.read)
-	fp := fc
+	writable := attributeSite.create != nil
+	flatCreate, flatRead := flatten(attributeSite.create), flatten(attributeSite.read)
+	flatPrimary := flatCreate
 	if !writable {
-		fp = fr
+		flatPrimary = flatRead
 	}
-	ext := mergeExtensions(fc.ext, fr.ext)
+	extensions := mergeExtensions(flatCreate.extensions, flatRead.extensions)
 
-	serverForced, _ := ext.ServerForced()
-	volatile, _ := ext.Volatile()
-	createOnly, _ := ext.CreateOnly()
-	_, serverFills := ext.ServerDefault()
-	attr.SilentlyIgnoredOnUpdate, _ = ext.SilentlyIgnoredOnUpdate()
+	serverForced, _ := extensions.ServerForced()
+	volatile, _ := extensions.Volatile()
+	createOnly, _ := extensions.CreateOnly()
+	_, serverFills := extensions.ServerDefault()
+	attribute.SilentlyIgnoredOnUpdate, _ = extensions.SilentlyIgnoredOnUpdate()
 
 	// Every attribute lands in exactly one of five outcomes, and this is where
 	// four of them are chosen (the fifth, omitted entirely, is decided by
 	// deriveType marking the attribute unsupported).
 	switch {
-	case !writable || fp.readOnly || serverForced || volatile:
+	case !writable || flatPrimary.readOnly || serverForced || volatile:
 		// The practitioner cannot set it: not in the create body, declared
 		// read-only, overwritten by the server, or different on every read.
-		attr.Presence = PresenceComputed
-	case at.requiredCreate:
-		attr.Presence = PresenceRequired
-	case serverFills || at.requiredRead:
+		attribute.Presence = PresenceComputed
+	case attributeSite.requiredCreate:
+		attribute.Presence = PresenceRequired
+	case serverFills || attributeSite.requiredRead:
 		// Writable, and the response carries a value whether or not the
 		// request supplied one: the practitioner may set it and Terraform
-		// must accept the server's choice when they do not.
+		// must accept the server'schema choice when they dependsOnEdge not.
 		//
 		// requiredRead alone is too weak to find these. It reads the response
-		// schema's `required` list, and an API that declares none — as the
+		// schema'schema `required` list, and an API that declares none — as the
 		// ThousandEyes document does throughout — sends every writable
 		// optional field to plain Optional below, which is a perpetual diff
 		// for any field the server fills. x-tfpfgen-server-default is the
-		// audit's measurement of the same fact, and it does not depend on the
+		// audit'schema measurement of the same fact, and it does not depend on the
 		// document being diligent.
-		attr.Presence = PresenceOptionalComputed
+		attribute.Presence = PresenceOptionalComputed
 	default:
 		// Writable, and the server leaves it absent when the request omits it.
 		// Genuinely rare: most APIs answer with something.
-		attr.Presence = PresenceOptional
+		attribute.Presence = PresenceOptional
 	}
-	if attr.Presence != PresenceComputed && (createOnly || at.replaceAll) {
-		attr.RequiresReplace = true
+	if attribute.Presence != PresenceComputed && (createOnly || attributeSite.replaceAll) {
+		attribute.RequiresReplace = true
 	}
 
-	// A computed attribute's children are computed too, whatever the
+	// A computed attribute'schema children are computed too, whatever the
 	// create schema declared for them.
-	childCreate := at.create
-	if attr.Presence == PresenceComputed {
+	childCreate := attributeSite.create
+	if attribute.Presence == PresenceComputed {
 		childCreate = nil
 	}
-	deriveType(&attr, fp, childCreate, at.read)
+	deriveType(&attribute, flatPrimary, childCreate, attributeSite.read)
 
-	if len(fp.enum) > 0 && attr.Kind != TypeList && attr.Kind != TypeObject && !attr.Unsupported {
-		values := renderEnum(fp.enum)
-		if open, _ := ext.ValuesOpen(); open {
-			attr.AdvisoryValues = values
+	if len(flatPrimary.enum) > 0 && attribute.Kind != TypeList && attribute.Kind != TypeObject && !attribute.Unsupported {
+		values := renderEnum(flatPrimary.enum)
+		if open, _ := extensions.ValuesOpen(); open {
+			attribute.AdvisoryValues = values
 		} else {
-			attr.OneOf = values
+			attribute.OneOf = values
 		}
 	}
 
-	var edges attrEdges
-	if rw, ok := ext.RequiredWhen(); ok {
-		edges.requiredWhen = &rw
+	var edges attributeEdges
+	if requiredWhenEdge, ok := extensions.RequiredWhen(); ok {
+		edges.requiredWhen = &requiredWhenEdge
 	}
-	if vw, ok := ext.ValidWhen(); ok {
-		edges.validWhen = &vw
+	if validWhenEdge, ok := extensions.ValidWhen(); ok {
+		edges.validWhen = &validWhenEdge
 	}
-	if do, ok := ext.DependsOn(); ok {
-		edges.dependsOn = &do
+	if dependsOnEdge, ok := extensions.DependsOn(); ok {
+		edges.dependsOn = &dependsOnEdge
 	}
-	return attr, edges
+	return attribute, edges
 }
 
 // deriveType maps the schema shape onto an attribute type, refusing the
 // shapes the toolkit does not model rather than guessing: an Unsupported
 // attribute names its reason and generates nothing.
-func deriveType(attr *Attribute, fp flat, create, read *specmodel.Schema) {
+func deriveType(attribute *Attribute, flatPrimary flat, create, read *specmodel.Schema) {
 	switch {
-	case fp.typ == "string":
-		attr.Kind = TypeString
-	case fp.typ == "boolean":
-		attr.Kind = TypeBool
-	case fp.typ == "integer":
-		attr.Kind = TypeInt64
-	case fp.typ == "number":
-		attr.Kind = TypeFloat64
-	case fp.typ == "array":
-		deriveListType(attr, create, read)
-	case fp.typ == "object" || (fp.typ == "" && len(fp.props) > 0):
-		if len(fp.props) == 0 {
-			refuse(attr, "free-form object: map support is out of scope")
+	case flatPrimary.declaredType == "string":
+		attribute.Kind = TypeString
+	case flatPrimary.declaredType == "boolean":
+		attribute.Kind = TypeBool
+	case flatPrimary.declaredType == "integer":
+		attribute.Kind = TypeInt64
+	case flatPrimary.declaredType == "number":
+		attribute.Kind = TypeFloat64
+	case flatPrimary.declaredType == "array":
+		deriveListType(attribute, create, read)
+	case flatPrimary.declaredType == "object" || (flatPrimary.declaredType == "" && len(flatPrimary.properties) > 0):
+		if len(flatPrimary.properties) == 0 {
+			refuse(attribute, "free-form object: map support is out of scope")
 			return
 		}
-		attr.Kind = TypeObject
-		attr.Nested = buildTree(create, read, false)
-	case fp.typ == "" && fp.hasUnion:
-		refuse(attr, "oneOf/anyOf union: no single attribute type describes it")
-	case fp.typ == "":
-		refuse(attr, "no type declared")
+		attribute.Kind = TypeObject
+		attribute.Nested = buildTree(create, read, false)
+	case flatPrimary.declaredType == "" && flatPrimary.hasUnion:
+		refuse(attribute, "oneOf/anyOf union: no single attribute type describes it")
+	case flatPrimary.declaredType == "":
+		refuse(attribute, "no type declared")
 	default:
-		refuse(attr, fmt.Sprintf("type %q is not supported", fp.typ))
+		refuse(attribute, fmt.Sprintf("type %q is not supported", flatPrimary.declaredType))
 	}
 }
 
 // deriveListType types an array attribute from its element schema, seen
 // from both sides of the create/read fold.
-func deriveListType(attr *Attribute, create, read *specmodel.Schema) {
+func deriveListType(attribute *Attribute, create, read *specmodel.Schema) {
 	createItems, readItems := flatten(create).items, flatten(read).items
 	primary := createItems
 	if primary == nil {
 		primary = readItems
 	}
-	fi := flatten(primary)
+	flatItems := flatten(primary)
 	switch {
-	case fi.empty:
-		refuse(attr, "array declares no items schema")
-	case fi.typ == "string":
-		attr.Kind, attr.ElemKind = TypeList, TypeString
-	case fi.typ == "boolean":
-		attr.Kind, attr.ElemKind = TypeList, TypeBool
-	case fi.typ == "integer":
-		attr.Kind, attr.ElemKind = TypeList, TypeInt64
-	case fi.typ == "number":
-		attr.Kind, attr.ElemKind = TypeList, TypeFloat64
-	case fi.typ == "object" || (fi.typ == "" && len(fi.props) > 0):
-		if len(fi.props) == 0 {
-			refuse(attr, "array of free-form objects: map support is out of scope")
+	case flatItems.empty:
+		refuse(attribute, "array declares no items schema")
+	case flatItems.declaredType == "string":
+		attribute.Kind, attribute.ElementKind = TypeList, TypeString
+	case flatItems.declaredType == "boolean":
+		attribute.Kind, attribute.ElementKind = TypeList, TypeBool
+	case flatItems.declaredType == "integer":
+		attribute.Kind, attribute.ElementKind = TypeList, TypeInt64
+	case flatItems.declaredType == "number":
+		attribute.Kind, attribute.ElementKind = TypeList, TypeFloat64
+	case flatItems.declaredType == "object" || (flatItems.declaredType == "" && len(flatItems.properties) > 0):
+		if len(flatItems.properties) == 0 {
+			refuse(attribute, "array of free-form objects: map support is out of scope")
 			return
 		}
-		attr.Kind, attr.ElemKind = TypeList, TypeObject
-		attr.Nested = buildTree(createItems, readItems, false)
+		attribute.Kind, attribute.ElementKind = TypeList, TypeObject
+		attribute.Nested = buildTree(createItems, readItems, false)
 	default:
-		refuse(attr, fmt.Sprintf("array of %q elements is not supported", fi.typ))
+		refuse(attribute, fmt.Sprintf("array of %q elements is not supported", flatItems.declaredType))
 	}
 }
 
 // refuse marks an attribute unsupported with the reason a person reads.
-func refuse(attr *Attribute, reason string) {
-	attr.Kind = ""
-	attr.Unsupported = true
-	attr.UnsupportedReason = reason
+func refuse(attribute *Attribute, reason string) {
+	attribute.Kind = ""
+	attribute.Unsupported = true
+	attribute.UnsupportedReason = reason
 }
 
-// mergeExtensions folds the read side's property extensions under the
-// create side's, the create side winning a collision: the writable view is
+// mergeExtensions folds the read side'schema property extensions under the
+// create side'schema, the create side winning a collision: the writable view is
 // where behaviour annotations are authored.
 func mergeExtensions(create, read specmodel.Extensions) specmodel.Extensions {
 	out := specmodel.Extensions{}
-	for k, v := range read {
-		out[k] = v
+	for key, value := range read {
+		out[key] = value
 	}
-	for k, v := range create {
-		out[k] = v
+	for key, value := range create {
+		out[key] = value
 	}
 	return out
 }
@@ -438,20 +438,20 @@ func mergeExtensions(create, read specmodel.Extensions) specmodel.Extensions {
 // renderEnum spells enum values for a validator, in document order.
 func renderEnum(values []any) []string {
 	out := make([]string, 0, len(values))
-	for _, v := range values {
-		out = append(out, fmt.Sprintf("%v", v))
+	for _, value := range values {
+		out = append(out, fmt.Sprintf("%v", value))
 	}
 	return out
 }
 
 // ensureID guarantees the id attribute every resource and datasource
-// carries: computed, mapped from the response's id field when the schema
+// carries: computed, mapped from the response'schema id field when the schema
 // declares one, otherwise synthesized from the item path parameter.
-func ensureID(tree *AttributeTree, keyParam string, keyType TypeKind) {
-	for i := range tree.Attributes {
-		if tree.Attributes[i].Name == "id" {
-			tree.Attributes[i].Presence = PresenceComputed
-			tree.Attributes[i].RequiresReplace = false
+func ensureID(tree *AttributeTree, keyParam string, keyType AttributeType) {
+	for index := range tree.Attributes {
+		if tree.Attributes[index].Name == "id" {
+			tree.Attributes[index].Presence = PresenceComputed
+			tree.Attributes[index].RequiresReplace = false
 			return
 		}
 	}
@@ -471,14 +471,14 @@ func ensureID(tree *AttributeTree, keyParam string, keyType TypeKind) {
 	}}, tree.Attributes...)
 }
 
-// requireKey turns the lookup key into the datasource's single required
+// requireKey turns the lookup key into the datasource'schema single required
 // argument: the matching attribute becomes required, or a new one is
 // prepended when the response object does not carry the key.
-func requireKey(tree *AttributeTree, keyParam string, keyType TypeKind) {
+func requireKey(tree *AttributeTree, keyParam string, keyType AttributeType) {
 	name := snakeCase(keyParam)
-	for i := range tree.Attributes {
-		if tree.Attributes[i].Name == name {
-			tree.Attributes[i].Presence = PresenceRequired
+	for index := range tree.Attributes {
+		if tree.Attributes[index].Name == name {
+			tree.Attributes[index].Presence = PresenceRequired
 			return
 		}
 	}

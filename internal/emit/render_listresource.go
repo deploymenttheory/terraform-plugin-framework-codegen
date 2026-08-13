@@ -65,7 +65,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	}
 	d.SchemaDescription = strconv.Quote(description)
 
-	listOp := lr.ListOp
+	listOp := lr.ListOperation
 	plan, err := buildCallPlan(lb.List, "result", nodes, "data")
 	if err != nil {
 		return nil, fmt.Errorf("list: %w", err)
