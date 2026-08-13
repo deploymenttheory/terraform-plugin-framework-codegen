@@ -102,6 +102,9 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	listImports.add("", "github.com/hashicorp/terraform-plugin-framework/diag")
 	listImports.add("", "github.com/hashicorp/terraform-plugin-framework/list")
 	listImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
+	if strings.Contains(d.ResultLines, "fmt.") {
+		listImports.add("", "fmt")
+	}
 	e.addSDKImports(listImports, plan.Assign)
 	addPlanImports(listImports, plan)
 	d.ListImports = listImports.render()
@@ -165,9 +168,9 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 // listResultLines renders the per-element body of the results iterator:
 // the identity id, the display name, and the push.
 func listResultLines(nodes []node) (string, error) {
-	idNode, ok := findStringNode(nodes, "id")
+	idNode, ok := findIdentityNode(nodes)
 	if !ok {
-		return "", unrenderable("the element carries no id attribute to publish as the list identity")
+		return "", unrenderable("the element carries no scalar id attribute to publish as the list identity")
 	}
 
 	displayNode := idNode
@@ -179,9 +182,9 @@ func listResultLines(nodes []node) (string, error) {
 	}
 
 	var b strings.Builder
-	b.WriteString(readStringLocal("id", idNode, 3))
+	b.WriteString(readStringLocal("id", idNode))
 	if displayNode.attr.Name != idNode.attr.Name {
-		b.WriteString(readStringLocal("displayName", displayNode, 3))
+		b.WriteString(readStringLocal("displayName", displayNode))
 		b.WriteString("\t\t\tresult.DisplayName = displayName\n")
 	} else {
 		b.WriteString("\t\t\tresult.DisplayName = id\n")
@@ -200,15 +203,43 @@ func findStringNode(nodes []node, name string) (node, bool) {
 	return node{}, false
 }
 
+// findIdentityNode is findStringNode widened to any scalar, for the one
+// attribute that needs it. A list identity is a string, but an API is not
+// obliged to key its objects with one: a numeric id is at least as common,
+// and requiring the string spelling excluded every entity that has one —
+// repositories, issues and organizations among them.
+func findIdentityNode(nodes []node) (node, bool) {
+	for _, n := range nodes {
+		if n.attr.Name != idAttributeName || n.attr.Nested != nil || n.fb == nil || n.fb.Access.Get == "" {
+			continue
+		}
+		switch n.attr.Kind {
+		case ir.TypeString, ir.TypeInt64, ir.TypeFloat64, ir.TypeBool:
+			return n, true
+		}
+	}
+	return node{}, false
+}
+
+// resultLineDepth is the indentation the per-element result body sits at,
+// inside the stream closure's loop.
+const resultLineDepth = 3
+
 // readStringLocal declares one string local from an element accessor,
 // dereferencing when the SDK carries a pointer.
-func readStringLocal(local string, n node, depth int) string {
-	indent := strings.Repeat("\t", depth)
-	if strings.HasPrefix(n.fb.Access.SDKType, "*") {
-		return fmt.Sprintf("%s%s := \"\"\n%sif value := element.%s(); value != nil {\n%s\t%s = *value\n%s}\n",
-			indent, local, indent, n.fb.Access.Get, indent, local, indent)
+func readStringLocal(local string, n node) string {
+	indent := strings.Repeat("\t", resultLineDepth)
+	render := func(value string) string { return value }
+	if n.attr.Kind != ir.TypeString {
+		// A non-string identity is rendered through fmt: the identity is a
+		// string whatever the API keys its objects with.
+		render = func(value string) string { return "fmt.Sprintf(\"%v\", " + value + ")" }
 	}
-	return fmt.Sprintf("%s%s := element.%s()\n", indent, local, n.fb.Access.Get)
+	if strings.HasPrefix(n.fb.Access.SDKType, "*") {
+		return fmt.Sprintf("%s%s := \"\"\n%sif value := element.%s(); value != nil {\n%s\t%s = %s\n%s}\n",
+			indent, local, indent, n.fb.Access.Get, indent, local, render("*value"), indent)
+	}
+	return fmt.Sprintf("%s%s := %s\n", indent, local, render("element."+n.fb.Access.Get+"()"))
 }
 
 // expectedID is the fixture id the list test asserts on.

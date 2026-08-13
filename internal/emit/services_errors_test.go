@@ -539,3 +539,49 @@ func TestUnit_RenderServices_RefusesALookupWhoseReadAnswersACollection(t *testin
 
 	expectRenderExclusion(t, pc, m, b, "license", "collection")
 }
+
+func TestUnit_FindIdentityNode_AcceptsAnIdentityTheAPIDidNotSpellAsAString(t *testing.T) {
+	// A list identity is a string, but an API is not obliged to key its
+	// objects with one. Requiring the string spelling excluded every entity
+	// with a numeric id.
+	for _, kind := range []ir.AttributeType{ir.TypeString, ir.TypeInt64, ir.TypeFloat64, ir.TypeBool} {
+		nodes := []node{{
+			attr: ir.Attribute{Name: "id", WireName: "id", Kind: kind},
+			fb:   &sdkbind.FieldBinding{Attr: "id", Wire: "id", Kind: kind, Access: sdkbind.FieldAccess{Get: "GetId"}},
+		}}
+		if _, ok := findIdentityNode(nodes); !ok {
+			t.Fatalf("a %s id must serve as the list identity", kind)
+		}
+	}
+
+	// An object of that name is not an identity, and neither is an unbound one.
+	nested := []node{{
+		attr: ir.Attribute{Name: "id", Kind: ir.TypeObject, Nested: &ir.AttributeTree{}},
+		fb:   &sdkbind.FieldBinding{Attr: "id", Access: sdkbind.FieldAccess{Get: "GetId"}},
+	}}
+	if _, ok := findIdentityNode(nested); ok {
+		t.Fatal("an object must not serve as the list identity")
+	}
+	if _, ok := findIdentityNode([]node{{attr: ir.Attribute{Name: "id", Kind: ir.TypeString}}}); ok {
+		t.Fatal("an unbound attribute cannot be read for the identity")
+	}
+}
+
+func TestUnit_ReadStringLocal_RendersANonStringIdentityThroughFmt(t *testing.T) {
+	numeric := node{
+		attr: ir.Attribute{Name: "id", Kind: ir.TypeInt64},
+		fb:   &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*int64"}},
+	}
+	got := readStringLocal("id", numeric)
+	if !strings.Contains(got, "fmt.Sprintf") {
+		t.Fatalf("a numeric identity must be rendered as a string:\n%s", got)
+	}
+
+	text := node{
+		attr: ir.Attribute{Name: "id", Kind: ir.TypeString},
+		fb:   &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*string"}},
+	}
+	if got := readStringLocal("id", text); strings.Contains(got, "fmt.Sprintf") {
+		t.Fatalf("a string identity needs no conversion:\n%s", got)
+	}
+}

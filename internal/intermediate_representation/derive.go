@@ -329,6 +329,51 @@ func listEnvelopeKey(list *specmodel.Operation) string {
 	return ""
 }
 
+// listElementSchema is the schema of one object a collection response
+// carries, whatever the response wraps it in.
+//
+// A bare array yields its items. A wrapping envelope — an object whose
+// payload is an array under a key, beside a count or a pagination cursor —
+// yields that array's items, the key taken from the observed
+// x-tfpfgen-list-response-shape where the audit recorded one and from the
+// document's own single array property otherwise.
+//
+// The envelope used to be taken as-is, which made the element tree the
+// envelope's own fields. Nothing then bound: the SDK reaches through the
+// envelope to the element, so derivation asked for results and totalCount
+// off a model carrying id, username and date, every attribute was pruned,
+// and the entity was removed for having nothing left to map. Envelopes are
+// not the exception — one pilot wraps 166 of its collection responses and
+// leaves only 36 bare.
+//
+// A response that is neither is returned unchanged: it may be a single
+// object the classification took for a collection, and guessing an element
+// out of it would be worse than deriving nothing.
+func listElementSchema(list *specmodel.Operation) *specmodel.Schema {
+	if list == nil {
+		return nil
+	}
+	body := list.SuccessSchema()
+	flattened := flatten(body)
+	if flattened.declaredType == "array" {
+		return flattened.items
+	}
+
+	key := listEnvelopeKey(list)
+	if key == "" {
+		return body
+	}
+	for _, property := range flattened.properties {
+		if property.Name != key {
+			continue
+		}
+		if items := flatten(property.Schema).items; items != nil {
+			return items
+		}
+	}
+	return body
+}
+
 func (derivation *deriver) datasource(classification specmodel.Classification, names Names) Datasource {
 	readFull := derivation.full(classification.Read)
 	var readBody *specmodel.Schema
@@ -380,16 +425,7 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 
 func (derivation *deriver) listResource(classification specmodel.Classification, names Names) ListResource {
 	listFull := derivation.full(classification.List)
-	var listBody *specmodel.Schema
-	if listFull != nil {
-		listBody = listFull.SuccessSchema()
-	}
-	// A list response is usually the element array itself; an envelope
-	// object is taken as-is rather than guessed into an element.
-	element := listBody
-	if flattened := flatten(listBody); flattened.declaredType == "array" && flattened.items != nil {
-		element = flattened.items
-	}
+	element := listElementSchema(listFull)
 	return ListResource{
 		Names:           names,
 		ListOperation:   *derivation.operation(classification.List, OperationList),
