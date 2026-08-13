@@ -81,6 +81,24 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   in Pascal case: `DataSourceName`, never `DatasourceName`. Prose, CLI
   verbs and the intermediate representation keep the one-word
   `datasource`.
+- Generated service package names are the provider name and the entity key
+  run together, stripped of the punctuation a Go identifier may not carry:
+  provider `jamfpro` and key `computer_group` give package
+  `jamfprocomputergroup`. The prefix is not decoration — a key is whatever
+  the document's path segments spell, which includes Go's reserved words,
+  and an entity keyed `package` produced `package package`. No reserved
+  word begins with a provider name, so the prefix removes the class rather
+  than escaping one case of it, and it makes a generated package
+  unmistakable at its import site.
+- **addressing attribute** — a generated attribute that exists to fill an
+  operation's path parameter rather than to carry a field of the object.
+  Every path parameter above the item key becomes one: required, spelled
+  from its wire name, in path order ahead of the id, and forcing
+  replacement, because an object does not move to another parent in place.
+  A parent the request or response body already declares is left as the
+  body declares it. Addressing attributes and the `id` survive binding with
+  no SDK field behind them — they address the object rather than describe
+  it, so no model carries them.
 - Naming helpers the intermediate representation exports for every
   emitter: `GoName` (the Pascal Go spelling, acronym-aware) and
   `TerraformName` (the snake_case terraform attribute spelling).
