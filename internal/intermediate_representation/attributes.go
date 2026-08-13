@@ -305,8 +305,8 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 		// must accept the server'schema choice when they dependsOnEdge not.
 		//
 		// requiredRead alone is too weak to find these. It reads the response
-		// schema'schema `required` list, and an API that declares none — as the
-		// ThousandEyes document does throughout — sends every writable
+		// schema's `required` list, and an API that declares none — as real
+		// documents routinely do throughout — sends every writable
 		// optional field to plain Optional below, which is a perpetual diff
 		// for any field the server fills. x-tfpfgen-server-default is the
 		// audit'schema measurement of the same fact, and it does not depend on the

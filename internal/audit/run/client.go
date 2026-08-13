@@ -97,7 +97,6 @@ func (r *runner) do(ctx context.Context, ent *entityState, spec reqSpec) (*httpR
 		}
 	}
 
-	var bodyReader io.Reader
 	var rawBody []byte
 	if spec.body != nil {
 		resolved, err := r.resolveBody(ctx, ent, spec.body)
@@ -108,11 +107,65 @@ func (r *runner) do(ctx context.Context, ent *entityState, spec reqSpec) (*httpR
 		if err != nil {
 			return nil, fmt.Errorf("audit run: encoding a %s %s body: %w", spec.method, spec.path, err)
 		}
-		bodyReader = bytes.NewReader(rawBody)
 	}
 
+	// A rate-limit refusal says nothing about the API's behaviour, so it is
+	// waited out and retried rather than written down as evidence. Every
+	// attempt is charged to the budget: a retried request is real load on the
+	// tenant whatever the server did with it. Exhausting the budget mid-retry
+	// ends the attempts and hands back the refusal, which is the truthful
+	// answer at that point.
+	var res *httpResult
+	for attempt := 1; ; attempt++ {
+		if attempt > 1 {
+			if err := r.spend(ent); err != nil {
+				return res, nil
+			}
+		}
+
+		var err error
+		res, err = r.send(ctx, u, spec, rawBody)
+		if err != nil {
+			return nil, err
+		}
+		if !rateLimited(res.status) {
+			return res, nil
+		}
+
+		if next := r.backoff.record(r.bucket.rate()); next > 0 {
+			r.bucket.slow(next)
+			r.log.Info().Int("rps", next).Str("path", spec.path).
+				Msg("rate limited repeatedly; slowing the rest of the run down")
+		}
+
+		retry, err := r.backoff.pause(ctx, attempt, res.header)
+		if err != nil {
+			return nil, err
+		}
+		if !retry {
+			return res, nil
+		}
+		r.log.Debug().Int("attempt", attempt).Str("method", spec.method).Str("path", spec.path).
+			Msg("rate limited; retrying")
+	}
+}
+
+// send makes one attempt: rate limit, jitter, auth, per-request timeout,
+// logging. Everything above it — path substitution, the budget charge, the
+// host allowlist, body resolution — happens once per logical request, not
+// once per attempt.
+func (r *runner) send(ctx context.Context, u url.URL, spec reqSpec, rawBody []byte) (*httpResult, error) {
 	if err := r.bucket.wait(ctx); err != nil {
 		return nil, err
+	}
+	if err := r.backoff.jitter(ctx, r.bucket.rate()); err != nil {
+		return nil, err
+	}
+
+	// A fresh reader per attempt: the previous one is spent.
+	var bodyReader io.Reader
+	if rawBody != nil {
+		bodyReader = bytes.NewReader(rawBody)
 	}
 
 	reqCtx, cancel := context.WithTimeout(ctx, r.opts.RequestTimeoutOrDefault())
