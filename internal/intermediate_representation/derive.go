@@ -253,6 +253,12 @@ func (derivation *deriver) resource(classification specmodel.Classification, nam
 	if readFull != nil {
 		readBody = readFull.SuccessSchema()
 	}
+	// A singleton has no create body; what the practitioner may set is what
+	// the update accepts. Taking the write side from there is what keeps its
+	// attributes from all deriving computed.
+	if classification.Singleton && updateFull != nil {
+		createBody = updateFull.RequestBody
+	}
 	tree := buildTree(createBody, readBody, classification.MissingUpdate)
 	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
 	ensureID(tree, keyParam, keyType)
@@ -287,6 +293,7 @@ func (derivation *deriver) resource(classification specmodel.Classification, nam
 		},
 		Schema:              tree,
 		MissingUpdate:       classification.MissingUpdate,
+		Singleton:           classification.Singleton,
 		UpdateStyle:         updateStyle,
 		EventualConsistency: maxEventualConsistency(createFull, readFull, updateFull, deleteFull),
 		DeleteNotFoundOK:    deleteNotFoundOK,

@@ -39,6 +39,15 @@ const (
               schema:
                 $ref: '#/components/schemas/Thing'
 `
+	withCollectionResponse = `      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Thing'
+`
 	noContent = `      responses:
         "204":
           description: no content
@@ -58,10 +67,16 @@ func crud(path string, methods ...string) string {
 		fmt.Fprintf(&b, "      operationId: %s_%s\n", m, pathID(path))
 		switch m {
 		case "get":
-			if withSchema {
-				b.WriteString(withResponse)
-			} else {
+			switch {
+			case !withSchema:
 				b.WriteString(noContent)
+			case collectionPath(path):
+				// A GET on a collection path answers with a collection. The
+				// distinction is load-bearing: a collection-path GET whose
+				// response is one object is a singleton, not a list.
+				b.WriteString(withCollectionResponse)
+			default:
+				b.WriteString(withResponse)
 			}
 		case "post", "put", "patch":
 			if withSchema {
@@ -73,6 +88,12 @@ func crud(path string, methods ...string) string {
 		}
 	}
 	return b.String()
+}
+
+// collectionPath reports whether a path addresses a collection rather than
+// one member of it: no identifier segment at the end.
+func collectionPath(path string) bool {
+	return !strings.HasSuffix(strings.TrimSuffix(path, "/"), "}")
 }
 
 func pathID(path string) string {
@@ -339,7 +360,18 @@ func TestUnit_Specmodel_SurplusOperationsLandInExtra(t *testing.T) {
 // A path that is nothing but a parameter is its own collection: there is no
 // prefix to pair it with, so it gets the fallback key.
 func TestUnit_Specmodel_ABareParameterPathIsItsOwnEntity(t *testing.T) {
-	doc, err := Load([]byte(specWith(crud("/{id}", "get!"))))
+	doc, err := Load([]byte(specWith(`  /{id}:
+    get:
+      operationId: get_id
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Thing'
+`)))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -376,7 +408,9 @@ func TestUnit_Specmodel_DefaultResponseBacksSuccess(t *testing.T) {
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Thing'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Thing'
 `)))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
@@ -403,6 +437,107 @@ func TestUnit_Specmodel_KeyDerivation(t *testing.T) {
 	for _, tc := range cases {
 		if got := keyForPath(tc.path); got != tc.want {
 			t.Errorf("keyForPath(%q) = %q, want %q", tc.path, got, tc.want)
+		}
+	}
+}
+
+// A collection-path GET whose response is one object is not a collection: it
+// is a singleton, and a writable one is a resource with no create and no
+// delete.
+func TestUnit_Specmodel_AWritableSingletonIsAResource(t *testing.T) {
+	doc, err := Load([]byte(specWith(`  /account-preferences:
+    get:
+      operationId: getPreferences
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+    patch:
+      operationId: updatePreferences
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Thing'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+`)))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	got := Classify(doc)
+	if len(got.Entities) != 1 {
+		t.Fatalf("entities = %+v, excluded = %+v", got.Entities, got.Excluded)
+	}
+	c := got.Entities[0]
+	if !c.Singleton {
+		t.Fatalf("the entity must be a singleton: %+v", c)
+	}
+	if kinds(c) != "resource" {
+		t.Fatalf("kinds = %q, want resource", kinds(c))
+	}
+	if c.Read == nil || c.Read.Method != "GET" {
+		t.Fatalf("a singleton reads through its collection GET, got %+v", c.Read)
+	}
+	if c.Update == nil || c.Update.Method != "PATCH" {
+		t.Fatalf("a singleton updates through its collection write, got %+v", c.Update)
+	}
+	if c.Create != nil || c.Delete != nil || c.List != nil {
+		t.Fatalf("a singleton has no create, delete or list: %+v", c)
+	}
+}
+
+func TestUnit_Specmodel_AReadOnlySingletonIsNotAResource(t *testing.T) {
+	// Nothing writes it, so there is no resource to own. It is excluded
+	// rather than emitted as a list of one.
+	doc, err := Load([]byte(specWith(`  /health:
+    get:
+      operationId: getHealth
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+`)))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	got := Classify(doc)
+	if len(got.Entities) != 0 {
+		t.Fatalf("a read-only singleton must not classify: %+v", got.Entities)
+	}
+}
+
+func TestUnit_CarriesCollection_SeparatesACollectionFromASingleton(t *testing.T) {
+	element := &Schema{Type: "object"}
+	for _, tc := range []struct {
+		name string
+		in   *Schema
+		want bool
+	}{
+		{"bare array", &Schema{Type: "array", Items: element}, true},
+		{"wrapped envelope", &Schema{Type: "object", Properties: []Property{
+			{Name: "totalCount", Schema: &Schema{Type: "integer"}},
+			{Name: "results", Schema: &Schema{Type: "array", Items: element}},
+		}}, true},
+		{"composed envelope", &Schema{AllOf: []*Schema{
+			{Type: "object", Properties: []Property{{Name: "items", Schema: &Schema{Type: "array", Items: element}}}},
+		}}, true},
+		{"singleton object", &Schema{Type: "object", Properties: []Property{
+			{Name: "timezone", Schema: &Schema{Type: "string"}},
+		}}, false},
+		{"nothing", nil, false},
+	} {
+		if got := carriesCollection(tc.in); got != tc.want {
+			t.Errorf("%s: carriesCollection = %v, want %v", tc.name, got, tc.want)
 		}
 	}
 }

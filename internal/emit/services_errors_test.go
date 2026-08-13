@@ -585,3 +585,61 @@ func TestUnit_ReadStringLocal_RendersANonStringIdentityThroughFmt(t *testing.T) 
 		t.Fatalf("a string identity needs no conversion:\n%s", got)
 	}
 }
+
+func TestUnit_RenderServices_EmitsASingletonWithoutCreateOrDelete(t *testing.T) {
+	// A singleton writes on create through its update, and destroys by
+	// forgetting. It needs neither a create call nor a delete one.
+	pc := fictionalProviderCore()
+	m, b := fictionalModel(), fictionalBindings()
+
+	r := &m.Resources[0]
+	r.Singleton = true
+	r.Operations.Create = nil
+	r.Operations.Delete = nil
+	rb := b.Resources[r.Names.Key]
+	rb.Create = nil
+	rb.Delete = nil
+
+	out, err := RenderServices(pc, m, b)
+	if err != nil {
+		t.Fatalf("a singleton must render: %v", err)
+	}
+	if len(out.Excluded) != 0 {
+		t.Fatalf("a singleton must not be excluded: %+v", out.Excluded)
+	}
+
+	var crud string
+	for _, f := range out.Files {
+		if strings.Contains(f.Path, "/resources/") && strings.HasSuffix(f.Path, "http_server/crud.go") {
+			crud = string(f.Content)
+		}
+		if strings.HasSuffix(f.Path, "http_server/mocks/responders.go") && strings.Contains(f.Path, "/resources/") {
+			t.Fatal("a singleton has no collection to mock, so no responders are emitted")
+		}
+	}
+	if crud == "" {
+		t.Fatal("the singleton must emit crud.go")
+	}
+	if strings.Contains(crud, "crud.DeleteWithRetry") {
+		t.Fatalf("destroy must forget rather than call the API:\n%s", crud)
+	}
+	if !strings.Contains(crud, "resp.State.RemoveResource(ctx)") {
+		t.Fatalf("destroy must still drop the object from state:\n%s", crud)
+	}
+	if !strings.Contains(crud, `data.ID = types.StringValue("petstore_http_server")`) {
+		t.Fatalf("a singleton publishes a constant id:\n%s", crud)
+	}
+}
+
+func TestUnit_RenderServices_RefusesASingletonWithoutAnUpdate(t *testing.T) {
+	pc := fictionalProviderCore()
+	m, b := fictionalModel(), fictionalBindings()
+
+	r := &m.Resources[0]
+	r.Singleton = true
+	r.Operations.Create, r.Operations.Delete, r.Operations.Update = nil, nil, nil
+	rb := b.Resources[r.Names.Key]
+	rb.Create, rb.Delete, rb.Update = nil, nil, nil
+
+	expectRenderExclusion(t, pc, m, b, r.Names.Key, "singleton", "read and update")
+}

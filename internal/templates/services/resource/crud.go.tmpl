@@ -48,6 +48,9 @@ func (r *{{ .Type }}) Create(ctx context.Context, req resource.CreateRequest, re
 {{ if .CreateMapsResponse }}
 	MapRemoteStateToTerraform(ctx, &data, {{ .CreatePlan.Payload }})
 {{ end }}
+{{- if .Singleton }}
+	data.ID = types.StringValue({{ .SingletonID | printf "%q" }})
+{{- end }}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -87,6 +90,9 @@ func (r *{{ .Type }}) Read(ctx context.Context, req resource.ReadRequest, resp *
 	}
 
 	MapRemoteStateToTerraform(ctx, &data, {{ .ReadPlan.Payload }})
+{{- if .Singleton }}
+	data.ID = types.StringValue({{ .SingletonID | printf "%q" }})
+{{- end }}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -169,6 +175,12 @@ func (r *{{ .Type }}) Delete(ctx context.Context, req resource.DeleteRequest, re
 	}
 	defer cancel()
 
+{{- if .Singleton }}
+	// The object is one fixed thing the API owns; there is nothing to
+	// destroy. Terraform stops managing it and the API keeps it as it is.
+	resp.State.RemoveResource(ctx)
+}
+{{- else }}
 	client := r.client
 {{ if .DeletePlan.ParamDecls }}	{{ .DeletePlan.ParamDecls }}
 {{ end }}	deleteErr := crud.DeleteWithRetry(ctx, func(ctx context.Context) error {
@@ -181,3 +193,4 @@ func (r *{{ .Type }}) Delete(ctx context.Context, req resource.DeleteRequest, re
 
 	resp.State.RemoveResource(ctx)
 }
+{{- end }}
