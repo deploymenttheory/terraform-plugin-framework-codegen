@@ -303,13 +303,13 @@ func TestUnit_Emit_HelperSpellings(t *testing.T) {
 		}
 	}
 
-	methods := map[string]string{
-		"string": "ValueString", "bool": "ValueBool",
-		"int64": "ValueInt64", "float64": "ValueFloat64",
+	methods := map[ir.AttributeType]string{
+		ir.TypeString: "ValueString", ir.TypeBool: "ValueBool",
+		ir.TypeInt64: "ValueInt64", ir.TypeFloat64: "ValueFloat64",
 	}
-	for goType, want := range methods {
-		if got := valueMethod(goType); got != want {
-			t.Fatalf("valueMethod(%s) = %q", goType, got)
+	for kind, want := range methods {
+		if got := valueMethod(kind); got != want {
+			t.Fatalf("valueMethod(%s) = %q", kind, got)
 		}
 	}
 

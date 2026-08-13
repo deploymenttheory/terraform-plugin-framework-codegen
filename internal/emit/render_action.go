@@ -122,6 +122,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	}
 	d.InvokePlan = plan
 	e.addSDKImports(invokeImports, plan.Assign, d.ConstructBody, d.ConstructReturnType, d.WriteConstructor)
+	addPlanImports(invokeImports, plan)
 	d.InvokeImports = invokeImports.render()
 
 	// Test wiring.

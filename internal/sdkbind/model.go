@@ -96,6 +96,27 @@ type Bindings struct {
 	Actions       map[string]*ActionBinding       `json:"actions,omitempty"`
 	// Removed records everything Prune deleted, with the SDK's reason.
 	Removed []Removal `json:"removed,omitempty"`
+	// OperationPackages maps the package name a type expression is
+	// qualified with onto the import path it resolves to, for every SDK
+	// package outside the root and models — where a generator puts the
+	// model of an inline request body. The emitter reads it to import what
+	// a rendered expression names; without it the generated file would
+	// reference a package it never imported.
+	OperationPackages map[string]string `json:"operation_packages,omitempty"`
+}
+
+// recordPackage notes that a type expression qualified with name resolves
+// under importPath. The root and models packages are already known to every
+// emitter and are not recorded.
+func (b *Bindings) recordPackage(name, importPath string) {
+	if b == nil || name == "" || importPath == "" ||
+		importPath == b.SDK.ImportPath || importPath == b.SDK.ModelsImportPath {
+		return
+	}
+	if b.OperationPackages == nil {
+		b.OperationPackages = map[string]string{}
+	}
+	b.OperationPackages[name] = importPath
 }
 
 // ResourceBinding carries the calls and field accesses one resource's

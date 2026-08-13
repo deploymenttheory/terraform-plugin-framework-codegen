@@ -103,6 +103,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	listImports.add("", "github.com/hashicorp/terraform-plugin-framework/list")
 	listImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
 	e.addSDKImports(listImports, plan.Assign)
+	addPlanImports(listImports, plan)
 	d.ListImports = listImports.render()
 
 	spec := deriveFixtures(lr.Schema, nodes)

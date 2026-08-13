@@ -245,9 +245,26 @@ func reduceUnion(schema *yaml.Node, keyword string) bool {
 		if first.Kind != yaml.MappingNode {
 			return false
 		}
+		// A union whose branches are named schemas is polymorphism, and a
+		// generator models it: the branches become types, and a
+		// discriminator selects between them. Reducing one takes the
+		// alternatives out from under a discriminator that still names
+		// them, and kiota fails the whole document rather than the schema —
+		// "the schema reference is not resolved", having already logged
+		// that the discriminator is not inherited from what remains.
+		//
+		// The shape this pass exists for is the other one: a union of
+		// inline schemas, which names nothing a discriminator could select
+		// and which the generator merges into a model with no properties.
+		for _, branch := range branches.Content {
+			if branch.Kind != yaml.MappingNode || yamlwalk.ChildValue(branch, "$ref") != nil {
+				return false
+			}
+		}
 
 		schema.Content = append(schema.Content[:i:i], schema.Content[i+2:]...)
 		removeKey(schema, "discriminator")
+
 		for j := 0; j+1 < len(first.Content); j += 2 {
 			if yamlwalk.ChildValue(schema, first.Content[j].Value) == nil {
 				schema.Content = append(schema.Content, first.Content[j], first.Content[j+1])

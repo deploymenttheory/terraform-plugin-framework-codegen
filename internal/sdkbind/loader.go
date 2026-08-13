@@ -230,13 +230,63 @@ func didYouMean(want string, have []string) string {
 // "models.Tagable", "[]models.Tagable" — to the named type it spells,
 // using the binding set's package qualifiers.
 func (l *loader) typeFromExpr(info SDKInfo, expr string) (*types.Named, error) {
+	named, _, err := l.typeAndPackageFromExpr(info, expr)
+	return named, err
+}
+
+// typeAndPackageFromExpr resolves a type expression and answers the import
+// path it was found under, so a caller that has to import the package can.
+//
+// Two package qualifiers are known by construction: models, and the SDK root
+// everything else used to fall back to. That fallback was wrong for a whole
+// class of type. A generator puts the model for an inline request body — one
+// the document declares in place rather than naming under components — in the
+// package of the operation that takes it, not in models: a body declared
+// inline on POST /orgs/{org}/teams becomes orgs.ItemTeamsPostRequestBody.
+// Looking those up in the SDK root failed with "package sdk has no type
+// ItemTeamsPostRequestBodyable (available: APIClient)", and took the resource
+// with it — every resource of a document that declares its bodies inline.
+//
+// An unknown qualifier is therefore resolved by searching the loaded
+// packages for one of that name that declares the type. Exactly one match
+// resolves; several is ambiguous and resolves to nothing, because picking
+// between them would be a guess.
+func (l *loader) typeAndPackageFromExpr(info SDKInfo, expr string) (*types.Named, string, error) {
 	name := strings.TrimPrefix(strings.TrimPrefix(expr, "[]"), "*")
 	importPath := info.ImportPath
+	qualifier := ""
 	if i := strings.LastIndex(name, "."); i >= 0 {
-		if name[:i] == "models" {
+		qualifier, name = name[:i], name[i+1:]
+		switch qualifier {
+		case "models":
 			importPath = info.ModelsImportPath
+		case "", info.ImportPath:
+		default:
+			if found, ok := l.packageDeclaring(qualifier, name); ok {
+				importPath = found
+			}
 		}
-		name = name[i+1:]
 	}
-	return l.lookupType(importPath, name)
+	named, err := l.lookupType(importPath, name)
+	return named, importPath, err
+}
+
+// packageDeclaring finds the one loaded package named qualifier that
+// declares name. Deterministic: the answer does not depend on map order,
+// because more than one match is refused rather than chosen between.
+func (l *loader) packageDeclaring(qualifier, name string) (string, bool) {
+	found := ""
+	for path, pkg := range l.pkgs {
+		if pkg.Types == nil || pkg.Types.Name() != qualifier {
+			continue
+		}
+		if pkg.Types.Scope().Lookup(name) == nil {
+			continue
+		}
+		if found != "" {
+			return "", false
+		}
+		found = path
+	}
+	return found, found != ""
 }

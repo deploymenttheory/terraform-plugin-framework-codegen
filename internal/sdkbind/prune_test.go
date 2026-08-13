@@ -1,6 +1,8 @@
 package sdkbind
 
 import (
+	"go/token"
+	"go/types"
 	"strings"
 	"testing"
 )
@@ -304,4 +306,77 @@ func findRemoval(t *testing.T, removed []Removal, kind, key, attribute string) R
 	}
 	t.Fatalf("no removal for %s %s %q (have %v)", kind, key, attribute, removed)
 	return Removal{}
+}
+
+// indexerReceiver builds a type carrying exactly the named methods, each
+// taking one string and returning one value — the shape of a generated
+// collection builder's by-identifier hop.
+func indexerReceiver(t *testing.T, methods ...string) types.Type {
+	t.Helper()
+	pkg := types.NewPackage("example.com/sdk/things", "things")
+	named := types.NewNamed(
+		types.NewTypeName(token.NoPos, pkg, "ThingsRequestBuilder", nil),
+		types.NewStruct(nil, nil), nil)
+
+	result := types.NewNamed(
+		types.NewTypeName(token.NoPos, pkg, "ItemRequestBuilder", nil),
+		types.NewStruct(nil, nil), nil)
+
+	for _, name := range methods {
+		sig := types.NewSignatureType(
+			types.NewVar(token.NoPos, pkg, "m", types.NewPointer(named)), nil, nil,
+			types.NewTuple(types.NewVar(token.NoPos, pkg, "id", types.Typ[types.String])),
+			types.NewTuple(types.NewVar(token.NoPos, pkg, "", types.NewPointer(result))),
+			false)
+		named.AddMethod(types.NewFunc(token.NoPos, pkg, name, sig))
+	}
+	// Every generated builder also carries hops that are not indexers; they
+	// must not be considered, whatever their arity.
+	getSig := types.NewSignatureType(
+		types.NewVar(token.NoPos, pkg, "m", types.NewPointer(named)), nil, nil,
+		types.NewTuple(types.NewVar(token.NoPos, pkg, "id", types.Typ[types.String])),
+		types.NewTuple(types.NewVar(token.NoPos, pkg, "", types.NewPointer(result))),
+		false)
+	named.AddMethod(types.NewFunc(token.NoPos, pkg, "Get", getSig))
+
+	return types.NewPointer(named)
+}
+
+func TestUnit_Prune_RepairsAnIndexerTheGeneratorSpeltDifferently(t *testing.T) {
+	// A generator does not spell the by-identifier hop the way the document
+	// implies: it keeps the parameter's punctuation, appends a suffix, or
+	// renames wholesale. Where the builder declares exactly one such method,
+	// there is nothing to guess.
+	for _, drafted := range []string{"ByGistId", "ByOwner", "ByTeamSlug"} {
+		t.Run(drafted, func(t *testing.T) {
+			seg := &Segment{Name: drafted, Call: true, Args: []string{"id"}}
+			p := &pruner{}
+			if _, ok := p.repairIndexer(indexerReceiver(t, "ByGist_id"), seg); !ok {
+				t.Fatalf("%s must resolve to the builder's only indexer", drafted)
+			}
+			if seg.Name != "ByGist_id" {
+				t.Fatalf("the segment must be respelled, got %q", seg.Name)
+			}
+		})
+	}
+}
+
+func TestUnit_Prune_RefusesAnAmbiguousIndexer(t *testing.T) {
+	// Two indexers is a guess, and a guess is what this must never make.
+	seg := &Segment{Name: "ByThingId", Call: true, Args: []string{"id"}}
+	p := &pruner{}
+	if _, ok := p.repairIndexer(indexerReceiver(t, "ByOne", "ByTwo"), seg); ok {
+		t.Fatal("two candidate indexers must refuse rather than pick one")
+	}
+	if seg.Name != "ByThingId" {
+		t.Fatalf("a refused repair must leave the draft alone, got %q", seg.Name)
+	}
+}
+
+func TestUnit_Prune_LeavesANonIndexerHopAlone(t *testing.T) {
+	seg := &Segment{Name: "Teams", Call: true, Args: []string{"id"}}
+	p := &pruner{}
+	if _, ok := p.repairIndexer(indexerReceiver(t, "ByGist_id"), seg); ok {
+		t.Fatal("only a by-identifier hop may be repaired this way")
+	}
 }

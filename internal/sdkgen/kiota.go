@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -103,7 +107,92 @@ func (kiotaBackend) Normalize(outDir, recordedSpecPath string) error {
 	if err := scrubKiotaLock(filepath.Join(outDir, KiotaLockName), recordedSpecPath); err != nil {
 		return err
 	}
+	if err := dropUnreferencedImports(outDir); err != nil {
+		return err
+	}
 	return scrubDatedHeaders(outDir)
+}
+
+// dropUnreferencedImports deletes an aliased import a generated file never
+// mentions. Go refuses to compile such a file, and kiota emits them: a model
+// that inherits every one of its time-typed properties from an embedded
+// parent still gets time imported, and the SDK then fails to type-check as a
+// whole — which stops generation before a single provider file is written,
+// however sound the rest of the tree is.
+//
+// The edit is deliberately textual and minimal. Only the offending import
+// line goes; every other byte of the file is left exactly as the generator
+// wrote it, because the alternative — running the file through a formatter —
+// rewrites indentation across the whole SDK and buries a one-line repair in a
+// diff nobody can read. Only aliased imports are considered, which is what
+// kiota emits and what lets usage be decided by looking for the alias alone.
+func dropUnreferencedImports(outDir string) error {
+	return filepath.WalkDir(outDir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil || entry.IsDir() || !strings.HasSuffix(path, ".go") {
+			return err
+		}
+		source, err := os.ReadFile(path) //nolint:gosec // a .go file under the staging dir this run wrote
+		if err != nil {
+			return err
+		}
+		trimmed, dropped, err := withoutUnreferencedImports(source)
+		if err != nil || !dropped {
+			return err
+		}
+		return os.WriteFile(path, trimmed, 0o644) //nolint:gosec // generated source, world-readable like the rest
+	})
+}
+
+// withoutUnreferencedImports answers one file's source with every aliased
+// import it never references removed, and whether anything was removed. A
+// file that does not parse is returned untouched: repairing imports is not
+// the place to discover a generator emitted something worse.
+func withoutUnreferencedImports(source []byte) ([]byte, bool, error) {
+	fileSet := token.NewFileSet()
+	parsed, err := parser.ParseFile(fileSet, "generated.go", source, parser.SkipObjectResolution)
+	if err != nil {
+		return source, false, nil //nolint:nilerr // an unparseable file is not this pass's business
+	}
+
+	referenced := map[string]bool{}
+	ast.Inspect(parsed, func(n ast.Node) bool {
+		selector, ok := n.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		if ident, ok := selector.X.(*ast.Ident); ok {
+			referenced[ident.Name] = true
+		}
+		return true
+	})
+
+	unused := map[int]bool{}
+	for _, spec := range parsed.Imports {
+		if spec.Name == nil {
+			continue
+		}
+		switch alias := spec.Name.Name; alias {
+		case "_", ".", "":
+			continue
+		default:
+			if !referenced[alias] {
+				unused[fileSet.Position(spec.Pos()).Line] = true
+			}
+		}
+	}
+	if len(unused) == 0 {
+		return source, false, nil
+	}
+
+	lines := strings.Split(string(source), "\n")
+	kept := make([]string, 0, len(lines))
+	for i, line := range lines {
+		if unused[i+1] {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	return []byte(strings.Join(kept, "\n")), true, nil
 }
 
 // scrubKiotaLock rewrites the lock deterministically: descriptionLocation

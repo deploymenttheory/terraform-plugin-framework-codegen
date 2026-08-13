@@ -185,6 +185,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	readImports.add("", e.pc.Module+"/internal/services/common/crud")
 	readImports.add("", e.pc.Module+"/internal/services/common/errors")
 	e.addSDKImports(readImports, plan.Assign)
+	addPlanImports(readImports, plan)
 	d.ReadImports = readImports.render()
 
 	stateBody, err := stateLines(nodes, d.Pascal+"Lookup", "remote", "data", 1)
@@ -318,6 +319,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	readImports.add("", e.pc.Module+"/internal/services/common/crud")
 	readImports.add("", e.pc.Module+"/internal/services/common/errors")
 	e.addSDKImports(readImports, d.ListPlan.Assign, d.ReadPlan.Assign)
+	addPlanImports(readImports, d.ListPlan, d.ReadPlan)
 	d.ReadImports = readImports.render()
 
 	// Item mapping.
