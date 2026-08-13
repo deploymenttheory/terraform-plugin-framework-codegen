@@ -177,6 +177,16 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	if plan.Payload == "" {
 		return fixtures.Fixture{}, unrenderable("read: the bound read call yields no payload to map from")
 	}
+	// A read that answers with a collection is not a lookup, whatever the
+	// path shape suggests. The state mapper reads fields off one object and
+	// was handed the slice instead — "remote.GetDeviceId undefined (type
+	// []models.DeviceComplianceInformationable)". Which element it should map
+	// is not something the document says, and taking the first would be a
+	// guess dressed up as a lookup.
+	if strings.HasPrefix(d.ReadModel, "[]") {
+		return fixtures.Fixture{}, unrenderable(
+			"read: the by-key read answers with a collection (%s), which is not one object to map into state", d.ReadModel)
+	}
 	d.ReadPlan = plan
 
 	readImports := newImportSet(e.pc.Module)

@@ -137,6 +137,17 @@ type ResourceBinding struct {
 	WriteConstructor string `json:"write_constructor,omitempty"`
 	// Fields mirrors the schema attribute order.
 	Fields []FieldBinding `json:"fields,omitempty"`
+	// UpdateWriteModel, UpdateWriteConstructor and UpdateFields are the
+	// same three for the update request, and are set only when the update
+	// takes a body the create's cannot serve.
+	//
+	// An API is entitled to declare different bodies for the two, and many
+	// do — an update that omits what cannot change, or adds a version the
+	// create has no use for. The generated SDK types them separately, so
+	// passing the create body to the update does not compile.
+	UpdateWriteModel       string         `json:"update_write_model,omitempty"`
+	UpdateWriteConstructor string         `json:"update_write_constructor,omitempty"`
+	UpdateFields           []FieldBinding `json:"update_fields,omitempty"`
 }
 
 // DatasourceBinding carries a datasource's read (and, for a companion

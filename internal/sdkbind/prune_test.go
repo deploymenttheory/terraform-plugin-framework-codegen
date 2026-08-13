@@ -380,3 +380,44 @@ func TestUnit_Prune_LeavesANonIndexerHopAlone(t *testing.T) {
 		t.Fatal("only a by-identifier hop may be repaired this way")
 	}
 }
+
+func TestUnit_CopyFieldBindings_IsDeepEnoughToResolveTwice(t *testing.T) {
+	// The update body is resolved from a copy of the create's fields, so
+	// resolving against a second model must not disturb the first.
+	original := []FieldBinding{{
+		Attr: "settings", Wire: "settings",
+		Nested: []FieldBinding{{Attr: "name", Wire: "name"}},
+	}}
+	clone := copyFieldBindings(original)
+	clone[0].Attr = "changed"
+	clone[0].Nested[0].Attr = "changed_too"
+
+	if original[0].Attr != "settings" {
+		t.Fatalf("the original was disturbed: %q", original[0].Attr)
+	}
+	if original[0].Nested[0].Attr != "name" {
+		t.Fatalf("the original's nested field was disturbed: %q", original[0].Nested[0].Attr)
+	}
+	if copyFieldBindings(nil) != nil {
+		t.Fatal("copying nothing must answer nothing")
+	}
+}
+
+func TestUnit_Bindings_RecordPackageIgnoresWhatEveryEmitterKnows(t *testing.T) {
+	b := &Bindings{SDK: SDKInfo{ImportPath: "example.com/sdk", ModelsImportPath: "example.com/sdk/models"}}
+	b.recordPackage("sdk", "example.com/sdk")
+	b.recordPackage("models", "example.com/sdk/models")
+	if len(b.OperationPackages) != 0 {
+		t.Fatalf("the root and models packages need no recording, got %v", b.OperationPackages)
+	}
+
+	b.recordPackage("orgs", "example.com/sdk/orgs")
+	if b.OperationPackages["orgs"] != "example.com/sdk/orgs" {
+		t.Fatalf("an operation package must be recorded, got %v", b.OperationPackages)
+	}
+	b.recordPackage("", "example.com/sdk/x")
+	b.recordPackage("x", "")
+	if len(b.OperationPackages) != 1 {
+		t.Fatalf("a half-named package must not be recorded, got %v", b.OperationPackages)
+	}
+}

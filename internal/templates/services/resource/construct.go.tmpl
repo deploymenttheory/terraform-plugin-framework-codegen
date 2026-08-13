@@ -14,3 +14,14 @@ func constructResource(ctx context.Context, data *{{ .Type }}Model, isCreate boo
 {{ .ConstructBody }}
 	return body, nil
 }
+{{ if .HasUpdateBody }}
+// constructUpdate builds the update request body from the plan. The API
+// declares a body for the update that the create's cannot serve, so the two
+// are built separately; a null or unknown plan value leaves its field unset.
+func constructUpdate(ctx context.Context, data *{{ .Type }}Model) ({{ .UpdateConstructReturnType }}, error) {
+	_ = ctx
+	body := {{ .UpdateWriteConstructor }}
+{{ .UpdateConstructBody }}
+	return body, nil
+}
+{{ end }}
