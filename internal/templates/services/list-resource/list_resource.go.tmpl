@@ -46,6 +46,6 @@ func (r *{{ .Type }}) Configure(_ context.Context, req resource.ConfigureRequest
 // document derives no filters for this entity, so the block is empty.
 func (r *{{ .Type }}) ListResourceConfigSchema(_ context.Context, _ list.ListResourceSchemaRequest, resp *list.ListResourceSchemaResponse) {
 	resp.Schema = listschema.Schema{
-		Description: {{ .SchemaDescription }},
+		MarkdownDescription: {{ .SchemaDescription }},
 	}
 }

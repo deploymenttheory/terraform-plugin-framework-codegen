@@ -49,7 +49,7 @@ func (d *{{ .Type }}) Configure(_ context.Context, req datasource.ConfigureReque
 // Schema declares the attributes the revised document derives.
 func (d *{{ .Type }}) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: {{ .SchemaDescription }},
+		MarkdownDescription: {{ .SchemaDescription }},
 		Attributes: map[string]schema.Attribute{
 {{ .SchemaAttributes }}			"timeouts": commonschema.DatasourceTimeouts(ctx),
 		},

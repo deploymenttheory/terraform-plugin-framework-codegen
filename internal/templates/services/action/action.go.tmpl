@@ -45,7 +45,7 @@ func (a *{{ .Type }}) Configure(_ context.Context, req action.ConfigureRequest, 
 // Schema declares the invocation's arguments.
 func (a *{{ .Type }}) Schema(_ context.Context, _ action.SchemaRequest, resp *action.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: {{ .SchemaDescription }},
+		MarkdownDescription: {{ .SchemaDescription }},
 		Attributes: map[string]schema.Attribute{
 {{ .SchemaAttributes }}		},
 	}

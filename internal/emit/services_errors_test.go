@@ -643,3 +643,79 @@ func TestUnit_RenderServices_RefusesASingletonWithoutAnUpdate(t *testing.T) {
 
 	expectRenderExclusion(t, pc, m, b, r.Names.Key, "singleton", "read and update")
 }
+
+func TestUnit_AttributeDescription_LeadsWithTheDocumentsOwnProse(t *testing.T) {
+	a := ir.Attribute{
+		Name: "direction", WireName: "direction",
+		Description:     "Direction for applicable alert types",
+		AdvisoryValues:  []string{"to-target", "from-target"},
+		RequiresReplace: true,
+	}
+	got := attributeDescription(a)
+	if !strings.HasPrefix(got, "Direction for applicable alert types.") {
+		t.Fatalf("the document's sentence must lead, and be terminated: %q", got)
+	}
+	for _, want := range []string{"Known values: to-target, from-target.", "forces replacement"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("the derived facts must follow the prose, missing %q: %q", want, got)
+		}
+	}
+}
+
+func TestUnit_AttributeDescription_FallsBackToTheWireName(t *testing.T) {
+	// Real documents leave most properties bare — one pilot annotates 12%.
+	got := attributeDescription(ir.Attribute{Name: "path", WireName: "path"})
+	if got != "The path property." {
+		t.Fatalf("an undescribed attribute keeps the derived sentence, got %q", got)
+	}
+}
+
+func TestUnit_Terminated_DoesNotDoubleUpPunctuation(t *testing.T) {
+	for in, want := range map[string]string{
+		"A description of the alert rule":  "A description of the alert rule.",
+		"A description of the alert rule.": "A description of the alert rule.",
+		"Is it set?":                       "Is it set?",
+		"One of:":                          "One of:",
+	} {
+		if got := terminated(in); got != want {
+			t.Fatalf("terminated(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestUnit_EntityDescription_KeepsBothSentences(t *testing.T) {
+	// The derived sentence is the only one that says what the terraform
+	// surface is; the document's is the only human-written text there is.
+	tree := &ir.AttributeTree{Description: "A rule that raises alerts"}
+	got := entityDescription(tree, "Manages the alerts_rule entity.")
+	if got != "Manages the alerts_rule entity. A rule that raises alerts." {
+		t.Fatalf("both sentences must survive, got %q", got)
+	}
+	if got := entityDescription(&ir.AttributeTree{}, "Manages the x entity."); got != "Manages the x entity." {
+		t.Fatalf("an undescribed object keeps the derived sentence, got %q", got)
+	}
+	if got := entityDescription(nil, "Manages the x entity."); got != "Manages the x entity." {
+		t.Fatalf("a nil tree keeps the derived sentence, got %q", got)
+	}
+}
+
+func TestUnit_Schema_RendersMarkdownDescription(t *testing.T) {
+	// Every emitted description is a markdown one, so the registry renders
+	// whatever formatting a vendor's prose carries.
+	out, err := RenderServices(fictionalProviderCore(), fictionalModel(), fictionalBindings())
+	if err != nil {
+		t.Fatalf("RenderServices: %v", err)
+	}
+	for _, f := range out.Files {
+		if !strings.HasSuffix(f.Path, ".go") {
+			continue
+		}
+		body := string(f.Content)
+		for _, line := range strings.Split(body, "\n") {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "Description:") {
+				t.Fatalf("%s renders a plain description: %s", f.Path, trimmed)
+			}
+		}
+	}
+}
