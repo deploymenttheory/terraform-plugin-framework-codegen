@@ -155,6 +155,10 @@ type Summary struct {
 	Blocked  int `json:"blocked"`
 	TimedOut int `json:"timedOut"`
 	Skipped  int `json:"skipped"`
+	// SkippedEntities is every entity the plan left out, with its reason.
+	// Carried because the count alone cannot be acted on: it does not
+	// distinguish a run that covered the API from one that skipped most of it.
+	SkippedEntities []plan.Skipped `json:"skippedEntities,omitempty"`
 	// ByKind and ByOutcome count observations.
 	ByKind    map[observe.Kind]int    `json:"byKind"`
 	ByOutcome map[observe.Outcome]int `json:"byOutcome"`
@@ -547,6 +551,7 @@ func (r *runner) finishSummary(obs []observe.Observation) {
 	}
 	r.summary.Adjustments = sortedAdjustments(r.adjustments)
 	r.summary.Skipped = len(r.opts.Plan.Skipped)
+	r.summary.SkippedEntities = r.opts.Plan.Skipped
 	r.summary.Requests = r.reqTotal
 	r.summary.RequestBudget = r.budget.Requests
 	r.summary.ObjectBudget = r.budget.Objects

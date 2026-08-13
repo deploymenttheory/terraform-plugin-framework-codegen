@@ -12,6 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/quirkserver"
 )
 
@@ -331,5 +332,76 @@ func TestUnit_Audit_UsageListsBothVerbs(t *testing.T) {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("audit usage misses %q: %s", want, stdout)
 		}
+	}
+}
+
+// TestUnit_PrintSkipped_GroupsByReasonCommonestFirst covers the reporting gap
+// a live GitHub run exposed: the plan skipped 56 of 61 entities and the run
+// printed only the number, so nothing said the audit had barely touched the
+// API.
+func TestUnit_PrintSkipped_GroupsByReasonCommonestFirst(t *testing.T) {
+	t.Parallel()
+	const owner = `no value for path parameter "owner"`
+	const org = `no value for path parameter "org"`
+
+	var b strings.Builder
+	printSkipped(&b, []plan.Skipped{
+		{Entity: "orgs_hook", Reason: org},
+		{Entity: "repo", Reason: owner},
+		{Entity: "org", Reason: org},
+		{Entity: "repos_autolink", Reason: owner},
+		{Entity: "repos_content", Reason: owner},
+	})
+	out := b.String()
+
+	if !strings.Contains(out, "skipped by the plan: 5 entities") {
+		t.Errorf("no total in the output:\n%s", out)
+	}
+	// The owner group is larger, so it must lead.
+	ownerAt, orgAt := strings.Index(out, owner), strings.Index(out, org)
+	if ownerAt < 0 || orgAt < 0 {
+		t.Fatalf("a reason is missing from the output:\n%s", out)
+	}
+	if ownerAt > orgAt {
+		t.Errorf("the 2-entity reason printed before the 3-entity one:\n%s", out)
+	}
+	if !strings.Contains(out, "3: "+owner) || !strings.Contains(out, "2: "+org) {
+		t.Errorf("group counts wrong:\n%s", out)
+	}
+	// Entities are named, sorted, so the reason can be acted on.
+	if !strings.Contains(out, "repo, repos_autolink, repos_content") {
+		t.Errorf("entities not named in sorted order:\n%s", out)
+	}
+}
+
+func TestUnit_PrintSkipped_CapsALongListButKeepsTheCount(t *testing.T) {
+	t.Parallel()
+	const reason = "one structural reason"
+	skipped := make([]plan.Skipped, 0, skippedListLimit+5)
+	for i := range skippedListLimit + 5 {
+		skipped = append(skipped, plan.Skipped{Entity: fmt.Sprintf("entity%02d", i), Reason: reason})
+	}
+
+	var b strings.Builder
+	printSkipped(&b, skipped)
+	out := b.String()
+
+	if !strings.Contains(out, fmt.Sprintf("%d: %s", skippedListLimit+5, reason)) {
+		t.Errorf("the full count is not reported:\n%s", out)
+	}
+	if !strings.Contains(out, "and 5 more") {
+		t.Errorf("the truncation is silent; a capped list must say what it dropped:\n%s", out)
+	}
+	if strings.Contains(out, fmt.Sprintf("entity%02d", skippedListLimit+1)) {
+		t.Errorf("the list was not capped at %d:\n%s", skippedListLimit, out)
+	}
+}
+
+func TestUnit_PrintSkipped_SaysNothingWhenNothingWasSkipped(t *testing.T) {
+	t.Parallel()
+	var b strings.Builder
+	printSkipped(&b, nil)
+	if b.String() != "" {
+		t.Errorf("printed %q for an empty skip list, want nothing", b.String())
 	}
 }

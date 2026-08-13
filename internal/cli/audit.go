@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -270,6 +271,50 @@ func auditLogger(w io.Writer) zerolog.Logger {
 	return zerolog.New(w).Level(level).With().Timestamp().Logger()
 }
 
+// skippedListLimit caps the names printed per reason, so the reasons stay
+// readable on an API that skips in the dozens.
+const skippedListLimit = 12
+
+// printSkipped names the entities the plan left out, grouped by reason: the
+// reason is the actionable unit, not the entity.
+func printSkipped(w io.Writer, skipped []plan.Skipped) {
+	if len(skipped) == 0 {
+		return
+	}
+
+	byReason := map[string][]string{}
+	for _, s := range skipped {
+		byReason[s.Reason] = append(byReason[s.Reason], s.Entity)
+	}
+	reasons := make([]string, 0, len(byReason))
+	for reason := range byReason {
+		reasons = append(reasons, reason)
+	}
+	// Commonest reason first; ties by text, for stable output.
+	sort.Slice(reasons, func(i, j int) bool {
+		if len(byReason[reasons[i]]) != len(byReason[reasons[j]]) {
+			return len(byReason[reasons[i]]) > len(byReason[reasons[j]])
+		}
+		return reasons[i] < reasons[j]
+	})
+
+	fmt.Fprintf(w, "skipped by the plan: %d entities\n", len(skipped))
+	for _, reason := range reasons {
+		entities := byReason[reason]
+		sort.Strings(entities)
+		shown := entities
+		if len(shown) > skippedListLimit {
+			shown = shown[:skippedListLimit]
+		}
+		fmt.Fprintf(w, "  %d: %s\n", len(entities), reason)
+		fmt.Fprintf(w, "     %s", strings.Join(shown, ", "))
+		if len(entities) > len(shown) {
+			fmt.Fprintf(w, ", and %d more", len(entities)-len(shown))
+		}
+		fmt.Fprintln(w)
+	}
+}
+
 // printSummary renders the run's table.
 func printSummary(w io.Writer, out string, obsCount int, sum auditrun.Summary) {
 	fmt.Fprintf(w, "audit run %s: %d audited, %d blocked, %d exhausted, %d skipped by the plan\n",
@@ -281,6 +326,7 @@ func printSummary(w io.Writer, out string, obsCount int, sum auditrun.Summary) {
 		}
 		fmt.Fprintf(w, "  %-12s %s: %s\n", e.Status, e.Entity, e.Reason)
 	}
+	printSkipped(w, sum.SkippedEntities)
 
 	fmt.Fprintf(w, "observations: %d written to %s\n", obsCount, out)
 	kinds := make([]string, 0, len(sum.ByKind))
