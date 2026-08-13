@@ -51,8 +51,8 @@ and `docs/glossary.md` for the vocabulary, every term in it is deliberate.
 
 The chain runs end to end. Three documents — Jamf Pro, ThousandEyes and
 GitHub — each generate a provider tree that compiles and passes postcheck
-(`go mod tidy`, `go build`, `go vet`), between them 115 resources, 272 data
-sources and 210 actions.
+(`go mod tidy`, `go build`, `go vet`), between them 161 resources, 272 data
+sources, 69 list resources and 210 actions.
 
 What that does *not* yet mean: the generated schemas have not been exercised
 against a live API or a `terraform plan`. Compiling says the emitted Go is
