@@ -50,7 +50,13 @@ type resourceData struct {
 	ConstructReturnType string
 	WriteConstructor    string
 	ConstructBody       string
-	HasUpdate           bool
+	// The update's own request body, when the API declares one the create's
+	// cannot serve.
+	HasUpdateBody             bool
+	UpdateConstructReturnType string
+	UpdateWriteConstructor    string
+	UpdateConstructBody       string
+	HasUpdate                 bool
 
 	ReadModel string
 	StateBody string
@@ -215,11 +221,8 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	d.Imports = imports.render()
 
 	// Model.
-	decls, err := buildModels(d.Type+"Model", d.Pascal, nodes,
+	decls := buildModels(d.Type+"Model", d.Pascal, nodes,
 		[]string{"Timeouts timeouts.Value `tfsdk:\"timeouts\"`"})
-	if err != nil {
-		return err
-	}
 	d.Models = renderModelDecls(decls)
 	modelImports := newImportSet(e.pc.Module)
 	modelImports.add("", "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts")
@@ -236,15 +239,35 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 		return err
 	}
 	d.ConstructBody = body
+
+	// The update's own body, where the API declares one the create's cannot
+	// serve. It is built from the same plan against the update's own model,
+	// so a field only one of them carries lands only where it belongs.
+	updateBody := ""
+	updateUsesFmt := false
+	if rb.UpdateWriteModel != "" {
+		updateNodes := joinTree(r.Schema, rb.UpdateFields, addressingNames(
+			r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
+		updateBody, updateUsesFmt, err = constructLines(updateNodes, "data", "body", "", 1, false)
+		if err != nil {
+			return err
+		}
+		d.HasUpdateBody = true
+		d.UpdateConstructReturnType = "*" + rb.UpdateWriteModel
+		d.UpdateWriteConstructor = rb.UpdateWriteConstructor
+		d.UpdateConstructBody = updateBody
+	}
+
 	constructImports := newImportSet(e.pc.Module)
 	constructImports.add("", "context")
-	if usesFmt {
+	if usesFmt || updateUsesFmt {
 		constructImports.add("", "fmt")
 	}
-	if strings.Contains(body, "convert.") {
+	if strings.Contains(body+updateBody, "convert.") {
 		constructImports.add("", e.pc.Module+"/internal/services/common/convert")
 	}
-	e.addSDKImports(constructImports, body, d.ConstructReturnType, d.WriteConstructor)
+	e.addSDKImports(constructImports, body, d.ConstructReturnType, d.WriteConstructor,
+		updateBody, d.UpdateConstructReturnType, d.UpdateWriteConstructor)
 	d.ConstructImports = constructImports.render()
 
 	// State.

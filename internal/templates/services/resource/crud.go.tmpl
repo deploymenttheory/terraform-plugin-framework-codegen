@@ -116,7 +116,11 @@ func (r *{{ .Type }}) Update(ctx context.Context, req resource.UpdateRequest, re
 	}
 	defer cancel()
 
+{{- if .HasUpdateBody }}
+	body, constructErr := constructUpdate(ctx, &data)
+{{- else }}
 	body, constructErr := constructResource(ctx, &data, false)
+{{- end }}
 	if constructErr != nil {
 		resp.Diagnostics.AddError("Cannot build the update request", constructErr.Error())
 		return

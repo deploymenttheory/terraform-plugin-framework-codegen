@@ -36,12 +36,11 @@ Noun-verb grammar. Every verb is a pure function of committed inputs except
 credentials.
 
 ```
-tfpfgen config validate | config init
+tfpfgen config validate
 tfpfgen spec import | spec revise | spec verify
 tfpfgen audit run | audit cleanup
 tfpfgen sdk generate | sdk verify
 tfpfgen provider generate | provider verify
-tfpfgen callers sync
 tfpfgen version
 ```
 
@@ -50,4 +49,14 @@ and `docs/glossary.md` for the vocabulary — every term in it is deliberate.
 
 ## Status
 
-Phase 0: contract and toolkit skeleton. Not yet usable.
+The chain runs end to end. Three documents — Jamf Pro, ThousandEyes and
+GitHub — each generate a provider tree that compiles and passes postcheck
+(`go mod tidy`, `go build`, `go vet`), between them 115 resources, 272 data
+sources and 210 actions.
+
+What that does *not* yet mean: the generated schemas have not been exercised
+against a live API or a `terraform plan`. Compiling says the emitted Go is
+well-formed against the SDK; it says nothing about whether an attribute is
+optional where it should be computed, sensitive where it should be plain, or
+a set where it should be a list. Making the schema right for the API's real
+behaviour is the work in progress.

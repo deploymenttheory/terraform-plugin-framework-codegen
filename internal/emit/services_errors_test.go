@@ -528,3 +528,14 @@ func TestUnit_PresenceLines_NeverRendersComputedInAnActionSchema(t *testing.T) {
 		t.Fatalf("a datasource must still render Computed, got %q", got)
 	}
 }
+
+func TestUnit_RenderServices_RefusesALookupWhoseReadAnswersACollection(t *testing.T) {
+	// A read that answers with a collection is not a lookup: the state
+	// mapper reads fields off one object, and which element it should map is
+	// not something the document says.
+	pc := fictionalProviderCore()
+	m, b := fictionalModel(), fictionalBindings()
+	b.Datasources["license"].ReadModel = "[]models.Licenseable"
+
+	expectRenderExclusion(t, pc, m, b, "license", "collection")
+}

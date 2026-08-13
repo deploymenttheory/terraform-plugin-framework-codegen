@@ -84,10 +84,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	d.SchemaDescription = strconv.Quote(description)
 	d.Imports = imports.render()
 
-	decls, err := buildModels(d.Type+"Model", d.Pascal, nodes, nil)
-	if err != nil {
-		return nil, err
-	}
+	decls := buildModels(d.Type+"Model", d.Pascal, nodes, nil)
 	d.Models = renderModelDecls(decls)
 	modelImports := newImportSet(e.pc.Module)
 	if strings.Contains(d.Models, "types.") {

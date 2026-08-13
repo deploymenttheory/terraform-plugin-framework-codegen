@@ -161,7 +161,63 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 		p.remove(kind, rb.Key, "", why)
 		return false
 	}
+
+	p.settleUpdateBody(rb, read)
 	return true
+}
+
+// settleUpdateBody gives the update its own request body where the create's
+// cannot serve it.
+//
+// The two are the same request often enough that one body was assumed, and
+// where an API declares them separately the generated SDK types them
+// separately: passing the create body to the update does not compile. The
+// update's fields are the same attributes resolved against the update's own
+// model, so whatever it cannot carry is dropped from the update alone —
+// which is the point, since the difference between the two bodies is
+// usually exactly a handful of fields.
+//
+// A resource whose update body cannot be constructed keeps its create-only
+// body rather than being removed: the update will not compile against it,
+// but that is a smaller loss than the whole entity, and prune records why.
+func (p *pruner) settleUpdateBody(rb *ResourceBinding, read types.Type) {
+	if rb.Update == nil || rb.Update.RequestType == "" ||
+		rb.Create == nil || rb.Update.RequestType == rb.Create.RequestType {
+		return
+	}
+
+	model, constructor, why := p.writeModelFor(rb.Update.RequestType)
+	if why != "" {
+		p.remove("resource", rb.Key, "", fmt.Sprintf("its update body cannot be constructed: %s", why))
+		return
+	}
+	write, err := p.resolveType(model)
+	if err != nil {
+		p.remove("resource", rb.Key, "", unwrapDetail(err))
+		return
+	}
+
+	// The create's resolved fields are the starting point, deep-copied so
+	// resolving against a second model cannot disturb the first.
+	fields := p.fields("resource", rb.Key, "update", copyFieldBindings(rb.Fields), read, write)
+	if len(fields) == 0 {
+		return
+	}
+	rb.UpdateWriteModel, rb.UpdateWriteConstructor, rb.UpdateFields = model, constructor, fields
+}
+
+// copyFieldBindings deep-copies a field binding tree, so resolving it a
+// second time against another model leaves the original untouched.
+func copyFieldBindings(fbs []FieldBinding) []FieldBinding {
+	if fbs == nil {
+		return nil
+	}
+	out := make([]FieldBinding, len(fbs))
+	copy(out, fbs)
+	for i := range out {
+		out[i].Nested = copyFieldBindings(fbs[i].Nested)
+	}
+	return out
 }
 
 // datasource resolves a lookup's read or a companion's list; false
@@ -504,6 +560,7 @@ func (p *pruner) resolveListElement(list *Call, elementType, access *string, env
 	if slice, ok := result.Underlying().(*types.Slice); ok {
 		*access = ""
 		*elementType = shortType(slice.Elem())
+		p.recordTypePackage(slice.Elem())
 		return slice.Elem(), ""
 	}
 
@@ -513,6 +570,7 @@ func (p *pruner) resolveListElement(list *Call, elementType, access *string, env
 	settle := func(c listElementCandidate) (types.Type, string) {
 		*access = c.access
 		*elementType = shortType(c.elem)
+		p.recordTypePackage(c.elem)
 		return c.elem, ""
 	}
 
@@ -703,4 +761,27 @@ func (p *pruner) repairIndexer(current types.Type, seg *Segment) (*types.Signatu
 	}
 	seg.Name = name
 	return found, true
+}
+
+// recordTypePackage notes the package a type is declared in, so the emitter
+// imports what a rendered expression names. A list element resolved straight
+// off the collection accessor never passes through type-expression lookup,
+// and a generator puts the element of an inline response in the operation's
+// own package: the generated mapper named it and imported nothing.
+func (p *pruner) recordTypePackage(t types.Type) {
+	for {
+		switch shaped := t.(type) {
+		case *types.Pointer:
+			t = shaped.Elem()
+		case *types.Slice:
+			t = shaped.Elem()
+		case *types.Named:
+			if pkg := shaped.Obj().Pkg(); pkg != nil {
+				p.bindings.recordPackage(pkg.Name(), pkg.Path())
+			}
+			return
+		default:
+			return
+		}
+	}
 }
