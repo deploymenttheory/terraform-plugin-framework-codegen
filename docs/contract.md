@@ -92,6 +92,22 @@ observations already accepted on the default branch or already carrying a
 marker — skips a group with nothing left, and skips a group whose branch
 already has an open PR.
 
+**A proposal can be withdrawn, which is not a rejection.** An observation is
+not permanent: fix a defect in the audit and a finding it used to report can
+stop existing. A probe that sent the string `"120"` into an integer enum had
+`interval` recorded as server-forced on three resources; the corrected run does
+not observe it at all. Job [5a] closes every open correction PR outside the set
+this run proposes, labels it `tfpfgen-withdrawn`, and records nothing — and
+`20-corrections` skips both its jobs on that label, so no marker is written and
+no continuation is dispatched into a run still in flight.
+
+The distinction is load-bearing. Closing a correction PR any other way writes
+one rejection marker per finding, and a marker suppresses its observation until
+someone deletes the file; applied to a finding that was wrong about the probe
+rather than the API, it buries the corrected proposal too. Job [5a] therefore
+runs even when job [5] is skipped, which is precisely the run that proposes
+nothing and leaves every open PR unanswerable.
+
 **Recording a decision is never cancelled.** The `record` job's concurrency
 group is keyed on the pull request number, so no two closes contend. It used
 to be repository-wide, and GitHub keeps only one *pending* run per group: a

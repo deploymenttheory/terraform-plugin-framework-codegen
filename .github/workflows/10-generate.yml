@@ -222,6 +222,10 @@ jobs:
     timeout-minutes: 10
     needs: audit
     outputs:
+      # The correction branches this run proposes, one per line. Job [5a]
+      # withdraws every open correction PR outside the set, so it is emitted
+      # even when empty.
+      branches: ${{ steps.collect.outputs.branches }}
       # How many proposals await a decision. Job [5] reads it rather than
       # unpacking the artifact to find out whether it has work.
       proposals: ${{ steps.collect.outputs.proposals }}
@@ -257,6 +261,16 @@ jobs:
           shopt -s nullglob
           proposals=(spec/corrections/proposed/[0-9][0-9][0-9]-*.correction.json)
           echo "proposals=${#proposals[@]}" >> "$GITHUB_OUTPUT"
+          # The branches this run stands behind. Job [5a] withdraws every open
+          # correction PR outside this set, and it must be able to do that when
+          # the set is empty — which is exactly when no artifact is uploaded,
+          # so the list travels as an output rather than in the tree.
+          report="spec/corrections/proposed/proposals.json"
+          {
+            echo "branches<<TFPFGEN_EOF"
+            [ -f "$report" ] && jq -r '.groups[].branch' "$report" | sort -u
+            echo "TFPFGEN_EOF"
+          } >> "$GITHUB_OUTPUT"
           staged="${RUNNER_TEMP}/corrections-proposed"
           rm -rf "$staged"
           mkdir -p "$staged/spec"
@@ -353,6 +367,9 @@ jobs:
 
           gh label create tfpfgen-correction --color 1D76DB \
             --description "One audit-derived group of spec corrections awaiting a decision" \
+            >/dev/null 2>&1 || true
+          gh label create tfpfgen-withdrawn --color CFD3D7 \
+            --description "Closed by the pipeline because a re-run no longer observes the finding; not a rejection" \
             >/dev/null 2>&1 || true
 
           # Everything already answered on the default branch: accepted
@@ -553,6 +570,79 @@ jobs:
 
           git checkout -q -f "$start"
           echo "::notice::correction PRs — opened ${opened}, refreshed ${updated}, already current ${unchanged}, already decided ${skipped}."
+
+  # [5a] Withdraws the decisions this run no longer stands behind.
+  #
+  # An observation is not permanent. Fix a defect in the audit and a finding it
+  # used to report can simply stop existing — a probe that sent the string
+  # "120" into an integer enum had `interval` recorded as server-forced on
+  # three resources, and the corrected run does not observe it at all. The
+  # pull request asking about it is then unanswerable, and it still blocks the
+  # gate, because the gate waits for every open correction PR.
+  #
+  # Withdrawing is not rejecting, and the distinction is the whole point.
+  # Closing a correction PR by hand writes one rejection marker per finding,
+  # and a marker suppresses its observation until a human deletes the file. Do
+  # that to a finding that was never wrong about the API — only about the
+  # probe — and the corrected proposal is buried with it. The
+  # tfpfgen-withdrawn label tells 20-corrections to record nothing.
+  #
+  # It runs after [5] so a PR that job has just opened or refreshed is in the
+  # proposed set, and it runs even when [5] is skipped, which is precisely the
+  # run that proposes nothing and leaves every open PR stale.
+  withdraw-corrections:
+    name: withdraw stale corrections
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [spec-propose, open-correction-prs]
+    if: always() && needs.spec-propose.result == 'success'
+    permissions:
+      pull-requests: write
+      # Labels are the issues API even on a pull request.
+      issues: write
+    env:
+      HAS_APP: ${{ secrets.TFPFGEN_APP_ID != '' && secrets.TFPFGEN_APP_PRIVATE_KEY != '' }}
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+      - name: Mint an App token when the App is installed
+        id: app-token
+        if: env.HAS_APP == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ secrets.TFPFGEN_APP_ID }}
+          private-key: ${{ secrets.TFPFGEN_APP_PRIVATE_KEY }}
+      - name: Close the correction PRs this run no longer proposes
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          RUN_ID: ${{ github.run_id }}
+          BRANCHES: ${{ needs.spec-propose.outputs.branches }}
+        run: |
+          set -euo pipefail
+          gh label create tfpfgen-withdrawn --color CFD3D7 \
+            --description "Closed by the pipeline because a re-run no longer observes the finding; not a rejection" \
+            >/dev/null 2>&1 || true
+
+          printf '%s\n' "$BRANCHES" | sed '/^$/d' | sort -u > "${RUNNER_TEMP}/proposed-branches"
+          echo "::notice::this run proposes $(wc -l < "${RUNNER_TEMP}/proposed-branches" | tr -d ' ') correction branches."
+
+          withdrawn=0
+          while IFS=$'\t' read -r number head; do
+            [ -n "$number" ] || continue
+            if grep -qxF "$head" "${RUNNER_TEMP}/proposed-branches"; then
+              continue
+            fi
+            gh pr edit "$number" --add-label tfpfgen-withdrawn >/dev/null
+            gh pr comment "$number" --body "$(printf 'Withdrawn. Run %s/%s/actions/runs/%s no longer observes this finding, so there is nothing here to decide.\n\nThis is not a rejection and nothing was recorded against it: if a later audit observes it again, it will be proposed again.' \
+              "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$RUN_ID")" >/dev/null
+            gh pr close "$number" --delete-branch >/dev/null
+            echo "::notice::withdrew #${number} (${head}): no longer proposed."
+            withdrawn=$((withdrawn + 1))
+          done < <(gh pr list --label tfpfgen-correction --state open --limit 200 \
+                     --json number,headRefName --jq '.[] | [.number, .headRefName] | @tsv')
+
+          echo "::notice::withdrew ${withdrawn} correction PRs."
 
   # [6] The applying half of revision, and still the gate: plain
   # `tfpfgen spec revise` hard-fails while spec/corrections/proposed/ holds

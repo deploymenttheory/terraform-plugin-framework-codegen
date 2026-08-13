@@ -56,9 +56,16 @@ jobs:
     # The label is the intent; the branch prefix is the belt to its braces,
     # because a label removed before the close would otherwise lose the
     # decision silently.
+    #
+    # tfpfgen-withdrawn overrides both. A withdrawn pull request was closed by
+    # the pipeline rather than answered by a reviewer — a re-run stopped
+    # observing the finding — so there is no decision to record. A marker there
+    # would suppress an observation nobody rejected, and it outlives the
+    # mistake: the only way back is to delete the file.
     if: >-
-      contains(github.event.pull_request.labels.*.name, 'tfpfgen-correction') ||
-      startsWith(github.event.pull_request.head.ref, 'tfpfgen/correction-')
+      !contains(github.event.pull_request.labels.*.name, 'tfpfgen-withdrawn') &&
+      (contains(github.event.pull_request.labels.*.name, 'tfpfgen-correction') ||
+      startsWith(github.event.pull_request.head.ref, 'tfpfgen/correction-'))
     concurrency:
       group: tfpfgen-corrections-record-${{ github.repository }}-${{ github.event.pull_request.number }}
       cancel-in-progress: false
@@ -222,6 +229,10 @@ jobs:
     name: continue when every decision is made
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Depending on `record` also inherits its guard: a withdrawn pull request
+    # skips both. That is what should happen — the generation run that
+    # withdrew it is still in flight and continues, or gates, under its own
+    # steam. Dispatching a second one from here would race it.
     needs: record
     concurrency:
       group: tfpfgen-corrections-continue-${{ github.repository }}
