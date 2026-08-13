@@ -377,7 +377,7 @@ func childPath(parent string, n node) string {
 // buildModels renders the framework model structs for one entity: the
 // root struct plus one struct per nested object shape, pre-order. The
 // extra fields land in the root struct before the attribute fields.
-func buildModels(rootName, typePrefix string, nodes []node, extraFields []string) ([]modelDecl, error) {
+func buildModels(rootName, typePrefix string, nodes []node, extraFields []string) []modelDecl {
 	namer := newModelNamer(typePrefix, nodes)
 	var decls []modelDecl
 
@@ -405,7 +405,7 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 	}
 
 	walk(rootName, "", nodes, extraFields)
-	return decls, nil
+	return decls
 }
 
 // fieldType is the Go type one model field carries.

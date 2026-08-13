@@ -135,9 +135,9 @@ func dropUnreferencedImports(outDir string) error {
 		if err != nil {
 			return err
 		}
-		trimmed, dropped, err := withoutUnreferencedImports(source)
-		if err != nil || !dropped {
-			return err
+		trimmed, dropped := withoutUnreferencedImports(source)
+		if !dropped {
+			return nil
 		}
 		return os.WriteFile(path, trimmed, 0o644) //nolint:gosec // generated source, world-readable like the rest
 	})
@@ -147,11 +147,13 @@ func dropUnreferencedImports(outDir string) error {
 // import it never references removed, and whether anything was removed. A
 // file that does not parse is returned untouched: repairing imports is not
 // the place to discover a generator emitted something worse.
-func withoutUnreferencedImports(source []byte) ([]byte, bool, error) {
+func withoutUnreferencedImports(source []byte) ([]byte, bool) {
 	fileSet := token.NewFileSet()
 	parsed, err := parser.ParseFile(fileSet, "generated.go", source, parser.SkipObjectResolution)
 	if err != nil {
-		return source, false, nil //nolint:nilerr // an unparseable file is not this pass's business
+		// An unparseable file is not this pass's business; whatever is wrong
+		// with it, the compiler will say so far more usefully.
+		return source, false
 	}
 
 	referenced := map[string]bool{}
@@ -181,7 +183,7 @@ func withoutUnreferencedImports(source []byte) ([]byte, bool, error) {
 		}
 	}
 	if len(unused) == 0 {
-		return source, false, nil
+		return source, false
 	}
 
 	lines := strings.Split(string(source), "\n")
@@ -192,7 +194,7 @@ func withoutUnreferencedImports(source []byte) ([]byte, bool, error) {
 		}
 		kept = append(kept, line)
 	}
-	return []byte(strings.Join(kept, "\n")), true, nil
+	return []byte(strings.Join(kept, "\n")), true
 }
 
 // scrubKiotaLock rewrites the lock deterministically: descriptionLocation

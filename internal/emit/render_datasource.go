@@ -162,11 +162,8 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	d.SchemaDescription = strconv.Quote(description)
 	d.Imports = imports.render()
 
-	decls, err := buildModels(d.Type+"Model", d.Pascal+"Lookup", nodes,
+	decls := buildModels(d.Type+"Model", d.Pascal+"Lookup", nodes,
 		[]string{"Timeouts timeouts.Value `tfsdk:\"timeouts\"`"})
-	if err != nil {
-		return fixtures.Fixture{}, err
-	}
 	d.Models = renderModelDecls(decls)
 	d.ModelImports = e.datasourceModelImports(d.Models)
 
@@ -280,10 +277,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 
 	// Models: a fixed root plus the item element structs.
 	d.ItemModel = d.Pascal + "ItemModel"
-	itemDecls, err := buildModels(d.ItemModel, d.Pascal+"Item", itemNodes, nil)
-	if err != nil {
-		return fixtures.Fixture{}, err
-	}
+	itemDecls := buildModels(d.ItemModel, d.Pascal+"Item", itemNodes, nil)
 	// The root carries the two filter inputs and the item list, plus one
 	// field per addressing attribute the schema declares — the path
 	// parameters of a parent-scoped collection, which the read has to fill

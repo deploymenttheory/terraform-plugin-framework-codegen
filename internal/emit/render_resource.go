@@ -221,11 +221,8 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	d.Imports = imports.render()
 
 	// Model.
-	decls, err := buildModels(d.Type+"Model", d.Pascal, nodes,
+	decls := buildModels(d.Type+"Model", d.Pascal, nodes,
 		[]string{"Timeouts timeouts.Value `tfsdk:\"timeouts\"`"})
-	if err != nil {
-		return err
-	}
 	d.Models = renderModelDecls(decls)
 	modelImports := newImportSet(e.pc.Module)
 	modelImports.add("", "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts")
