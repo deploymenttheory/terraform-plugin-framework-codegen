@@ -3,6 +3,7 @@ package intermediate_representation
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
 )
@@ -13,8 +14,13 @@ type flat struct {
 	empty        bool
 	declaredType string
 	readOnly     bool
-	enum         []any
-	required     map[string]bool
+	// description is the document's own prose for the schema, folded from
+	// the first branch that states any. It is the only human-written text in
+	// the whole derivation; everything else the generated schema says about
+	// an attribute is inferred.
+	description string
+	enum        []any
+	required    map[string]bool
 	// properties preserves encounter order — document order first, allOf
 	// branches after — with the first declaration of a name winning.
 	properties []specmodel.Property
@@ -59,6 +65,9 @@ func flatten(schema *specmodel.Schema) flat {
 		}
 		if schema.ReadOnly {
 			flattened.readOnly = true
+		}
+		if flattened.description == "" {
+			flattened.description = strings.TrimSpace(schema.Description)
 		}
 		if flattened.enum == nil {
 			flattened.enum = schema.Enum
@@ -106,6 +115,13 @@ func (flattened flat) findProperty(name string) *specmodel.Schema {
 func buildTree(create, read *specmodel.Schema, replaceAll bool) *AttributeTree {
 	flatCreate, flatRead := flatten(create), flatten(read)
 	tree := &AttributeTree{}
+	// The object's own prose, from whichever schema declares any. A response
+	// schema is the better-annotated of the two about as often as a request
+	// schema is.
+	tree.Description = flatRead.description
+	if tree.Description == "" {
+		tree.Description = flatCreate.description
+	}
 	required := map[[2]string][]string{}
 	valid := map[[2]string][]string{}
 	dependencies := map[string][]string{}
@@ -288,6 +304,18 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 	createOnly, _ := extensions.CreateOnly()
 	_, serverFills := extensions.ServerDefault()
 	attribute.SilentlyIgnoredOnUpdate, _ = extensions.SilentlyIgnoredOnUpdate()
+
+	// The document's prose, taken from whichever side declares any. A
+	// request schema and a response schema describe the same field, and one
+	// of them is routinely annotated where the other is bare.
+	attribute.Description = flatPrimary.description
+	if attribute.Description == "" {
+		if writable {
+			attribute.Description = flatRead.description
+		} else {
+			attribute.Description = flatCreate.description
+		}
+	}
 
 	// Every attribute lands in exactly one of five outcomes, and this is where
 	// four of them are chosen (the fifth, omitted entirely, is decided by

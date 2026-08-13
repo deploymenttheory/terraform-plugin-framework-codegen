@@ -77,7 +77,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	imports.add("sdk", e.bindings.SDK.ImportPath)
 	sb := &schemaBuilder{kind: schemaAction, imports: imports}
 	d.SchemaAttributes = sb.attributeDecls(nodes, 3)
-	description := "Invokes the " + a.Names.Key + " operation."
+	description := entityDescription(a.RequestSchema, "Invokes the "+a.Names.Key+" operation.")
 	if a.CoManagementNote != "" {
 		description += " " + a.CoManagementNote
 	}

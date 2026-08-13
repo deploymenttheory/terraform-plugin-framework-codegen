@@ -61,7 +61,7 @@ func (r *{{ .Type }}) ImportState(ctx context.Context, req resource.ImportStateR
 // Schema declares the attributes the revised document derives.
 func (r *{{ .Type }}) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: {{ .SchemaDescription }},
+		MarkdownDescription: {{ .SchemaDescription }},
 		Attributes: map[string]schema.Attribute{
 {{ .SchemaAttributes }}			"timeouts": commonschema.ResourceTimeouts(ctx),
 		},

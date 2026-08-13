@@ -236,7 +236,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	sb := &schemaBuilder{kind: schemaResource, imports: imports, deps: deps, rootDepth: 3}
 	d.SchemaAttributes = sb.attributeDecls(nodes, 3)
 
-	description := "Manages the " + r.Names.Key + " entity."
+	description := entityDescription(r.Schema, "Manages the "+r.Names.Key+" entity.")
 	if r.CoManagementNote != "" {
 		description += " " + r.CoManagementNote
 	}

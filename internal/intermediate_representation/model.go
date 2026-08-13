@@ -234,6 +234,10 @@ const (
 // is emitted in a fixed order, so the tree cannot leak map iteration order.
 type AttributeTree struct {
 	Attributes []Attribute `json:"attributes,omitempty"`
+	// Description is the document's own prose for the object the tree
+	// describes, empty when it declares none. It leads the generated
+	// schema's description, ahead of anything the derivation inferred.
+	Description string `json:"description,omitempty"`
 	// ConditionalRequirements aggregates x-tfpfgen-required-when: when
 	// Property equals Equals, the Required attributes must be set.
 	ConditionalRequirements []ConditionalRequirement `json:"conditional_requirements,omitempty"`
@@ -292,8 +296,14 @@ type Attribute struct {
 	// Name is the terraform attribute name, snake_case.
 	Name string `json:"name"`
 	// WireName is the property name the API speaks.
-	WireName string        `json:"wire_name"`
-	Kind     AttributeType `json:"kind,omitempty"`
+	WireName string `json:"wire_name"`
+	// Description is the document's own prose for the property, empty when
+	// it declares none. It is the only human-written text in the whole
+	// derivation — everything else a generated schema says about an
+	// attribute is inferred — so it leads the rendered description and the
+	// inferred facts follow it.
+	Description string        `json:"description,omitempty"`
+	Kind        AttributeType `json:"kind,omitempty"`
 	// ElementKind is the element kind of a list of scalars; lists of objects
 	// carry Nested instead.
 	ElementKind AttributeType `json:"element_kind,omitempty"`

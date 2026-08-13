@@ -59,7 +59,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 		ProviderName:  e.pc.ProviderName,
 	}
 
-	description := "Lists " + lr.Names.Key + " objects. The entity is enumerable but not addressable, so listing is the whole surface."
+	description := entityDescription(lr.Schema, "Lists "+lr.Names.Key+" objects. The entity is enumerable but not addressable, so listing is the whole surface.")
 	if lr.CoManagementNote != "" {
 		description += " " + lr.CoManagementNote
 	}
