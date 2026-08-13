@@ -62,6 +62,10 @@ type Result struct {
 	// Removals is the prune report: everything the SDK could not carry,
 	// sorted, with the SDK's reason for each deletion.
 	Removals []sdkbind.Removal
+	// Excluded is every entity that yielded nothing, with the reason: the
+	// classification and configuration exclusions the model already carried,
+	// plus the shapes emission itself refused.
+	Excluded []ir.Exclusion
 	// Postcheck reports the toolchain gate.
 	Postcheck PostcheckReport
 }
@@ -129,7 +133,12 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	g.res.Files = len(entries)
 	g.res.Postcheck, err = postcheck(ctx, opts.Root, opts.Postcheck)
 	if err != nil {
-		return Result{}, err
+		// The tree is already on disk — postcheck is the gate after the
+		// install, not before it — so the result travels with the error. A
+		// caller that discards it reports nothing about a run that wrote a
+		// thousand files, and the exclusions explaining what is missing are
+		// exactly what the operator needs when the build then fails.
+		return g.res, err
 	}
 
 	// Postcheck's `go mod tidy` rewrites go.mod and writes go.sum after the
@@ -266,9 +275,13 @@ func generate(opts Options) (*generation, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := rep.Err(); err != nil {
-		return nil, err
-	}
+	// A binding the SDK cannot answer is a fact about one entity, not a
+	// defect in the toolkit, and it used to take the whole provider with it:
+	// one entity naming a read model the backend never emitted was enough to
+	// stop every other entity in a large document. The entity is dropped from
+	// the bindings — which is exactly what emission already does with an
+	// entity the bindings lack — and reported as excluded.
+	excluded := bindings.DropProblems(rep.Problems)
 
 	core, err := emit.RenderProviderCore(pc)
 	if err != nil {
@@ -285,13 +298,18 @@ func generate(opts Options) (*generation, error) {
 
 	g := &generation{
 		res: Result{
-			RevisedPath:   filepath.Join(opts.SpecDir, revise.OutputName),
-			Root:          opts.Root,
-			Resources:     len(bindings.Resources),
-			Datasources:   len(bindings.Datasources),
-			ListResources: len(bindings.ListResources),
-			Actions:       len(bindings.Actions),
+			RevisedPath: filepath.Join(opts.SpecDir, revise.OutputName),
+			Root:        opts.Root,
+			// Counted from what was registered, not from what the bindings
+			// held: an entity emission refused is bound but not emitted, and
+			// reporting it as generated would be a lie the operator cannot see
+			// through.
+			Resources:     len(entities.Registrations.Resources.Registrations),
+			Datasources:   len(entities.Registrations.Datasources.Registrations),
+			ListResources: len(entities.Registrations.ListResources.Registrations),
+			Actions:       len(entities.Registrations.Actions.Registrations),
 			Removals:      removals,
+			Excluded:      allExclusions(model.Excluded, excluded, entities.Excluded),
 		},
 		files: append(core, entities.Files...),
 	}
@@ -420,4 +438,16 @@ func removeOrphans(root string, orphans []string) {
 			}
 		}
 	}
+}
+
+// allExclusions gathers every reason an entity yielded nothing, in pipeline
+// order: refused by classification or configuration, then dropped because the
+// SDK could not answer its binding, then refused by emission.
+func allExclusions(derived []ir.Exclusion, dropped []sdkbind.Dropped, refused []ir.Exclusion) []ir.Exclusion {
+	out := make([]ir.Exclusion, 0, len(derived)+len(dropped)+len(refused))
+	out = append(out, derived...)
+	for _, d := range dropped {
+		out = append(out, ir.Exclusion{Key: d.Key, Reason: d.Reason})
+	}
+	return append(out, refused...)
 }

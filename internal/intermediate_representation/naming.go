@@ -121,9 +121,35 @@ func (names Names) withKey(provider, key string) Names {
 	names.Pascal = pascalCase(key)
 	names.Camel = camelCase(key)
 	names.TerraformType = provider + "_" + key
-	names.Package = strings.ReplaceAll(key, "_", "")
+	names.Package = packageName(key)
 	return names
 }
+
+// goKeywords is the closed set of Go's reserved words. A package may not be
+// named one: e.g some api names have an entity "package" in them, and `package package`
+// does not parse, which failed the whole provider on a template the renderer
+// then blamed.
+var goKeywords = map[string]bool{
+	"break": true, "case": true, "chan": true, "const": true, "continue": true,
+	"default": true, "defer": true, "else": true, "fallthrough": true, "for": true,
+	"func": true, "go": true, "goto": true, "if": true, "import": true,
+	"interface": true, "map": true, "package": true, "range": true, "return": true,
+	"select": true, "struct": true, "switch": true, "type": true, "var": true,
+}
+
+// packageName is the Go package name for one entity key: the key with its
+// underscores removed, per Go convention, with a reserved word escaped.
+func packageName(key string) string {
+	name := strings.ReplaceAll(key, "_", "")
+	if goKeywords[name] {
+		return name + packageKeywordSuffix
+	}
+	return name
+}
+
+// packageKeywordSuffix is what a reserved word takes to become a legal
+// package name. PROVISIONAL — the spelling awaits the repository owner.
+const packageKeywordSuffix = "entity"
 
 // GoName is pascalCase for consumers outside the derivation: the emitter
 // spells model field names and type names from attribute keys, and it must

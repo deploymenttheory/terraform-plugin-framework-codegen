@@ -17,7 +17,7 @@ import (
 // on disk never changes — and it is deterministic by construction: the same
 // input always yields the same bytes.
 //
-// Three passes, then block style. Schema defaults are stripped because a
+// Four passes, then block style. Schema defaults are stripped because a
 // generated model constructor stamps every spec-declared default onto the
 // model it builds, so a defaulted field the provider never wires leaks into
 // every request body — and response-side, a constructor default masks field
@@ -29,7 +29,18 @@ import (
 // plain strings because kiota generates a collection-of-byte-arrays writer
 // its own runtime does not implement, so the generated SDK does not compile;
 // the wire carries base64 text either way, so nothing about any request or
-// response changes.
+// response changes. A union is reduced to its first branch because Go has no
+// type that is either of two shapes: a generator asked to merge incompatible
+// branches emits a model with no properties at all, and kiota then declares
+// that model's interface as embedding IAdditionalDataHolder without importing
+// it, so the SDK does not compile. A large real document carries hundreds of
+// such sites, and one of them is enough to break the whole build.
+//
+// The reduction costs the provider nothing, because it never reaches the
+// provider: Prenormalize rewrites a copy handed to the backend, while
+// derivation reads spec/revised.yaml itself and refuses a union outright
+// ("oneOf/anyOf union: no single attribute type describes it"). An attribute
+// the reduction narrows was already omitted from every generated schema.
 //
 // Every pass accepts zero hits: a document without the shapes needs no
 // rewriting, which is not an error.
@@ -46,6 +57,7 @@ func Prenormalize(revised []byte) (out []byte, stripped, collapsed int, err erro
 	stripped = yamlwalk.StripSchemaDefaults(top)
 	collapsed = collapseAnonymousAllOfs(top)
 	widenByteArrayCollections(top)
+	reduceUnions(top)
 
 	yamlwalk.ForceBlockStyle(&root)
 
@@ -174,6 +186,83 @@ func dropByteFormat(schema *yaml.Node) {
 	for i := 0; i+1 < len(schema.Content); i += 2 {
 		if schema.Content[i].Value == "format" && schema.Content[i+1].Value == "byte" {
 			schema.Content = append(schema.Content[:i], schema.Content[i+2:]...)
+			return
+		}
+	}
+}
+
+// reduceUnions rewrites every anyOf and oneOf in the document to its first
+// branch, wherever one appears: a component schema, an inline property, a
+// request body, a response. The whole document is walked rather than the
+// component schemas alone, because the shape that broke the build was inline
+// on a response.
+func reduceUnions(node *yaml.Node) int {
+	if node == nil {
+		return 0
+	}
+
+	count := 0
+	switch node.Kind {
+	case yaml.MappingNode:
+		// Folding a branch in can expose another union the branch itself
+		// declared, so keep folding until the schema states none.
+		for folding := true; folding; {
+			folding = false
+			for _, keyword := range []string{"anyOf", "oneOf"} {
+				if reduceUnion(node, keyword) {
+					count++
+					folding = true
+				}
+			}
+		}
+		for i := 0; i+1 < len(node.Content); i += 2 {
+			count += reduceUnions(node.Content[i+1])
+		}
+	case yaml.SequenceNode:
+		for _, member := range node.Content {
+			count += reduceUnions(member)
+		}
+	}
+	return count
+}
+
+// reduceUnion folds one schema's named union keyword into the schema itself,
+// keeping the first branch. A key the schema already declares wins: the
+// branches sit beside the parent's own keywords, and a branch may not
+// overwrite what the document states directly. The discriminator goes with
+// the union it selected between — left behind it would name a property no
+// remaining branch varies on, which is what a generator chokes on next.
+func reduceUnion(schema *yaml.Node, keyword string) bool {
+	for i := 0; i+1 < len(schema.Content); i += 2 {
+		if schema.Content[i].Value != keyword {
+			continue
+		}
+		branches := schema.Content[i+1]
+		if branches.Kind != yaml.SequenceNode || len(branches.Content) == 0 {
+			return false
+		}
+		first := branches.Content[0]
+		if first.Kind != yaml.MappingNode {
+			return false
+		}
+
+		schema.Content = append(schema.Content[:i:i], schema.Content[i+2:]...)
+		removeKey(schema, "discriminator")
+		for j := 0; j+1 < len(first.Content); j += 2 {
+			if yamlwalk.ChildValue(schema, first.Content[j].Value) == nil {
+				schema.Content = append(schema.Content, first.Content[j], first.Content[j+1])
+			}
+		}
+		return true
+	}
+	return false
+}
+
+// removeKey deletes one key and its value from a mapping, if present.
+func removeKey(mapping *yaml.Node, key string) {
+	for i := 0; i+1 < len(mapping.Content); i += 2 {
+		if mapping.Content[i].Value == key {
+			mapping.Content = append(mapping.Content[:i:i], mapping.Content[i+2:]...)
 			return
 		}
 	}

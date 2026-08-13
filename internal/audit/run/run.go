@@ -271,9 +271,9 @@ type runner struct {
 	// down for good. See backoff.go.
 	backoff *backoff
 	ledger  *activityLedger
-	base   *url.URL
-	runID  string
-	budget Budgets
+	base    *url.URL
+	runID   string
+	budget  Budgets
 
 	started  time.Time
 	deadline time.Time

@@ -43,7 +43,7 @@ type listResourceData struct {
 // listResource renders one list-only entity's file set.
 func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListResourceBinding) ([]File, error) {
 	if lb.List == nil {
-		return nil, fmt.Errorf("a list resource needs a bound list call")
+		return nil, unrenderable("a list resource needs a bound list call")
 	}
 	nodes := joinTree(lr.Schema, lb.Fields)
 
@@ -71,10 +71,10 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 		return nil, fmt.Errorf("list: %w", err)
 	}
 	if plan.Payload == "" {
-		return nil, fmt.Errorf("list: the bound list call yields no payload")
+		return nil, unrenderable("list: the bound list call yields no payload")
 	}
 	if plan.ParamDecls != "" {
-		return nil, fmt.Errorf("list: a list resource cannot supply path parameters; the call needs %q", lb.List.Params[0].Wire)
+		return nil, unrenderable("list: a list resource cannot supply path parameters; the call needs %q", lb.List.Params[0].Wire)
 	}
 	d.ListPlan = plan
 	d.Collection = "result"
@@ -166,7 +166,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 func listResultLines(nodes []node) (string, error) {
 	idNode, ok := findStringNode(nodes, "id")
 	if !ok {
-		return "", fmt.Errorf("the element carries no id attribute to publish as the list identity")
+		return "", unrenderable("the element carries no id attribute to publish as the list identity")
 	}
 
 	displayNode := idNode

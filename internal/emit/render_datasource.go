@@ -131,7 +131,7 @@ func keyAttrName(ds *ir.Datasource) string {
 // entity's object comes back.
 func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixtures.Fixture, error) {
 	if ds.Operations.Read == nil || db.Read == nil {
-		return fixtures.Fixture{}, fmt.Errorf("a lookup-by-key datasource needs a bound read call")
+		return fixtures.Fixture{}, unrenderable("a lookup-by-key datasource needs a bound read call")
 	}
 
 	nodes := joinTree(ds.Schema, db.Fields)
@@ -175,7 +175,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 		return fixtures.Fixture{}, fmt.Errorf("read: %w", err)
 	}
 	if plan.Payload == "" {
-		return fixtures.Fixture{}, fmt.Errorf("read: the bound read call yields no payload to map from")
+		return fixtures.Fixture{}, unrenderable("read: the bound read call yields no payload to map from")
 	}
 	d.ReadPlan = plan
 
@@ -210,11 +210,11 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 // filter_type/filter_value/items pattern.
 func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixtures.Fixture, error) {
 	if ds.Operations.List == nil || db.List == nil {
-		return fixtures.Fixture{}, fmt.Errorf("a companion datasource needs a bound list call")
+		return fixtures.Fixture{}, unrenderable("a companion datasource needs a bound list call")
 	}
 	itemTree := companionItemTree(ds)
 	if itemTree == nil {
-		return fixtures.Fixture{}, fmt.Errorf("the companion schema carries no items attribute")
+		return fixtures.Fixture{}, unrenderable("the companion schema carries no items attribute")
 	}
 	itemNodes := joinTree(itemTree, db.Fields)
 
@@ -288,7 +288,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 		return fixtures.Fixture{}, fmt.Errorf("list: %w", err)
 	}
 	if listPlan.Payload == "" {
-		return fixtures.Fixture{}, fmt.Errorf("list: the bound list call yields no payload")
+		return fixtures.Fixture{}, unrenderable("list: the bound list call yields no payload")
 	}
 	d.ListPlan = listPlan
 	d.Collection = "result"
@@ -297,7 +297,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	}
 	d.ElementType = db.ElementType
 	if d.ElementType == "" {
-		return fixtures.Fixture{}, fmt.Errorf("list: the binding names no element type")
+		return fixtures.Fixture{}, unrenderable("list: the binding names no element type")
 	}
 
 	if d.HasIDFilter {

@@ -282,28 +282,105 @@ type modelDecl struct {
 	body string
 }
 
+// modelNamer assigns every nested object in one entity's tree the Go struct
+// name its model declaration and every reference to it use.
+//
+// The short spelling — the type prefix, the attribute's Go name, "Model" —
+// is what a tree gets whenever it is the only nesting site claiming it. Two
+// sites claiming one spelling used to be a hard error naming both paths and
+// telling the operator to "rename one in the document", which is not
+// something a vendor's document will do: a real document nests an object of
+// one name at two depths of one entity, and that single collision aborted
+// every resource the provider had. Every claimant of a contested spelling is
+// therefore qualified by its ancestor path instead, and an uncontested one is
+// left exactly as it was — so qualification shows up only where a collision
+// made it necessary.
+//
+// Which sites are contested is decided from the whole tree before any name
+// is handed out, so the answer never depends on the order names are asked
+// for, and regeneration stays byte-identical.
+type modelNamer struct {
+	typePrefix string
+	byPath     map[string]string
+}
+
+// newModelNamer resolves one entity's nested model names. The path key is
+// the attribute chain from the root, dot-separated.
+func newModelNamer(typePrefix string, nodes []node) *modelNamer {
+	shortOf := map[string]string{}
+	claimants := map[string]int{}
+
+	var survey func(parent string, nodes []node)
+	survey = func(parent string, nodes []node) {
+		for _, n := range nodes {
+			if n.attr.Nested == nil {
+				continue
+			}
+			path := n.attr.Name
+			if parent != "" {
+				path = parent + "." + n.attr.Name
+			}
+			short := typePrefix + ir.GoName(n.attr.Name) + "Model"
+			shortOf[path] = short
+			claimants[short]++
+			survey(path, n.children)
+		}
+	}
+	survey("", nodes)
+
+	namer := &modelNamer{typePrefix: typePrefix, byPath: make(map[string]string, len(shortOf))}
+	for path, short := range shortOf {
+		if claimants[short] == 1 {
+			namer.byPath[path] = short
+			continue
+		}
+		var qualified strings.Builder
+		qualified.WriteString(typePrefix)
+		for _, segment := range strings.Split(path, ".") {
+			qualified.WriteString(ir.GoName(segment))
+		}
+		qualified.WriteString("Model")
+		namer.byPath[path] = qualified.String()
+	}
+	return namer
+}
+
+// name is the struct name the nested object at one attribute path maps to.
+func (nm *modelNamer) name(path string) string {
+	if resolved, ok := nm.byPath[path]; ok {
+		return resolved
+	}
+	// A path the survey never saw cannot arise from a tree the survey
+	// walked; spell it the short way rather than returning nothing.
+	segments := strings.Split(path, ".")
+	return nm.typePrefix + ir.GoName(segments[len(segments)-1]) + "Model"
+}
+
+// childPath extends an attribute path by one segment.
+func childPath(parent string, n node) string {
+	if parent == "" {
+		return n.attr.Name
+	}
+	return parent + "." + n.attr.Name
+}
+
 // buildModels renders the framework model structs for one entity: the
 // root struct plus one struct per nested object shape, pre-order. The
 // extra fields land in the root struct before the attribute fields.
 func buildModels(rootName, typePrefix string, nodes []node, extraFields []string) ([]modelDecl, error) {
-	claimed := map[string]string{}
+	namer := newModelNamer(typePrefix, nodes)
 	var decls []modelDecl
 
-	var walk func(name, owner string, nodes []node, extra []string) error
-	walk = func(name, owner string, nodes []node, extra []string) error {
-		if prior, taken := claimed[name]; taken {
-			return fmt.Errorf("attributes %s and %s would both declare model struct %s; rename one in the document",
-				prior, owner, name)
-		}
-		claimed[name] = owner
-
+	var walk func(name, path string, nodes []node, extra []string)
+	walk = func(name, path string, nodes []node, extra []string) {
 		var b strings.Builder
 		fmt.Fprintf(&b, "type %s struct {\n", name)
 		for _, f := range extra {
 			b.WriteString("\t" + f + "\n")
 		}
 		for _, n := range nodes {
-			fmt.Fprintf(&b, "\t%s %s `tfsdk:%q`\n", ir.GoName(n.attr.Name), fieldType(typePrefix, n), n.attr.Name)
+			fmt.Fprintf(&b, "\t%s %s `tfsdk:%q`\n",
+				ir.GoName(n.attr.Name), fieldType(namer, childPath(path, n), n), n.attr.Name)
 		}
 		b.WriteString("}")
 		decls = append(decls, modelDecl{name: name, body: b.String()})
@@ -312,31 +389,22 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 			if n.attr.Nested == nil {
 				continue
 			}
-			if err := walk(nestedModelName(typePrefix, n), owner+"."+n.attr.Name, n.children, nil); err != nil {
-				return err
-			}
+			nested := childPath(path, n)
+			walk(namer.name(nested), nested, n.children, nil)
 		}
-		return nil
 	}
 
-	if err := walk(rootName, "the entity root", nodes, extraFields); err != nil {
-		return nil, err
-	}
+	walk(rootName, "", nodes, extraFields)
 	return decls, nil
 }
 
-// nestedModelName is the struct name one nested object maps to.
-func nestedModelName(typePrefix string, n node) string {
-	return typePrefix + ir.GoName(n.attr.Name) + "Model"
-}
-
 // fieldType is the Go type one model field carries.
-func fieldType(typePrefix string, n node) string {
+func fieldType(namer *modelNamer, path string, n node) string {
 	switch {
 	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
-		return "[]" + nestedModelName(typePrefix, n)
+		return "[]" + namer.name(path)
 	case n.attr.Nested != nil:
-		return "*" + nestedModelName(typePrefix, n)
+		return "*" + namer.name(path)
 	case n.attr.Kind == ir.TypeList:
 		return "types.List"
 	case n.attr.Kind == ir.TypeBool:
