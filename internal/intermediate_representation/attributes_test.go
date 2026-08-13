@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
 )
 
 // thingTree derives the main fixture's resource tree once per test.
@@ -545,5 +547,41 @@ func TestUnit_ParentParameters_DropsTheItemKey(t *testing.T) {
 	}
 	if parentParameters(nil) != nil {
 		t.Fatal("no parameters means no parents")
+	}
+}
+
+func TestUnit_BuildAttribute_CarriesTheDocumentsDescription(t *testing.T) {
+	// A request schema and a response schema describe the same field, and
+	// one is routinely annotated where the other is bare.
+	described := &specmodel.Schema{Type: "string", Description: "  Name of the alert rule.  "}
+	bare := &specmodel.Schema{Type: "string"}
+
+	writable, _ := buildAttribute("ruleName", site{create: described, read: bare})
+	if writable.Description != "Name of the alert rule." {
+		t.Fatalf("the create side's prose must carry, trimmed: %q", writable.Description)
+	}
+
+	fromRead, _ := buildAttribute("ruleName", site{create: bare, read: described})
+	if fromRead.Description != "Name of the alert rule." {
+		t.Fatalf("the read side's prose must carry when the create side is bare: %q", fromRead.Description)
+	}
+
+	computed, _ := buildAttribute("ruleId", site{read: described})
+	if computed.Description != "Name of the alert rule." {
+		t.Fatalf("a response-only attribute keeps its prose: %q", computed.Description)
+	}
+
+	none, _ := buildAttribute("path", site{create: bare, read: bare})
+	if none.Description != "" {
+		t.Fatalf("an undescribed property carries nothing, got %q", none.Description)
+	}
+}
+
+func TestUnit_BuildTree_CarriesTheObjectsDescription(t *testing.T) {
+	read := &specmodel.Schema{Type: "object", Description: "A rule that raises alerts",
+		Properties: []specmodel.Property{{Name: "id", Schema: &specmodel.Schema{Type: "string"}}}}
+	tree := buildTree(nil, read, false)
+	if tree.Description != "A rule that raises alerts" {
+		t.Fatalf("the object's prose must reach the tree, got %q", tree.Description)
 	}
 }

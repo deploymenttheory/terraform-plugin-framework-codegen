@@ -53,7 +53,7 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 	b.WriteString(sb.presenceLines(n, indent+"\t"))
 
 	if desc := attributeDescription(n.attr); desc != "" {
-		fmt.Fprintf(&b, "%s\tDescription: %s,\n", indent, strconv.Quote(desc))
+		fmt.Fprintf(&b, "%s\tMarkdownDescription: %s,\n", indent, strconv.Quote(desc))
 	}
 
 	if n.attr.Kind == ir.TypeList && n.attr.Nested == nil {
@@ -254,12 +254,23 @@ func planModifierValue(n node) string {
 	}
 }
 
-// attributeDescription renders one attribute's schema description from
-// what the document declares. The model carries no prose, so the
-// description states the wire property and whatever behavioural facts the
-// derivation recorded.
+// attributeDescription renders one attribute's schema description: the
+// document's own prose first, then the facts the derivation established
+// about how the attribute behaves.
+//
+// The order is the point. The document's sentence is the only human-written
+// text in the whole pipeline and it is what a practitioner actually needs;
+// the inferred facts qualify it. Where the document says nothing — and real
+// ones often do not, one pilot annotating 12% of its properties against
+// another's 52% — the wire property name stands in, which is no worse than
+// what was rendered before and no better.
 func attributeDescription(a ir.Attribute) string {
-	parts := []string{"The " + a.WireName + " property."}
+	var parts []string
+	if declared := strings.TrimSpace(a.Description); declared != "" {
+		parts = append(parts, terminated(declared))
+	} else {
+		parts = append(parts, "The "+a.WireName+" property.")
+	}
 	if len(a.AdvisoryValues) > 0 {
 		parts = append(parts, "Known values: "+strings.Join(a.AdvisoryValues, ", ")+".")
 	}
@@ -270,6 +281,17 @@ func attributeDescription(a ir.Attribute) string {
 		parts = append(parts, "The API ignores this attribute on update.")
 	}
 	return strings.Join(parts, " ")
+}
+
+// terminated ends a borrowed sentence with a full stop, so the facts
+// appended after it do not run on. A sentence already ending in punctuation
+// is left as the document wrote it.
+func terminated(sentence string) string {
+	switch sentence[len(sentence)-1] {
+	case '.', '!', '?', ':', ';':
+		return sentence
+	}
+	return sentence + "."
 }
 
 // frameworkElemType is the types package element type of a scalar list.
@@ -435,4 +457,20 @@ func renderModelDecls(decls []modelDecl) string {
 		parts[i] = d.body
 	}
 	return strings.Join(parts, "\n\n")
+}
+
+// entityDescription is an entity's schema description: the derived sentence
+// saying what the terraform surface does, then the document's own prose
+// about the object it does it to.
+//
+// Both earn their place. The derived sentence is the only one that says
+// whether this is a resource, a lookup or a filtered list — the document has
+// no idea Terraform exists. The document's sentence is the only human-written
+// text in the pipeline, and where it exists it is what a practitioner needs.
+// Neither is a substitute for the other, so both are rendered.
+func entityDescription(tree *ir.AttributeTree, derived string) string {
+	if tree == nil || strings.TrimSpace(tree.Description) == "" {
+		return derived
+	}
+	return derived + " " + terminated(strings.TrimSpace(tree.Description))
 }

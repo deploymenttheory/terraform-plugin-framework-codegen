@@ -155,7 +155,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	imports.add("commonschema", e.pc.Module+"/internal/services/common/schema")
 	sb := &schemaBuilder{kind: schemaDatasource, imports: imports}
 	d.SchemaAttributes = sb.attributeDecls(nodes, 3)
-	description := "Reads one " + ds.Names.Key + " by its " + key + "."
+	description := entityDescription(ds.Schema, "Reads one "+ds.Names.Key+" by its "+key+".")
 	if ds.CoManagementNote != "" {
 		description += " " + ds.CoManagementNote
 	}
@@ -252,23 +252,23 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	var b strings.Builder
 	b.WriteString("\t\t\t\"filter_type\": schema.StringAttribute{\n")
 	b.WriteString("\t\t\t\tRequired: true,\n")
-	fmt.Fprintf(&b, "\t\t\t\tDescription: %s,\n", strconv.Quote("Which objects to return: "+strings.ReplaceAll(strings.Join(allowed, " | "), `"`, "")+"."))
+	fmt.Fprintf(&b, "\t\t\t\tMarkdownDescription: %s,\n", strconv.Quote("Which objects to return: "+strings.ReplaceAll(strings.Join(allowed, " | "), `"`, "")+"."))
 	fmt.Fprintf(&b, "\t\t\t\tValidators: []validator.String{stringvalidator.OneOf(%s)},\n", strings.Join(allowed, ", "))
 	b.WriteString("\t\t\t},\n")
 	b.WriteString("\t\t\t\"filter_value\": schema.StringAttribute{\n")
 	b.WriteString("\t\t\t\tOptional: true,\n")
-	b.WriteString("\t\t\t\tDescription: \"The value the filter matches. Not read when filter_type is all.\",\n")
+	b.WriteString("\t\t\t\tMarkdownDescription: \"The value the filter matches. Not read when filter_type is all.\",\n")
 	b.WriteString("\t\t\t},\n")
 	b.WriteString("\t\t\t\"items\": schema.ListNestedAttribute{\n")
 	b.WriteString("\t\t\t\tComputed: true,\n")
-	b.WriteString("\t\t\t\tDescription: \"The objects the filter selected.\",\n")
+	b.WriteString("\t\t\t\tMarkdownDescription: \"The objects the filter selected.\",\n")
 	b.WriteString("\t\t\t\tNestedObject: schema.NestedAttributeObject{\n")
 	b.WriteString("\t\t\t\t\tAttributes: map[string]schema.Attribute{\n")
 	b.WriteString(sb.attributeDecls(itemNodes, 6))
 	b.WriteString("\t\t\t\t\t},\n\t\t\t\t},\n\t\t\t},\n")
 	d.SchemaAttributes = b.String()
 
-	description := "Reads " + ds.Names.Key + " objects by filter."
+	description := entityDescription(itemTree, "Reads "+ds.Names.Key+" objects by filter.")
 	if ds.CoManagementNote != "" {
 		description += " " + ds.CoManagementNote
 	}
