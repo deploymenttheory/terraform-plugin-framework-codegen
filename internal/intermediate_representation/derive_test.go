@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
 )
 
 func TestDerive_RefusesMissingInputs(t *testing.T) {
@@ -619,5 +621,59 @@ func TestDerive_SlicesAreSortedByKey(t *testing.T) {
 			t.Errorf("exclusions out of order: %q before %q",
 				m.Excluded[i-1].Key, m.Excluded[i].Key)
 		}
+	}
+}
+
+func TestUnit_ListElementSchema_UnwrapsAWrappingEnvelope(t *testing.T) {
+	// A collection response that wraps its payload under a key must yield
+	// the payload's element, not the envelope. Taking the envelope made the
+	// element tree its own fields — results and totalCount — none of which
+	// the SDK's element model carries, so every attribute pruned and the
+	// entity was removed for having nothing left to map.
+	element := &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		{Name: "id", Schema: &specmodel.Schema{Type: "integer"}},
+		{Name: "note", Schema: &specmodel.Schema{Type: "string"}},
+	}}
+	envelope := &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		{Name: "totalCount", Schema: &specmodel.Schema{Type: "integer"}},
+		{Name: "results", Schema: &specmodel.Schema{Type: "array", Items: element}},
+	}}
+	list := &specmodel.Operation{Responses: []specmodel.Response{
+		{Status: "200", Schema: envelope},
+	}}
+
+	got := listElementSchema(list)
+	if got != element {
+		t.Fatalf("want the envelope's element, got %+v", got)
+	}
+}
+
+func TestUnit_ListElementSchema_UnwrapsABareArray(t *testing.T) {
+	element := &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		{Name: "id", Schema: &specmodel.Schema{Type: "string"}},
+	}}
+	list := &specmodel.Operation{Responses: []specmodel.Response{
+		{Status: "200", Schema: &specmodel.Schema{Type: "array", Items: element}},
+	}}
+	if got := listElementSchema(list); got != element {
+		t.Fatalf("want the array's element, got %+v", got)
+	}
+}
+
+func TestUnit_ListElementSchema_LeavesAResponseCarryingNoCollectionAlone(t *testing.T) {
+	// A singleton settings object is not a collection. Guessing an element
+	// out of it would be worse than deriving nothing, so it comes back
+	// unchanged and the entity fails later with the SDK's own reason.
+	singleton := &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		{Name: "timezone", Schema: &specmodel.Schema{Type: "string"}},
+	}}
+	list := &specmodel.Operation{Responses: []specmodel.Response{
+		{Status: "200", Schema: singleton},
+	}}
+	if got := listElementSchema(list); got != singleton {
+		t.Fatalf("want the body unchanged, got %+v", got)
+	}
+	if listElementSchema(nil) != nil {
+		t.Fatal("no operation means no element")
 	}
 }

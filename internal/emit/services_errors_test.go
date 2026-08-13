@@ -539,3 +539,107 @@ func TestUnit_RenderServices_RefusesALookupWhoseReadAnswersACollection(t *testin
 
 	expectRenderExclusion(t, pc, m, b, "license", "collection")
 }
+
+func TestUnit_FindIdentityNode_AcceptsAnIdentityTheAPIDidNotSpellAsAString(t *testing.T) {
+	// A list identity is a string, but an API is not obliged to key its
+	// objects with one. Requiring the string spelling excluded every entity
+	// with a numeric id.
+	for _, kind := range []ir.AttributeType{ir.TypeString, ir.TypeInt64, ir.TypeFloat64, ir.TypeBool} {
+		nodes := []node{{
+			attr: ir.Attribute{Name: "id", WireName: "id", Kind: kind},
+			fb:   &sdkbind.FieldBinding{Attr: "id", Wire: "id", Kind: kind, Access: sdkbind.FieldAccess{Get: "GetId"}},
+		}}
+		if _, ok := findIdentityNode(nodes); !ok {
+			t.Fatalf("a %s id must serve as the list identity", kind)
+		}
+	}
+
+	// An object of that name is not an identity, and neither is an unbound one.
+	nested := []node{{
+		attr: ir.Attribute{Name: "id", Kind: ir.TypeObject, Nested: &ir.AttributeTree{}},
+		fb:   &sdkbind.FieldBinding{Attr: "id", Access: sdkbind.FieldAccess{Get: "GetId"}},
+	}}
+	if _, ok := findIdentityNode(nested); ok {
+		t.Fatal("an object must not serve as the list identity")
+	}
+	if _, ok := findIdentityNode([]node{{attr: ir.Attribute{Name: "id", Kind: ir.TypeString}}}); ok {
+		t.Fatal("an unbound attribute cannot be read for the identity")
+	}
+}
+
+func TestUnit_ReadStringLocal_RendersANonStringIdentityThroughFmt(t *testing.T) {
+	numeric := node{
+		attr: ir.Attribute{Name: "id", Kind: ir.TypeInt64},
+		fb:   &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*int64"}},
+	}
+	got := readStringLocal("id", numeric)
+	if !strings.Contains(got, "fmt.Sprintf") {
+		t.Fatalf("a numeric identity must be rendered as a string:\n%s", got)
+	}
+
+	text := node{
+		attr: ir.Attribute{Name: "id", Kind: ir.TypeString},
+		fb:   &sdkbind.FieldBinding{Access: sdkbind.FieldAccess{Get: "GetId", SDKType: "*string"}},
+	}
+	if got := readStringLocal("id", text); strings.Contains(got, "fmt.Sprintf") {
+		t.Fatalf("a string identity needs no conversion:\n%s", got)
+	}
+}
+
+func TestUnit_RenderServices_EmitsASingletonWithoutCreateOrDelete(t *testing.T) {
+	// A singleton writes on create through its update, and destroys by
+	// forgetting. It needs neither a create call nor a delete one.
+	pc := fictionalProviderCore()
+	m, b := fictionalModel(), fictionalBindings()
+
+	r := &m.Resources[0]
+	r.Singleton = true
+	r.Operations.Create = nil
+	r.Operations.Delete = nil
+	rb := b.Resources[r.Names.Key]
+	rb.Create = nil
+	rb.Delete = nil
+
+	out, err := RenderServices(pc, m, b)
+	if err != nil {
+		t.Fatalf("a singleton must render: %v", err)
+	}
+	if len(out.Excluded) != 0 {
+		t.Fatalf("a singleton must not be excluded: %+v", out.Excluded)
+	}
+
+	var crud string
+	for _, f := range out.Files {
+		if strings.Contains(f.Path, "/resources/") && strings.HasSuffix(f.Path, "http_server/crud.go") {
+			crud = string(f.Content)
+		}
+		if strings.HasSuffix(f.Path, "http_server/mocks/responders.go") && strings.Contains(f.Path, "/resources/") {
+			t.Fatal("a singleton has no collection to mock, so no responders are emitted")
+		}
+	}
+	if crud == "" {
+		t.Fatal("the singleton must emit crud.go")
+	}
+	if strings.Contains(crud, "crud.DeleteWithRetry") {
+		t.Fatalf("destroy must forget rather than call the API:\n%s", crud)
+	}
+	if !strings.Contains(crud, "resp.State.RemoveResource(ctx)") {
+		t.Fatalf("destroy must still drop the object from state:\n%s", crud)
+	}
+	if !strings.Contains(crud, `data.ID = types.StringValue("petstore_http_server")`) {
+		t.Fatalf("a singleton publishes a constant id:\n%s", crud)
+	}
+}
+
+func TestUnit_RenderServices_RefusesASingletonWithoutAnUpdate(t *testing.T) {
+	pc := fictionalProviderCore()
+	m, b := fictionalModel(), fictionalBindings()
+
+	r := &m.Resources[0]
+	r.Singleton = true
+	r.Operations.Create, r.Operations.Delete, r.Operations.Update = nil, nil, nil
+	rb := b.Resources[r.Names.Key]
+	rb.Create, rb.Delete, rb.Update = nil, nil, nil
+
+	expectRenderExclusion(t, pc, m, b, r.Names.Key, "singleton", "read and update")
+}

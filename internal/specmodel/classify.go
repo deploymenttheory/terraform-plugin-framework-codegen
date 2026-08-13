@@ -58,6 +58,10 @@ type Classification struct {
 	Update *Op
 	Delete *Op
 	List   *Op
+	// Singleton marks an entity that is one object at a fixed path rather
+	// than a collection: its read is the collection-path GET and its update
+	// the collection-path write, and it has neither create nor delete.
+	Singleton bool
 	// Extra holds operations on the entity's paths that fit no role: a
 	// second POST, a PATCH on the collection. Recorded so the audit
 	// planner sees the whole surface, never silently dropped.
@@ -137,7 +141,12 @@ func Classify(d *Document) Classifications {
 type entity struct {
 	key, collection, item           string
 	create, read, update, del, list *Operation
-	extra                           []*Operation
+	// collectionWrite is a PUT or PATCH on the collection path itself. On a
+	// normal entity that position means nothing and the operation is extra;
+	// on a singleton it is the update, because a singleton has no item path
+	// to carry one.
+	collectionWrite *Operation
+	extra           []*Operation
 }
 
 // assign files an operation into the role its HTTP position means: POST on
@@ -161,6 +170,8 @@ func (e *entity) assign(op *Operation, isItem bool) {
 		slot(&e.read)
 	case (op.Method == "PUT" || op.Method == "PATCH") && isItem:
 		slot(&e.update)
+	case op.Method == "PUT" || op.Method == "PATCH":
+		slot(&e.collectionWrite)
 	case op.Method == "DELETE" && isItem:
 		slot(&e.del)
 	default:
@@ -180,7 +191,19 @@ func (e *entity) decide() (Classification, *Exclusion) {
 	lookupOK := lookupShape && e.read.SuccessSchema() != nil
 
 	listOnlyShape := e.list != nil && e.read == nil
-	listOK := listOnlyShape && e.list.SuccessSchema() != nil
+	// A collection-path GET whose response carries no array is not a
+	// collection: it is one object at a fixed path — an account's
+	// preferences, a tenant's enrolment settings. One pilot answers 85 of
+	// its collection GETs that way, and every one was classified as a list
+	// resource and then failed for having no elements to reach.
+	singletonShape := listOnlyShape && !carriesCollection(e.list.SuccessSchema())
+	listOK := listOnlyShape && !singletonShape && e.list.SuccessSchema() != nil
+
+	// A singleton is a resource when the API lets it be written: read at the
+	// fixed path, updated there, neither created nor destroyed. Terraform
+	// owns that shape by writing on create as well as update, and by
+	// forgetting the object on destroy rather than calling anything.
+	singletonOK := singletonShape && e.collectionWrite != nil && e.list.SuccessSchema() != nil
 
 	actionShape := e.create != nil &&
 		e.read == nil && e.list == nil && e.update == nil && e.del == nil
@@ -189,7 +212,7 @@ func (e *entity) decide() (Classification, *Exclusion) {
 	for _, k := range kindOrder {
 		switch k {
 		case KindResource:
-			if resourceOK {
+			if resourceOK || singletonOK {
 				kinds = append(kinds, k)
 			}
 		case KindDatasource:
@@ -220,17 +243,29 @@ func (e *entity) decide() (Classification, *Exclusion) {
 		}
 	}
 
+	read, update, list := e.read, e.update, e.list
+	extra := e.extra
+	if singletonOK {
+		read, update, list = e.list, e.collectionWrite, nil
+	} else if e.collectionWrite != nil {
+		// A write on the collection path means nothing to an entity that is
+		// not a singleton: it is surplus, and surplus is recorded rather
+		// than dropped.
+		extra = append(append([]*Operation{}, e.extra...), e.collectionWrite)
+	}
+
 	return Classification{
 		Key:            e.key,
 		CollectionPath: e.collection,
 		ItemPath:       e.item,
 		Kinds:          kinds,
 		Create:         opRef(e.create),
-		Read:           opRef(e.read),
-		Update:         opRef(e.update),
+		Read:           opRef(read),
+		Update:         opRef(update),
 		Delete:         opRef(e.del),
-		List:           opRef(e.list),
-		Extra:          extraRefs(e.extra),
+		List:           opRef(list),
+		Singleton:      singletonOK,
+		Extra:          extraRefs(extra),
 		MissingUpdate:  resourceOK && e.update == nil,
 		// A resource's by-id datasource is its normal companion, not a
 		// key lookup; the flag marks the datasources that exist only
@@ -368,4 +403,29 @@ func singular(s string) string {
 	default:
 		return s
 	}
+}
+
+// carriesCollection reports whether a response schema holds a list: the
+// array itself, or an array under one of an envelope's properties. It is
+// what separates a collection GET from a singleton GET, which share a path
+// shape and nothing else.
+func carriesCollection(s *Schema) bool {
+	if s == nil {
+		return false
+	}
+	r := s.Resolved()
+	if r.Type == "array" {
+		return true
+	}
+	for _, branch := range r.AllOf {
+		if carriesCollection(branch) {
+			return true
+		}
+	}
+	for _, property := range r.Properties {
+		if property.Schema != nil && property.Schema.Resolved().Type == "array" {
+			return true
+		}
+	}
+	return false
 }

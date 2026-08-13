@@ -57,6 +57,12 @@ type resourceData struct {
 	UpdateWriteConstructor    string
 	UpdateConstructBody       string
 	HasUpdate                 bool
+	// Singleton marks the resource as one object at a fixed path: created
+	// by writing, destroyed by forgetting.
+	Singleton bool
+	// SingletonID is the constant a singleton publishes as its id, since
+	// there is no collection member to take one from.
+	SingletonID string
 
 	ReadModel string
 	StateBody string
@@ -99,7 +105,13 @@ type resourceData struct {
 
 // resource renders one resource's complete file set.
 func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) ([]File, error) {
-	if r.Operations.Create == nil || rb.Create == nil || r.Operations.Read == nil || rb.Read == nil ||
+	// A singleton has neither: it is written through its update and
+	// forgotten on destroy, so a read and an update are all it needs.
+	if r.Singleton {
+		if r.Operations.Read == nil || rb.Read == nil || r.Operations.Update == nil || rb.Update == nil {
+			return nil, unrenderable("a singleton resource needs bound read and update calls")
+		}
+	} else if r.Operations.Create == nil || rb.Create == nil || r.Operations.Read == nil || rb.Read == nil ||
 		r.Operations.Delete == nil || rb.Delete == nil {
 		return nil, unrenderable("a resource needs bound create, read and delete calls")
 	}
@@ -123,6 +135,12 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		ProviderModule: e.pc.Module,
 	}
 	d.HasUpdate = !d.MissingUpdate
+	d.Singleton = r.Singleton
+	if r.Singleton {
+		// One object at a fixed path has exactly one address, so its id is
+		// a constant rather than anything the API answers with.
+		d.SingletonID = r.Names.TerraformType
+	}
 	if r.EventualConsistency > 0 {
 		d.HasEC = true
 		d.ECDuration = goDuration(int64(r.EventualConsistency))
@@ -135,8 +153,10 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, err
 	}
 	spec := deriveFixtures(r.Schema, nodes)
-	if err := e.resourceMocks(d, r, rb, spec); err != nil {
-		return nil, err
+	if !d.Singleton {
+		if err := e.resourceMocks(d, r, rb, spec); err != nil {
+			return nil, err
+		}
 	}
 	e.resourceChecks(d, spec)
 
@@ -160,9 +180,17 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		{"state.go.tmpl", "state.go"},
 		{"crud.go.tmpl", "crud.go"},
 		{"modify_plan.go.tmpl", "modify_plan.go"},
-		{"resource_test.go.tmpl", "resource_test.go"},
 		{"resource_acceptance_test.go.tmpl", "resource_acceptance_test.go"},
-		{"responders.go.tmpl", "mocks/responders.go"},
+	}
+	// The stateful mock keys on a collection URL and an item path carrying an
+	// identifier segment, and a singleton has neither: one object, one fixed
+	// path, no create and no delete. Its unit test and responders are
+	// therefore not emitted — the acceptance test still is. Giving the mock a
+	// singleton shape is worth doing; guessing a collection for it is not.
+	if !d.Singleton {
+		goFiles = append(goFiles,
+			struct{ tmpl, out string }{"resource_test.go.tmpl", "resource_test.go"},
+			struct{ tmpl, out string }{"responders.go.tmpl", "mocks/responders.go"})
 	}
 	for _, gf := range goFiles {
 		if err := renderGo(gf.tmpl, gf.out); err != nil {
@@ -311,12 +339,20 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 // resourceCRUD builds the four lifecycle call plans and the crud imports.
 func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBinding, nodes []node) error {
 	var err error
-	d.CreateMapsResponse = rb.Create.ResponseType != "" && rb.Create.ResponseType == rb.ReadModel
+
+	// A singleton creates by writing: its create call is its update, and it
+	// has no delete call at all.
+	createCall := rb.Create
+	if d.Singleton {
+		createCall = rb.Update
+	}
+
+	d.CreateMapsResponse = createCall.ResponseType != "" && createCall.ResponseType == rb.ReadModel
 	createPayload := ""
 	if d.CreateMapsResponse {
 		createPayload = "created"
 	}
-	if d.CreatePlan, err = buildCallPlan(rb.Create, createPayload, nodes, "data"); err != nil {
+	if d.CreatePlan, err = buildCallPlan(createCall, createPayload, nodes, "data"); err != nil {
 		return fmt.Errorf("create: %w", err)
 	}
 	if d.ReadPlan, err = buildCallPlan(rb.Read, "remote", nodes, "data"); err != nil {
@@ -325,8 +361,10 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	if d.ReadPlan.Payload == "" {
 		return unrenderable("read: the bound read call yields no payload to map state from")
 	}
-	if d.DeletePlan, err = buildCallPlan(rb.Delete, "", nodes, "data"); err != nil {
-		return fmt.Errorf("delete: %w", err)
+	if !d.Singleton {
+		if d.DeletePlan, err = buildCallPlan(rb.Delete, "", nodes, "data"); err != nil {
+			return fmt.Errorf("delete: %w", err)
+		}
 	}
 	if d.HasUpdate {
 		d.UpdateMapsResponse = rb.Update.ResponseType != "" && rb.Update.ResponseType == rb.ReadModel
@@ -356,6 +394,9 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	if d.HasEC {
 		imports.add("", "time")
 		imports.add("", "github.com/hashicorp/terraform-plugin-framework/tfsdk")
+	}
+	if d.Singleton {
+		imports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
 	}
 	e.addSDKImports(imports, d.CreatePlan.Assign, d.ReadPlan.Assign, d.DeletePlan.ClosureBody, d.UpdatePlan.Assign)
 	addPlanImports(imports, d.CreatePlan, d.ReadPlan, d.UpdatePlan, d.DeletePlan)

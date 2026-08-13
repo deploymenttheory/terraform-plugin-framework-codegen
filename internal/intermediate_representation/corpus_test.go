@@ -42,6 +42,18 @@ func TestIntegration_IntermediateRepresentation_DerivesAPinnedVendorDocument(t *
 		if r.Names.Key == "" || r.Names.TerraformType == "" || r.Schema == nil {
 			t.Errorf("anonymous resource: %+v", r.Names)
 		}
+		// A singleton is one object at a fixed path: read and updated,
+		// never created or destroyed. Every other resource carries the
+		// full lifecycle.
+		if r.Singleton {
+			if r.Operations.Read == nil || r.Operations.Update == nil {
+				t.Errorf("singleton %s lacks its read or update", r.Names.Key)
+			}
+			if r.Operations.Create != nil || r.Operations.Delete != nil {
+				t.Errorf("singleton %s must have neither create nor delete: %+v", r.Names.Key, r.Operations)
+			}
+			continue
+		}
 		if r.Operations.Create == nil || r.Operations.Read == nil || r.Operations.Delete == nil {
 			t.Errorf("resource %s lacks lifecycle ops", r.Names.Key)
 		}

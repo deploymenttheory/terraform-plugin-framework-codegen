@@ -78,6 +78,12 @@ type Resource struct {
 	// MissingUpdate means the API declares no update operation, so every
 	// writable attribute carries RequiresReplace.
 	MissingUpdate bool `json:"missing_update,omitempty"`
+	// Singleton means the entity is one object at a fixed path rather than a
+	// member of a collection. It has no create and no delete: the generated
+	// create writes through the api update (put / patch) operation, and the generated delete
+	// forgets the object without calling the API, because there is nothing
+	// to destroy.
+	Singleton bool `json:"singleton,omitempty"`
 	// UpdateStyle is how update treats omitted fields. patch-merge is the
 	// default whenever an update operation exists; empty when none does.
 	UpdateStyle string `json:"update_style,omitempty"`

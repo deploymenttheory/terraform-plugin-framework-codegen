@@ -130,9 +130,15 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 		return false
 	}
 
+	// The body the practitioner's configuration is written into: the
+	// create's, or the update's for a singleton, which has no create.
+	writeSource := rb.Create
+	if writeSource == nil {
+		writeSource = rb.Update
+	}
 	rb.WriteModel, rb.WriteConstructor = "", ""
-	if rb.Create != nil && rb.Create.RequestType != "" {
-		write, constructor, why := p.writeModelFor(rb.Create.RequestType)
+	if writeSource != nil && writeSource.RequestType != "" {
+		write, constructor, why := p.writeModelFor(writeSource.RequestType)
 		if why != "" {
 			p.remove(kind, rb.Key, "", fmt.Sprintf("its request body cannot be constructed: %s", why))
 			return false
@@ -157,7 +163,7 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 
 	rb.Fields = p.fields(kind, rb.Key, "", rb.Fields, read, write)
 
-	if why := unbuildableReason(rb.Fields, rb.Create != nil); why != "" {
+	if why := unbuildableReason(rb.Fields, writeSource != nil); why != "" {
 		p.remove(kind, rb.Key, "", why)
 		return false
 	}
