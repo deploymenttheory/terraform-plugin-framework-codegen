@@ -188,6 +188,16 @@ type Summary struct {
 	// how many edges were asserted versus tested-but-unconfirmed.
 	EdgesConfirmed    int `json:"edgesConfirmed"`
 	EdgesInconclusive int `json:"edgesInconclusive"`
+	// RateLimited counts every rate-limit refusal the run met, and Slowdowns
+	// how many times it halved its own rate in answer. Both belong on the
+	// summary because a throttled run explains itself: an entity that came
+	// back thin after fifty refusals was not measuring a quiet API, and
+	// reading its findings as though it were is the mistake this records
+	// against. RateLimitRPS is the rate the run finished on, which is the
+	// configured rate only when nothing forced it down.
+	RateLimited  int `json:"rateLimited"`
+	Slowdowns    int `json:"slowdowns"`
+	RateLimitRPS int `json:"rateLimitRps"`
 }
 
 // Run executes the plan and returns every observation it derived, however
@@ -253,7 +263,10 @@ type runner struct {
 	client *http.Client
 	auth   authenticator
 	bucket *bucket
-	ledger *activityLedger
+	// backoff answers a rate-limit refusal: wait, retry, and slow the run
+	// down for good. See backoff.go.
+	backoff *backoff
+	ledger  *activityLedger
 	base   *url.URL
 	runID  string
 	budget Budgets
@@ -375,6 +388,7 @@ func newRunner(opts Options) (*runner, error) {
 		client:   &http.Client{Transport: newTransport()},
 		auth:     auth,
 		bucket:   newBucket(rps),
+		backoff:  newBackoff(),
 		ledger:   led,
 		base:     base,
 		runID:    runID,
@@ -552,6 +566,8 @@ func (r *runner) finishSummary(obs []observe.Observation) {
 	r.summary.ObjectBudget = r.budget.Objects
 	r.summary.Elapsed = time.Since(r.started).Round(time.Millisecond)
 	r.summary.DurationBudget = r.budget.Duration
+	r.summary.RateLimited, r.summary.Slowdowns = r.backoff.counts()
+	r.summary.RateLimitRPS = r.bucket.rate()
 }
 
 // newTransport gives a runner's client its own connection pool. The
