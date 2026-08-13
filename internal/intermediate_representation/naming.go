@@ -121,35 +121,37 @@ func (names Names) withKey(provider, key string) Names {
 	names.Pascal = pascalCase(key)
 	names.Camel = camelCase(key)
 	names.TerraformType = provider + "_" + key
-	names.Package = packageName(key)
+	names.Package = packageName(provider, key)
 	return names
 }
 
-// goKeywords is the closed set of Go's reserved words. A package may not be
-// named one: e.g some api names have an entity "package" in them, and `package package`
-// does not parse, which failed the whole provider on a template the renderer
-// then blamed.
-var goKeywords = map[string]bool{
-	"break": true, "case": true, "chan": true, "const": true, "continue": true,
-	"default": true, "defer": true, "else": true, "fallthrough": true, "for": true,
-	"func": true, "go": true, "goto": true, "if": true, "import": true,
-	"interface": true, "map": true, "package": true, "range": true, "return": true,
-	"select": true, "struct": true, "switch": true, "type": true, "var": true,
+// packageName is the Go package name for one entity: the provider name and
+// the entity key, both stripped of the punctuation a Go identifier may not
+// carry, per the convention that a package name is one lower-case word.
+//
+// The provider prefix is not decoration. Without it the key alone names the
+// package, and a key is whatever the document's path segments spell — which
+// includes Go's reserved words. An entity keyed "package" produced `package
+// package`, and the failure surfaced nowhere near its cause, as a template
+// "rendering Go that does not parse". No reserved word begins with a provider
+// name, so prefixing removes the whole class rather than escaping one case of
+// it, and it makes the package a generated file imports unmistakable.
+func packageName(provider, key string) string {
+	return identifierWord(provider) + identifierWord(key)
 }
 
-// packageName is the Go package name for one entity key: the key with its
-// underscores removed, per Go convention, with a reserved word escaped.
-func packageName(key string) string {
-	name := strings.ReplaceAll(key, "_", "")
-	if goKeywords[name] {
-		return name + packageKeywordSuffix
+// identifierWord reduces a name to the lower-case letters and digits a Go
+// identifier may carry, dropping the separators a provider name or an entity
+// key is allowed to use.
+func identifierWord(name string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(name) {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(r)
+		}
 	}
-	return name
+	return b.String()
 }
-
-// packageKeywordSuffix is what a reserved word takes to become a legal
-// package name. PROVISIONAL — the spelling awaits the repository owner.
-const packageKeywordSuffix = "entity"
 
 // GoName is pascalCase for consumers outside the derivation: the emitter
 // spells model field names and type names from attribute keys, and it must

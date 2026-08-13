@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -97,7 +98,8 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, unrenderable("a resource needs bound create, read and delete calls")
 	}
 
-	nodes := joinTree(r.Schema, rb.Fields)
+	nodes := joinTree(r.Schema, rb.Fields, addressingNames(
+		r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 	d := &resourceData{
 		Package:        r.Names.Package,
 		PackagePath:    e.packagePath(kindResources, r.Names),
@@ -313,8 +315,8 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 			return fmt.Errorf("update: %w", err)
 		}
 		var copies []string
-		for _, p := range rb.Update.Params {
-			field, ferr := paramField(p, nodes, len(rb.Update.Params) == 1)
+		for position, p := range rb.Update.Params {
+			field, ferr := paramField(p, nodes, position == len(rb.Update.Params)-1)
 			if ferr != nil {
 				return fmt.Errorf("update: %w", ferr)
 			}
@@ -333,6 +335,7 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 		imports.add("", "github.com/hashicorp/terraform-plugin-framework/tfsdk")
 	}
 	e.addSDKImports(imports, d.CreatePlan.Assign, d.ReadPlan.Assign, d.DeletePlan.ClosureBody, d.UpdatePlan.Assign)
+	addPlanImports(imports, d.CreatePlan, d.ReadPlan, d.UpdatePlan, d.DeletePlan)
 	d.CRUDImports = imports.render()
 	return nil
 }
@@ -347,6 +350,26 @@ func (e *serviceRenderer) addSDKImports(s *importSet, snippets ...string) {
 	if strings.Contains(joined, "sdk.") {
 		s.add("sdk", e.bindings.SDK.ImportPath)
 	}
+	// A generator puts the model of an inline request body in the package of
+	// the operation that takes it, so a rendered expression can name a
+	// package that is neither the root nor models. Prune recorded where each
+	// one resolved; a snippet that names none adds none.
+	for _, name := range sortedKeys(e.bindings.OperationPackages) {
+		if strings.Contains(joined, name+".") {
+			s.add("", e.bindings.OperationPackages[name])
+		}
+	}
+}
+
+// sortedKeys answers a map's keys in a fixed order, so an import set is
+// built the same way on every run.
+func sortedKeys(m map[string]string) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // importAttr is the attribute ImportState passes the import identifier

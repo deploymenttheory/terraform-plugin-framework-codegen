@@ -2,7 +2,6 @@ package intermediate_representation
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 )
 
@@ -19,7 +18,7 @@ func TestDeriveNames(t *testing.T) {
 			collectionPath: "/v7/tags",
 			want: Names{
 				Key: "tag", Pascal: "Tag", Camel: "tag",
-				TerraformType: "acme_tag", Package: "tag",
+				TerraformType: "acme_tag", Package: "acmetag",
 				Service: "tags", APIVersionDirectory: "v7",
 			},
 		},
@@ -29,7 +28,7 @@ func TestDeriveNames(t *testing.T) {
 			collectionPath: "/v7/tests/http-server",
 			want: Names{
 				Key: "tests_http_server", Pascal: "TestsHTTPServer", Camel: "testsHTTPServer",
-				TerraformType: "acme_tests_http_server", Package: "testshttpserver",
+				TerraformType: "acme_tests_http_server", Package: "acmetestshttpserver",
 				Service: "tests", APIVersionDirectory: "v7",
 			},
 		},
@@ -39,7 +38,7 @@ func TestDeriveNames(t *testing.T) {
 			collectionPath: "/notes",
 			want: Names{
 				Key: "note", Pascal: "Note", Camel: "note",
-				TerraformType: "acme_note", Package: "note",
+				TerraformType: "acme_note", Package: "acmenote",
 				Service: "notes", APIVersionDirectory: "v1",
 			},
 		},
@@ -49,7 +48,7 @@ func TestDeriveNames(t *testing.T) {
 			collectionPath: "/tests/v2/runs",
 			want: Names{
 				Key: "tests_v2_run", Pascal: "TestsV2Run", Camel: "testsV2Run",
-				TerraformType: "acme_tests_v2_run", Package: "testsv2run",
+				TerraformType: "acme_tests_v2_run", Package: "acmetestsv2run",
 				Service: "tests", APIVersionDirectory: "v1",
 			},
 		},
@@ -104,30 +103,35 @@ func TestSnakeCase(t *testing.T) {
 	}
 }
 
-func TestUnit_Names_PackageEscapesAGoKeyword(t *testing.T) {
-	// A key that spells a reserved word cannot name a package: `package
-	// package` does not parse, and the failure surfaces far from its cause,
-	// as a template that "renders Go that does not parse".
-	for _, key := range []string{"package", "type", "range", "interface", "map"} {
-		got := packageName(key)
-		if goKeywords[got] {
-			t.Fatalf("packageName(%q) = %q, which is still a reserved word", key, got)
-		}
-		if !strings.HasPrefix(got, key) {
-			t.Fatalf("packageName(%q) = %q; the escape must keep the key readable", key, got)
+func TestUnit_Names_PackageCarriesTheProviderPrefix(t *testing.T) {
+	for _, tc := range []struct{ provider, key, want string }{
+		{"jamfpro", "computer_group", "jamfprocomputergroup"},
+		{"thousandeyes", "http_server", "thousandeyeshttpserver"},
+		{"github", "repository", "githubrepository"},
+		// A provider name may carry a hyphen; a package name may not.
+		{"my-api", "widget", "myapiwidget"},
+	} {
+		if got := packageName(tc.provider, tc.key); got != tc.want {
+			t.Fatalf("packageName(%q, %q) = %q, want %q", tc.provider, tc.key, got, tc.want)
 		}
 	}
 }
 
-func TestUnit_Names_PackageLeavesAnOrdinaryKeyAlone(t *testing.T) {
-	for key, want := range map[string]string{
-		"http_server":     "httpserver",
-		"account_group":   "accountgroup",
-		"packages":        "packages",
-		"type_definition": "typedefinition",
-	} {
-		if got := packageName(key); got != want {
-			t.Fatalf("packageName(%q) = %q, want %q", key, got, want)
+func TestUnit_Names_PackageIsNeverAGoKeyword(t *testing.T) {
+	// The prefix is what makes this true for every key at once, rather than
+	// escaping the reserved words one at a time.
+	keywords := []string{
+		"break", "case", "chan", "const", "continue", "default", "defer", "else",
+		"fallthrough", "for", "func", "go", "goto", "if", "import", "interface",
+		"map", "package", "range", "return", "select", "struct", "switch", "type", "var",
+	}
+	reserved := map[string]bool{}
+	for _, k := range keywords {
+		reserved[k] = true
+	}
+	for _, k := range keywords {
+		if got := packageName("jamfpro", k); reserved[got] {
+			t.Fatalf("packageName(jamfpro, %q) = %q, which is a reserved word", k, got)
 		}
 	}
 }

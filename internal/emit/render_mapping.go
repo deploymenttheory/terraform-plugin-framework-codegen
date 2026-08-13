@@ -262,6 +262,9 @@ type callPlan struct {
 	// ClosureBody is the call rendered as a delete-closure body: blanks
 	// for non-error results, returning the error.
 	ClosureBody string
+	// Imports names the standard-library packages the parameter
+	// declarations reference, e.g. "strconv" for a converted identifier.
+	Imports []string
 }
 
 // buildCallPlan renders one bound call. payloadName names the success
@@ -270,12 +273,26 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 	var plan callPlan
 
 	var decls []string
-	for _, p := range call.Params {
-		field, err := paramField(p, nodes, len(call.Params) == 1)
+	for position, p := range call.Params {
+		// The last path parameter addresses the object itself, which is what
+		// the id attribute holds however the API spells the parameter. The
+		// fallback used to need the call to take exactly one parameter, which
+		// is only true of a flat API: /enterprises/{enterprise}/code-security/
+		// configurations/{configuration_id} takes two, and its id was left
+		// matching nothing because the response happened to declare an id of
+		// its own and keep that spelling.
+		n, err := paramNode(p, nodes, position == len(call.Params)-1)
 		if err != nil {
 			return callPlan{}, err
 		}
-		decls = append(decls, fmt.Sprintf("%s := %s.%s.%s()", p.Local, modelVar, field, valueMethod(p.GoType)))
+		value, needs, err := paramValue(p, modelVar, ir.GoName(n.attr.Name), n.attr.Kind)
+		if err != nil {
+			return callPlan{}, err
+		}
+		if needs != "" {
+			plan.Imports = append(plan.Imports, needs)
+		}
+		decls = append(decls, fmt.Sprintf("%s := %s", p.Local, value))
 	}
 	plan.ParamDecls = strings.Join(decls, "\n\t")
 
@@ -318,37 +335,131 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 // a single-parameter call only — the id attribute, which is how an item
 // path names its key in every REST shape the derivation admits.
 func paramField(p sdkbind.CallParam, nodes []node, idFallback bool) (string, error) {
+	n, err := paramNode(p, nodes, idFallback)
+	if err != nil {
+		return "", err
+	}
+	return ir.GoName(n.attr.Name), nil
+}
+
+// paramNode is paramField's answer before it is reduced to a spelling: the
+// attribute itself, whose declared kind decides how its value is read.
+func paramNode(p sdkbind.CallParam, nodes []node, idFallback bool) (node, error) {
+	// A path parameter is a scalar in the URL. An attribute of the same name
+	// that is an object is a different thing the document happens to spell
+	// the same way — a repository's owner block beside the owner segment of
+	// its path — and reading a value out of it does not compile.
 	for _, n := range nodes {
-		if n.attr.WireName == p.Wire {
-			return ir.GoName(n.attr.Name), nil
+		if n.attr.WireName == p.Wire && n.attr.Nested == nil {
+			return n, nil
 		}
 	}
 	snake := ir.TerraformName(p.Wire)
 	for _, n := range nodes {
-		if n.attr.Name == snake {
-			return ir.GoName(n.attr.Name), nil
+		if n.attr.Name == snake && n.attr.Nested == nil {
+			return n, nil
 		}
 	}
 	if idFallback {
 		for _, n := range nodes {
-			if n.attr.Name == "id" {
-				return ir.GoName(n.attr.Name), nil
+			if n.attr.Name == idAttributeName && n.attr.Nested == nil {
+				return n, nil
 			}
 		}
 	}
-	return "", unrenderable("path parameter %q matches no attribute and the entity has no id attribute", p.Wire)
+	return node{}, unrenderable("path parameter %q matches no scalar attribute and the entity has no id attribute", p.Wire)
 }
 
-// valueMethod is the framework value accessor for one parameter type.
-func valueMethod(goType string) string {
-	switch goType {
-	case "bool":
+// valueMethod is the framework value accessor for one attribute kind. It
+// reads the model field, so it answers to the kind the model declares —
+// never to what the SDK happens to take, which is a separate question
+// paramValue answers on top of this one.
+func valueMethod(kind ir.AttributeType) string {
+	switch kind {
+	case ir.TypeBool:
 		return "ValueBool"
-	case "int64":
+	case ir.TypeInt64:
 		return "ValueInt64"
-	case "float64":
+	case ir.TypeFloat64:
 		return "ValueFloat64"
 	default:
 		return "ValueString"
+	}
+}
+
+// paramValue renders the expression one path parameter is passed as: the
+// model field read through its own accessor, converted to whatever the SDK
+// method really takes.
+//
+// The two can differ, and routinely do. The model field's kind comes from
+// the document, which has one integer type; the SDK's parameter type comes
+// from the generator, which does not — an integer path parameter arrives as
+// int32 about as often as int64, and sometimes as a string. Reading the
+// field with an accessor chosen from the SDK's type was the bug: it produced
+// data.ID.ValueString() on a types.Int64 field, which does not compile, and
+// where both happened to be integers it passed an int64 to an int32
+// parameter, which does not either.
+//
+// A conversion this cannot spell without inventing error handling — a string
+// field into a numeric parameter — refuses the entity rather than guessing.
+func paramValue(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType) (string, string, error) {
+	read := modelVar + "." + field + "." + valueMethod(kind) + "()"
+
+	switch {
+	case sdkTypeMatches(kind, p.GoType):
+		return read, "", nil
+	case kind == ir.TypeInt64 && isIntegerType(p.GoType):
+		// Narrowing an id to the width the SDK declares. A real identifier
+		// does not approach the boundary, and the alternative is refusing
+		// every operation whose generator chose int32.
+		return p.GoType + "(" + read + ")", "", nil
+	case kind == ir.TypeFloat64 && p.GoType == "float32":
+		return "float32(" + read + ")", "", nil
+	case kind == ir.TypeInt64 && p.GoType == "string":
+		return "strconv.FormatInt(" + read + ", 10)", "strconv", nil
+	case kind == ir.TypeFloat64 && p.GoType == "string":
+		return "strconv.FormatFloat(" + read + ", 'f', -1, 64)", "strconv", nil
+	case kind == ir.TypeBool && p.GoType == "string":
+		return "strconv.FormatBool(" + read + ")", "strconv", nil
+	}
+	return "", "", unrenderable(
+		"path parameter %q is %s in the schema but %s in the generated SDK, and no conversion between them is safe without a parse that can fail",
+		p.Wire, kind, p.GoType)
+}
+
+// sdkTypeMatches reports whether the SDK takes exactly what the model field
+// yields, so the value passes through unconverted.
+func sdkTypeMatches(kind ir.AttributeType, goType string) bool {
+	switch kind {
+	case ir.TypeBool:
+		return goType == "bool"
+	case ir.TypeInt64:
+		return goType == "int64"
+	case ir.TypeFloat64:
+		return goType == "float64"
+	default:
+		return goType == "string"
+	}
+}
+
+// isIntegerType reports whether an SDK parameter type is an integer a
+// framework Int64 converts into without a parse.
+func isIntegerType(goType string) bool {
+	switch goType {
+	case "int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64":
+		return true
+	}
+	return false
+}
+
+// addPlanImports adds whatever standard-library packages a set of rendered
+// call plans reference in their parameter declarations. A plan that converts
+// nothing adds nothing, which is the common case.
+func addPlanImports(set *importSet, plans ...callPlan) {
+	for _, plan := range plans {
+		for _, name := range plan.Imports {
+			set.add("", name)
+		}
 	}
 }

@@ -256,6 +256,10 @@ func (derivation *deriver) resource(classification specmodel.Classification, nam
 	tree := buildTree(createBody, readBody, classification.MissingUpdate)
 	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
 	ensureID(tree, keyParam, keyType)
+	readOperation := derivation.operation(classification.Read, OperationRead)
+	if readOperation != nil {
+		ensureParentParameters(tree, parentParameters(readOperation.PathParameters))
+	}
 
 	updateStyle := ""
 	if classification.Update != nil {
@@ -337,9 +341,13 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 
 	if classification.LookupByKey {
 		requireKey(itemTree, keyParam, keyType)
+		readOperation := derivation.operation(classification.Read, OperationRead)
+		if readOperation != nil {
+			ensureParentParameters(itemTree, parentParameters(readOperation.PathParameters))
+		}
 		return Datasource{
 			Names:        names,
-			Operations:   Operations{Read: derivation.operation(classification.Read, OperationRead)},
+			Operations:   Operations{Read: readOperation},
 			Schema:       itemTree,
 			LookupByKey:  true,
 			KeyParameter: keyParam,
@@ -350,14 +358,22 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 	// objects come back, items carries them. The filter attributes are the
 	// toolkit's own vocabulary, not the API's, so they take no wire names
 	// beyond their own.
+	listOperation := derivation.operation(classification.List, OperationList)
+	companionTree := &AttributeTree{Attributes: []Attribute{
+		{Name: "filter_type", WireName: "filter_type", Kind: TypeString, Presence: PresenceRequired},
+		{Name: "filter_value", WireName: "filter_value", Kind: TypeString, Presence: PresenceOptional},
+		{Name: "items", WireName: "items", Kind: TypeList, ElementKind: TypeObject, Presence: PresenceComputed, Nested: itemTree},
+	}}
+	// A collection path carries no item key, so every one of its path
+	// parameters is a parent the caller has to supply.
+	if listOperation != nil {
+		ensureParentParameters(companionTree, listOperation.PathParameters)
+	}
+
 	return Datasource{
-		Names:      names,
-		Operations: Operations{Read: derivation.operation(classification.Read, OperationRead), List: derivation.operation(classification.List, OperationList)},
-		Schema: &AttributeTree{Attributes: []Attribute{
-			{Name: "filter_type", WireName: "filter_type", Kind: TypeString, Presence: PresenceRequired},
-			{Name: "filter_value", WireName: "filter_value", Kind: TypeString, Presence: PresenceOptional},
-			{Name: "items", WireName: "items", Kind: TypeList, ElementKind: TypeObject, Presence: PresenceComputed, Nested: itemTree},
-		}},
+		Names:           names,
+		Operations:      Operations{Read: derivation.operation(classification.Read, OperationRead), List: listOperation},
+		Schema:          companionTree,
 		ListEnvelopeKey: listEnvelopeKey(derivation.full(classification.List)),
 	}
 }

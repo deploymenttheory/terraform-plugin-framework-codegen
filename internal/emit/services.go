@@ -280,15 +280,23 @@ type node struct {
 }
 
 // joinTree joins an attribute tree with its field bindings, in tree order.
-func joinTree(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding) []node {
-	return joinAttributes(tree, fbs, true)
+// addressing names the root attributes that exist to fill a path parameter
+// rather than to carry a field, and so survive with no binding.
+func joinTree(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing ...map[string]bool) []node {
+	names := map[string]bool{idAttributeName: true}
+	for _, set := range addressing {
+		for name := range set {
+			names[name] = true
+		}
+	}
+	return joinAttributes(tree, fbs, names, true)
 }
 
 // joinAttributes is joinTree's recursion, tracking whether it is at the root
-// so the framework-required id is kept at the top level only. A nested
-// attribute that happens to be called id is an ordinary API field: unbound,
+// so addressing attributes are kept at the top level only. A nested attribute
+// that happens to share one of their names is an ordinary API field: unbound,
 // it travels nowhere and is dropped like any other.
-func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, root bool) []node {
+func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing map[string]bool, root bool) []node {
 	if tree == nil {
 		return nil
 	}
@@ -300,7 +308,7 @@ func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, root boo
 	for _, a := range tree.Attributes {
 		fb, ok := byAttr[a.Name]
 		if !ok {
-			if !root || a.Name != idAttributeName || a.Nested != nil {
+			if !root || !addressing[a.Name] || a.Nested != nil {
 				continue
 			}
 			out = append(out, node{attr: a})
@@ -308,7 +316,7 @@ func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, root boo
 		}
 		n := node{attr: a, fb: fb}
 		if a.Nested != nil {
-			n.children = joinAttributes(a.Nested, fb.Nested, false)
+			n.children = joinAttributes(a.Nested, fb.Nested, addressing, false)
 		}
 		out = append(out, n)
 	}
@@ -318,6 +326,27 @@ func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, root boo
 // idAttributeName is the terraform attribute every resource and datasource
 // carries, whatever the API calls its key.
 const idAttributeName = "id"
+
+// addressingNames is the set of root attribute names that fill an
+// operation's path parameters, in terraform spelling.
+//
+// They survive pruning with no binding for the same reason the id does: they
+// address the object rather than describe it, so no request or response body
+// declares them and no SDK model can carry them. A parent-scoped API puts
+// most of its surface behind them — /repos/{owner}/{repo}/… — and dropping
+// them excluded every entity underneath.
+func addressingNames(operations ...*ir.Operation) map[string]bool {
+	names := map[string]bool{}
+	for _, operation := range operations {
+		if operation == nil {
+			continue
+		}
+		for _, parameter := range operation.PathParameters {
+			names[ir.TerraformName(parameter.Name)] = true
+		}
+	}
+	return names
+}
 
 // supportedTree rebuilds an attribute tree containing only the joined
 // nodes, so the fixture derivation covers exactly what the schema carries.

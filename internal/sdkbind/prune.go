@@ -35,7 +35,7 @@ func Prune(b *Bindings, sdkDir string) ([]Removal, error) {
 		return nil, fmt.Errorf("%w: sdk.client_type_name: %s", ErrBindings, unwrapDetail(err))
 	}
 
-	p := &pruner{l: l, info: b.SDK, client: client}
+	p := &pruner{l: l, info: b.SDK, client: client, bindings: b}
 
 	for _, key := range sortedKeys(b.Resources) {
 		if !p.resource(b.Resources[key]) {
@@ -73,10 +73,24 @@ func Prune(b *Bindings, sdkDir string) ([]Removal, error) {
 }
 
 type pruner struct {
-	l       *loader
-	info    SDKInfo
-	client  types.Type
-	removed []Removal
+	l        *loader
+	info     SDKInfo
+	client   types.Type
+	bindings *Bindings
+	removed  []Removal
+}
+
+// resolveType resolves a type expression and records the package it was
+// found under, so the emitter can import whatever the expression names.
+func (p *pruner) resolveType(expr string) (*types.Named, error) {
+	named, importPath, err := p.l.typeAndPackageFromExpr(p.info, expr)
+	if err != nil {
+		return nil, err
+	}
+	if pkg := named.Obj().Pkg(); pkg != nil {
+		p.bindings.recordPackage(pkg.Name(), importPath)
+	}
+	return named, nil
 }
 
 func (p *pruner) remove(kind, key, attribute, reason string) {
@@ -126,14 +140,14 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 		rb.WriteModel, rb.WriteConstructor = write, constructor
 	}
 
-	read, err := p.l.typeFromExpr(p.info, rb.ReadModel)
+	read, err := p.resolveType(rb.ReadModel)
 	if err != nil {
 		p.remove(kind, rb.Key, "", unwrapDetail(err))
 		return false
 	}
 	var write types.Type
 	if rb.WriteModel != "" {
-		w, err := p.l.typeFromExpr(p.info, rb.WriteModel)
+		w, err := p.resolveType(rb.WriteModel)
 		if err != nil {
 			p.remove(kind, rb.Key, "", unwrapDetail(err))
 			return false
@@ -174,7 +188,7 @@ func (p *pruner) datasource(db *DatasourceBinding) bool {
 
 	model := element
 	if model == nil {
-		named, err := p.l.typeFromExpr(p.info, db.ReadModel)
+		named, err := p.resolveType(db.ReadModel)
 		if err != nil {
 			p.remove(kind, db.Key, "", unwrapDetail(err))
 			return false
@@ -229,7 +243,7 @@ func (p *pruner) action(ab *ActionBinding) bool {
 			return false
 		}
 		ab.WriteModel, ab.WriteConstructor = model, constructor
-		w, err := p.l.typeFromExpr(p.info, model)
+		w, err := p.resolveType(model)
 		if err != nil {
 			p.remove(kind, ab.Key, "", unwrapDetail(err))
 			return false
@@ -277,7 +291,10 @@ func (p *pruner) resolveCall(c *Call) string {
 
 		sig, ok := methodOn(current, seg.Name)
 		if !ok {
-			repaired, found := p.repairBodySetter(current, seg)
+			repaired, found := p.repairIndexer(current, seg)
+			if !found {
+				repaired, found = p.repairBodySetter(current, seg)
+			}
 			if !found {
 				return fmt.Sprintf("%s has no method %s%s",
 					shortType(current), seg.Name, didYouMean(seg.Name, methodNamesOf(current)))
@@ -288,6 +305,7 @@ func (p *pruner) resolveCall(c *Call) string {
 			return fmt.Sprintf("%s takes %d argument(s) but the call passes %d: %s",
 				seg.Name, want, got, shortSignature(sig))
 		}
+		settleParamTypes(c, seg, sig)
 		if last {
 			final = sig
 			break
@@ -424,7 +442,7 @@ func (p *pruner) settleCall(c *Call, sig *types.Signature) {
 // struct its constructor yields, a flat struct constructs itself. The
 // returned reason names what stops a body being built.
 func (p *pruner) writeModelFor(requestType string) (model, constructor, reason string) {
-	named, err := p.l.typeFromExpr(p.info, requestType)
+	named, err := p.resolveType(requestType)
 	if err != nil {
 		return "", "", unwrapDetail(err)
 	}
@@ -606,4 +624,83 @@ func unbuildableReason(fbs []FieldBinding, needsWrite bool) string {
 		return "no attribute survives that can be sent in a request body, so there is nothing an operator could configure"
 	}
 	return ""
+}
+
+// settleParamTypes records what the SDK method really takes for each path
+// parameter the segment passes, replacing the type drafted from the document.
+//
+// The draft can only spell what the intermediate representation knows, and
+// the representation has one integer type. A generator does not: a path
+// parameter the document calls an integer routinely arrives as int32, and one
+// the document calls an integer arrives as a string wherever the generator
+// read the operation differently. Passing the drafted type produced code that
+// did not compile — "cannot use id (variable of type int64) as int32 value" —
+// on every such operation.
+//
+// Resolution is by argument position against the real signature, which is the
+// only place the truth lives. A parameter the segment does not pass is left
+// exactly as drafted.
+func settleParamTypes(c *Call, seg *Segment, sig *types.Signature) {
+	if c == nil || sig == nil {
+		return
+	}
+	for position, arg := range seg.Args {
+		if position >= sig.Params().Len() {
+			return
+		}
+		for i := range c.Params {
+			if c.Params[i].Local != arg {
+				continue
+			}
+			c.Params[i].GoType = shortType(sig.Params().At(position).Type())
+		}
+	}
+}
+
+// indexerPrefix is what a generated collection builder names its
+// by-identifier hop with, in both supported backends.
+const indexerPrefix = "By"
+
+// repairIndexer resolves a by-identifier hop to the collection builder's
+// only such method.
+//
+// The draft spells the hop from the document's path parameter, and no
+// generator promises to spell it the same way. kiota keeps the parameter's
+// own punctuation, so a path parameter named gist_id becomes ByGist_id where
+// the draft asked for ByGistId; it appends a suffix where the parameter is
+// bare, so owner becomes ByOwnerId; and where it has already used a name it
+// renames wholesale, so team_slug becomes ByEnterpriseTeamId. Three
+// different rules, none of them derivable from the document — and between
+// them they took thirty-eight of one document's forty resources, every one
+// with a read call the SDK plainly had.
+//
+// A collection builder indexes by exactly one thing, so where it declares
+// exactly one such method there is nothing to guess: the hop is that method
+// or the entity has no read at all. Two would be a guess, and the draft
+// stands so the entity is removed with the SDK's own reason.
+func (p *pruner) repairIndexer(current types.Type, seg *Segment) (*types.Signature, bool) {
+	if !strings.HasPrefix(seg.Name, indexerPrefix) || len(seg.Args) != 1 {
+		return nil, false
+	}
+
+	var name string
+	var found *types.Signature
+	for _, candidate := range methodNamesOf(current) {
+		if !strings.HasPrefix(candidate, indexerPrefix) {
+			continue
+		}
+		sig, ok := methodOn(current, candidate)
+		if !ok || sig.Params().Len() != 1 || sig.Results().Len() != 1 {
+			continue
+		}
+		if found != nil {
+			return nil, false // ambiguous: repairing would be a guess
+		}
+		name, found = candidate, sig
+	}
+	if found == nil {
+		return nil, false
+	}
+	seg.Name = name
+	return found, true
 }

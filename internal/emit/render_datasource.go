@@ -134,7 +134,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 		return fixtures.Fixture{}, unrenderable("a lookup-by-key datasource needs a bound read call")
 	}
 
-	nodes := joinTree(ds.Schema, db.Fields)
+	nodes := joinTree(ds.Schema, db.Fields, addressingNames(ds.Operations.Read, ds.Operations.List))
 	key := keyAttrName(ds)
 	if !hasNode(nodes, key) {
 		// The SDK model does not carry the key parameter as a field; the
@@ -185,6 +185,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	readImports.add("", e.pc.Module+"/internal/services/common/crud")
 	readImports.add("", e.pc.Module+"/internal/services/common/errors")
 	e.addSDKImports(readImports, plan.Assign)
+	addPlanImports(readImports, plan)
 	d.ReadImports = readImports.render()
 
 	stateBody, err := stateLines(nodes, d.Pascal+"Lookup", "remote", "data", 1)
@@ -273,17 +274,33 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	if err != nil {
 		return fixtures.Fixture{}, err
 	}
+	// The root carries the two filter inputs and the item list, plus one
+	// field per addressing attribute the schema declares — the path
+	// parameters of a parent-scoped collection, which the read has to fill
+	// from config and which no item model can hold.
 	root := "type " + d.Type + "Model struct {\n" +
 		"\tFilterType types.String `tfsdk:\"filter_type\"`\n" +
-		"\tFilterValue types.String `tfsdk:\"filter_value\"`\n" +
-		"\tItems []" + d.ItemModel + " `tfsdk:\"items\"`\n" +
+		"\tFilterValue types.String `tfsdk:\"filter_value\"`\n"
+	for _, a := range companionAddressing(ds) {
+		root += "\t" + ir.GoName(a.Name) + " " + frameworkValueType(a.Kind) +
+			" `tfsdk:\"" + a.Name + "\"`\n"
+	}
+	root += "\tItems []" + d.ItemModel + " `tfsdk:\"items\"`\n" +
 		"\tTimeouts timeouts.Value `tfsdk:\"timeouts\"`\n" +
 		"}"
 	d.Models = root + "\n\n" + renderModelDecls(itemDecls)
 	d.ModelImports = e.datasourceModelImports(d.Models)
 
-	// Calls.
-	listPlan, err := buildCallPlan(db.List, "result", itemNodes, "data")
+	// Calls. The list call's path parameters are filled from the companion's
+	// own attributes, not from the item element's: a parent-scoped collection
+	// is reached through org or owner, which sit on the datasource beside the
+	// filter inputs and never on an item. Resolving them against the element
+	// found its id instead and read the wrong field.
+	addressingNodes := make([]node, 0)
+	for _, a := range companionAddressing(ds) {
+		addressingNodes = append(addressingNodes, node{attr: a})
+	}
+	listPlan, err := buildCallPlan(db.List, "result", addressingNodes, "data")
 	if err != nil {
 		return fixtures.Fixture{}, fmt.Errorf("list: %w", err)
 	}
@@ -318,6 +335,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	readImports.add("", e.pc.Module+"/internal/services/common/crud")
 	readImports.add("", e.pc.Module+"/internal/services/common/errors")
 	e.addSDKImports(readImports, d.ListPlan.Assign, d.ReadPlan.Assign)
+	addPlanImports(readImports, d.ListPlan, d.ReadPlan)
 	d.ReadImports = readImports.render()
 
 	// Item mapping.
@@ -501,4 +519,39 @@ func reindentJSON(block, prefix string) string {
 		lines[i] = prefix + line
 	}
 	return strings.Join(lines, "\n")
+}
+
+// companionAddressing is the companion datasource's attributes that are
+// neither of the filter inputs nor the item list: the path parameters
+// derivation added so a parent-scoped collection can be reached.
+func companionAddressing(ds *ir.Datasource) []ir.Attribute {
+	if ds == nil || ds.Schema == nil {
+		return nil
+	}
+	var out []ir.Attribute
+	for _, a := range ds.Schema.Attributes {
+		switch a.Name {
+		case "filter_type", "filter_value", "items":
+			continue
+		}
+		if a.Nested == nil {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// frameworkValueType is the framework value type one scalar attribute kind
+// is held as in a model struct.
+func frameworkValueType(kind ir.AttributeType) string {
+	switch kind {
+	case ir.TypeBool:
+		return "types.Bool"
+	case ir.TypeInt64:
+		return "types.Int64"
+	case ir.TypeFloat64:
+		return "types.Float64"
+	default:
+		return "types.String"
+	}
 }

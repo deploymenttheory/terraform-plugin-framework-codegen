@@ -489,3 +489,61 @@ components:
 		t.Errorf("extra = %+v", a)
 	}
 }
+
+func TestUnit_EnsureParentParameters_AddsWhatNoBodyDeclares(t *testing.T) {
+	tree := &AttributeTree{Attributes: []Attribute{
+		{Name: "id", WireName: "id", Kind: TypeString, Presence: PresenceComputed},
+		{Name: "name", WireName: "name", Kind: TypeString, Presence: PresenceRequired},
+	}}
+	ensureParentParameters(tree, []Parameter{
+		{Name: "owner", Type: TypeString},
+		{Name: "repo", Type: TypeString},
+	})
+
+	if len(tree.Attributes) != 4 {
+		t.Fatalf("want four attributes, got %d", len(tree.Attributes))
+	}
+	// Prepended, in path order, ahead of everything the body declares.
+	for i, want := range []string{"owner", "repo", "id", "name"} {
+		if tree.Attributes[i].Name != want {
+			t.Fatalf("attribute %d = %q, want %q", i, tree.Attributes[i].Name, want)
+		}
+	}
+	for _, a := range tree.Attributes[:2] {
+		if a.Presence != PresenceRequired {
+			t.Fatalf("%s must be required, got %s", a.Name, a.Presence)
+		}
+		if !a.RequiresReplace {
+			t.Fatalf("%s must force replacement: addressing is not editable", a.Name)
+		}
+	}
+}
+
+func TestUnit_EnsureParentParameters_LeavesWhatTheBodyAlreadyDeclares(t *testing.T) {
+	// The document is a better authority on its own field than the URL is.
+	tree := &AttributeTree{Attributes: []Attribute{
+		{Name: "owner", WireName: "owner", Kind: TypeString, Presence: PresenceOptional},
+	}}
+	ensureParentParameters(tree, []Parameter{{Name: "owner", Type: TypeString}})
+
+	if len(tree.Attributes) != 1 {
+		t.Fatalf("a declared parent must not be added twice, got %d", len(tree.Attributes))
+	}
+	if tree.Attributes[0].Presence != PresenceOptional {
+		t.Fatalf("a declared parent keeps its declared presence, got %s", tree.Attributes[0].Presence)
+	}
+}
+
+func TestUnit_ParentParameters_DropsTheItemKey(t *testing.T) {
+	params := []Parameter{{Name: "owner"}, {Name: "repo"}, {Name: "ruleset_id"}}
+	got := parentParameters(params)
+	if len(got) != 2 || got[0].Name != "owner" || got[1].Name != "repo" {
+		t.Fatalf("want owner and repo, got %+v", got)
+	}
+	if parentParameters(params[2:]) != nil {
+		t.Fatal("a lone path parameter is the item key, not a parent")
+	}
+	if parentParameters(nil) != nil {
+		t.Fatal("no parameters means no parents")
+	}
+}

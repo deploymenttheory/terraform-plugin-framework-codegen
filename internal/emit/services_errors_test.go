@@ -303,13 +303,13 @@ func TestUnit_Emit_HelperSpellings(t *testing.T) {
 		}
 	}
 
-	methods := map[string]string{
-		"string": "ValueString", "bool": "ValueBool",
-		"int64": "ValueInt64", "float64": "ValueFloat64",
+	methods := map[ir.AttributeType]string{
+		ir.TypeString: "ValueString", ir.TypeBool: "ValueBool",
+		ir.TypeInt64: "ValueInt64", ir.TypeFloat64: "ValueFloat64",
 	}
-	for goType, want := range methods {
-		if got := valueMethod(goType); got != want {
-			t.Fatalf("valueMethod(%s) = %q", goType, got)
+	for kind, want := range methods {
+		if got := valueMethod(kind); got != want {
+			t.Fatalf("valueMethod(%s) = %q", kind, got)
 		}
 	}
 
@@ -406,5 +406,125 @@ func TestUnit_RenderServices_ExcludesRatherThanAbortsTheWholeRun(t *testing.T) {
 	}
 	if len(after.Files) >= len(before.Files) {
 		t.Fatalf("the refused entity's files must be absent: %d then %d", len(before.Files), len(after.Files))
+	}
+}
+
+func TestUnit_JoinTree_KeepsAddressingAttributesTheSDKCannotCarry(t *testing.T) {
+	// A path parameter addresses the object rather than describing it, so no
+	// request or response body declares it and no SDK model carries it. It
+	// must survive the join all the same, or nothing can fill the call.
+	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
+		{Name: "owner", WireName: "owner", Kind: ir.TypeString, Presence: ir.PresenceRequired},
+		{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
+		{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+	}}
+	bound := []sdkbind.FieldBinding{{Attr: "name", Wire: "name", Kind: ir.TypeString,
+		Access: kAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}}
+
+	nodes := joinTree(tree, bound, map[string]bool{"owner": true})
+
+	got := map[string]bool{}
+	for _, n := range nodes {
+		got[n.attr.Name] = true
+	}
+	for _, want := range []string{"owner", "id", "name"} {
+		if !got[want] {
+			t.Fatalf("%s must survive the join, got %v", want, got)
+		}
+	}
+}
+
+func TestUnit_JoinTree_DropsAnUnboundAttributeThatAddressesNothing(t *testing.T) {
+	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
+		{Name: "ghost", WireName: "ghost", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+	}}
+	if nodes := joinTree(tree, nil); len(nodes) != 0 {
+		t.Fatalf("an ordinary unbound attribute must be dropped, got %d node(s)", len(nodes))
+	}
+}
+
+func TestUnit_AddressingNames_TakesEveryPathParameterInTerraformSpelling(t *testing.T) {
+	read := &ir.Operation{PathParameters: []ir.Parameter{
+		{Name: "owner", Type: ir.TypeString},
+		{Name: "repo", Type: ir.TypeString},
+		{Name: "ruleset_id", Type: ir.TypeInt64},
+	}}
+	list := &ir.Operation{PathParameters: []ir.Parameter{{Name: "org", Type: ir.TypeString}}}
+
+	names := addressingNames(read, nil, list)
+	for _, want := range []string{"owner", "repo", "ruleset_id", "org"} {
+		if !names[want] {
+			t.Fatalf("%s must be addressing, got %v", want, names)
+		}
+	}
+	if len(names) != 4 {
+		t.Fatalf("want exactly the four parameters, got %v", names)
+	}
+}
+
+func TestUnit_ParamNode_RefusesAnObjectOfTheSameName(t *testing.T) {
+	// A path parameter is a scalar in the URL. An attribute of the same name
+	// that is an object is a different thing the document spells the same
+	// way, and reading a value out of it does not compile.
+	nodes := []node{
+		{attr: ir.Attribute{Name: "owner", WireName: "owner", Kind: ir.TypeObject,
+			Nested: &ir.AttributeTree{}}},
+	}
+	if _, err := paramNode(sdkbind.CallParam{Local: "owner", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
+		t.Fatal("an object must not answer a path parameter")
+	}
+}
+
+func TestUnit_ParamNode_TakesTheLastParameterAsTheID(t *testing.T) {
+	// An item path with a parent takes two parameters, and its key is the
+	// last one — whatever the response happens to call its own id.
+	nodes := []node{
+		{attr: ir.Attribute{Name: "id", WireName: "id", Kind: ir.TypeString}},
+	}
+	got, err := paramNode(sdkbind.CallParam{Local: "cfg", Wire: "configuration_id", GoType: "string"}, nodes, true)
+	if err != nil {
+		t.Fatalf("the last path parameter must fall back to the id: %v", err)
+	}
+	if got.attr.Name != "id" {
+		t.Fatalf("want the id attribute, got %q", got.attr.Name)
+	}
+	if _, err := paramNode(sdkbind.CallParam{Local: "o", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
+		t.Fatal("a parent parameter must not fall back to the id")
+	}
+}
+
+func TestUnit_Invocable_DropsWhatAnActionCannotTake(t *testing.T) {
+	// An action schema has no Computed: the framework's action package does
+	// not declare the field, so a computed attribute does not compile.
+	nodes := []node{
+		{attr: ir.Attribute{Name: "kept", Presence: ir.PresenceRequired}},
+		{attr: ir.Attribute{Name: "dropped", Presence: ir.PresenceComputed}},
+		{attr: ir.Attribute{Name: "block", Presence: ir.PresenceOptional, Nested: &ir.AttributeTree{}},
+			children: []node{
+				{attr: ir.Attribute{Name: "inner_kept", Presence: ir.PresenceOptional}},
+				{attr: ir.Attribute{Name: "inner_dropped", Presence: ir.PresenceComputed}},
+			}},
+	}
+	got := invocable(nodes)
+	if len(got) != 2 || got[0].attr.Name != "kept" || got[1].attr.Name != "block" {
+		t.Fatalf("want kept and block, got %+v", got)
+	}
+	if len(got[1].children) != 1 || got[1].children[0].attr.Name != "inner_kept" {
+		t.Fatalf("a nested computed argument must go too, got %+v", got[1].children)
+	}
+}
+
+func TestUnit_PresenceLines_NeverRendersComputedInAnActionSchema(t *testing.T) {
+	for _, presence := range []ir.Presence{ir.PresenceComputed, ir.PresenceOptionalComputed} {
+		sb := &schemaBuilder{kind: schemaAction, imports: newImportSet("example.com/mod")}
+		got := sb.presenceLines(node{attr: ir.Attribute{Name: "x", Presence: presence}}, "")
+		if strings.Contains(got, "Computed") {
+			t.Fatalf("presence %s rendered %q in an action schema", presence, got)
+		}
+	}
+	// A datasource still computes.
+	sb := &schemaBuilder{kind: schemaDatasource, imports: newImportSet("example.com/mod")}
+	if got := sb.presenceLines(node{attr: ir.Attribute{Name: "x", Presence: ir.PresenceComputed}}, ""); !strings.Contains(got, "Computed") {
+		t.Fatalf("a datasource must still render Computed, got %q", got)
 	}
 }
