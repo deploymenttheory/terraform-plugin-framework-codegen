@@ -305,8 +305,8 @@ func buildAttribute(wire string, at site) (Attribute, attrEdges) {
 		// must accept the server's choice when they do not.
 		//
 		// requiredRead alone is too weak to find these. It reads the response
-		// schema's `required` list, and an API that declares none — as the
-		// ThousandEyes document does throughout — sends every writable
+		// schema's `required` list, and an API that declares none — as real
+		// documents routinely do throughout — sends every writable
 		// optional field to plain Optional below, which is a perpetual diff
 		// for any field the server fills. x-tfpfgen-server-default is the
 		// audit's measurement of the same fact, and it does not depend on the
