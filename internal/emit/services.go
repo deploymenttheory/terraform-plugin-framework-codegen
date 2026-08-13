@@ -121,7 +121,7 @@ type serviceRenderer struct {
 
 // dir is the entity's directory relative to the provider root.
 func (e *serviceRenderer) dir(kind string, n ir.Names) string {
-	return path.Join("internal/services", kind, n.Service, n.APIVersionDir, n.Key)
+	return path.Join("internal/services", kind, n.Service, n.APIVersionDirectory, n.Key)
 }
 
 // packagePath is the entity package's import path.
@@ -141,7 +141,7 @@ func (e *serviceRenderer) registration(kind string, n ir.Names, constructor stri
 // imports one entity package under: service, version and key, camel-cased
 // together.
 func importAlias(n ir.Names) string {
-	return lowerCamel(n.Service + "_" + n.APIVersionDir + "_" + n.Key)
+	return lowerCamel(n.Service + "_" + n.APIVersionDirectory + "_" + n.Key)
 }
 
 // lowerCamel renders a snake_case name as a plain lower-camel identifier.

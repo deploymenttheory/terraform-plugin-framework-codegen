@@ -11,7 +11,7 @@ import (
 type Names struct {
 	// Key is the snake_case entity key, the sort key for every slice in
 	// the model. The API version segment is factored out into
-	// APIVersionDir rather than living in the name.
+	// APIVersionDirectory rather than living in the name.
 	Key string `json:"key"`
 	// Pascal is the exported Go type spelling, e.g. "HTTPServer".
 	Pascal string `json:"pascal"`
@@ -25,9 +25,9 @@ type Names struct {
 	// Service is the service area: the first path segment with any
 	// version prefix stripped, e.g. "/v7/tests/http-server" -> "tests".
 	Service string `json:"service"`
-	// APIVersionDir is the stripped version segment, "v1" when the path
+	// APIVersionDirectory is the stripped version segment, "v1" when the path
 	// declares none.
-	APIVersionDir string `json:"api_version_dir"`
+	APIVersionDirectory string `json:"api_version_directory"`
 }
 
 // acronyms is the closed set of initialisms Go spellings uppercase whole,
@@ -82,47 +82,47 @@ var versionSegment = regexp.MustCompile(`^v\d+$`)
 func deriveNames(provider, key, collectionPath string) Names {
 	version, service := "", ""
 	first := true
-	for _, seg := range strings.Split(strings.Trim(collectionPath, "/"), "/") {
-		if seg == "" || strings.HasPrefix(seg, "{") {
+	for _, segment := range strings.Split(strings.Trim(collectionPath, "/"), "/") {
+		if segment == "" || strings.HasPrefix(segment, "{") {
 			continue
 		}
-		if first && versionSegment.MatchString(strings.ToLower(seg)) {
-			version = strings.ToLower(seg)
+		if first && versionSegment.MatchString(strings.ToLower(segment)) {
+			version = strings.ToLower(segment)
 			first = false
 			continue
 		}
 		first = false
 		if service == "" {
-			service = strings.ToLower(strings.ReplaceAll(seg, "-", "_"))
+			service = strings.ToLower(strings.ReplaceAll(segment, "-", "_"))
 		}
 	}
 
-	k := strings.ToLower(key)
+	lowered := strings.ToLower(key)
 	if version != "" {
-		k = strings.TrimPrefix(k, version+"_")
+		lowered = strings.TrimPrefix(lowered, version+"_")
 	}
 	if service == "" {
-		service = k
+		service = lowered
 	}
 	if version == "" {
 		version = "v1"
 	}
 
-	n := Names{Service: service, APIVersionDir: version}
-	return n.withKey(provider, k)
+	names := Names{Service: service, APIVersionDirectory: version}
+	return names.withKey(provider, lowered)
 }
 
 // withKey rebuilds every key-derived field of the naming block around a
 // replacement key, leaving the path-derived fields alone. Disambiguation
 // renames an entity after its names were first computed; this keeps every
 // spelling in step with the final key.
-func (n Names) withKey(provider, key string) Names {
-	n.Key = key
-	n.Pascal = pascalCase(key)
-	n.Camel = camelCase(key)
-	n.TerraformType = provider + "_" + key
-	n.Package = strings.ReplaceAll(key, "_", "")
-	return n
+func (names Names) withKey(provider, key string) Names {
+	names.Key = key
+	names.Pascal = pascalCase(key)
+	names.Camel = camelCase(key)
+	names.TerraformType = provider + "_" + key
+	names.Package = strings.ReplaceAll(key, "_", "")
+	return names
 }
 
 // GoName is pascalCase for consumers outside the derivation: the emitter
@@ -180,17 +180,17 @@ func camelCase(key string) string {
 func snakeCase(s string) string {
 	var b strings.Builder
 	runes := []rune(s)
-	for i, r := range runes {
+	for i, rune := range runes {
 		switch {
-		case r == '-' || r == '.' || r == ' ':
+		case rune == '-' || rune == '.' || rune == ' ':
 			b.WriteRune('_')
-		case unicode.IsUpper(r):
+		case unicode.IsUpper(rune):
 			if i > 0 && boundaryBefore(runes, i) {
 				b.WriteRune('_')
 			}
-			b.WriteRune(unicode.ToLower(r))
+			b.WriteRune(unicode.ToLower(rune))
 		default:
-			b.WriteRune(r)
+			b.WriteRune(rune)
 		}
 	}
 	return b.String()

@@ -11,7 +11,7 @@ import (
 // drafts. Everything a dialect returns is finished strings; the walk in
 // bindModel is the only structure.
 type dialect interface {
-	call(op *ir.Op, n ir.Names, hasBody bool, info SDKInfo) *Call
+	call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call
 	access(a ir.Attribute, mode accessMode) FieldAccess
 	// models drafts the entity's read model, write model and write
 	// constructor. Drafts, because the document-derived name and the
@@ -48,17 +48,17 @@ func bindModel(m *ir.Model, info SDKInfo, d dialect) *Bindings {
 			WriteConstructor: constructor,
 			Fields:           fieldBindings(d, r.Schema, accessReadWrite),
 		}
-		if r.Ops.Create != nil {
-			rb.Create = d.call(r.Ops.Create, r.Names, true, info)
+		if r.Operations.Create != nil {
+			rb.Create = d.call(r.Operations.Create, r.Names, true, info)
 		}
-		if r.Ops.Read != nil {
-			rb.Read = d.call(r.Ops.Read, r.Names, false, info)
+		if r.Operations.Read != nil {
+			rb.Read = d.call(r.Operations.Read, r.Names, false, info)
 		}
-		if r.Ops.Update != nil {
-			rb.Update = d.call(r.Ops.Update, r.Names, true, info)
+		if r.Operations.Update != nil {
+			rb.Update = d.call(r.Operations.Update, r.Names, true, info)
 		}
-		if r.Ops.Delete != nil {
-			rb.Delete = d.call(r.Ops.Delete, r.Names, false, info)
+		if r.Operations.Delete != nil {
+			rb.Delete = d.call(r.Operations.Delete, r.Names, false, info)
 		}
 		b.Resources[r.Names.Key] = rb
 	}
@@ -66,18 +66,18 @@ func bindModel(m *ir.Model, info SDKInfo, d dialect) *Bindings {
 	for _, ds := range m.Datasources {
 		read, _, _ := d.models(ds.Names, info)
 		db := &DatasourceBinding{Key: ds.Names.Key, ReadModel: read, EnvelopeKey: ds.ListEnvelopeKey}
-		if ds.Ops.Read != nil {
-			db.Read = d.call(ds.Ops.Read, ds.Names, false, info)
+		if ds.Operations.Read != nil {
+			db.Read = d.call(ds.Operations.Read, ds.Names, false, info)
 		}
-		if ds.Ops.List != nil {
-			db.List = d.call(ds.Ops.List, ds.Names, false, info)
+		if ds.Operations.List != nil {
+			db.List = d.call(ds.Operations.List, ds.Names, false, info)
 		}
 		db.Fields = fieldBindings(d, datasourceElementTree(ds), accessReadOnly)
 		b.Datasources[ds.Names.Key] = db
 	}
 
 	for _, lr := range m.ListResources {
-		listOp := lr.ListOp
+		listOp := lr.ListOperation
 		b.ListResources[lr.Names.Key] = &ListResourceBinding{
 			Key:         lr.Names.Key,
 			List:        d.call(&listOp, lr.Names, false, info),
@@ -87,7 +87,7 @@ func bindModel(m *ir.Model, info SDKInfo, d dialect) *Bindings {
 	}
 
 	for _, a := range m.Actions {
-		invokeOp := a.InvokeOp
+		invokeOp := a.InvokeOperation
 		hasBody := a.RequestSchema != nil
 		ab := &ActionBinding{
 			Key:    a.Names.Key,
@@ -139,7 +139,7 @@ func fieldBindings(d dialect, t *ir.AttributeTree, mode accessMode) []FieldBindi
 		}
 		fb := FieldBinding{
 			Attr: a.Name, Wire: a.WireName,
-			Kind: a.Kind, ElemKind: a.ElemKind,
+			Kind: a.Kind, ElementKind: a.ElementKind,
 			Access: d.access(a, mode),
 		}
 		if a.Nested != nil {
@@ -219,7 +219,7 @@ func localFor(paramName string) string {
 }
 
 // goTypeOf is the Go type a path-parameter local is declared with.
-func goTypeOf(k ir.TypeKind) string {
+func goTypeOf(k ir.AttributeType) string {
 	switch k {
 	case ir.TypeBool:
 		return "bool"
@@ -234,12 +234,12 @@ func goTypeOf(k ir.TypeKind) string {
 
 // callParams renders an operation's path parameters as call locals, in
 // path-template order — the order every expression takes them.
-func callParams(op *ir.Op) []CallParam {
-	if len(op.PathParams) == 0 {
+func callParams(op *ir.Operation) []CallParam {
+	if len(op.PathParameters) == 0 {
 		return nil
 	}
-	out := make([]CallParam, 0, len(op.PathParams))
-	for _, p := range op.PathParams {
+	out := make([]CallParam, 0, len(op.PathParameters))
+	for _, p := range op.PathParameters {
 		out = append(out, CallParam{Local: localFor(p.Name), GoType: goTypeOf(p.Type), Wire: p.Name})
 	}
 	return out

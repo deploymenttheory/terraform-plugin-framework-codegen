@@ -6,7 +6,7 @@ import (
 )
 
 func TestDeriveNames(t *testing.T) {
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		name           string
 		key            string
 		collectionPath string
@@ -19,7 +19,7 @@ func TestDeriveNames(t *testing.T) {
 			want: Names{
 				Key: "tag", Pascal: "Tag", Camel: "tag",
 				TerraformType: "acme_tag", Package: "tag",
-				Service: "tags", APIVersionDir: "v7",
+				Service: "tags", APIVersionDirectory: "v7",
 			},
 		},
 		{
@@ -29,7 +29,7 @@ func TestDeriveNames(t *testing.T) {
 			want: Names{
 				Key: "tests_http_server", Pascal: "TestsHTTPServer", Camel: "testsHTTPServer",
 				TerraformType: "acme_tests_http_server", Package: "testshttpserver",
-				Service: "tests", APIVersionDir: "v7",
+				Service: "tests", APIVersionDirectory: "v7",
 			},
 		},
 		{
@@ -39,7 +39,7 @@ func TestDeriveNames(t *testing.T) {
 			want: Names{
 				Key: "note", Pascal: "Note", Camel: "note",
 				TerraformType: "acme_note", Package: "note",
-				Service: "notes", APIVersionDir: "v1",
+				Service: "notes", APIVersionDirectory: "v1",
 			},
 		},
 		{
@@ -49,14 +49,14 @@ func TestDeriveNames(t *testing.T) {
 			want: Names{
 				Key: "tests_v2_run", Pascal: "TestsV2Run", Camel: "testsV2Run",
 				TerraformType: "acme_tests_v2_run", Package: "testsv2run",
-				Service: "tests", APIVersionDir: "v1",
+				Service: "tests", APIVersionDirectory: "v1",
 			},
 		},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			got := deriveNames("acme", tc.key, tc.collectionPath)
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("deriveNames(%q, %q):\n got %+v\nwant %+v", tc.key, tc.collectionPath, got, tc.want)
+		t.Run(testCase.name, func(t *testing.T) {
+			got := deriveNames("acme", testCase.key, testCase.collectionPath)
+			if !reflect.DeepEqual(got, testCase.want) {
+				t.Errorf("deriveNames(%q, %q):\n got %+v\nwant %+v", testCase.key, testCase.collectionPath, got, testCase.want)
 			}
 		})
 	}
@@ -65,7 +65,7 @@ func TestDeriveNames(t *testing.T) {
 // The Go spellings uppercase known acronyms whole, and a leading acronym
 // in the camel spelling lowers whole — Go-idiomatic, per the owner ruling.
 func TestAcronymCasing(t *testing.T) {
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		key, pascal, camel string
 	}{
 		{"http_server", "HTTPServer", "httpServer"},
@@ -77,11 +77,11 @@ func TestAcronymCasing(t *testing.T) {
 		{"dns_record_ip", "DNSRecordIP", "dnsRecordIP"},
 		{"plain_name", "PlainName", "plainName"},
 	} {
-		if got := pascalCase(tc.key); got != tc.pascal {
-			t.Errorf("pascalCase(%q) = %q, want %q", tc.key, got, tc.pascal)
+		if got := pascalCase(testCase.key); got != testCase.pascal {
+			t.Errorf("pascalCase(%q) = %q, want %q", testCase.key, got, testCase.pascal)
 		}
-		if got := camelCase(tc.key); got != tc.camel {
-			t.Errorf("camelCase(%q) = %q, want %q", tc.key, got, tc.camel)
+		if got := camelCase(testCase.key); got != testCase.camel {
+			t.Errorf("camelCase(%q) = %q, want %q", testCase.key, got, testCase.camel)
 		}
 	}
 }

@@ -27,7 +27,7 @@ func (b kiotaBinder) Bind(m *ir.Model, info SDKInfo) (*Bindings, error) {
 //
 // The trailing nil is the per-request configuration, which generated
 // provider code never customises.
-func (kiotaBinder) call(op *ir.Op, n ir.Names, hasBody bool, info SDKInfo) *Call {
+func (kiotaBinder) call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call {
 	var segs []Segment
 	params := callParams(op)
 	next := 0
@@ -67,9 +67,9 @@ func (kiotaBinder) call(op *ir.Op, n ir.Names, hasBody bool, info SDKInfo) *Call
 	// real method signatures. A delete answers with error alone.
 	able := "models." + exportedName(n.Key) + "able"
 	switch op.Kind {
-	case ir.OpDelete:
+	case ir.OperationDelete:
 		c.Results = []string{"error"}
-	case ir.OpList:
+	case ir.OperationList:
 		// The collection response's name is not derivable from the
 		// intermediate representation; Prune reads it off the SDK.
 		c.Results = []string{"", "error"}
@@ -124,8 +124,8 @@ func (kiotaBinder) access(a ir.Attribute, mode accessMode) FieldAccess {
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "*float64", "FromPtrFloat64", "ToPtrFloat64"
 	case ir.TypeList:
 		if a.Nested == nil {
-			fa.SDKType = "[]" + strings.TrimPrefix(goTypeOf(a.ElemKind), "*")
-			shape := exportedName(string(a.ElemKind)) + "Slice"
+			fa.SDKType = "[]" + strings.TrimPrefix(goTypeOf(a.ElementKind), "*")
+			shape := exportedName(string(a.ElementKind)) + "Slice"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
 		}
 	case ir.TypeObject:

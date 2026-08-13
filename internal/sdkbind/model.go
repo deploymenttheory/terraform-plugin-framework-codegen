@@ -242,11 +242,11 @@ type FieldBinding struct {
 	// speaks.
 	Attr string `json:"attr"`
 	Wire string `json:"wire"`
-	// Kind and ElemKind mirror the attribute's terraform kinds, so
+	// Kind and ElementKind mirror the attribute's terraform kinds, so
 	// pruning and the emitter know the framework side without
 	// re-deriving it.
-	Kind     ir.TypeKind `json:"kind,omitempty"`
-	ElemKind ir.TypeKind `json:"elem_kind,omitempty"`
+	Kind        ir.AttributeType `json:"kind,omitempty"`
+	ElementKind ir.AttributeType `json:"element_kind,omitempty"`
 	// Access is the rendered accessor and conversion set.
 	Access FieldAccess `json:"access"`
 	// NestedModel is the SDK type one nested object is read as;

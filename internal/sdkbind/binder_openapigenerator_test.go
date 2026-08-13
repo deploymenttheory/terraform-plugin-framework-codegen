@@ -12,14 +12,14 @@ import (
 func TestOpMethodName(t *testing.T) {
 	cases := []struct {
 		name string
-		op   *ir.Op
+		op   *ir.Operation
 		want string
 	}{
-		{"operationId camelises", op(ir.OpRead, "GET", "/tags/{tagId}", "getTag"), "GetTag"},
-		{"kebab operationId", op(ir.OpRead, "GET", "/tags", "list-tags"), "ListTags"},
-		{"snake operationId", op(ir.OpRead, "GET", "/tags", "list_tags"), "ListTags"},
-		{"no operationId synthesises from the path", op(ir.OpRead, "GET", "/tags/{tagId}", ""), "TagsTagIdGet"},
-		{"synthesis keeps every literal segment", op(ir.OpCreate, "POST", "/v2/account-groups", ""), "V2AccountGroupsPost"},
+		{"operationId camelises", op(ir.OperationRead, "GET", "/tags/{tagId}", "getTag"), "GetTag"},
+		{"kebab operationId", op(ir.OperationRead, "GET", "/tags", "list-tags"), "ListTags"},
+		{"snake operationId", op(ir.OperationRead, "GET", "/tags", "list_tags"), "ListTags"},
+		{"no operationId synthesises from the path", op(ir.OperationRead, "GET", "/tags/{tagId}", ""), "TagsTagIdGet"},
+		{"synthesis keeps every literal segment", op(ir.OperationCreate, "POST", "/v2/account-groups", ""), "V2AccountGroupsPost"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -39,30 +39,30 @@ func TestOAGCallSpelling(t *testing.T) {
 
 	cases := []struct {
 		name    string
-		op      *ir.Op
+		op      *ir.Operation
 		hasBody bool
 		want    string
 	}{
 		{
 			name:    "create carries the body through a setter",
-			op:      op(ir.OpCreate, "POST", "/tags", "createTag"),
+			op:      op(ir.OperationCreate, "POST", "/tags", "createTag"),
 			hasBody: true,
 			want:    "client.TagsAPI.CreateTag(ctx).Tags(*body).Execute()",
 		},
 		{
 			name: "read passes the path parameter",
-			op:   op(ir.OpRead, "GET", "/tags/{tagId}", "getTag", ir.Param{Name: "tagId", Type: ir.TypeString}),
+			op:   op(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			want: "client.TagsAPI.GetTag(ctx, tagId).Execute()",
 		},
 		{
 			name:    "update passes parameter then body",
-			op:      op(ir.OpUpdate, "PATCH", "/tags/{tagId}", "updateTag", ir.Param{Name: "tagId", Type: ir.TypeString}),
+			op:      op(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "updateTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			hasBody: true,
 			want:    "client.TagsAPI.UpdateTag(ctx, tagId).Tags(*body).Execute()",
 		},
 		{
 			name: "delete",
-			op:   op(ir.OpDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Param{Name: "tagId", Type: ir.TypeString}),
+			op:   op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			want: "client.TagsAPI.DeleteTag(ctx, tagId).Execute()",
 		},
 	}
@@ -85,7 +85,7 @@ func TestOAGCallDrafts(t *testing.T) {
 	n := names("tags", "tags")
 	info := oagInfo()
 
-	create := openAPIGeneratorBinder{}.call(op(ir.OpCreate, "POST", "/tags", "createTag"), n, true, info)
+	create := openAPIGeneratorBinder{}.call(op(ir.OperationCreate, "POST", "/tags", "createTag"), n, true, info)
 	if create.ResponseType != "*sdk.Tags" || create.RequestType != "sdk.Tags" {
 		t.Errorf("create drafts = response %q request %q", create.ResponseType, create.RequestType)
 	}
@@ -94,7 +94,7 @@ func TestOAGCallDrafts(t *testing.T) {
 	}
 
 	del := openAPIGeneratorBinder{}.call(
-		op(ir.OpDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Param{Name: "tagId", Type: ir.TypeString}),
+		op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 		n, false, info)
 	if del.ResponseType != "" || len(del.Results) != 2 {
 		t.Errorf("delete drafts = response %q results %v", del.ResponseType, del.Results)
@@ -113,7 +113,7 @@ func TestOAGAccessSpelling(t *testing.T) {
 	}
 
 	labels := attr("labels", "labels", ir.TypeList, ir.PresenceOptional)
-	labels.ElemKind = ir.TypeString
+	labels.ElementKind = ir.TypeString
 	fa = openAPIGeneratorBinder{}.access(labels, accessReadWrite)
 	if fa.SDKType != "[]string" || fa.ConvertGet != "FromStringSlice" {
 		t.Errorf("slice access = %+v", fa)

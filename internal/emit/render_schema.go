@@ -58,7 +58,7 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 
 	if n.attr.Kind == ir.TypeList && n.attr.Nested == nil {
 		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
-		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, frameworkElemType(n.attr.ElemKind))
+		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, frameworkElemType(n.attr.ElementKind))
 	}
 
 	b.WriteString(sb.validatorLines(n, indent+"\t", depth))
@@ -263,7 +263,7 @@ func attributeDescription(a ir.Attribute) string {
 }
 
 // frameworkElemType is the types package element type of a scalar list.
-func frameworkElemType(k ir.TypeKind) string {
+func frameworkElemType(k ir.AttributeType) string {
 	switch k {
 	case ir.TypeBool:
 		return "types.BoolType"

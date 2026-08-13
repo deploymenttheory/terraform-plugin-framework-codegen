@@ -38,7 +38,7 @@ func TestLocalFor(t *testing.T) {
 }
 
 func TestGoTypeOf(t *testing.T) {
-	cases := map[ir.TypeKind]string{
+	cases := map[ir.AttributeType]string{
 		ir.TypeString:  "string",
 		ir.TypeBool:    "bool",
 		ir.TypeInt64:   "int64",

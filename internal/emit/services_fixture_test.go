@@ -18,13 +18,13 @@ import (
 
 func names(key, pascal, service string) ir.Names {
 	return ir.Names{
-		Key:           key,
-		Pascal:        pascal,
-		Camel:         "x",
-		TerraformType: "petstore_" + key,
-		Package:       "pkg" + service,
-		Service:       service,
-		APIVersionDir: "v7",
+		Key:                 key,
+		Pascal:              pascal,
+		Camel:               "x",
+		TerraformType:       "petstore_" + key,
+		Package:             "pkg" + service,
+		Service:             service,
+		APIVersionDirectory: "v7",
 	}
 }
 
@@ -38,8 +38,8 @@ func fictionalModel() *ir.Model {
 			{Name: "ratio", WireName: "ratio", Kind: ir.TypeFloat64, Presence: ir.PresenceOptional},
 			{Name: "kind", WireName: "kind", Kind: ir.TypeString, Presence: ir.PresenceOptional,
 				OneOf: []string{"basic", "advanced"}},
-			{Name: "tags", WireName: "tags", Kind: ir.TypeList, ElemKind: ir.TypeString, Presence: ir.PresenceOptional},
-			{Name: "protocols", WireName: "protocols", Kind: ir.TypeList, ElemKind: ir.TypeString, Presence: ir.PresenceOptional,
+			{Name: "tags", WireName: "tags", Kind: ir.TypeList, ElementKind: ir.TypeString, Presence: ir.PresenceOptional},
+			{Name: "protocols", WireName: "protocols", Kind: ir.TypeList, ElementKind: ir.TypeString, Presence: ir.PresenceOptional,
 				OneOf: []string{"http", "https"}},
 			{Name: "seed", WireName: "seed", Kind: ir.TypeString, Presence: ir.PresenceOptional, SilentlyIgnoredOnUpdate: true},
 			{Name: "settings", WireName: "settings", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
@@ -47,7 +47,7 @@ func fictionalModel() *ir.Model {
 					{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, Presence: ir.PresenceOptional},
 					{Name: "trace", WireName: "trace", Kind: ir.TypeBool, Presence: ir.PresenceOptional},
 				}}},
-			{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElemKind: ir.TypeObject, Presence: ir.PresenceOptional,
+			{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElementKind: ir.TypeObject, Presence: ir.PresenceOptional,
 				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "pattern", WireName: "pattern", Kind: ir.TypeString, Presence: ir.PresenceRequired},
 				}}},
@@ -85,15 +85,15 @@ func fictionalModel() *ir.Model {
 		Resources: []ir.Resource{
 			{
 				Names: names("http_server", "HTTPServer", "servers"),
-				Ops: ir.Ops{
-					Create: &ir.Op{Kind: ir.OpCreate, Method: "POST", PathTemplate: "/v7/http-servers", SuccessCode: 201},
-					Read: &ir.Op{Kind: ir.OpRead, Method: "GET", PathTemplate: "/v7/http-servers/{httpServerId}",
-						PathParams: []ir.Param{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
-					Update: &ir.Op{Kind: ir.OpUpdate, Method: "PATCH", PathTemplate: "/v7/http-servers/{httpServerId}",
-						PathParams: []ir.Param{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
-					Delete: &ir.Op{Kind: ir.OpDelete, Method: "DELETE", PathTemplate: "/v7/http-servers/{httpServerId}",
-						PathParams: []ir.Param{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 204},
-					List: &ir.Op{Kind: ir.OpList, Method: "GET", PathTemplate: "/v7/http-servers", SuccessCode: 200},
+				Operations: ir.Operations{
+					Create: &ir.Operation{Kind: ir.OperationCreate, Method: "POST", PathTemplate: "/v7/http-servers", SuccessCode: 201},
+					Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/http-servers/{httpServerId}",
+						PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
+					Update: &ir.Operation{Kind: ir.OperationUpdate, Method: "PATCH", PathTemplate: "/v7/http-servers/{httpServerId}",
+						PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
+					Delete: &ir.Operation{Kind: ir.OperationDelete, Method: "DELETE", PathTemplate: "/v7/http-servers/{httpServerId}",
+						PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 204},
+					List: &ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/v7/http-servers", SuccessCode: 200},
 				},
 				Schema:              httpServerSchema,
 				UpdateStyle:         ir.UpdateStylePatchMerge,
@@ -108,12 +108,12 @@ func fictionalModel() *ir.Model {
 			},
 			{
 				Names: names("alert_rule", "AlertRule", "alerts"),
-				Ops: ir.Ops{
-					Create: &ir.Op{Kind: ir.OpCreate, Method: "POST", PathTemplate: "/v7/alert-rules", SuccessCode: 201},
-					Read: &ir.Op{Kind: ir.OpRead, Method: "GET", PathTemplate: "/v7/alert-rules/{alertRuleId}",
-						PathParams: []ir.Param{{Name: "alertRuleId", Type: ir.TypeString}}, SuccessCode: 200},
-					Delete: &ir.Op{Kind: ir.OpDelete, Method: "DELETE", PathTemplate: "/v7/alert-rules/{alertRuleId}",
-						PathParams: []ir.Param{{Name: "alertRuleId", Type: ir.TypeString}}, SuccessCode: 204},
+				Operations: ir.Operations{
+					Create: &ir.Operation{Kind: ir.OperationCreate, Method: "POST", PathTemplate: "/v7/alert-rules", SuccessCode: 201},
+					Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/alert-rules/{alertRuleId}",
+						PathParameters: []ir.Parameter{{Name: "alertRuleId", Type: ir.TypeString}}, SuccessCode: 200},
+					Delete: &ir.Operation{Kind: ir.OperationDelete, Method: "DELETE", PathTemplate: "/v7/alert-rules/{alertRuleId}",
+						PathParameters: []ir.Parameter{{Name: "alertRuleId", Type: ir.TypeString}}, SuccessCode: 204},
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
@@ -130,24 +130,24 @@ func fictionalModel() *ir.Model {
 		Datasources: []ir.Datasource{
 			{
 				Names: names("http_server", "HTTPServer", "servers"),
-				Ops: ir.Ops{
-					Read: &ir.Op{Kind: ir.OpRead, Method: "GET", PathTemplate: "/v7/http-servers/{httpServerId}",
-						PathParams: []ir.Param{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
-					List: &ir.Op{Kind: ir.OpList, Method: "GET", PathTemplate: "/v7/http-servers", SuccessCode: 200},
+				Operations: ir.Operations{
+					Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/http-servers/{httpServerId}",
+						PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 200},
+					List: &ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/v7/http-servers", SuccessCode: 200},
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "filter_type", WireName: "filter_type", Kind: ir.TypeString, Presence: ir.PresenceRequired},
 					{Name: "filter_value", WireName: "filter_value", Kind: ir.TypeString, Presence: ir.PresenceOptional},
-					{Name: "items", WireName: "items", Kind: ir.TypeList, ElemKind: ir.TypeObject,
+					{Name: "items", WireName: "items", Kind: ir.TypeList, ElementKind: ir.TypeObject,
 						Presence: ir.PresenceComputed, Nested: itemTree},
 				}},
 				ListEnvelopeKey: "http_servers",
 			},
 			{
 				Names: names("license", "License", "licenses"),
-				Ops: ir.Ops{
-					Read: &ir.Op{Kind: ir.OpRead, Method: "GET", PathTemplate: "/v7/licenses/{licenseKey}",
-						PathParams: []ir.Param{{Name: "licenseKey", Type: ir.TypeString}}, SuccessCode: 200},
+				Operations: ir.Operations{
+					Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/v7/licenses/{licenseKey}",
+						PathParameters: []ir.Parameter{{Name: "licenseKey", Type: ir.TypeString}}, SuccessCode: 200},
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "license_key", WireName: "licenseKey", Kind: ir.TypeString, Presence: ir.PresenceRequired},
@@ -160,8 +160,8 @@ func fictionalModel() *ir.Model {
 		},
 		ListResources: []ir.ListResource{
 			{
-				Names:  names("audit_event", "AuditEvent", "audit"),
-				ListOp: ir.Op{Kind: ir.OpList, Method: "GET", PathTemplate: "/v7/audit-events", SuccessCode: 200},
+				Names:         names("audit_event", "AuditEvent", "audit"),
+				ListOperation: ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/v7/audit-events", SuccessCode: 200},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
 					{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceComputed},
@@ -172,9 +172,9 @@ func fictionalModel() *ir.Model {
 		Actions: []ir.Action{
 			{
 				Names: names("http_server_restart", "HTTPServerRestart", "servers"),
-				InvokeOp: ir.Op{Kind: ir.OpInvoke, Method: "POST",
-					PathTemplate: "/v7/http-servers/{httpServerId}/restart",
-					PathParams:   []ir.Param{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 204},
+				InvokeOperation: ir.Operation{Kind: ir.OperationInvoke, Method: "POST",
+					PathTemplate:   "/v7/http-servers/{httpServerId}/restart",
+					PathParameters: []ir.Parameter{{Name: "httpServerId", Type: ir.TypeString}}, SuccessCode: 204},
 				RequestSchema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "mode", WireName: "mode", Kind: ir.TypeString, Presence: ir.PresenceRequired},
 				}},
@@ -212,9 +212,9 @@ func httpServerFields() []sdkbind.FieldBinding {
 			Access: kAccess("Ratio", "*float64", "FromPtrFloat64", "ToPtrFloat64", "")},
 		{Attr: "kind", Wire: "kind", Kind: ir.TypeString,
 			Access: kAccess("Kind", "*models.HttpServerKind", "FromPtrEnum", "ToPtrEnum", "models.ParseHttpServerKind")},
-		{Attr: "tags", Wire: "tags", Kind: ir.TypeList, ElemKind: ir.TypeString,
+		{Attr: "tags", Wire: "tags", Kind: ir.TypeList, ElementKind: ir.TypeString,
 			Access: kAccess("Tags", "[]string", "FromStringSlice", "ToStringSlice", "")},
-		{Attr: "protocols", Wire: "protocols", Kind: ir.TypeList, ElemKind: ir.TypeString,
+		{Attr: "protocols", Wire: "protocols", Kind: ir.TypeList, ElementKind: ir.TypeString,
 			Access: kAccess("Protocols", "[]models.HttpServerProtocol", "FromEnumSlice", "ToEnumSlice", "models.ParseHttpServerProtocol")},
 		{Attr: "seed", Wire: "seed", Kind: ir.TypeString,
 			Access: kAccess("Seed", "*string", "FromPtrString", "ToPtrString", "")},
@@ -229,7 +229,7 @@ func httpServerFields() []sdkbind.FieldBinding {
 				{Attr: "trace", Wire: "trace", Kind: ir.TypeBool,
 					Access: kAccess("Trace", "*bool", "FromPtrBool", "ToPtrBool", "")},
 			}},
-		{Attr: "rules", Wire: "rules", Kind: ir.TypeList, ElemKind: ir.TypeObject,
+		{Attr: "rules", Wire: "rules", Kind: ir.TypeList, ElementKind: ir.TypeObject,
 			Access:            sdkbind.FieldAccess{Get: "GetRules", Set: "SetRules", SDKType: "[]models.HttpServerRuleable"},
 			NestedModel:       "models.HttpServerRule",
 			NestedWriteModel:  "models.HttpServerRule",

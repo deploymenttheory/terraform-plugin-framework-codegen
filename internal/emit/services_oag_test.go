@@ -22,25 +22,25 @@ func oagAccess(base, sdkType, convGet, convSet, parse string) sdkbind.FieldAcces
 }
 
 func oagModel() *ir.Model {
-	opt := func(name string, kind ir.TypeKind) ir.Attribute {
+	opt := func(name string, kind ir.AttributeType) ir.Attribute {
 		return ir.Attribute{Name: name, WireName: name, Kind: kind, Presence: ir.PresenceOptional}
 	}
-	list := func(name string, elem ir.TypeKind) ir.Attribute {
-		return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeList, ElemKind: elem, Presence: ir.PresenceOptional}
+	list := func(name string, elem ir.AttributeType) ir.Attribute {
+		return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeList, ElementKind: elem, Presence: ir.PresenceOptional}
 	}
 
 	return &ir.Model{
 		Provider: ir.Provider{Name: "petstore"},
 		Resources: []ir.Resource{{
 			Names: names("tag", "Tag", "tags"),
-			Ops: ir.Ops{
-				Create: &ir.Op{Kind: ir.OpCreate, Method: "POST", PathTemplate: "/tags", SuccessCode: 201},
-				Read: &ir.Op{Kind: ir.OpRead, Method: "GET", PathTemplate: "/tags/{tagId}",
-					PathParams: []ir.Param{{Name: "tagId", Type: ir.TypeString}}, SuccessCode: 200},
-				Update: &ir.Op{Kind: ir.OpUpdate, Method: "PUT", PathTemplate: "/tags/{tagId}",
-					PathParams: []ir.Param{{Name: "tagId", Type: ir.TypeString}}, SuccessCode: 200},
-				Delete: &ir.Op{Kind: ir.OpDelete, Method: "DELETE", PathTemplate: "/tags/{tagId}",
-					PathParams: []ir.Param{{Name: "tagId", Type: ir.TypeString}}, SuccessCode: 204},
+			Operations: ir.Operations{
+				Create: &ir.Operation{Kind: ir.OperationCreate, Method: "POST", PathTemplate: "/tags", SuccessCode: 201},
+				Read: &ir.Operation{Kind: ir.OperationRead, Method: "GET", PathTemplate: "/tags/{tagId}",
+					PathParameters: []ir.Parameter{{Name: "tagId", Type: ir.TypeString}}, SuccessCode: 200},
+				Update: &ir.Operation{Kind: ir.OperationUpdate, Method: "PUT", PathTemplate: "/tags/{tagId}",
+					PathParameters: []ir.Parameter{{Name: "tagId", Type: ir.TypeString}}, SuccessCode: 200},
+				Delete: &ir.Operation{Kind: ir.OperationDelete, Method: "DELETE", PathTemplate: "/tags/{tagId}",
+					PathParameters: []ir.Parameter{{Name: "tagId", Type: ir.TypeString}}, SuccessCode: 204},
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
@@ -60,7 +60,7 @@ func oagModel() *ir.Model {
 				list("modes", ir.TypeString),
 				{Name: "meta", WireName: "meta", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{opt("note", ir.TypeString)}}},
-				{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElemKind: ir.TypeObject, Presence: ir.PresenceOptional,
+				{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElementKind: ir.TypeObject, Presence: ir.PresenceOptional,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{opt("pattern", ir.TypeString)}}},
 			}},
 			UpdateStyle: ir.UpdateStylePutFull,
@@ -71,13 +71,13 @@ func oagModel() *ir.Model {
 		}},
 		Datasources: []ir.Datasource{{
 			Names: names("tag", "Tag", "tags"),
-			Ops: ir.Ops{
-				List: &ir.Op{Kind: ir.OpList, Method: "GET", PathTemplate: "/tags", SuccessCode: 200},
+			Operations: ir.Operations{
+				List: &ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/tags", SuccessCode: 200},
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				{Name: "filter_type", WireName: "filter_type", Kind: ir.TypeString, Presence: ir.PresenceRequired},
 				{Name: "filter_value", WireName: "filter_value", Kind: ir.TypeString, Presence: ir.PresenceOptional},
-				{Name: "items", WireName: "items", Kind: ir.TypeList, ElemKind: ir.TypeObject, Presence: ir.PresenceComputed,
+				{Name: "items", WireName: "items", Kind: ir.TypeList, ElementKind: ir.TypeObject, Presence: ir.PresenceComputed,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
 						{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
 						{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceComputed},
@@ -89,15 +89,15 @@ func oagModel() *ir.Model {
 		}},
 		Actions: []ir.Action{{
 			Names: names("tag_rotate", "TagRotate", "tags"),
-			InvokeOp: ir.Op{Kind: ir.OpInvoke, Method: "POST", PathTemplate: "/tags/{tagId}/rotate",
-				PathParams: []ir.Param{{Name: "tagId", Type: ir.TypeInt64}}, SuccessCode: 200},
+			InvokeOperation: ir.Operation{Kind: ir.OperationInvoke, Method: "POST", PathTemplate: "/tags/{tagId}/rotate",
+				PathParameters: []ir.Parameter{{Name: "tagId", Type: ir.TypeInt64}}, SuccessCode: 200},
 			RequestSchema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				{Name: "force", WireName: "force", Kind: ir.TypeBool, Presence: ir.PresenceRequired},
 				opt("factor", ir.TypeFloat64),
 				list("labels", ir.TypeString),
 				{Name: "window", WireName: "window", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{opt("hours", ir.TypeInt64)}}},
-				{Name: "steps", WireName: "steps", Kind: ir.TypeList, ElemKind: ir.TypeObject, Presence: ir.PresenceOptional,
+				{Name: "steps", WireName: "steps", Kind: ir.TypeList, ElementKind: ir.TypeObject, Presence: ir.PresenceOptional,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{opt("order", ir.TypeInt64)}}},
 			}},
 		}},
@@ -149,15 +149,15 @@ func oagBindings() *sdkbind.Bindings {
 						Access: oagAccess("Phase", "*sdk.TagPhase", "FromPtrEnum", "ToPtrEnum", "sdk.NewTagPhaseFromValue")},
 					{Attr: "when", Wire: "when", Kind: ir.TypeString,
 						Access: oagAccess("When", "time.Time", "FromTime", "ToTime", "")},
-					{Attr: "levels", Wire: "levels", Kind: ir.TypeList, ElemKind: ir.TypeInt64,
+					{Attr: "levels", Wire: "levels", Kind: ir.TypeList, ElementKind: ir.TypeInt64,
 						Access: oagAccess("Levels", "[]int64", "FromInt64Slice", "ToInt64Slice", "")},
-					{Attr: "flags", Wire: "flags", Kind: ir.TypeList, ElemKind: ir.TypeBool,
+					{Attr: "flags", Wire: "flags", Kind: ir.TypeList, ElementKind: ir.TypeBool,
 						Access: oagAccess("Flags", "[]bool", "FromBoolSlice", "ToBoolSlice", "")},
-					{Attr: "ratios", Wire: "ratios", Kind: ir.TypeList, ElemKind: ir.TypeFloat64,
+					{Attr: "ratios", Wire: "ratios", Kind: ir.TypeList, ElementKind: ir.TypeFloat64,
 						Access: oagAccess("Ratios", "[]float64", "FromFloat64Slice", "ToFloat64Slice", "")},
-					{Attr: "sizes", Wire: "sizes", Kind: ir.TypeList, ElemKind: ir.TypeInt64,
+					{Attr: "sizes", Wire: "sizes", Kind: ir.TypeList, ElementKind: ir.TypeInt64,
 						Access: oagAccess("Sizes", "[]int32", "FromInt32Slice", "ToInt32Slice", "")},
-					{Attr: "modes", Wire: "modes", Kind: ir.TypeList, ElemKind: ir.TypeString,
+					{Attr: "modes", Wire: "modes", Kind: ir.TypeList, ElementKind: ir.TypeString,
 						Access: oagAccess("Modes", "[]sdk.Mode", "FromEnumSlice", "ToEnumSlice", "sdk.NewModeFromValue")},
 					{Attr: "meta", Wire: "meta", Kind: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Get: "GetMeta", Set: "SetMeta", SDKType: "sdk.TagMeta"},
@@ -168,7 +168,7 @@ func oagBindings() *sdkbind.Bindings {
 							{Attr: "note", Wire: "note", Kind: ir.TypeString,
 								Access: oagAccess("Note", "string", "FromString", "ToString", "")},
 						}},
-					{Attr: "rules", Wire: "rules", Kind: ir.TypeList, ElemKind: ir.TypeObject,
+					{Attr: "rules", Wire: "rules", Kind: ir.TypeList, ElementKind: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Get: "GetRules", Set: "SetRules", SDKType: "[]sdk.TagRule"},
 						NestedModel:       "sdk.TagRule",
 						NestedWriteModel:  "sdk.TagRule",
@@ -208,7 +208,7 @@ func oagBindings() *sdkbind.Bindings {
 						Access: sdkbind.FieldAccess{Set: "SetForce", SDKType: "bool", ConvertSet: "ToBool"}},
 					{Attr: "factor", Wire: "factor", Kind: ir.TypeFloat64,
 						Access: sdkbind.FieldAccess{Set: "SetFactor", SDKType: "float64", ConvertSet: "ToFloat64"}},
-					{Attr: "labels", Wire: "labels", Kind: ir.TypeList, ElemKind: ir.TypeString,
+					{Attr: "labels", Wire: "labels", Kind: ir.TypeList, ElementKind: ir.TypeString,
 						Access: sdkbind.FieldAccess{Set: "SetLabels", SDKType: "[]string", ConvertSet: "ToStringSlice"}},
 					{Attr: "window", Wire: "window", Kind: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Set: "SetWindow", SDKType: "sdk.RotateWindow"},
@@ -219,7 +219,7 @@ func oagBindings() *sdkbind.Bindings {
 							{Attr: "hours", Wire: "hours", Kind: ir.TypeInt64,
 								Access: sdkbind.FieldAccess{Set: "SetHours", SDKType: "int64", ConvertSet: "ToInt64"}},
 						}},
-					{Attr: "steps", Wire: "steps", Kind: ir.TypeList, ElemKind: ir.TypeObject,
+					{Attr: "steps", Wire: "steps", Kind: ir.TypeList, ElementKind: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Set: "SetSteps", SDKType: "[]sdk.RotateStep"},
 						NestedModel:       "sdk.RotateStep",
 						NestedWriteModel:  "sdk.RotateStep",

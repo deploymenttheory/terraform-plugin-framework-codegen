@@ -87,8 +87,8 @@ func TestPruneLookupDatasource(t *testing.T) {
 		Provider: ir.Provider{Name: "example"},
 		Datasources: []ir.Datasource{{
 			Names: names("tags", "tags"),
-			Ops: ir.Ops{
-				Read: op(ir.OpRead, "GET", "/tags/{tagId}", "", ir.Param{Name: "tagId", Type: ir.TypeString}),
+			Operations: ir.Operations{
+				Read: op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attr("id", "id", ir.TypeString, ir.PresenceRequired),
@@ -118,15 +118,15 @@ func TestPruneKiotaListResource(t *testing.T) {
 		Provider: ir.Provider{Name: "example"},
 		ListResources: []ir.ListResource{
 			{
-				Names:  names("tags", "tags"),
-				ListOp: *op(ir.OpList, "GET", "/tags", ""),
+				Names:         names("tags", "tags"),
+				ListOperation: *op(ir.OperationList, "GET", "/tags", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("name", "name", ir.TypeString, ir.PresenceComputed),
 				}},
 			},
 			{
-				Names:  names("widgets", "widgets"),
-				ListOp: *op(ir.OpList, "GET", "/widgets", ""),
+				Names:         names("widgets", "widgets"),
+				ListOperation: *op(ir.OperationList, "GET", "/widgets", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("name", "name", ir.TypeString, ir.PresenceComputed),
 				}},
@@ -155,8 +155,8 @@ func TestPruneDatasourceRemovals(t *testing.T) {
 		Provider: ir.Provider{Name: "example"},
 		Datasources: []ir.Datasource{{
 			Names: names("widgets", "widgets"),
-			Ops: ir.Ops{
-				Read: op(ir.OpRead, "GET", "/widgets/{widgetId}", "", ir.Param{Name: "widgetId", Type: ir.TypeString}),
+			Operations: ir.Operations{
+				Read: op(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attr("id", "id", ir.TypeString, ir.PresenceRequired),
@@ -187,15 +187,15 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 		attr("name", "name", ir.TypeString, ir.PresenceComputed),
 	}}
 	items := attr("items", "items", ir.TypeList, ir.PresenceComputed)
-	items.ElemKind = ir.TypeObject
+	items.ElementKind = ir.TypeObject
 	items.Nested = itemTree
 
 	t.Run("the envelope key names the getter", func(t *testing.T) {
 		m := &ir.Model{
 			Provider: ir.Provider{Name: "example"},
 			Datasources: []ir.Datasource{{
-				Names: names("gizmos", "gizmos"),
-				Ops:   ir.Ops{List: op(ir.OpList, "GET", "/gizmos", "")},
+				Names:      names("gizmos", "gizmos"),
+				Operations: ir.Operations{List: op(ir.OperationList, "GET", "/gizmos", "")},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("filter_type", "filter_type", ir.TypeString, ir.PresenceRequired),
 					attr("filter_value", "filter_value", ir.TypeString, ir.PresenceOptional),
@@ -223,8 +223,8 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 		m := &ir.Model{
 			Provider: ir.Provider{Name: "example"},
 			ListResources: []ir.ListResource{{
-				Names:  names("gizmos", "gizmos"),
-				ListOp: *op(ir.OpList, "GET", "/gizmos", ""),
+				Names:         names("gizmos", "gizmos"),
+				ListOperation: *op(ir.OperationList, "GET", "/gizmos", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("name", "name", ir.TypeString, ir.PresenceComputed),
 				}},
@@ -249,8 +249,8 @@ func TestPruneKiotaAmbiguousWrapper(t *testing.T) {
 	m := &ir.Model{
 		Provider: ir.Provider{Name: "example"},
 		ListResources: []ir.ListResource{{
-			Names:  names("blobs", "blobs"),
-			ListOp: *op(ir.OpList, "GET", "/blobs", ""),
+			Names:         names("blobs", "blobs"),
+			ListOperation: *op(ir.OperationList, "GET", "/blobs", ""),
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attr("name", "name", ir.TypeString, ir.PresenceComputed),
 			}},
@@ -273,8 +273,8 @@ func TestPruneActionRemovals(t *testing.T) {
 	m := &ir.Model{
 		Provider: ir.Provider{Name: "example"},
 		Actions: []ir.Action{{
-			Names:    names("tags_assign", "tags"),
-			InvokeOp: *op(ir.OpInvoke, "POST", "/tags/{tagId}/assign", "", ir.Param{Name: "tagId", Type: ir.TypeString}),
+			Names:           names("tags_assign", "tags"),
+			InvokeOperation: *op(ir.OperationInvoke, "POST", "/tags/{tagId}/assign", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			// No request schema: the drafted call passes (ctx, nil) where
 			// the SDK's Post takes three arguments.
 		}},
@@ -296,9 +296,9 @@ func TestPruneUnconstructibleBody(t *testing.T) {
 		Provider: ir.Provider{Name: "example"},
 		Resources: []ir.Resource{{
 			Names: names("orphans", "orphans"),
-			Ops: ir.Ops{
-				Create: op(ir.OpCreate, "POST", "/orphans", ""),
-				Read:   op(ir.OpRead, "GET", "/orphans/{orphanId}", "", ir.Param{Name: "orphanId", Type: ir.TypeString}),
+			Operations: ir.Operations{
+				Create: op(ir.OperationCreate, "POST", "/orphans", ""),
+				Read:   op(ir.OperationRead, "GET", "/orphans/{orphanId}", "", ir.Parameter{Name: "orphanId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attr("name", "name", ir.TypeString, ir.PresenceRequired),
@@ -323,9 +323,9 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 			Provider: ir.Provider{Name: "example"},
 			Resources: []ir.Resource{{
 				Names: names("tags", "tags"),
-				Ops: ir.Ops{
-					Create: op(ir.OpCreate, "POST", "/tags", ""),
-					Read:   op(ir.OpRead, "GET", "/tags/{tagId}", "", ir.Param{Name: "tagId", Type: ir.TypeString}),
+				Operations: ir.Operations{
+					Create: op(ir.OperationCreate, "POST", "/tags", ""),
+					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("legacy", "legacy", ir.TypeString, ir.PresenceOptional),
@@ -347,9 +347,9 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 			Provider: ir.Provider{Name: "example"},
 			Resources: []ir.Resource{{
 				Names: names("tags", "tags"),
-				Ops: ir.Ops{
-					Create: op(ir.OpCreate, "POST", "/tags", ""),
-					Read:   op(ir.OpRead, "GET", "/tags/{tagId}", "", ir.Param{Name: "tagId", Type: ir.TypeString}),
+				Operations: ir.Operations{
+					Create: op(ir.OperationCreate, "POST", "/tags", ""),
+					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("id", "id", ir.TypeString, ir.PresenceComputed),

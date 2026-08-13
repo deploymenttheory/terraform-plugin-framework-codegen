@@ -44,15 +44,15 @@ func names(key, service string) ir.Names {
 	return ir.Names{
 		Key: key, Pascal: exportedName(key), Camel: key,
 		TerraformType: "example_" + key, Package: key,
-		Service: service, APIVersionDir: "v1",
+		Service: service, APIVersionDirectory: "v1",
 	}
 }
 
-func op(kind ir.OpKind, method, path, opID string, params ...ir.Param) *ir.Op {
-	return &ir.Op{Kind: kind, Method: method, PathTemplate: path, OperationID: opID, PathParams: params}
+func op(kind ir.OperationKind, method, path, opID string, params ...ir.Parameter) *ir.Operation {
+	return &ir.Operation{Kind: kind, Method: method, PathTemplate: path, OperationID: opID, PathParameters: params}
 }
 
-func attr(name, wire string, kind ir.TypeKind, presence ir.Presence) ir.Attribute {
+func attr(name, wire string, kind ir.AttributeType, presence ir.Presence) ir.Attribute {
 	return ir.Attribute{Name: name, WireName: wire, Kind: kind, Presence: presence}
 }
 
@@ -68,13 +68,13 @@ func tagSchema() *ir.AttributeTree {
 	nested.Nested = detail
 
 	labels := attr("labels", "labels", ir.TypeList, ir.PresenceOptional)
-	labels.ElemKind = ir.TypeString
+	labels.ElementKind = ir.TypeString
 
 	kindAttr := attr("kind", "kind", ir.TypeString, ir.PresenceOptional)
 	kindAttr.OneOf = []string{"SIMPLE"}
 
 	kinds := attr("kinds", "kinds", ir.TypeList, ir.PresenceOptional)
-	kinds.ElemKind = ir.TypeString
+	kinds.ElementKind = ir.TypeString
 
 	unsupported := attr("free", "free", "", ir.PresenceOptional)
 	unsupported.Unsupported = true
@@ -103,14 +103,14 @@ func tagSchema() *ir.AttributeTree {
 // kiotaModel is the intermediate representation the kiota fake SDK
 // implements — plus one entity ("widgets") the SDK does not carry at all.
 func kiotaModel() *ir.Model {
-	tagID := ir.Param{Name: "tagId", Type: ir.TypeString}
+	tagID := ir.Parameter{Name: "tagId", Type: ir.TypeString}
 
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
 		attr("id", "id", ir.TypeString, ir.PresenceComputed),
 		attr("name", "name", ir.TypeString, ir.PresenceComputed),
 	}}
 	items := attr("items", "items", ir.TypeList, ir.PresenceComputed)
-	items.ElemKind = ir.TypeObject
+	items.ElementKind = ir.TypeObject
 	items.Nested = itemTree
 
 	assignTree := &ir.AttributeTree{Attributes: []ir.Attribute{
@@ -122,19 +122,19 @@ func kiotaModel() *ir.Model {
 		Resources: []ir.Resource{
 			{
 				Names: names("tags", "tags"),
-				Ops: ir.Ops{
-					Create: op(ir.OpCreate, "POST", "/tags", ""),
-					Read:   op(ir.OpRead, "GET", "/tags/{tagId}", "", tagID),
-					Update: op(ir.OpUpdate, "PATCH", "/tags/{tagId}", "", tagID),
-					Delete: op(ir.OpDelete, "DELETE", "/tags/{tagId}", "", tagID),
+				Operations: ir.Operations{
+					Create: op(ir.OperationCreate, "POST", "/tags", ""),
+					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", tagID),
+					Update: op(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "", tagID),
+					Delete: op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", tagID),
 				},
 				Schema: tagSchema(),
 			},
 			{
 				Names: names("widgets", "widgets"),
-				Ops: ir.Ops{
-					Create: op(ir.OpCreate, "POST", "/widgets", ""),
-					Read:   op(ir.OpRead, "GET", "/widgets/{widgetId}", "", ir.Param{Name: "widgetId", Type: ir.TypeString}),
+				Operations: ir.Operations{
+					Create: op(ir.OperationCreate, "POST", "/widgets", ""),
+					Read:   op(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("id", "id", ir.TypeString, ir.PresenceComputed),
@@ -145,9 +145,9 @@ func kiotaModel() *ir.Model {
 		Datasources: []ir.Datasource{
 			{
 				Names: names("tags", "tags"),
-				Ops: ir.Ops{
-					Read: op(ir.OpRead, "GET", "/tags/{tagId}", "", tagID),
-					List: op(ir.OpList, "GET", "/tags", ""),
+				Operations: ir.Operations{
+					Read: op(ir.OperationRead, "GET", "/tags/{tagId}", "", tagID),
+					List: op(ir.OperationList, "GET", "/tags", ""),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("filter_type", "filter_type", ir.TypeString, ir.PresenceRequired),
@@ -158,10 +158,10 @@ func kiotaModel() *ir.Model {
 		},
 		Actions: []ir.Action{
 			{
-				Names:         names("tags_assign", "tags"),
-				InvokeOp:      *op(ir.OpInvoke, "POST", "/tags/{tagId}/assign", "", tagID),
-				RequestSchema: assignTree,
-				ParentEntity:  "tags",
+				Names:           names("tags_assign", "tags"),
+				InvokeOperation: *op(ir.OperationInvoke, "POST", "/tags/{tagId}/assign", "", tagID),
+				RequestSchema:   assignTree,
+				ParentEntity:    "tags",
 			},
 		},
 	}
@@ -171,14 +171,14 @@ func kiotaModel() *ir.Model {
 // SDK implements. The tags service area is deliberately misspelled
 // ("tag") so pruning has to repair the service field off the client.
 func oagModel() *ir.Model {
-	tagID := ir.Param{Name: "tagId", Type: ir.TypeString}
+	tagID := ir.Parameter{Name: "tagId", Type: ir.TypeString}
 
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
 		attr("id", "id", ir.TypeString, ir.PresenceComputed),
 		attr("name", "name", ir.TypeString, ir.PresenceComputed),
 	}}
 	items := attr("items", "items", ir.TypeList, ir.PresenceComputed)
-	items.ElemKind = ir.TypeObject
+	items.ElementKind = ir.TypeObject
 	items.Nested = itemTree
 
 	schema := tagSchema()
@@ -199,11 +199,11 @@ func oagModel() *ir.Model {
 		Resources: []ir.Resource{
 			{
 				Names: names("tags", "tag"),
-				Ops: ir.Ops{
-					Create: op(ir.OpCreate, "POST", "/tags", "createTag"),
-					Read:   op(ir.OpRead, "GET", "/tags/{tagId}", "getTag", tagID),
-					Update: op(ir.OpUpdate, "PATCH", "/tags/{tagId}", "updateTag", tagID),
-					Delete: op(ir.OpDelete, "DELETE", "/tags/{tagId}", "deleteTag", tagID),
+				Operations: ir.Operations{
+					Create: op(ir.OperationCreate, "POST", "/tags", "createTag"),
+					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", tagID),
+					Update: op(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "updateTag", tagID),
+					Delete: op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", tagID),
 				},
 				Schema: schema,
 			},
@@ -211,9 +211,9 @@ func oagModel() *ir.Model {
 		Datasources: []ir.Datasource{
 			{
 				Names: names("tags", "tag"),
-				Ops: ir.Ops{
-					Read: op(ir.OpRead, "GET", "/tags/{tagId}", "getTag", tagID),
-					List: op(ir.OpList, "GET", "/tags", "listTags"),
+				Operations: ir.Operations{
+					Read: op(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", tagID),
+					List: op(ir.OperationList, "GET", "/tags", "listTags"),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("filter_type", "filter_type", ir.TypeString, ir.PresenceRequired),
@@ -224,8 +224,8 @@ func oagModel() *ir.Model {
 		},
 		ListResources: []ir.ListResource{
 			{
-				Names:  names("groups", "groups"),
-				ListOp: *op(ir.OpList, "GET", "/groups", "listGroups"),
+				Names:         names("groups", "groups"),
+				ListOperation: *op(ir.OperationList, "GET", "/groups", "listGroups"),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attr("name", "name", ir.TypeString, ir.PresenceComputed),
 				}},

@@ -15,9 +15,9 @@ func thingTree(t *testing.T) *AttributeTree {
 
 func TestAttributes_TypeMapping(t *testing.T) {
 	tree := thingTree(t)
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		name string
-		kind TypeKind
+		kind AttributeType
 	}{
 		{"name", TypeString},
 		{"count", TypeInt64},
@@ -27,17 +27,17 @@ func TestAttributes_TypeMapping(t *testing.T) {
 		{"rules", TypeList},
 		{"settings", TypeObject},
 	} {
-		if a := attribute(t, tree, tc.name); a.Kind != tc.kind {
-			t.Errorf("%s: kind = %q, want %q", tc.name, a.Kind, tc.kind)
+		if a := attribute(t, tree, testCase.name); a.Kind != testCase.kind {
+			t.Errorf("%s: kind = %q, want %q", testCase.name, a.Kind, testCase.kind)
 		}
 	}
 
 	labels := attribute(t, tree, "labels")
-	if labels.ElemKind != TypeString || labels.Nested != nil {
+	if labels.ElementKind != TypeString || labels.Nested != nil {
 		t.Errorf("labels = %+v, want a list of strings", labels)
 	}
 	rules := attribute(t, tree, "rules")
-	if rules.ElemKind != TypeObject || rules.Nested == nil {
+	if rules.ElementKind != TypeObject || rules.Nested == nil {
 		t.Fatalf("rules = %+v, want a list of objects", rules)
 	}
 	if kind := attribute(t, rules.Nested, "kind"); kind.Presence != PresenceRequired {
@@ -70,7 +70,7 @@ func TestAttributes_FreeFormObjectIsRefused(t *testing.T) {
 
 func TestAttributes_Presence(t *testing.T) {
 	tree := thingTree(t)
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		name string
 		want Presence
 	}{
@@ -90,8 +90,8 @@ func TestAttributes_Presence(t *testing.T) {
 		{"flaky", PresenceComputed},          // x-tfpfgen-volatile
 		{"id", PresenceComputed},             // always
 	} {
-		if a := attribute(t, tree, tc.name); a.Presence != tc.want {
-			t.Errorf("%s: presence = %q, want %q", tc.name, a.Presence, tc.want)
+		if a := attribute(t, tree, testCase.name); a.Presence != testCase.want {
+			t.Errorf("%s: presence = %q, want %q", testCase.name, a.Presence, testCase.want)
 		}
 	}
 }
@@ -239,16 +239,16 @@ components:
 			"wrapped, key: records, pagination: cursor", "records"},
 		{"a bare shape unwraps a response the document wraps", "bare", ""},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			doc := fmt.Sprintf(wrappedDoc, tc.envelope)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			doc := fmt.Sprintf(wrappedDoc, testCase.envelope)
 			r := resourceByKey(t, mustDerive(t, doc, testConfig()), "gizmo")
-			if r.ListEnvelopeKey != tc.want {
-				t.Errorf("resource envelope key = %q, want %q", r.ListEnvelopeKey, tc.want)
+			if r.ListEnvelopeKey != testCase.want {
+				t.Errorf("resource envelope key = %q, want %q", r.ListEnvelopeKey, testCase.want)
 			}
 			d := datasourceByKey(t, mustDerive(t, doc, testConfig()), "gizmo")
-			if d.ListEnvelopeKey != tc.want {
-				t.Errorf("datasource envelope key = %q, want %q", d.ListEnvelopeKey, tc.want)
+			if d.ListEnvelopeKey != testCase.want {
+				t.Errorf("datasource envelope key = %q, want %q", d.ListEnvelopeKey, testCase.want)
 			}
 		})
 	}

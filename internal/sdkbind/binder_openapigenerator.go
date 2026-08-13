@@ -24,7 +24,7 @@ func (b openAPIGeneratorBinder) Bind(m *ir.Model, info SDKInfo) (*Bindings, erro
 // operationId camelised the way the generator does it, or, when the
 // document declares none, the generator's own synthesis from the path and
 // method — "/tags/{tagId}" + GET becomes TagsTagIdGet.
-func opMethodName(op *ir.Op) string {
+func opMethodName(op *ir.Operation) string {
 	if op.OperationID != "" {
 		return exportedName(op.OperationID)
 	}
@@ -47,7 +47,7 @@ func opMethodName(op *ir.Op) string {
 // fully determine (the generator names services after spec tags and body
 // setters after parameter names), so Prune settles them against the real
 // client, repairing only where the SDK admits exactly one answer.
-func (openAPIGeneratorBinder) call(op *ir.Op, n ir.Names, hasBody bool, info SDKInfo) *Call {
+func (openAPIGeneratorBinder) call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call {
 	args := []string{"ctx"}
 	for _, p := range callParams(op) {
 		args = append(args, p.Local)
@@ -72,9 +72,9 @@ func (openAPIGeneratorBinder) call(op *ir.Op, n ir.Names, hasBody bool, info SDK
 
 	model := "sdk." + exportedName(n.Key)
 	switch op.Kind {
-	case ir.OpDelete:
+	case ir.OperationDelete:
 		c.Results = []string{"*http.Response", "error"}
-	case ir.OpList:
+	case ir.OperationList:
 		// A list may answer with a bare slice or a paged envelope; only
 		// the SDK knows which, so Prune fills the payload type.
 		c.Results = []string{"", "*http.Response", "error"}
@@ -122,8 +122,8 @@ func (openAPIGeneratorBinder) access(a ir.Attribute, mode accessMode) FieldAcces
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "float64", "FromFloat64", "ToFloat64"
 	case ir.TypeList:
 		if a.Nested == nil {
-			fa.SDKType = "[]" + goTypeOf(a.ElemKind)
-			shape := exportedName(string(a.ElemKind)) + "Slice"
+			fa.SDKType = "[]" + goTypeOf(a.ElementKind)
+			shape := exportedName(string(a.ElementKind)) + "Slice"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
 		}
 	case ir.TypeObject:

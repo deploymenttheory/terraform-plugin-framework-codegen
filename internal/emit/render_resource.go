@@ -92,8 +92,8 @@ type resourceData struct {
 
 // resource renders one resource's complete file set.
 func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) ([]File, error) {
-	if r.Ops.Create == nil || rb.Create == nil || r.Ops.Read == nil || rb.Read == nil ||
-		r.Ops.Delete == nil || rb.Delete == nil {
+	if r.Operations.Create == nil || rb.Create == nil || r.Operations.Read == nil || rb.Read == nil ||
+		r.Operations.Delete == nil || rb.Delete == nil {
 		return nil, fmt.Errorf("a resource needs bound create, read and delete calls")
 	}
 
@@ -110,7 +110,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		TimeoutRead:    goDuration(int64(r.Timeouts.Read)),
 		TimeoutUpdate:  goDuration(int64(r.Timeouts.Update)),
 		TimeoutDelete:  goDuration(int64(r.Timeouts.Delete)),
-		MissingUpdate:  r.MissingUpdate || r.Ops.Update == nil || rb.Update == nil,
+		MissingUpdate:  r.MissingUpdate || r.Operations.Update == nil || rb.Update == nil,
 		ReadModel:      rb.ReadModel,
 		ProviderModule: e.pc.Module,
 	}
@@ -352,10 +352,10 @@ func (e *serviceRenderer) addSDKImports(s *importSet, snippets ...string) {
 // importAttr is the attribute ImportState passes the import identifier
 // through: the read call's single path parameter, when it maps to one.
 func importAttr(r *ir.Resource, nodes []node) string {
-	if r.Ops.Read == nil || len(r.Ops.Read.PathParams) != 1 {
+	if r.Operations.Read == nil || len(r.Operations.Read.PathParameters) != 1 {
 		return ""
 	}
-	p := r.Ops.Read.PathParams[0]
+	p := r.Operations.Read.PathParameters[0]
 	for _, n := range nodes {
 		if n.attr.WireName == p.Name || n.attr.Name == ir.TerraformName(p.Name) {
 			return n.attr.Name
@@ -373,23 +373,23 @@ func importAttr(r *ir.Resource, nodes []node) string {
 // and the fixture derivation.
 func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdkbind.ResourceBinding, spec fixtures.Fixture) error {
 	d.RegistryName = r.Names.TerraformType
-	d.CollectionURL = mockURL(r.Ops.Create.PathTemplate)
-	d.ItemPattern = mockPattern(r.Ops.Read.PathTemplate)
-	d.IDSegmentIndex = paramSegmentIndex(r.Ops.Read.PathTemplate)
+	d.CollectionURL = mockURL(r.Operations.Create.PathTemplate)
+	d.ItemPattern = mockPattern(r.Operations.Read.PathTemplate)
+	d.IDSegmentIndex = paramSegmentIndex(r.Operations.Read.PathTemplate)
 	if d.IDSegmentIndex < 0 {
-		return fmt.Errorf("the read path %s declares no parameter segment for the mock to key on", r.Ops.Read.PathTemplate)
+		return fmt.Errorf("the read path %s declares no parameter segment for the mock to key on", r.Operations.Read.PathTemplate)
 	}
 	d.IDWire = idWire(rb.Fields)
 	d.ResponseMinimal = string(spec.WireJSON(fixtures.ResponseMinimal))
 	d.ResponseMaximal = string(spec.WireJSON(fixtures.ResponseMaximal))
-	d.CreateStatus = successStatus(r.Ops.Create, 201)
-	d.DeleteStatus = successStatus(r.Ops.Delete, 204)
+	d.CreateStatus = successStatus(r.Operations.Create, 201)
+	d.DeleteStatus = successStatus(r.Operations.Delete, 204)
 	d.HasDelete = true
 	if d.HasUpdate {
-		d.UpdateMethod = r.Ops.Update.Method
-		d.UpdateStatus = successStatus(r.Ops.Update, 200)
+		d.UpdateMethod = r.Operations.Update.Method
+		d.UpdateStatus = successStatus(r.Operations.Update, 200)
 	}
-	if r.Ops.List != nil {
+	if r.Operations.List != nil {
 		d.HasList = true
 		d.ListPayload = listPayloadExpr(r.ListEnvelopeKey, "items")
 	}
@@ -410,7 +410,7 @@ func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdk
 
 // successStatus is an operation's declared success code, or the
 // conventional one.
-func successStatus(op *ir.Op, fallback int) int {
+func successStatus(op *ir.Operation, fallback int) int {
 	if op != nil && op.SuccessCode > 0 {
 		return op.SuccessCode
 	}

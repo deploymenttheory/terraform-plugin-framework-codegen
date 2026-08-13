@@ -15,42 +15,42 @@ func TestKiotaChainSpelling(t *testing.T) {
 
 	cases := []struct {
 		name    string
-		op      *ir.Op
+		op      *ir.Operation
 		hasBody bool
 		want    string
 	}{
 		{
 			name:    "create is a collection post",
-			op:      op(ir.OpCreate, "POST", "/tags", ""),
+			op:      op(ir.OperationCreate, "POST", "/tags", ""),
 			hasBody: true,
 			want:    "client.Tags().Post(ctx, body, nil)",
 		},
 		{
 			name: "read indexes by the path parameter",
-			op:   op(ir.OpRead, "GET", "/tags/{tagId}", "", ir.Param{Name: "tagId", Type: ir.TypeString}),
+			op:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			want: "client.Tags().ByTagId(tagId).Get(ctx, nil)",
 		},
 		{
 			name:    "update keeps the declared verb",
-			op:      op(ir.OpUpdate, "PATCH", "/tags/{tagId}", "", ir.Param{Name: "tagId", Type: ir.TypeString}),
+			op:      op(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			hasBody: true,
 			want:    "client.Tags().ByTagId(tagId).Patch(ctx, body, nil)",
 		},
 		{
 			name: "delete takes no body",
-			op:   op(ir.OpDelete, "DELETE", "/tags/{tagId}", "", ir.Param{Name: "tagId", Type: ir.TypeString}),
+			op:   op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			want: "client.Tags().ByTagId(tagId).Delete(ctx, nil)",
 		},
 		{
 			name: "kebab and nested segments become builder hops",
-			op: op(ir.OpRead, "GET", "/v7/http-server/{serverId}/status", "",
-				ir.Param{Name: "serverId", Type: ir.TypeString}),
+			op: op(ir.OperationRead, "GET", "/v7/http-server/{serverId}/status", "",
+				ir.Parameter{Name: "serverId", Type: ir.TypeString}),
 			want: "client.V7().HttpServer().ByServerId(serverId).Status().Get(ctx, nil)",
 		},
 		{
 			name: "a keyword-named parameter gets a safe local",
-			op: op(ir.OpRead, "GET", "/types/{type}", "",
-				ir.Param{Name: "type", Type: ir.TypeString}),
+			op: op(ir.OperationRead, "GET", "/types/{type}", "",
+				ir.Parameter{Name: "type", Type: ir.TypeString}),
 			want: "client.Types().ByType(type_).Get(ctx, nil)",
 		},
 	}
@@ -73,7 +73,7 @@ func TestKiotaChainSpelling(t *testing.T) {
 func TestKiotaCallDrafts(t *testing.T) {
 	n := names("tags", "tags")
 	read := kiotaBinder{}.call(
-		op(ir.OpRead, "GET", "/tags/{tagId}", "", ir.Param{Name: "tagId", Type: ir.TypeString}),
+		op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 		n, false, kiotaInfo())
 
 	if read.ResponseType != "models.Tagsable" {
@@ -89,7 +89,7 @@ func TestKiotaCallDrafts(t *testing.T) {
 	}
 
 	del := kiotaBinder{}.call(
-		op(ir.OpDelete, "DELETE", "/tags/{tagId}", "", ir.Param{Name: "tagId", Type: ir.TypeString}),
+		op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 		n, false, kiotaInfo())
 	if del.ResponseType != "" || len(del.Results) != 1 || del.Results[0] != "error" {
 		t.Errorf("delete draft = response %q results %v, want none and [error]", del.ResponseType, del.Results)

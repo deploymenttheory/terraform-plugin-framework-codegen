@@ -25,13 +25,13 @@ func testTree() *ir.AttributeTree {
 				OneOf: []string{"basic", "advanced"}},
 			{Name: "mode", WireName: "mode", Kind: ir.TypeString, Presence: ir.PresenceOptionalComputed,
 				AdvisoryValues: []string{"auto", "manual"}},
-			{Name: "tags", WireName: "tags", Kind: ir.TypeList, ElemKind: ir.TypeString, Presence: ir.PresenceOptional},
+			{Name: "tags", WireName: "tags", Kind: ir.TypeList, ElementKind: ir.TypeString, Presence: ir.PresenceOptional},
 			{Name: "settings", WireName: "settings", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
 				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, Presence: ir.PresenceRequired},
 					{Name: "trace", WireName: "trace", Kind: ir.TypeBool, Presence: ir.PresenceOptional},
 				}}},
-			{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElemKind: ir.TypeObject, Presence: ir.PresenceOptional,
+			{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElementKind: ir.TypeObject, Presence: ir.PresenceOptional,
 				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "pattern", WireName: "pattern", Kind: ir.TypeString, Presence: ir.PresenceRequired},
 				}}},
