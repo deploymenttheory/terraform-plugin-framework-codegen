@@ -157,6 +157,11 @@ Every attribute the generator emits lands in exactly one of five outcomes, and
 nothing else exists. A correction is only worth compiling if it moves an
 attribute between them, or changes a plan modifier or a validator.
 
+`docs/mapping.md` is the wider specification these five outcomes serve: twelve
+API behaviours and the terraform-plugin-framework shape each demands. The table
+below decides presence; mapping.md also fixes which plan modifier, validator,
+custom type or collection kind that behaviour calls for.
+
 | Outcome | When | Decided by |
 |---|---|---|
 | Omitted entirely | The type cannot be represented | `deriveType` marks it unsupported |
