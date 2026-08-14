@@ -600,6 +600,30 @@ func integerBits(goType string) int {
 	}
 }
 
+// integerParsedParams names the attributes a call reaches through a parse
+// that only digits survive: the document declares them strings and the
+// generated SDK takes an integer, so paramDeclaration emits strconv.ParseInt.
+//
+// A fixture value is derived from the document, which says string, and would
+// be refused by that parse before the generated test reached an assertion.
+// This is what a caller consults to pin those values to something numeric.
+func integerParsedParams(call *sdkbind.Call, nodes []node) map[string]bool {
+	if call == nil {
+		return nil
+	}
+	out := map[string]bool{}
+	for position, p := range call.Params {
+		n, err := paramNode(p, nodes, position == len(call.Params)-1)
+		if err != nil {
+			continue
+		}
+		if n.attr.Kind == ir.TypeString && isIntegerType(p.GoType) {
+			out[n.attr.Name] = true
+		}
+	}
+	return out
+}
+
 // sdkTypeMatches reports whether the SDK takes exactly what the model field
 // yields, so the value passes through unconverted.
 func sdkTypeMatches(kind ir.AttributeType, goType string) bool {

@@ -124,6 +124,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 
 	// Test wiring.
 	spec := deriveFixtures(actionTree(paramNodes, a.RequestSchema), nodes)
+	spec.PinNumeric(integerParsedParams(ab.Invoke, nodes))
 	d.InvokeMethod = a.InvokeOperation.Method
 	d.InvokeStatus = successStatus(&a.InvokeOperation, 204)
 	if len(a.InvokeOperation.PathParameters) > 0 {
@@ -235,6 +236,8 @@ func tftype(v fixtures.Entry) string {
 		return tftypeObject(v.Nested)
 	case v.Kind == ir.TypeList:
 		return "tftypes.List{ElementType: " + tftypeScalar(v.ElementType) + "}"
+	case v.Kind == ir.TypeMap:
+		return "tftypes.Map{ElementType: " + tftypeScalar(v.ElementType) + "}"
 	default:
 		return tftypeScalar(v.Kind)
 	}
@@ -277,6 +280,11 @@ func tftypeNewValue(v fixtures.Entry) string {
 	case v.Kind == ir.TypeList:
 		return fmt.Sprintf("tftypes.NewValue(%s, []tftypes.Value{tftypes.NewValue(%s, %s)})",
 			tftype(v), tftypeScalar(v.ElementType), tftypeScalarLiteral(v.ElementType, v.Scalar))
+	case v.Kind == ir.TypeMap:
+		// One entry, keyed by the attribute's own name: a map's keys are the
+		// practitioner's, so the document names none to take.
+		return fmt.Sprintf("tftypes.NewValue(%s, map[string]tftypes.Value{%q: tftypes.NewValue(%s, %s)})",
+			tftype(v), v.Name, tftypeScalar(v.ElementType), tftypeScalarLiteral(v.ElementType, v.Scalar))
 	default:
 		return fmt.Sprintf("tftypes.NewValue(%s, %s)", tftypeScalar(v.Kind), tftypeScalarLiteral(v.Kind, v.Scalar))
 	}

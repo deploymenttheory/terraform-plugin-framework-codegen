@@ -13,7 +13,7 @@ const responseMaximal = `{{ .ResponseMaximal }}`
 
 {{ if .CollectionURL }}
 // collectionURL is where the list operation answers.
-const collectionURL = "{{ .CollectionURL }}"
+const collectionURL = `{{ .CollectionURL }}`
 {{ end }}
 {{ if .HasItemMock }}
 // itemPattern matches the by-key read's URL.
