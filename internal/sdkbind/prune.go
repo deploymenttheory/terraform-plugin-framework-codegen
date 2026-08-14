@@ -518,6 +518,12 @@ func (p *pruner) writeModelFor(requestType string) (model, constructor, reason s
 	if _, isInterface := named.Underlying().(*types.Interface); isInterface {
 		base, ok := strings.CutSuffix(name, "able")
 		if !ok {
+			// An SDK runtime interface constructs through a companion of
+			// its own name rather than through a concrete type: the
+			// interface is the model.
+			if p.l.functionExists(pkg.Path(), "New"+name) {
+				return qualifier + "." + name, qualifier + ".New" + name + "()", ""
+			}
 			return "", "", fmt.Sprintf("%s.%s is an interface with no constructible model behind it", qualifier, name)
 		}
 		if _, err := p.l.lookupType(pkg.Path(), base); err != nil {
