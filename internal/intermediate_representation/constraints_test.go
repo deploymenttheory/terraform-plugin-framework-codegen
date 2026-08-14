@@ -115,6 +115,62 @@ func TestUnit_Attribute_CarriesTheDeclaredConstraints(t *testing.T) {
 	}
 }
 
+// TestUnit_Attribute_MarksADeclaredSecretSensitive proves either declaration
+// is enough on its own, and that neither marks an ordinary value.
+func TestUnit_Attribute_MarksADeclaredSecretSensitive(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /accounts:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Account'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Account'}
+  /accounts/{accountId}:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Account'}
+    delete:
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Account:
+      type: object
+      properties:
+        formatted:
+          type: string
+          format: password
+        writeOnly:
+          type: string
+          writeOnly: true
+        both:
+          type: string
+          format: password
+          writeOnly: true
+        plain:
+          type: string
+`
+	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "account")
+	for _, name := range []string{"formatted", "write_only", "both"} {
+		if !attribute(t, r.Schema, name).Sensitive {
+			t.Errorf("%q is a declared secret and is not marked sensitive", name)
+		}
+	}
+	if attribute(t, r.Schema, "plain").Sensitive {
+		t.Error("an ordinary attribute is marked sensitive")
+	}
+}
+
 func assertBound(t *testing.T, name string, got *int64, want int64) {
 	t.Helper()
 	if got == nil {

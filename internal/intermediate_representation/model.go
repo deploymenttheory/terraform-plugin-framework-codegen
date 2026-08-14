@@ -328,6 +328,9 @@ type Attribute struct {
 	// WriteOnly marks a property the API accepts on write and never
 	// returns.
 	WriteOnly bool `json:"write_only,omitempty"`
+	// Sensitive marks a value terraform must keep out of its output: the
+	// document either declares it write-only or formats it as a password.
+	Sensitive bool `json:"sensitive,omitempty"`
 	// Deprecated marks a property the document declares deprecated.
 	Deprecated bool `json:"deprecated,omitempty"`
 	// UniqueItems marks a collection whose members are a set, so the order

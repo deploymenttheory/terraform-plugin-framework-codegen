@@ -41,6 +41,25 @@ func (sb *schemaBuilder) rendersComputed() bool {
 	return sb.kind == schemaResource || sb.kind == schemaDatasource
 }
 
+// rendersSensitive reports whether the schema package declares Sensitive.
+// The action and list packages do not: their attribute types carry
+// DeprecationMessage but no Sensitive field, so declaring one would not
+// compile. A secret passed as an action argument or a list filter is
+// therefore unmarked, which is the framework's limit rather than a choice
+// made here.
+//
+// The membership matches rendersComputed's today and is spelled separately
+// because nothing ties the two facts together.
+func (sb *schemaBuilder) rendersSensitive() bool {
+	return sb.kind == schemaResource || sb.kind == schemaDatasource
+}
+
+// deprecationMessage is what a generated schema says about an attribute the
+// document declares deprecated. OpenAPI's deprecated is a bare flag carrying
+// no prose, and the framework's DeprecationMessage is the warning text a
+// practitioner reads, so the sentence is the toolkit's own and is fixed.
+const deprecationMessage = "This attribute is deprecated and may be removed in a future API version."
+
 // schemaBuilder accumulates the imports one schema declaration needs as
 // it renders.
 type schemaBuilder struct {
@@ -76,6 +95,17 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 
 	if desc := attributeDescription(n.attr); desc != "" {
 		fmt.Fprintf(&b, "%s\tMarkdownDescription: %s,\n", indent, strconv.Quote(desc))
+	}
+
+	// Sensitive keeps the value out of plan output and logs. It is a plain
+	// bool on the attribute type, so unlike a validator or a plan modifier
+	// it needs no import to travel with it.
+	if n.attr.Sensitive && sb.rendersSensitive() {
+		fmt.Fprintf(&b, "%s\tSensitive: true,\n", indent)
+	}
+
+	if n.attr.Deprecated {
+		fmt.Fprintf(&b, "%s\tDeprecationMessage: %s,\n", indent, strconv.Quote(deprecationMessage))
 	}
 
 	if (n.attr.Kind == ir.TypeList || n.attr.Kind == ir.TypeMap) && n.attr.Nested == nil {
