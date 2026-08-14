@@ -4,6 +4,7 @@ package convert
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -86,6 +87,43 @@ func FrameworkToAPITime(value types.String, setter func(*time.Time)) error {
 		return fmt.Errorf("%q is not an RFC 3339 timestamp: %w", value.ValueString(), err)
 	}
 	setter(&parsed)
+	return nil
+}
+
+// FrameworkToAPITimeList parses each element of the plan's string list as
+// an RFC 3339 timestamp and hands the []time.Time to the setter, erroring
+// on the first element that is not one.
+func FrameworkToAPITimeList(ctx context.Context, value types.List, setter func([]time.Time)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	var raw []string
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a string list from the plan: %v", diags.Errors())
+	}
+	parsed := make([]time.Time, 0, len(raw))
+	for _, element := range raw {
+		at, err := time.Parse(time.RFC3339, element)
+		if err != nil {
+			return fmt.Errorf("%q is not an RFC 3339 timestamp: %w", element, err)
+		}
+		parsed = append(parsed, at)
+	}
+	setter(parsed)
+	return nil
+}
+
+// FrameworkToAPIBytesAsBase64 decodes the plan's base64 string and hands
+// the bytes to the setter, erroring on a value that is not base64.
+func FrameworkToAPIBytesAsBase64(value types.String, setter func([]byte)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	decoded, err := base64.StdEncoding.DecodeString(value.ValueString())
+	if err != nil {
+		return fmt.Errorf("%q is not base64: %w", value.ValueString(), err)
+	}
+	setter(decoded)
 	return nil
 }
 

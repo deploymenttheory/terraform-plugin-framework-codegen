@@ -224,7 +224,22 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			settle("[]"+basic.Name(), "From"+title+"Slice", "To"+title+"Slice", "")
 			return ""
 		}
+		// time.Time is a struct, not a basic, so a slice of them does not
+		// match the branch above.
+		if named, isNamed := elem.(*types.Named); isNamed && isStdTime(named) && fb.ElementType == ir.TypeString {
+			settle("[]time.Time", "FromTimeSlice", "ToTimeSlice", "")
+			return ""
+		}
 		return cannot(shortType(t))
+	}
+
+	// OpenAPI's `format: byte` is base64, which derives a string attribute
+	// rather than a list of numbers, so the bridge is base64 too.
+	if slice, ok := t.Underlying().(*types.Slice); ok && fb.Kind == ir.TypeString {
+		if basic, isBasic := slice.Elem().Underlying().(*types.Basic); isBasic && basic.Kind() == types.Byte {
+			settle("[]byte", "FromBytesBase64", "ToBytesBase64", "")
+			return ""
+		}
 	}
 
 	ptr := false
@@ -255,12 +270,22 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			settle(prefix(qualifiedName(named)), get, set, parse)
 			return ""
 		}
-		if named.Obj().Pkg() != nil && named.Obj().Pkg().Path() == "time" && named.Obj().Name() == "Time" {
+		if isStdTime(named) {
 			if fb.Kind != ir.TypeString {
 				return cannot(shortType(t))
 			}
 			get, set := convert("Time")
 			settle(prefix("time.Time"), get, set, "")
+			return ""
+		}
+		// kiota mints its own date-only type rather than using time.Time
+		// for a `format: date` field.
+		if isKiotaDateOnly(named) {
+			if fb.Kind != ir.TypeString {
+				return cannot(shortType(t))
+			}
+			get, set := convert("DateOnly")
+			settle(prefix("serialization.DateOnly"), get, set, "")
 			return ""
 		}
 		return cannot(shortType(t))
@@ -342,4 +367,27 @@ func flipEscaped(fa *FieldAccess) {
 // package name dot type name.
 func qualifiedName(named *types.Named) string {
 	return named.Obj().Pkg().Name() + "." + named.Obj().Name()
+}
+
+// isStdTime reports whether a named type is the standard library's
+// time.Time.
+func isStdTime(named *types.Named) bool {
+	pkg := named.Obj().Pkg()
+	return pkg != nil && pkg.Path() == "time" && named.Obj().Name() == "Time"
+}
+
+// isKiotaDateOnly reports whether a named type is kiota's DateOnly — the
+// type its generator uses for a `format: date` field, in place of
+// time.Time.
+//
+// Matched on the package path rather than the package name, because
+// "serialization" is a name any SDK might use for a package of its own,
+// and bridging some other SDK's DateOnly through kiota's ParseDateOnly
+// would not compile.
+func isKiotaDateOnly(named *types.Named) bool {
+	pkg := named.Obj().Pkg()
+	if pkg == nil || named.Obj().Name() != "DateOnly" {
+		return false
+	}
+	return strings.HasSuffix(pkg.Path(), "kiota-abstractions-go/serialization")
 }
