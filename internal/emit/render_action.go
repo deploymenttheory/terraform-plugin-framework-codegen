@@ -113,7 +113,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 		}
 	}
 
-	plan, err := buildCallPlan(ab.Invoke, "", nodes, "data")
+	plan, err := buildCallPlan(ab.Invoke, "", nodes, "data", respDiagnostics())
 	if err != nil {
 		return nil, fmt.Errorf("invoke: %w", err)
 	}

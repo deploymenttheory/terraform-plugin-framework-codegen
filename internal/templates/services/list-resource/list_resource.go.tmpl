@@ -43,9 +43,14 @@ func (r *{{ .Type }}) Configure(_ context.Context, req resource.ConfigureRequest
 }
 
 // ListResourceConfigSchema declares the list block's configuration: the
-// document derives no filters for this entity, so the block is empty.
+// addressing the collection path requires, and nothing else. An entity whose
+// collection path takes no parameters declares an empty block.
 func (r *{{ .Type }}) ListResourceConfigSchema(_ context.Context, _ list.ListResourceSchemaRequest, resp *list.ListResourceSchemaResponse) {
 	resp.Schema = listschema.Schema{
 		MarkdownDescription: {{ .SchemaDescription }},
+{{- if .SchemaAttributes }}
+		Attributes: map[string]listschema.Attribute{
+{{ .SchemaAttributes }}		},
+{{- end }}
 	}
 }

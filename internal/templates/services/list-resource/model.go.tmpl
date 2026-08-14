@@ -10,3 +10,7 @@ import (
 type identityModel struct {
 	ID types.String `tfsdk:"id"`
 }
+{{ if .ConfigModel }}
+// listConfigModel mirrors the list block's configuration.
+{{ .ConfigModel }}
+{{- end }}

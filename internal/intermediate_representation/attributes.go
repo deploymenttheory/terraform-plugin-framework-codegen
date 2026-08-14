@@ -682,6 +682,26 @@ func ensureParentParameters(tree *AttributeTree, parents []Parameter) {
 	tree.Attributes = append(added, tree.Attributes...)
 }
 
+// addressingSchema is a collection path's addressing attributes as a tree of
+// their own, for a list resource to declare as the configuration of its list
+// block. Nil when the path takes no parameters.
+//
+// Every parameter is a parent: a collection path carries no item key, so
+// there is no id to absorb the last one. None carries RequiresReplace — a
+// list block declares a query, and a query has no plan for a modifier to act
+// on.
+func addressingSchema(parameters []Parameter) *AttributeTree {
+	if len(parameters) == 0 {
+		return nil
+	}
+	tree := &AttributeTree{}
+	ensureParentParameters(tree, parameters)
+	for index := range tree.Attributes {
+		tree.Attributes[index].RequiresReplace = false
+	}
+	return tree
+}
+
 // parentParameters is an operation's path parameters above the item key: all
 // of them but the last, which addresses the object itself and becomes the id.
 func parentParameters(parameters []Parameter) []Parameter {

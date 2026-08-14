@@ -440,11 +440,13 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 func (derivation *deriver) listResource(classification specmodel.Classification, names Names) ListResource {
 	listFull := derivation.full(classification.List)
 	element := listElementSchema(listFull)
+	listOperation := *derivation.operation(classification.List, OperationList)
 	return ListResource{
-		Names:           names,
-		ListOperation:   *derivation.operation(classification.List, OperationList),
-		Schema:          buildTree(nil, element, nil, false),
-		ListEnvelopeKey: listEnvelopeKey(listFull),
+		Names:            names,
+		ListOperation:    listOperation,
+		Schema:           buildTree(nil, element, nil, false),
+		AddressingSchema: addressingSchema(listOperation.PathParameters),
+		ListEnvelopeKey:  listEnvelopeKey(listFull),
 	}
 }
 

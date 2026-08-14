@@ -8,6 +8,14 @@ package {{ .Package }}
 // element, carrying its identity and display name.
 func (r *{{ .Type }}) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
 	client := r.client
+{{- if .ConfigModel }}
+	var config listConfigModel
+	if diags := req.Config.Get(ctx, &config); diags.HasError() {
+		stream.Results = list.ListResultsStreamDiagnostics(diags)
+		return
+	}
+	{{ .ListPlan.ParamDecls }}
+{{- end }}
 	{{ .ListPlan.Assign }}
 	if err != nil {
 		stream.Results = list.ListResultsStreamDiagnostics(diag.Diagnostics{

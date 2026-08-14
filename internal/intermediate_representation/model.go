@@ -137,6 +137,10 @@ type ListResource struct {
 	ListOperation Operation `json:"list_operation"`
 	// Schema is the element's attribute tree, everything computed.
 	Schema *AttributeTree `json:"schema"`
+	// AddressingSchema is the addressing attributes the collection path
+	// requires, declared as the list block's own configuration. Nil for a
+	// collection path that takes no parameters.
+	AddressingSchema *AttributeTree `json:"addressing_schema,omitempty"`
 	// CoManagementNote is the sibling-entity prose; see Resource.
 	CoManagementNote string `json:"co_management_note,omitempty"`
 	// ListEnvelopeKey is the list response's item-array wrapper key; see
