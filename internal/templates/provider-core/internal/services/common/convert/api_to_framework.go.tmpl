@@ -13,6 +13,7 @@
 package convert
 
 import (
+	"encoding/base64"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -65,6 +66,29 @@ func APIToFrameworkTime(value *time.Time) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue(value.Format(time.RFC3339))
+}
+
+// APIToFrameworkTimeList converts []time.Time to a types.List of RFC 3339
+// strings, nil to null.
+func APIToFrameworkTimeList(values []time.Time) types.List {
+	if values == nil {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, len(values))
+	for i, v := range values {
+		elements[i] = types.StringValue(v.Format(time.RFC3339))
+	}
+	return types.ListValueMust(types.StringType, elements)
+}
+
+// APIToFrameworkBytesAsBase64 converts a byte slice to a base64
+// types.String, nil to null. Base64 because that is what OpenAPI's
+// `format: byte` means.
+func APIToFrameworkBytesAsBase64(value []byte) types.String {
+	if value == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(base64.StdEncoding.EncodeToString(value))
 }
 
 // APIToFrameworkStringList converts []string to a types.List of strings,

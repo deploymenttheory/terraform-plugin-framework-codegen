@@ -1,6 +1,7 @@
 package sdkbind
 
 import (
+	"go/types"
 	"strings"
 	"testing"
 
@@ -365,4 +366,65 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 			t.Errorf("reason = %q", r.Reason)
 		}
 	})
+}
+
+// structNamed builds a named struct type in a package, which is the shape
+// kiota's DateOnly and the standard library's time.Time both have.
+func structNamed(path, pkgName, typeName string) *types.Named {
+	pkg := types.NewPackage(path, pkgName)
+	obj := types.NewTypeName(0, pkg, typeName, nil)
+	return types.NewNamed(obj, types.NewStruct(nil, nil), nil)
+}
+
+// TestUnit_SettleScalar_BridgesDateOnlyTimeSliceAndBytes proves the three
+// SDK shapes the catalog can carry but the pruner used to refuse settle to
+// their catalog shorthands.
+func TestUnit_SettleScalar_BridgesDateOnlyTimeSliceAndBytes(t *testing.T) {
+	dateOnly := structNamed("github.com/microsoft/kiota-abstractions-go/serialization", "serialization", "DateOnly")
+	instant := structNamed("time", "time", "Time")
+
+	for _, testCase := range []struct {
+		name     string
+		kind     ir.AttributeType
+		element  ir.AttributeType
+		sdkType  types.Type
+		wantGet  string
+		wantSet  string
+		wantType string
+	}{
+		{"kiota date-only", ir.TypeString, "", types.NewPointer(dateOnly), "FromPtrDateOnly", "ToPtrDateOnly", "*serialization.DateOnly"},
+		{"slice of instants", ir.TypeList, ir.TypeString, types.NewSlice(instant), "FromTimeSlice", "ToTimeSlice", "[]time.Time"},
+		{"byte slice", ir.TypeString, "", types.NewSlice(types.Typ[types.Byte]), "FromBytesBase64", "ToBytesBase64", "[]byte"},
+	} {
+		fb := FieldBinding{
+			Attr: "x", Wire: "x", Kind: testCase.kind, ElementType: testCase.element,
+			Access: FieldAccess{Get: "GetX", Set: "SetX"},
+		}
+		p := &pruner{}
+		if why := p.settleScalar(&fb, testCase.sdkType); why != "" {
+			t.Errorf("%s: settleScalar refused it: %s", testCase.name, why)
+			continue
+		}
+		if fb.Access.ConvertGet != testCase.wantGet || fb.Access.ConvertSet != testCase.wantSet {
+			t.Errorf("%s: conversions = %q/%q, want %q/%q",
+				testCase.name, fb.Access.ConvertGet, fb.Access.ConvertSet, testCase.wantGet, testCase.wantSet)
+		}
+		if fb.Access.SDKType != testCase.wantType {
+			t.Errorf("%s: SDKType = %q, want %q", testCase.name, fb.Access.SDKType, testCase.wantType)
+		}
+	}
+}
+
+// TestUnit_IsKiotaDateOnly_MatchesOnThePackagePath proves another SDK's
+// DateOnly is not bridged through kiota's parser, which would not compile.
+func TestUnit_IsKiotaDateOnly_MatchesOnThePackagePath(t *testing.T) {
+	if !isKiotaDateOnly(structNamed("github.com/microsoft/kiota-abstractions-go/serialization", "serialization", "DateOnly")) {
+		t.Error("kiota's DateOnly must be recognised")
+	}
+	if isKiotaDateOnly(structNamed("example.com/somesdk/serialization", "serialization", "DateOnly")) {
+		t.Error("another SDK's DateOnly must not be bridged through kiota's parser")
+	}
+	if isKiotaDateOnly(structNamed("github.com/microsoft/kiota-abstractions-go/serialization", "serialization", "TimeOnly")) {
+		t.Error("only DateOnly is bridged")
+	}
 }
