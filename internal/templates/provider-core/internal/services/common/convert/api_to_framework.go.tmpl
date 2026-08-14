@@ -105,6 +105,62 @@ func APIToFrameworkStringList(values []string) types.List {
 	return types.ListValueMust(types.StringType, elements)
 }
 
+// APIToFrameworkStringMap converts map[string]string to a types.Map, nil
+// to null. An empty non-nil map stays an empty map — the API said "none",
+// not "unknown".
+func APIToFrameworkStringMap(values map[string]string) types.Map {
+	if values == nil {
+		return types.MapNull(types.StringType)
+	}
+	elements := make(map[string]attr.Value, len(values))
+	for k, v := range values {
+		elements[k] = types.StringValue(v)
+	}
+	return types.MapValueMust(types.StringType, elements)
+}
+
+// APIToFrameworkBoolMap converts map[string]bool to a types.Map, nil
+// to null. An empty non-nil map stays an empty map — the API said "none",
+// not "unknown".
+func APIToFrameworkBoolMap(values map[string]bool) types.Map {
+	if values == nil {
+		return types.MapNull(types.BoolType)
+	}
+	elements := make(map[string]attr.Value, len(values))
+	for k, v := range values {
+		elements[k] = types.BoolValue(v)
+	}
+	return types.MapValueMust(types.BoolType, elements)
+}
+
+// APIToFrameworkInt64Map converts map[string]int64 to a types.Map, nil
+// to null. An empty non-nil map stays an empty map — the API said "none",
+// not "unknown".
+func APIToFrameworkInt64Map(values map[string]int64) types.Map {
+	if values == nil {
+		return types.MapNull(types.Int64Type)
+	}
+	elements := make(map[string]attr.Value, len(values))
+	for k, v := range values {
+		elements[k] = types.Int64Value(v)
+	}
+	return types.MapValueMust(types.Int64Type, elements)
+}
+
+// APIToFrameworkFloat64Map converts map[string]float64 to a types.Map, nil
+// to null. An empty non-nil map stays an empty map — the API said "none",
+// not "unknown".
+func APIToFrameworkFloat64Map(values map[string]float64) types.Map {
+	if values == nil {
+		return types.MapNull(types.Float64Type)
+	}
+	elements := make(map[string]attr.Value, len(values))
+	for k, v := range values {
+		elements[k] = types.Float64Value(v)
+	}
+	return types.MapValueMust(types.Float64Type, elements)
+}
+
 // APIToFrameworkStringValue converts a plain string to types.String. The
 // Value converters exist for SDKs whose accessors return values rather
 // than pointers; an absent field arrives as the zero value there, and the

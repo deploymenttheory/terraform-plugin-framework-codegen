@@ -152,6 +152,10 @@ func schemaTypeOf(n node) schemaType {
 		resolved := newSchemaType("ListAttribute", "types.List", "List")
 		resolved.ElementType = frameworkElementType(n.attr.ElementType)
 		return resolved
+	case n.attr.Kind == ir.TypeMap:
+		resolved := newSchemaType("MapAttribute", "types.Map", "Map")
+		resolved.ElementType = frameworkElementType(n.attr.ElementType)
+		return resolved
 	default:
 		return scalarSchemaType(n.attr.Kind)
 	}

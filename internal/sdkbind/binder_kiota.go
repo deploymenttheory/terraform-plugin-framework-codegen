@@ -128,6 +128,12 @@ func (kiotaBinder) access(a ir.Attribute, mode accessMode) FieldAccess {
 			shape := exportedName(string(a.ElementType)) + "Slice"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
 		}
+	case ir.TypeMap:
+		if a.Nested == nil {
+			fa.SDKType = "map[string]" + strings.TrimPrefix(goTypeOf(a.ElementType), "*")
+			shape := exportedName(string(a.ElementType)) + "Map"
+			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
+		}
 	case ir.TypeObject:
 		// A nested object's model is reached through the parent getter's
 		// result type, which only the loaded SDK can name; Prune fills

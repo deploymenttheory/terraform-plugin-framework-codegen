@@ -123,6 +123,182 @@ func FrameworkToAPIUUIDList(ctx context.Context, value types.List, setter func([
 	return nil
 }
 
+// additionalDataCarrier is any kiota model that keeps undeclared values in
+// its additionalData bag. A map-shaped object generates as one of these:
+// kiota emits no typed accessor for additionalProperties, so the bag is the
+// only route to the values.
+type additionalDataCarrier interface {
+	GetAdditionalData() map[string]any
+}
+
+// APIToFrameworkStringMapAdditionalData reads a map-shaped object's values
+// out of its additionalData bag, nil to null. A value that is not a
+// string is skipped: the bag is map[string]any, so the document's declared
+// value type is a claim about the data rather than a guarantee, and one
+// stray value must not lose the whole map.
+func APIToFrameworkStringMapAdditionalData(carrier additionalDataCarrier) types.Map {
+	if carrier == nil {
+		return types.MapNull(types.StringType)
+	}
+	values := carrier.GetAdditionalData()
+	if values == nil {
+		return types.MapNull(types.StringType)
+	}
+	elements := make(map[string]attr.Value, len(values))
+	for k, v := range values {
+		typed, ok := v.(string)
+		if !ok {
+			continue
+		}
+		elements[k] = types.StringValue(typed)
+	}
+	return types.MapValueMust(types.StringType, elements)
+}
+
+// FrameworkToAPIStringMapAdditionalData decodes the plan's map and hands the
+// values to a model's additionalData setter.
+func FrameworkToAPIStringMapAdditionalData(ctx context.Context, value types.Map, setter func(map[string]any)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	raw := map[string]string{}
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a string map from the plan: %v", diags.Errors())
+	}
+	bag := make(map[string]any, len(raw))
+	for k, v := range raw {
+		bag[k] = v
+	}
+	setter(bag)
+	return nil
+}
+
+// APIToFrameworkBoolMapAdditionalData reads a map-shaped object's values
+// out of its additionalData bag, nil to null. A value that is not a
+// bool is skipped: the bag is map[string]any, so the document's declared
+// value type is a claim about the data rather than a guarantee, and one
+// stray value must not lose the whole map.
+func APIToFrameworkBoolMapAdditionalData(carrier additionalDataCarrier) types.Map {
+	if carrier == nil {
+		return types.MapNull(types.BoolType)
+	}
+	values := carrier.GetAdditionalData()
+	if values == nil {
+		return types.MapNull(types.BoolType)
+	}
+	elements := make(map[string]attr.Value, len(values))
+	for k, v := range values {
+		typed, ok := v.(bool)
+		if !ok {
+			continue
+		}
+		elements[k] = types.BoolValue(typed)
+	}
+	return types.MapValueMust(types.BoolType, elements)
+}
+
+// FrameworkToAPIBoolMapAdditionalData decodes the plan's map and hands the
+// values to a model's additionalData setter.
+func FrameworkToAPIBoolMapAdditionalData(ctx context.Context, value types.Map, setter func(map[string]any)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	raw := map[string]bool{}
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a bool map from the plan: %v", diags.Errors())
+	}
+	bag := make(map[string]any, len(raw))
+	for k, v := range raw {
+		bag[k] = v
+	}
+	setter(bag)
+	return nil
+}
+
+// APIToFrameworkInt64MapAdditionalData reads a map-shaped object's values
+// out of its additionalData bag, nil to null. A value that is not a
+// int64 is skipped: the bag is map[string]any, so the document's declared
+// value type is a claim about the data rather than a guarantee, and one
+// stray value must not lose the whole map.
+func APIToFrameworkInt64MapAdditionalData(carrier additionalDataCarrier) types.Map {
+	if carrier == nil {
+		return types.MapNull(types.Int64Type)
+	}
+	values := carrier.GetAdditionalData()
+	if values == nil {
+		return types.MapNull(types.Int64Type)
+	}
+	elements := make(map[string]attr.Value, len(values))
+	for k, v := range values {
+		typed, ok := v.(int64)
+		if !ok {
+			continue
+		}
+		elements[k] = types.Int64Value(typed)
+	}
+	return types.MapValueMust(types.Int64Type, elements)
+}
+
+// FrameworkToAPIInt64MapAdditionalData decodes the plan's map and hands the
+// values to a model's additionalData setter.
+func FrameworkToAPIInt64MapAdditionalData(ctx context.Context, value types.Map, setter func(map[string]any)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	raw := map[string]int64{}
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a int64 map from the plan: %v", diags.Errors())
+	}
+	bag := make(map[string]any, len(raw))
+	for k, v := range raw {
+		bag[k] = v
+	}
+	setter(bag)
+	return nil
+}
+
+// APIToFrameworkFloat64MapAdditionalData reads a map-shaped object's values
+// out of its additionalData bag, nil to null. A value that is not a
+// float64 is skipped: the bag is map[string]any, so the document's declared
+// value type is a claim about the data rather than a guarantee, and one
+// stray value must not lose the whole map.
+func APIToFrameworkFloat64MapAdditionalData(carrier additionalDataCarrier) types.Map {
+	if carrier == nil {
+		return types.MapNull(types.Float64Type)
+	}
+	values := carrier.GetAdditionalData()
+	if values == nil {
+		return types.MapNull(types.Float64Type)
+	}
+	elements := make(map[string]attr.Value, len(values))
+	for k, v := range values {
+		typed, ok := v.(float64)
+		if !ok {
+			continue
+		}
+		elements[k] = types.Float64Value(typed)
+	}
+	return types.MapValueMust(types.Float64Type, elements)
+}
+
+// FrameworkToAPIFloat64MapAdditionalData decodes the plan's map and hands the
+// values to a model's additionalData setter.
+func FrameworkToAPIFloat64MapAdditionalData(ctx context.Context, value types.Map, setter func(map[string]any)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	raw := map[string]float64{}
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a float64 map from the plan: %v", diags.Errors())
+	}
+	bag := make(map[string]any, len(raw))
+	for k, v := range raw {
+		bag[k] = v
+	}
+	setter(bag)
+	return nil
+}
+
 // APIToFrameworkEnumValue converts a value-typed kiota enum to
 // types.String.
 func APIToFrameworkEnumValue[T fmt.Stringer](value T) types.String {

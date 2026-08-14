@@ -25,8 +25,12 @@ type flat struct {
 	// branches after — with the first declaration of a name winning.
 	properties []specmodel.Property
 	items      *specmodel.Schema
-	hasUnion   bool
-	extensions specmodel.Extensions
+	// additionalProperties is the value schema of a map-shaped object, and
+	// additionalPropertiesDeclared records one spelled as a bare boolean.
+	additionalProperties         *specmodel.Schema
+	additionalPropertiesDeclared bool
+	hasUnion                     bool
+	extensions                   specmodel.Extensions
 	// dependentRequired accumulates every dependentRequired entry across the
 	// folded schema, so a 3.1 co-requirement reaches the tree alongside the
 	// x-tfpfgen-depends-on form a 3.0 document uses.
@@ -83,6 +87,12 @@ func flatten(schema *specmodel.Schema) flat {
 		}
 		if flattened.items == nil {
 			flattened.items = schema.Items
+		}
+		if flattened.additionalProperties == nil {
+			flattened.additionalProperties = schema.AdditionalProperties
+		}
+		if schema.AdditionalPropertiesDeclared {
+			flattened.additionalPropertiesDeclared = true
 		}
 		if len(schema.OneOf)+len(schema.AnyOf) > 0 {
 			flattened.hasUnion = true
@@ -435,7 +445,7 @@ func deriveType(attribute *Attribute, flatPrimary flat, create, read, update *sp
 		deriveListType(attribute, create, read, update)
 	case flatPrimary.declaredType == "object" || (flatPrimary.declaredType == "" && len(flatPrimary.properties) > 0):
 		if len(flatPrimary.properties) == 0 {
-			refuse(attribute, "free-form object: map support is out of scope")
+			deriveMapType(attribute, flatPrimary)
 			return
 		}
 		attribute.Kind = TypeObject
@@ -446,6 +456,40 @@ func deriveType(attribute *Attribute, flatPrimary flat, create, read, update *sp
 		refuse(attribute, "no type declared")
 	default:
 		refuse(attribute, fmt.Sprintf("type %q is not supported", flatPrimary.declaredType))
+	}
+}
+
+// deriveMapType types an object that declares no properties. Only
+// additionalProperties carrying a schema names the value type, which is
+// what a map attribute needs; a bare boolean or nothing at all says the
+// object has no declared shape, and the refusal says which was seen.
+func deriveMapType(attribute *Attribute, flatPrimary flat) {
+	value := flatPrimary.additionalProperties
+	if value == nil {
+		if flatPrimary.additionalPropertiesDeclared {
+			refuse(attribute, "object whose additionalProperties is a bare boolean: it declares no value type to map")
+			return
+		}
+		refuse(attribute, "object declaring neither properties nor additionalProperties: it has no declared shape")
+		return
+	}
+
+	flatValue := flatten(value)
+	switch {
+	case flatValue.declaredType == "string":
+		attribute.Kind, attribute.ElementType = TypeMap, TypeString
+	case flatValue.declaredType == "boolean":
+		attribute.Kind, attribute.ElementType = TypeMap, TypeBool
+	case flatValue.declaredType == "integer":
+		attribute.Kind, attribute.ElementType = TypeMap, TypeInt64
+	case flatValue.declaredType == "number":
+		attribute.Kind, attribute.ElementType = TypeMap, TypeFloat64
+	case flatValue.declaredType == "object" || (flatValue.declaredType == "" && len(flatValue.properties) > 0):
+		// A map of objects needs a nested model, nested state mapping and
+		// nested fixtures; only maps of scalars are modelled.
+		refuse(attribute, "map of objects: only maps of scalar values are modelled")
+	default:
+		refuse(attribute, fmt.Sprintf("map of %q values is not supported", flatValue.declaredType))
 	}
 }
 

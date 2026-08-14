@@ -122,3 +122,24 @@ func TestUnit_SchemaType_ImportPathsAreWellFormed(t *testing.T) {
 		t.Error("the per-type imports are imported under their own names, never aliased")
 	}
 }
+
+// TestUnit_SchemaTypeOf_Map proves a map attribute renders as a
+// MapAttribute with its element type, and picks up the map plan-modifier
+// and validator packages from the same base word as every other type.
+func TestUnit_SchemaTypeOf_Map(t *testing.T) {
+	n := node{attr: ir.Attribute{Name: "x", WireName: "x", Kind: ir.TypeMap, ElementType: ir.TypeString}}
+	resolved := schemaTypeOf(n)
+
+	for _, check := range []struct{ got, want, what string }{
+		{resolved.SchemaAttribute, "MapAttribute", "SchemaAttribute"},
+		{resolved.ValueType, "types.Map", "ValueType"},
+		{resolved.ElementType, "types.StringType", "ElementType"},
+		{resolved.PlanModifier, "Map", "PlanModifier"},
+		{resolved.PlanModifierPackage(), "mapplanmodifier", "PlanModifierPackage"},
+		{resolved.ValidatorPackage(), "mapvalidator", "ValidatorPackage"},
+	} {
+		if check.got != check.want {
+			t.Errorf("%s = %q, want %q", check.what, check.got, check.want)
+		}
+	}
+}

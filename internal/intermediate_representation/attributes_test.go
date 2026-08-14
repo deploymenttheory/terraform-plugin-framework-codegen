@@ -57,16 +57,68 @@ func TestAttributes_TypeMapping(t *testing.T) {
 	}
 }
 
-func TestAttributes_FreeFormObjectIsRefused(t *testing.T) {
+func TestAttributes_ShapelessObjectIsRefused(t *testing.T) {
 	extras := attribute(t, thingTree(t), "extras")
 	if !extras.Unsupported {
-		t.Fatalf("a free-form object derived a type: %+v", extras)
+		t.Fatalf("an object with no declared shape derived a type: %+v", extras)
 	}
-	if !strings.Contains(extras.UnsupportedReason, "free-form") {
+	if !strings.Contains(extras.UnsupportedReason, "no declared shape") {
 		t.Errorf("reason = %q", extras.UnsupportedReason)
 	}
 	if extras.Kind != "" {
 		t.Errorf("an unsupported attribute still claims kind %q", extras.Kind)
+	}
+}
+
+// TestUnit_DeriveMapType_TypesEveryValueShape proves an object that
+// declares additionalProperties becomes a map of that value type, and that
+// each shape the toolkit will not model names itself rather than sharing
+// one blanket reason.
+func TestUnit_DeriveMapType_TypesEveryValueShape(t *testing.T) {
+	object := func(additional *specmodel.Schema, declared bool) *specmodel.Schema {
+		return &specmodel.Schema{Type: "object", AdditionalProperties: additional, AdditionalPropertiesDeclared: declared}
+	}
+
+	for _, testCase := range []struct {
+		name        string
+		schema      *specmodel.Schema
+		wantKind    AttributeType
+		wantElement AttributeType
+		wantReason  string
+	}{
+		{"string values", object(&specmodel.Schema{Type: "string"}, false), TypeMap, TypeString, ""},
+		{"boolean values", object(&specmodel.Schema{Type: "boolean"}, false), TypeMap, TypeBool, ""},
+		{"integer values", object(&specmodel.Schema{Type: "integer"}, false), TypeMap, TypeInt64, ""},
+		{"number values", object(&specmodel.Schema{Type: "number"}, false), TypeMap, TypeFloat64, ""},
+		{"nothing declared", object(nil, false), "", "", "no declared shape"},
+		{"bare boolean", object(nil, true), "", "", "bare boolean"},
+		{"object values", object(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+			{Name: "x", Schema: &specmodel.Schema{Type: "string"}}}}, false), "", "", "map of objects"},
+		{"array values", object(&specmodel.Schema{Type: "array"}, false), "", "", `map of "array" values`},
+	} {
+		tree := buildTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+			{Name: "bag", Schema: testCase.schema},
+		}}, nil, nil, false)
+		got := attribute(t, tree, "bag")
+
+		if testCase.wantReason != "" {
+			if !got.Unsupported {
+				t.Errorf("%s: derived kind %q, want a refusal", testCase.name, got.Kind)
+				continue
+			}
+			if !strings.Contains(got.UnsupportedReason, testCase.wantReason) {
+				t.Errorf("%s: reason = %q, want it to mention %q", testCase.name, got.UnsupportedReason, testCase.wantReason)
+			}
+			continue
+		}
+		if got.Unsupported {
+			t.Errorf("%s: refused with %q", testCase.name, got.UnsupportedReason)
+			continue
+		}
+		if got.Kind != testCase.wantKind || got.ElementType != testCase.wantElement {
+			t.Errorf("%s: kind/element = %q/%q, want %q/%q",
+				testCase.name, got.Kind, got.ElementType, testCase.wantKind, testCase.wantElement)
+		}
 	}
 }
 
