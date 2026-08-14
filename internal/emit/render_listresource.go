@@ -30,9 +30,17 @@ type listResourceData struct {
 	SchemaDescription string
 	SchemaAttributes  string
 	ConfigModel       string
-	ListPlan          callPlan
-	Collection        string
-	ResultLines       string
+	// IdentityFields are the struct fields a streamed identity decodes
+	// into, and IdentitySchema the schema the generated test stands it up
+	// against. Both come from the resource being listed.
+	IdentityFields string
+	IdentitySchema string
+	// ResourceCtor builds the resource being listed, so the test can read
+	// the schema terraform would supply.
+	ResourceCtor string
+	ListPlan     callPlan
+	Collection   string
+	ResultLines  string
 
 	CollectionURL     string
 	CollectionPattern string
@@ -50,6 +58,11 @@ type listResourceData struct {
 // needs no entity prefix.
 const listConfigModelName = "listConfigModel"
 
+// resourcePackageAlias is what a list resource's test imports the resource
+// package under. The two packages take the same name from one entity, so one
+// of them has to be renamed at the import site.
+const resourcePackageAlias = "listedresource"
+
 // listResource renders one list-only entity's file set.
 func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListResourceBinding) ([]File, error) {
 	if lb.List == nil {
@@ -65,6 +78,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 		Type:          lr.Names.Pascal + "ListResource",
 		TerraformType: lr.Names.TerraformType,
 		ClientType:    "*sdk." + e.bindings.SDK.ClientTypeName,
+		ResourceCtor:  resourcePackageAlias + ".New" + lr.Names.Pascal + "Resource()",
 		AuthGitHubApp: e.pc.AuthGitHubApp,
 		ProviderName:  e.pc.ProviderName,
 	}
@@ -95,11 +109,17 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 		d.Collection = "result." + lb.CollectionAccess
 	}
 
-	resultLines, err := listResultLines(nodes)
+	identity := e.identities[lr.Names.Key]
+	if len(identity) == 0 {
+		return nil, unrenderable("the resource it lists declares no identity, and a list result is an identity")
+	}
+	resultLines, err := listResultLines(nodes, identity, configNodes)
 	if err != nil {
 		return nil, fmt.Errorf("list: %w", err)
 	}
 	d.ResultLines = resultLines
+	d.IdentityFields = identityModelFields(identity)
+	d.IdentitySchema = identitySchemaDecls(identity, 2)
 
 	imports := newImportSet(e.pc.Module)
 	imports.add("", "context")
@@ -163,6 +183,10 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	testImports.add("", e.pc.Module+"/internal/client")
 	testImports.add("", e.pc.Module+"/internal/mocks")
 	testImports.add(d.Package, d.PackagePath)
+	// The resource being listed, for its schema and its identity schema:
+	// terraform supplies both at runtime, and NewListResult reads them off
+	// the request. Aliased because the two packages are named alike.
+	testImports.add(resourcePackageAlias, e.packagePath(kindResources, lr.Names))
 	d.TestImports = testImports.render()
 
 	dir := e.dir(kindListResources, lr.Names)
@@ -201,12 +225,34 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	return files, nil
 }
 
-// listResultLines renders the per-element body of the results iterator:
-// the identity id, the display name, and the push.
-func listResultLines(nodes []node) (string, error) {
+// listResultLines renders the per-element body of the results iterator: the
+// identity, the display name, and the push.
+//
+// The identity is the resource's, not this entity's invention — terraform
+// reads the schema it must conform to off the resource being listed. Its id
+// comes from the element; every other attribute is addressing, which the list
+// block's configuration supplied to make the call.
+func listResultLines(nodes []node, identity []identityAttribute, config []node) (string, error) {
 	idNode, ok := findIdentityNode(nodes)
 	if !ok {
 		return "", unrenderable("the element carries no scalar id attribute to publish as the list identity")
+	}
+
+	configured := map[string]bool{}
+	for _, n := range config {
+		configured[n.attr.Name] = true
+	}
+	fields := make([]string, 0, len(identity))
+	for _, attribute := range identity {
+		if attribute.Name == idAttributeName {
+			fields = append(fields, "ID: types.StringValue(id)")
+			continue
+		}
+		if !configured[attribute.Name] {
+			return "", unrenderable(
+				"the list block cannot supply %q, which the resource's identity names", attribute.Name)
+		}
+		fields = append(fields, ir.GoName(attribute.Name)+": config."+ir.GoName(attribute.Name))
 	}
 
 	displayNode := idNode
@@ -225,7 +271,8 @@ func listResultLines(nodes []node) (string, error) {
 	} else {
 		b.WriteString("\t\t\tresult.DisplayName = id\n")
 	}
-	b.WriteString("\t\t\tresult.Diagnostics.Append(result.Identity.Set(ctx, identityModel{ID: types.StringValue(id)})...)\n")
+	fmt.Fprintf(&b, "\t\t\tresult.Diagnostics.Append(result.Identity.Set(ctx, identityModel{%s})...)\n",
+		strings.Join(fields, ", "))
 	return b.String(), nil
 }
 

@@ -42,6 +42,9 @@ type resourceData struct {
 
 	HasImport  bool
 	ImportAttr string
+	// IdentityAttributes is the identity schema's attribute declarations,
+	// empty for a resource nothing lists.
+	IdentityAttributes string
 
 	SchemaDescription string
 	SchemaAttributes  string
@@ -235,6 +238,18 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 
 	sb := &schemaBuilder{kind: schemaResource, imports: imports, deps: deps, rootDepth: 3}
 	d.SchemaAttributes = sb.attributeDecls(nodes, 3)
+
+	// A resource declares an identity when it is listed: a list resource's
+	// results are identities, and the framework reads the schema they
+	// conform to off the resource. Recorded so the list resource emits
+	// results in exactly this shape.
+	if e.listed[r.Names.Key] {
+		if identity := resourceIdentity(r); len(identity) > 0 {
+			e.identities[r.Names.Key] = identity
+			d.IdentityAttributes = identitySchemaDecls(identity, 3)
+			imports.add("identityschema", "github.com/hashicorp/terraform-plugin-framework/resource/identityschema")
+		}
+	}
 
 	description := entityDescription(r.Schema, "Manages the "+r.Names.Key+" entity.")
 	if r.CoManagementNote != "" {
