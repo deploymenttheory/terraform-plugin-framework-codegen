@@ -101,7 +101,35 @@ func TestUnit_Corpus_LockPinsTheDocumentsTheTestsRead(t *testing.T) {
 		if pin.PinnedAt.IsZero() {
 			t.Errorf("%s: no pinnedAt, so the cache directory name is not stable", id)
 		}
+		if pin.Version == "" || pin.Version == "unparsed" {
+			t.Errorf("%s: version %q, so the pin records no measurement of what it pinned", id, pin.Version)
+		}
+		if ref := movingRef(pin.UpstreamURL); ref != "" {
+			t.Errorf("%s: the upstream URL names %q, a ref that moves; pin a commit or a tag instead", id, ref)
+		}
 	}
+}
+
+// movingRefs are the branch names a source-hosting URL carries when it names
+// the tip of a branch rather than a fixed revision.
+var movingRefs = []string{"main", "master", "HEAD", "latest", "trunk", "develop"}
+
+// movingRef reports the moving ref an upstream URL names, empty when it names
+// none.
+//
+// A pin whose URL follows a branch re-pins itself every time the vendor
+// publishes: the hash stops matching, every test reading it fails, and the
+// only remedy is to restate the pin, which is the review the lock exists to
+// force. Pinning a revision makes the pin mean something.
+func movingRef(upstream string) string {
+	for _, segment := range strings.Split(upstream, "/") {
+		for _, ref := range movingRefs {
+			if segment == ref {
+				return ref
+			}
+		}
+	}
+	return ""
 }
 
 func slicesEqual(a, b []string) bool {
@@ -432,5 +460,32 @@ func TestUnit_Corpus_NoUserCacheDirFallsBackToTempNotToRelative(t *testing.T) {
 	}
 	if !strings.HasSuffix(dir, filepath.Join("tfpfgen", "corpus")) {
 		t.Errorf("the fallback cache %q is not under tfpfgen/corpus", dir)
+	}
+}
+
+// TestUnit_Corpus_AMovingRefIsRejected proves the guard above catches the
+// shape it exists for, so it cannot pass by accident on a lock that happens
+// to hold no branch URL.
+func TestUnit_Corpus_AMovingRefIsRejected(t *testing.T) {
+	t.Parallel()
+
+	for _, url := range []string{
+		"https://raw.githubusercontent.com/o/r/main/spec.json",
+		"https://raw.githubusercontent.com/o/r/master/spec.json",
+		"https://example.invalid/latest/openapi.yaml",
+	} {
+		if movingRef(url) == "" {
+			t.Errorf("%s names a moving ref and was accepted", url)
+		}
+	}
+
+	for _, url := range []string{
+		"https://raw.githubusercontent.com/o/r/67c14c7efb01cdeeac0ecd8cee9fae8d7a80e2aa/spec.json",
+		"https://raw.githubusercontent.com/o/r/v2.1.0/spec.json",
+		"https://pubhub.devnetcloud.com/media/000-v7-apis/docs/reference/unified-oas/api.yaml",
+	} {
+		if ref := movingRef(url); ref != "" {
+			t.Errorf("%s names a fixed revision and was rejected as %q", url, ref)
+		}
 	}
 }

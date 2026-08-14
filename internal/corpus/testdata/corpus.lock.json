@@ -7,9 +7,9 @@
       "mirrorUrl": "",
       "operationCount": 1220,
       "pathCount": 808,
-      "pinnedAt": "2026-08-07T14:30:00Z",
-      "sha256": "80850db290cde4eb487e0efb587cf27f305e77b6bef96933ed8a09b5169d5b1d",
-      "upstreamUrl": "https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json",
+      "pinnedAt": "2026-08-14T16:14:25.482999Z",
+      "sha256": "81c0ff2bbff9099b569058ef387e0ef83c33ef00ca0346e8a092777a71c192e3",
+      "upstreamUrl": "https://raw.githubusercontent.com/github/rest-api-description/67c14c7efb01cdeeac0ecd8cee9fae8d7a80e2aa/descriptions/api.github.com/api.github.com.json",
       "version": "1.1.4"
     },
     "thousandeyes": {

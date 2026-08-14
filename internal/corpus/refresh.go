@@ -57,18 +57,18 @@ func (u Upstream) Describe() string {
 // It never writes and never consults the cache: the question is what the
 // vendor is serving right now, which a cache would answer wrongly by
 // construction.
-func CheckUpstream(id string) (Upstream, error) {
+func CheckUpstream(id string, describe Describer) (Upstream, error) {
 	pin, err := PinFor(id)
 	if err != nil {
 		return Upstream{}, err
 	}
 
-	return checkPin(pin)
+	return checkPin(pin, describe)
 }
 
 // checkPin is CheckUpstream with the pin supplied, so RewriteLock can measure
 // against the on-disk lock rather than the embedded one.
-func checkPin(pin Pin) (Upstream, error) {
+func checkPin(pin Pin, describe Describer) (Upstream, error) {
 	doc, source, err := fetch(pin)
 	if err != nil {
 		return Upstream{}, err
@@ -100,7 +100,7 @@ func checkPin(pin Pin) (Upstream, error) {
 // Pins are measured against the on-disk lock rather than the embedded copy:
 // the embedded bytes are whatever was compiled in, and a rewrite must not
 // silently discard an edit made since.
-func RewriteLock(ids []string) error {
+func RewriteLock(ids []string, describe Describer) error {
 	path := LockPath()
 
 	raw, err := os.ReadFile(path) //nolint:gosec // a fixed name under the repository
@@ -134,7 +134,7 @@ func RewriteLock(ids []string) error {
 			return fmt.Errorf("%s has no pin for %q", path, id)
 		}
 
-		up, err := checkPin(pin)
+		up, err := checkPin(pin, describe)
 		if err != nil {
 			return fmt.Errorf("%s: %w", id, err)
 		}
