@@ -285,14 +285,12 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 		if err != nil {
 			return callPlan{}, err
 		}
-		value, needs, err := paramValue(p, modelVar, ir.GoName(n.attr.Name), n.attr.Kind)
+		decl, needs, err := paramDeclaration(p, modelVar, ir.GoName(n.attr.Name), n.attr.Kind, n.attr.Name)
 		if err != nil {
 			return callPlan{}, err
 		}
-		if needs != "" {
-			plan.Imports = append(plan.Imports, needs)
-		}
-		decls = append(decls, fmt.Sprintf("%s := %s", p.Local, value))
+		plan.Imports = append(plan.Imports, needs...)
+		decls = append(decls, decl)
 	}
 	plan.ParamDecls = strings.Join(decls, "\n\t")
 
@@ -400,8 +398,12 @@ func valueMethod(kind ir.AttributeType) string {
 // where both happened to be integers it passed an int64 to an int32
 // parameter, which does not either.
 //
-// A conversion this cannot spell without inventing error handling — a string
-// field into a numeric parameter — refuses the entity rather than guessing.
+// A conversion this cannot spell — a string field into a numeric parameter —
+// refuses the entity rather than guessing.
+//
+// paramDeclaration wraps it to answer the whole declaration, because a
+// conversion that can fail needs a statement and a diagnostic rather than an
+// expression.
 func paramValue(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType) (string, string, error) {
 	read := modelVar + "." + field + "." + valueMethod(kind) + "()"
 
@@ -425,6 +427,36 @@ func paramValue(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeTy
 	return "", "", unrenderable(
 		"path parameter %q is %s in the schema but %s in the generated SDK, and no conversion between them is safe without a parse that can fail",
 		p.Wire, kind, p.GoType)
+}
+
+// paramDeclaration renders the statements that bind one path parameter's
+// local: an assignment for a conversion that cannot fail, and a parse
+// guarded by an attribute diagnostic for one that can.
+//
+// Every method a declaration lands in — Create, Read, Update, Delete,
+// Invoke — carries a resp with Diagnostics and returns nothing, so a
+// failed parse reports against the attribute and stops there.
+func paramDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType, attribute string) (string, []string, error) {
+	if kind == ir.TypeString && p.GoType == "uuid.UUID" {
+		read := modelVar + "." + field + ".ValueString()"
+		errLocal := p.Local + "Err"
+		decl := fmt.Sprintf(`%s, %s := uuid.Parse(%s)
+	if %s != nil {
+		resp.Diagnostics.AddAttributeError(path.Root(%q), "Invalid %s", %s.Error())
+		return
+	}`, p.Local, errLocal, read, errLocal, attribute, p.Wire, errLocal)
+		return decl, []string{"github.com/google/uuid", "github.com/hashicorp/terraform-plugin-framework/path"}, nil
+	}
+
+	value, needs, err := paramValue(p, modelVar, field, kind)
+	if err != nil {
+		return "", nil, err
+	}
+	var imports []string
+	if needs != "" {
+		imports = append(imports, needs)
+	}
+	return fmt.Sprintf("%s := %s", p.Local, value), imports, nil
 }
 
 // sdkTypeMatches reports whether the SDK takes exactly what the model field
