@@ -286,7 +286,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 		"\tFilterType types.String `tfsdk:\"filter_type\"`\n" +
 		"\tFilterValue types.String `tfsdk:\"filter_value\"`\n"
 	for _, a := range companionAddressing(ds) {
-		root += "\t" + ir.GoName(a.Name) + " " + frameworkValueType(a.Kind) +
+		root += "\t" + ir.GoName(a.Name) + " " + scalarSchemaType(a.Kind).ValueType +
 			" `tfsdk:\"" + a.Name + "\"`\n"
 	}
 	root += "\tItems []" + d.ItemModel + " `tfsdk:\"items\"`\n" +
@@ -543,19 +543,4 @@ func companionAddressing(ds *ir.Datasource) []ir.Attribute {
 		}
 	}
 	return out
-}
-
-// frameworkValueType is the framework value type one scalar attribute kind
-// is held as in a model struct.
-func frameworkValueType(kind ir.AttributeType) string {
-	switch kind {
-	case ir.TypeBool:
-		return "types.Bool"
-	case ir.TypeInt64:
-		return "types.Int64"
-	case ir.TypeFloat64:
-		return "types.Float64"
-	default:
-		return "types.String"
-	}
 }

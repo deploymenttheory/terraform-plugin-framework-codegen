@@ -50,7 +50,7 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 	indent := strings.Repeat("\t", depth)
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "%s%q: schema.%s{\n", indent, n.attr.Name, sb.attributeType(n))
+	fmt.Fprintf(&b, "%s%q: schema.%s{\n", indent, n.attr.Name, schemaTypeOf(n).SchemaAttribute)
 	b.WriteString(sb.computedOptionalRequiredLines(n, indent+"\t"))
 
 	if desc := attributeDescription(n.attr); desc != "" {
@@ -59,7 +59,7 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 
 	if n.attr.Kind == ir.TypeList && n.attr.Nested == nil {
 		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
-		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, frameworkElemType(n.attr.ElementType))
+		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, schemaTypeOf(n).ElementType)
 	}
 
 	b.WriteString(sb.validatorLines(n, indent+"\t", depth))
@@ -110,17 +110,17 @@ func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
 
 	if depth == sb.rootDepth {
 		if reqs, ok := sb.deps[n.attr.Name]; ok {
-			pkg := validatorPackage(n)
+			schema := schemaTypeOf(n)
 			paths := make([]string, len(reqs))
 			for i, r := range reqs {
 				paths[i] = fmt.Sprintf("path.MatchRoot(%q)", r)
 			}
 			validators = append(validators, code.CustomValidator{
 				Imports: []code.Import{
-					{Path: "github.com/hashicorp/terraform-plugin-framework-validators/" + pkg},
+					schema.ValidatorImport,
 					{Path: "github.com/hashicorp/terraform-plugin-framework/path"},
 				},
-				SchemaDefinition: fmt.Sprintf("%s.AlsoRequires(%s)", pkg, strings.Join(paths, ", ")),
+				SchemaDefinition: fmt.Sprintf("%s.AlsoRequires(%s)", schema.ValidatorPackage(), strings.Join(paths, ", ")),
 			})
 		}
 	}
@@ -144,48 +144,7 @@ func (sb *schemaBuilder) validatorLines(n node, indent string, depth int) string
 	}
 	sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/schema/validator")
 	return fmt.Sprintf("%sValidators: []validator.%s{%s},\n",
-		indent, planModifierValue(n), strings.Join(definitions, ", "))
-}
-
-// validatorPackage is the per-type validator package name, mirroring the
-// per-type plan modifier packages.
-func validatorPackage(n node) string {
-	switch {
-	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
-		return "listvalidator"
-	case n.attr.Nested != nil:
-		return "objectvalidator"
-	case n.attr.Kind == ir.TypeList:
-		return "listvalidator"
-	case n.attr.Kind == ir.TypeBool:
-		return "boolvalidator"
-	case n.attr.Kind == ir.TypeInt64:
-		return "int64validator"
-	case n.attr.Kind == ir.TypeFloat64:
-		return "float64validator"
-	default:
-		return "stringvalidator"
-	}
-}
-
-// attributeType is the schema type name for one attribute.
-func (sb *schemaBuilder) attributeType(n node) string {
-	switch {
-	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
-		return "ListNestedAttribute"
-	case n.attr.Nested != nil:
-		return "SingleNestedAttribute"
-	case n.attr.Kind == ir.TypeList:
-		return "ListAttribute"
-	case n.attr.Kind == ir.TypeBool:
-		return "BoolAttribute"
-	case n.attr.Kind == ir.TypeInt64:
-		return "Int64Attribute"
-	case n.attr.Kind == ir.TypeFloat64:
-		return "Float64Attribute"
-	default:
-		return "StringAttribute"
-	}
+		indent, schemaTypeOf(n).Validator, strings.Join(definitions, ", "))
 }
 
 // computedOptionalRequiredLines renders the presence booleans. Inside a datasource, computed
@@ -225,10 +184,11 @@ func (sb *schemaBuilder) planModifiers(n node) []code.CustomPlanModifier {
 		return nil
 	}
 
-	pkg := planModifierPackage(n)
+	schema := schemaTypeOf(n)
+	pkg := schema.PlanModifierPackage()
 	imports := []code.Import{
 		{Path: "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"},
-		{Path: "github.com/hashicorp/terraform-plugin-framework/resource/schema/" + pkg},
+		schema.PlanModifierImport,
 	}
 
 	var modifiers []code.CustomPlanModifier
@@ -255,6 +215,7 @@ func (sb *schemaBuilder) planModifierLines(n node, indent string) string {
 	if len(modifiers) == 0 {
 		return ""
 	}
+	schema := schemaTypeOf(n)
 
 	definitions := make([]string, len(modifiers))
 	for i, m := range modifiers {
@@ -262,47 +223,7 @@ func (sb *schemaBuilder) planModifierLines(n node, indent string) string {
 		definitions[i] = m.SchemaDefinition
 	}
 	return fmt.Sprintf("%sPlanModifiers: []planmodifier.%s{%s},\n",
-		indent, planModifierValue(n), strings.Join(definitions, ", "))
-}
-
-// planModifierPackage is the per-type plan modifier package name.
-func planModifierPackage(n node) string {
-	switch {
-	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
-		return "listplanmodifier"
-	case n.attr.Nested != nil:
-		return "objectplanmodifier"
-	case n.attr.Kind == ir.TypeList:
-		return "listplanmodifier"
-	case n.attr.Kind == ir.TypeBool:
-		return "boolplanmodifier"
-	case n.attr.Kind == ir.TypeInt64:
-		return "int64planmodifier"
-	case n.attr.Kind == ir.TypeFloat64:
-		return "float64planmodifier"
-	default:
-		return "stringplanmodifier"
-	}
-}
-
-// planModifierValue is the planmodifier interface name for one attribute.
-func planModifierValue(n node) string {
-	switch {
-	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
-		return "List"
-	case n.attr.Nested != nil:
-		return "Object"
-	case n.attr.Kind == ir.TypeList:
-		return "List"
-	case n.attr.Kind == ir.TypeBool:
-		return "Bool"
-	case n.attr.Kind == ir.TypeInt64:
-		return "Int64"
-	case n.attr.Kind == ir.TypeFloat64:
-		return "Float64"
-	default:
-		return "String"
-	}
+		indent, schema.PlanModifier, strings.Join(definitions, ", "))
 }
 
 // attributeDescription renders one attribute's schema description: the
@@ -343,20 +264,6 @@ func terminated(sentence string) string {
 		return sentence
 	}
 	return sentence + "."
-}
-
-// frameworkElemType is the types package element type of a scalar list.
-func frameworkElemType(k ir.AttributeType) string {
-	switch k {
-	case ir.TypeBool:
-		return "types.BoolType"
-	case ir.TypeInt64:
-		return "types.Int64Type"
-	case ir.TypeFloat64:
-		return "types.Float64Type"
-	default:
-		return "types.StringType"
-	}
 }
 
 // modelDecl is one rendered model struct declaration.
@@ -482,22 +389,16 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 }
 
 // fieldType is the Go type one model field carries.
+// A nested attribute's model field is a generated struct, so only the
+// nesting shape is decided here; everything else is the record's ValueType.
 func fieldType(namer *modelNamer, path string, n node) string {
 	switch {
 	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
 		return "[]" + namer.name(path)
 	case n.attr.Nested != nil:
 		return "*" + namer.name(path)
-	case n.attr.Kind == ir.TypeList:
-		return "types.List"
-	case n.attr.Kind == ir.TypeBool:
-		return "types.Bool"
-	case n.attr.Kind == ir.TypeInt64:
-		return "types.Int64"
-	case n.attr.Kind == ir.TypeFloat64:
-		return "types.Float64"
 	default:
-		return "types.String"
+		return schemaTypeOf(n).ValueType
 	}
 }
 
