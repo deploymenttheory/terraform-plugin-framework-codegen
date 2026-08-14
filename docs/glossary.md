@@ -149,3 +149,15 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   acronym lowers whole in camel (`id`, `apiKey`). The acronym table lives in
   `internal/intermediate_representation/naming.go`; additions go through the
   repository owner.
+- **unsupported.json** — the committed record of everything generation
+  refused, at the provider repo root: `{format_version, unsupported: [{path,
+  stage, reason}]}`. `path` addresses what was refused in the
+  terraform-plugin-codegen-spec idiom — `resource "tag" attribute
+  "metadata"`, an attribute's dotted path beneath its entity, and `entity
+  "x"` for something that fits no kind and so has no kind to name. `stage`
+  is the closed set `derivation | binding | emission`, naming which part of
+  the pipeline refused it. Derived content like any other: manifest-covered
+  and byte-compared by `provider verify`. Generation never fails on it —
+  one entity must not take the whole provider with it — the point is that a
+  refusal appearing or disappearing is a line in a generation pull request
+  rather than a line in a CI log nobody reads.
