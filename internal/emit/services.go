@@ -90,6 +90,15 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 	// which list resources may follow.
 	served := map[string]bool{}
 
+	// A list resource's results are identities, and the identity schema they
+	// conform to belongs to the resource. Only a resource that is listed
+	// declares one, so the resource loop has to know before it renders.
+	listed := map[string]bool{}
+	for i := range m.ListResources {
+		listed[m.ListResources[i].Names.Key] = true
+	}
+	e.listed, e.identities = listed, map[string][]identityAttribute{}
+
 	for i := range m.Resources {
 		r := &m.Resources[i]
 		rb := b.Resources[r.Names.Key]
@@ -198,6 +207,12 @@ type serviceRenderer struct {
 	// report reads this to tell a removal that cost something from one that
 	// cost nothing.
 	keptUnbound map[string]bool
+	// listed names the resources a list resource lists, so only those
+	// declare an identity schema.
+	listed map[string]bool
+	// identities is each listed resource's identity, recorded as the
+	// resource renders so its list resource emits results in the same shape.
+	identities map[string][]identityAttribute
 }
 
 // Binding kinds, spelled the way sdkbind.Removal spells them so a removal

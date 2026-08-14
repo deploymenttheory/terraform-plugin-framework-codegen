@@ -22,7 +22,22 @@ var (
 {{- if .HasImport }}
 	_ resource.ResourceWithImportState = (*{{ .Type }})(nil)
 {{- end }}
+{{- if .IdentityAttributes }}
+	_ resource.ResourceWithIdentity = (*{{ .Type }})(nil)
+{{- end }}
 )
+{{ if .IdentityAttributes }}
+// IdentitySchema declares what names one {{ .TerraformType }} remotely: the
+// addressing that locates it, and its id. Terraform stores it beside the
+// state, and {{ .TerraformType }}'s list resource streams results in this
+// shape.
+func (r *{{ .Type }}) IdentitySchema(_ context.Context, _ resource.IdentitySchemaRequest, resp *resource.IdentitySchemaResponse) {
+	resp.IdentitySchema = identityschema.Schema{
+		Attributes: map[string]identityschema.Attribute{
+{{ .IdentityAttributes }}		},
+	}
+}
+{{- end }}
 
 // New{{ .Pascal }}Resource builds the resource for registration.
 func New{{ .Pascal }}Resource() resource.Resource {

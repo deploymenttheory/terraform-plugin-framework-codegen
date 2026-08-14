@@ -6,10 +6,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// identityModel is the identity every listed instance publishes.
+// identityModel is what names one listed instance remotely. It mirrors the
+// {{ .TerraformType }} resource's identity schema, which is the shape
+// terraform reads a list result against.
 type identityModel struct {
-	ID types.String `tfsdk:"id"`
-}
+{{ .IdentityFields }}}
 {{ if .ConfigModel }}
 // listConfigModel mirrors the list block's configuration.
 {{ .ConfigModel }}

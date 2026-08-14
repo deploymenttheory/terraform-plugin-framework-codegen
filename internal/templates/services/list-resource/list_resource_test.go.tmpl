@@ -7,12 +7,12 @@ package {{ .Package }}_test
 //go:embed tests/responses/list.json
 var listResponse string
 
-// identitySchema mirrors what terraform supplies at runtime, so the
-// streamed identities have somewhere to land.
+// identitySchema is the {{ .TerraformType }} resource's identity schema,
+// which is what terraform supplies at runtime. Rendered from the same
+// derivation as the resource's own, so the two cannot disagree.
 var identitySchema = identityschema.Schema{
 	Attributes: map[string]identityschema.Attribute{
-		"id": identityschema.StringAttribute{RequiredForImport: true},
-	},
+{{ .IdentitySchema }}	},
 }
 
 // TestUnit{{ .Pascal }}ListResource_Schema holds the metadata and the
@@ -87,8 +87,17 @@ func TestUnit{{ .Pascal }}ListResource_List(t *testing.T) {
 		t.Fatalf("configure diagnostics: %v", confResp.Diagnostics)
 	}
 
+	// Terraform supplies both schemas at runtime: NewListResult builds every
+	// result against them, and reads them off the request.
+	resourceSchemaResp := &resource.SchemaResponse{}
+	{{ .ResourceCtor }}.Schema(ctx, resource.SchemaRequest{}, resourceSchemaResp)
+	if resourceSchemaResp.Diagnostics.HasError() {
+		t.Fatalf("the listed resource's schema: %v", resourceSchemaResp.Diagnostics)
+	}
+
 	stream := &list.ListResultsStream{}
 	lr.List(ctx, list.ListRequest{
+		ResourceSchema:         resourceSchemaResp.Schema,
 		ResourceIdentitySchema: identitySchema,
 {{- if .ConfigValue }}
 		Config: listConfig(t, lr),
@@ -111,5 +120,4 @@ func TestUnit{{ .Pascal }}ListResource_List(t *testing.T) {
 
 // identityModelForTest mirrors the identity schema for reading results.
 type identityModelForTest struct {
-	ID types.String `tfsdk:"id"`
-}
+{{ .IdentityFields }}}
