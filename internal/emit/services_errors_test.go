@@ -98,7 +98,7 @@ func TestUnit_RenderServices_SkipsEntitiesTheBindingsLack(t *testing.T) {
 	b := fictionalBindings()
 	delete(b.Resources, "alert_rule")
 	delete(b.Datasources, "license")
-	delete(b.ListResources, "audit_event")
+	delete(b.ListResources, "http_server")
 	delete(b.Actions, "http_server_restart")
 
 	out, err := RenderServices(fictionalProviderCore(), fictionalModel(), b)
@@ -223,15 +223,15 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	// A list resource whose element carries no id.
 	m, b = fictionalModel(), fictionalBindings()
 	m.ListResources[0].Schema.Attributes = m.ListResources[0].Schema.Attributes[1:]
-	b.ListResources["audit_event"].Fields = b.ListResources["audit_event"].Fields[1:]
-	expectRenderExclusion(t, pc, m, b, "audit_event", "id")
+	b.ListResources["http_server"].Fields = b.ListResources["http_server"].Fields[1:]
+	expectRenderExclusion(t, pc, m, b, "http_server", "id")
 
 	// A list resource whose call demands a path parameter no addressing
 	// attribute answers.
 	m, b = fictionalModel(), fictionalBindings()
-	b.ListResources["audit_event"].List.Params = []sdkbind.CallParam{
+	b.ListResources["http_server"].List.Params = []sdkbind.CallParam{
 		{Local: "parentId", GoType: "string", Wire: "parentId"}}
-	expectRenderExclusion(t, pc, m, b, "audit_event", "parentId")
+	expectRenderExclusion(t, pc, m, b, "http_server", "parentId")
 
 	// A lookup datasource without a read call.
 	m, b = fictionalModel(), fictionalBindings()
@@ -356,11 +356,19 @@ func TestUnit_RenderServices_ExcludesTheEntityWhoseShapeItCannotServe(t *testing
 	if err != nil {
 		t.Fatalf("one unservable entity must not fail the run: %v", err)
 	}
-	if len(out.Excluded) != 1 {
-		t.Fatalf("want exactly one exclusion, got %d: %+v", len(out.Excluded), out.Excluded)
+	// Two: the resource, and the list resource that can no longer name it.
+	// Terraform refuses a provider whose list resource matches no resource,
+	// so the pair goes together or the whole provider fails to load.
+	if len(out.Excluded) != 2 {
+		t.Fatalf("want the resource and its list resource excluded, got %d: %+v", len(out.Excluded), out.Excluded)
 	}
-	if out.Excluded[0].Key != "http_server" {
-		t.Fatalf("the exclusion must name the entity, got %q", out.Excluded[0].Key)
+	for _, e := range out.Excluded {
+		if e.Key != "http_server" {
+			t.Fatalf("the exclusion must name the entity, got %q", e.Key)
+		}
+	}
+	if !strings.Contains(out.Excluded[1].Reason, "names no resource") {
+		t.Fatalf("the list resource must say why it went, got %q", out.Excluded[1].Reason)
 	}
 	if !strings.Contains(out.Excluded[0].Reason, "delete") {
 		t.Fatalf("the reason must say what was missing, got %q", out.Excluded[0].Reason)

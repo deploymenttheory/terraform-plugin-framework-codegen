@@ -71,11 +71,11 @@ func TestUnit_RenderServices_TheFileGrammarIsComplete(t *testing.T) {
 		"internal/services/datasources/licenses/v7/license/datasource.go",
 		"internal/services/datasources/licenses/v7/license/read.go",
 		// list resource.
-		"internal/services/list-resources/audit/v7/audit_event/list_resource.go",
-		"internal/services/list-resources/audit/v7/audit_event/list.go",
-		"internal/services/list-resources/audit/v7/audit_event/model.go",
-		"internal/services/list-resources/audit/v7/audit_event/list_resource_test.go",
-		"internal/services/list-resources/audit/v7/audit_event/tests/responses/list.json",
+		"internal/services/list-resources/servers/v7/http_server/list_resource.go",
+		"internal/services/list-resources/servers/v7/http_server/list.go",
+		"internal/services/list-resources/servers/v7/http_server/model.go",
+		"internal/services/list-resources/servers/v7/http_server/list_resource_test.go",
+		"internal/services/list-resources/servers/v7/http_server/tests/responses/list.json",
 		// action.
 		"internal/services/actions/servers/v7/http_server_restart/action.go",
 		"internal/services/actions/servers/v7/http_server_restart/invoke.go",
@@ -86,7 +86,7 @@ func TestUnit_RenderServices_TheFileGrammarIsComplete(t *testing.T) {
 		"examples/resources/petstore_http_server/import.sh",
 		"examples/data-sources/petstore_http_server/data-source.tf",
 		"examples/data-sources/petstore_license/data-source.tf",
-		"examples/list-resources/petstore_audit_event/list-resource.tfquery.hcl",
+		"examples/list-resources/petstore_http_server/list-resource.tfquery.hcl",
 		"examples/actions/petstore_http_server_restart/action.tf",
 	}
 	for _, p := range expected {
@@ -306,7 +306,7 @@ func TestUnit_RenderServices_ListEnvelopeIsDataDriven(t *testing.T) {
 	if !strings.Contains(dsJSON, `"http_servers": [`) {
 		t.Fatalf("datasource list fixture ignores the envelope key:\n%s", dsJSON)
 	}
-	listJSON := string(fileByPath(t, out, "internal/services/list-resources/audit/v7/audit_event/tests/responses/list.json").Content)
+	listJSON := string(fileByPath(t, out, "internal/services/list-resources/servers/v7/http_server/tests/responses/list.json").Content)
 	if !strings.Contains(listJSON, `"records": [`) {
 		t.Fatalf("list-resource fixture ignores the envelope key:\n%s", listJSON)
 	}

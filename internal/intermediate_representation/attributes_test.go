@@ -22,7 +22,7 @@ func TestAttributes_TypeMapping(t *testing.T) {
 		kind AttributeType
 	}{
 		{"name", TypeString},
-		{"count", TypeInt64},
+		{"quantity", TypeInt64},
 		{"ratio", TypeFloat64},
 		{"enabled", TypeBool},
 		{"labels", TypeList},
@@ -310,7 +310,7 @@ components:
 
 func TestAttributes_ConditionalValidity(t *testing.T) {
 	tree := thingTree(t)
-	want := []ConditionalValidity{{Property: "mode", Equals: "standard", Valid: []string{"count"}}}
+	want := []ConditionalValidity{{Property: "mode", Equals: "standard", Valid: []string{"quantity"}}}
 	if !reflect.DeepEqual(tree.ConditionalValidities, want) {
 		t.Errorf("conditional validities = %+v, want %+v", tree.ConditionalValidities, want)
 	}
@@ -318,7 +318,7 @@ func TestAttributes_ConditionalValidity(t *testing.T) {
 
 func TestAttributes_Dependencies(t *testing.T) {
 	tree := thingTree(t)
-	want := []Dependency{{Attribute: "ratio", Requires: []string{"count"}}}
+	want := []Dependency{{Attribute: "ratio", Requires: []string{"quantity"}}}
 	if !reflect.DeepEqual(tree.Dependencies, want) {
 		t.Errorf("dependencies = %+v, want %+v", tree.Dependencies, want)
 	}
@@ -338,7 +338,7 @@ func TestAttributes_ValidConfigurations(t *testing.T) {
 		Discriminator: "mode",
 		Variants: []ConfigVariant{
 			{Value: "custom", Valid: []string{"proxy_host"}},
-			{Value: "standard", Valid: []string{"count"}},
+			{Value: "standard", Valid: []string{"quantity"}},
 		},
 	}}
 	if !reflect.DeepEqual(tree.ValidConfigurations, want) {
@@ -368,7 +368,7 @@ func TestAttributes_OrderFollowsTheDocument(t *testing.T) {
 		got = append(got, a.Name)
 	}
 	want := []string{
-		"name", "mode", "region", "filled", "tier", "proxy_host", "notes", "count",
+		"name", "mode", "region", "filled", "tier", "proxy_host", "notes", "quantity",
 		"ratio", "enabled", "labels", "rules", "settings", "extras",
 		"forced", "flaky", "stamp", "id", "etag",
 	}

@@ -89,8 +89,11 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 				t.Fatalf("Run: %v", err)
 			}
 
-			if res.Resources != 3 || res.Datasources != 4 || res.ListResources != 1 || res.Actions != 1 {
-				t.Errorf("entity counts = %d resources, %d datasources, %d list resources, %d actions; the fixture declares 3, 4, 1, 1",
+			// transit is enumerable and not addressable, so it is a
+			// datasource; the three resources are all enumerable, so each
+			// carries a list resource of its own terraform type.
+			if res.Resources != 3 || res.Datasources != 5 || res.ListResources != 3 || res.Actions != 1 {
+				t.Errorf("entity counts = %d resources, %d datasources, %d list resources, %d actions; the fixture declares 3, 5, 3, 1",
 					res.Resources, res.Datasources, res.ListResources, res.Actions)
 			}
 			for _, r := range res.Removals {
@@ -112,7 +115,8 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 				"internal/services/resources/beacons/v1/beacon/resource.go",
 				"internal/services/resources/docks/v1/dock/resource.go",
 				"internal/services/datasources/permits/v1/permit/datasource.go",
-				"internal/services/list-resources/transits/v1/transit/list_resource.go",
+				"internal/services/datasources/transits/v1/transit/datasource.go",
+				"internal/services/list-resources/modules/v1/module/list_resource.go",
 				"internal/services/actions/modules/v1/modules_reboot/action.go",
 			} {
 				if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err != nil {
