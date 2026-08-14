@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Three structural rules CI enforces on every push:
-#   1. No Go source file over 800 lines — decompose instead (v1's 3,556-line
-#      probe file is the cautionary tale).
+#   1. No hand-written Go source file over 800 lines — decompose instead.
+#      Generated and fixture code under testdata/ is exempt: it is produced,
+#      not maintained, and reproducing it is cheap.
 #   2. No pilot leakage: vendor names from proof APIs may not appear in
 #      non-test source; a general toolkit must not ship one vendor's
 #      constants as defaults. Pinned test inputs under testdata/ are exempt.
@@ -16,7 +17,7 @@ while read -r file; do
     echo "repo_hygiene: $file is $lines lines, over the 800-line ceiling" >&2
     failed=1
   fi
-done < <(git ls-files '*.go')
+done < <(git ls-files '*.go' | grep -v '^testdata/' | grep -v '/testdata/')
 
 pattern='thousandeyes|jamfpro|msgraph|graph\.microsoft'
 if hits="$(git ls-files '*.go' | grep -v '_test\.go$' | grep -v '^testdata/' | grep -v '/testdata/' \

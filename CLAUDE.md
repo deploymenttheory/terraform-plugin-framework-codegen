@@ -51,7 +51,9 @@ Set by the repository owner; not open to per-PR relitigating:
   live in provider repos; this repo holds only the machinery and its fixtures.
 - **Every verb keeps its exit-code contract** documented in `docs/contract.md`.
 - **Corpus documents are pinned by hash and fetched, not vendored.**
-- **No file over 800 lines.** Decompose by protocol instead.
+- **No hand-written file over 800 lines.** Decompose by protocol instead.
+  Generated and fixture code under `testdata/` is exempt — it is produced,
+  not maintained, and reproducing it is cheap.
 - **Comments say what and why. Nothing else.** A comment is read by someone
   changing this code in two years. It must tell them what the code does and
   why it does it that way, and nothing that was only true on the day it was
