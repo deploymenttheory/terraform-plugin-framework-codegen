@@ -45,7 +45,8 @@ tfpfgen version
 ```
 
 See `docs/contract.md` for pipeline stages, artifact names, and exit codes,
-and `docs/glossary.md` for the vocabulary, every term in it is deliberate.
+`docs/glossary.md` for the vocabulary, every term in it is deliberate, and
+`docs/mapping.md` for the API behaviour each generated schema shape answers.
 
 ## Status
 
@@ -58,4 +59,5 @@ against a live API or a `terraform plan`. Building says the emitted Go is
 well-formed against the SDK; it says nothing about whether an attribute is
 optional where it should be computed, sensitive where it should be plain, or
 a set where it should be a list. Making the schema right for the API's real
-behaviour is the work in progress.
+behaviour is the work in progress, and `docs/mapping.md` specifies it: twelve
+API behaviours and the terraform-plugin-framework shape each one demands.
