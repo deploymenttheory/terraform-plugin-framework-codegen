@@ -443,12 +443,10 @@ func valueMethod(kind ir.AttributeType) string {
 // where both happened to be integers it passed an int64 to an int32
 // parameter, which does not either.
 //
-// A conversion this cannot spell — a string field into a numeric parameter —
-// refuses the entity rather than guessing.
-//
-// paramDeclaration wraps it to answer the whole declaration, because a
-// conversion that can fail needs a statement and a diagnostic rather than an
-// expression.
+// This answers only the conversions that cannot fail. paramDeclaration wraps
+// it and takes the fallible ones first, because a conversion that can fail
+// needs a statement and a diagnostic rather than an expression; a conversion
+// neither can spell refuses the entity rather than guessing.
 func paramValue(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType) (string, string, error) {
 	read := modelVar + "." + field + "." + valueMethod(kind) + "()"
 
@@ -482,15 +480,20 @@ func paramValue(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeTy
 // Invoke — carries a resp with Diagnostics and returns nothing, so a
 // failed parse reports against the attribute and stops there.
 func paramDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType, attribute string) (string, []string, error) {
-	if kind == ir.TypeString && p.GoType == "uuid.UUID" {
+	if kind == ir.TypeString {
 		read := modelVar + "." + field + ".ValueString()"
-		errLocal := p.Local + "Err"
-		decl := fmt.Sprintf(`%s, %s := uuid.Parse(%s)
-	if %s != nil {
-		resp.Diagnostics.AddAttributeError(path.Root(%q), "Invalid %s", %s.Error())
-		return
-	}`, p.Local, errLocal, read, errLocal, attribute, p.Wire, errLocal)
-		return decl, []string{"github.com/google/uuid", "github.com/hashicorp/terraform-plugin-framework/path"}, nil
+		switch {
+		case p.GoType == "uuid.UUID":
+			return guardedParse(p, "uuid.Parse("+read+")", "", attribute),
+				[]string{"github.com/google/uuid", "github.com/hashicorp/terraform-plugin-framework/path"}, nil
+		case isIntegerType(p.GoType):
+			// The parse is sized to the SDK's own width, so a value the
+			// parameter cannot hold is reported against the attribute rather
+			// than wrapping in a cast.
+			parse, cast := integerParse(p, read)
+			return guardedParse(p, parse, cast, attribute),
+				[]string{"strconv", "github.com/hashicorp/terraform-plugin-framework/path"}, nil
+		}
 	}
 
 	value, needs, err := paramValue(p, modelVar, field, kind)
@@ -502,6 +505,63 @@ func paramDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.Attri
 		imports = append(imports, needs)
 	}
 	return fmt.Sprintf("%s := %s", p.Local, value), imports, nil
+}
+
+// guardedParse renders a fallible conversion: the parse, the diagnostic that
+// reports its failure against the attribute, and an optional trailing
+// statement that narrows the parsed value to the local the call passes.
+//
+// parse must be a two-value expression yielding a value and an error. When
+// cast is empty the parsed value is already the local, so the parse binds it
+// directly; otherwise the parse binds an intermediate the cast reads.
+func guardedParse(p sdkbind.CallParam, parse, cast, attribute string) string {
+	bound, tail := p.Local, ""
+	if cast != "" {
+		bound = p.Local + "Parsed"
+		tail = "\n\t" + p.Local + " := " + cast
+	}
+	errLocal := p.Local + "Err"
+	return fmt.Sprintf(`%s, %s := %s
+	if %s != nil {
+		resp.Diagnostics.AddAttributeError(path.Root(%q), "Invalid %s", %s.Error())
+		return
+	}%s`, bound, errLocal, parse, errLocal, attribute, p.Wire, errLocal, tail)
+}
+
+// integerParse renders the strconv call that reads one integer path parameter
+// out of a string field, and the cast that narrows it to the SDK's own type.
+// The cast is empty when the parse already yields that type.
+//
+// Signed and unsigned take different functions because ParseInt rejects
+// nothing a uint64 parameter would accept above its own range. A bit size of
+// 0 is strconv's spelling for int and uint, whose width is the platform's.
+func integerParse(p sdkbind.CallParam, read string) (parse, cast string) {
+	function, bits, parsed := "strconv.ParseInt", integerBits(p.GoType), "int64"
+	if strings.HasPrefix(p.GoType, "uint") {
+		function, parsed = "strconv.ParseUint", "uint64"
+	}
+	parse = fmt.Sprintf("%s(%s, 10, %d)", function, read, bits)
+	if p.GoType != parsed {
+		cast = p.GoType + "(" + p.Local + "Parsed)"
+	}
+	return parse, cast
+}
+
+// integerBits is the bit size strconv parses one integer type at, 0 for the
+// platform-width int and uint.
+func integerBits(goType string) int {
+	switch goType {
+	case "int8", "uint8":
+		return 8
+	case "int16", "uint16":
+		return 16
+	case "int32", "uint32":
+		return 32
+	case "int64", "uint64":
+		return 64
+	default:
+		return 0
+	}
 }
 
 // sdkTypeMatches reports whether the SDK takes exactly what the model field
