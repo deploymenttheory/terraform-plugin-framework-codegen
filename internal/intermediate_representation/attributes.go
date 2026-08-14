@@ -13,7 +13,20 @@ import (
 type flat struct {
 	empty        bool
 	declaredType string
-	readOnly     bool
+	// format is the document's declared format, which says what a string
+	// carries beyond being a string: a password to hide, a timestamp to
+	// spell as one.
+	format      string
+	readOnly    bool
+	writeOnly   bool
+	deprecated  bool
+	uniqueItems bool
+	// The declared constraints, nil when the document states none. They
+	// become plan-time validators.
+	pattern              string
+	minimum, maximum     *float64
+	minLength, maxLength *int64
+	minItems, maxItems   *int64
 	// description is the document's own prose for the schema, folded from
 	// the first branch that states any. It is the only human-written text in
 	// the whole derivation; everything else the generated schema says about
@@ -73,6 +86,30 @@ func flatten(schema *specmodel.Schema) flat {
 		if schema.ReadOnly {
 			flattened.readOnly = true
 		}
+		if schema.WriteOnly {
+			flattened.writeOnly = true
+		}
+		if schema.Deprecated {
+			flattened.deprecated = true
+		}
+		if schema.UniqueItems {
+			flattened.uniqueItems = true
+		}
+		// The declared facts about the value, folded first-wins like the
+		// description: a branch that states one is more specific than a
+		// branch that states nothing.
+		if flattened.format == "" {
+			flattened.format = schema.Format
+		}
+		if flattened.pattern == "" {
+			flattened.pattern = schema.Pattern
+		}
+		foldBound(&flattened.minimum, schema.Minimum)
+		foldBound(&flattened.maximum, schema.Maximum)
+		foldBound(&flattened.minLength, schema.MinLength)
+		foldBound(&flattened.maxLength, schema.MaxLength)
+		foldBound(&flattened.minItems, schema.MinItems)
+		foldBound(&flattened.maxItems, schema.MaxItems)
 		if flattened.description == "" {
 			flattened.description = strings.TrimSpace(schema.Description)
 		}
@@ -110,6 +147,17 @@ func flatten(schema *specmodel.Schema) flat {
 	walk(schema)
 	flattened.resolveUnion()
 	return flattened
+}
+
+// foldBound takes a declared bound the fold has not seen yet. First
+// declaration wins, matching how the description and the enum fold: a later
+// branch that states the same bound states nothing new, and one that states a
+// different bound is describing a different use of the same type.
+func foldBound[T int64 | float64](dst **T, declared *T) {
+	if *dst == nil && declared != nil {
+		value := *declared
+		*dst = &value
+	}
 }
 
 // scalarTypes are the declared types a single terraform attribute holds
@@ -392,6 +440,20 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 			attribute.Description = flatCreate.description
 		}
 	}
+
+	// What the document declares about the value itself. These are taken
+	// from the write side when there is one: a constraint is a rule about
+	// what may be sent, and a response schema restating it says nothing
+	// extra. writeOnly is the exception — only a request schema can declare
+	// it, so a response-only attribute could never carry it anyway.
+	attribute.Format = flatPrimary.format
+	attribute.WriteOnly = flatCreate.writeOnly
+	attribute.Deprecated = flatCreate.deprecated || flatRead.deprecated
+	attribute.UniqueItems = flatPrimary.uniqueItems
+	attribute.Pattern = flatPrimary.pattern
+	attribute.Minimum, attribute.Maximum = flatPrimary.minimum, flatPrimary.maximum
+	attribute.MinLength, attribute.MaxLength = flatPrimary.minLength, flatPrimary.maxLength
+	attribute.MinItems, attribute.MaxItems = flatPrimary.minItems, flatPrimary.maxItems
 
 	// Every attribute lands in exactly one of five outcomes, and this is where
 	// four of them are chosen (the fifth, omitted entirely, is decided by

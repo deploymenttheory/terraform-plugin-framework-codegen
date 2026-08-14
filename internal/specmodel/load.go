@@ -414,9 +414,24 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 	if desc := lookup(node, "description"); desc != nil {
 		s.Description = desc.Value
 	}
-	if ro := deref(lookup(node, "readOnly")); ro != nil {
-		if err := ro.Decode(&s.ReadOnly); err != nil {
-			return nil, fmt.Errorf("%s.readOnly: must be true or false, got %q", at, ro.Value)
+	// The declared flags. readOnly and writeOnly decide whether an attribute
+	// is settable at all; deprecated and uniqueItems decide what the emitted
+	// schema says about it.
+	for _, field := range []struct {
+		key string
+		dst *bool
+	}{
+		{"readOnly", &s.ReadOnly},
+		{"writeOnly", &s.WriteOnly},
+		{"deprecated", &s.Deprecated},
+		{"uniqueItems", &s.UniqueItems},
+	} {
+		n := deref(lookup(node, field.key))
+		if n == nil {
+			continue
+		}
+		if err := n.Decode(field.dst); err != nil {
+			return nil, fmt.Errorf("%s.%s: must be true or false, got %q", at, field.key, n.Value)
 		}
 	}
 	if enum := deref(lookup(node, "enum")); enum != nil {
@@ -449,7 +464,8 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 	// Numeric bounds are read because the audit sends values: a probe outside
 	// the declared range tests the API's validation, not the field, and a
 	// clamp or refusal read as behaviour is a finding the document already
-	// predicted.
+	// predicted. They also become plan-time validators, so a configuration
+	// the API would silently clamp fails before it is sent.
 	for _, field := range []struct {
 		key string
 		dst **float64
@@ -459,6 +475,24 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 	} {
 		if n := deref(lookup(node, field.key)); n != nil {
 			var v float64
+			if err := n.Decode(&v); err != nil {
+				return nil, fmt.Errorf("%s.%s: %w", at, field.key, err)
+			}
+			*field.dst = &v
+		}
+	}
+	// Length and size bounds, read for the same reason as the numeric ones.
+	for _, field := range []struct {
+		key string
+		dst **int64
+	}{
+		{"minLength", &s.MinLength},
+		{"maxLength", &s.MaxLength},
+		{"minItems", &s.MinItems},
+		{"maxItems", &s.MaxItems},
+	} {
+		if n := deref(lookup(node, field.key)); n != nil {
+			var v int64
 			if err := n.Decode(&v); err != nil {
 				return nil, fmt.Errorf("%s.%s: %w", at, field.key, err)
 			}
