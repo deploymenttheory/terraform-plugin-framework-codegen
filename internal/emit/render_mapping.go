@@ -312,9 +312,52 @@ type callPlan struct {
 	Imports []string
 }
 
+// paramFailure is what a path-parameter conversion that fails does in the
+// method its declaration lands in. Every lifecycle and invoke method carries
+// a resp with Diagnostics; a list resource carries a results stream instead,
+// and the two report an error by different names.
+type paramFailure struct {
+	// report renders the statements a failed conversion runs, given the
+	// terraform attribute at fault, the parameter's wire name, and the local
+	// holding the error. It ends by leaving the method.
+	report func(attribute, wire, errLocal string) string
+	// imports names the packages report's statements reference.
+	imports []string
+}
+
+// respDiagnostics reports a failed conversion against the attribute at fault.
+// Every method a declaration lands in — Create, Read, Update, Delete, Invoke —
+// carries a resp with Diagnostics and returns nothing.
+func respDiagnostics() paramFailure {
+	return paramFailure{
+		report: func(attribute, wire, errLocal string) string {
+			return fmt.Sprintf("\tresp.Diagnostics.AddAttributeError(path.Root(%q), \"Invalid %s\", %s.Error())\n\t\treturn",
+				attribute, wire, errLocal)
+		},
+		imports: []string{"github.com/hashicorp/terraform-plugin-framework/path"},
+	}
+}
+
+// streamDiagnostics reports a failed conversion into a list resource's
+// results stream, which is the only channel List has: it takes no resp, and
+// a stream carrying diagnostics is how the framework surfaces the failure.
+func streamDiagnostics() paramFailure {
+	return paramFailure{
+		report: func(attribute, wire, errLocal string) string {
+			return fmt.Sprintf("\tstream.Results = list.ListResultsStreamDiagnostics(diag.Diagnostics{\n\t\t\tdiag.NewErrorDiagnostic(\"Invalid %s\", %s.Error()),\n\t\t})\n\t\treturn",
+				wire, errLocal)
+		},
+		imports: []string{
+			"github.com/hashicorp/terraform-plugin-framework/diag",
+			"github.com/hashicorp/terraform-plugin-framework/list",
+		},
+	}
+}
+
 // buildCallPlan renders one bound call. payloadName names the success
-// payload local; nodes and modelVar say where parameter values come from.
-func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVar string) (callPlan, error) {
+// payload local; nodes and modelVar say where parameter values come from;
+// fail says how a conversion that cannot succeed reports itself.
+func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVar string, fail paramFailure) (callPlan, error) {
 	var plan callPlan
 
 	var decls []string
@@ -330,7 +373,7 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 		if err != nil {
 			return callPlan{}, err
 		}
-		decl, needs, err := paramDeclaration(p, modelVar, ir.GoName(n.attr.Name), n.attr.Kind, n.attr.Name)
+		decl, needs, err := paramDeclaration(p, modelVar, ir.GoName(n.attr.Name), n.attr.Kind, n.attr.Name, fail)
 		if err != nil {
 			return callPlan{}, err
 		}
@@ -474,25 +517,22 @@ func paramValue(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeTy
 
 // paramDeclaration renders the statements that bind one path parameter's
 // local: an assignment for a conversion that cannot fail, and a parse
-// guarded by an attribute diagnostic for one that can.
-//
-// Every method a declaration lands in — Create, Read, Update, Delete,
-// Invoke — carries a resp with Diagnostics and returns nothing, so a
-// failed parse reports against the attribute and stops there.
-func paramDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType, attribute string) (string, []string, error) {
+// guarded by a diagnostic for one that can. fail says how that diagnostic is
+// reported in the method the declaration lands in.
+func paramDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType, attribute string, fail paramFailure) (string, []string, error) {
 	if kind == ir.TypeString {
 		read := modelVar + "." + field + ".ValueString()"
 		switch {
 		case p.GoType == "uuid.UUID":
-			return guardedParse(p, "uuid.Parse("+read+")", "", attribute),
-				[]string{"github.com/google/uuid", "github.com/hashicorp/terraform-plugin-framework/path"}, nil
+			return guardedParse(p, "uuid.Parse("+read+")", "", attribute, fail),
+				append([]string{"github.com/google/uuid"}, fail.imports...), nil
 		case isIntegerType(p.GoType):
 			// The parse is sized to the SDK's own width, so a value the
 			// parameter cannot hold is reported against the attribute rather
 			// than wrapping in a cast.
 			parse, cast := integerParse(p, read)
-			return guardedParse(p, parse, cast, attribute),
-				[]string{"strconv", "github.com/hashicorp/terraform-plugin-framework/path"}, nil
+			return guardedParse(p, parse, cast, attribute, fail),
+				append([]string{"strconv"}, fail.imports...), nil
 		}
 	}
 
@@ -514,18 +554,15 @@ func paramDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.Attri
 // parse must be a two-value expression yielding a value and an error. When
 // cast is empty the parsed value is already the local, so the parse binds it
 // directly; otherwise the parse binds an intermediate the cast reads.
-func guardedParse(p sdkbind.CallParam, parse, cast, attribute string) string {
+func guardedParse(p sdkbind.CallParam, parse, cast, attribute string, fail paramFailure) string {
 	bound, tail := p.Local, ""
 	if cast != "" {
 		bound = p.Local + "Parsed"
 		tail = "\n\t" + p.Local + " := " + cast
 	}
 	errLocal := p.Local + "Err"
-	return fmt.Sprintf(`%s, %s := %s
-	if %s != nil {
-		resp.Diagnostics.AddAttributeError(path.Root(%q), "Invalid %s", %s.Error())
-		return
-	}%s`, bound, errLocal, parse, errLocal, attribute, p.Wire, errLocal, tail)
+	return fmt.Sprintf("%s, %s := %s\n\tif %s != nil {\n%s\n\t}%s",
+		bound, errLocal, parse, errLocal, fail.report(attribute, p.Wire, errLocal), tail)
 }
 
 // integerParse renders the strconv call that reads one integer path parameter

@@ -226,7 +226,8 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	b.ListResources["audit_event"].Fields = b.ListResources["audit_event"].Fields[1:]
 	expectRenderExclusion(t, pc, m, b, "audit_event", "id")
 
-	// A list resource whose call demands a path parameter.
+	// A list resource whose call demands a path parameter no addressing
+	// attribute answers.
 	m, b = fictionalModel(), fictionalBindings()
 	b.ListResources["audit_event"].List.Params = []sdkbind.CallParam{
 		{Local: "parentId", GoType: "string", Wire: "parentId"}}

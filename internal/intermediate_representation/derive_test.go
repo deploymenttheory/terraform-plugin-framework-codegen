@@ -307,6 +307,37 @@ func TestDerive_ListResource(t *testing.T) {
 	t.Fatalf("no event list resource in %+v", m.ListResources)
 }
 
+// TestUnit_AddressingSchema_TakesEveryPathParameter proves a collection
+// path's parameters all become required attributes of the list block: a
+// collection path carries no item key, so none of them is absorbed by an id,
+// and none carries RequiresReplace because a list block has no plan.
+func TestUnit_AddressingSchema_TakesEveryPathParameter(t *testing.T) {
+	if tree := addressingSchema(nil); tree != nil {
+		t.Errorf("a path with no parameters declares no configuration, got %+v", tree)
+	}
+
+	tree := addressingSchema([]Parameter{
+		{Name: "tenantId", Type: TypeString},
+		{Name: "groupId", Type: TypeInt64},
+	})
+	if tree == nil || len(tree.Attributes) != 2 {
+		t.Fatalf("addressingSchema = %+v", tree)
+	}
+	for index, want := range []Attribute{
+		{Name: "tenant_id", WireName: "tenantId", Kind: TypeString, ComputedOptionalRequired: Required},
+		{Name: "group_id", WireName: "groupId", Kind: TypeInt64, ComputedOptionalRequired: Required},
+	} {
+		got := tree.Attributes[index]
+		if got.Name != want.Name || got.WireName != want.WireName || got.Kind != want.Kind ||
+			got.ComputedOptionalRequired != want.ComputedOptionalRequired {
+			t.Errorf("attribute %d = %+v, want %+v", index, got, want)
+		}
+		if got.RequiresReplace {
+			t.Errorf("attribute %d carries RequiresReplace; a list block has no plan to modify", index)
+		}
+	}
+}
+
 func TestDerive_Action(t *testing.T) {
 	m := mustDerive(t, thingSpec, testConfig())
 	if len(m.Actions) != 1 {

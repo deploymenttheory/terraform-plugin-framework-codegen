@@ -167,7 +167,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	d.Models = renderModelDecls(decls)
 	d.ModelImports = e.datasourceModelImports(d.Models)
 
-	plan, err := buildCallPlan(db.Read, "remote", nodes, "data")
+	plan, err := buildCallPlan(db.Read, "remote", nodes, "data", respDiagnostics())
 	if err != nil {
 		return fixtures.Fixture{}, fmt.Errorf("read: %w", err)
 	}
@@ -304,7 +304,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	for _, a := range companionAddressing(ds) {
 		addressingNodes = append(addressingNodes, node{attr: a})
 	}
-	listPlan, err := buildCallPlan(db.List, "result", addressingNodes, "data")
+	listPlan, err := buildCallPlan(db.List, "result", addressingNodes, "data", respDiagnostics())
 	if err != nil {
 		return fixtures.Fixture{}, fmt.Errorf("list: %w", err)
 	}
@@ -384,7 +384,7 @@ func itemPayloadExpr(db *sdkbind.DatasourceBinding) string {
 func readPlanWithoutParams(call *sdkbind.Call, payloadName string) (callPlan, error) {
 	stripped := *call
 	stripped.Params = nil
-	return buildCallPlan(&stripped, payloadName, nil, "data")
+	return buildCallPlan(&stripped, payloadName, nil, "data", respDiagnostics())
 }
 
 // companionItemTree finds the items attribute's element tree.

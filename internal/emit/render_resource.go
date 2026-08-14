@@ -352,17 +352,17 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	if d.CreateMapsResponse {
 		createPayload = "created"
 	}
-	if d.CreatePlan, err = buildCallPlan(createCall, createPayload, nodes, "data"); err != nil {
+	if d.CreatePlan, err = buildCallPlan(createCall, createPayload, nodes, "data", respDiagnostics()); err != nil {
 		return fmt.Errorf("create: %w", err)
 	}
-	if d.ReadPlan, err = buildCallPlan(rb.Read, "remote", nodes, "data"); err != nil {
+	if d.ReadPlan, err = buildCallPlan(rb.Read, "remote", nodes, "data", respDiagnostics()); err != nil {
 		return fmt.Errorf("read: %w", err)
 	}
 	if d.ReadPlan.Payload == "" {
 		return unrenderable("read: the bound read call yields no payload to map state from")
 	}
 	if !d.Singleton {
-		if d.DeletePlan, err = buildCallPlan(rb.Delete, "", nodes, "data"); err != nil {
+		if d.DeletePlan, err = buildCallPlan(rb.Delete, "", nodes, "data", respDiagnostics()); err != nil {
 			return fmt.Errorf("delete: %w", err)
 		}
 	}
@@ -372,7 +372,7 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 		if d.UpdateMapsResponse {
 			updatePayload = "updated"
 		}
-		if d.UpdatePlan, err = buildCallPlan(rb.Update, updatePayload, nodes, "prior"); err != nil {
+		if d.UpdatePlan, err = buildCallPlan(rb.Update, updatePayload, nodes, "prior", respDiagnostics()); err != nil {
 			return fmt.Errorf("update: %w", err)
 		}
 		var copies []string

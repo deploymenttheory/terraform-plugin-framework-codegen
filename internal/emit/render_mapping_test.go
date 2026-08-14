@@ -14,7 +14,7 @@ import (
 func TestUnit_ParamDeclaration_UUIDParsesWithADiagnostic(t *testing.T) {
 	p := sdkbind.CallParam{Local: "agentId", Wire: "agentId", GoType: "uuid.UUID"}
 
-	decl, imports, err := paramDeclaration(p, "data", "AgentID", ir.TypeString, "agent_id")
+	decl, imports, err := paramDeclaration(p, "data", "AgentID", ir.TypeString, "agent_id", respDiagnostics())
 	if err != nil {
 		t.Fatalf("paramDeclaration refused a uuid path parameter: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestUnit_ParamDeclaration_IntegerParsesWithADiagnostic(t *testing.T) {
 			},
 		},
 	} {
-		decl, imports, err := paramDeclaration(testCase.param, "data", "HookID", ir.TypeString, "hook_id")
+		decl, imports, err := paramDeclaration(testCase.param, "data", "HookID", ir.TypeString, "hook_id", respDiagnostics())
 		if err != nil {
 			t.Errorf("%s: paramDeclaration refused an integer path parameter: %v", testCase.name, err)
 			continue
@@ -115,7 +115,7 @@ func TestUnit_ParamDeclaration_IntegerParsesWithADiagnostic(t *testing.T) {
 func TestUnit_ParamDeclaration_RefusesATruncatingConversion(t *testing.T) {
 	p := sdkbind.CallParam{Local: "groupId", Wire: "runner_group_id", GoType: "int32"}
 
-	if _, _, err := paramDeclaration(p, "data", "GroupID", ir.TypeFloat64, "runner_group_id"); err == nil {
+	if _, _, err := paramDeclaration(p, "data", "GroupID", ir.TypeFloat64, "runner_group_id", respDiagnostics()); err == nil {
 		t.Fatal("paramDeclaration rendered a float64 into an int32 parameter; it must refuse")
 	}
 }
@@ -135,7 +135,7 @@ func TestUnit_ParamDeclaration_InfallibleConversionsStayOneLine(t *testing.T) {
 		{"int64 narrowed", sdkbind.CallParam{Local: "id", Wire: "id", GoType: "int32"}, ir.TypeInt64, "id := int32(data.ID.ValueInt64())", ""},
 		{"int64 to string", sdkbind.CallParam{Local: "id", Wire: "id", GoType: "string"}, ir.TypeInt64, "id := strconv.FormatInt(data.ID.ValueInt64(), 10)", "strconv"},
 	} {
-		decl, imports, err := paramDeclaration(testCase.param, "data", "ID", testCase.kind, "id")
+		decl, imports, err := paramDeclaration(testCase.param, "data", "ID", testCase.kind, "id", respDiagnostics())
 		if err != nil {
 			t.Errorf("%s: %v", testCase.name, err)
 			continue

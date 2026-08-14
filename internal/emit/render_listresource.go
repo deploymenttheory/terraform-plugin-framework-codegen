@@ -28,17 +28,27 @@ type listResourceData struct {
 	TestImports string
 
 	SchemaDescription string
+	SchemaAttributes  string
+	ConfigModel       string
 	ListPlan          callPlan
 	Collection        string
 	ResultLines       string
 
-	CollectionURL    string
+	CollectionURL     string
+	CollectionPattern string
+
 	ListResponse     string
 	ExpectedFirstID  string
+	ConfigValue      string
 	TestClientConfig string
 	AuthGitHubApp    bool
 	ProviderName     string
 }
+
+// listConfigModelName is the struct the list block's configuration decodes
+// into, and the local List reads it as. Unexported and per-package, so it
+// needs no entity prefix.
+const listConfigModelName = "listConfigModel"
 
 // listResource renders one list-only entity's file set.
 func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListResourceBinding) ([]File, error) {
@@ -65,16 +75,19 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	}
 	d.SchemaDescription = strconv.Quote(description)
 
+	// The call's path parameters are read from the list block's own
+	// configuration, not from an element: a list resource has no object to
+	// address, so the practitioner supplies the scope the collection path
+	// names.
+	configNodes := joinTree(lr.AddressingSchema, nil, addressingNames(&lr.ListOperation))
+
 	listOp := lr.ListOperation
-	plan, err := buildCallPlan(lb.List, "result", nodes, "data")
+	plan, err := buildCallPlan(lb.List, "result", configNodes, "config", streamDiagnostics())
 	if err != nil {
 		return nil, fmt.Errorf("list: %w", err)
 	}
 	if plan.Payload == "" {
 		return nil, unrenderable("list: the bound list call yields no payload")
-	}
-	if plan.ParamDecls != "" {
-		return nil, unrenderable("list: a list resource cannot supply path parameters; the call needs %q", lb.List.Params[0].Wire)
 	}
 	d.ListPlan = plan
 	d.Collection = "result"
@@ -95,7 +108,13 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	imports.add("listschema", "github.com/hashicorp/terraform-plugin-framework/list/schema")
 	imports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
 	imports.add("sdk", e.bindings.SDK.ImportPath)
+	sb := &schemaBuilder{kind: schemaListResource, imports: imports}
+	d.SchemaAttributes = sb.attributeDecls(configNodes, 3)
 	d.Imports = imports.render()
+
+	if len(configNodes) > 0 {
+		d.ConfigModel = renderModelDecls(buildModels(listConfigModelName, lr.Names.Pascal+"ListConfig", configNodes, nil))
+	}
 
 	listImports := newImportSet(e.pc.Module)
 	listImports.add("", "context")
@@ -110,7 +129,18 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	d.ListImports = listImports.render()
 
 	spec := deriveFixtures(lr.Schema, nodes)
-	d.CollectionURL = mockURL(listOp.PathTemplate)
+	configSpec := deriveFixtures(lr.AddressingSchema, configNodes)
+	// A parameterised collection path is requested with the addressing
+	// substituted in, so the mock matches the shape rather than the template,
+	// and the unit test stands a configuration up to be read from. The
+	// pattern is a regex and travels separately: it carries backslashes a
+	// quoted Go string cannot hold.
+	if len(configNodes) > 0 {
+		d.CollectionPattern = mockPattern(listOp.PathTemplate)
+		d.ConfigValue = tftypesValue(configSpec.Entries, 1)
+	} else {
+		d.CollectionURL = mockURL(listOp.PathTemplate)
+	}
 	item := strings.TrimSuffix(string(spec.WireJSON(fixtures.ResponseMaximal)), "\n")
 	d.ListResponse = listResponseJSON(lr.ListEnvelopeKey, item)
 	d.ExpectedFirstID = expectedID(spec)
@@ -125,6 +155,10 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	testImports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
 	testImports.add("identityschema", "github.com/hashicorp/terraform-plugin-framework/resource/identityschema")
 	testImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
+	if d.ConfigValue != "" {
+		testImports.add("", "github.com/hashicorp/terraform-plugin-framework/tfsdk")
+		testImports.add("", "github.com/hashicorp/terraform-plugin-go/tftypes")
+	}
 	testImports.add("", "github.com/jarcoal/httpmock")
 	testImports.add("", e.pc.Module+"/internal/client")
 	testImports.add("", e.pc.Module+"/internal/mocks")
@@ -155,7 +189,8 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 
 	files = append(files, rawFile(path.Join(dir, "tests/responses/list.json"), lr.Names.Key, []byte(d.ListResponse)))
 
-	example, err := listExample(lr.Names.Key, lr.Names.TerraformType, e.pc.ProviderName)
+	example, err := listExample(lr.Names.Key, lr.Names.TerraformType, e.pc.ProviderName,
+		configSpec.HCL(fixtures.ConfigMinimal))
 	if err != nil {
 		return nil, err
 	}
@@ -268,12 +303,15 @@ func (e *serviceRenderer) testClientConfig() string {
 	}
 }
 
-// listExample renders the terraform query example.
-func listExample(source, terraformType, providerName string) ([]byte, error) {
+// listExample renders the terraform query example. configBody is the
+// addressing the list block requires, already rendered as HCL assignments,
+// empty for a collection path that takes no parameters.
+func listExample(source, terraformType, providerName, configBody string) ([]byte, error) {
 	header, err := hashHeader(source)
 	if err != nil {
 		return nil, err
 	}
-	body := fmt.Sprintf("%s\nlist %q \"example\" {\n  provider = %s\n}\n", header, terraformType, providerName)
+	body := fmt.Sprintf("%s\nlist %q \"example\" {\n  provider = %s\n%s}\n",
+		header, terraformType, providerName, configBody)
 	return []byte(body), nil
 }

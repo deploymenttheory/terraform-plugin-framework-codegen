@@ -33,6 +33,20 @@ func TestUnit{{ .Pascal }}ListResource_Schema(t *testing.T) {
 		t.Fatalf("schema diagnostics: %v", schemaResp.Diagnostics)
 	}
 }
+{{ if .ConfigValue }}
+// listConfig is the addressing the collection path requires, at the derived
+// fixture values, as terraform would supply it.
+func listConfig(t *testing.T, lr list.ListResource) tfsdk.Config {
+	t.Helper()
+	schemaResp := &list.ListResourceSchemaResponse{}
+	lr.ListResourceConfigSchema(context.Background(), list.ListResourceSchemaRequest{}, schemaResp)
+	if schemaResp.Diagnostics.HasError() {
+		t.Fatalf("schema diagnostics: %v", schemaResp.Diagnostics)
+	}
+	raw := {{ .ConfigValue }}
+	return tfsdk.Config{Schema: schemaResp.Schema, Raw: raw}
+}
+{{- end }}
 
 // TestUnit{{ .Pascal }}ListResource_List streams the mock collection and
 // holds the results to the derived fixture values.
@@ -47,9 +61,15 @@ func TestUnit{{ .Pascal }}ListResource_List(t *testing.T) {
 	// the content type, and httpmock's string responder announces text/plain,
 	// which no SDK has a parser for. The body is embedded rather than
 	// marshalled, so the JSON responder — which takes a value — does not fit.
+{{- if .CollectionPattern }}
+	httpmock.RegisterResponder("GET", `{{ .CollectionPattern }}`,
+		httpmock.NewStringResponder(200, listResponse).
+			HeaderSet(http.Header{"Content-Type": []string{"application/json"}}))
+{{- else }}
 	httpmock.RegisterResponder("GET", "{{ .CollectionURL }}",
 		httpmock.NewStringResponder(200, listResponse).
 			HeaderSet(http.Header{"Content-Type": []string{"application/json"}}))
+{{- end }}
 
 	sdkClient, err := client.NewSDKClient(client.Config{Endpoint: mocks.UnitEndpoint, UserAgent: "unit-test"{{ .TestClientConfig }}})
 	if err != nil {
@@ -68,7 +88,12 @@ func TestUnit{{ .Pascal }}ListResource_List(t *testing.T) {
 	}
 
 	stream := &list.ListResultsStream{}
-	lr.List(ctx, list.ListRequest{ResourceIdentitySchema: identitySchema}, stream)
+	lr.List(ctx, list.ListRequest{
+		ResourceIdentitySchema: identitySchema,
+{{- if .ConfigValue }}
+		Config: listConfig(t, lr),
+{{- end }}
+	}, stream)
 
 	var ids []string
 	for result := range stream.Results {

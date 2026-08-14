@@ -10,15 +10,36 @@ import (
 )
 
 // schemaKind selects which terraform-plugin-framework schema package a
-// declaration is rendered against. The three packages spell the same
-// shapes, but only the resource one carries plan modifiers.
+// declaration is rendered against. The four packages spell the same
+// shapes, but only the resource one carries plan modifiers, and only the
+// resource and datasource ones carry Computed.
 type schemaKind int
 
 const (
 	schemaResource schemaKind = iota
 	schemaDatasource
 	schemaAction
+	schemaListResource
 )
+
+// pkg is the package name a schema declaration qualifies its attribute types
+// with. Three of the four packages are imported under the framework's own
+// name; list/schema is imported as listschema, because a list resource file
+// also names the resource schema package.
+func (sb *schemaBuilder) pkg() string {
+	if sb.kind == schemaListResource {
+		return "listschema"
+	}
+	return "schema"
+}
+
+// rendersComputed reports whether the schema package declares Computed at
+// all. An action's does not — an invocation has arguments and a result and
+// nothing in between for the framework to fill in — and a list resource's
+// does not either: every list/schema attribute answers false from IsComputed.
+func (sb *schemaBuilder) rendersComputed() bool {
+	return sb.kind == schemaResource || sb.kind == schemaDatasource
+}
 
 // schemaBuilder accumulates the imports one schema declaration needs as
 // it renders.
@@ -50,7 +71,7 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 	indent := strings.Repeat("\t", depth)
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "%s%q: schema.%s{\n", indent, n.attr.Name, schemaTypeOf(n).SchemaAttribute)
+	fmt.Fprintf(&b, "%s%q: %s.%s{\n", indent, n.attr.Name, sb.pkg(), schemaTypeOf(n).SchemaAttribute)
 	b.WriteString(sb.computedOptionalRequiredLines(n, indent+"\t"))
 
 	if desc := attributeDescription(n.attr); desc != "" {
@@ -68,12 +89,12 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 
 	if n.attr.Nested != nil {
 		if n.attr.Kind == ir.TypeList {
-			fmt.Fprintf(&b, "%s\tNestedObject: schema.NestedAttributeObject{\n", indent)
-			fmt.Fprintf(&b, "%s\t\tAttributes: map[string]schema.Attribute{\n", indent)
+			fmt.Fprintf(&b, "%s\tNestedObject: %s.NestedAttributeObject{\n", indent, sb.pkg())
+			fmt.Fprintf(&b, "%s\t\tAttributes: map[string]%s.Attribute{\n", indent, sb.pkg())
 			b.WriteString(sb.attributeDecls(n.children, depth+3))
 			fmt.Fprintf(&b, "%s\t\t},\n%s\t},\n", indent, indent)
 		} else {
-			fmt.Fprintf(&b, "%s\tAttributes: map[string]schema.Attribute{\n", indent)
+			fmt.Fprintf(&b, "%s\tAttributes: map[string]%s.Attribute{\n", indent, sb.pkg())
 			b.WriteString(sb.attributeDecls(n.children, depth+2))
 			fmt.Fprintf(&b, "%s\t},\n", indent)
 		}
@@ -147,24 +168,22 @@ func (sb *schemaBuilder) validatorLines(n node, indent string, depth int) string
 		indent, schemaTypeOf(n).Validator, strings.Join(definitions, ", "))
 }
 
-// computedOptionalRequiredLines renders the presence booleans. Inside a datasource, computed
-// stays computed. Inside an action there is no Computed to render: the
-// action package's attribute types do not declare the field, because an
-// invocation has arguments and a result and nothing in between for the
-// framework to fill in. An attribute that is writable as well keeps the
-// writable half; one that is only computed is dropped before it reaches
-// here.
+// computedOptionalRequiredLines renders the presence booleans. Inside a
+// datasource, computed stays computed. Where the schema package declares no
+// Computed at all — see rendersComputed — an attribute that is writable as
+// well keeps the writable half; one that is only computed is dropped before
+// it reaches here.
 func (sb *schemaBuilder) computedOptionalRequiredLines(n node, indent string) string {
 	switch n.attr.ComputedOptionalRequired {
 	case ir.Required:
 		return indent + "Required: true,\n"
 	case ir.Computed:
-		if sb.kind == schemaAction {
+		if !sb.rendersComputed() {
 			return indent + "Optional: true,\n"
 		}
 		return indent + "Computed: true,\n"
 	case ir.ComputedOptional:
-		if sb.kind == schemaAction {
+		if !sb.rendersComputed() {
 			return indent + "Optional: true,\n"
 		}
 		return indent + "Optional: true,\n" + indent + "Computed: true,\n"
