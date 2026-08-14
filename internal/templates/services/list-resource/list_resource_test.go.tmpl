@@ -43,8 +43,13 @@ func TestUnit{{ .Pascal }}ListResource_List(t *testing.T) {
 	ctx := context.Background()
 	mocks.GlobalRegistry.ActivateMocks("{{ .TerraformType }}.list")
 	defer mocks.GlobalRegistry.DeactivateAndReset()
+	// The response is announced as JSON: an SDK picks its deserializer off
+	// the content type, and httpmock's string responder announces text/plain,
+	// which no SDK has a parser for. The body is embedded rather than
+	// marshalled, so the JSON responder — which takes a value — does not fit.
 	httpmock.RegisterResponder("GET", "{{ .CollectionURL }}",
-		httpmock.NewStringResponder(200, listResponse))
+		httpmock.NewStringResponder(200, listResponse).
+			HeaderSet(http.Header{"Content-Type": []string{"application/json"}}))
 
 	sdkClient, err := client.NewSDKClient(client.Config{Endpoint: mocks.UnitEndpoint, UserAgent: "unit-test"{{ .TestClientConfig }}})
 	if err != nil {

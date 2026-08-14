@@ -119,6 +119,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	testImports := newImportSet(e.pc.Module)
 	testImports.add("", "context")
 	testImports.add("_", "embed")
+	testImports.add("", "net/http")
 	testImports.add("", "testing")
 	testImports.add("", "github.com/hashicorp/terraform-plugin-framework/list")
 	testImports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
