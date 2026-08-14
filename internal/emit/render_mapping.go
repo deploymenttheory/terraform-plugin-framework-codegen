@@ -50,6 +50,9 @@ func constructLines(nodes []node, src, dst, attrPrefix string, depth int, gateUp
 		if n.attr.Nested != nil {
 			lines, nestedUsesFmt, err = constructNested(n, src, dst, attrPath, depth)
 			usesFmt = usesFmt || nestedUsesFmt
+		} else if strings.HasSuffix(n.fb.Access.ConvertSet, "MapAdditionalData") {
+			lines, err = constructAdditionalDataMap(n, src, dst, attrPath, indent)
+			usesFmt = true
 		} else {
 			lines, nestedUsesFmt, err = constructScalar(n, src, dst, attrPath, indent)
 			usesFmt = usesFmt || nestedUsesFmt
@@ -66,6 +69,32 @@ func constructLines(nodes []node, src, dst, attrPrefix string, depth int, gateUp
 		b.WriteString(lines)
 	}
 	return b.String(), usesFmt, nil
+}
+
+// constructAdditionalDataMap renders the write of a map the SDK carries as a
+// model with an untyped additionalData bag: build the model, fill its bag
+// from the plan, hand it to the parent's setter.
+//
+// Three statements rather than one call, because the value the parent setter
+// takes is the model and the value the plan holds is the map, and nothing in
+// the catalog can bridge those in one hop without naming both types.
+func constructAdditionalDataMap(n node, src, dst, attrPath, indent string) (string, error) {
+	plan, err := writeConvert(n.fb)
+	if err != nil {
+		return "", err
+	}
+	field := src + "." + ir.GoName(n.attr.Name)
+	local := lowerCamel(n.attr.Name) + "Map"
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "%sif !%s.IsNull() && !%s.IsUnknown() {\n", indent, field, field)
+	fmt.Fprintf(&b, "%s\t%s := %s\n", indent, local, n.fb.NestedConstructor)
+	fmt.Fprintf(&b, "%s\tif err := convert.%s(ctx, %s, %s.SetAdditionalData); err != nil {\n",
+		indent, plan.fn, field, local)
+	fmt.Fprintf(&b, "%s\t\t%s\n%s\t}\n", indent, errReturn(attrPath), indent)
+	fmt.Fprintf(&b, "%s\t%s.%s(%s)\n", indent, dst, n.fb.Access.Set, local)
+	fmt.Fprintf(&b, "%s}\n", indent)
+	return b.String(), nil
 }
 
 // constructScalar renders one scalar field's write.

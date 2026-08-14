@@ -464,3 +464,48 @@ func TestUnit_IsGoogleUUID_MatchesOnThePackagePath(t *testing.T) {
 		t.Error("another package's UUID must not be bridged through google/uuid")
 	}
 }
+
+// TestUnit_SettleScalar_MapThroughAdditionalData proves a map attribute
+// whose SDK type is a model with an additionalData bag settles to the bag
+// bridge rather than being refused. kiota emits no typed accessor for
+// additionalProperties, so the bag is the only route to the values.
+func TestUnit_SettleScalar_MapThroughAdditionalData(t *testing.T) {
+	pkg := types.NewPackage("example.com/sdk/models", "models")
+	obj := types.NewTypeName(0, pkg, "Headers", nil)
+	named := types.NewNamed(obj, types.NewStruct(nil, nil), nil)
+
+	// The bag accessor is what the pruner recognises.
+	sig := types.NewSignatureType(types.NewVar(0, nil, "m", named), nil, nil, nil,
+		types.NewTuple(types.NewVar(0, nil, "", types.NewMap(types.Typ[types.String], types.NewInterfaceType(nil, nil)))), false)
+	named.AddMethod(types.NewFunc(0, pkg, "GetAdditionalData", sig))
+
+	fb := FieldBinding{Attr: "headers", Wire: "headers", Kind: ir.TypeMap, ElementType: ir.TypeString,
+		Access: FieldAccess{Get: "GetHeaders"}}
+	if why := (&pruner{}).settleScalar(&fb, named); why != "" {
+		t.Fatalf("a map carried through additionalData was refused: %s", why)
+	}
+	if fb.Access.ConvertGet != "FromStringMapAdditionalData" {
+		t.Errorf("ConvertGet = %q, want FromStringMapAdditionalData", fb.Access.ConvertGet)
+	}
+	if fb.NestedModel != "models.Headers" {
+		t.Errorf("NestedModel = %q, want models.Headers", fb.NestedModel)
+	}
+}
+
+// TestUnit_SettleScalar_MapWithoutABagIsRefused proves a map attribute whose
+// SDK type carries neither a Go map nor an additionalData bag still names
+// itself in the reason rather than settling to something that will not
+// compile.
+func TestUnit_SettleScalar_MapWithoutABagIsRefused(t *testing.T) {
+	named := structNamed("example.com/sdk/models", "models", "Opaque")
+	fb := FieldBinding{Attr: "headers", Wire: "headers", Kind: ir.TypeMap, ElementType: ir.TypeString,
+		Access: FieldAccess{Get: "GetHeaders"}}
+
+	why := (&pruner{}).settleScalar(&fb, named)
+	if why == "" {
+		t.Fatal("a model with no bag and no map settled anyway")
+	}
+	if !strings.Contains(why, "cannot be bridged to a map attribute") {
+		t.Errorf("reason = %q", why)
+	}
+}

@@ -133,6 +133,14 @@ type Schema struct {
 	Properties []Property
 	// Items is the array element schema.
 	Items *Schema
+	// AdditionalProperties is the value schema of a map-shaped object, nil
+	// when the document declares none. Only a schema names the value type,
+	// which is what typing the map needs.
+	AdditionalProperties *Schema
+	// AdditionalPropertiesDeclared records an additionalProperties the
+	// document spelled as a bare boolean rather than a schema, so a refusal
+	// can say which of the two it saw.
+	AdditionalPropertiesDeclared bool
 	// AllOf, OneOf and AnyOf hold the composition branches.
 	AllOf []*Schema
 	OneOf []*Schema

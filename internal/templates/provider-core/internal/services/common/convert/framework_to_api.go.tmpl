@@ -127,6 +127,62 @@ func FrameworkToAPIBytesAsBase64(value types.String, setter func([]byte)) error 
 	return nil
 }
 
+// FrameworkToAPIStringMap hands the plain map[string]string to the setter
+// unless the value is null or unknown.
+func FrameworkToAPIStringMap(ctx context.Context, value types.Map, setter func(map[string]string)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	raw := map[string]string{}
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a string map from the plan: %v", diags.Errors())
+	}
+	setter(raw)
+	return nil
+}
+
+// FrameworkToAPIBoolMap hands the plain map[string]bool to the setter
+// unless the value is null or unknown.
+func FrameworkToAPIBoolMap(ctx context.Context, value types.Map, setter func(map[string]bool)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	raw := map[string]bool{}
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a bool map from the plan: %v", diags.Errors())
+	}
+	setter(raw)
+	return nil
+}
+
+// FrameworkToAPIInt64Map hands the plain map[string]int64 to the setter
+// unless the value is null or unknown.
+func FrameworkToAPIInt64Map(ctx context.Context, value types.Map, setter func(map[string]int64)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	raw := map[string]int64{}
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a int64 map from the plan: %v", diags.Errors())
+	}
+	setter(raw)
+	return nil
+}
+
+// FrameworkToAPIFloat64Map hands the plain map[string]float64 to the setter
+// unless the value is null or unknown.
+func FrameworkToAPIFloat64Map(ctx context.Context, value types.Map, setter func(map[string]float64)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	raw := map[string]float64{}
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a float64 map from the plan: %v", diags.Errors())
+	}
+	setter(raw)
+	return nil
+}
+
 // FrameworkToAPIStringList hands the plain []string to the setter unless
 // the list is null or unknown.
 func FrameworkToAPIStringList(ctx context.Context, value types.List, setter func([]string)) error {

@@ -57,7 +57,7 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 		fmt.Fprintf(&b, "%s\tMarkdownDescription: %s,\n", indent, strconv.Quote(desc))
 	}
 
-	if n.attr.Kind == ir.TypeList && n.attr.Nested == nil {
+	if (n.attr.Kind == ir.TypeList || n.attr.Kind == ir.TypeMap) && n.attr.Nested == nil {
 		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
 		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, schemaTypeOf(n).ElementType)
 	}

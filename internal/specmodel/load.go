@@ -486,6 +486,20 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 		}
 		s.Items = child
 	}
+	// additionalProperties is a schema, a bare true, or absent. Only a
+	// schema says what the values are, which is what a typed map needs; the
+	// other two say the object has no declared shape.
+	if additional := lookup(node, "additionalProperties"); additional != nil {
+		if additional.Kind == yaml.MappingNode {
+			child, err := l.schema(additional, at+".additionalProperties")
+			if err != nil {
+				return nil, err
+			}
+			s.AdditionalProperties = child
+		} else {
+			s.AdditionalPropertiesDeclared = true
+		}
+	}
 	for _, comp := range []struct {
 		key string
 		dst *[]*Schema

@@ -210,6 +210,7 @@ const (
 	TypeInt64   AttributeType = "int64"
 	TypeFloat64 AttributeType = "float64"
 	TypeList    AttributeType = "list"
+	TypeMap     AttributeType = "map"
 	TypeObject  AttributeType = "object"
 )
 
@@ -306,8 +307,8 @@ type Attribute struct {
 	// inferred facts follow it.
 	Description string        `json:"description,omitempty"`
 	Kind        AttributeType `json:"kind,omitempty"`
-	// ElementType is the type within a list of scalars; lists of objects
-	// carry Nested instead.
+	// ElementType is the type within a list or map of scalars; a list or
+	// map of objects carries Nested instead.
 	ElementType AttributeType `json:"element_type,omitempty"`
 	// Nested is the child tree of an object attribute or a list of
 	// objects.

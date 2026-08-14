@@ -237,6 +237,47 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 		return cannot(shortType(t))
 	}
 
+	// kiota models a map-shaped object as a model whose only field is an
+	// untyped additionalData bag, so the map is reached through that rather
+	// than through a Go map. The bag is map[string]any, so the element
+	// conversion asserts each value's type at runtime.
+	if fb.Kind == ir.TypeMap {
+		if named, ok := t.(*types.Named); ok {
+			if _, hasGet := methodOn(named, "GetAdditionalData"); hasGet {
+				title := exportedName(string(fb.ElementType))
+				// The write model is only resolved for a field that is
+				// written: construction is what needs it, and a read-only
+				// field has no constructor to name.
+				if fa.Set != "" {
+					model, constructor, why := p.writeModelFromNamed(named)
+					if why != "" {
+						return why
+					}
+					fb.NestedWriteModel, fb.NestedConstructor = model, constructor
+				}
+				fb.NestedModel = qualifiedName(named)
+				fa.NestedNilable = nilableType(t)
+				settle(shortType(t), "From"+title+"MapAdditionalData", "To"+title+"MapAdditionalData", "")
+				return ""
+			}
+		}
+	}
+
+	// A map of scalars the SDK does carry as a Go map. Only a string key can
+	// address a terraform map, and only a scalar value has a catalog bridge.
+	if mapType, ok := t.Underlying().(*types.Map); ok && fb.Kind == ir.TypeMap {
+		if basic, isBasic := mapType.Key().Underlying().(*types.Basic); !isBasic || basic.Kind() != types.String {
+			return cannot(shortType(t))
+		}
+		basic, isBasic := mapType.Elem().Underlying().(*types.Basic)
+		if !isBasic || !kindCompatible(fb.ElementType, basic) {
+			return cannot(shortType(t))
+		}
+		title := exportedName(basic.Name())
+		settle("map[string]"+basic.Name(), "From"+title+"Map", "To"+title+"Map", "")
+		return ""
+	}
+
 	// OpenAPI's `format: byte` is base64, which derives a string attribute
 	// rather than a list of numbers, so the bridge is base64 too.
 	if slice, ok := t.Underlying().(*types.Slice); ok && fb.Kind == ir.TypeString {
