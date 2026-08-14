@@ -116,7 +116,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, unrenderable("a resource needs bound create, read and delete calls")
 	}
 
-	nodes := joinTree(r.Schema, rb.Fields, addressingNames(
+	nodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.Fields, addressingNames(
 		r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 	d := &resourceData{
 		Package:        r.Names.Package,
@@ -274,7 +274,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	updateBody := ""
 	updateUsesFmt := false
 	if rb.UpdateWriteModel != "" {
-		updateNodes := joinTree(r.Schema, rb.UpdateFields, addressingNames(
+		updateNodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.UpdateFields, addressingNames(
 			r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 		updateBody, updateUsesFmt, err = constructLines(updateNodes, "data", "body", "", 1, false)
 		if err != nil {

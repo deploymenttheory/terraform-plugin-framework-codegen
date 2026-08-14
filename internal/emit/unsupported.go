@@ -85,7 +85,7 @@ func attributePath(kind, key, attribute string) string {
 // change that breaks fifteen entities becomes fifteen added lines in a
 // generation pull request instead of fifteen deleted directories among
 // thousands of regenerated ones.
-func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbind.Dropped, emissionRefusals []ir.Exclusion) (File, []Unsupported, error) {
+func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbind.Dropped, emissionRefusals []ir.Exclusion, keptUnbound map[string]bool) (File, []Unsupported, error) {
 	report := UnsupportedReport{FormatVersion: unsupportedFormatVersion}
 
 	if m != nil {
@@ -100,6 +100,14 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 	}
 
 	for _, removal := range removals {
+		// A removal the emitter kept anyway cost the operator nothing: the
+		// binding went because no model carries the field, and the
+		// attribute reached the schema regardless. Reporting it as a
+		// refusal is how this file came to claim 207 losses on one pilot
+		// that were not losses at all.
+		if keptUnbound[keptUnboundKey(removal.Kind, removal.Key, removal.Attribute)] {
+			continue
+		}
 		entry := Unsupported{Stage: StageBinding, Reason: removal.Reason}
 		if removal.Attribute == "" {
 			entry.Path = entityPath(removal.Kind, removal.Key)

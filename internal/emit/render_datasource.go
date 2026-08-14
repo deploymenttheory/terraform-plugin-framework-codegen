@@ -134,7 +134,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 		return fixtures.Fixture{}, unrenderable("a lookup-by-key datasource needs a bound read call")
 	}
 
-	nodes := joinTree(ds.Schema, db.Fields, addressingNames(ds.Operations.Read, ds.Operations.List))
+	nodes := e.joinTree(bindingKindDatasource, ds.Names.Key, ds.Schema, db.Fields, addressingNames(ds.Operations.Read, ds.Operations.List))
 	key := keyAttrName(ds)
 	if !hasNode(nodes, key) {
 		// The SDK model does not carry the key parameter as a field; the
@@ -224,7 +224,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	if itemTree == nil {
 		return fixtures.Fixture{}, unrenderable("the companion schema carries no items attribute")
 	}
-	itemNodes := joinTree(itemTree, db.Fields)
+	itemNodes := e.joinTree(bindingKindDatasource, ds.Names.Key, itemTree, db.Fields)
 
 	// The id filter needs the by-id read's payload to bridge to one list
 	// element: identical types, or a pointer the element type sits behind.

@@ -44,7 +44,7 @@ func unsupportedModel() *ir.Model {
 // reaches nested objects and list elements, and addresses each by its
 // dotted path — the half of the report that surfaces nowhere else.
 func TestUnit_RenderUnsupported_FindsEveryRefusalAtEveryDepth(t *testing.T) {
-	_, entries, err := RenderUnsupported(unsupportedModel(), nil, nil, nil)
+	_, entries, err := RenderUnsupported(unsupportedModel(), nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RenderUnsupported: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestUnit_RenderUnsupported_FindsEveryRefusalAtEveryDepth(t *testing.T) {
 // records refusals and nothing else — an attribute that generated fine must
 // not appear in it.
 func TestUnit_RenderUnsupported_SupportedAttributesAreAbsent(t *testing.T) {
-	_, entries, err := RenderUnsupported(unsupportedModel(), nil, nil, nil)
+	_, entries, err := RenderUnsupported(unsupportedModel(), nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RenderUnsupported: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestUnit_RenderUnsupported_EveryStageIsRepresented(t *testing.T) {
 	dropped := []sdkbind.Dropped{{Key: "ruleset", Kind: "resource", Reason: "the generated SDK does not carry this resource's binding"}}
 	emission := []ir.Exclusion{{Key: "nested_path", Reason: "a path parameter no attribute answers"}}
 
-	_, entries, err := RenderUnsupported(unsupportedModel(), removals, dropped, emission)
+	_, entries, err := RenderUnsupported(unsupportedModel(), removals, dropped, emission, nil)
 	if err != nil {
 		t.Fatalf("RenderUnsupported: %v", err)
 	}
@@ -145,12 +145,12 @@ func TestUnit_RenderUnsupported_IsAStableDiff(t *testing.T) {
 		{Kind: "resource", Key: "alpha", Attribute: "a", Reason: "no accessor"},
 	}
 
-	first, _, err := RenderUnsupported(unsupportedModel(), removals, nil, nil)
+	first, _, err := RenderUnsupported(unsupportedModel(), removals, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RenderUnsupported: %v", err)
 	}
 	for i := 0; i < 5; i++ {
-		again, _, err := RenderUnsupported(unsupportedModel(), removals, nil, nil)
+		again, _, err := RenderUnsupported(unsupportedModel(), removals, nil, nil, nil)
 		if err != nil {
 			t.Fatalf("RenderUnsupported: %v", err)
 		}
@@ -178,7 +178,7 @@ func TestUnit_RenderUnsupported_IsAStableDiff(t *testing.T) {
 // provider that refused nothing still gets a well-formed report rather than
 // a missing file, because a missing file cannot be drift-gated.
 func TestUnit_RenderUnsupported_EmptyModelStillRendersTheReport(t *testing.T) {
-	file, entries, err := RenderUnsupported(&ir.Model{}, nil, nil, nil)
+	file, entries, err := RenderUnsupported(&ir.Model{}, nil, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("RenderUnsupported: %v", err)
 	}
@@ -219,5 +219,123 @@ func TestUnit_UnsupportedSummary_CountsByStageAndStaysSilentWhenClean(t *testing
 
 	if one := UnsupportedSummary([]Unsupported{{Path: `resource "a"`, Stage: StageBinding}}); !strings.Contains(one, "1 refusal (") {
 		t.Errorf("a single refusal summarised as %q, want the singular noun", one)
+	}
+}
+
+// TestUnit_RenderUnsupported_KeptAttributesAreNotLosses proves the report
+// leaves out a removal the emitter kept anyway. Pruning removes the binding
+// for `id` and the addressing attributes because no model carries them —
+// they address the object rather than describe it — and the attribute
+// reaches the schema regardless. Reporting those as refusals is how this
+// file came to claim 207 losses on one pilot that were not losses.
+func TestUnit_RenderUnsupported_KeptAttributesAreNotLosses(t *testing.T) {
+	removals := []sdkbind.Removal{
+		{Kind: "resource", Key: "tag", Attribute: "id", Reason: "carries no GetId"},
+		{Kind: "resource", Key: "tag", Attribute: "owner", Reason: "carries no GetOwner"},
+		{Kind: "resource", Key: "tag", Attribute: "colour", Reason: "carries no GetColour"},
+	}
+	kept := map[string]bool{
+		keptUnboundKey("resource", "tag", "id"):    true,
+		keptUnboundKey("resource", "tag", "owner"): true,
+	}
+
+	_, entries, err := RenderUnsupported(&ir.Model{}, removals, nil, nil, kept)
+	if err != nil {
+		t.Fatalf("RenderUnsupported: %v", err)
+	}
+
+	paths := make(map[string]bool, len(entries))
+	for _, e := range entries {
+		paths[e.Path] = true
+	}
+	for _, gone := range []string{`resource "tag" attribute "id"`, `resource "tag" attribute "owner"`} {
+		if paths[gone] {
+			t.Errorf("%s reached the schema, so it must not be reported as a refusal", gone)
+		}
+	}
+	if !paths[`resource "tag" attribute "colour"`] {
+		t.Error(`resource "tag" attribute "colour" was genuinely lost and must still be reported`)
+	}
+	if len(entries) != 1 {
+		t.Errorf("the report carries %d entries, want 1: %v", len(entries), paths)
+	}
+}
+
+// TestUnit_RenderUnsupported_KeptIsMatchedPerEntity proves the filter is
+// keyed on the whole triple. Two entities can both carry an attribute of
+// one name, and only the one that actually kept it may be filtered.
+func TestUnit_RenderUnsupported_KeptIsMatchedPerEntity(t *testing.T) {
+	removals := []sdkbind.Removal{
+		{Kind: "resource", Key: "kept", Attribute: "org", Reason: "carries no GetOrg"},
+		{Kind: "resource", Key: "lost", Attribute: "org", Reason: "carries no GetOrg"},
+		{Kind: "datasource", Key: "kept", Attribute: "org", Reason: "carries no GetOrg"},
+	}
+	kept := map[string]bool{keptUnboundKey("resource", "kept", "org"): true}
+
+	_, entries, err := RenderUnsupported(&ir.Model{}, removals, nil, nil, kept)
+	if err != nil {
+		t.Fatalf("RenderUnsupported: %v", err)
+	}
+	got := make([]string, 0, len(entries))
+	for _, e := range entries {
+		got = append(got, e.Path)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("the report carries %v, want the lost resource and the datasource only", got)
+	}
+	for _, want := range []string{`resource "lost" attribute "org"`, `datasource "kept" attribute "org"`} {
+		found := false
+		for _, p := range got {
+			if p == want {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("the report does not carry %s; got %v", want, got)
+		}
+	}
+}
+
+// TestUnit_JoinTreeKeeping_ReportsOnlyWhatItKeptUnbound proves the set the
+// report filters on is exactly what the join decided to keep: the id and
+// the addressing attributes at the root, and nothing that had a binding or
+// that was dropped.
+func TestUnit_JoinTreeKeeping_ReportsOnlyWhatItKeptUnbound(t *testing.T) {
+	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
+		{Name: "id", Kind: ir.TypeString},
+		{Name: "org", Kind: ir.TypeString},
+		{Name: "name", Kind: ir.TypeString},
+		{Name: "colour", Kind: ir.TypeString},
+	}}
+	// Only "name" has a binding; "colour" has none and is not addressing.
+	fbs := []sdkbind.FieldBinding{{Attr: "name"}}
+
+	nodes, kept := joinTreeKeeping(tree, fbs, map[string]bool{"org": true})
+
+	names := make([]string, 0, len(nodes))
+	for _, n := range nodes {
+		names = append(names, n.attr.Name)
+	}
+	if len(names) != 3 {
+		t.Fatalf("the join kept %v, want id, org and name", names)
+	}
+
+	keptSet := map[string]bool{}
+	for _, k := range kept {
+		keptSet[k] = true
+	}
+	for _, want := range []string{"id", "org"} {
+		if !keptSet[want] {
+			t.Errorf("%q was kept with no binding and must be reported as such", want)
+		}
+	}
+	if keptSet["name"] {
+		t.Error("name has a binding, so it was not kept unbound")
+	}
+	if keptSet["colour"] {
+		t.Error("colour was dropped, not kept")
+	}
+	if len(kept) != 2 {
+		t.Errorf("the join reports %v kept unbound, want exactly id and org", kept)
 	}
 }

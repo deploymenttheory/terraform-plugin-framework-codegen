@@ -304,7 +304,7 @@ func generate(opts Options) (*generation, error) {
 	// staging, the manifest and the drift gate, so a refusal that appears
 	// or disappears is a line in the generation pull request rather than a
 	// line in a CI log nobody reads.
-	unsupported, refusals, err := emit.RenderUnsupported(model, removals, excluded, entities.Excluded)
+	unsupported, refusals, err := emit.RenderUnsupported(model, removals, excluded, entities.Excluded, entities.KeptUnbound)
 	if err != nil {
 		return nil, err
 	}
