@@ -246,20 +246,27 @@ func (derivation *deriver) resource(classification specmodel.Classification, nam
 	createFull, readFull := derivation.full(classification.Create), derivation.full(classification.Read)
 	updateFull, deleteFull := derivation.full(classification.Update), derivation.full(classification.Delete)
 
-	var createBody, readBody *specmodel.Schema
+	var createBody, readBody, updateBody *specmodel.Schema
 	if createFull != nil {
 		createBody = createFull.RequestBody
 	}
 	if readFull != nil {
 		readBody = readFull.SuccessSchema()
 	}
+	if updateFull != nil {
+		updateBody = updateFull.RequestBody
+	}
 	// A singleton has no create body; what the practitioner may set is what
 	// the update accepts. Taking the write side from there is what keeps its
 	// attributes from all deriving computed.
+	//
+	// It also makes the create-minus-update difference empty by
+	// construction, which is right: an entity whose only write is the update
+	// has nothing the update refuses.
 	if classification.Singleton && updateFull != nil {
 		createBody = updateFull.RequestBody
 	}
-	tree := buildTree(createBody, readBody, classification.MissingUpdate)
+	tree := buildTree(createBody, readBody, updateBody, classification.MissingUpdate)
 	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
 	ensureID(tree, keyParam, keyType)
 	readOperation := derivation.operation(classification.Read, OperationRead)
@@ -387,7 +394,7 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 	if readFull != nil {
 		readBody = readFull.SuccessSchema()
 	}
-	itemTree := buildTree(nil, readBody, false)
+	itemTree := buildTree(nil, readBody, nil, false)
 	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
 	ensureID(itemTree, keyParam, keyType)
 
@@ -436,7 +443,7 @@ func (derivation *deriver) listResource(classification specmodel.Classification,
 	return ListResource{
 		Names:           names,
 		ListOperation:   *derivation.operation(classification.List, OperationList),
-		Schema:          buildTree(nil, element, false),
+		Schema:          buildTree(nil, element, nil, false),
 		ListEnvelopeKey: listEnvelopeKey(listFull),
 	}
 }
@@ -445,7 +452,7 @@ func (derivation *deriver) action(classification specmodel.Classification, names
 	createFull := derivation.full(classification.Create)
 	var request *AttributeTree
 	if createFull != nil && createFull.RequestBody != nil {
-		request = buildTree(createFull.RequestBody, nil, false)
+		request = buildTree(createFull.RequestBody, nil, nil, false)
 	}
 	return Action{
 		Names:           names,
