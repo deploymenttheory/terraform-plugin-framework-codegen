@@ -54,8 +54,33 @@ func loadSDK(sdkDir string) (*loader, error) {
 			return nil, fmt.Errorf("%w: %s carries no type information", ErrLoad, pkg.PkgPath)
 		}
 		l.pkgs[pkg.PkgPath] = pkg
+		registerDependencies(l.pkgs, pkg)
 	}
 	return l, nil
+}
+
+// registerDependencies adds a package's transitive imports to the index.
+//
+// packages.Load answers only the roots, so without this the index holds the
+// SDK's own packages alone. A generated SDK names types from its runtime in
+// signatures — a multipart body, a serialisation primitive — and those
+// resolve to no package, so any call taking one is refused as though the
+// type did not exist.
+//
+// A dependency that failed to type-check is skipped rather than fatal: only
+// the SDK's own packages are held to that, and one unrelated dependency
+// must not stop the whole binding.
+func registerDependencies(index map[string]*packages.Package, pkg *packages.Package) {
+	for path, imported := range pkg.Imports {
+		if _, seen := index[path]; seen {
+			continue
+		}
+		if imported == nil || imported.Types == nil || imported.Types.Scope() == nil {
+			continue
+		}
+		index[path] = imported
+		registerDependencies(index, imported)
+	}
 }
 
 // pkg answers one loaded package by import path.
