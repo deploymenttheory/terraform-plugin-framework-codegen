@@ -1,7 +1,6 @@
 package intermediate_representation
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -159,6 +158,9 @@ func foldBound[T int64 | float64](dst **T, declared *T) {
 		*dst = &value
 	}
 }
+
+// passwordFormat is the format a document gives a value that is a secret.
+const passwordFormat = "password"
 
 // scalarTypes are the declared types a single terraform attribute holds
 // directly.
@@ -455,6 +457,14 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 	attribute.MinLength, attribute.MaxLength = flatPrimary.minLength, flatPrimary.maxLength
 	attribute.MinItems, attribute.MaxItems = flatPrimary.minItems, flatPrimary.maxItems
 
+	// A value the document says is a secret. Either declaration is enough on
+	// its own: format: password names what the value is, and writeOnly says
+	// the API takes it and never gives it back, which is what a credential
+	// does. Read from both sides — a request schema is where a secret is
+	// declared, and a response schema that names one describes the same field.
+	attribute.Sensitive = flatCreate.writeOnly || flatRead.writeOnly ||
+		flatCreate.format == passwordFormat || flatRead.format == passwordFormat
+
 	// Every attribute lands in exactly one of five outcomes, and this is where
 	// four of them are chosen (the fifth, omitted entirely, is decided by
 	// deriveType marking the attribute unsupported).
@@ -527,271 +537,4 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 		edges.dependsOn = &dependsOnEdge
 	}
 	return attribute, edges
-}
-
-// deriveType maps the schema shape onto an attribute type, refusing the
-// shapes the toolkit does not model rather than guessing: an Unsupported
-// attribute names its reason and generates nothing.
-func deriveType(attribute *Attribute, flatPrimary flat, create, read, update *specmodel.Schema) {
-	switch {
-	case flatPrimary.declaredType == "string":
-		attribute.Kind = TypeString
-	case flatPrimary.declaredType == "boolean":
-		attribute.Kind = TypeBool
-	case flatPrimary.declaredType == "integer":
-		attribute.Kind = TypeInt64
-	case flatPrimary.declaredType == "number":
-		attribute.Kind = TypeFloat64
-	case flatPrimary.declaredType == "array":
-		deriveListType(attribute, create, read, update)
-	case flatPrimary.declaredType == "object" || (flatPrimary.declaredType == "" && len(flatPrimary.properties) > 0):
-		if len(flatPrimary.properties) == 0 {
-			deriveMapType(attribute, flatPrimary)
-			return
-		}
-		attribute.Kind = TypeObject
-		attribute.Nested = buildTree(create, read, update, false)
-	case flatPrimary.declaredType == "" && flatPrimary.hasUnion:
-		// resolveUnion collapses a union whose branches are all scalars.
-		// What is left has an object branch, which the generated SDK models
-		// as a composed type carrying an accessor per branch — an attribute
-		// per variant, not one collapsed type.
-		refuse(attribute, "oneOf/anyOf union with an object branch: it needs one attribute per variant, which the document alone does not name")
-	case flatPrimary.declaredType == "":
-		refuse(attribute, "no type declared")
-	default:
-		refuse(attribute, fmt.Sprintf("type %q is not supported", flatPrimary.declaredType))
-	}
-}
-
-// deriveMapType types an object that declares no properties. Only
-// additionalProperties carrying a schema names the value type, which is
-// what a map attribute needs; a bare boolean or nothing at all says the
-// object has no declared shape, and the refusal says which was seen.
-func deriveMapType(attribute *Attribute, flatPrimary flat) {
-	value := flatPrimary.additionalProperties
-	if value == nil {
-		if flatPrimary.additionalPropertiesDeclared {
-			refuse(attribute, "object whose additionalProperties is a bare boolean: it declares no value type to map")
-			return
-		}
-		refuse(attribute, "object declaring neither properties nor additionalProperties: it has no declared shape")
-		return
-	}
-
-	flatValue := flatten(value)
-	switch {
-	case flatValue.declaredType == "string":
-		attribute.Kind, attribute.ElementType = TypeMap, TypeString
-	case flatValue.declaredType == "boolean":
-		attribute.Kind, attribute.ElementType = TypeMap, TypeBool
-	case flatValue.declaredType == "integer":
-		attribute.Kind, attribute.ElementType = TypeMap, TypeInt64
-	case flatValue.declaredType == "number":
-		attribute.Kind, attribute.ElementType = TypeMap, TypeFloat64
-	case flatValue.declaredType == "object" || (flatValue.declaredType == "" && len(flatValue.properties) > 0):
-		// A map of objects needs a nested model, nested state mapping and
-		// nested fixtures; only maps of scalars are modelled.
-		refuse(attribute, "map of objects: only maps of scalar values are modelled")
-	default:
-		refuse(attribute, fmt.Sprintf("map of %q values is not supported", flatValue.declaredType))
-	}
-}
-
-// deriveListType types an array attribute from its element schema, seen
-// from both sides of the create/read fold.
-func deriveListType(attribute *Attribute, create, read, update *specmodel.Schema) {
-	createItems, readItems, updateItems := flatten(create).items, flatten(read).items, flatten(update).items
-	primary := createItems
-	if primary == nil {
-		primary = readItems
-	}
-	flatItems := flatten(primary)
-	switch {
-	case flatItems.empty:
-		refuse(attribute, "array declares no items schema")
-	case flatItems.declaredType == "string":
-		attribute.Kind, attribute.ElementType = TypeList, TypeString
-	case flatItems.declaredType == "boolean":
-		attribute.Kind, attribute.ElementType = TypeList, TypeBool
-	case flatItems.declaredType == "integer":
-		attribute.Kind, attribute.ElementType = TypeList, TypeInt64
-	case flatItems.declaredType == "number":
-		attribute.Kind, attribute.ElementType = TypeList, TypeFloat64
-	case flatItems.declaredType == "object" || (flatItems.declaredType == "" && len(flatItems.properties) > 0):
-		if len(flatItems.properties) == 0 {
-			refuse(attribute, "array of free-form objects: map support is out of scope")
-			return
-		}
-		attribute.Kind, attribute.ElementType = TypeList, TypeObject
-		attribute.Nested = buildTree(createItems, readItems, updateItems, false)
-	default:
-		refuse(attribute, fmt.Sprintf("array of %q elements is not supported", flatItems.declaredType))
-	}
-}
-
-// refuse marks an attribute unsupported with the reason a person reads.
-func refuse(attribute *Attribute, reason string) {
-	attribute.Kind = ""
-	attribute.Unsupported = true
-	attribute.UnsupportedReason = reason
-}
-
-// mergeExtensions folds the read side'schema property extensions under the
-// create side'schema, the create side winning a collision: the writable view is
-// where behaviour annotations are authored.
-func mergeExtensions(create, read specmodel.Extensions) specmodel.Extensions {
-	out := specmodel.Extensions{}
-	for key, value := range read {
-		out[key] = value
-	}
-	for key, value := range create {
-		out[key] = value
-	}
-	return out
-}
-
-// renderEnum spells enum values for a validator, in document order.
-func renderEnum(values []any) []string {
-	out := make([]string, 0, len(values))
-	for _, value := range values {
-		out = append(out, fmt.Sprintf("%v", value))
-	}
-	return out
-}
-
-// ensureID guarantees the id attribute every resource and datasource
-// carries: computed, mapped from the response'schema id field when the schema
-// declares one, otherwise synthesized from the item path parameter.
-func ensureID(tree *AttributeTree, keyParam string, keyType AttributeType) {
-	for index := range tree.Attributes {
-		if tree.Attributes[index].Name == "id" {
-			tree.Attributes[index].ComputedOptionalRequired = Computed
-			tree.Attributes[index].RequiresReplace = false
-			return
-		}
-	}
-	wire := keyParam
-	if wire == "" {
-		wire = "id"
-	}
-	kind := keyType
-	if kind == "" {
-		kind = TypeString
-	}
-	tree.Attributes = append([]Attribute{{
-		Name:                     "id",
-		WireName:                 wire,
-		Kind:                     kind,
-		ComputedOptionalRequired: Computed,
-	}}, tree.Attributes...)
-}
-
-// ensureParentParameters gives every path parameter above the item key an
-// attribute to be read from: required, and prepended in path order ahead of
-// the id.
-//
-// An item path is not always /things/{id}. A parent-scoped API spells it
-// /repos/{owner}/{repo}/rulesets/{ruleset_id}, and owner and repo appear in
-// no request or response body — they are addressing, not content. Emission
-// had nothing to feed them from and refused the entity, which on a
-// thoroughly parent-scoped document is most of the API.
-//
-// A parent the body does declare is left as the body declares it; the
-// document is a better authority on its own field than the URL is. Only a
-// parameter no attribute answers is added.
-func ensureParentParameters(tree *AttributeTree, parents []Parameter) {
-	if tree == nil || len(parents) == 0 {
-		return
-	}
-	// A name the tree already uses cannot be added again, whatever it holds:
-	// two attributes of one name is not a schema. Where the sitting tenant is
-	// an object, it is a different thing the document spells the same way — a
-	// repository's owner block beside the owner segment of its path — and it
-	// cannot answer the parameter either. Emission refuses the entity by
-	// name, which is a better answer than a renamed attribute nobody asked
-	// for or a schema that does not load.
-	declared := make(map[string]bool, len(tree.Attributes))
-	for _, attribute := range tree.Attributes {
-		declared[attribute.Name] = true
-	}
-
-	added := make([]Attribute, 0, len(parents))
-	for _, parent := range parents {
-		name := snakeCase(parent.Name)
-		if declared[name] {
-			continue
-		}
-		declared[name] = true
-		kind := parent.Type
-		if kind == "" {
-			kind = TypeString
-		}
-		added = append(added, Attribute{
-			Name:                     name,
-			WireName:                 parent.Name,
-			Kind:                     kind,
-			ComputedOptionalRequired: Required,
-			// Addressing is not editable: an object does not move to another
-			// parent in place, and every API that admits the move spells it
-			// as its own operation.
-			RequiresReplace: true,
-		})
-	}
-	if len(added) == 0 {
-		return
-	}
-	tree.Attributes = append(added, tree.Attributes...)
-}
-
-// addressingSchema is a collection path's addressing attributes as a tree of
-// their own, for a list resource to declare as the configuration of its list
-// block. Nil when the path takes no parameters.
-//
-// Every parameter is a parent: a collection path carries no item key, so
-// there is no id to absorb the last one. None carries RequiresReplace — a
-// list block declares a query, and a query has no plan for a modifier to act
-// on.
-func addressingSchema(parameters []Parameter) *AttributeTree {
-	if len(parameters) == 0 {
-		return nil
-	}
-	tree := &AttributeTree{}
-	ensureParentParameters(tree, parameters)
-	for index := range tree.Attributes {
-		tree.Attributes[index].RequiresReplace = false
-	}
-	return tree
-}
-
-// parentParameters is an operation's path parameters above the item key: all
-// of them but the last, which addresses the object itself and becomes the id.
-func parentParameters(parameters []Parameter) []Parameter {
-	if len(parameters) < 2 {
-		return nil
-	}
-	return parameters[:len(parameters)-1]
-}
-
-// requireKey turns the lookup key into the datasource'schema single required
-// argument: the matching attribute becomes required, or a new one is
-// prepended when the response object does not carry the key.
-func requireKey(tree *AttributeTree, keyParam string, keyType AttributeType) {
-	name := snakeCase(keyParam)
-	for index := range tree.Attributes {
-		if tree.Attributes[index].Name == name {
-			tree.Attributes[index].ComputedOptionalRequired = Required
-			return
-		}
-	}
-	kind := keyType
-	if kind == "" {
-		kind = TypeString
-	}
-	tree.Attributes = append([]Attribute{{
-		Name:                     name,
-		WireName:                 keyParam,
-		Kind:                     kind,
-		ComputedOptionalRequired: Required,
-	}}, tree.Attributes...)
 }
