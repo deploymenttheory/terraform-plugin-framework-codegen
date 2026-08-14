@@ -6,8 +6,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 )
 
 // runCreateMinimal creates the object everything later reads, mutates and

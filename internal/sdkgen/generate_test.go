@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
 )
 
 func TestUnit_For_SelectsEachBackendAndRefusesOthers(t *testing.T) {

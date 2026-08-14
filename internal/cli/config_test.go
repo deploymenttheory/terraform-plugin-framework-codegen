@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
 )
 
 const validConfig = `version: 1

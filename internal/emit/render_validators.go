@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // render_validators.go realizes the attribute tree's cross-attribute rules as

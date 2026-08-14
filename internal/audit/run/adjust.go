@@ -40,8 +40,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/infer"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 )
 
 // maxAdjustIters bounds one create-or-update attempt's adjustments. Combined

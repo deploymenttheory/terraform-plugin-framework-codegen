@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 )
 
 // resourceData is the render context every resource template consumes.
@@ -604,9 +604,9 @@ func checkLines(address string, spec fixtures.Fixture, a fixtures.Form) string {
 func valueWanted(v fixtures.Entry, a fixtures.Form) bool {
 	switch a {
 	case fixtures.ConfigMinimal:
-		return v.Presence == ir.PresenceRequired
+		return v.ComputedOptionalRequired == ir.Required
 	case fixtures.ConfigMaximal:
-		return v.Presence != ir.PresenceComputed
+		return v.ComputedOptionalRequired != ir.Computed
 	default:
 		return true
 	}

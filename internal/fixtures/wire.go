@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // WireJSON renders the form's values as the JSON body the API speaks,

@@ -8,9 +8,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/correction"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/correction"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // compile_edges.go compiles the conditional-edge observation kinds the

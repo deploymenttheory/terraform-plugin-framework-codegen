@@ -13,8 +13,8 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
 )
 
 // fixedBackoff is a backoff whose entropy and clock are pinned, so the

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/infer"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/strategy"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
 )
 
 // TestUnit_Borrow_BorrowsCachesAndReportsEmpty covers the borrower's three

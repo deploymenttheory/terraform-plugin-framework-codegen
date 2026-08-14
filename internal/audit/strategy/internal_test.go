@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // TestStepRequestsCoversEveryKind asserts each step kind's request reserve is

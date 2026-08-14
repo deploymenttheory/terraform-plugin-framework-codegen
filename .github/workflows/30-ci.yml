@@ -71,8 +71,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: go.mod
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-backend@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-backend@v0
       - name: tfpfgen config validate
         run: tfpfgen config validate
       - name: tfpfgen spec verify

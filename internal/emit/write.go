@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
 )
 
 // Write lands rendered files under root and returns their manifest

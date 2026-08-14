@@ -5,7 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/code"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // schemaKind selects which terraform-plugin-framework schema package a
@@ -50,7 +51,7 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "%s%q: schema.%s{\n", indent, n.attr.Name, sb.attributeType(n))
-	b.WriteString(sb.presenceLines(n, indent+"\t"))
+	b.WriteString(sb.computedOptionalRequiredLines(n, indent+"\t"))
 
 	if desc := attributeDescription(n.attr); desc != "" {
 		fmt.Fprintf(&b, "%s\tMarkdownDescription: %s,\n", indent, strconv.Quote(desc))
@@ -58,7 +59,7 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 
 	if n.attr.Kind == ir.TypeList && n.attr.Nested == nil {
 		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
-		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, frameworkElemType(n.attr.ElementKind))
+		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, frameworkElemType(n.attr.ElementType))
 	}
 
 	b.WriteString(sb.validatorLines(n, indent+"\t", depth))
@@ -82,41 +83,68 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 	return b.String()
 }
 
-// validatorLines renders one attribute's Validators declaration, combining
-// every stock validator it carries into a single typed slice: the enum OneOf
+// validators is every stock validator one attribute carries, each a
+// finished expression travelling with the imports it needs: the enum OneOf
 // on a closed-set string, and the AlsoRequires that realizes a dependency
-// whose subject is this root attribute. Empty when the attribute carries none.
-func (sb *schemaBuilder) validatorLines(n node, indent string, depth int) string {
-	var exprs []string
+// whose subject is this root attribute.
+//
+// Nothing here registers an import. An expression that needs a package says
+// so on the value it returns, and validatorLines is the single place those
+// declarations are honoured — so a validator can never be rendered into a
+// file whose import block forgot it.
+func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
+	var validators []code.CustomValidator
 
 	if len(n.attr.OneOf) > 0 && n.attr.Kind == ir.TypeString && n.attr.Nested == nil {
-		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator")
 		quoted := make([]string, len(n.attr.OneOf))
 		for i, v := range n.attr.OneOf {
 			quoted[i] = strconv.Quote(v)
 		}
-		exprs = append(exprs, fmt.Sprintf("stringvalidator.OneOf(%s)", strings.Join(quoted, ", ")))
+		validators = append(validators, code.CustomValidator{
+			Imports: []code.Import{
+				{Path: "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"},
+			},
+			SchemaDefinition: fmt.Sprintf("stringvalidator.OneOf(%s)", strings.Join(quoted, ", ")),
+		})
 	}
 
 	if depth == sb.rootDepth {
 		if reqs, ok := sb.deps[n.attr.Name]; ok {
 			pkg := validatorPackage(n)
-			sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework-validators/"+pkg)
-			sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
 			paths := make([]string, len(reqs))
 			for i, r := range reqs {
 				paths[i] = fmt.Sprintf("path.MatchRoot(%q)", r)
 			}
-			exprs = append(exprs, fmt.Sprintf("%s.AlsoRequires(%s)", pkg, strings.Join(paths, ", ")))
+			validators = append(validators, code.CustomValidator{
+				Imports: []code.Import{
+					{Path: "github.com/hashicorp/terraform-plugin-framework-validators/" + pkg},
+					{Path: "github.com/hashicorp/terraform-plugin-framework/path"},
+				},
+				SchemaDefinition: fmt.Sprintf("%s.AlsoRequires(%s)", pkg, strings.Join(paths, ", ")),
+			})
 		}
 	}
 
-	if len(exprs) == 0 {
+	return validators
+}
+
+// validatorLines renders one attribute's Validators declaration, combining
+// every validator it carries into a single typed slice and registering the
+// imports those validators declared. Empty when the attribute carries none.
+func (sb *schemaBuilder) validatorLines(n node, indent string, depth int) string {
+	validators := sb.validators(n, depth)
+	if len(validators) == 0 {
 		return ""
+	}
+
+	definitions := make([]string, len(validators))
+	for i, v := range validators {
+		sb.imports.addImports(v.Imports)
+		definitions[i] = v.SchemaDefinition
 	}
 	sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/schema/validator")
 	return fmt.Sprintf("%sValidators: []validator.%s{%s},\n",
-		indent, planModifierValue(n), strings.Join(exprs, ", "))
+		indent, planModifierValue(n), strings.Join(definitions, ", "))
 }
 
 // validatorPackage is the per-type validator package name, mirroring the
@@ -160,23 +188,23 @@ func (sb *schemaBuilder) attributeType(n node) string {
 	}
 }
 
-// presenceLines renders the presence booleans. Inside a datasource, computed
+// computedOptionalRequiredLines renders the presence booleans. Inside a datasource, computed
 // stays computed. Inside an action there is no Computed to render: the
 // action package's attribute types do not declare the field, because an
 // invocation has arguments and a result and nothing in between for the
 // framework to fill in. An attribute that is writable as well keeps the
 // writable half; one that is only computed is dropped before it reaches
 // here.
-func (sb *schemaBuilder) presenceLines(n node, indent string) string {
-	switch n.attr.Presence {
-	case ir.PresenceRequired:
+func (sb *schemaBuilder) computedOptionalRequiredLines(n node, indent string) string {
+	switch n.attr.ComputedOptionalRequired {
+	case ir.Required:
 		return indent + "Required: true,\n"
-	case ir.PresenceComputed:
+	case ir.Computed:
 		if sb.kind == schemaAction {
 			return indent + "Optional: true,\n"
 		}
 		return indent + "Computed: true,\n"
-	case ir.PresenceOptionalComputed:
+	case ir.ComputedOptional:
 		if sb.kind == schemaAction {
 			return indent + "Optional: true,\n"
 		}
@@ -186,32 +214,55 @@ func (sb *schemaBuilder) presenceLines(n node, indent string) string {
 	}
 }
 
-// planModifierLines renders the plan modifiers a resource attribute
-// carries: RequiresReplace on create-only attributes, and
-// UseStateForUnknown on the computed id — the one attribute whose value
-// is stable across writes by definition.
-func (sb *schemaBuilder) planModifierLines(n node, indent string) string {
+// planModifiers is every plan modifier one resource attribute carries,
+// each a finished expression travelling with the imports it needs:
+// RequiresReplace on create-only attributes, and UseStateForUnknown on the
+// computed id — the one attribute whose value is stable across writes by
+// definition. Empty for a datasource or an action, neither of which has
+// plan modifiers at all.
+func (sb *schemaBuilder) planModifiers(n node) []code.CustomPlanModifier {
 	if sb.kind != schemaResource {
-		return ""
+		return nil
 	}
 
-	var modifiers []string
 	pkg := planModifierPackage(n)
+	imports := []code.Import{
+		{Path: "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"},
+		{Path: "github.com/hashicorp/terraform-plugin-framework/resource/schema/" + pkg},
+	}
 
+	var modifiers []code.CustomPlanModifier
 	if n.attr.RequiresReplace {
-		modifiers = append(modifiers, pkg+".RequiresReplace()")
+		modifiers = append(modifiers, code.CustomPlanModifier{
+			Imports:          imports,
+			SchemaDefinition: pkg + ".RequiresReplace()",
+		})
 	}
-	if n.attr.Name == "id" && n.attr.Presence == ir.PresenceComputed && n.attr.Kind == ir.TypeString && n.attr.Nested == nil {
-		modifiers = append(modifiers, pkg+".UseStateForUnknown()")
+	if n.attr.Name == "id" && n.attr.ComputedOptionalRequired == ir.Computed && n.attr.Kind == ir.TypeString && n.attr.Nested == nil {
+		modifiers = append(modifiers, code.CustomPlanModifier{
+			Imports:          imports,
+			SchemaDefinition: pkg + ".UseStateForUnknown()",
+		})
 	}
+	return modifiers
+}
+
+// planModifierLines renders one attribute's PlanModifiers declaration,
+// combining every modifier it carries into a single typed slice and
+// registering the imports those modifiers declared.
+func (sb *schemaBuilder) planModifierLines(n node, indent string) string {
+	modifiers := sb.planModifiers(n)
 	if len(modifiers) == 0 {
 		return ""
 	}
 
-	sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier")
-	sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/resource/schema/"+pkg)
+	definitions := make([]string, len(modifiers))
+	for i, m := range modifiers {
+		sb.imports.addImports(m.Imports)
+		definitions[i] = m.SchemaDefinition
+	}
 	return fmt.Sprintf("%sPlanModifiers: []planmodifier.%s{%s},\n",
-		indent, planModifierValue(n), strings.Join(modifiers, ", "))
+		indent, planModifierValue(n), strings.Join(definitions, ", "))
 }
 
 // planModifierPackage is the per-type plan modifier package name.

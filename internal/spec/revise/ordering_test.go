@@ -8,9 +8,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/correction"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/store"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/correction"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/store"
 )
 
 // acceptedFiles lists the accepted corrections currently in corrections/,

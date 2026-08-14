@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/manifest"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/revise"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/version"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/revise"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version"
 )
 
 // Options is one `sdk generate` run.

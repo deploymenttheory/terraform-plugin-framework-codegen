@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/templates"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/templates"
 )
 
 // File is one rendered provider-core file, not yet written.

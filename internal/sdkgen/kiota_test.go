@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
 )
 
 func TestUnit_KiotaCheckTool_AcceptsTheMatchingPin(t *testing.T) {

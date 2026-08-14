@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 )
 
 // The openapi-generator-flavoured fixture: value-typed accessors, string
@@ -23,10 +23,10 @@ func oagAccess(base, sdkType, convGet, convSet, parse string) sdkbind.FieldAcces
 
 func oagModel() *ir.Model {
 	opt := func(name string, kind ir.AttributeType) ir.Attribute {
-		return ir.Attribute{Name: name, WireName: name, Kind: kind, Presence: ir.PresenceOptional}
+		return ir.Attribute{Name: name, WireName: name, Kind: kind, ComputedOptionalRequired: ir.Optional}
 	}
 	list := func(name string, elem ir.AttributeType) ir.Attribute {
-		return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeList, ElementKind: elem, Presence: ir.PresenceOptional}
+		return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeList, ElementType: elem, ComputedOptionalRequired: ir.Optional}
 	}
 
 	return &ir.Model{
@@ -43,8 +43,8 @@ func oagModel() *ir.Model {
 					PathParameters: []ir.Parameter{{Name: "tagId", Type: ir.TypeString}}, SuccessCode: 204},
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
-				{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceRequired},
+				{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
 				opt("enabled", ir.TypeBool),
 				opt("count", ir.TypeInt64),
 				opt("big", ir.TypeInt64),
@@ -58,9 +58,9 @@ func oagModel() *ir.Model {
 				list("ratios", ir.TypeFloat64),
 				list("sizes", ir.TypeInt64),
 				list("modes", ir.TypeString),
-				{Name: "meta", WireName: "meta", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
+				{Name: "meta", WireName: "meta", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{opt("note", ir.TypeString)}}},
-				{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElementKind: ir.TypeObject, Presence: ir.PresenceOptional,
+				{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{opt("pattern", ir.TypeString)}}},
 			}},
 			UpdateStyle: ir.UpdateStylePutFull,
@@ -75,12 +75,12 @@ func oagModel() *ir.Model {
 				List: &ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/tags", SuccessCode: 200},
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "filter_type", WireName: "filter_type", Kind: ir.TypeString, Presence: ir.PresenceRequired},
-				{Name: "filter_value", WireName: "filter_value", Kind: ir.TypeString, Presence: ir.PresenceOptional},
-				{Name: "items", WireName: "items", Kind: ir.TypeList, ElementKind: ir.TypeObject, Presence: ir.PresenceComputed,
+				{Name: "filter_type", WireName: "filter_type", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+				{Name: "filter_value", WireName: "filter_value", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+				{Name: "items", WireName: "items", Kind: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Computed,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-						{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
-						{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceComputed},
+						{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+						{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 					}}},
 			}},
 			// A wrapped list whose openapi-generator envelope is a struct
@@ -92,12 +92,12 @@ func oagModel() *ir.Model {
 			InvokeOperation: ir.Operation{Kind: ir.OperationInvoke, Method: "POST", PathTemplate: "/tags/{tagId}/rotate",
 				PathParameters: []ir.Parameter{{Name: "tagId", Type: ir.TypeInt64}}, SuccessCode: 200},
 			RequestSchema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "force", WireName: "force", Kind: ir.TypeBool, Presence: ir.PresenceRequired},
+				{Name: "force", WireName: "force", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Required},
 				opt("factor", ir.TypeFloat64),
 				list("labels", ir.TypeString),
-				{Name: "window", WireName: "window", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
+				{Name: "window", WireName: "window", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{opt("hours", ir.TypeInt64)}}},
-				{Name: "steps", WireName: "steps", Kind: ir.TypeList, ElementKind: ir.TypeObject, Presence: ir.PresenceOptional,
+				{Name: "steps", WireName: "steps", Kind: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{opt("order", ir.TypeInt64)}}},
 			}},
 		}},
@@ -149,15 +149,15 @@ func oagBindings() *sdkbind.Bindings {
 						Access: oagAccess("Phase", "*sdk.TagPhase", "FromPtrEnum", "ToPtrEnum", "sdk.NewTagPhaseFromValue")},
 					{Attr: "when", Wire: "when", Kind: ir.TypeString,
 						Access: oagAccess("When", "time.Time", "FromTime", "ToTime", "")},
-					{Attr: "levels", Wire: "levels", Kind: ir.TypeList, ElementKind: ir.TypeInt64,
+					{Attr: "levels", Wire: "levels", Kind: ir.TypeList, ElementType: ir.TypeInt64,
 						Access: oagAccess("Levels", "[]int64", "FromInt64Slice", "ToInt64Slice", "")},
-					{Attr: "flags", Wire: "flags", Kind: ir.TypeList, ElementKind: ir.TypeBool,
+					{Attr: "flags", Wire: "flags", Kind: ir.TypeList, ElementType: ir.TypeBool,
 						Access: oagAccess("Flags", "[]bool", "FromBoolSlice", "ToBoolSlice", "")},
-					{Attr: "ratios", Wire: "ratios", Kind: ir.TypeList, ElementKind: ir.TypeFloat64,
+					{Attr: "ratios", Wire: "ratios", Kind: ir.TypeList, ElementType: ir.TypeFloat64,
 						Access: oagAccess("Ratios", "[]float64", "FromFloat64Slice", "ToFloat64Slice", "")},
-					{Attr: "sizes", Wire: "sizes", Kind: ir.TypeList, ElementKind: ir.TypeInt64,
+					{Attr: "sizes", Wire: "sizes", Kind: ir.TypeList, ElementType: ir.TypeInt64,
 						Access: oagAccess("Sizes", "[]int32", "FromInt32Slice", "ToInt32Slice", "")},
-					{Attr: "modes", Wire: "modes", Kind: ir.TypeList, ElementKind: ir.TypeString,
+					{Attr: "modes", Wire: "modes", Kind: ir.TypeList, ElementType: ir.TypeString,
 						Access: oagAccess("Modes", "[]sdk.Mode", "FromEnumSlice", "ToEnumSlice", "sdk.NewModeFromValue")},
 					{Attr: "meta", Wire: "meta", Kind: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Get: "GetMeta", Set: "SetMeta", SDKType: "sdk.TagMeta"},
@@ -168,7 +168,7 @@ func oagBindings() *sdkbind.Bindings {
 							{Attr: "note", Wire: "note", Kind: ir.TypeString,
 								Access: oagAccess("Note", "string", "FromString", "ToString", "")},
 						}},
-					{Attr: "rules", Wire: "rules", Kind: ir.TypeList, ElementKind: ir.TypeObject,
+					{Attr: "rules", Wire: "rules", Kind: ir.TypeList, ElementType: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Get: "GetRules", Set: "SetRules", SDKType: "[]sdk.TagRule"},
 						NestedModel:       "sdk.TagRule",
 						NestedWriteModel:  "sdk.TagRule",
@@ -208,7 +208,7 @@ func oagBindings() *sdkbind.Bindings {
 						Access: sdkbind.FieldAccess{Set: "SetForce", SDKType: "bool", ConvertSet: "ToBool"}},
 					{Attr: "factor", Wire: "factor", Kind: ir.TypeFloat64,
 						Access: sdkbind.FieldAccess{Set: "SetFactor", SDKType: "float64", ConvertSet: "ToFloat64"}},
-					{Attr: "labels", Wire: "labels", Kind: ir.TypeList, ElementKind: ir.TypeString,
+					{Attr: "labels", Wire: "labels", Kind: ir.TypeList, ElementType: ir.TypeString,
 						Access: sdkbind.FieldAccess{Set: "SetLabels", SDKType: "[]string", ConvertSet: "ToStringSlice"}},
 					{Attr: "window", Wire: "window", Kind: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Set: "SetWindow", SDKType: "sdk.RotateWindow"},
@@ -219,7 +219,7 @@ func oagBindings() *sdkbind.Bindings {
 							{Attr: "hours", Wire: "hours", Kind: ir.TypeInt64,
 								Access: sdkbind.FieldAccess{Set: "SetHours", SDKType: "int64", ConvertSet: "ToInt64"}},
 						}},
-					{Attr: "steps", Wire: "steps", Kind: ir.TypeList, ElementKind: ir.TypeObject,
+					{Attr: "steps", Wire: "steps", Kind: ir.TypeList, ElementType: ir.TypeObject,
 						Access:            sdkbind.FieldAccess{Set: "SetSteps", SDKType: "[]sdk.RotateStep"},
 						NestedModel:       "sdk.RotateStep",
 						NestedWriteModel:  "sdk.RotateStep",

@@ -12,13 +12,13 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
-	auditrun "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/run"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/revise"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/store"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
+	auditrun "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/run"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/revise"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/store"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 func newAuditCommand() *cobra.Command {

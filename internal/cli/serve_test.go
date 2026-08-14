@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
 )
 
 // syncWriter is a threadsafe buffer: the serving goroutine writes while the

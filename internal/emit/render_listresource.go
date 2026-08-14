@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 )
 
 // listResourceData is the render context every list-resource template

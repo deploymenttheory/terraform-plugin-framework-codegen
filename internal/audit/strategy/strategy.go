@@ -33,9 +33,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/plan"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // Provenance records how strongly a variant or hypothesis is grounded. The

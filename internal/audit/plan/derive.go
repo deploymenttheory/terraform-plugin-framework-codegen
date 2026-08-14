@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // The caps. Each bounds one derivation rule, so a wide schema widens the

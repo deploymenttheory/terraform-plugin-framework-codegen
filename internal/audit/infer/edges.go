@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 )
 
 // keyOf identifies an edge for confirmed/inconclusive reconciliation by the

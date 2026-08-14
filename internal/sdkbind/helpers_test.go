@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 func TestExportedName(t *testing.T) {
@@ -53,8 +53,8 @@ func TestGoTypeOf(t *testing.T) {
 }
 
 func TestDatasourceElementTree(t *testing.T) {
-	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{attr("name", "name", ir.TypeString, ir.PresenceComputed)}}
-	items := attr("items", "items", ir.TypeList, ir.PresenceComputed)
+	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{attr("name", "name", ir.TypeString, ir.Computed)}}
+	items := attr("items", "items", ir.TypeList, ir.Computed)
 	items.Nested = itemTree
 
 	lookup := ir.Datasource{LookupByKey: true, Schema: itemTree}

@@ -80,7 +80,7 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-tfpfgen@v0
       - name: tfpfgen config validate --secrets
         env:
           TFPFGEN_AUTH_TOKEN: ${{ secrets.TFPFGEN_AUTH_TOKEN != '' && 'present' || '' }}
@@ -112,7 +112,7 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-tfpfgen@v0
       - name: Resolve the document source
         id: source
         env:
@@ -131,7 +131,7 @@ jobs:
             exit 1
           fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/stage@v0
         with:
           verb: spec import ${{ steps.source.outputs.url }}
           produce: spec-imported
@@ -197,9 +197,9 @@ jobs:
           path: audit/observations
           if-no-files-found: error
       - if: steps.decide.outputs.mode == 'run'
-        uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+        uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-tfpfgen@v0
       - if: steps.decide.outputs.mode == 'run'
-        uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+        uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/stage@v0
         with:
           restore: spec-imported
           verb: audit run
@@ -234,10 +234,10 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-tfpfgen@v0
       - name: Make the corrections tree the verb writes into
         run: mkdir -p spec/corrections/proposed spec/corrections/rejected
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/stage@v0
         with:
           restore: spec-imported,observations
           verb: spec revise --propose-only
@@ -659,8 +659,8 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/stage@v0
         with:
           restore: spec-imported,observations,corrections-proposed
           verb: spec revise
@@ -681,9 +681,9 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-backend@v0
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-backend@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/stage@v0
         with:
           restore: spec-imported,spec-revised
           verb: sdk generate
@@ -711,8 +711,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version: stable
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/stage@v0
         with:
           restore: spec-imported,spec-revised,sdk-tree
           verb: provider generate --postcheck
@@ -739,8 +739,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version: stable
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/setup-tfpfgen@v0
-      - uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/actions/stage@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/setup-tfpfgen@v0
+      - uses: deploymenttheory/terraform-plugin-framework-codegen/.github/actions/stage@v0
         with:
           restore: spec-imported,spec-revised,sdk-tree,provider-tree
           verb: provider verify

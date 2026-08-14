@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/emit"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/manifest"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkgen"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/emit"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkgen"
 )
 
 // Report is what one `provider verify` run found. The drift vocabulary is

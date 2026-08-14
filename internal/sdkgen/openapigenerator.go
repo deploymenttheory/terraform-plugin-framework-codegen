@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
 )
 
 // openAPIGeneratorTools are the binary names the tool installs under,

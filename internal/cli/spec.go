@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/store"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/store"
 )
 
 func newSpecCommand() *cobra.Command {

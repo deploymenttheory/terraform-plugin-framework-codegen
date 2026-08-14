@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/corpus"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/corpus"
 )
 
 // The inline fixtures above prove each rule in isolation; this proves the

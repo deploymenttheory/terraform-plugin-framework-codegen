@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // minimalConfig builds just enough config to select a backend.
@@ -52,8 +52,8 @@ func op(kind ir.OperationKind, method, path, opID string, params ...ir.Parameter
 	return &ir.Operation{Kind: kind, Method: method, PathTemplate: path, OperationID: opID, PathParameters: params}
 }
 
-func attr(name, wire string, kind ir.AttributeType, presence ir.Presence) ir.Attribute {
-	return ir.Attribute{Name: name, WireName: wire, Kind: kind, Presence: presence}
+func attr(name, wire string, kind ir.AttributeType, presence ir.ComputedOptionalRequired) ir.Attribute {
+	return ir.Attribute{Name: name, WireName: wire, Kind: kind, ComputedOptionalRequired: presence}
 }
 
 // tagSchema is the shared attribute tree both fake SDKs carry variants
@@ -61,41 +61,41 @@ func attr(name, wire string, kind ir.AttributeType, presence ir.Presence) ir.Att
 // an inline enumeration, a scalar slice, and a nested object.
 func tagSchema() *ir.AttributeTree {
 	detail := &ir.AttributeTree{Attributes: []ir.Attribute{
-		attr("note", "note", ir.TypeString, ir.PresenceOptional),
-		attr("weight", "weight", ir.TypeFloat64, ir.PresenceOptional),
+		attr("note", "note", ir.TypeString, ir.Optional),
+		attr("weight", "weight", ir.TypeFloat64, ir.Optional),
 	}}
-	nested := attr("detail", "detail", ir.TypeObject, ir.PresenceOptional)
+	nested := attr("detail", "detail", ir.TypeObject, ir.Optional)
 	nested.Nested = detail
 
-	labels := attr("labels", "labels", ir.TypeList, ir.PresenceOptional)
-	labels.ElementKind = ir.TypeString
+	labels := attr("labels", "labels", ir.TypeList, ir.Optional)
+	labels.ElementType = ir.TypeString
 
-	kindAttr := attr("kind", "kind", ir.TypeString, ir.PresenceOptional)
+	kindAttr := attr("kind", "kind", ir.TypeString, ir.Optional)
 	kindAttr.OneOf = []string{"SIMPLE"}
 
-	kinds := attr("kinds", "kinds", ir.TypeList, ir.PresenceOptional)
-	kinds.ElementKind = ir.TypeString
+	kinds := attr("kinds", "kinds", ir.TypeList, ir.Optional)
+	kinds.ElementType = ir.TypeString
 
-	unsupported := attr("free", "free", "", ir.PresenceOptional)
+	unsupported := attr("free", "free", "", ir.Optional)
 	unsupported.Unsupported = true
 	unsupported.UnsupportedReason = "free-form object"
 
 	return &ir.AttributeTree{Attributes: []ir.Attribute{
-		attr("id", "id", ir.TypeString, ir.PresenceComputed),
-		attr("name", "name", ir.TypeString, ir.PresenceRequired),
-		attr("error", "error", ir.TypeString, ir.PresenceOptional),
-		attr("vendor", "vendor", ir.TypeString, ir.PresenceOptional),
-		attr("count", "count", ir.TypeInt64, ir.PresenceOptional),
-		attr("enabled", "enabled", ir.TypeBool, ir.PresenceOptional),
-		attr("created_at", "createdAt", ir.TypeString, ir.PresenceComputed),
+		attr("id", "id", ir.TypeString, ir.Computed),
+		attr("name", "name", ir.TypeString, ir.Required),
+		attr("error", "error", ir.TypeString, ir.Optional),
+		attr("vendor", "vendor", ir.TypeString, ir.Optional),
+		attr("count", "count", ir.TypeInt64, ir.Optional),
+		attr("enabled", "enabled", ir.TypeBool, ir.Optional),
+		attr("created_at", "createdAt", ir.TypeString, ir.Computed),
 		kindAttr,
 		kinds,
-		attr("slug", "slug", ir.TypeString, ir.PresenceOptional),
-		attr("alias", "alias", ir.TypeString, ir.PresenceOptional),
+		attr("slug", "slug", ir.TypeString, ir.Optional),
+		attr("alias", "alias", ir.TypeString, ir.Optional),
 		labels,
 		nested,
-		attr("weird", "weird", ir.TypeString, ir.PresenceOptional),
-		attr("legacy", "legacy", ir.TypeString, ir.PresenceOptional),
+		attr("weird", "weird", ir.TypeString, ir.Optional),
+		attr("legacy", "legacy", ir.TypeString, ir.Optional),
 		unsupported,
 	}}
 }
@@ -106,15 +106,15 @@ func kiotaModel() *ir.Model {
 	tagID := ir.Parameter{Name: "tagId", Type: ir.TypeString}
 
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		attr("id", "id", ir.TypeString, ir.PresenceComputed),
-		attr("name", "name", ir.TypeString, ir.PresenceComputed),
+		attr("id", "id", ir.TypeString, ir.Computed),
+		attr("name", "name", ir.TypeString, ir.Computed),
 	}}
-	items := attr("items", "items", ir.TypeList, ir.PresenceComputed)
-	items.ElementKind = ir.TypeObject
+	items := attr("items", "items", ir.TypeList, ir.Computed)
+	items.ElementType = ir.TypeObject
 	items.Nested = itemTree
 
 	assignTree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		attr("name", "name", ir.TypeString, ir.PresenceRequired),
+		attr("name", "name", ir.TypeString, ir.Required),
 	}}
 
 	return &ir.Model{
@@ -137,8 +137,8 @@ func kiotaModel() *ir.Model {
 					Read:   op(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("id", "id", ir.TypeString, ir.PresenceComputed),
-					attr("name", "name", ir.TypeString, ir.PresenceRequired),
+					attr("id", "id", ir.TypeString, ir.Computed),
+					attr("name", "name", ir.TypeString, ir.Required),
 				}},
 			},
 		},
@@ -150,8 +150,8 @@ func kiotaModel() *ir.Model {
 					List: op(ir.OperationList, "GET", "/tags", ""),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("filter_type", "filter_type", ir.TypeString, ir.PresenceRequired),
-					attr("filter_value", "filter_value", ir.TypeString, ir.PresenceOptional),
+					attr("filter_type", "filter_type", ir.TypeString, ir.Required),
+					attr("filter_value", "filter_value", ir.TypeString, ir.Optional),
 					items,
 				}},
 			},
@@ -174,11 +174,11 @@ func oagModel() *ir.Model {
 	tagID := ir.Parameter{Name: "tagId", Type: ir.TypeString}
 
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		attr("id", "id", ir.TypeString, ir.PresenceComputed),
-		attr("name", "name", ir.TypeString, ir.PresenceComputed),
+		attr("id", "id", ir.TypeString, ir.Computed),
+		attr("name", "name", ir.TypeString, ir.Computed),
 	}}
-	items := attr("items", "items", ir.TypeList, ir.PresenceComputed)
-	items.ElementKind = ir.TypeObject
+	items := attr("items", "items", ir.TypeList, ir.Computed)
+	items.ElementType = ir.TypeObject
 	items.Nested = itemTree
 
 	schema := tagSchema()
@@ -216,8 +216,8 @@ func oagModel() *ir.Model {
 					List: op(ir.OperationList, "GET", "/tags", "listTags"),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("filter_type", "filter_type", ir.TypeString, ir.PresenceRequired),
-					attr("filter_value", "filter_value", ir.TypeString, ir.PresenceOptional),
+					attr("filter_type", "filter_type", ir.TypeString, ir.Required),
+					attr("filter_value", "filter_value", ir.TypeString, ir.Optional),
 					items,
 				}},
 			},
@@ -227,7 +227,7 @@ func oagModel() *ir.Model {
 				Names:         names("groups", "groups"),
 				ListOperation: *op(ir.OperationList, "GET", "/groups", "listGroups"),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("name", "name", ir.TypeString, ir.PresenceComputed),
+					attr("name", "name", ir.TypeString, ir.Computed),
 				}},
 			},
 		},

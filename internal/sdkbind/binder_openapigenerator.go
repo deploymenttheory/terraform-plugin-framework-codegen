@@ -3,8 +3,8 @@ package sdkbind
 import (
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // openAPIGeneratorBinder drafts bindings against an openapi-generator go
@@ -122,8 +122,8 @@ func (openAPIGeneratorBinder) access(a ir.Attribute, mode accessMode) FieldAcces
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "float64", "FromFloat64", "ToFloat64"
 	case ir.TypeList:
 		if a.Nested == nil {
-			fa.SDKType = "[]" + goTypeOf(a.ElementKind)
-			shape := exportedName(string(a.ElementKind)) + "Slice"
+			fa.SDKType = "[]" + goTypeOf(a.ElementType)
+			shape := exportedName(string(a.ElementType)) + "Slice"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
 		}
 	case ir.TypeObject:

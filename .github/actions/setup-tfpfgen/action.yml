@@ -83,7 +83,7 @@ runs:
         # action by its full path — GitHub treats that as local. Falling back
         # to GITHUB_REPOSITORY there would (wrongly) look in the caller's
         # provider repo, so the fallback is the toolkit repo by name.
-        repo="${GITHUB_ACTION_REPOSITORY:-deploymenttheory/terraform-plugin-framework-codegen-1}"
+        repo="${GITHUB_ACTION_REPOSITORY:-deploymenttheory/terraform-plugin-framework-codegen}"
 
         dir="${RUNNER_TEMP}/setup-tfpfgen"
         mkdir -p "$dir"

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // standaloneClient gives each standalone test its own connection pool.

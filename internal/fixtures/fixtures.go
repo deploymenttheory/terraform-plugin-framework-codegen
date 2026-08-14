@@ -20,7 +20,7 @@ package fixtures
 import (
 	"strings"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // NamePrefix marks every synthesised name-bearing string. The audit's
@@ -59,12 +59,12 @@ type Entry struct {
 	// speaks.
 	Name string
 	Wire string
-	// Kind and ElementKind mirror the attribute's kinds.
+	// Kind and ElementType mirror the attribute's kinds.
 	Kind        ir.AttributeType
-	ElementKind ir.AttributeType
-	// Presence decides which renderings carry the value: configurations
+	ElementType ir.AttributeType
+	// ComputedOptionalRequired decides which renderings carry the value: configurations
 	// carry writable attributes, responses carry readable ones.
-	Presence ir.Presence
+	ComputedOptionalRequired ir.ComputedOptionalRequired
 	// Scalar is the value of a scalar attribute — string, bool, int64 or
 	// float64 — or the single element's value for a list of scalars. Nil
 	// for object kinds.
@@ -298,11 +298,11 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			continue
 		}
 		v := Entry{
-			Name:        a.Name,
-			Wire:        a.WireName,
-			Kind:        a.Kind,
-			ElementKind: a.ElementKind,
-			Presence:    a.Presence,
+			Name:                     a.Name,
+			Wire:                     a.WireName,
+			Kind:                     a.Kind,
+			ElementType:              a.ElementType,
+			ComputedOptionalRequired: a.ComputedOptionalRequired,
 		}
 		switch {
 		case a.Nested != nil:
@@ -310,7 +310,7 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			v.Nested = nested
 			skips = append(skips, nestedSkips...)
 		case a.Kind == ir.TypeList:
-			v.Scalar = scalarFor(a.ElementKind, a, at)
+			v.Scalar = scalarFor(a.ElementType, a, at)
 		default:
 			v.Scalar = scalarFor(a.Kind, a, at)
 		}
@@ -347,11 +347,11 @@ func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) any {
 func (v Entry) wanted(a Form) bool {
 	switch a {
 	case ConfigMinimal:
-		return v.Presence == ir.PresenceRequired
+		return v.ComputedOptionalRequired == ir.Required
 	case ConfigMaximal:
-		return v.Presence != ir.PresenceComputed
+		return v.ComputedOptionalRequired != ir.Computed
 	case ResponseMinimal:
-		return v.Presence != ir.PresenceOptional
+		return v.ComputedOptionalRequired != ir.Optional
 	default: // ResponseMaximal
 		return true
 	}

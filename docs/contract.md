@@ -204,7 +204,7 @@ permissions:
   pull-requests: write
 jobs:
   generate:
-    uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/workflows/10-generate.yml@v0
+    uses: deploymenttheory/terraform-plugin-framework-codegen/.github/workflows/10-generate.yml@v0
     with:
       audit: ${{ inputs.audit }}
       reuse_audit_run_id: ${{ inputs.reuse_audit_run_id }}
@@ -233,7 +233,7 @@ permissions:
   actions: write
 jobs:
   corrections:
-    uses: deploymenttheory/terraform-plugin-framework-codegen-1/.github/workflows/20-corrections.yml@v0
+    uses: deploymenttheory/terraform-plugin-framework-codegen/.github/workflows/20-corrections.yml@v0
     with:
       generate_workflow: generate.yml
     secrets: inherit
@@ -297,7 +297,7 @@ The App must be installed on the provider repo with **contents: write**,
 
 - Provider repos pin `generator.version` to an exact release tag; branches
   are refused by validation.
-- Caller workflows reference `deploymenttheory/terraform-plugin-framework-codegen-1/.github/workflows/<NN-name>.yml`
+- Caller workflows reference `deploymenttheory/terraform-plugin-framework-codegen/.github/workflows/<NN-name>.yml`
   at the moving major tag — `@v0` until the 1.0.0 contract freeze, `@v1`
   after it. Compatible releases fast-forward the tag; breaking changes cut
   the next major and leave existing callers untouched.

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/revise"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/revise"
 )
 
 // valid is a complete, correct tfpfgen.yaml. Each table case below mutates

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // thingTree derives the main fixture's resource tree once per test.
@@ -35,17 +35,17 @@ func TestAttributes_TypeMapping(t *testing.T) {
 	}
 
 	labels := attribute(t, tree, "labels")
-	if labels.ElementKind != TypeString || labels.Nested != nil {
+	if labels.ElementType != TypeString || labels.Nested != nil {
 		t.Errorf("labels = %+v, want a list of strings", labels)
 	}
 	rules := attribute(t, tree, "rules")
-	if rules.ElementKind != TypeObject || rules.Nested == nil {
+	if rules.ElementType != TypeObject || rules.Nested == nil {
 		t.Fatalf("rules = %+v, want a list of objects", rules)
 	}
-	if kind := attribute(t, rules.Nested, "kind"); kind.Presence != PresenceRequired {
+	if kind := attribute(t, rules.Nested, "kind"); kind.ComputedOptionalRequired != Required {
 		t.Errorf("kind inside rules = %+v, want required", kind)
 	}
-	if limit := attribute(t, rules.Nested, "limit"); limit.Presence != PresenceOptional || limit.Kind != TypeInt64 {
+	if limit := attribute(t, rules.Nested, "limit"); limit.ComputedOptionalRequired != Optional || limit.Kind != TypeInt64 {
 		t.Errorf("limit inside rules = %+v", limit)
 	}
 	settings := attribute(t, tree, "settings")
@@ -74,26 +74,26 @@ func TestAttributes_Presence(t *testing.T) {
 	tree := thingTree(t)
 	for _, testCase := range []struct {
 		name string
-		want Presence
+		want ComputedOptionalRequired
 	}{
 		// Every attribute reaches exactly one of these; a fifth outcome,
 		// omitted from the schema entirely, is the unsupported-type path.
-		{"name", PresenceRequired},   // required and writable
-		{"region", PresenceOptional}, // writable, and the server leaves it absent: the rare one
+		{"name", Required},   // required and writable
+		{"region", Optional}, // writable, and the server leaves it absent: the rare one
 		// The two routes to Optional+Computed. `mode` takes the weak one — the
 		// response schema happens to list it as required — and `filled` takes
 		// the one the audit measures, which is the only route available on an
 		// API that declares nothing required in its responses.
-		{"mode", PresenceOptionalComputed},
-		{"filled", PresenceOptionalComputed}, // x-tfpfgen-server-default
-		{"stamp", PresenceComputed},          // readOnly
-		{"etag", PresenceComputed},           // response-only
-		{"forced", PresenceComputed},         // x-tfpfgen-server-forced
-		{"flaky", PresenceComputed},          // x-tfpfgen-volatile
-		{"id", PresenceComputed},             // always
+		{"mode", ComputedOptional},
+		{"filled", ComputedOptional}, // x-tfpfgen-server-default
+		{"stamp", Computed},          // readOnly
+		{"etag", Computed},           // response-only
+		{"forced", Computed},         // x-tfpfgen-server-forced
+		{"flaky", Computed},          // x-tfpfgen-volatile
+		{"id", Computed},             // always
 	} {
-		if a := attribute(t, tree, testCase.name); a.Presence != testCase.want {
-			t.Errorf("%s: presence = %q, want %q", testCase.name, a.Presence, testCase.want)
+		if a := attribute(t, tree, testCase.name); a.ComputedOptionalRequired != testCase.want {
+			t.Errorf("%s: presence = %q, want %q", testCase.name, a.ComputedOptionalRequired, testCase.want)
 		}
 	}
 }
@@ -363,7 +363,7 @@ components:
 `
 	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "code")
 	id := r.Schema.Attributes[0]
-	if id.Name != "id" || id.Presence != PresenceComputed {
+	if id.Name != "id" || id.ComputedOptionalRequired != Computed {
 		t.Fatalf("first attribute = %+v, want the synthesized computed id", id)
 	}
 	if id.WireName != "codeNumber" {
@@ -484,7 +484,7 @@ components:
             extra: {type: integer}
 `
 	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "part")
-	if a := attribute(t, r.Schema, "core"); a.Presence != PresenceRequired {
+	if a := attribute(t, r.Schema, "core"); a.ComputedOptionalRequired != Required {
 		t.Errorf("core = %+v, want the branch's required to hold", a)
 	}
 	if a := attribute(t, r.Schema, "extra"); a.Kind != TypeInt64 {
@@ -494,8 +494,8 @@ components:
 
 func TestUnit_EnsureParentParameters_AddsWhatNoBodyDeclares(t *testing.T) {
 	tree := &AttributeTree{Attributes: []Attribute{
-		{Name: "id", WireName: "id", Kind: TypeString, Presence: PresenceComputed},
-		{Name: "name", WireName: "name", Kind: TypeString, Presence: PresenceRequired},
+		{Name: "id", WireName: "id", Kind: TypeString, ComputedOptionalRequired: Computed},
+		{Name: "name", WireName: "name", Kind: TypeString, ComputedOptionalRequired: Required},
 	}}
 	ensureParentParameters(tree, []Parameter{
 		{Name: "owner", Type: TypeString},
@@ -512,8 +512,8 @@ func TestUnit_EnsureParentParameters_AddsWhatNoBodyDeclares(t *testing.T) {
 		}
 	}
 	for _, a := range tree.Attributes[:2] {
-		if a.Presence != PresenceRequired {
-			t.Fatalf("%s must be required, got %s", a.Name, a.Presence)
+		if a.ComputedOptionalRequired != Required {
+			t.Fatalf("%s must be required, got %s", a.Name, a.ComputedOptionalRequired)
 		}
 		if !a.RequiresReplace {
 			t.Fatalf("%s must force replacement: addressing is not editable", a.Name)
@@ -524,15 +524,15 @@ func TestUnit_EnsureParentParameters_AddsWhatNoBodyDeclares(t *testing.T) {
 func TestUnit_EnsureParentParameters_LeavesWhatTheBodyAlreadyDeclares(t *testing.T) {
 	// The document is a better authority on its own field than the URL is.
 	tree := &AttributeTree{Attributes: []Attribute{
-		{Name: "owner", WireName: "owner", Kind: TypeString, Presence: PresenceOptional},
+		{Name: "owner", WireName: "owner", Kind: TypeString, ComputedOptionalRequired: Optional},
 	}}
 	ensureParentParameters(tree, []Parameter{{Name: "owner", Type: TypeString}})
 
 	if len(tree.Attributes) != 1 {
 		t.Fatalf("a declared parent must not be added twice, got %d", len(tree.Attributes))
 	}
-	if tree.Attributes[0].Presence != PresenceOptional {
-		t.Fatalf("a declared parent keeps its declared presence, got %s", tree.Attributes[0].Presence)
+	if tree.Attributes[0].ComputedOptionalRequired != Optional {
+		t.Fatalf("a declared parent keeps its declared presence, got %s", tree.Attributes[0].ComputedOptionalRequired)
 	}
 }
 

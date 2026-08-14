@@ -24,7 +24,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
 )
 
 // Backend is one SDK generator behind the common interface. Exactly one is

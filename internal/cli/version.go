@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/version"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version"
 )
 
 func newVersionCommand() *cobra.Command {

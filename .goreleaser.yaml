@@ -33,7 +33,7 @@ builds:
       # everything else asks it. {{ .Version }} carries no leading v, so tag
       # v0.1.0 reports 0.1.0 — setup-tfpfgen compares accordingly.
       - -s -w
-      - -X github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/version.value={{ .Version }}
+      - -X github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version.value={{ .Version }}
     mod_timestamp: "{{ .CommitTimestamp }}"
 
 archives:

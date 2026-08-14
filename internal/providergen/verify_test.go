@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/manifest"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkgen"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/version"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkgen"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version"
 )
 
 // TestUnit_Verify_ReportsEveryDriftKind mirrors sdk verify's vocabulary

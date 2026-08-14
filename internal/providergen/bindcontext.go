@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/emit"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/emit"
 )
 
 // sdkRelPath is where the provider module carries its generated SDK — the

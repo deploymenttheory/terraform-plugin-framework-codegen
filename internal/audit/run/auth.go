@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
 )
 
 // authenticator injects credentials into outgoing requests. Exactly one

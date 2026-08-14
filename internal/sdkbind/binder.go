@@ -3,7 +3,7 @@ package sdkbind
 import (
 	"strings"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // dialect is what a backend contributes to the shared binding walk: how a
@@ -139,7 +139,7 @@ func fieldBindings(d dialect, t *ir.AttributeTree, mode accessMode) []FieldBindi
 		}
 		fb := FieldBinding{
 			Attr: a.Name, Wire: a.WireName,
-			Kind: a.Kind, ElementKind: a.ElementKind,
+			Kind: a.Kind, ElementType: a.ElementType,
 			Access: d.access(a, mode),
 		}
 		if a.Nested != nil {
@@ -153,7 +153,7 @@ func fieldBindings(d dialect, t *ir.AttributeTree, mode accessMode) []FieldBindi
 // writable reports whether an attribute travels in a request body: an
 // attribute the server alone fills never does.
 func writable(a ir.Attribute, mode accessMode) bool {
-	return mode != accessReadOnly && a.Presence != ir.PresenceComputed
+	return mode != accessReadOnly && a.ComputedOptionalRequired != ir.Computed
 }
 
 // readable reports whether an attribute is mapped back from a response.

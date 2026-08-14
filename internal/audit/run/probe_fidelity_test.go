@@ -3,7 +3,7 @@ package run
 import (
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/strategy"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
 )
 
 // The ThousandEyes proof run recorded `interval` as server-forced on three

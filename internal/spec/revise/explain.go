@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 )
 
 // Explanation is one observation kind's account of itself: a title to head a
