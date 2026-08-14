@@ -112,8 +112,25 @@ func (flattened flat) findProperty(name string) *specmodel.Schema {
 // read side means the request stands alone. Response-only properties come
 // out computed. replaceAll marks every writable attribute RequiresReplace,
 // which is what a missing update operation amounts to.
-func buildTree(create, read *specmodel.Schema, replaceAll bool) *AttributeTree {
+//
+// The update request schema is the third side, and it is read for one fact
+// only: which writable properties the update refuses to take. A property
+// the create body declares and the update body does not is one the API
+// will not let a practitioner change, which is RequiresReplace. A nil
+// update side says nothing — either the entity has no update operation, in
+// which case replaceAll already covers every attribute, or the document
+// declares no schema for it, and an absent schema is not evidence of an
+// absent field.
+func buildTree(create, read, update *specmodel.Schema, replaceAll bool) *AttributeTree {
 	flatCreate, flatRead := flatten(create), flatten(read)
+	flatUpdate := flatten(update)
+	// An update body that declares properties is what makes the difference
+	// readable at all; without one, every writable attribute would look
+	// refused. A body that resolves to no properties is silence — the
+	// document declaring a request it never spells — not a claim that
+	// nothing is updatable, and reading it as one would force replacement
+	// on every writable attribute of the entity.
+	hasUpdateBody := update != nil && len(flatUpdate.properties) > 0
 	tree := &AttributeTree{}
 	// The object's own prose, from whichever schema declares any. A response
 	// schema is the better-annotated of the two about as often as a request
@@ -130,6 +147,8 @@ func buildTree(create, read *specmodel.Schema, replaceAll bool) *AttributeTree {
 		attribute, edges := buildAttribute(name, site{
 			create:         createSide,
 			read:           readSide,
+			update:         flatUpdate.findProperty(name),
+			hasUpdateBody:  hasUpdateBody,
 			requiredCreate: flatCreate.required[name],
 			requiredRead:   flatRead.required[name],
 			replaceAll:     replaceAll,
@@ -270,8 +289,16 @@ func sortedUnique(names []string) []string {
 
 // site is one property seen from both sides of the create/read fold.
 type site struct {
-	create         *specmodel.Schema // nil when response-only
-	read           *specmodel.Schema // nil when the response omits it
+	create *specmodel.Schema // nil when response-only
+	read   *specmodel.Schema // nil when the response omits it
+	// update is the property as the update request declares it, nil when
+	// the update body omits it. Read only alongside hasUpdateBody: without
+	// a resolvable update body, nil says nothing.
+	update *specmodel.Schema
+	// hasUpdateBody reports that the entity has an update operation whose
+	// request schema resolved, so an absent property is evidence rather
+	// than silence.
+	hasUpdateBody  bool
 	requiredCreate bool
 	requiredRead   bool
 	replaceAll     bool
@@ -345,7 +372,19 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 		// Genuinely rare: most APIs answer with something.
 		attribute.ComputedOptionalRequired = Optional
 	}
-	if attribute.ComputedOptionalRequired != Computed && (createOnly || attributeSite.replaceAll) {
+	// refusedByUpdate is the document's own account of immutability: the
+	// create body declares this property and the update body does not, so
+	// the API offers no way to change it after create. Free, offline, and
+	// true of the document whether or not an audit has ever run — which is
+	// the difference between this and x-tfpfgen-create-only.
+	//
+	// Guarded on writable, because a response-only property is absent from
+	// the update body for the uninteresting reason that it is absent from
+	// every request body, and on hasUpdateBody, because a document that
+	// declares no update schema is silent rather than restrictive.
+	refusedByUpdate := writable && attributeSite.hasUpdateBody && attributeSite.update == nil
+
+	if attribute.ComputedOptionalRequired != Computed && (createOnly || attributeSite.replaceAll || refusedByUpdate) {
 		attribute.RequiresReplace = true
 	}
 
@@ -355,7 +394,7 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 	if attribute.ComputedOptionalRequired == Computed {
 		childCreate = nil
 	}
-	deriveType(&attribute, flatPrimary, childCreate, attributeSite.read)
+	deriveType(&attribute, flatPrimary, childCreate, attributeSite.read, attributeSite.update)
 
 	if len(flatPrimary.enum) > 0 && attribute.Kind != TypeList && attribute.Kind != TypeObject && !attribute.Unsupported {
 		values := renderEnum(flatPrimary.enum)
@@ -382,7 +421,7 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 // deriveType maps the schema shape onto an attribute type, refusing the
 // shapes the toolkit does not model rather than guessing: an Unsupported
 // attribute names its reason and generates nothing.
-func deriveType(attribute *Attribute, flatPrimary flat, create, read *specmodel.Schema) {
+func deriveType(attribute *Attribute, flatPrimary flat, create, read, update *specmodel.Schema) {
 	switch {
 	case flatPrimary.declaredType == "string":
 		attribute.Kind = TypeString
@@ -393,14 +432,14 @@ func deriveType(attribute *Attribute, flatPrimary flat, create, read *specmodel.
 	case flatPrimary.declaredType == "number":
 		attribute.Kind = TypeFloat64
 	case flatPrimary.declaredType == "array":
-		deriveListType(attribute, create, read)
+		deriveListType(attribute, create, read, update)
 	case flatPrimary.declaredType == "object" || (flatPrimary.declaredType == "" && len(flatPrimary.properties) > 0):
 		if len(flatPrimary.properties) == 0 {
 			refuse(attribute, "free-form object: map support is out of scope")
 			return
 		}
 		attribute.Kind = TypeObject
-		attribute.Nested = buildTree(create, read, false)
+		attribute.Nested = buildTree(create, read, update, false)
 	case flatPrimary.declaredType == "" && flatPrimary.hasUnion:
 		refuse(attribute, "oneOf/anyOf union: no single attribute type describes it")
 	case flatPrimary.declaredType == "":
@@ -412,8 +451,8 @@ func deriveType(attribute *Attribute, flatPrimary flat, create, read *specmodel.
 
 // deriveListType types an array attribute from its element schema, seen
 // from both sides of the create/read fold.
-func deriveListType(attribute *Attribute, create, read *specmodel.Schema) {
-	createItems, readItems := flatten(create).items, flatten(read).items
+func deriveListType(attribute *Attribute, create, read, update *specmodel.Schema) {
+	createItems, readItems, updateItems := flatten(create).items, flatten(read).items, flatten(update).items
 	primary := createItems
 	if primary == nil {
 		primary = readItems
@@ -436,7 +475,7 @@ func deriveListType(attribute *Attribute, create, read *specmodel.Schema) {
 			return
 		}
 		attribute.Kind, attribute.ElementType = TypeList, TypeObject
-		attribute.Nested = buildTree(createItems, readItems, false)
+		attribute.Nested = buildTree(createItems, readItems, updateItems, false)
 	default:
 		refuse(attribute, fmt.Sprintf("array of %q elements is not supported", flatItems.declaredType))
 	}

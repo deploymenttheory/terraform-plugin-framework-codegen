@@ -580,8 +580,127 @@ func TestUnit_BuildAttribute_CarriesTheDocumentsDescription(t *testing.T) {
 func TestUnit_BuildTree_CarriesTheObjectsDescription(t *testing.T) {
 	read := &specmodel.Schema{Type: "object", Description: "A rule that raises alerts",
 		Properties: []specmodel.Property{{Name: "id", Schema: &specmodel.Schema{Type: "string"}}}}
-	tree := buildTree(nil, read, false)
+	tree := buildTree(nil, read, nil, false)
 	if tree.Description != "A rule that raises alerts" {
 		t.Fatalf("the object's prose must reach the tree, got %q", tree.Description)
+	}
+}
+
+// updateBodySchema builds the three sides of one entity for the
+// create-minus-update rule: a create body, a read body, and an update body
+// declaring only some of what create takes.
+func updateBodySchema() (create, read, update *specmodel.Schema) {
+	str := func() *specmodel.Schema { return &specmodel.Schema{Type: "string"} }
+	create = &specmodel.Schema{Type: "object", Required: []string{"name"}, Properties: []specmodel.Property{
+		{Name: "name", Schema: str()},
+		{Name: "region", Schema: str()},
+		{Name: "description", Schema: str()},
+	}}
+	read = &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		{Name: "id", Schema: str()},
+		{Name: "name", Schema: str()},
+		{Name: "region", Schema: str()},
+		{Name: "description", Schema: str()},
+		{Name: "createdAt", Schema: &specmodel.Schema{Type: "string", ReadOnly: true}},
+	}}
+	update = &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		{Name: "name", Schema: str()},
+		{Name: "description", Schema: str()},
+	}}
+	return create, read, update
+}
+
+// TestUnit_BuildTree_UpdateBodyDifferenceForcesReplacement proves the
+// document's own account of immutability reaches the schema: a property the
+// create body declares and the update body does not is one the API offers
+// no way to change, which is RequiresReplace.
+func TestUnit_BuildTree_UpdateBodyDifferenceForcesReplacement(t *testing.T) {
+	create, read, update := updateBodySchema()
+	tree := buildTree(create, read, update, false)
+
+	if a := attribute(t, tree, "region"); !a.RequiresReplace {
+		t.Error("region is absent from the update body, so it must force replacement")
+	}
+	for _, name := range []string{"name", "description"} {
+		if a := attribute(t, tree, name); a.RequiresReplace {
+			t.Errorf("%s is declared by the update body, so it must not force replacement", name)
+		}
+	}
+}
+
+// TestUnit_BuildTree_ComputedAttributesNeverForceReplacement proves the
+// existing computed guard still holds under the new rule. A response-only
+// or read-only property is absent from the update body for the
+// uninteresting reason that it is absent from every request body, and
+// forcing replacement on one the practitioner cannot set would be nonsense.
+func TestUnit_BuildTree_ComputedAttributesNeverForceReplacement(t *testing.T) {
+	create, read, update := updateBodySchema()
+	tree := buildTree(create, read, update, false)
+
+	for _, name := range []string{"id", "created_at"} {
+		a := attribute(t, tree, name)
+		if a.ComputedOptionalRequired != Computed {
+			t.Fatalf("%s is %s, want computed — the fixture is wrong", name, a.ComputedOptionalRequired)
+		}
+		if a.RequiresReplace {
+			t.Errorf("%s is computed, so it must not force replacement", name)
+		}
+	}
+}
+
+// TestUnit_BuildTree_AbsentUpdateBodyIsSilence proves a nil update side
+// asserts nothing. A document that declares no update schema is silent, not
+// restrictive, and reading silence as refusal would force replacement on
+// every writable attribute of every entity whose update body the document
+// happens not to spell.
+func TestUnit_BuildTree_AbsentUpdateBodyIsSilence(t *testing.T) {
+	create, read, _ := updateBodySchema()
+
+	tree := buildTree(create, read, nil, false)
+	for _, name := range []string{"name", "region", "description"} {
+		if a := attribute(t, tree, name); a.RequiresReplace {
+			t.Errorf("%s forces replacement with no update body to read; silence is not refusal", name)
+		}
+	}
+
+	// An update body that resolves to nothing is the same silence.
+	empty := buildTree(create, read, &specmodel.Schema{}, false)
+	for _, name := range []string{"name", "region", "description"} {
+		if a := attribute(t, empty, name); a.RequiresReplace {
+			t.Errorf("%s forces replacement against an empty update body", name)
+		}
+	}
+}
+
+// TestUnit_BuildTree_UpdateDifferenceRecursesIntoNestedObjects proves the
+// three sides are folded in parallel all the way down, so a nested property
+// the update body's own nested schema omits is found too.
+func TestUnit_BuildTree_UpdateDifferenceRecursesIntoNestedObjects(t *testing.T) {
+	str := func() *specmodel.Schema { return &specmodel.Schema{Type: "string"} }
+	block := func(names ...string) *specmodel.Schema {
+		s := &specmodel.Schema{Type: "object"}
+		for _, n := range names {
+			s.Properties = append(s.Properties, specmodel.Property{Name: n, Schema: str()})
+		}
+		return s
+	}
+
+	create := &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		{Name: "server", Schema: block("host", "tenantId")},
+	}}
+	update := &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
+		{Name: "server", Schema: block("host")},
+	}}
+
+	tree := buildTree(create, create, update, false)
+	server := attribute(t, tree, "server")
+	if server.Nested == nil {
+		t.Fatal("server must derive a nested tree")
+	}
+	if a := attribute(t, server.Nested, "tenant_id"); !a.RequiresReplace {
+		t.Error("server.tenant_id is absent from the nested update schema, so it must force replacement")
+	}
+	if a := attribute(t, server.Nested, "host"); a.RequiresReplace {
+		t.Error("server.host is declared by the nested update schema, so it must not force replacement")
 	}
 }
