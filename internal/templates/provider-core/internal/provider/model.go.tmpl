@@ -43,4 +43,21 @@ type model struct {
 	// RequestTimeout is a Go duration string bounding one HTTP request.
 	// Falls back to {{ .EnvPrefix }}_REQUEST_TIMEOUT, then one minute.
 	RequestTimeout types.String `tfsdk:"request_timeout"`
+	// ClientOptions paces the provider's own retry loops. Nil when the
+	// practitioner declares no client_options block.
+	ClientOptions *clientOptions `tfsdk:"client_options"`
+}
+
+// clientOptions is the client_options block: how the provider paces the
+// retry loops it runs on the practitioner's behalf. Every field is
+// optional, and a null or non-positive value leaves the compiled default
+// in force.
+type clientOptions struct {
+	// ReadRetryDelaySeconds paces the read that settles state after a
+	// write. Falls back to {{ .EnvPrefix }}_READ_RETRY_DELAY_SECONDS, then
+	// two seconds.
+	ReadRetryDelaySeconds types.Int64 `tfsdk:"read_retry_delay_seconds"`
+	// DeleteRetryDelaySeconds paces the delete retry loop. Falls back to
+	// {{ .EnvPrefix }}_DELETE_RETRY_DELAY_SECONDS, then ten seconds.
+	DeleteRetryDelaySeconds types.Int64 `tfsdk:"delete_retry_delay_seconds"`
 }

@@ -123,11 +123,25 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   read from the named environment variable at execution time;
   `$created:<entity>` is the id of an object the audit itself created.
 - Operator environment variables a generated provider reads:
-  `TF_<PROVIDER>_*` — `TF_` then the uppercased provider name, e.g.
-  `TF_THOUSANDEYES_API_TOKEN`. Distinct from the pipeline's
-  `TFPFGEN_AUTH_*` secrets, which only the toolkit reads.
+  `<PROVIDER>_*` — the uppercased provider name, bare, e.g.
+  `THOUSANDEYES_API_TOKEN`. The earlier `TF_<PROVIDER>_*` spelling is
+  retired: published providers spell these `AWS_`, `GOOGLE_`,
+  `CLOUDFLARE_`, and an operator reaching for `THOUSANDEYES_API_TOKEN` is
+  reaching for the name every other provider taught them. Still distinct
+  from the pipeline's `TFPFGEN_AUTH_*` secrets, which only the toolkit
+  reads.
 - Provider block attributes: `endpoint`, `api_token`, `username`,
-  `password`, `client_id`, `client_secret`, `token_url`.
+  `password`, `client_id`, `client_secret`, `token_url`, `request_timeout`,
+  and the `client_options` block.
+- **client_options** — the provider block that paces the retry loops the
+  generated provider runs on the practitioner's behalf:
+  `read_retry_delay_seconds` and `delete_retry_delay_seconds`. Named on the
+  `terraform-provider-microsoft365` pattern — an HCL attribute first with
+  the environment variable as its override, units in the name, durations as
+  integer seconds. A null, unparseable or non-positive value leaves the
+  compiled default in force, so a typo can neither fail an apply nor turn a
+  paced loop into a busy one. Installed once by `Configure` through
+  `crud.SetRetryCadence`.
 - Conversion catalog function families: `APIToFramework*` and
   `FrameworkToAPI*`.
 - Go-idiomatic acronym casing in generated names: known acronyms uppercase

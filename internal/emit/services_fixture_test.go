@@ -369,7 +369,7 @@ func fictionalProviderCore() ProviderCore {
 		Module:            "example.test/provider",
 		ProviderName:      "petstore",
 		RegistryAddress:   "registry.terraform.io/example/petstore",
-		EnvPrefix:         "TF_PETSTORE",
+		EnvPrefix:         "PETSTORE",
 		ClientType:        "APIClient",
 		ClientConstructor: "NewAPIClient",
 		SDKImport:         "example.test/provider/internal/sdk",

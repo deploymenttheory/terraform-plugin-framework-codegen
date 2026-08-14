@@ -35,9 +35,9 @@ type ProviderCore struct {
 	// "registry.terraform.io/exampleco/petstore".
 	RegistryAddress string
 	// EnvPrefix prefixes every environment fallback the provider reads:
-	// TF_ then the uppercased provider name, e.g. "TF_PETSTORE". These
-	// operator-facing variables (TF_PETSTORE_API_TOKEN, …) are distinct
-	// from the toolkit pipeline's TFPFGEN_AUTH_* secrets.
+	// the uppercased provider name, e.g. "PETSTORE". These operator-facing
+	// variables (PETSTORE_API_TOKEN, …) are distinct from the toolkit
+	// pipeline's TFPFGEN_AUTH_* secrets.
 	EnvPrefix string
 	// ClientType is the generated SDK's client type name, e.g. "APIClient".
 	ClientType string
@@ -190,8 +190,14 @@ func (pc ProviderCore) check() error {
 }
 
 // envPrefix renders a provider name as the operator environment-variable
-// prefix: TF_ then the name uppercased, with every non-alphanumeric run
-// collapsed to one underscore.
+// prefix: the name uppercased, with every non-alphanumeric run collapsed to
+// one underscore.
+//
+// Bare, with no TF_ in front. Published providers spell these AWS_,
+// GOOGLE_, CLOUDFLARE_ — an operator reaching for PETSTORE_API_TOKEN is
+// reaching for the name every other provider taught them. The toolkit's
+// own pipeline secrets use the TFPFGEN_AUTH_ prefix, so the two sets still
+// cannot be confused for one another.
 func envPrefix(name string) string {
 	var b strings.Builder
 	lastUnderscore := false
@@ -207,5 +213,5 @@ func envPrefix(name string) string {
 			lastUnderscore = true
 		}
 	}
-	return "TF_" + strings.Trim(b.String(), "_")
+	return strings.Trim(b.String(), "_")
 }
