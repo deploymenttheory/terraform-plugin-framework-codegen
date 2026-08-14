@@ -31,7 +31,7 @@ func TestUnit_Refresh_CheckUpstreamMeasuresWithoutJudging(t *testing.T) {
 
 	url, _ := serve(t, aDocument)
 
-	matching, err := checkPin(pinFor(t, url, aDocument))
+	matching, err := checkPin(pinFor(t, url, aDocument), unparsed)
 	if err != nil {
 		t.Fatalf("checkPin: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestUnit_Refresh_CheckUpstreamMeasuresWithoutJudging(t *testing.T) {
 	}
 
 	moved := pinFor(t, url, "what the lock used to pin")
-	differing, err := checkPin(moved)
+	differing, err := checkPin(moved, unparsed)
 	if err != nil {
 		t.Fatalf("checkPin: %v", err)
 	}
@@ -60,10 +60,17 @@ func TestUnit_Refresh_CheckUpstreamMeasuresWithoutJudging(t *testing.T) {
 func TestUnit_Refresh_CheckUpstreamRefusesAnUnpinnedID(t *testing.T) {
 	t.Parallel()
 
-	if _, err := CheckUpstream("no-such-document"); err == nil ||
+	if _, err := CheckUpstream("no-such-document", unparsed); err == nil ||
 		!strings.Contains(err.Error(), "pins no document") {
 		t.Fatalf("CheckUpstream of an unpinned id: %v", err)
 	}
+}
+
+// stubDescriber stands where a real parser goes, answering values no fixture
+// could produce by accident so a pin carrying them proves the describer was
+// consulted.
+func stubDescriber([]byte) (version string, paths, operations int) {
+	return "9.9.9", 7, 11
 }
 
 // writeLock writes a lock file for RewriteLock tests and points EnvLockPath at
@@ -118,7 +125,7 @@ func TestUnit_Refresh_RewriteLockRestatesOnlyThePinsThatMoved(t *testing.T) {
   }
 }`)
 
-	if err := RewriteLock([]string{"moved", "unmoved"}); err != nil {
+	if err := RewriteLock([]string{"moved", "unmoved"}, stubDescriber); err != nil {
 		t.Fatalf("RewriteLock: %v", err)
 	}
 
@@ -147,9 +154,15 @@ func TestUnit_Refresh_RewriteLockRestatesOnlyThePinsThatMoved(t *testing.T) {
 	if moved["unknownEntryKey"] != "kept too" {
 		t.Error("rewriting dropped an entry key it does not own")
 	}
-	// The default Describer cannot parse, and says so rather than guessing.
-	if moved["version"] != "unparsed" {
-		t.Errorf("the moved pin's version = %v", moved["version"])
+	// The pin records what the describer measured. A rewrite that ignored it
+	// would write the old version back, or none at all, and either reads as
+	// a document that did not move.
+	if moved["version"] != "9.9.9" {
+		t.Errorf("the moved pin's version = %v, want the describer's measurement", moved["version"])
+	}
+	if moved["pathCount"] != float64(7) || moved["operationCount"] != float64(11) {
+		t.Errorf("the moved pin's counts = %v/%v, want the describer's measurement",
+			moved["pathCount"], moved["operationCount"])
 	}
 
 	unmoved := entries["unmoved"].(map[string]any)
@@ -163,22 +176,22 @@ func TestUnit_Refresh_RewriteLockRestatesOnlyThePinsThatMoved(t *testing.T) {
 // and an unreachable upstream. None may write.
 func TestUnit_Refresh_RewriteLockFailsClosed(t *testing.T) {
 	t.Setenv(EnvLockPath, filepath.Join(t.TempDir(), "absent", LockFile))
-	if err := RewriteLock(nil); err == nil || !strings.Contains(err.Error(), "reading") {
+	if err := RewriteLock(nil, unparsed); err == nil || !strings.Contains(err.Error(), "reading") {
 		t.Errorf("a missing lock: %v", err)
 	}
 
 	writeLock(t, "{not json")
-	if err := RewriteLock(nil); err == nil || !strings.Contains(err.Error(), "parsing") {
+	if err := RewriteLock(nil, unparsed); err == nil || !strings.Contains(err.Error(), "parsing") {
 		t.Errorf("an unparsable lock: %v", err)
 	}
 
 	writeLock(t, `{"formatVersion": "1"}`)
-	if err := RewriteLock(nil); err == nil || !strings.Contains(err.Error(), "no openapi object") {
+	if err := RewriteLock(nil, unparsed); err == nil || !strings.Contains(err.Error(), "no openapi object") {
 		t.Errorf("a lock with no openapi object: %v", err)
 	}
 
 	writeLock(t, `{"openapi": {}}`)
-	if err := RewriteLock([]string{"ghost"}); err == nil || !strings.Contains(err.Error(), `no pin for "ghost"`) {
+	if err := RewriteLock([]string{"ghost"}, unparsed); err == nil || !strings.Contains(err.Error(), `no pin for "ghost"`) {
 		t.Errorf("an id the lock does not pin: %v", err)
 	}
 
@@ -194,7 +207,7 @@ func TestUnit_Refresh_RewriteLockFailsClosed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := RewriteLock([]string{"dead"}); err == nil || !strings.Contains(err.Error(), "dead:") {
+	if err := RewriteLock([]string{"dead"}, unparsed); err == nil || !strings.Contains(err.Error(), "dead:") {
 		t.Errorf("an unreachable upstream: %v", err)
 	}
 	after, err := os.ReadFile(path) //nolint:gosec // a path this test built

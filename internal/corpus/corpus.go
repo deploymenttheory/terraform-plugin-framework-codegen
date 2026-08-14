@@ -331,9 +331,11 @@ func verifyAgainstPin(id string, doc []byte, pin Pin, source string) error {
 		return nil
 	}
 
-	// Parsed only to describe the mismatch. What a reviewer needs is what
-	// changed, not that a hash differed.
-	version, paths, operations := describe(doc)
+	// The mismatch is named by digest, which is what proves it. A reader
+	// reaching this has no parser to hand — Ensure is called from a test
+	// helper, not from a caller that decoded the document first — so the
+	// description degrades rather than the failure being withheld.
+	version, paths, operations := unparsed(doc)
 
 	return fmt.Errorf(`the pinned %s document is not what %s served.
   pinned  sha256:%s  version %s  %d path(s) / %d operation(s)
@@ -348,20 +350,23 @@ internal/corpus/testdata/corpus.lock.json`,
 		id)
 }
 
-// Describer parses a document enough to say what it is, for failure messages.
+// Describer parses a document enough to say what it is.
 //
-// A hook rather than a direct call on the OpenAPI parsing package, because
-// that package's own tests are in-package and are among this package's most
-// important consumers: importing it here would make them an import cycle. The
-// CLI installs the real parser; anything that has not is describing a failure
-// it is already reporting by digest.
-var Describer = func([]byte) (version string, paths, operations int) {
-	return "unparsed", 0, 0
-}
+// A parameter rather than a direct call on the OpenAPI parsing package,
+// because that package's own tests are in-package and are among this
+// package's most important consumers: importing it here would make them an
+// import cycle. specmodel.Describe is the implementation to pass.
+//
+// Every caller that writes a measurement down takes one, so a pin cannot
+// record what nothing measured.
+type Describer func(doc []byte) (version string, paths, operations int)
 
-// describe reports what a document says about itself, best effort.
-func describe(doc []byte) (version string, paths, operations int) {
-	return Describer(doc)
+// unparsed is the describer for a caller with no parser to hand: it reports
+// only what it can, which is nothing. Reserved for a failure message that
+// already names the change by digest, and never for a value written to the
+// lock.
+func unparsed([]byte) (version string, paths, operations int) {
+	return "unparsed", 0, 0
 }
 
 func shortSHA(s string) string {
