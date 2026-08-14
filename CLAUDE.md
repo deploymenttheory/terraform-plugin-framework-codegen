@@ -51,8 +51,34 @@ Set by the repository owner; not open to per-PR relitigating:
   live in provider repos; this repo holds only the machinery and its fixtures.
 - **Every verb keeps its exit-code contract** documented in `docs/contract.md`.
 - **Corpus documents are pinned by hash and fetched, not vendored.**
-- **No file over 800 lines.** v1's 3,556-line probe file is the cautionary
-  tale; decompose by protocol instead.
+- **No file over 800 lines.** Decompose by protocol instead.
+- **Comments say what and why. Nothing else.** A comment is read by someone
+  changing this code in two years. It must tell them what the code does and
+  why it does it that way, and nothing that was only true on the day it was
+  written.
+
+  Forbidden: what the code used to do, which pull request changed it, how a
+  bug was found, counts or measurements from a particular run ("42
+  attributes across the three pilots", "the first live run opened
+  fifty-seven"), war stories about a previous version, and any sentence
+  whose subject is the author or the project rather than the code.
+
+  ```go
+  // No — history, and an anecdote that expires.
+  // Aborting the whole run instead was the old behaviour, and one entity
+  // took every other entity with it; that single shape emitted nothing at
+  // all for the provider.
+
+  // Yes — what, then why.
+  // Refuses one entity rather than the run: an unrenderable shape is a
+  // fact about that entity, and the rest still generate.
+  ```
+
+  Rationale stays when it constrains future change. "Matched on the package
+  path, because another SDK's type of the same name would not parse through
+  this one" is why, and belongs. The same fact told as a story does not.
+  Git history is where change is recorded; a pull request body is where a
+  measurement belongs.
 
 ## Pull requests
 
