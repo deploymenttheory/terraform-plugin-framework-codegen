@@ -269,6 +269,7 @@ func (derivation *deriver) resource(classification specmodel.Classification, nam
 	tree := buildTree(createBody, readBody, updateBody, classification.MissingUpdate)
 	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
 	ensureID(tree, keyParam, keyType)
+	refuseReservedRootNames(tree)
 	readOperation := derivation.operation(classification.Read, OperationRead)
 	if readOperation != nil {
 		ensureParentParameters(tree, parentParameters(readOperation.PathParameters))
@@ -393,12 +394,20 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 	if readFull != nil {
 		readBody = readFull.SuccessSchema()
 	}
+	// An entity the API only enumerates has no read to describe one object,
+	// so the collection's own element describes it instead. That is the same
+	// schema a list resource reads, and the only account of the shape the
+	// document offers.
+	if readBody == nil {
+		readBody = listElementSchema(derivation.full(classification.List))
+	}
 	itemTree := buildTree(nil, readBody, nil, false)
 	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
 	ensureID(itemTree, keyParam, keyType)
 
 	if classification.LookupByKey {
 		requireKey(itemTree, keyParam, keyType)
+		refuseReservedRootNames(itemTree)
 		readOperation := derivation.operation(classification.Read, OperationRead)
 		if readOperation != nil {
 			ensureParentParameters(itemTree, parentParameters(readOperation.PathParameters))
@@ -427,6 +436,7 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 	if listOperation != nil {
 		ensureParentParameters(companionTree, listOperation.PathParameters)
 	}
+	refuseReservedRootNames(companionTree)
 
 	return Datasource{
 		Names:           names,
@@ -436,15 +446,20 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 	}
 }
 
+// listResource derives the list capability of a managed resource: terraform
+// matches it to that resource by type name, so it carries the entity's own
+// Names and exists only where the resource does.
 func (derivation *deriver) listResource(classification specmodel.Classification, names Names) ListResource {
 	listFull := derivation.full(classification.List)
 	element := listElementSchema(listFull)
 	listOperation := *derivation.operation(classification.List, OperationList)
+	addressing := addressingSchema(listOperation.PathParameters)
+	refuseReservedRootNames(addressing)
 	return ListResource{
 		Names:            names,
 		ListOperation:    listOperation,
 		Schema:           buildTree(nil, element, nil, false),
-		AddressingSchema: addressingSchema(listOperation.PathParameters),
+		AddressingSchema: addressing,
 		ListEnvelopeKey:  listEnvelopeKey(listFull),
 	}
 }
@@ -454,6 +469,7 @@ func (derivation *deriver) action(classification specmodel.Classification, names
 	var request *AttributeTree
 	if createFull != nil && createFull.RequestBody != nil {
 		request = buildTree(createFull.RequestBody, nil, nil, false)
+		refuseReservedRootNames(request)
 	}
 	return Action{
 		Names:           names,

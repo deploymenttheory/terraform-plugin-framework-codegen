@@ -160,8 +160,8 @@ func fictionalModel() *ir.Model {
 		},
 		ListResources: []ir.ListResource{
 			{
-				Names:         names("audit_event", "AuditEvent", "audit"),
-				ListOperation: ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/v7/audit-events", SuccessCode: 200},
+				Names:         names("http_server", "HTTPServer", "servers"),
+				ListOperation: ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/v7/http-servers", SuccessCode: 200},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 					{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
@@ -333,8 +333,8 @@ func fictionalBindings() *sdkbind.Bindings {
 			},
 		},
 		ListResources: map[string]*sdkbind.ListResourceBinding{
-			"audit_event": {
-				Key:              "audit_event",
+			"http_server": {
+				Key:              "http_server",
 				List:             call("client.AuditEvents().Get(ctx, nil)", nil, "", "models.AuditEventCollectionResponseable", "error"),
 				ElementType:      "models.AuditEventable",
 				CollectionAccess: "GetValue()",

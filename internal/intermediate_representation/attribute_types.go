@@ -117,6 +117,41 @@ func refuse(attribute *Attribute, reason string) {
 	attribute.UnsupportedReason = reason
 }
 
+// reservedRootNames are the names terraform reserves at the root of a
+// resource or datasource schema, because a practitioner writing one means the
+// meta-argument rather than the attribute. The set is
+// fwschema.ReservedResourceAttributeNames.
+var reservedRootNames = map[string]bool{
+	"connection": true, "count": true, "depends_on": true, "for_each": true,
+	"lifecycle": true, "provider": true, "provisioner": true,
+}
+
+// refuseReservedRootNames refuses a root attribute terraform will not accept
+// the name of.
+//
+// Refused rather than renamed: the name is what a practitioner writes, and
+// choosing another belongs in a correction to the document rather than in a
+// rule here. The cost of declaring one is the whole provider — terraform
+// rejects the schema and loads none of it — so this is not a refusal that can
+// be deferred to the operator's judgement.
+//
+// Root only, matching the framework: the same name nested inside an object is
+// an ordinary field and needs no special syntax.
+func refuseReservedRootNames(tree *AttributeTree) {
+	if tree == nil {
+		return
+	}
+	for index := range tree.Attributes {
+		attribute := &tree.Attributes[index]
+		if !reservedRootNames[attribute.Name] {
+			continue
+		}
+		refuse(attribute, fmt.Sprintf(
+			"terraform reserves %q at the root of a schema, and refuses to load a provider that declares it; rename the property in a correction",
+			attribute.Name))
+	}
+}
+
 // mergeExtensions folds the read side'schema property extensions under the
 // create side'schema, the create side winning a collision: the writable view is
 // where behaviour annotations are authored.

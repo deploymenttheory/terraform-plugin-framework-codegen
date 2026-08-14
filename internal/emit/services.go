@@ -85,6 +85,11 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 	e := &serviceRenderer{pc: pc, bindings: b}
 	out := &ServiceFiles{}
 
+	// The resources that reached the provider. A list resource is matched to
+	// one by type name and cannot be registered without it, so this decides
+	// which list resources may follow.
+	served := map[string]bool{}
+
 	for i := range m.Resources {
 		r := &m.Resources[i]
 		rb := b.Resources[r.Names.Key]
@@ -101,6 +106,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		}
 		out.Files = append(out.Files, files...)
 		out.Registrations.Resources.add(e.registration(kindResources, r.Names, "New"+r.Names.Pascal+"Resource"))
+		served[r.Names.Key] = true
 	}
 
 	for i := range m.Datasources {
@@ -125,6 +131,18 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		lr := &m.ListResources[i]
 		lb := b.ListResources[lr.Names.Key]
 		if lb == nil {
+			continue
+		}
+		// Terraform refuses to load a provider that offers a list resource
+		// with no managed resource of the same type name, and refuses the
+		// whole provider rather than that one entity. A resource the
+		// bindings or emission already refused therefore takes its list
+		// resource with it.
+		if !served[lr.Names.Key] {
+			out.Excluded = append(out.Excluded, ir.Exclusion{
+				Key:    lr.Names.Key,
+				Reason: "list: the resource it lists is not served, and terraform refuses a provider whose list resource names no resource",
+			})
 			continue
 		}
 		files, err := e.listResource(lr, lb)

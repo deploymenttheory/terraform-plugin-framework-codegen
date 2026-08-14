@@ -209,7 +209,7 @@ components:
       x-tfpfgen-valid-configuration:
         discriminator: mode
         variants:
-          standard: [count]
+          standard: [quantity]
           custom: [proxyHost]
       properties:
         name: {type: string}
@@ -232,12 +232,12 @@ components:
         notes:
           type: string
           x-tfpfgen-silently-ignored-on-update: true
-        count:
+        quantity:
           type: integer
           x-tfpfgen-valid-when: {property: mode, equals: standard}
         ratio:
           type: number
-          x-tfpfgen-depends-on: {requires: count}
+          x-tfpfgen-depends-on: {requires: quantity}
         enabled: {type: boolean}
         labels:
           type: array

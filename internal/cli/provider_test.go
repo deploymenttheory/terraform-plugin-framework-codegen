@@ -81,7 +81,7 @@ func TestUnit_ProviderGenerateThenVerify_RoundTripsClean(t *testing.T) {
 	if code := Run([]string{"provider", "generate", "--postcheck=false"}, &stdout, &stderr); code != ExitOK {
 		t.Fatalf("generate exit = %d, stderr:\n%s", code, stderr.String())
 	}
-	if !strings.Contains(stdout.String(), "3 resources, 4 datasources, 1 list resources, 1 actions") {
+	if !strings.Contains(stdout.String(), "3 resources, 5 datasources, 3 list resources, 1 actions") {
 		t.Errorf("generate output does not report the fixture's entity counts:\n%s", stdout.String())
 	}
 	if !strings.Contains(stdout.String(), "postcheck skipped: postcheck disabled") {

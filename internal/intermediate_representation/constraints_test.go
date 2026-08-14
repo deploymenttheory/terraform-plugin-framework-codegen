@@ -1,6 +1,9 @@
 package intermediate_representation
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // constrainedSpec is one resource whose create body declares every
 // constraint keyword, so one derivation proves the whole set reaches the
@@ -244,6 +247,74 @@ components:
 	// request omits the field, and summary is not writable at all.
 	if got := attribute(t, r.Schema, "summary").ComputedOptionalRequired; got != Computed {
 		t.Errorf("a response-only property with a default = %q, want computed", got)
+	}
+}
+
+// TestUnit_Attribute_RefusesAReservedRootName proves a root attribute
+// terraform reserves is refused rather than emitted. Declaring one costs the
+// whole provider: terraform rejects the schema and loads none of it, so the
+// entity beside it goes too.
+func TestUnit_Attribute_RefusesAReservedRootName(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /groups:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Group'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Group'}
+  /groups/{groupId}:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Group'}
+    delete:
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Group:
+      type: object
+      properties:
+        count: {type: integer}
+        lifecycle: {type: string}
+        name: {type: string}
+        nested:
+          type: object
+          properties:
+            count: {type: integer}
+`
+	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "group")
+
+	for _, name := range []string{"count", "lifecycle"} {
+		got := attribute(t, r.Schema, name)
+		if !got.Unsupported {
+			t.Errorf("%q is reserved at the root and was emitted anyway", name)
+		}
+		if !strings.Contains(got.UnsupportedReason, "terraform reserves") {
+			t.Errorf("%q refused for %q, which does not say why", name, got.UnsupportedReason)
+		}
+	}
+	if attribute(t, r.Schema, "name").Unsupported {
+		t.Error("an ordinary root attribute was refused")
+	}
+
+	// The same name nested inside an object is an ordinary field: terraform
+	// reserves it only where a practitioner would write a meta-argument.
+	nested := attribute(t, r.Schema, "nested")
+	if nested.Nested == nil {
+		t.Fatalf("nested = %+v", nested)
+	}
+	if attribute(t, nested.Nested, "count").Unsupported {
+		t.Error("a reserved name nested inside an object was refused")
 	}
 }
 

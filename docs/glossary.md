@@ -94,6 +94,22 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   word begins with a provider name, so the prefix removes the class rather
   than escaping one case of it, and it makes a generated package
   unmistakable at its import site.
+- **list resource** — the list capability of a managed resource: the same
+  terraform type, streaming the identities of the objects that exist right
+  now. Terraform matches the two by type name and refuses to load a
+  provider whose list resource names no resource, so one is derived
+  exactly where an entity is both a resource and enumerable, and a
+  resource the bindings or emission refuse takes its list resource with
+  it. The earlier meaning — a list-only entity, enumerable but not
+  addressable — is retired: no resource can ever match such an entity, so
+  it could not be a list resource at all. Those entities are datasources.
+- **resource identity schema** — the separate object terraform stores
+  beside a resource's state to name the remote object it stands for
+  (`resource.ResourceWithIdentity`). It is the addressing attributes plus
+  the `id`, all `RequiredForImport`: the framework requires an identity to
+  name at most one remote object per provider, and an `id` alone does not
+  where a parent scopes it. A list resource's results are identities in
+  this shape, which is why the resource must declare it.
 - **addressing attribute** — a generated attribute that exists to fill an
   operation's path parameter rather than to carry a field of the object.
   Every path parameter above the item key becomes one: required, spelled

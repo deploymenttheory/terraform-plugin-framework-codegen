@@ -19,7 +19,7 @@ func scopedListResource(t *testing.T) *ServiceFiles {
 	m.ListResources[0].AddressingSchema = &ir.AttributeTree{Attributes: []ir.Attribute{
 		{Name: "tenant_id", WireName: "tenantId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
 	}}
-	b.ListResources["audit_event"].List.Params = []sdkbind.CallParam{
+	b.ListResources["http_server"].List.Params = []sdkbind.CallParam{
 		{Local: "tenantId", GoType: "string", Wire: "tenantId"}}
 
 	out, err := RenderServices(fictionalProviderCore(), m, b)
@@ -29,12 +29,46 @@ func scopedListResource(t *testing.T) *ServiceFiles {
 	return out
 }
 
+// TestUnit_ListResource_GoesWithTheResourceItLists proves a list resource is
+// withheld when its resource is not served. Terraform refuses to load a
+// provider whose list resource names no resource, and refuses the whole
+// provider rather than that one entity — so emitting it would cost every
+// other entity too.
+func TestUnit_ListResource_GoesWithTheResourceItLists(t *testing.T) {
+	m, b := fictionalModel(), fictionalBindings()
+	delete(b.Resources, "http_server")
+
+	out, err := RenderServices(fictionalProviderCore(), m, b)
+	if err != nil {
+		t.Fatalf("an unserved resource must not fail the run: %v", err)
+	}
+	for _, f := range out.Files {
+		if strings.Contains(f.Path, "list-resources/servers/v7/http_server") {
+			t.Fatalf("a list resource was emitted for a resource that is not served: %s", f.Path)
+		}
+	}
+	if len(out.Registrations.ListResources.Registrations) != 0 {
+		t.Fatalf("a list resource was registered with no resource to match: %+v",
+			out.Registrations.ListResources)
+	}
+
+	var said bool
+	for _, e := range out.Excluded {
+		if e.Key == "http_server" && strings.Contains(e.Reason, "names no resource") {
+			said = true
+		}
+	}
+	if !said {
+		t.Fatalf("the report does not say why the list resource went: %+v", out.Excluded)
+	}
+}
+
 // TestUnit_ListResource_ReadsItsPathParametersFromTheListBlock proves a
 // collection path's parameters are declared as the list block's own
 // configuration and read from there, rather than refusing the entity.
 func TestUnit_ListResource_ReadsItsPathParametersFromTheListBlock(t *testing.T) {
 	out := scopedListResource(t)
-	dir := "internal/services/list-resources/audit/v7/audit_event/"
+	dir := "internal/services/list-resources/servers/v7/http_server/"
 
 	schema := string(fileByPath(t, out, dir+"list_resource.go").Content)
 	for _, want := range []string{
@@ -72,7 +106,7 @@ func TestUnit_ListResource_ReadsItsPathParametersFromTheListBlock(t *testing.T) 
 func TestUnit_ListResource_MocksAParameterisedPathByShape(t *testing.T) {
 	out := scopedListResource(t)
 	test := string(fileByPath(t, out,
-		"internal/services/list-resources/audit/v7/audit_event/list_resource_test.go").Content)
+		"internal/services/list-resources/servers/v7/http_server/list_resource_test.go").Content)
 
 	for _, want := range []string{
 		"httpmock.RegisterResponder(\"GET\", `=~^",
@@ -95,7 +129,7 @@ func TestUnit_ListResource_MocksAParameterisedPathByShape(t *testing.T) {
 func TestUnit_ListResource_ExampleSuppliesTheRequiredAddressing(t *testing.T) {
 	out := scopedListResource(t)
 	example := string(fileByPath(t, out,
-		"examples/list-resources/petstore_audit_event/list-resource.tfquery.hcl").Content)
+		"examples/list-resources/petstore_http_server/list-resource.tfquery.hcl").Content)
 
 	if !strings.Contains(example, "tenant_id = ") {
 		t.Errorf("the example does not supply the required addressing:\n%s", example)
@@ -107,7 +141,7 @@ func TestUnit_ListResource_ExampleSuppliesTheRequiredAddressing(t *testing.T) {
 // block, no config model, and the mock matched by exact URL.
 func TestUnit_ListResource_WithoutAddressingDeclaresNoConfiguration(t *testing.T) {
 	out := renderFictional(t)
-	dir := "internal/services/list-resources/audit/v7/audit_event/"
+	dir := "internal/services/list-resources/servers/v7/http_server/"
 
 	if schema := string(fileByPath(t, out, dir+"list_resource.go").Content); strings.Contains(schema, "Attributes: map[string]listschema.Attribute{") {
 		t.Errorf("an unparameterised collection path must declare an empty list block:\n%s", schema)
@@ -118,7 +152,7 @@ func TestUnit_ListResource_WithoutAddressingDeclaresNoConfiguration(t *testing.T
 	if list := string(fileByPath(t, out, dir+"list.go").Content); strings.Contains(list, "req.Config.Get") {
 		t.Errorf("an unparameterised collection path reads no configuration:\n%s", list)
 	}
-	if test := string(fileByPath(t, out, dir+"list_resource_test.go").Content); !strings.Contains(test, `httpmock.RegisterResponder("GET", "https://unit.invalid/v7/audit-events"`) {
+	if test := string(fileByPath(t, out, dir+"list_resource_test.go").Content); !strings.Contains(test, `httpmock.RegisterResponder("GET", "https://unit.invalid/v7/http-servers"`) {
 		t.Errorf("an unparameterised collection path is mocked by exact URL:\n%s", test)
 	}
 }

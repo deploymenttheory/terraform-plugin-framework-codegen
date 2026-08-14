@@ -122,9 +122,9 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 		lookupByKey   map[string]bool
 	}{
 		{
-			name:          "full lifecycle is a resource and a datasource",
+			name:          "a full lifecycle the api can enumerate is a resource, a datasource and a list resource",
 			paths:         crud("/tags", "get!", "post!") + crud("/tags/{tagId}", "get!", "patch!", "delete"),
-			wantKinds:     map[string]string{"tag": "resource,datasource"},
+			wantKinds:     map[string]string{"tag": "resource,datasource,list-resource"},
 			missingUpdate: map[string]bool{"tag": false},
 		},
 		{
@@ -155,9 +155,9 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 			lookupByKey: map[string]bool{"region": false},
 		},
 		{
-			name:      "list without an item get is a list-resource",
+			name:      "a collection with no item get is a datasource, because no resource can match a list resource",
 			paths:     crud("/metrics", "get!"),
-			wantKinds: map[string]string{"metric": "list-resource"},
+			wantKinds: map[string]string{"metric": "datasource"},
 		},
 		{
 			name:        "item get without a list is a datasource looked up by the item path key",
@@ -189,6 +189,19 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 			name:         "a list without a response schema is excluded",
 			paths:        crud("/blips", "get"),
 			wantExcluded: map[string]string{"blip": "success response declares no schema"},
+		},
+		{
+			// A list resource is matched to a resource by type name, so it
+			// cannot exist without one. An entity the API enumerates but
+			// cannot create is a datasource and nothing more.
+			name:      "a collection the api cannot create yields no list resource",
+			paths:     crud("/motes", "get!") + crud("/motes/{moteId}", "get!"),
+			wantKinds: map[string]string{"mote": "datasource"},
+		},
+		{
+			name:      "a resource the api cannot enumerate yields no list resource",
+			paths:     crud("/specks", "post!") + crud("/specks/{speckId}", "get!", "delete"),
+			wantKinds: map[string]string{"speck": "resource,datasource"},
 		},
 		{
 			name:         "list and read without response schemas are excluded",
@@ -377,7 +390,7 @@ func TestUnit_Specmodel_ABareParameterPathIsItsOwnEntity(t *testing.T) {
 	}
 	got := Classify(doc)
 	if len(got.Entities) != 1 || got.Entities[0].Key != "root" ||
-		kinds(got.Entities[0]) != "list-resource" {
+		kinds(got.Entities[0]) != "datasource" {
 		t.Fatalf("entities = %+v, excluded = %+v", got.Entities, got.Excluded)
 	}
 }
@@ -416,7 +429,7 @@ func TestUnit_Specmodel_DefaultResponseBacksSuccess(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 	got := Classify(doc)
-	if len(got.Entities) != 1 || kinds(got.Entities[0]) != "list-resource" {
+	if len(got.Entities) != 1 || kinds(got.Entities[0]) != "datasource" {
 		t.Fatalf("entities = %+v, excluded = %+v", got.Entities, got.Excluded)
 	}
 }

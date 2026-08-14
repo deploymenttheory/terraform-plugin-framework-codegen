@@ -35,15 +35,16 @@ func TestDerive_ModelShape(t *testing.T) {
 	if got := len(m.Resources); got != 1 {
 		t.Fatalf("%d resources, want 1", got)
 	}
-	// thing's companion, the stream list+read entity, and the lookup-only
-	// setting entity all yield datasources.
-	if got := len(m.Datasources); got != 3 {
-		t.Fatalf("%d datasources, want 3", got)
+	// thing's companion, the stream list+read entity, the lookup-only
+	// setting entity, and events — which the API enumerates and cannot
+	// address, so it is a datasource rather than a list resource.
+	if got := len(m.Datasources); got != 4 {
+		t.Fatalf("%d datasources, want 4", got)
 	}
-	// Only events is list-only; streams has a read so it becomes a
-	// datasource instead.
+	// thing is the only entity that is both a resource and enumerable, so
+	// it is the only one whose list capability terraform can match.
 	if got := len(m.ListResources); got != 1 {
-		t.Fatalf("%d list resources, want 1 (events)", got)
+		t.Fatalf("%d list resources, want 1 (thing)", got)
 	}
 	if got := len(m.Actions); got != 1 {
 		t.Fatalf("%d actions, want 1", got)
@@ -288,23 +289,43 @@ func TestDerive_ListReadEntityYieldsDatasource(t *testing.T) {
 	}
 }
 
+// TestDerive_ListResource proves the list capability belongs to a resource
+// and shares its terraform type, which is how terraform matches the two.
 func TestDerive_ListResource(t *testing.T) {
 	m := mustDerive(t, thingSpec, testConfig())
 	for _, lr := range m.ListResources {
-		if lr.Names.Key != "event" {
+		if lr.Names.Key != "thing" {
 			continue
 		}
 		if lr.ListOperation.Kind != OperationList || lr.ListOperation.Method != "GET" || lr.ListOperation.SuccessCode != 200 {
 			t.Errorf("list op = %+v", lr.ListOperation)
 		}
-		for _, name := range []string{"at", "level"} {
+		resource := resourceByKey(t, m, "thing")
+		if lr.Names.TerraformType != resource.Names.TerraformType {
+			t.Errorf("list resource type = %q, resource type = %q; terraform matches them by name",
+				lr.Names.TerraformType, resource.Names.TerraformType)
+		}
+		for _, name := range []string{"name", "id"} {
 			if a := attribute(t, lr.Schema, name); a.ComputedOptionalRequired != Computed {
 				t.Errorf("%q = %+v", name, a)
 			}
 		}
 		return
 	}
-	t.Fatalf("no event list resource in %+v", m.ListResources)
+	t.Fatalf("no thing list resource in %+v", m.ListResources)
+}
+
+// TestDerive_ListOnlyEntityIsADatasource proves a collection the API cannot
+// address one member of yields a datasource: no resource can match it, and
+// terraform refuses a provider whose list resource names no resource.
+func TestDerive_ListOnlyEntityIsADatasource(t *testing.T) {
+	m := mustDerive(t, thingSpec, testConfig())
+	for _, lr := range m.ListResources {
+		if lr.Names.Key == "event" {
+			t.Fatalf("event is enumerable but not addressable, and became a list resource")
+		}
+	}
+	datasourceByKey(t, m, "event")
 }
 
 // TestUnit_AddressingSchema_TakesEveryPathParameter proves a collection
@@ -460,10 +481,10 @@ paths:
 	m := mustDerive(t, spec, testConfig())
 	// Both versions generate: the later collection path takes a key
 	// extended by its distinguishing segment, and nothing is excluded.
-	if got := len(m.ListResources); got != 2 {
-		t.Fatalf("%d list resources from two colliding versions, want 2", got)
+	if got := len(m.Datasources); got != 2 {
+		t.Fatalf("%d datasources from two colliding versions, want 2", got)
 	}
-	first, second := m.ListResources[0], m.ListResources[1]
+	first, second := m.Datasources[0], m.Datasources[1]
 	if first.Names.Key != "tag" || second.Names.Key != "tag_v7" {
 		t.Fatalf("colliding keys = %q, %q; want tag, tag_v7", first.Names.Key, second.Names.Key)
 	}

@@ -193,11 +193,21 @@ func (e *entity) decide() (Classification, *Exclusion) {
 	listOnlyShape := e.list != nil && e.read == nil
 	// A collection-path GET whose response carries no array is not a
 	// collection: it is one object at a fixed path — an account's
-	// preferences, a tenant's enrolment settings. One pilot answers 85 of
-	// its collection GETs that way, and every one was classified as a list
-	// resource and then failed for having no elements to reach.
-	singletonShape := listOnlyShape && !carriesCollection(e.list.SuccessSchema())
-	listOK := listOnlyShape && !singletonShape && e.list.SuccessSchema() != nil
+	// preferences, a tenant's enrolment settings. Classified as a
+	// collection it has no elements to reach and fails for saying so.
+	singletonShape := listOnlyShape && e.list.SuccessSchema() != nil && !carriesCollection(e.list.SuccessSchema())
+	// A collection the API enumerates but cannot address one member of. It
+	// is a datasource: terraform can read the collection and nothing else.
+	collectionOK := listOnlyShape && !singletonShape && e.list.SuccessSchema() != nil
+
+	// A list resource is the list capability of a managed resource, not a
+	// kind of entity: terraform matches it to a resource by type name, and
+	// its results are the identities of that resource's live objects. So it
+	// exists exactly where a resource does and the API can enumerate it.
+	//
+	// An entity the API enumerates but cannot address one member of yields
+	// no resource to match, and is a datasource above.
+	listOK := resourceOK && e.list != nil && e.list.SuccessSchema() != nil
 
 	// A singleton is a resource when the API lets it be written: read at the
 	// fixed path, updated there, neither created nor destroyed. Terraform
@@ -219,8 +229,10 @@ func (e *entity) decide() (Classification, *Exclusion) {
 			// A resource is always also readable by id, so it yields a
 			// datasource whether or not the API can list it. An entity
 			// whose only access is the item GET yields one too: the
-			// caller supplies the item path key and reads the object.
-			if resourceOK || dsOK || lookupOK {
+			// caller supplies the item path key and reads the object. So
+			// does one the API only enumerates, which is readable in bulk
+			// and addressable no other way.
+			if resourceOK || dsOK || lookupOK || collectionOK {
 				kinds = append(kinds, k)
 			}
 		case KindListResource:
@@ -239,7 +251,7 @@ func (e *entity) decide() (Classification, *Exclusion) {
 			Key:            e.key,
 			CollectionPath: e.collection,
 			ItemPath:       e.item,
-			Reason:         e.exclusionReason(resourceShape, dsShape, listOnlyShape, lookupShape),
+			Reason:         e.exclusionReason(resourceShape, dsShape, listOnlyShape, singletonShape, lookupShape),
 		}
 	}
 
@@ -276,12 +288,17 @@ func (e *entity) decide() (Classification, *Exclusion) {
 
 // exclusionReason says why nothing fit, most specific first: a shape that
 // matched but lacked schemas beats a recital of what was missing.
-func (e *entity) exclusionReason(resourceShape, dsShape, listOnlyShape, lookupShape bool) string {
+func (e *entity) exclusionReason(resourceShape, dsShape, listOnlyShape, singletonShape, lookupShape bool) string {
 	switch {
 	case resourceShape:
 		return "create, read and delete are present but the create request or read success response declares no schema"
 	case dsShape:
 		return "list and read are present but a success response schema is missing"
+	case singletonShape:
+		// One object at a fixed path, and the API offers no way to write
+		// it. Its schema is present — a missing one is the listOnlyShape
+		// case below — so what it lacks is a write, not a declaration.
+		return "one object at a fixed path with no operation that writes it, so terraform would own nothing"
 	case listOnlyShape:
 		return "list is present but its success response declares no schema"
 	case lookupShape:

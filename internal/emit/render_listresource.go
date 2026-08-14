@@ -266,9 +266,13 @@ const resultLineDepth = 3
 func readStringLocal(local string, n node) string {
 	indent := strings.Repeat("\t", resultLineDepth)
 	render := func(value string) string { return value }
-	if n.attr.Kind != ir.TypeString {
-		// A non-string identity is rendered through fmt: the identity is a
-		// string whatever the API keys its objects with.
+	// Decided from what the SDK hands back, not from the attribute's kind:
+	// an identity declared as a string arrives as uuid.UUID or time.Time
+	// often enough, and only the SDK type says whether an assignment
+	// compiles. A value that is not already a string goes through fmt,
+	// because the identity is a string whatever the API keys its objects
+	// with.
+	if strings.TrimPrefix(n.fb.Access.SDKType, "*") != "string" {
 		render = func(value string) string { return "fmt.Sprintf(\"%v\", " + value + ")" }
 	}
 	if strings.HasPrefix(n.fb.Access.SDKType, "*") {
