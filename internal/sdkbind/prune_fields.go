@@ -70,8 +70,7 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 	}
 
 	if result != nil && param != nil && !types.Identical(result, param) {
-		return fmt.Sprintf("it is read as %s but written as %s; no one conversion satisfies both",
-			shortType(result), shortType(param))
+		return p.settleEachDirection(fb, result, param, kind, key, at)
 	}
 
 	basis := result
@@ -88,6 +87,98 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 		return p.resolveNested(fb, basis, kind, key, at)
 	}
 	return p.settleScalar(fb, basis)
+}
+
+// settleEachDirection settles a field the SDK reads and writes as different
+// types, by bridging each direction against its own type rather than
+// requiring one type to satisfy both.
+//
+// A generator emits two models for one object when the document declares a
+// request schema and a response schema separately, and the same field then
+// differs only in pointer-ness or integer width. Requiring identity refused
+// the field; bridging each side keeps it, and a side the conversion catalog
+// cannot carry still refuses, naming both types.
+//
+// Nested objects are excluded: their fields would have to pair recursively
+// against two model trees, which is a larger question than one accessor.
+func (p *pruner) settleEachDirection(fb *FieldBinding, result, param types.Type, kind, key, at string) string {
+	mismatch := fmt.Sprintf("it is read as %s but written as %s; no conversion carries both",
+		shortType(result), shortType(param))
+
+	if len(fb.Nested) > 0 {
+		return p.resolveNestedPair(fb, result, param, kind, key, at, mismatch)
+	}
+
+	readSide := *fb
+	readSide.Access.Set = ""
+	if why := p.settleScalar(&readSide, result); why != "" {
+		return mismatch
+	}
+
+	writeSide := *fb
+	writeSide.Access.Get = ""
+	if why := p.settleScalar(&writeSide, param); why != "" {
+		return mismatch
+	}
+
+	fb.Access.SDKType = readSide.Access.SDKType
+	fb.Access.ConvertGet = readSide.Access.ConvertGet
+	fb.Access.ConvertSet = writeSide.Access.ConvertSet
+	// A map carried through an additionalData bag is written by building a
+	// model, so the write side's model and constructor travel with its
+	// conversion. Without them construction emits an assignment with
+	// nothing on the right of it.
+	fb.NestedModel = readSide.NestedModel
+	fb.NestedWriteModel = writeSide.NestedWriteModel
+	fb.NestedConstructor = writeSide.NestedConstructor
+	// The parse companion belongs to the direction that parses. Only the
+	// write does; the read spells an enum through its String method.
+	fb.Access.ParseFunc = writeSide.Access.ParseFunc
+	if fb.Access.ParseFunc == "" {
+		fb.Access.ParseFunc = readSide.Access.ParseFunc
+	}
+	return ""
+}
+
+// resolveNestedPair points a nested object at two models — the one its
+// getter answers and the one its setter takes — and pairs their fields.
+//
+// resolveNested derives the write model from the read one, which is right
+// while a generator emits a single model per object. It emits two when the
+// document declares a request schema and a response schema separately, and
+// then the pair has to be resolved from both accessors. The per-field walk
+// is the same one either way: it already takes a read model and a write
+// model, and every child settles against its own two types.
+func (p *pruner) resolveNestedPair(fb *FieldBinding, result, param types.Type, kind, key, at, mismatch string) string {
+	readNamed, why := nestedModelOf(result)
+	if why != "" {
+		return mismatch
+	}
+	writeNamed, why := nestedModelOf(param)
+	if why != "" {
+		return mismatch
+	}
+
+	model, constructor, why := p.writeModelFromNamed(writeNamed)
+	if why != "" {
+		return mismatch
+	}
+	writeModel, err := p.l.typeFromExpr(p.info, model)
+	if err != nil {
+		return mismatch
+	}
+
+	fb.Access.SDKType = shortType(result)
+	fb.Access.SDKWriteType = shortType(param)
+	fb.NestedModel = qualifiedName(readNamed)
+	fb.NestedWriteModel, fb.NestedConstructor = model, constructor
+	fb.Access.NestedNilable = nilableType(result)
+
+	fb.Nested = p.fields(kind, key, at, fb.Nested, types.Type(readNamed), writeModel)
+	if len(fb.Nested) == 0 {
+		return "every field of its nested object went, leaving nothing to map"
+	}
+	return ""
 }
 
 // resolveNested points a nested object at the SDK model its parent

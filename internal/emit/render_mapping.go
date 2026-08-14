@@ -115,7 +115,14 @@ func constructScalar(n node, src, dst, attrPath, indent string) (string, bool, e
 func constructNested(n node, src, dst, attrPath string, depth int) (string, bool, error) {
 	indent := strings.Repeat("\t", depth)
 	field := src + "." + ir.GoName(n.attr.Name)
-	elemType := strings.TrimPrefix(n.fb.Access.SDKType, "[]")
+	// Construction builds the type the setter takes. That is usually the
+	// same as the getter's, and is not when the SDK emits one model per
+	// direction.
+	writeType := n.fb.Access.SDKType
+	if n.fb.Access.SDKWriteType != "" {
+		writeType = n.fb.Access.SDKWriteType
+	}
+	elemType := strings.TrimPrefix(writeType, "[]")
 	// A concrete element type takes the constructed value dereferenced;
 	// an interface or pointer element takes the constructor's pointer.
 	deref := ""
@@ -132,6 +139,12 @@ func constructNested(n node, src, dst, attrPath string, depth int) (string, bool
 		if err != nil {
 			return "", false, err
 		}
+		// No child is written, so there is nothing to build. Rendering the
+		// loop anyway declares an index nothing reads, which does not
+		// compile.
+		if strings.TrimSpace(inner) == "" {
+			return "", false, nil
+		}
 
 		var b strings.Builder
 		fmt.Fprintf(&b, "%sif %s != nil {\n", indent, field)
@@ -147,13 +160,16 @@ func constructNested(n node, src, dst, attrPath string, depth int) (string, bool
 	}
 
 	singleDeref := ""
-	if n.fb.Access.SDKType == n.fb.NestedWriteModel {
+	if writeType == n.fb.NestedWriteModel {
 		singleDeref = "*"
 	}
 	nestedVar := lowerCamel(n.attr.Name) + "Body" + depthSuffix(depth)
 	inner, usesFmt, err := constructLines(n.children, field, nestedVar, attrPath, depth+1, false)
 	if err != nil {
 		return "", false, err
+	}
+	if strings.TrimSpace(inner) == "" {
+		return "", false, nil
 	}
 
 	var b strings.Builder

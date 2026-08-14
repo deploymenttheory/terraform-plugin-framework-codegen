@@ -304,8 +304,14 @@ type FieldAccess struct {
 	// the field is never written (computed attributes, read-only kinds).
 	Set string `json:"set,omitempty"`
 	// SDKType is the finished Go type the SDK carries the field as, e.g.
-	// "*string", "int32", "[]string", "*models.Tag_kind".
+	// "*string", "int32", "[]string", "*models.Tag_kind". Where the getter
+	// and the setter disagree it is the getter's, because state mapping is
+	// what most consumers read it for.
 	SDKType string `json:"sdk_type,omitempty"`
+	// SDKWriteType is the type the setter takes, set only where it differs
+	// from SDKType. Construction builds a value of this type; using SDKType
+	// there types the value for the read side and does not compile.
+	SDKWriteType string `json:"sdk_write_type,omitempty"`
 	// ConvertGet and ConvertSet name the convert functions bridging each
 	// direction, e.g. "FromPtrString" / "ToPtrString".
 	ConvertGet string `json:"convert_get,omitempty"`
