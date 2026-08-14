@@ -113,6 +113,22 @@ type Schema struct {
 	Description string
 	// ReadOnly is the declared readOnly flag.
 	ReadOnly bool
+	// WriteOnly is the declared writeOnly flag: the property is accepted on
+	// write and never returned.
+	WriteOnly bool
+	// Deprecated is the declared deprecated flag.
+	Deprecated bool
+	// UniqueItems is the declared uniqueItems flag on an array: its members
+	// are a set, so the order they come back in means nothing.
+	UniqueItems bool
+	// MinLength and MaxLength are the declared length bounds on a string;
+	// nil when absent.
+	MinLength *int64
+	MaxLength *int64
+	// MinItems and MaxItems are the declared size bounds on an array; nil
+	// when absent.
+	MinItems *int64
+	MaxItems *int64
 	// Enum lists the declared enum values as decoded scalars.
 	Enum []any
 	// Default is the declared default value, decoded; nil when absent.

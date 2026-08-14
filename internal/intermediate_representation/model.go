@@ -322,6 +322,27 @@ type Attribute struct {
 	// re-creation: x-tfpfgen-create-only, or every writable attribute of
 	// a resource with no update operation.
 	RequiresReplace bool `json:"requires_replace,omitempty"`
+	// Format is the document's declared format, which says what a string
+	// carries beyond being a string: "password", "date-time", "uuid".
+	Format string `json:"format,omitempty"`
+	// WriteOnly marks a property the API accepts on write and never
+	// returns.
+	WriteOnly bool `json:"write_only,omitempty"`
+	// Deprecated marks a property the document declares deprecated.
+	Deprecated bool `json:"deprecated,omitempty"`
+	// UniqueItems marks a collection whose members are a set, so the order
+	// they are returned in carries no meaning.
+	UniqueItems bool `json:"unique_items,omitempty"`
+	// The constraints the document declares, nil or empty when it declares
+	// none. Each becomes a plan-time validator, so a configuration the API
+	// would refuse or silently clamp fails before it is sent.
+	Pattern   string   `json:"pattern,omitempty"`
+	Minimum   *float64 `json:"minimum,omitempty"`
+	Maximum   *float64 `json:"maximum,omitempty"`
+	MinLength *int64   `json:"min_length,omitempty"`
+	MaxLength *int64   `json:"max_length,omitempty"`
+	MinItems  *int64   `json:"min_items,omitempty"`
+	MaxItems  *int64   `json:"max_items,omitempty"`
 	// OneOf lists a closed enum's values for a validator.
 	OneOf []string `json:"one_of,omitempty"`
 	// AdvisoryValues lists an open enum's known values

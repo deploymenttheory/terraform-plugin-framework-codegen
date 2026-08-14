@@ -459,6 +459,24 @@ func TestUnit_Specmodel_LoadRefusals(t *testing.T) {
       type: object
       readOnly: mostly
 `), "readOnly: must be true or false"},
+		{"writeOnly is not a bool", minimal(`components:
+  schemas:
+    A:
+      type: object
+      writeOnly: sometimes
+`), "writeOnly: must be true or false"},
+		{"uniqueItems is not a bool", minimal(`components:
+  schemas:
+    A:
+      type: array
+      uniqueItems: occasionally
+`), "uniqueItems: must be true or false"},
+		{"maxLength is not a number", minimal(`components:
+  schemas:
+    A:
+      type: string
+      maxLength: plenty
+`), "maxLength"},
 		{"schema is a sequence", minimal(`components:
   schemas:
     A:
