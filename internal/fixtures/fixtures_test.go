@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // testTree is one tree exercising every value shape: scalars of each
@@ -16,26 +16,26 @@ import (
 func testTree() *ir.AttributeTree {
 	return &ir.AttributeTree{
 		Attributes: []ir.Attribute{
-			{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
-			{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceRequired},
-			{Name: "enabled", WireName: "enabled", Kind: ir.TypeBool, Presence: ir.PresenceOptional},
-			{Name: "port", WireName: "port", Kind: ir.TypeInt64, Presence: ir.PresenceOptional},
-			{Name: "ratio", WireName: "ratio", Kind: ir.TypeFloat64, Presence: ir.PresenceOptional},
-			{Name: "kind", WireName: "kind", Kind: ir.TypeString, Presence: ir.PresenceOptional,
+			{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+			{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+			{Name: "enabled", WireName: "enabled", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+			{Name: "port", WireName: "port", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
+			{Name: "ratio", WireName: "ratio", Kind: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional},
+			{Name: "kind", WireName: "kind", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
 				OneOf: []string{"basic", "advanced"}},
-			{Name: "mode", WireName: "mode", Kind: ir.TypeString, Presence: ir.PresenceOptionalComputed,
+			{Name: "mode", WireName: "mode", Kind: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional,
 				AdvisoryValues: []string{"auto", "manual"}},
-			{Name: "tags", WireName: "tags", Kind: ir.TypeList, ElementKind: ir.TypeString, Presence: ir.PresenceOptional},
-			{Name: "settings", WireName: "settings", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
+			{Name: "tags", WireName: "tags", Kind: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "settings", WireName: "settings", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
 				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, Presence: ir.PresenceRequired},
-					{Name: "trace", WireName: "trace", Kind: ir.TypeBool, Presence: ir.PresenceOptional},
+					{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Required},
+					{Name: "trace", WireName: "trace", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
 				}}},
-			{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElementKind: ir.TypeObject, Presence: ir.PresenceOptional,
+			{Name: "rules", WireName: "rules", Kind: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
 				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "pattern", WireName: "pattern", Kind: ir.TypeString, Presence: ir.PresenceRequired},
+					{Name: "pattern", WireName: "pattern", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
 				}}},
-			{Name: "blob", WireName: "blob", Presence: ir.PresenceOptional,
+			{Name: "blob", WireName: "blob", ComputedOptionalRequired: ir.Optional,
 				Unsupported: true, UnsupportedReason: "free-form object declares no properties"},
 		},
 	}
@@ -101,9 +101,9 @@ func TestUnit_Fixturespec_SkipsCarryTheirReason(t *testing.T) {
 	}
 
 	nested := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "outer", WireName: "outer", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
+		{Name: "outer", WireName: "outer", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
 			Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "inner", WireName: "inner", Presence: ir.PresenceOptional, Unsupported: true},
+				{Name: "inner", WireName: "inner", ComputedOptionalRequired: ir.Optional, Unsupported: true},
 			}}},
 	}}
 	deep := Derive(nested)
@@ -240,18 +240,18 @@ func TestUnit_Fixturespec_WireJSONKeepsTreeOrderAndParses(t *testing.T) {
 func variantTree() *ir.AttributeTree {
 	return &ir.AttributeTree{
 		Attributes: []ir.Attribute{
-			{Name: "kind", WireName: "kind", Kind: ir.TypeString, Presence: ir.PresenceRequired,
+			{Name: "kind", WireName: "kind", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required,
 				OneOf: []string{"ping", "web", "dns"}},
-			{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceOptional},
-			{Name: "interval", WireName: "interval", Kind: ir.TypeInt64, Presence: ir.PresenceRequired},
-			{Name: "target_host", WireName: "target_host", Kind: ir.TypeString, Presence: ir.PresenceOptional},
-			{Name: "domain", WireName: "domain", Kind: ir.TypeString, Presence: ir.PresenceOptional},
-			{Name: "dnssec", WireName: "dnssec", Kind: ir.TypeBool, Presence: ir.PresenceOptional},
-			{Name: "web", WireName: "web", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
+			{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "interval", WireName: "interval", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Required},
+			{Name: "target_host", WireName: "target_host", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "domain", WireName: "domain", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "dnssec", WireName: "dnssec", Kind: ir.TypeBool, ComputedOptionalRequired: ir.Optional},
+			{Name: "web", WireName: "web", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
 				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-					{Name: "url", WireName: "url", Kind: ir.TypeString, Presence: ir.PresenceRequired},
+					{Name: "url", WireName: "url", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
 				}}},
-			{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
+			{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 		},
 		ConditionalValidities: []ir.ConditionalValidity{
 			{Property: "kind", Equals: "dns", Valid: []string{"dnssec", "domain"}},

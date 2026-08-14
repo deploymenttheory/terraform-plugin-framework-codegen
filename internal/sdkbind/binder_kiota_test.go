@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // TestKiotaChainSpelling holds the drafted fluent chain to the spelling a
@@ -108,35 +108,35 @@ func TestKiotaAccessSpelling(t *testing.T) {
 		wantType string
 	}{
 		{
-			name: "plain scalar", a: attr("name", "name", ir.TypeString, ir.PresenceRequired),
+			name: "plain scalar", a: attr("name", "name", ir.TypeString, ir.Required),
 			mode: accessReadWrite, wantGet: "GetName", wantSet: "SetName", wantType: "*string",
 		},
 		{
-			name: "reserved word is escaped", a: attr("error", "error", ir.TypeString, ir.PresenceOptional),
+			name: "reserved word is escaped", a: attr("error", "error", ir.TypeString, ir.Optional),
 			mode: accessReadWrite, wantGet: "GetErrorEscaped", wantSet: "SetErrorEscaped", wantType: "*string",
 		},
 		{
-			name: "computed never writes", a: attr("id", "id", ir.TypeString, ir.PresenceComputed),
+			name: "computed never writes", a: attr("id", "id", ir.TypeString, ir.Computed),
 			mode: accessReadWrite, wantGet: "GetId", wantSet: "", wantType: "*string",
 		},
 		{
-			name: "read-only mode never writes", a: attr("name", "name", ir.TypeString, ir.PresenceRequired),
+			name: "read-only mode never writes", a: attr("name", "name", ir.TypeString, ir.Required),
 			mode: accessReadOnly, wantGet: "GetName", wantSet: "", wantType: "*string",
 		},
 		{
-			name: "write-only mode never reads", a: attr("name", "name", ir.TypeString, ir.PresenceRequired),
+			name: "write-only mode never reads", a: attr("name", "name", ir.TypeString, ir.Required),
 			mode: accessWriteOnly, wantGet: "", wantSet: "SetName", wantType: "*string",
 		},
 		{
-			name: "camel wire name keeps its humps", a: attr("account_group_id", "accountGroupId", ir.TypeInt64, ir.PresenceOptional),
+			name: "camel wire name keeps its humps", a: attr("account_group_id", "accountGroupId", ir.TypeInt64, ir.Optional),
 			mode: accessReadWrite, wantGet: "GetAccountGroupId", wantSet: "SetAccountGroupId", wantType: "*int64",
 		},
 		{
-			name: "bool scalar", a: attr("enabled", "enabled", ir.TypeBool, ir.PresenceOptional),
+			name: "bool scalar", a: attr("enabled", "enabled", ir.TypeBool, ir.Optional),
 			mode: accessReadWrite, wantGet: "GetEnabled", wantSet: "SetEnabled", wantType: "*bool",
 		},
 		{
-			name: "float scalar", a: attr("weight", "weight", ir.TypeFloat64, ir.PresenceOptional),
+			name: "float scalar", a: attr("weight", "weight", ir.TypeFloat64, ir.Optional),
 			mode: accessReadWrite, wantGet: "GetWeight", wantSet: "SetWeight", wantType: "*float64",
 		},
 	}

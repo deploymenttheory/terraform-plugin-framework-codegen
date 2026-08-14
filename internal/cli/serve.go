@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
 )
 
 // newServeQuirkserverCommand is the hidden development verb that runs the

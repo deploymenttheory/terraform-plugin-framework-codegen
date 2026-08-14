@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/revise"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/revise"
 )
 
 // dnsLabel matches the names the registry and file layout accept.

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/emit"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/manifest"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/version"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/emit"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version"
 )
 
 func TestUnit_FirstServerURL_EmptyWithoutServers(t *testing.T) {

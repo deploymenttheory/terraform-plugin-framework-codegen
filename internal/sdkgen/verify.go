@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
 )
 
 // The drift kinds `sdk verify` reports. The first three come from

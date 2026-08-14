@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
 )
 
 // TestUnit_Ledger_IntentIsDurableBeforeTheRequestIsSent is the ledger's

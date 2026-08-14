@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 )
 
 // actionData is the render context every action template consumes.
@@ -190,10 +190,10 @@ func actionParamNodes(op *ir.Operation) []node {
 			kind = ir.TypeString
 		}
 		out = append(out, node{attr: ir.Attribute{
-			Name:     ir.TerraformName(p.Name),
-			WireName: p.Name,
-			Kind:     kind,
-			Presence: ir.PresenceRequired,
+			Name:                     ir.TerraformName(p.Name),
+			WireName:                 p.Name,
+			Kind:                     kind,
+			ComputedOptionalRequired: ir.Required,
 		}})
 	}
 	return out
@@ -234,7 +234,7 @@ func tftype(v fixtures.Entry) string {
 	case v.Nested != nil:
 		return tftypeObject(v.Nested)
 	case v.Kind == ir.TypeList:
-		return "tftypes.List{ElementType: " + tftypeScalar(v.ElementKind) + "}"
+		return "tftypes.List{ElementType: " + tftypeScalar(v.ElementType) + "}"
 	default:
 		return tftypeScalar(v.Kind)
 	}
@@ -276,7 +276,7 @@ func tftypeNewValue(v fixtures.Entry) string {
 		return tftypeNewObject(v.Nested)
 	case v.Kind == ir.TypeList:
 		return fmt.Sprintf("tftypes.NewValue(%s, []tftypes.Value{tftypes.NewValue(%s, %s)})",
-			tftype(v), tftypeScalar(v.ElementKind), tftypeScalarLiteral(v.ElementKind, v.Scalar))
+			tftype(v), tftypeScalar(v.ElementType), tftypeScalarLiteral(v.ElementType, v.Scalar))
 	default:
 		return fmt.Sprintf("tftypes.NewValue(%s, %s)", tftypeScalar(v.Kind), tftypeScalarLiteral(v.Kind, v.Scalar))
 	}
@@ -319,7 +319,7 @@ func tftypeScalarLiteral(k ir.AttributeType, scalar any) string {
 func invocable(nodes []node) []node {
 	kept := make([]node, 0, len(nodes))
 	for _, n := range nodes {
-		if n.attr.Presence == ir.PresenceComputed {
+		if n.attr.ComputedOptionalRequired == ir.Computed {
 			continue
 		}
 		if n.attr.Nested != nil {

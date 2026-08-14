@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 func TestDerive_RefusesMissingInputs(t *testing.T) {
@@ -227,24 +227,24 @@ func TestDerive_CompanionDatasource(t *testing.T) {
 	}
 
 	ft := attribute(t, ds.Schema, "filter_type")
-	if ft.Kind != TypeString || ft.Presence != PresenceRequired {
+	if ft.Kind != TypeString || ft.ComputedOptionalRequired != Required {
 		t.Errorf("filter_type = %+v", ft)
 	}
 	fv := attribute(t, ds.Schema, "filter_value")
-	if fv.Presence != PresenceOptional {
+	if fv.ComputedOptionalRequired != Optional {
 		t.Errorf("filter_value = %+v", fv)
 	}
 	items := attribute(t, ds.Schema, "items")
-	if items.Kind != TypeList || items.ElementKind != TypeObject || items.Presence != PresenceComputed {
+	if items.Kind != TypeList || items.ElementType != TypeObject || items.ComputedOptionalRequired != Computed {
 		t.Errorf("items = %+v", items)
 	}
 	// Inside items everything is computed: the datasource never writes.
 	for _, a := range items.Nested.Attributes {
-		if a.Presence != PresenceComputed {
-			t.Errorf("companion item attribute %q is %s, want computed", a.Name, a.Presence)
+		if a.ComputedOptionalRequired != Computed {
+			t.Errorf("companion item attribute %q is %s, want computed", a.Name, a.ComputedOptionalRequired)
 		}
 	}
-	if a := attribute(t, items.Nested, "name"); a.Presence != PresenceComputed {
+	if a := attribute(t, items.Nested, "name"); a.ComputedOptionalRequired != Computed {
 		t.Errorf("name inside items = %+v", a)
 	}
 }
@@ -262,13 +262,13 @@ func TestDerive_LookupByKeyDatasource(t *testing.T) {
 		t.Errorf("lookup ops = %+v", ds.Operations)
 	}
 	key := attribute(t, ds.Schema, "setting_name")
-	if key.Presence != PresenceRequired || key.Kind != TypeString || key.WireName != "settingName" {
+	if key.ComputedOptionalRequired != Required || key.Kind != TypeString || key.WireName != "settingName" {
 		t.Errorf("key attribute = %+v", key)
 	}
-	if a := attribute(t, ds.Schema, "id"); a.Presence != PresenceComputed {
+	if a := attribute(t, ds.Schema, "id"); a.ComputedOptionalRequired != Computed {
 		t.Errorf("id = %+v", a)
 	}
-	if a := attribute(t, ds.Schema, "value"); a.Presence != PresenceComputed {
+	if a := attribute(t, ds.Schema, "value"); a.ComputedOptionalRequired != Computed {
 		t.Errorf("value = %+v", a)
 	}
 }
@@ -283,7 +283,7 @@ func TestDerive_ListReadEntityYieldsDatasource(t *testing.T) {
 		t.Errorf("stream ops = %+v", ds.Operations)
 	}
 	items := attribute(t, ds.Schema, "items")
-	if a := attribute(t, items.Nested, "topic"); a.Presence != PresenceComputed {
+	if a := attribute(t, items.Nested, "topic"); a.ComputedOptionalRequired != Computed {
 		t.Errorf("topic = %+v", a)
 	}
 }
@@ -298,7 +298,7 @@ func TestDerive_ListResource(t *testing.T) {
 			t.Errorf("list op = %+v", lr.ListOperation)
 		}
 		for _, name := range []string{"at", "level"} {
-			if a := attribute(t, lr.Schema, name); a.Presence != PresenceComputed {
+			if a := attribute(t, lr.Schema, name); a.ComputedOptionalRequired != Computed {
 				t.Errorf("%q = %+v", name, a)
 			}
 		}
@@ -323,7 +323,7 @@ func TestDerive_Action(t *testing.T) {
 		t.Errorf("invoke op = %+v", a.InvokeOperation)
 	}
 	force := attribute(t, a.RequestSchema, "force")
-	if force.Kind != TypeBool || force.Presence != PresenceRequired {
+	if force.Kind != TypeBool || force.ComputedOptionalRequired != Required {
 		t.Errorf("force = %+v", force)
 	}
 }

@@ -28,8 +28,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // SDKInfo locates the generated SDK inside the provider module. It is
@@ -274,11 +274,11 @@ type FieldBinding struct {
 	// speaks.
 	Attr string `json:"attr"`
 	Wire string `json:"wire"`
-	// Kind and ElementKind mirror the attribute's terraform kinds, so
+	// Kind and ElementType mirror the attribute's terraform kinds, so
 	// pruning and the emitter know the framework side without
 	// re-deriving it.
 	Kind        ir.AttributeType `json:"kind,omitempty"`
-	ElementKind ir.AttributeType `json:"element_kind,omitempty"`
+	ElementType ir.AttributeType `json:"element_kind,omitempty"`
 	// Access is the rendered accessor and conversion set.
 	Access FieldAccess `json:"access"`
 	// NestedModel is the SDK type one nested object is read as;

@@ -3,7 +3,7 @@ package strategy
 import (
 	"sort"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // maxVariantValues caps the gate values that become variants, so a wide enum

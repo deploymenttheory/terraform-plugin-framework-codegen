@@ -7,9 +7,9 @@ import (
 	"path"
 	"text/template"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/templates"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/templates"
 )
 
 // hashHeader renders the shared DO-NOT-EDIT header in its #-commented

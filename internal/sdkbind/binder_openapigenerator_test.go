@@ -3,7 +3,7 @@ package sdkbind
 import (
 	"testing"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // TestOpMethodName holds the drafted service method to the generator's
@@ -104,7 +104,7 @@ func TestOAGCallDrafts(t *testing.T) {
 // TestOAGAccessSpelling holds drafted accessors to the generator's
 // deref-on-the-way-out helper shape: value-typed, no mangling.
 func TestOAGAccessSpelling(t *testing.T) {
-	fa := openAPIGeneratorBinder{}.access(attr("name", "name", ir.TypeString, ir.PresenceRequired), accessReadWrite)
+	fa := openAPIGeneratorBinder{}.access(attr("name", "name", ir.TypeString, ir.Required), accessReadWrite)
 	if fa.Get != "GetName" || fa.Set != "SetName" || fa.SDKType != "string" {
 		t.Errorf("access = %+v, want value-typed GetName/SetName", fa)
 	}
@@ -112,15 +112,15 @@ func TestOAGAccessSpelling(t *testing.T) {
 		t.Errorf("converts = %q/%q, want FromString/ToString", fa.ConvertGet, fa.ConvertSet)
 	}
 
-	labels := attr("labels", "labels", ir.TypeList, ir.PresenceOptional)
-	labels.ElementKind = ir.TypeString
+	labels := attr("labels", "labels", ir.TypeList, ir.Optional)
+	labels.ElementType = ir.TypeString
 	fa = openAPIGeneratorBinder{}.access(labels, accessReadWrite)
 	if fa.SDKType != "[]string" || fa.ConvertGet != "FromStringSlice" {
 		t.Errorf("slice access = %+v", fa)
 	}
 
 	// The generator does not mangle reserved words the way kiota does.
-	fa = openAPIGeneratorBinder{}.access(attr("error", "error", ir.TypeString, ir.PresenceOptional), accessReadWrite)
+	fa = openAPIGeneratorBinder{}.access(attr("error", "error", ir.TypeString, ir.Optional), accessReadWrite)
 	if fa.Get != "GetError" {
 		t.Errorf("reserved wire name drafted %q, want GetError", fa.Get)
 	}

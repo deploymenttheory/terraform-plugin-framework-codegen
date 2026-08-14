@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/manifest"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/version"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/manifest"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/version"
 )
 
 func TestUnit_Run_MissingRevisedSaysRunSpecRevise(t *testing.T) {

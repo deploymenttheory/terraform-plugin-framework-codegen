@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // The prose phrase set. It is deliberately small, general English, and

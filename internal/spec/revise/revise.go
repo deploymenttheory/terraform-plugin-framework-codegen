@@ -22,8 +22,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/correction"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/store"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/correction"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/store"
 )
 
 const (

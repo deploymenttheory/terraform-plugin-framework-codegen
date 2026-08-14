@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 )
 
 // expectRenderError renders and requires a failure whose message carries
@@ -195,13 +195,13 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	// Two nested objects claiming one model struct name.
 	m, b = fictionalModel(), fictionalBindings()
 	inner := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "inner", WireName: "inner", Kind: ir.TypeObject, Presence: ir.PresenceOptional,
+		{Name: "inner", WireName: "inner", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
 			Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "x", WireName: "x", Kind: ir.TypeString, Presence: ir.PresenceOptional}}}},
+				{Name: "x", WireName: "x", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional}}}},
 	}}
 	m.Resources[0].Schema.Attributes = append(m.Resources[0].Schema.Attributes,
-		ir.Attribute{Name: "one", WireName: "one", Kind: ir.TypeObject, Presence: ir.PresenceOptional, Nested: inner},
-		ir.Attribute{Name: "two", WireName: "two", Kind: ir.TypeObject, Presence: ir.PresenceOptional, Nested: inner},
+		ir.Attribute{Name: "one", WireName: "one", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional, Nested: inner},
+		ir.Attribute{Name: "two", WireName: "two", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional, Nested: inner},
 	)
 	innerBinding := func() []sdkbind.FieldBinding {
 		return []sdkbind.FieldBinding{{Attr: "inner", Wire: "inner", Kind: ir.TypeObject,
@@ -414,9 +414,9 @@ func TestUnit_JoinTree_KeepsAddressingAttributesTheSDKCannotCarry(t *testing.T) 
 	// request or response body declares it and no SDK model carries it. It
 	// must survive the join all the same, or nothing can fill the call.
 	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "owner", WireName: "owner", Kind: ir.TypeString, Presence: ir.PresenceRequired},
-		{Name: "id", WireName: "id", Kind: ir.TypeString, Presence: ir.PresenceComputed},
-		{Name: "name", WireName: "name", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+		{Name: "owner", WireName: "owner", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+		{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+		{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
 	}}
 	bound := []sdkbind.FieldBinding{{Attr: "name", Wire: "name", Kind: ir.TypeString,
 		Access: kAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}}
@@ -436,7 +436,7 @@ func TestUnit_JoinTree_KeepsAddressingAttributesTheSDKCannotCarry(t *testing.T) 
 
 func TestUnit_JoinTree_DropsAnUnboundAttributeThatAddressesNothing(t *testing.T) {
 	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		{Name: "ghost", WireName: "ghost", Kind: ir.TypeString, Presence: ir.PresenceOptional},
+		{Name: "ghost", WireName: "ghost", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
 	}}
 	if nodes := joinTree(tree, nil); len(nodes) != 0 {
 		t.Fatalf("an ordinary unbound attribute must be dropped, got %d node(s)", len(nodes))
@@ -497,12 +497,12 @@ func TestUnit_Invocable_DropsWhatAnActionCannotTake(t *testing.T) {
 	// An action schema has no Computed: the framework's action package does
 	// not declare the field, so a computed attribute does not compile.
 	nodes := []node{
-		{attr: ir.Attribute{Name: "kept", Presence: ir.PresenceRequired}},
-		{attr: ir.Attribute{Name: "dropped", Presence: ir.PresenceComputed}},
-		{attr: ir.Attribute{Name: "block", Presence: ir.PresenceOptional, Nested: &ir.AttributeTree{}},
+		{attr: ir.Attribute{Name: "kept", ComputedOptionalRequired: ir.Required}},
+		{attr: ir.Attribute{Name: "dropped", ComputedOptionalRequired: ir.Computed}},
+		{attr: ir.Attribute{Name: "block", ComputedOptionalRequired: ir.Optional, Nested: &ir.AttributeTree{}},
 			children: []node{
-				{attr: ir.Attribute{Name: "inner_kept", Presence: ir.PresenceOptional}},
-				{attr: ir.Attribute{Name: "inner_dropped", Presence: ir.PresenceComputed}},
+				{attr: ir.Attribute{Name: "inner_kept", ComputedOptionalRequired: ir.Optional}},
+				{attr: ir.Attribute{Name: "inner_dropped", ComputedOptionalRequired: ir.Computed}},
 			}},
 	}
 	got := invocable(nodes)
@@ -515,16 +515,16 @@ func TestUnit_Invocable_DropsWhatAnActionCannotTake(t *testing.T) {
 }
 
 func TestUnit_PresenceLines_NeverRendersComputedInAnActionSchema(t *testing.T) {
-	for _, presence := range []ir.Presence{ir.PresenceComputed, ir.PresenceOptionalComputed} {
+	for _, presence := range []ir.ComputedOptionalRequired{ir.Computed, ir.ComputedOptional} {
 		sb := &schemaBuilder{kind: schemaAction, imports: newImportSet("example.com/mod")}
-		got := sb.presenceLines(node{attr: ir.Attribute{Name: "x", Presence: presence}}, "")
+		got := sb.computedOptionalRequiredLines(node{attr: ir.Attribute{Name: "x", ComputedOptionalRequired: presence}}, "")
 		if strings.Contains(got, "Computed") {
 			t.Fatalf("presence %s rendered %q in an action schema", presence, got)
 		}
 	}
 	// A datasource still computes.
 	sb := &schemaBuilder{kind: schemaDatasource, imports: newImportSet("example.com/mod")}
-	if got := sb.presenceLines(node{attr: ir.Attribute{Name: "x", Presence: ir.PresenceComputed}}, ""); !strings.Contains(got, "Computed") {
+	if got := sb.computedOptionalRequiredLines(node{attr: ir.Attribute{Name: "x", ComputedOptionalRequired: ir.Computed}}, ""); !strings.Contains(got, "Computed") {
 		t.Fatalf("a datasource must still render Computed, got %q", got)
 	}
 }

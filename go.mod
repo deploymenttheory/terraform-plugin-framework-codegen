@@ -1,4 +1,4 @@
-module github.com/deploymenttheory/terraform-plugin-framework-codegen-1
+module github.com/deploymenttheory/terraform-plugin-framework-codegen
 
 go 1.26
 

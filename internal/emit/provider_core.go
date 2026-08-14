@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
 )
 
 // DefaultGoVersion is the Go directive the generated go.mod declares.

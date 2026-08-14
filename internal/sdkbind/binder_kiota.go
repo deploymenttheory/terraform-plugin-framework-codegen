@@ -3,8 +3,8 @@ package sdkbind
 import (
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // kiotaBinder drafts bindings against a kiota-generated Go SDK: fluent
@@ -124,8 +124,8 @@ func (kiotaBinder) access(a ir.Attribute, mode accessMode) FieldAccess {
 		fa.SDKType, fa.ConvertGet, fa.ConvertSet = "*float64", "FromPtrFloat64", "ToPtrFloat64"
 	case ir.TypeList:
 		if a.Nested == nil {
-			fa.SDKType = "[]" + strings.TrimPrefix(goTypeOf(a.ElementKind), "*")
-			shape := exportedName(string(a.ElementKind)) + "Slice"
+			fa.SDKType = "[]" + strings.TrimPrefix(goTypeOf(a.ElementType), "*")
+			shape := exportedName(string(a.ElementType)) + "Slice"
 			fa.ConvertGet, fa.ConvertSet = "From"+shape, "To"+shape
 		}
 	case ir.TypeObject:

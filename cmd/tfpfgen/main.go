@@ -6,7 +6,7 @@ package main
 import (
 	"os"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/cli"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/cli"
 )
 
 func main() {

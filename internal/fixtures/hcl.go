@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // HCL renders the form's values as the body of a terraform block:

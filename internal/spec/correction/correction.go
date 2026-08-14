@@ -35,7 +35,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/spec/yamlwalk"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/yamlwalk"
 )
 
 // Suffix is what names a correction file inside a corrections directory.

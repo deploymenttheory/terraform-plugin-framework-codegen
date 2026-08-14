@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // configExcludedReason is the reason recorded for entities services.exclude
@@ -412,9 +412,9 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 	// beyond their own.
 	listOperation := derivation.operation(classification.List, OperationList)
 	companionTree := &AttributeTree{Attributes: []Attribute{
-		{Name: "filter_type", WireName: "filter_type", Kind: TypeString, Presence: PresenceRequired},
-		{Name: "filter_value", WireName: "filter_value", Kind: TypeString, Presence: PresenceOptional},
-		{Name: "items", WireName: "items", Kind: TypeList, ElementKind: TypeObject, Presence: PresenceComputed, Nested: itemTree},
+		{Name: "filter_type", WireName: "filter_type", Kind: TypeString, ComputedOptionalRequired: Required},
+		{Name: "filter_value", WireName: "filter_value", Kind: TypeString, ComputedOptionalRequired: Optional},
+		{Name: "items", WireName: "items", Kind: TypeList, ElementType: TypeObject, ComputedOptionalRequired: Computed, Nested: itemTree},
 	}}
 	// A collection path carries no item key, so every one of its path
 	// parameters is a parent the caller has to supply.

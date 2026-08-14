@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
 // flat is one schema with references resolved and allOf composition folded
@@ -324,9 +324,9 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 	case !writable || flatPrimary.readOnly || serverForced || volatile:
 		// The practitioner cannot set it: not in the create body, declared
 		// read-only, overwritten by the server, or different on every read.
-		attribute.Presence = PresenceComputed
+		attribute.ComputedOptionalRequired = Computed
 	case attributeSite.requiredCreate:
-		attribute.Presence = PresenceRequired
+		attribute.ComputedOptionalRequired = Required
 	case serverFills || attributeSite.requiredRead:
 		// Writable, and the response carries a value whether or not the
 		// request supplied one: the practitioner may set it and Terraform
@@ -339,20 +339,20 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 		// for any field the server fills. x-tfpfgen-server-default is the
 		// audit'schema measurement of the same fact, and it does not depend on the
 		// document being diligent.
-		attribute.Presence = PresenceOptionalComputed
+		attribute.ComputedOptionalRequired = ComputedOptional
 	default:
 		// Writable, and the server leaves it absent when the request omits it.
 		// Genuinely rare: most APIs answer with something.
-		attribute.Presence = PresenceOptional
+		attribute.ComputedOptionalRequired = Optional
 	}
-	if attribute.Presence != PresenceComputed && (createOnly || attributeSite.replaceAll) {
+	if attribute.ComputedOptionalRequired != Computed && (createOnly || attributeSite.replaceAll) {
 		attribute.RequiresReplace = true
 	}
 
 	// A computed attribute'schema children are computed too, whatever the
 	// create schema declared for them.
 	childCreate := attributeSite.create
-	if attribute.Presence == PresenceComputed {
+	if attribute.ComputedOptionalRequired == Computed {
 		childCreate = nil
 	}
 	deriveType(&attribute, flatPrimary, childCreate, attributeSite.read)
@@ -423,19 +423,19 @@ func deriveListType(attribute *Attribute, create, read *specmodel.Schema) {
 	case flatItems.empty:
 		refuse(attribute, "array declares no items schema")
 	case flatItems.declaredType == "string":
-		attribute.Kind, attribute.ElementKind = TypeList, TypeString
+		attribute.Kind, attribute.ElementType = TypeList, TypeString
 	case flatItems.declaredType == "boolean":
-		attribute.Kind, attribute.ElementKind = TypeList, TypeBool
+		attribute.Kind, attribute.ElementType = TypeList, TypeBool
 	case flatItems.declaredType == "integer":
-		attribute.Kind, attribute.ElementKind = TypeList, TypeInt64
+		attribute.Kind, attribute.ElementType = TypeList, TypeInt64
 	case flatItems.declaredType == "number":
-		attribute.Kind, attribute.ElementKind = TypeList, TypeFloat64
+		attribute.Kind, attribute.ElementType = TypeList, TypeFloat64
 	case flatItems.declaredType == "object" || (flatItems.declaredType == "" && len(flatItems.properties) > 0):
 		if len(flatItems.properties) == 0 {
 			refuse(attribute, "array of free-form objects: map support is out of scope")
 			return
 		}
-		attribute.Kind, attribute.ElementKind = TypeList, TypeObject
+		attribute.Kind, attribute.ElementType = TypeList, TypeObject
 		attribute.Nested = buildTree(createItems, readItems, false)
 	default:
 		refuse(attribute, fmt.Sprintf("array of %q elements is not supported", flatItems.declaredType))
@@ -478,7 +478,7 @@ func renderEnum(values []any) []string {
 func ensureID(tree *AttributeTree, keyParam string, keyType AttributeType) {
 	for index := range tree.Attributes {
 		if tree.Attributes[index].Name == "id" {
-			tree.Attributes[index].Presence = PresenceComputed
+			tree.Attributes[index].ComputedOptionalRequired = Computed
 			tree.Attributes[index].RequiresReplace = false
 			return
 		}
@@ -492,10 +492,10 @@ func ensureID(tree *AttributeTree, keyParam string, keyType AttributeType) {
 		kind = TypeString
 	}
 	tree.Attributes = append([]Attribute{{
-		Name:     "id",
-		WireName: wire,
-		Kind:     kind,
-		Presence: PresenceComputed,
+		Name:                     "id",
+		WireName:                 wire,
+		Kind:                     kind,
+		ComputedOptionalRequired: Computed,
 	}}, tree.Attributes...)
 }
 
@@ -540,10 +540,10 @@ func ensureParentParameters(tree *AttributeTree, parents []Parameter) {
 			kind = TypeString
 		}
 		added = append(added, Attribute{
-			Name:     name,
-			WireName: parent.Name,
-			Kind:     kind,
-			Presence: PresenceRequired,
+			Name:                     name,
+			WireName:                 parent.Name,
+			Kind:                     kind,
+			ComputedOptionalRequired: Required,
 			// Addressing is not editable: an object does not move to another
 			// parent in place, and every API that admits the move spells it
 			// as its own operation.
@@ -572,7 +572,7 @@ func requireKey(tree *AttributeTree, keyParam string, keyType AttributeType) {
 	name := snakeCase(keyParam)
 	for index := range tree.Attributes {
 		if tree.Attributes[index].Name == name {
-			tree.Attributes[index].Presence = PresenceRequired
+			tree.Attributes[index].ComputedOptionalRequired = Required
 			return
 		}
 	}
@@ -581,9 +581,9 @@ func requireKey(tree *AttributeTree, keyParam string, keyType AttributeType) {
 		kind = TypeString
 	}
 	tree.Attributes = append([]Attribute{{
-		Name:     name,
-		WireName: keyParam,
-		Kind:     kind,
-		Presence: PresenceRequired,
+		Name:                     name,
+		WireName:                 keyParam,
+		Kind:                     kind,
+		ComputedOptionalRequired: Required,
 	}}, tree.Attributes...)
 }

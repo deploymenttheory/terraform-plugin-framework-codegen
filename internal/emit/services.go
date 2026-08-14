@@ -11,10 +11,11 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/fixtures"
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/sdkbind"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/templates"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/code"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/templates"
 )
 
 // ServiceFiles is everything per-entity emission produced: the files to
@@ -395,8 +396,12 @@ func deriveFixtures(tree *ir.AttributeTree, nodes []node) fixtures.Fixture {
 	return fixtures.Derive(supportedTree(tree, nodes))
 }
 
-// importSet collects the import lines of one file, grouped the way the
+// importSet collects the imports of one file, grouped the way the
 // rendered file declares them: standard library, third-party, module-local.
+//
+// The elements are code.Import, so an import can travel attached to the
+// expression that needs it — see code.CustomValidator — rather than being
+// registered as a side effect somewhere else in the renderer.
 type importSet struct {
 	module string
 	lines  map[string]bool
@@ -408,11 +413,23 @@ func newImportSet(module string) *importSet {
 
 // add records one import; alias may be empty.
 func (s *importSet) add(alias, importPath string) {
-	line := `"` + importPath + `"`
-	if alias != "" {
-		line = alias + " " + line
+	s.addImport(code.Import{Alias: &alias, Path: importPath})
+}
+
+// addImport records one code.Import.
+func (s *importSet) addImport(imported code.Import) {
+	line := `"` + imported.Path + `"`
+	if imported.HasAlias() {
+		line = *imported.Alias + " " + line
 	}
 	s.lines[line] = true
+}
+
+// addImports records every import an expression declared it needs.
+func (s *importSet) addImports(imports []code.Import) {
+	for _, imported := range imports {
+		s.addImport(imported)
+	}
 }
 
 // render builds the finished import declaration: three sorted groups

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
 )
 
 func testRequest(t *testing.T) *http.Request {

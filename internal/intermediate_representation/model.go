@@ -213,18 +213,20 @@ const (
 	TypeObject  AttributeType = "object"
 )
 
-// Presence is how an attribute participates in plans.
-type Presence string
+// ComputedOptionalRequired is how an attribute participates in plans. The
+// name and the four values are terraform-plugin-codegen-spec's, so a
+// generated schema and the specification that could describe it agree on
+// what to call the same fact.
+type ComputedOptionalRequired string
 
-// Attribute presence classes.
+// The four ways an attribute participates in a plan.
 const (
-	PresenceRequired Presence = "required"
-	PresenceOptional Presence = "optional"
-	PresenceComputed Presence = "computed"
-	// PresenceOptionalComputed marks a writable attribute the server
-	// fills when omitted: optional in the request, always present in the
-	// response.
-	PresenceOptionalComputed Presence = "optional-computed"
+	Required ComputedOptionalRequired = "required"
+	Optional ComputedOptionalRequired = "optional"
+	Computed ComputedOptionalRequired = "computed"
+	// ComputedOptional marks a writable attribute the server fills when
+	// omitted: optional in the request, always present in the response.
+	ComputedOptional ComputedOptionalRequired = "computed_optional"
 )
 
 // AttributeTree is one object's attributes plus the cross-attribute rules
@@ -304,13 +306,13 @@ type Attribute struct {
 	// inferred facts follow it.
 	Description string        `json:"description,omitempty"`
 	Kind        AttributeType `json:"kind,omitempty"`
-	// ElementKind is the element kind of a list of scalars; lists of objects
+	// ElementType is the type within a list of scalars; lists of objects
 	// carry Nested instead.
-	ElementKind AttributeType `json:"element_kind,omitempty"`
+	ElementType AttributeType `json:"element_type,omitempty"`
 	// Nested is the child tree of an object attribute or a list of
 	// objects.
-	Nested   *AttributeTree `json:"nested,omitempty"`
-	Presence Presence       `json:"presence"`
+	Nested                   *AttributeTree           `json:"nested,omitempty"`
+	ComputedOptionalRequired ComputedOptionalRequired `json:"computed_optional_required"`
 	// RequiresReplace marks an attribute a change to which forces
 	// re-creation: x-tfpfgen-create-only, or every writable attribute of
 	// a resource with no update operation.

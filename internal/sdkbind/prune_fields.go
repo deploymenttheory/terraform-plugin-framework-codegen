@@ -5,7 +5,7 @@ import (
 	"go/types"
 	"strings"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // fields resolves one attribute tree's accesses against the models that
@@ -211,13 +211,13 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 		elem := slice.Elem()
 		if basic, ok := elem.Underlying().(*types.Basic); ok {
 			if named, isNamed := elem.(*types.Named); isNamed {
-				if parse, isEnum := p.enumParse(named); isEnum && fb.ElementKind == ir.TypeString {
+				if parse, isEnum := p.enumParse(named); isEnum && fb.ElementType == ir.TypeString {
 					settle("[]"+qualifiedName(named), "FromEnumSlice", "ToEnumSlice", parse)
 					return ""
 				}
 				return cannot(shortType(t))
 			}
-			if !kindCompatible(fb.ElementKind, basic) {
+			if !kindCompatible(fb.ElementType, basic) {
 				return cannot(shortType(t))
 			}
 			title := exportedName(basic.Name())

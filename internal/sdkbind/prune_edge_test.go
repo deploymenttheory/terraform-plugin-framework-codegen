@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen-1/internal/intermediate_representation"
+	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
 // pruneKiotaVariant binds one hand-built model and prunes it against the
@@ -91,8 +91,8 @@ func TestPruneLookupDatasource(t *testing.T) {
 				Read: op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				attr("id", "id", ir.TypeString, ir.PresenceRequired),
-				attr("name", "name", ir.TypeString, ir.PresenceComputed),
+				attr("id", "id", ir.TypeString, ir.Required),
+				attr("name", "name", ir.TypeString, ir.Computed),
 			}},
 			LookupByKey:  true,
 			KeyParameter: "tagId",
@@ -121,14 +121,14 @@ func TestPruneKiotaListResource(t *testing.T) {
 				Names:         names("tags", "tags"),
 				ListOperation: *op(ir.OperationList, "GET", "/tags", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("name", "name", ir.TypeString, ir.PresenceComputed),
+					attr("name", "name", ir.TypeString, ir.Computed),
 				}},
 			},
 			{
 				Names:         names("widgets", "widgets"),
 				ListOperation: *op(ir.OperationList, "GET", "/widgets", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("name", "name", ir.TypeString, ir.PresenceComputed),
+					attr("name", "name", ir.TypeString, ir.Computed),
 				}},
 			},
 		},
@@ -159,7 +159,7 @@ func TestPruneDatasourceRemovals(t *testing.T) {
 				Read: op(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				attr("id", "id", ir.TypeString, ir.PresenceRequired),
+				attr("id", "id", ir.TypeString, ir.Required),
 			}},
 			LookupByKey:  true,
 			KeyParameter: "widgetId",
@@ -183,11 +183,11 @@ func TestPruneDatasourceRemovals(t *testing.T) {
 // survives with its element reached through GetGizmos().
 func TestPruneKiotaWrappedList(t *testing.T) {
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		attr("id", "id", ir.TypeString, ir.PresenceComputed),
-		attr("name", "name", ir.TypeString, ir.PresenceComputed),
+		attr("id", "id", ir.TypeString, ir.Computed),
+		attr("name", "name", ir.TypeString, ir.Computed),
 	}}
-	items := attr("items", "items", ir.TypeList, ir.PresenceComputed)
-	items.ElementKind = ir.TypeObject
+	items := attr("items", "items", ir.TypeList, ir.Computed)
+	items.ElementType = ir.TypeObject
 	items.Nested = itemTree
 
 	t.Run("the envelope key names the getter", func(t *testing.T) {
@@ -197,8 +197,8 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 				Names:      names("gizmos", "gizmos"),
 				Operations: ir.Operations{List: op(ir.OperationList, "GET", "/gizmos", "")},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("filter_type", "filter_type", ir.TypeString, ir.PresenceRequired),
-					attr("filter_value", "filter_value", ir.TypeString, ir.PresenceOptional),
+					attr("filter_type", "filter_type", ir.TypeString, ir.Required),
+					attr("filter_value", "filter_value", ir.TypeString, ir.Optional),
 					items,
 				}},
 				ListEnvelopeKey: "gizmos",
@@ -226,7 +226,7 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 				Names:         names("gizmos", "gizmos"),
 				ListOperation: *op(ir.OperationList, "GET", "/gizmos", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("name", "name", ir.TypeString, ir.PresenceComputed),
+					attr("name", "name", ir.TypeString, ir.Computed),
 				}},
 			}},
 		}
@@ -252,7 +252,7 @@ func TestPruneKiotaAmbiguousWrapper(t *testing.T) {
 			Names:         names("blobs", "blobs"),
 			ListOperation: *op(ir.OperationList, "GET", "/blobs", ""),
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				attr("name", "name", ir.TypeString, ir.PresenceComputed),
+				attr("name", "name", ir.TypeString, ir.Computed),
 			}},
 			// No envelope key, and the envelope carries two slice getters.
 		}},
@@ -301,7 +301,7 @@ func TestPruneUnconstructibleBody(t *testing.T) {
 				Read:   op(ir.OperationRead, "GET", "/orphans/{orphanId}", "", ir.Parameter{Name: "orphanId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				attr("name", "name", ir.TypeString, ir.PresenceRequired),
+				attr("name", "name", ir.TypeString, ir.Required),
 			}},
 		}},
 	}
@@ -328,7 +328,7 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("legacy", "legacy", ir.TypeString, ir.PresenceOptional),
+					attr("legacy", "legacy", ir.TypeString, ir.Optional),
 				}},
 			}},
 		}
@@ -352,7 +352,7 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("id", "id", ir.TypeString, ir.PresenceComputed),
+					attr("id", "id", ir.TypeString, ir.Computed),
 				}},
 			}},
 		}
