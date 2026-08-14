@@ -280,11 +280,11 @@ func generate(opts Options) (*generation, error) {
 		return nil, err
 	}
 	// A binding the SDK cannot answer is a fact about one entity, not a
-	// defect in the toolkit, and it used to take the whole provider with it:
-	// one entity naming a read model the backend never emitted was enough to
-	// stop every other entity in a large document. The entity is dropped from
-	// the bindings — which is exactly what emission already does with an
-	// entity the bindings lack — and reported as excluded.
+	// defect in the toolkit, so it must not stop the run: one entity naming
+	// a read model the backend never emitted would otherwise take every
+	// other entity in the document with it. The entity is dropped from the
+	// bindings — which is exactly what emission already does with an entity
+	// the bindings lack — and reported as excluded.
 	excluded := bindings.DropProblems(rep.Problems)
 
 	core, err := emit.RenderProviderCore(pc)

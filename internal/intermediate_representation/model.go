@@ -6,11 +6,10 @@
 // The name is owner-mandated, underscores included, and the package is
 // ephemeral by design. Derive is a pure function of the revised document
 // and tfpfgen.yaml, recomputed on every generation run, and the result is
-// never written to the repository. v1's fatal flaw was a committed
-// intermediate representation: the moment the derived file lived in git it
-// became a second source of truth, hand adjustments to it fought every
-// regeneration, and the document stopped being what generation actually
-// read. Here the revised document is the only committed truth; anything a
+// never written to the repository. A committed intermediate representation
+// is a second source of truth: hand adjustments to the derived file fight
+// every regeneration, and the document stops being what generation actually
+// reads. Here the revised document is the only committed truth; anything a
 // human wants changed goes through a correction to that document, and the
 // derivation follows.
 //

@@ -352,13 +352,12 @@ func listEnvelopeKey(list *specmodel.Operation) string {
 // x-tfpfgen-list-response-shape where the audit recorded one and from the
 // document's own single array property otherwise.
 //
-// The envelope used to be taken as-is, which made the element tree the
-// envelope's own fields. Nothing then bound: the SDK reaches through the
-// envelope to the element, so derivation asked for results and totalCount
-// off a model carrying id, username and date, every attribute was pruned,
-// and the entity was removed for having nothing left to map. Envelopes are
-// not the exception — one pilot wraps 166 of its collection responses and
-// leaves only 36 bare.
+// Taking the envelope as-is would make the element tree the envelope's own
+// fields, and nothing would bind: the SDK reaches through the envelope to the
+// element, so derivation would ask for results and totalCount off a model
+// carrying id, username and date, every attribute would prune, and the entity
+// would be removed for having nothing left to map. Envelopes are the common
+// shape rather than the exception.
 //
 // A response that is neither is returned unchanged: it may be a single
 // object the classification took for a collection, and guessing an element

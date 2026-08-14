@@ -4,12 +4,10 @@
 //
 // It exists because the correction files themselves cannot narrate. A
 // correction is a justification, some RFC 6902 operations and a pointer at an
-// observation — enough to apply, nowhere near enough to review. The job that
-// opens pull requests was reading exactly those files and could therefore
-// only quote them, which is how a reviewer ended up with one pull request per
-// attribute, each saying nothing about what was actually asked of the API or
-// what came back. The report is additional: the correction files are written
-// exactly as before.
+// observation — enough to apply, nowhere near enough to review. A job that
+// reads only those files can only quote them, and a reviewer needs what was
+// asked of the API and what came back. The report is additional: the
+// correction files are written exactly as before.
 package revise
 
 import (

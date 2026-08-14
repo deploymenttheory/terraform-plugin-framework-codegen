@@ -15,7 +15,7 @@ var dnsLabel = regexp.MustCompile(`^[a-z][a-z0-9-]*[a-z0-9]$`)
 
 // releaseTag matches an exact toolkit release. Branch names — "main"
 // included — are deliberately unmatchable: a pipeline that reinstalls a
-// moving target on every run was one of v1's failure modes.
+// moving target on every run cannot reproduce what it generated.
 var releaseTag = regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
 
 // problems returns every semantic defect at once. An empty slice means the

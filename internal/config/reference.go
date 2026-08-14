@@ -2,9 +2,9 @@ package config
 
 // docs/config.md is generated, not written: Reference walks the Config
 // struct by reflection, so the reference can only describe keys the decoder
-// actually reads. v1 documented keys that nothing consumed; here a dead key
-// in the docs is structurally impossible, and the bidirectional test over
-// the descriptions map makes a dead description impossible too.
+// actually reads: a documented key nothing consumes is structurally
+// impossible, and the bidirectional test over the descriptions map makes a
+// description with no key impossible too.
 
 import (
 	"fmt"

@@ -100,11 +100,10 @@ func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbin
 	}
 
 	for _, removal := range removals {
-		// A removal the emitter kept anyway cost the operator nothing: the
-		// binding went because no model carries the field, and the
-		// attribute reached the schema regardless. Reporting it as a
-		// refusal is how this file came to claim 207 losses on one pilot
-		// that were not losses at all.
+		// A removal the emitter kept anyway costs the operator nothing: the
+		// binding goes because no model carries the field, and the
+		// attribute reaches the schema regardless. Reporting it as a
+		// refusal overstates what the provider will not carry.
 		if keptUnbound[keptUnboundKey(removal.Kind, removal.Key, removal.Attribute)] {
 			continue
 		}

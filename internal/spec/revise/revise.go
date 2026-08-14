@@ -95,8 +95,8 @@ func Materialize(dir string) (Result, error) {
 
 // refusePending fails while any proposed correction awaits a decision,
 // naming each file and the two legal resolutions. No flag bypasses this:
-// v1's -allow-conflicts taught that an ignorable gate is an ignored gate,
-// so the only ways forward are the decisions themselves.
+// an ignorable gate is an ignored gate, so the only ways forward are the
+// decisions themselves.
 func refusePending(correctionsDir string) error {
 	proposedDir := filepath.Join(correctionsDir, ProposedDirName)
 	entries, err := os.ReadDir(proposedDir)

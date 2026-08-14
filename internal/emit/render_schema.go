@@ -285,9 +285,8 @@ func (sb *schemaBuilder) planModifierLines(n node, indent string) string {
 // The order is the point. The document's sentence is the only human-written
 // text in the whole pipeline and it is what a practitioner actually needs;
 // the inferred facts qualify it. Where the document says nothing — and real
-// ones often do not, one pilot annotating 12% of its properties against
-// another's 52% — the wire property name stands in, which is no worse than
-// what was rendered before and no better.
+// ones routinely annotate only a fraction of their properties — the wire
+// property name stands in.
 func attributeDescription(a ir.Attribute) string {
 	var parts []string
 	if declared := strings.TrimSpace(a.Description); declared != "" {
@@ -329,14 +328,12 @@ type modelDecl struct {
 //
 // The short spelling — the type prefix, the attribute's Go name, "Model" —
 // is what a tree gets whenever it is the only nesting site claiming it. Two
-// sites claiming one spelling used to be a hard error naming both paths and
-// telling the operator to "rename one in the document", which is not
-// something a vendor's document will do: a real document nests an object of
-// one name at two depths of one entity, and that single collision aborted
-// every resource the provider had. Every claimant of a contested spelling is
-// therefore qualified by its ancestor path instead, and an uncontested one is
-// left exactly as it was — so qualification shows up only where a collision
-// made it necessary.
+// sites claiming one spelling cannot be refused: a real document nests an
+// object of one name at two depths of one entity, and a vendor will not
+// rename it to suit a generator. Every claimant of a contested spelling is
+// qualified by its ancestor path instead, and an uncontested one is left
+// short — so qualification shows up only where a collision made it
+// necessary.
 //
 // Which sites are contested is decided from the whole tree before any name
 // is handed out, so the answer never depends on the order names are asked

@@ -55,9 +55,8 @@ const EnvRequired = "TFPFGEN_CORPUS_REQUIRED"
 // relative default is resolved against the working directory, and `go test`
 // runs every package in its own directory -- so one suite run would scatter a
 // copy of every document through the tree, in package directories no
-// root-anchored .gitignore pattern reaches. v1 learned this the hard way: it
-// put 19 MB of fetched specifications into a commit whose entire purpose was
-// removing generated output from the repository.
+// root-anchored .gitignore pattern reaches, and the documents are megabytes
+// each.
 //
 // A cache belongs where the operating system puts caches. CI overrides it with
 // TFPFGEN_CORPUS_DIR to somewhere its cache action can restore.
@@ -92,9 +91,9 @@ type Pin struct {
 	// MirrorURL holds the exact pinned bytes under our own control, and is
 	// tried first.
 	//
-	// Not a nicety. Several of these upstreams serve "current" rather than a
-	// version, so the pinned bytes become unfetchable the moment the vendor
-	// publishes again, and every pin update is forced on their schedule. A
+	// Several of these upstreams serve "current" rather than a version, so
+	// the pinned bytes become unfetchable the moment the vendor publishes
+	// again, and every pin update is forced on their schedule. A
 	// mirror cannot alter test meaning -- the SHA-256 is checked identically
 	// whichever source answered -- so it is a CDN, not a source of truth.
 	MirrorURL string `json:"mirrorUrl,omitempty"`

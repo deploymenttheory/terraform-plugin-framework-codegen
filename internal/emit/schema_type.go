@@ -11,14 +11,10 @@ import (
 // that follows from "this attribute is a list of objects" or "this
 // attribute is a bool", resolved once and read as fields.
 //
-// It exists because those names used to live in six switches on the same
-// (Kind, ElementType, Nested != nil) triple, spread across four files, each
-// returning a bare string. Nothing tied them together, so adding an
-// attribute type meant editing six places and hoping none was missed, and
-// the compiler could not help — every one of them returned string. One of
-// the six had already drifted into a duplicate: frameworkValueType in
-// render_datasource.go answered exactly what fieldType answered for a
-// scalar, spelled separately.
+// One record rather than a switch per name: every one of these follows from
+// the same (Kind, ElementType, Nested != nil) triple, and answering them
+// separately means a new attribute type has to be added everywhere at once,
+// with the compiler unable to help because each answer is a bare string.
 //
 // Field names are terraform-plugin-codegen-spec's, so this record and the
 // specification that could describe its output agree: ValueType from
