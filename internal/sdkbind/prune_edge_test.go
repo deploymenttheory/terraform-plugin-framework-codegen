@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/tools/go/packages"
+
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
 
@@ -507,5 +509,85 @@ func TestUnit_SettleScalar_MapWithoutABagIsRefused(t *testing.T) {
 	}
 	if !strings.Contains(why, "cannot be bridged to a map attribute") {
 		t.Errorf("reason = %q", why)
+	}
+}
+
+// TestUnit_SettleEachDirection_BridgesAScalarPair proves a field the SDK
+// reads and writes as different scalar types keeps both directions, each
+// bridged against its own type.
+func TestUnit_SettleEachDirection_BridgesAScalarPair(t *testing.T) {
+	fb := FieldBinding{Attr: "count", Wire: "count", Kind: ir.TypeInt64,
+		Access: FieldAccess{Get: "GetCount", Set: "SetCount"}}
+
+	why := (&pruner{}).settleEachDirection(&fb,
+		types.NewPointer(types.Typ[types.Int64]), types.Typ[types.Int32], "resource", "thing", "count")
+	if why != "" {
+		t.Fatalf("a bridgeable pair was refused: %s", why)
+	}
+	if fb.Access.ConvertGet != "FromPtrInt64" {
+		t.Errorf("ConvertGet = %q, want FromPtrInt64 from the getter's type", fb.Access.ConvertGet)
+	}
+	if fb.Access.ConvertSet != "ToInt32" {
+		t.Errorf("ConvertSet = %q, want ToInt32 from the setter's type", fb.Access.ConvertSet)
+	}
+	if fb.Access.SDKType != "*int64" {
+		t.Errorf("SDKType = %q, want the getter's type", fb.Access.SDKType)
+	}
+}
+
+// TestUnit_SettleEachDirection_RefusesWhatTheCatalogCannotCarry proves a
+// pair one side of which has no bridge is still refused, naming both types
+// so the pair can be read from the report.
+func TestUnit_SettleEachDirection_RefusesWhatTheCatalogCannotCarry(t *testing.T) {
+	opaque := structNamed("example.com/sdk/models", "models", "Opaque")
+	fb := FieldBinding{Attr: "x", Wire: "x", Kind: ir.TypeString,
+		Access: FieldAccess{Get: "GetX", Set: "SetX"}}
+
+	why := (&pruner{}).settleEachDirection(&fb,
+		types.NewPointer(types.Typ[types.String]), opaque, "resource", "thing", "x")
+	if why == "" {
+		t.Fatal("an unbridgeable write side settled anyway")
+	}
+	for _, want := range []string{"read as *string", "written as models.Opaque", "no conversion carries both"} {
+		if !strings.Contains(why, want) {
+			t.Errorf("reason %q does not carry %q", why, want)
+		}
+	}
+}
+
+// TestUnit_SettleEachDirection_CarriesTheWriteConstructor proves the write
+// side's model and constructor travel with its conversion. A map carried
+// through an additionalData bag is written by building a model; without the
+// constructor, construction emits an assignment with nothing on the right
+// of it and the rendered Go does not parse.
+func TestUnit_SettleEachDirection_CarriesTheWriteConstructor(t *testing.T) {
+	bag := func(name string) *types.Named {
+		pkg := types.NewPackage("example.com/sdk/models", "models")
+		obj := types.NewTypeName(0, pkg, name, nil)
+		named := types.NewNamed(obj, types.NewStruct(nil, nil), nil)
+		sig := types.NewSignatureType(types.NewVar(0, nil, "m", named), nil, nil, nil,
+			types.NewTuple(types.NewVar(0, nil, "", types.NewMap(types.Typ[types.String], types.NewInterfaceType(nil, nil)))), false)
+		named.AddMethod(types.NewFunc(0, pkg, "GetAdditionalData", sig))
+		return named
+	}
+
+	fb := FieldBinding{Attr: "headers", Wire: "headers", Kind: ir.TypeMap, ElementType: ir.TypeString,
+		Access: FieldAccess{Get: "GetHeaders", Set: "SetHeaders"}}
+
+	// An empty loader is enough: writeModelFromNamed falls through to the
+	// struct literal when it finds no constructor.
+	p := &pruner{l: &loader{pkgs: map[string]*packages.Package{}}}
+	if why := p.settleEachDirection(&fb, bag("HeadersRead"), bag("HeadersWrite"),
+		"resource", "thing", "headers"); why != "" {
+		t.Fatalf("a bag pair was refused: %s", why)
+	}
+	if fb.NestedConstructor == "" {
+		t.Error("the write constructor did not travel; construction would emit an empty assignment")
+	}
+	if fb.NestedWriteModel == "" {
+		t.Error("the write model did not travel")
+	}
+	if fb.NestedModel != "models.HeadersRead" {
+		t.Errorf("NestedModel = %q, want the getter's model", fb.NestedModel)
 	}
 }
