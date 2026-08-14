@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/emit"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/providergen"
 )
 
@@ -104,6 +105,9 @@ func newProviderGenerateCommand() *cobra.Command {
 			fmt.Fprintf(out, "generated %d %s into %s from %s: %d resources, %d datasources, %d list resources, %d actions\n",
 				res.Files, noun, res.Root, res.RevisedPath,
 				res.Resources, res.Datasources, res.ListResources, res.Actions)
+			if summary := emit.UnsupportedSummary(res.Unsupported); summary != "" {
+				fmt.Fprintln(out, summary)
+			}
 			switch {
 			case runErr != nil:
 				// Reported above; the report is the point, and the error

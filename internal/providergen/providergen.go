@@ -66,6 +66,10 @@ type Result struct {
 	// classification and configuration exclusions the model already carried,
 	// plus the shapes emission itself refused.
 	Excluded []ir.Exclusion
+	// Unsupported is everything unsupported.json records — the entity
+	// exclusions above plus the attribute refusals, which surface nowhere
+	// else.
+	Unsupported []emit.Unsupported
 	// Postcheck reports the toolchain gate.
 	Postcheck PostcheckReport
 }
@@ -296,6 +300,15 @@ func generate(opts Options) (*generation, error) {
 		return nil, err
 	}
 
+	// The refusal report is derived like everything else: it goes through
+	// staging, the manifest and the drift gate, so a refusal that appears
+	// or disappears is a line in the generation pull request rather than a
+	// line in a CI log nobody reads.
+	unsupported, refusals, err := emit.RenderUnsupported(model, removals, excluded, entities.Excluded)
+	if err != nil {
+		return nil, err
+	}
+
 	g := &generation{
 		res: Result{
 			RevisedPath: filepath.Join(opts.SpecDir, revise.OutputName),
@@ -310,8 +323,9 @@ func generate(opts Options) (*generation, error) {
 			Actions:       len(entities.Registrations.Actions.Registrations),
 			Removals:      removals,
 			Excluded:      allExclusions(model.Excluded, excluded, entities.Excluded),
+			Unsupported:   refusals,
 		},
-		files: append(core, entities.Files...),
+		files: append(append(core, entities.Files...), unsupported),
 	}
 	sort.Slice(g.files, func(i, j int) bool { return g.files[i].Path < g.files[j].Path })
 	return g, nil
