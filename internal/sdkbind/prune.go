@@ -178,9 +178,8 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 // where an API declares them separately the generated SDK types them
 // separately: passing the create body to the update does not compile. The
 // update's fields are the same attributes resolved against the update's own
-// model, so whatever it cannot carry is dropped from the update alone —
-// which is the point, since the difference between the two bodies is
-// usually exactly a handful of fields.
+// model, so whatever it cannot carry is dropped from the update alone. The
+// two bodies usually differ by only a handful of fields.
 //
 // A resource whose update body cannot be constructed keeps its create-only
 // body rather than being removed: the update will not compile against it,

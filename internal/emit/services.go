@@ -320,10 +320,10 @@ func rawFile(outPath, source string, content []byte) File {
 // requires every resource and datasource to have an id; the API need not
 // agree. A read response that names its key something other than id, or omits
 // it altogether and leaves it in the URL, is an ordinary REST shape, and both
-// are common in real documents. Dropping the id node on those used to abort
-// the whole provider from render_mapping's path-parameter lookup. The id's
-// value comes from the path parameter and from whatever the create response
-// carries, neither of which needs a read binding.
+// are common in real documents. The id node has to survive them both:
+// render_mapping's path-parameter lookup reads it, and dropping it aborts the
+// whole provider. Its value comes from the path parameter and from whatever
+// the create response carries, neither of which needs a read binding.
 type node struct {
 	attr     ir.Attribute
 	fb       *sdkbind.FieldBinding
@@ -341,11 +341,10 @@ func joinTree(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing ...
 // joinTreeKeeping is joinTree, and also answers the attributes it kept
 // with no SDK field behind them — the id and the addressing attributes.
 //
-// Pruning removes their bindings, correctly: no model carries them, because
-// they address the object rather than describe it. But the attribute still
-// reaches the schema, so reporting that removal as something the operator
-// lost is wrong, and it was wrong 207 times on one pilot. This is the only
-// place that knows, because this is the place that decides.
+// Pruning removes their bindings correctly: no model carries them, because
+// they address the object rather than describe it. The attribute still
+// reaches the schema, so reporting that removal as a loss would be wrong,
+// and this is the only place that knows which attributes those are.
 func joinTreeKeeping(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing ...map[string]bool) ([]node, []string) {
 	names := map[string]bool{idAttributeName: true}
 	for _, set := range addressing {

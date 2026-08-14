@@ -364,11 +364,10 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 	for position, p := range call.Params {
 		// The last path parameter addresses the object itself, which is what
 		// the id attribute holds however the API spells the parameter. The
-		// fallback used to need the call to take exactly one parameter, which
-		// is only true of a flat API: /enterprises/{enterprise}/code-security/
-		// configurations/{configuration_id} takes two, and its id was left
-		// matching nothing because the response happened to declare an id of
-		// its own and keep that spelling.
+		// fallback is offered on position rather than on the call taking
+		// exactly one parameter: only a flat API is single-parameter, and
+		// /enterprises/{enterprise}/code-security/configurations/{configuration_id}
+		// takes two while still naming one object.
 		n, err := paramNode(p, nodes, position == len(call.Params)-1)
 		if err != nil {
 			return callPlan{}, err

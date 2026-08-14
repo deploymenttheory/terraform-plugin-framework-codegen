@@ -269,9 +269,8 @@ const indexerPrefix = "By"
 // the draft asked for ByGistId; it appends a suffix where the parameter is
 // bare, so owner becomes ByOwnerId; and where it has already used a name it
 // renames wholesale, so team_slug becomes ByEnterpriseTeamId. Three
-// different rules, none of them derivable from the document — and between
-// them they took thirty-eight of one document's forty resources, every one
-// with a read call the SDK plainly had.
+// different rules, none of them derivable from the document, and each one
+// enough to refuse a resource whose read call the SDK plainly has.
 //
 // A collection builder indexes by exactly one thing, so where it declares
 // exactly one such method there is nothing to guess: the hop is that method

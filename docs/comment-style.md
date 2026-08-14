@@ -2,11 +2,15 @@
 
 Comments in this repo state **what** and **why**. Nothing else.
 
-They are not a record of how the code was arrived at. The investigation belongs in
-`docs/backends.md` and in commit messages, which are where this project already
-keeps measured evidence. A comment that retells the debugging story buries the one
-or two sentences a reader needs, and it ages badly — the narrative stays after the
-finding it describes has been superseded.
+They are not a record of how the code was arrived at. The investigation belongs
+in the pull request body and in commit messages, which are where this project
+keeps measured evidence and where a measurement carries a date. A comment that
+retells the debugging story buries the one or two sentences a reader needs, and
+it ages badly — the narrative stays after the finding it describes has been
+superseded.
+
+`CLAUDE.md` states the same rule in short form; this document is the long form,
+and the two do not disagree.
 
 ## The rule
 
@@ -31,76 +35,81 @@ statement whose reason is local to that statement.
 
 These are facts, and they are the point of the comment.
 
-- **External-system behaviour, as a standing property.** "HNS reads
-  `Ipams[].Subnets[]` back as a flat `Subnets[]`." "`query user` answers
-  *No User exists for \** on a guest that plainly has a console session."
-- **Accepted and rejected value sets**, and the hardware or build-number
-  qualifiers that scope a claim: "SecureNestedPaging requires AMD SEV-SNP",
-  "measured on build 26200".
-- **Raw evidence quoted inline** — HRESULTs (`0x8007139F`), SDDL strings
-  (`D:P(A;;FA;;;BA)(A;;FA;;;SY)`), Winsock error names. They are what makes the
-  surrounding claim checkable.
+- **Generator and API behaviour, as a standing property.** "kiota models an
+  object union as a composed type with one named accessor per branch." "A
+  document that declares nothing required in its responses sends every writable
+  attribute to plain `Optional`."
+- **Accepted and rejected value sets**, and the backend or version qualifiers
+  that scope a claim: "`list/schema` attribute types declare no `Sensitive`
+  field", "measured against terraform-plugin-framework v1.19.0".
+- **Raw evidence quoted inline** — an SDK accessor spelling
+  (`GetPasswordEscaped`), a refusal reason as the report prints it, an HTTP
+  status, a framework type name. They are what makes the surrounding claim
+  checkable.
 - **Indented tabular blocks.** They render as godoc code blocks and usually carry
-  more than the prose around them. See `internal/hcs/netmodes.go` (mode → HCN
-  network) and `internal/hcs/reconcile.go` (network type → how it reports
-  `SwitchGuid`). Keep the table, rewrite the prose framing it.
-- **Cross-references.** Prefer paths and symbols over URLs: `docs/backends.md`,
-  gate ids (G1, G2, G4), milestone ids (M3, M4), env var names. Keep a gate or
-  milestone id next to its `docs/backends.md` reference so it stays resolvable.
-  This is a preference about *form*, not a licence to delete citations — a
-  pointer into upstream source that lets a reader check a claim
-  (`hcsshim internal/uvm/create_wcow.go`) is evidence and stays. Drop a bare URL
-  only when the sentence still stands without it.
+  more than the prose around them. See `internal/corpus/cache.go` (the cache
+  layout) and `internal/sdkbind/binder_kiota.go` (document shape → builder
+  chain). Keep the table, rewrite the prose framing it.
+- **Cross-references.** Prefer paths and symbols over URLs: `docs/contract.md`,
+  `docs/glossary.md`, `docs/mapping.md`, `x-tfpfgen-*` keys, `TFPFGEN_*`
+  environment variable names, the exit-code contract. Keep a mapping.md row
+  number next to its reference so it stays resolvable. This is a preference
+  about *form*, not a licence to delete citations — a pointer into upstream
+  source that lets a reader check a claim
+  (`terraform-plugin-framework-validators stringvalidator/utf8_length_between.go`)
+  is evidence and stays. Drop a bare URL only when the sentence still stands
+  without it.
 - **Contracts** — locking requirements, `nil, nil` returns, ordering guarantees,
-  what a caller must do first.
-- **Operator-visible risk in acceptance tests** — why a test is opt-in, what it
-  does to the host. State it as a standing risk, not as an anecdote.
+  what a caller must do first, which stage owns a refusal.
+- **Operator-visible risk in credentialed tests** — why a test is opt-in, what it
+  does to somebody's tenant. State it as a standing risk, not as an anecdote.
 
 ## Drop
 
 - **Discovery narrative and post-mortems.** "used to", "we tried", "turned out",
   "it was tried and does NOT work", "that happened and nothing noticed",
-  "for as long as weave asked HNS to…", "which is how X became Y".
-- **Incident statistics and blame.** "one exec in fifteen hundred bound the module
-  bus's port", "it cost an acceptance run", "this gate has already produced two
-  'we tested that' claims that turned out to be testing something else".
+  "which is how X became Y", "had already drifted into a duplicate".
+- **Counts and measurements from a particular run.** "207 losses on one pilot",
+  "the first live run opened fifty-seven", "42 attributes across the three
+  pilots". A measurement belongs in a pull request body, where it is dated.
 - **Retracted conclusions.** State only what is true now. A superseded finding
   kept "because it was load-bearing for a while" is a trap for the next reader.
-- **Roadmap and project commentary in API docs.** Which milestone a refactor lands
+- **Roadmap and project commentary in API docs.** Which tranche a refactor lands
   in is not a property of the function.
-- **Editorial asides.** "the crux of the Windows guest story", "worth having
-  anyway", "the rest is left alone deliberately".
-- **Restatements of the signature.** `// New returns an HCS engine.`,
-  `// Resume resumes a paused VM.`, `// Profiles returns the registry.` Either say
-  something the signature does not, or say nothing.
-- **Porting history**, beyond a single attribution line in a file header.
+- **Editorial asides.** "worth having anyway", "the rest is left alone
+  deliberately", "which is the point".
+- **Restatements of the signature.** `// Prune prunes the bindings.`,
+  `// Load loads a document.`, `// IDs returns the ids.` Either say something the
+  signature does not, or say nothing.
+- **Which pull request changed it**, and how a bug was found. Git history
+  records change; a comment states what is true.
 
 ## Transform, don't delete
 
 Almost every narrative sentence contains a fact. Convert the story into the
 standing property it implies; do not throw the fact out with it.
 
-Before — 14 lines:
+Before — 11 lines:
 
-> installedMatches reports whether the guest already holds exactly this binary,
-> comparing content hashes.
+> joinTreeKeeping is joinTree, and also answers the attributes it kept with no
+> SDK field behind them — the id and the addressing attributes.
 >
-> The obvious check — ask the deployed agent its version and compare — is not
-> enough, and the way it fails is quiet. The version identifies the protocol, so
-> it does not move when the binary changes for any other reason: a bug fix, a
-> dependency bump, a different link flag. Rebuilding the agent for the GUI
-> subsystem changed nothing about the protocol, so a version check reported the
-> guest up to date and left the old binary running, console window and all.
+> Pruning removes their bindings, correctly: no model carries them, because they
+> address the object rather than describe it. But the attribute still reaches the
+> schema, so reporting that removal as something the operator lost is wrong, and
+> it was wrong 207 times on one pilot. This is the only place that knows, because
+> this is the place that decides.
 
-After — 6 lines, same information, no story:
+After — 7 lines, same information, no run-specific count and no editorial:
 
 ```go
-// installedMatches reports whether the guest already holds exactly this binary,
-// comparing content hashes.
+// joinTreeKeeping is joinTree, and also answers the attributes it kept with
+// no SDK field behind them — the id and the addressing attributes.
 //
-// A version comparison is not sufficient: the version identifies the protocol,
-// so it does not move when the binary changes for any other reason — a bug fix,
-// a dependency bump, or a link flag such as -H windowsgui.
+// Pruning removes their bindings correctly: no model carries them, because
+// they address the object rather than describe it. The attribute still
+// reaches the schema, so reporting that removal as a loss would be wrong,
+// and this is the only place that knows which attributes those are.
 ```
 
 ## Section dividers
@@ -134,12 +143,12 @@ package hcs
 
 ## Where the doc goes for commands
 
-- **`internal/command`** — the `XxxCommand` struct carries the prose that explains
-  the feature. Its `Validate` and `Run` methods each carry one to three lines
-  saying what they do and any state precondition they enforce.
 - **`internal/cli`** — user-facing text lives in the cobra `Short`, `Long` and
   `Example` fields, which is the right home for it. Each `newXxxCommand`
-  constructor still carries a one-line Go doc so `go doc` is not blank.
-- **`cmd/hcsspike`** — a lab notebook rather than a library. Its measured verdict
-  tables and pass/fail matrices are the deliverable and stay verbatim. The
-  self-narration around them does not.
+  constructor still carries a one-line Go doc so `go doc` is not blank. A verb's
+  exit-code behaviour belongs here, next to `docs/contract.md`'s table.
+- **`cmd/tfpfgen`** — three lines of substance over `cli.Run`. It needs a package
+  comment and nothing else; everything a reader wants is in `internal/cli`.
+- **`internal/templates`** — a template's comments are emitted into somebody
+  else's repository, where nobody can edit them. They say what the generated
+  code does, never how this toolkit decided to generate it.

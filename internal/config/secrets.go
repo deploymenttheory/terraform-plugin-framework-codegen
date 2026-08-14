@@ -1,9 +1,9 @@
 package config
 
 // Secret names are fixed by auth role — they are a contract, not
-// configuration. v1 let the workflow and the config each spell secret names
-// and a rename broke the pipeline with an error citing the old spelling;
-// here there is exactly one definition site.
+// configuration, and this is their one definition site. Letting the workflow
+// and the config each spell them means a rename breaks the pipeline with an
+// error citing the spelling that was replaced.
 const (
 	SecretToken         = "TFPFGEN_AUTH_TOKEN"
 	SecretClientID      = "TFPFGEN_AUTH_CLIENT_ID"

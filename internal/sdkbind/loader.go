@@ -262,15 +262,14 @@ func (l *loader) typeFromExpr(info SDKInfo, expr string) (*types.Named, error) {
 // typeAndPackageFromExpr resolves a type expression and answers the import
 // path it was found under, so a caller that has to import the package can.
 //
-// Two package qualifiers are known by construction: models, and the SDK root
-// everything else used to fall back to. That fallback was wrong for a whole
-// class of type. A generator puts the model for an inline request body — one
-// the document declares in place rather than naming under components — in the
-// package of the operation that takes it, not in models: a body declared
-// inline on POST /orgs/{org}/teams becomes orgs.ItemTeamsPostRequestBody.
-// Looking those up in the SDK root failed with "package sdk has no type
-// ItemTeamsPostRequestBodyable (available: APIClient)", and took the resource
-// with it — every resource of a document that declares its bodies inline.
+// Only one package qualifier is known by construction: models. The SDK root
+// is not a safe fallback for the rest, because a generator puts the model for
+// an inline request body — one the document declares in place rather than
+// naming under components — in the package of the operation that takes it: a
+// body declared inline on POST /orgs/{org}/teams becomes
+// orgs.ItemTeamsPostRequestBody. Looking one up in the SDK root fails with
+// "package sdk has no type ItemTeamsPostRequestBodyable (available:
+// APIClient)", and takes the whole resource with it.
 //
 // An unknown qualifier is therefore resolved by searching the loaded
 // packages for one of that name that declares the type. Exactly one match
