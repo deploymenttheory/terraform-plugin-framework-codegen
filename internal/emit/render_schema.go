@@ -136,8 +136,9 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 
 // validators is every stock validator one attribute carries, each a
 // finished expression travelling with the imports it needs: the enum OneOf
-// on a closed-set string, and the AlsoRequires that realizes a dependency
-// whose subject is this root attribute.
+// on a closed-set string, the bounds the document declares about the value,
+// and the AlsoRequires that realizes a dependency whose subject is this root
+// attribute.
 //
 // Nothing here registers an import. An expression that needs a package says
 // so on the value it returns, and validatorLines is the single place those
@@ -158,6 +159,8 @@ func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
 			SchemaDefinition: fmt.Sprintf("stringvalidator.OneOf(%s)", strings.Join(quoted, ", ")),
 		})
 	}
+
+	validators = append(validators, constraintValidators(n)...)
 
 	if depth == sb.rootDepth {
 		if reqs, ok := sb.deps[n.attr.Name]; ok {
