@@ -18,6 +18,7 @@
 package fixtures
 
 import (
+	"encoding/base64"
 	"strings"
 
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
@@ -320,8 +321,9 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 }
 
 // scalarFor synthesises one scalar value: enum-driven when the document
-// declares values, type-driven otherwise, with strings carrying the test
-// prefix and the attribute path so no two attributes share a value.
+// declares values, format-driven when it declares what the string holds,
+// type-driven otherwise. A plain string carries the test prefix and the
+// attribute path so no two attributes share a value.
 func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) any {
 	switch kind {
 	case ir.TypeBool:
@@ -337,8 +339,51 @@ func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) any {
 		if len(a.AdvisoryValues) > 0 {
 			return a.AdvisoryValues[0]
 		}
-		return NamePrefix + strings.ReplaceAll(strings.Join(path, "-"), "_", "-")
+		name := NamePrefix + strings.ReplaceAll(strings.Join(path, "-"), "_", "-")
+		if formatted, ok := formatValue(a.Format, name); ok {
+			return formatted
+		}
+		return name
 	}
+}
+
+// formatValue synthesises a string the document says is more than a string,
+// and reports whether the format is one it knows.
+//
+// A generated SDK parses these on the way in: a timestamp becomes time.Time
+// and an identifier becomes uuid.UUID, so a value of the wrong shape is
+// refused before any assertion in a generated test runs, and the failure
+// names the parse rather than the field.
+//
+// A format with room for the prefix keeps it, so a name a test leaves behind
+// on a live API is still recognisable. A timestamp and a uuid have no such
+// room; they are fixed instead, which keeps them deterministic.
+func formatValue(format, name string) (string, bool) {
+	switch format {
+	case "date-time":
+		return "2026-01-02T03:04:05Z", true
+	case "date":
+		return "2026-01-02", true
+	case "time":
+		return "03:04:05Z", true
+	case "uuid":
+		return "00000000-0000-4000-8000-000000000000", true
+	case "byte", "base64":
+		return base64.StdEncoding.EncodeToString([]byte(name)), true
+	case "email", "idn-email":
+		return name + "@example.invalid", true
+	case "hostname", "idn-hostname":
+		return name + ".example.invalid", true
+	case "uri", "url", "uri-reference", "iri":
+		return "https://example.invalid/" + name, true
+	case "ipv4":
+		// TEST-NET-1 and the documentation prefix: reserved for exactly this,
+		// so a value that escapes into a request reaches nothing real.
+		return "192.0.2.1", true
+	case "ipv6":
+		return "2001:db8::1", true
+	}
+	return "", false
 }
 
 // wanted reports whether a value's attribute travels in the given

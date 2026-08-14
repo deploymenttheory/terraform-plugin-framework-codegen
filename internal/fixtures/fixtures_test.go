@@ -3,9 +3,12 @@ package fixtures
 import (
 	"bytes"
 	"encoding/json"
+	"net/netip"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
 )
@@ -342,5 +345,64 @@ func TestUnit_Fixturespec_SingleVariantEntityIsUngated(t *testing.T) {
 	}
 	if got := valueByName(t, s, "kind").Scalar; got != "basic" {
 		t.Fatalf("ungated enum keeps its first value basic, got %v", got)
+	}
+}
+
+// TestUnit_Fixturespec_AFormatDecidesTheValueShape proves a string the
+// document says is more than a string is synthesised as that thing. A
+// generated SDK parses these on the way in, so a value of the wrong shape is
+// refused before any assertion runs.
+func TestUnit_Fixturespec_AFormatDecidesTheValueShape(t *testing.T) {
+	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
+		{Name: "created_at", WireName: "createdAt", Kind: ir.TypeString, Format: "date-time"},
+		{Name: "born_on", WireName: "bornOn", Kind: ir.TypeString, Format: "date"},
+		{Name: "agent_id", WireName: "agentId", Kind: ir.TypeString, Format: "uuid"},
+		{Name: "owner_email", WireName: "ownerEmail", Kind: ir.TypeString, Format: "email"},
+		{Name: "home", WireName: "home", Kind: ir.TypeString, Format: "uri"},
+		{Name: "address", WireName: "address", Kind: ir.TypeString, Format: "ipv4"},
+		{Name: "label", WireName: "label", Kind: ir.TypeString},
+	}}
+
+	got := map[string]any{}
+	for _, e := range Derive(tree).Entries {
+		got[e.Name] = e.Scalar
+	}
+
+	if _, err := time.Parse(time.RFC3339, got["created_at"].(string)); err != nil {
+		t.Errorf("created_at = %v, which no SDK will parse as a timestamp: %v", got["created_at"], err)
+	}
+	if _, err := time.Parse(time.DateOnly, got["born_on"].(string)); err != nil {
+		t.Errorf("born_on = %v: %v", got["born_on"], err)
+	}
+	// Matched by shape rather than parsed: the toolkit takes no uuid
+	// dependency, and the shape is what an SDK's parser accepts.
+	uuidShape := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+	if value, _ := got["agent_id"].(string); !uuidShape.MatchString(value) {
+		t.Errorf("agent_id = %q, which no SDK will parse as a uuid", value)
+	}
+	if _, err := netip.ParseAddr(got["address"].(string)); err != nil {
+		t.Errorf("address = %v: %v", got["address"], err)
+	}
+
+	// A format with room for the prefix keeps it, so a value left behind on a
+	// live API is still recognisable as toolkit debris.
+	for _, name := range []string{"owner_email", "home", "label"} {
+		if value, _ := got[name].(string); !strings.Contains(value, NamePrefix) {
+			t.Errorf("%s = %q, which carries no %q", name, value, NamePrefix)
+		}
+	}
+	if value, _ := got["owner_email"].(string); !strings.HasSuffix(value, "@example.invalid") {
+		t.Errorf("owner_email = %q, which is not an address", value)
+	}
+	if value, _ := got["home"].(string); !strings.HasPrefix(value, "https://") {
+		t.Errorf("home = %q, which is not a url", value)
+	}
+
+	// Determinism is the whole scheme: a regenerated fixture is byte-identical
+	// or the document changed.
+	for _, e := range Derive(tree).Entries {
+		if e.Scalar != got[e.Name] {
+			t.Errorf("%s derived %v then %v", e.Name, got[e.Name], e.Scalar)
+		}
 	}
 }
