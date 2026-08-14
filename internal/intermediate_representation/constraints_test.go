@@ -171,6 +171,82 @@ components:
 	}
 }
 
+// TestUnit_Attribute_ADeclaredDefaultFillsTheResponse proves a documented
+// default sends a writable attribute to Optional + Computed: the API says it
+// substitutes a value when the request omits one, so the response carries a
+// value either way and plain Optional would be a perpetual diff.
+func TestUnit_Attribute_ADeclaredDefaultFillsTheResponse(t *testing.T) {
+	const spec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /jobs:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Job'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/JobRead'}
+  /jobs/{jobId}:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/JobRead'}
+    patch:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Job'}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/JobRead'}
+    delete:
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Job:
+      type: object
+      properties:
+        retries: {type: integer, default: 3}
+        enabled: {type: boolean, default: false}
+        label: {type: string, default: ""}
+        note: {type: string}
+    JobRead:
+      type: object
+      properties:
+        retries: {type: integer}
+        enabled: {type: boolean}
+        label: {type: string}
+        note: {type: string}
+        summary: {type: string, default: "none"}
+`
+	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "job")
+
+	// A false or an empty default is a declaration like any other: the test
+	// is that the document states one, not that the value is truthy.
+	for _, name := range []string{"retries", "enabled", "label"} {
+		if got := attribute(t, r.Schema, name).ComputedOptionalRequired; got != ComputedOptional {
+			t.Errorf("%q with a declared default = %q, want computed_optional", name, got)
+		}
+	}
+	if got := attribute(t, r.Schema, "note").ComputedOptionalRequired; got != Optional {
+		t.Errorf("%q declares no default and became %q", "note", got)
+	}
+	// A default on the response side says nothing about what happens when a
+	// request omits the field, and summary is not writable at all.
+	if got := attribute(t, r.Schema, "summary").ComputedOptionalRequired; got != Computed {
+		t.Errorf("a response-only property with a default = %q, want computed", got)
+	}
+}
+
 func assertBound(t *testing.T, name string, got *int64, want int64) {
 	t.Helper()
 	if got == nil {

@@ -166,7 +166,7 @@ custom type or collection kind that behaviour calls for.
 |---|---|---|
 | Omitted entirely | The type cannot be represented | `deriveType` marks it unsupported |
 | `Required` | Writable and required on create | the create body's `required` |
-| `Optional` + `Computed` | Writable, and the response carries a value whether or not the request supplied one | `x-tfpfgen-server-default`, or the response schema's `required` |
+| `Optional` + `Computed` | Writable, and the response carries a value whether or not the request supplied one | `x-tfpfgen-server-default`, the response schema's `required`, or a `default` on the request property |
 | `Computed` | The practitioner cannot set it | absent from the create body, `readOnly`, `x-tfpfgen-server-forced`, `x-tfpfgen-volatile` |
 | `Optional` | Writable, and the server leaves it absent when omitted | none of the above |
 
@@ -175,14 +175,29 @@ they accept, so a writable attribute usually belongs in `Optional` + `Computed`;
 emitting it as `Optional` alone gives the practitioner a perpetual diff, because
 Terraform holds null in config against a value in state.
 
-That is why `x-tfpfgen-server-default` exists rather than OpenAPI's `default`.
-The response schema's `required` list was the only route to `Optional` +
-`Computed`, and a document that declares nothing required in its responses — as
-real ones do — sends every writable attribute to plain `Optional`. The audit
-measures the same fact by omitting the attribute and reading what comes back,
-and the extension is where that reading is recorded. OpenAPI's `default` says
-what the document declares, is read by nothing in the generation path, and on a
-`$ref`'d property is written onto a schema every other use of that type shares.
+Three declarations reach `Optional` + `Computed`, of decreasing authority.
+
+`x-tfpfgen-server-default` is the audit's own measurement, taken by omitting the
+attribute and reading what comes back. It is the only one that does not depend
+on the document being diligent, which is why it exists.
+
+The response schema's `required` list is the document asserting the same fact.
+It is too weak on its own: a document that declares nothing required in its
+responses — as real ones do — sends every writable attribute to plain
+`Optional`.
+
+OpenAPI's `default` is the document stating what the server substitutes for an
+omitted value, which is that same fact in different words. It is read from the
+**request** side only: a default on a response schema says nothing about what
+happens when a request omits the field.
+
+That third route carries a known risk, accepted deliberately. A `default` on a
+`$ref`'d property is written onto a schema every other use of that type shares,
+so one declaration can move attributes that were never meant to move together. A
+correction is the remedy where it is wrong. The alternative was leaving thousands
+of attributes on plain `Optional`, which gives the practitioner a perpetual diff
+on every one of them the server fills — a defect in every plan, against a risk
+in some.
 
 ## Calling the workflows
 

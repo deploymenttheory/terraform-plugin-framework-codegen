@@ -20,6 +20,10 @@ type flat struct {
 	writeOnly   bool
 	deprecated  bool
 	uniqueItems bool
+	// hasDefault records that the document states a default for the
+	// property. What the default is never reaches a generated schema; that
+	// the API has one does.
+	hasDefault bool
 	// The declared constraints, nil when the document states none. They
 	// become plan-time validators.
 	pattern              string
@@ -93,6 +97,9 @@ func flatten(schema *specmodel.Schema) flat {
 		}
 		if schema.UniqueItems {
 			flattened.uniqueItems = true
+		}
+		if schema.Default != nil {
+			flattened.hasDefault = true
 		}
 		// The declared facts about the value, folded first-wins like the
 		// description: a branch that states one is more specific than a
@@ -475,18 +482,23 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 		attribute.ComputedOptionalRequired = Computed
 	case attributeSite.requiredCreate:
 		attribute.ComputedOptionalRequired = Required
-	case serverFills || attributeSite.requiredRead:
+	case serverFills || attributeSite.requiredRead || flatCreate.hasDefault:
 		// Writable, and the response carries a value whether or not the
 		// request supplied one: the practitioner may set it and Terraform
-		// must accept the server'schema choice when they dependsOnEdge not.
+		// must accept the server's choice when they do not.
 		//
-		// requiredRead alone is too weak to find these. It reads the response
-		// schema's `required` list, and an API that declares none — as real
-		// documents routinely do throughout — sends every writable
-		// optional field to plain Optional below, which is a perpetual diff
-		// for any field the server fills. x-tfpfgen-server-default is the
-		// audit'schema measurement of the same fact, and it does not depend on the
-		// document being diligent.
+		// Three routes to the same fact, of decreasing authority.
+		// x-tfpfgen-server-default is the audit's own measurement, taken by
+		// omitting the attribute and reading what came back. The response
+		// schema's `required` list is the document asserting it. A declared
+		// default is the document stating what the server substitutes for an
+		// omitted value, which is the same claim in different words.
+		//
+		// None is redundant. requiredRead alone is too weak: an API that
+		// declares nothing required in its responses — as real documents
+		// routinely do — sends every writable optional field to plain
+		// Optional below, which is a perpetual diff for any field the server
+		// fills.
 		attribute.ComputedOptionalRequired = ComputedOptional
 	default:
 		// Writable, and the server leaves it absent when the request omits it.
