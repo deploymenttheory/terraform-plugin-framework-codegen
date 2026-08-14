@@ -62,8 +62,8 @@ func TestUnit_ConstructNested_BuildsTheWriteType(t *testing.T) {
 	}
 	if strings.Contains(lines, "make([]models.Serviceable") {
 		t.Errorf("the slice is typed for the getter, which does not compile:\n%s", lines)
-
-)
+	}
+}
 
 // TestUnit_ConflictingExpr_DropsPrunedAttributes proves a mutually-exclusive
 // group survives an attribute the binder removed: a validator cannot address
