@@ -66,7 +66,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	// The schema is the invocation's arguments: one attribute per path
 	// parameter, then the request body's tree.
 	paramNodes := actionParamNodes(&a.InvokeOperation)
-	bodyNodes := joinTree(a.RequestSchema, ab.Fields)
+	bodyNodes := e.joinTree(bindingKindAction, a.Names.Key, a.RequestSchema, ab.Fields)
 	nodes := append(append([]node{}, paramNodes...), invocable(bodyNodes)...)
 
 	imports := newImportSet(e.pc.Module)

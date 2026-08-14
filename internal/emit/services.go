@@ -28,6 +28,11 @@ type ServiceFiles struct {
 	// order the model declares them. It mirrors the model's own Excluded:
 	// an entity that yields nothing is reported, never silently absent.
 	Excluded []ir.Exclusion
+	// KeptUnbound is every attribute the join kept with no SDK field behind
+	// it — the id and the addressing attributes — keyed by keptUnboundKey.
+	// Pruning reports removing each of them and each of them reaches the
+	// schema anyway, so the refusal report reads this to leave them out.
+	KeptUnbound map[string]bool
 }
 
 // unrenderableError marks an entity whose shape emission cannot serve — a
@@ -152,6 +157,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		out.Registrations.Actions.add(e.registration(kindActions, a.Names, "New"+a.Names.Pascal+"Action"))
 	}
 
+	out.KeptUnbound = e.keptUnbound
 	return out, nil
 }
 
@@ -168,6 +174,50 @@ const (
 type serviceRenderer struct {
 	pc       ProviderCore
 	bindings *sdkbind.Bindings
+	// keptUnbound is every attribute the join kept with no SDK field behind
+	// it, keyed by keptUnboundKey. Pruning reported removing each of these,
+	// and each of them is in the emitted schema regardless, so the refusal
+	// report reads this to tell a removal that cost something from one that
+	// cost nothing.
+	keptUnbound map[string]bool
+}
+
+// Binding kinds, spelled the way sdkbind.Removal spells them so a removal
+// and a kept attribute can be matched against each other.
+const (
+	bindingKindResource     = "resource"
+	bindingKindDatasource   = "datasource"
+	bindingKindListResource = "list_resource"
+	bindingKindAction       = "action"
+)
+
+// keptUnboundKey addresses one attribute of one entity. The NUL separator
+// cannot occur in a kind, a key or an attribute name, so no two different
+// triples can collide on one key.
+func keptUnboundKey(kind, key, attribute string) string {
+	return kind + "\x00" + key + "\x00" + attribute
+}
+
+// recordKept notes the attributes one join kept with no binding behind them.
+func (e *serviceRenderer) recordKept(kind, key string, kept []string) {
+	if len(kept) == 0 {
+		return
+	}
+	if e.keptUnbound == nil {
+		e.keptUnbound = map[string]bool{}
+	}
+	for _, attribute := range kept {
+		e.keptUnbound[keptUnboundKey(kind, key, attribute)] = true
+	}
+}
+
+// joinTree joins one entity's tree and records whatever it kept unbound
+// against that entity, so the refusal report can tell the two kinds of
+// removal apart.
+func (e *serviceRenderer) joinTree(kind, key string, tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing ...map[string]bool) []node {
+	nodes, kept := joinTreeKeeping(tree, fbs, addressing...)
+	e.recordKept(kind, key, kept)
+	return nodes
 }
 
 // dir is the entity's directory relative to the provider root.
@@ -284,20 +334,34 @@ type node struct {
 // addressing names the root attributes that exist to fill a path parameter
 // rather than to carry a field, and so survive with no binding.
 func joinTree(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing ...map[string]bool) []node {
+	nodes, _ := joinTreeKeeping(tree, fbs, addressing...)
+	return nodes
+}
+
+// joinTreeKeeping is joinTree, and also answers the attributes it kept
+// with no SDK field behind them — the id and the addressing attributes.
+//
+// Pruning removes their bindings, correctly: no model carries them, because
+// they address the object rather than describe it. But the attribute still
+// reaches the schema, so reporting that removal as something the operator
+// lost is wrong, and it was wrong 207 times on one pilot. This is the only
+// place that knows, because this is the place that decides.
+func joinTreeKeeping(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing ...map[string]bool) ([]node, []string) {
 	names := map[string]bool{idAttributeName: true}
 	for _, set := range addressing {
 		for name := range set {
 			names[name] = true
 		}
 	}
-	return joinAttributes(tree, fbs, names, true)
+	var kept []string
+	return joinAttributes(tree, fbs, names, true, &kept), kept
 }
 
 // joinAttributes is joinTree's recursion, tracking whether it is at the root
 // so addressing attributes are kept at the top level only. A nested attribute
 // that happens to share one of their names is an ordinary API field: unbound,
 // it travels nowhere and is dropped like any other.
-func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing map[string]bool, root bool) []node {
+func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing map[string]bool, root bool, kept *[]string) []node {
 	if tree == nil {
 		return nil
 	}
@@ -313,11 +377,12 @@ func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressi
 				continue
 			}
 			out = append(out, node{attr: a})
+			*kept = append(*kept, a.Name)
 			continue
 		}
 		n := node{attr: a, fb: fb}
 		if a.Nested != nil {
-			n.children = joinAttributes(a.Nested, fb.Nested, addressing, false)
+			n.children = joinAttributes(a.Nested, fb.Nested, addressing, false, kept)
 		}
 		out = append(out, n)
 	}

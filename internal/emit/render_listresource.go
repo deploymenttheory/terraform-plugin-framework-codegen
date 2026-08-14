@@ -45,7 +45,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	if lb.List == nil {
 		return nil, unrenderable("a list resource needs a bound list call")
 	}
-	nodes := joinTree(lr.Schema, lb.Fields, addressingNames(&lr.ListOperation))
+	nodes := e.joinTree(bindingKindListResource, lr.Names.Key, lr.Schema, lb.Fields, addressingNames(&lr.ListOperation))
 
 	d := &listResourceData{
 		Package:       lr.Names.Package,
