@@ -29,8 +29,11 @@ type flat struct {
 	// additionalPropertiesDeclared records one spelled as a bare boolean.
 	additionalProperties         *specmodel.Schema
 	additionalPropertiesDeclared bool
-	hasUnion                     bool
-	extensions                   specmodel.Extensions
+	// unionBranches are the oneOf/anyOf branches, kept so a union can be
+	// collapsed rather than refused.
+	unionBranches []*specmodel.Schema
+	hasUnion      bool
+	extensions    specmodel.Extensions
 	// dependentRequired accumulates every dependentRequired entry across the
 	// folded schema, so a 3.1 co-requirement reaches the tree alongside the
 	// x-tfpfgen-depends-on form a 3.0 document uses.
@@ -96,6 +99,8 @@ func flatten(schema *specmodel.Schema) flat {
 		}
 		if len(schema.OneOf)+len(schema.AnyOf) > 0 {
 			flattened.hasUnion = true
+			flattened.unionBranches = append(flattened.unionBranches, schema.OneOf...)
+			flattened.unionBranches = append(flattened.unionBranches, schema.AnyOf...)
 		}
 		flattened.dependentRequired = append(flattened.dependentRequired, schema.DependentRequired...)
 		for _, branch := range schema.AllOf {
@@ -103,7 +108,41 @@ func flatten(schema *specmodel.Schema) flat {
 		}
 	}
 	walk(schema)
+	flattened.resolveUnion()
 	return flattened
+}
+
+// scalarTypes are the declared types a single terraform attribute holds
+// directly.
+var scalarTypes = map[string]bool{"string": true, "integer": true, "number": true, "boolean": true}
+
+// resolveUnion collapses a oneOf/anyOf whose branches are all scalars to one
+// declared type: the shared one, or string when they disagree, because a
+// string carries any scalar's text and nothing else carries a string.
+//
+// A union with an object branch is left alone. The generated SDK models one
+// as a composed type carrying a separate accessor per branch, so the shape
+// that fits is an attribute per variant rather than one collapsed type, and
+// that is not derivable from the document alone.
+func (flattened *flat) resolveUnion() {
+	if len(flattened.unionBranches) == 0 || flattened.declaredType != "" || len(flattened.properties) > 0 {
+		return
+	}
+
+	collapsed := ""
+	for i, branch := range flattened.unionBranches {
+		declared := flatten(branch).declaredType
+		if !scalarTypes[declared] {
+			return
+		}
+		switch {
+		case i == 0:
+			collapsed = declared
+		case declared != collapsed:
+			collapsed = "string"
+		}
+	}
+	flattened.declaredType = collapsed
 }
 
 // findProperty finds a flattened schema'schema property by wire name.
@@ -451,7 +490,11 @@ func deriveType(attribute *Attribute, flatPrimary flat, create, read, update *sp
 		attribute.Kind = TypeObject
 		attribute.Nested = buildTree(create, read, update, false)
 	case flatPrimary.declaredType == "" && flatPrimary.hasUnion:
-		refuse(attribute, "oneOf/anyOf union: no single attribute type describes it")
+		// resolveUnion collapses a union whose branches are all scalars.
+		// What is left has an object branch, which the generated SDK models
+		// as a composed type carrying an accessor per branch — an attribute
+		// per variant, not one collapsed type.
+		refuse(attribute, "oneOf/anyOf union with an object branch: it needs one attribute per variant, which the document alone does not name")
 	case flatPrimary.declaredType == "":
 		refuse(attribute, "no type declared")
 	default:

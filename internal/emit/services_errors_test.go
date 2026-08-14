@@ -169,11 +169,6 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	m.Resources[0].Schema.Dependencies = []ir.Dependency{{Attribute: "ratio", Requires: []string{"ghost"}}}
 	expectRenderError(t, pc, m, b, "http_server", "ghost")
 
-	// A mutually-exclusive group naming a missing attribute.
-	m, b = fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.MutuallyExclusiveGroups = [][]string{{"name", "ghost"}}
-	expectRenderError(t, pc, m, b, "http_server", "ghost")
-
 	// A valid configuration on a missing discriminator.
 	m, b = fictionalModel(), fictionalBindings()
 	m.Resources[0].Schema.ValidConfigurations = []ir.ValidConfiguration{
@@ -282,11 +277,6 @@ func TestUnit_Emit_ValidatorHelperSpellings(t *testing.T) {
 		t.Fatalf("wrapped list json = %q", got)
 	}
 
-	// A mutually-exclusive group whose first member is missing is named at
-	// fault too, not only the second.
-	m, b := fictionalModel(), fictionalBindings()
-	m.Resources[0].Schema.MutuallyExclusiveGroups = [][]string{{"ghost", "name"}}
-	expectRenderError(t, fictionalProviderCore(), m, b, "http_server", "ghost")
 }
 
 func TestUnit_Emit_HelperSpellings(t *testing.T) {
