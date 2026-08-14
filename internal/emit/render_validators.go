@@ -93,9 +93,9 @@ func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (exprs
 		fmt.Fprintf(&exprB, "\t\t%s{},\n", name)
 	}
 	for _, group := range t.MutuallyExclusiveGroups {
-		expr, err := conflictingExpr(byName, group)
-		if err != nil {
-			return "", "", err
+		expr := conflictingExpr(byName, group)
+		if expr == "" {
+			continue
 		}
 		fmt.Fprintf(&exprB, "\t\t%s,\n", expr)
 	}
@@ -126,15 +126,22 @@ func renderCustomValidator(name, typeName, desc, body string) string {
 
 // conflictingExpr renders the stock resourcevalidator.Conflicting for one
 // mutually-exclusive group, validating every named attribute exists.
-func conflictingExpr(byName map[string]node, group []string) (string, error) {
-	paths := make([]string, len(group))
-	for i, name := range group {
+// A name the group carries that is not an attribute is dropped rather than
+// refused: pruning removes attributes the SDK cannot carry, and a validator
+// cannot address one that is not in the schema. A group left with fewer
+// than two survivors constrains nothing and answers the empty string.
+func conflictingExpr(byName map[string]node, group []string) string {
+	paths := make([]string, 0, len(group))
+	for _, name := range group {
 		if _, ok := byName[name]; !ok {
-			return "", fmt.Errorf("mutually-exclusive group names %q, which is not an attribute", name)
+			continue
 		}
-		paths[i] = fmt.Sprintf("path.MatchRoot(%q)", name)
+		paths = append(paths, fmt.Sprintf("path.MatchRoot(%q)", name))
 	}
-	return fmt.Sprintf("resourcevalidator.Conflicting(%s)", strings.Join(paths, ", ")), nil
+	if len(paths) < 2 {
+		return ""
+	}
+	return fmt.Sprintf("resourcevalidator.Conflicting(%s)", strings.Join(paths, ", "))
 }
 
 // dependencyMap builds the subject→required map the schema builder turns into
