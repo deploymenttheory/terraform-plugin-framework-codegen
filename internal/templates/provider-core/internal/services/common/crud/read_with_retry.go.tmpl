@@ -44,7 +44,8 @@ func (c UpdateResponseContainer) SetState(state tfsdk.State) { c.Response.State 
 
 // ReadWithRetryOptions tunes one read-after-write loop.
 type ReadWithRetryOptions struct {
-	// Interval is the pause between attempts; zero means two seconds.
+	// Interval is the pause between attempts; zero means the cadence
+	// SetRetryCadence installed, which defaults to two seconds.
 	Interval time.Duration
 	// Operation names the write this read follows, for messages.
 	Operation errors.Operation
@@ -66,7 +67,7 @@ type ReadWithRetryOptions struct {
 // bounds that can disagree are one bound too many.
 func ReadWithRetry(ctx context.Context, readFunc func(context.Context, resource.ReadRequest, *resource.ReadResponse), req resource.ReadRequest, container StateContainer, opts ReadWithRetryOptions) error {
 	if opts.Interval <= 0 {
-		opts.Interval = 2 * time.Second
+		opts.Interval = readRetryInterval()
 	}
 	if opts.Operation == "" {
 		opts.Operation = errors.OperationRead

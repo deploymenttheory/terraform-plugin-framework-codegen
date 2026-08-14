@@ -104,27 +104,27 @@ func headerFor(p string) string {
 	}
 }
 
-// TestUnit_RenderProviderCore_OperatorEnvVarsCarryTheTFPrefix proves the
-// emitted provider configuration reads TF_<PROVIDER>_* operator variables
-// and spells the token attribute api_token.
-func TestUnit_RenderProviderCore_OperatorEnvVarsCarryTheTFPrefix(t *testing.T) {
+// TestUnit_RenderProviderCore_OperatorEnvVarsCarryTheBareProviderPrefix proves the
+// emitted provider configuration reads <PROVIDER>_* operator variables —
+// bare, with no TF_ in front — and spells the token attribute api_token.
+func TestUnit_RenderProviderCore_OperatorEnvVarsCarryTheBareProviderPrefix(t *testing.T) {
 	for method, wants := range map[string][]string{
 		config.AuthBearerToken: {
 			`"api_token"`,
-			"TF_PETSTORE_ENDPOINT",
-			"TF_PETSTORE_API_TOKEN",
+			"PETSTORE_ENDPOINT",
+			"PETSTORE_API_TOKEN",
 		},
 		config.AuthAPIKeyHeader: {
 			`"api_token"`,
-			"TF_PETSTORE_API_TOKEN",
+			"PETSTORE_API_TOKEN",
 		},
 		config.AuthBasic: {
 			`"username"`, `"password"`,
-			"TF_PETSTORE_USERNAME", "TF_PETSTORE_PASSWORD",
+			"PETSTORE_USERNAME", "PETSTORE_PASSWORD",
 		},
 		config.AuthOAuth2ClientCredentials: {
 			`"client_id"`, `"client_secret"`, `"token_url"`,
-			"TF_PETSTORE_CLIENT_ID", "TF_PETSTORE_CLIENT_SECRET", "TF_PETSTORE_TOKEN_URL",
+			"PETSTORE_CLIENT_ID", "PETSTORE_CLIENT_SECRET", "PETSTORE_TOKEN_URL",
 		},
 	} {
 		pc, err := FromConfig(testConfig(config.BackendKiota, method), "")
@@ -150,8 +150,71 @@ func TestUnit_RenderProviderCore_OperatorEnvVarsCarryTheTFPrefix(t *testing.T) {
 				t.Errorf("%s provider.go does not carry %s", method, want)
 			}
 		}
-		if strings.Contains(providerGo, `"PETSTORE_`) {
-			t.Errorf("%s provider.go reads a non-TF_-prefixed operator variable", method)
+		if strings.Contains(providerGo, `"TF_PETSTORE_`) {
+			t.Errorf("%s provider.go still reads a TF_-prefixed operator variable", method)
+		}
+	}
+}
+
+// TestUnit_RenderProviderCore_ClientOptionsPacesTheRetryLoops proves the
+// emitted provider carries the client_options block, resolves both knobs
+// against the environment, and hands the result to the one place the retry
+// loops read their cadence from. A knob the practitioner can set that
+// reaches nothing is worse than no knob at all, so all three halves are
+// pinned together.
+func TestUnit_RenderProviderCore_ClientOptionsPacesTheRetryLoops(t *testing.T) {
+	pc, err := FromConfig(testConfig(config.BackendKiota, config.AuthBearerToken), "")
+	if err != nil {
+		t.Fatalf("FromConfig: %v", err)
+	}
+	files, err := RenderProviderCore(pc)
+	if err != nil {
+		t.Fatalf("RenderProviderCore: %v", err)
+	}
+
+	rendered := make(map[string]string, len(files))
+	for _, f := range files {
+		rendered[f.Path] = string(f.Content)
+	}
+
+	providerGo, ok := rendered["internal/provider/provider.go"]
+	if !ok {
+		t.Fatal("the render is missing internal/provider/provider.go")
+	}
+	for _, want := range []string{
+		`"client_options": schema.SingleNestedAttribute{`,
+		`"read_retry_delay_seconds": schema.Int64Attribute{`,
+		`"delete_retry_delay_seconds": schema.Int64Attribute{`,
+		`secondsOrEnv(readRetryDelay, "PETSTORE_READ_RETRY_DELAY_SECONDS")`,
+		`secondsOrEnv(deleteRetryDelay, "PETSTORE_DELETE_RETRY_DELAY_SECONDS")`,
+		"crud.SetRetryCadence(",
+	} {
+		if !strings.Contains(providerGo, want) {
+			t.Errorf("provider.go does not carry %s", want)
+		}
+	}
+
+	retryGo, ok := rendered["internal/services/common/crud/retry.go"]
+	if !ok {
+		t.Fatal("the render is missing internal/services/common/crud/retry.go")
+	}
+	for _, want := range []string{
+		"func SetRetryCadence(",
+		"DefaultReadRetryInterval   = 2 * time.Second",
+		"DefaultDeleteRetryInterval = 10 * time.Second",
+	} {
+		if !strings.Contains(retryGo, want) {
+			t.Errorf("crud/retry.go does not carry %s", want)
+		}
+	}
+
+	// The loops must read the installed cadence, not a literal of their own.
+	for path, want := range map[string]string{
+		"internal/services/common/crud/read_with_retry.go":   "opts.Interval = readRetryInterval()",
+		"internal/services/common/crud/delete_with_retry.go": "opts.Interval = deleteRetryInterval()",
+	} {
+		if !strings.Contains(rendered[path], want) {
+			t.Errorf("%s does not read the installed cadence (%s)", path, want)
 		}
 	}
 }

@@ -1,0 +1,73 @@
+{{ template "header" . }}
+
+package provider
+
+import (
+	"testing"
+	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// TestUnit_SecondsOrEnv_ConfiguredValueWins proves the client_options block
+// outranks the environment, which is the precedence every other value in
+// this provider resolves by.
+func TestUnit_SecondsOrEnv_ConfiguredValueWins(t *testing.T) {
+	t.Setenv("{{ .EnvPrefix }}_READ_RETRY_DELAY_SECONDS", "30")
+
+	got := secondsOrEnv(types.Int64Value(5), "{{ .EnvPrefix }}_READ_RETRY_DELAY_SECONDS")
+	if got != 5*time.Second {
+		t.Errorf("configured 5 with the environment saying 30 resolved to %s, want 5s", got)
+	}
+}
+
+// TestUnit_SecondsOrEnv_EnvironmentBacksUpAnAbsentValue proves the
+// environment variable is read when the block says nothing — the case that
+// lets a recorded acceptance test replay without paying the real cadence.
+func TestUnit_SecondsOrEnv_EnvironmentBacksUpAnAbsentValue(t *testing.T) {
+	t.Setenv("{{ .EnvPrefix }}_READ_RETRY_DELAY_SECONDS", "7")
+
+	got := secondsOrEnv(types.Int64Null(), "{{ .EnvPrefix }}_READ_RETRY_DELAY_SECONDS")
+	if got != 7*time.Second {
+		t.Errorf("an absent configuration with the environment saying 7 resolved to %s, want 7s", got)
+	}
+}
+
+// TestUnit_SecondsOrEnv_UnusableValuesLeaveTheDefaultInForce proves a typo
+// cannot break an apply and cannot turn a paced retry loop into a busy one.
+// Zero is the answer that means "say nothing", so the compiled default
+// stands.
+func TestUnit_SecondsOrEnv_UnusableValuesLeaveTheDefaultInForce(t *testing.T) {
+	const env = "{{ .EnvPrefix }}_READ_RETRY_DELAY_SECONDS"
+
+	for _, testCase := range []struct {
+		name        string
+		configured  types.Int64
+		environment string
+	}{
+		{"nothing set at all", types.Int64Null(), ""},
+		{"unparseable environment value", types.Int64Null(), "soon"},
+		{"negative environment value", types.Int64Null(), "-5"},
+		{"zero environment value", types.Int64Null(), "0"},
+		{"negative configured value", types.Int64Value(-1), ""},
+		{"zero configured value", types.Int64Value(0), ""},
+		{"unknown configured value", types.Int64Unknown(), ""},
+	} {
+		t.Setenv(env, testCase.environment)
+		if got := secondsOrEnv(testCase.configured, env); got != 0 {
+			t.Errorf("%s resolved to %s, want 0 so the compiled default stands", testCase.name, got)
+		}
+	}
+}
+
+// TestUnit_SecondsOrEnv_ConfiguredValueOutranksAnUnusableEnvironment proves
+// the two rules compose: a good configured value is not spoiled by a bad
+// environment variable beside it.
+func TestUnit_SecondsOrEnv_ConfiguredValueOutranksAnUnusableEnvironment(t *testing.T) {
+	const env = "{{ .EnvPrefix }}_DELETE_RETRY_DELAY_SECONDS"
+	t.Setenv(env, "not-a-number")
+
+	if got := secondsOrEnv(types.Int64Value(3), env); got != 3*time.Second {
+		t.Errorf("configured 3 beside an unparseable environment value resolved to %s, want 3s", got)
+	}
+}

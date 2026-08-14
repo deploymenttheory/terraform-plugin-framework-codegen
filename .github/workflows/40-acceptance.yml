@@ -5,7 +5,7 @@ name: 40-acceptance
 # it spends real API quota against real tenants — and passes its secrets
 # with `secrets: inherit`. The named GitHub environment is the gate: its
 # protection rules (required reviewers, branch restrictions) decide whether
-# the run may proceed, and its secrets are the TF_<PROVIDER>_* values the
+# the run may proceed, and its secrets are the <PROVIDER>_* values the
 # provider under test reads.
 on:
   workflow_call:
@@ -39,15 +39,37 @@ jobs:
           go-version-file: go.mod
       # A reusable workflow cannot name another provider's secrets, so the
       # generic contract is the glossary's operator namespace: every secret
-      # matching TF_<PROVIDER>_* (TF_ then uppercase) is exported for the
-      # provider under test to read. Values stay masked in logs; heredoc
-      # delimiters keep multi-line values (private keys) intact.
-      - name: Pass the provider's TF_* secrets through
+      # matching <PROVIDER>_* is exported for the provider under test to
+      # read. The prefix is derived from this repo's own tfpfgen.yaml rather
+      # than wildcarded, because the namespace is now bare: a pattern loose
+      # enough to catch THOUSANDEYES_API_TOKEN without naming the provider
+      # would also catch GITHUB_TOKEN and the toolkit's own TFPFGEN_AUTH_*
+      # secrets, and exporting those into an acceptance run is not something
+      # to do by accident. Values stay masked in logs; heredoc delimiters
+      # keep multi-line values (private keys) intact.
+      - name: Pass the provider's secrets through
         env:
           ALL_SECRETS: ${{ toJSON(secrets) }}
         run: |
           set -euo pipefail
-          jq -r 'keys[] | select(test("^TF_[A-Z0-9_]+$"))' <<<"$ALL_SECRETS" |
+          name="$(awk '
+            /^provider:/ { inblock = 1; next }
+            /^[^[:space:]#]/ { inblock = 0 }
+            inblock && $1 == "name:" { print $2; exit }
+          ' tfpfgen.yaml | tr -d '"'"'"'"')"
+          if [ -z "$name" ]; then
+            echo "::error::provider.name is not readable from tfpfgen.yaml; cannot derive the secret prefix"
+            exit 1
+          fi
+          prefix="$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]' | sed -E 's/[^A-Z0-9]+/_/g; s/^_+//; s/_+$//')"
+          echo "exporting secrets matching ${prefix}_*"
+          # GITHUB_TOKEN is excluded by name: a provider named "github"
+          # derives the prefix GITHUB, and Actions' own token would
+          # otherwise be swept in beside the provider's credentials. No
+          # generated provider reads it — the GitHub one reads
+          # GITHUB_API_TOKEN — so nothing legitimate is lost.
+          jq -r --arg p "^${prefix}_[A-Z0-9_]+$" \
+            'keys[] | select(test($p)) | select(. != "GITHUB_TOKEN")' <<<"$ALL_SECRETS" |
           while IFS= read -r key; do
             value="$(jq -r --arg k "$key" '.[$k]' <<<"$ALL_SECRETS")"
             delim="TFPFGEN_EOF_$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"

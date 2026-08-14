@@ -8,6 +8,7 @@ package provider
 import (
 	"context"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"{{ .Module }}/internal/client"
+	"{{ .Module }}/internal/services/common/crud"
 )
 
 var _ provider.Provider = (*Provider)(nil)
@@ -117,6 +119,20 @@ func (p *Provider) Schema(_ context.Context, _ provider.SchemaRequest, resp *pro
 			"request_timeout": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "How long one HTTP request may take, as a Go duration string such as \"30s\". Falls back to the {{ .EnvPrefix }}_REQUEST_TIMEOUT environment variable, then to one minute.",
+			},
+			"client_options": schema.SingleNestedAttribute{
+				Optional:            true,
+				MarkdownDescription: "How the provider paces the retry loops it runs on the practitioner's behalf. Every field is optional; an omitted or non-positive value leaves the compiled default in force.",
+				Attributes: map[string]schema.Attribute{
+					"read_retry_delay_seconds": schema.Int64Attribute{
+						Optional:            true,
+						MarkdownDescription: "Seconds between attempts while a read settles the state after a create or an update. Falls back to the {{ .EnvPrefix }}_READ_RETRY_DELAY_SECONDS environment variable, then to two seconds. Lower it to make recorded acceptance tests replay without paying the real cadence.",
+					},
+					"delete_retry_delay_seconds": schema.Int64Attribute{
+						Optional:            true,
+						MarkdownDescription: "Seconds between attempts while a delete is retried. Falls back to the {{ .EnvPrefix }}_DELETE_RETRY_DELAY_SECONDS environment variable, then to ten seconds.",
+					},
+				},
 			},
 		},
 	}
@@ -222,6 +238,16 @@ func (p *Provider) Configure(ctx context.Context, req provider.ConfigureRequest,
 		}
 	}
 
+	var readRetryDelay, deleteRetryDelay types.Int64
+	if data.ClientOptions != nil {
+		readRetryDelay = data.ClientOptions.ReadRetryDelaySeconds
+		deleteRetryDelay = data.ClientOptions.DeleteRetryDelaySeconds
+	}
+	crud.SetRetryCadence(
+		secondsOrEnv(readRetryDelay, "{{ .EnvPrefix }}_READ_RETRY_DELAY_SECONDS"),
+		secondsOrEnv(deleteRetryDelay, "{{ .EnvPrefix }}_DELETE_RETRY_DELAY_SECONDS"),
+	)
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -245,4 +271,22 @@ func orEnv(value types.String, env string) string {
 		return value.ValueString()
 	}
 	return os.Getenv(env)
+}
+
+// secondsOrEnv resolves one cadence the same way orEnv resolves a string:
+// the configured value wins and the environment variable backs it up.
+//
+// Zero means "say nothing", not "no delay". A missing, unparseable or
+// non-positive value answers zero so the compiled default stays in force —
+// a typo in an environment variable must not turn a paced retry loop into a
+// busy one, and it must not fail an apply either.
+func secondsOrEnv(value types.Int64, env string) time.Duration {
+	if !value.IsNull() && !value.IsUnknown() && value.ValueInt64() > 0 {
+		return time.Duration(value.ValueInt64()) * time.Second
+	}
+	seconds, err := strconv.ParseInt(os.Getenv(env), 10, 64)
+	if err != nil || seconds <= 0 {
+		return 0
+	}
+	return time.Duration(seconds) * time.Second
 }

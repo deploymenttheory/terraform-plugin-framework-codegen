@@ -1,0 +1,59 @@
+{{ template "header" . }}
+
+package crud
+
+import (
+	"sync"
+	"time"
+)
+
+// The compiled retry cadence: the pause between attempts each loop takes
+// when its options name none. Long enough not to hammer an API that is
+// already unhappy, short enough that a create settles inside a plan.
+const (
+	DefaultReadRetryInterval   = 2 * time.Second
+	DefaultDeleteRetryInterval = 10 * time.Second
+)
+
+// retryCadence is the cadence in force, guarded because Configure writes it
+// while resources read it.
+var retryCadence = struct {
+	sync.RWMutex
+	read   time.Duration
+	delete time.Duration
+}{read: DefaultReadRetryInterval, delete: DefaultDeleteRetryInterval}
+
+// SetRetryCadence installs the operator's retry cadence. The provider calls
+// it once from Configure, having resolved client_options against the
+// environment; a non-positive duration leaves that half at its compiled
+// default, so a half-configured block cannot produce a busy loop.
+//
+// The cadence is process-wide rather than per provider instance. Two
+// instances configured differently in one process would share the last
+// value written — acceptable because the cadence is a pacing hint rather
+// than a semantic, and because carrying it per instance would mean threading
+// it through the provider data every resource receives.
+func SetRetryCadence(read, delete time.Duration) {
+	retryCadence.Lock()
+	defer retryCadence.Unlock()
+	if read > 0 {
+		retryCadence.read = read
+	}
+	if delete > 0 {
+		retryCadence.delete = delete
+	}
+}
+
+// readRetryInterval is the pause a read-after-write loop takes.
+func readRetryInterval() time.Duration {
+	retryCadence.RLock()
+	defer retryCadence.RUnlock()
+	return retryCadence.read
+}
+
+// deleteRetryInterval is the pause a delete loop takes.
+func deleteRetryInterval() time.Duration {
+	retryCadence.RLock()
+	defer retryCadence.RUnlock()
+	return retryCadence.delete
+}

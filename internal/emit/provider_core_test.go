@@ -21,7 +21,7 @@ func TestUnit_FromConfig_DerivesEveryFinishedValue(t *testing.T) {
 		"Module":            "github.com/exampleco/terraform-provider-petstore",
 		"ProviderName":      "petstore",
 		"RegistryAddress":   "registry.terraform.io/exampleco/petstore",
-		"EnvPrefix":         "TF_PETSTORE",
+		"EnvPrefix":         "PETSTORE",
 		"ClientType":        "APIClient",
 		"ClientConstructor": "NewAPIClient",
 		"SDKImport":         "github.com/exampleco/terraform-provider-petstore/internal/sdk",
@@ -112,16 +112,17 @@ func TestUnit_FromConfig_RefusesWhatItCannotDerive(t *testing.T) {
 	})
 }
 
-// TestUnit_EnvPrefix_IsTFThenTheCollapsedName proves the operator prefix
-// is TF_ then the uppercased name, separators collapsed to underscores.
-func TestUnit_EnvPrefix_IsTFThenTheCollapsedName(t *testing.T) {
+// TestUnit_EnvPrefix_IsTheBareCollapsedName proves the operator prefix is
+// the uppercased name with separators collapsed to underscores, and nothing
+// in front of it — the spelling every published provider uses.
+func TestUnit_EnvPrefix_IsTheBareCollapsedName(t *testing.T) {
 	for name, want := range map[string]string{
-		"petstore":     "TF_PETSTORE",
-		"thousandeyes": "TF_THOUSANDEYES",
-		"jamf-pro":     "TF_JAMF_PRO",
-		"a--b_c.d":     "TF_A_B_C_D",
-		"-edge-":       "TF_EDGE",
-		"snake_case":   "TF_SNAKE_CASE",
+		"petstore":     "PETSTORE",
+		"thousandeyes": "THOUSANDEYES",
+		"jamf-pro":     "JAMF_PRO",
+		"a--b_c.d":     "A_B_C_D",
+		"-edge-":       "EDGE",
+		"snake_case":   "SNAKE_CASE",
 	} {
 		if got := envPrefix(name); got != want {
 			t.Errorf("envPrefix(%q) = %q, want %q", name, got, want)
@@ -143,7 +144,7 @@ func TestUnit_ProviderCoreCheck_NamesEveryProblemAtOnce(t *testing.T) {
 	}
 
 	pc := ProviderCore{
-		Module: "m", ProviderName: "p", RegistryAddress: "r", EnvPrefix: "TF_P",
+		Module: "m", ProviderName: "p", RegistryAddress: "r", EnvPrefix: "P",
 		ClientType: "C", ClientConstructor: "NewC", SDKImport: "m/internal/sdk", GoVersion: "1.25",
 		BackendKiota: true, AuthAPIKeyHeader: true,
 	}
