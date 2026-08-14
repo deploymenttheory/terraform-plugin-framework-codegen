@@ -230,6 +230,10 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			settle("[]time.Time", "FromTimeSlice", "ToTimeSlice", "")
 			return ""
 		}
+		if named, isNamed := elem.(*types.Named); isNamed && isGoogleUUID(named) && fb.ElementType == ir.TypeString {
+			settle("[]uuid.UUID", "FromUUIDSlice", "ToUUIDSlice", "")
+			return ""
+		}
 		return cannot(shortType(t))
 	}
 
@@ -286,6 +290,16 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 			}
 			get, set := convert("DateOnly")
 			settle(prefix("serialization.DateOnly"), get, set, "")
+			return ""
+		}
+		// A uuid is a string to a practitioner. Parsing one back can fail,
+		// which the write bridge reports rather than guessing at.
+		if isGoogleUUID(named) {
+			if fb.Kind != ir.TypeString {
+				return cannot(shortType(t))
+			}
+			get, set := convert("UUID")
+			settle(prefix("uuid.UUID"), get, set, "")
 			return ""
 		}
 		return cannot(shortType(t))
@@ -374,6 +388,16 @@ func qualifiedName(named *types.Named) string {
 func isStdTime(named *types.Named) bool {
 	pkg := named.Obj().Pkg()
 	return pkg != nil && pkg.Path() == "time" && named.Obj().Name() == "Time"
+}
+
+// isGoogleUUID reports whether a named type is github.com/google/uuid's
+// UUID, the type kiota generates for a `format: uuid` field.
+func isGoogleUUID(named *types.Named) bool {
+	pkg := named.Obj().Pkg()
+	if pkg == nil || named.Obj().Name() != "UUID" {
+		return false
+	}
+	return pkg.Path() == "github.com/google/uuid"
 }
 
 // isKiotaDateOnly reports whether a named type is kiota's DateOnly — the

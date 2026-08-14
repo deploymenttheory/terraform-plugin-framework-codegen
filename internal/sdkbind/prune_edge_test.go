@@ -428,3 +428,39 @@ func TestUnit_IsKiotaDateOnly_MatchesOnThePackagePath(t *testing.T) {
 		t.Error("only DateOnly is bridged")
 	}
 }
+
+// TestUnit_SettleScalar_BridgesUUID proves a uuid the SDK types as
+// uuid.UUID settles to the catalog's string bridge, scalar and slice alike.
+func TestUnit_SettleScalar_BridgesUUID(t *testing.T) {
+	uuidType := structNamed("github.com/google/uuid", "uuid", "UUID")
+
+	scalar := FieldBinding{Attr: "x", Wire: "x", Kind: ir.TypeString, Access: FieldAccess{Get: "GetX", Set: "SetX"}}
+	if why := (&pruner{}).settleScalar(&scalar, types.NewPointer(uuidType)); why != "" {
+		t.Fatalf("a uuid scalar was refused: %s", why)
+	}
+	if scalar.Access.ConvertGet != "FromPtrUUID" || scalar.Access.ConvertSet != "ToPtrUUID" {
+		t.Errorf("scalar conversions = %q/%q, want FromPtrUUID/ToPtrUUID",
+			scalar.Access.ConvertGet, scalar.Access.ConvertSet)
+	}
+
+	list := FieldBinding{Attr: "x", Wire: "x", Kind: ir.TypeList, ElementType: ir.TypeString,
+		Access: FieldAccess{Get: "GetX", Set: "SetX"}}
+	if why := (&pruner{}).settleScalar(&list, types.NewSlice(uuidType)); why != "" {
+		t.Fatalf("a uuid slice was refused: %s", why)
+	}
+	if list.Access.ConvertGet != "FromUUIDSlice" || list.Access.ConvertSet != "ToUUIDSlice" {
+		t.Errorf("slice conversions = %q/%q, want FromUUIDSlice/ToUUIDSlice",
+			list.Access.ConvertGet, list.Access.ConvertSet)
+	}
+}
+
+// TestUnit_IsGoogleUUID_MatchesOnThePackagePath proves another package's
+// UUID type is not bridged through github.com/google/uuid's parser.
+func TestUnit_IsGoogleUUID_MatchesOnThePackagePath(t *testing.T) {
+	if !isGoogleUUID(structNamed("github.com/google/uuid", "uuid", "UUID")) {
+		t.Error("google/uuid's UUID must be recognised")
+	}
+	if isGoogleUUID(structNamed("example.com/other/uuid", "uuid", "UUID")) {
+		t.Error("another package's UUID must not be bridged through google/uuid")
+	}
+}

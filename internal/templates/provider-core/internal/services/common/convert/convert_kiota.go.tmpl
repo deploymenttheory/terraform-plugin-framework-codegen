@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/microsoft/kiota-abstractions-go/serialization"
@@ -59,6 +60,64 @@ func FrameworkToAPIDateOnly(value types.String, setter func(*serialization.DateO
 	parsed, err := serialization.ParseDateOnly(value.ValueString())
 	if err != nil {
 		return fmt.Errorf("%q is not a date: %w", value.ValueString(), err)
+	}
+	setter(parsed)
+	return nil
+}
+
+// APIToFrameworkUUID converts *uuid.UUID to types.String, nil to null.
+func APIToFrameworkUUID(value *uuid.UUID) types.String {
+	if value == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(value.String())
+}
+
+// FrameworkToAPIUUID parses the plan's string and hands the uuid to the
+// setter, erroring on a value that is not one.
+func FrameworkToAPIUUID(value types.String, setter func(*uuid.UUID)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	parsed, err := uuid.Parse(value.ValueString())
+	if err != nil {
+		return fmt.Errorf("%q is not a uuid: %w", value.ValueString(), err)
+	}
+	setter(&parsed)
+	return nil
+}
+
+// APIToFrameworkUUIDList converts []uuid.UUID to a types.List of their
+// string spellings, nil to null.
+func APIToFrameworkUUIDList(values []uuid.UUID) types.List {
+	if values == nil {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, len(values))
+	for i, v := range values {
+		elements[i] = types.StringValue(v.String())
+	}
+	return types.ListValueMust(types.StringType, elements)
+}
+
+// FrameworkToAPIUUIDList parses each element of the plan's string list and
+// hands the []uuid.UUID to the setter, erroring on the first element that
+// is not a uuid.
+func FrameworkToAPIUUIDList(ctx context.Context, value types.List, setter func([]uuid.UUID)) error {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	var raw []string
+	if diags := value.ElementsAs(ctx, &raw, false); diags.HasError() {
+		return fmt.Errorf("reading a string list from the plan: %v", diags.Errors())
+	}
+	parsed := make([]uuid.UUID, 0, len(raw))
+	for _, element := range raw {
+		one, err := uuid.Parse(element)
+		if err != nil {
+			return fmt.Errorf("%q is not a uuid: %w", element, err)
+		}
+		parsed = append(parsed, one)
 	}
 	setter(parsed)
 	return nil
