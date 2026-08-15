@@ -455,6 +455,26 @@ func paramNode(p sdkbind.CallParam, nodes []node, idFallback bool) (node, error)
 	return node{}, unrenderable("path parameter %q matches no scalar attribute and the entity has no id attribute", p.Wire)
 }
 
+// namesAnAttribute reports whether a path parameter matches an attribute by
+// name, without the id fallback paramNode offers.
+//
+// A datasource plans from configuration alone. The fallback answers a
+// parameter with the entity's id, which a resource knows before its read and
+// a datasource never does — its id is computed, so at plan time it is empty
+// and the call is made with nothing.
+func namesAnAttribute(p sdkbind.CallParam, nodes []node) bool {
+	snake := ir.TerraformName(p.Wire)
+	for _, n := range nodes {
+		if n.attr.Nested != nil {
+			continue
+		}
+		if n.attr.WireName == p.Wire || n.attr.Name == snake {
+			return true
+		}
+	}
+	return false
+}
+
 // valueMethod is the framework value accessor for one attribute kind. It
 // reads the model field, so it answers to the kind the model declares —
 // never to what the SDK happens to take, which is a separate question
@@ -598,6 +618,30 @@ func integerBits(goType string) int {
 	default:
 		return 0
 	}
+}
+
+// integerParsedParams names the attributes a call reaches through a parse
+// that only digits survive: the document declares them strings and the
+// generated SDK takes an integer, so paramDeclaration emits strconv.ParseInt.
+//
+// A fixture value is derived from the document, which says string, and would
+// be refused by that parse before the generated test reached an assertion.
+// This is what a caller consults to pin those values to something numeric.
+func integerParsedParams(call *sdkbind.Call, nodes []node) map[string]bool {
+	if call == nil {
+		return nil
+	}
+	out := map[string]bool{}
+	for position, p := range call.Params {
+		n, err := paramNode(p, nodes, position == len(call.Params)-1)
+		if err != nil {
+			continue
+		}
+		if n.attr.Kind == ir.TypeString && isIntegerType(p.GoType) {
+			out[n.attr.Name] = true
+		}
+	}
+	return out
 }
 
 // sdkTypeMatches reports whether the SDK takes exactly what the model field

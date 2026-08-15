@@ -135,3 +135,22 @@ func TestUnit_Names_PackageIsNeverAGoKeyword(t *testing.T) {
 		}
 	}
 }
+
+// TestUnit_TerraformName_StartsWithALetter proves an attribute name never
+// begins with what a tfsdk tag may not. The framework's schema rule admits a
+// leading underscore and the reflect layer that decodes a model does not, so
+// a property named _links would reach the schema and then fail to decode.
+func TestUnit_TerraformName_StartsWithALetter(t *testing.T) {
+	for _, c := range []struct{ wire, want string }{
+		{"_links", "links"},
+		{"__internal", "internal"},
+		{"_2fa", "fa"},
+		{"links", "links"},
+		{"createdAt", "created_at"},
+		{"___", "___"},
+	} {
+		if got := TerraformName(c.wire); got != c.want {
+			t.Errorf("TerraformName(%q) = %q, want %q", c.wire, got, c.want)
+		}
+	}
+}

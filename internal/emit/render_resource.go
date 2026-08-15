@@ -156,6 +156,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, err
 	}
 	spec := deriveFixtures(r.Schema, nodes)
+	spec.PinNumeric(integerParsedParams(rb.Read, nodes))
 	if !d.Singleton {
 		if err := e.resourceMocks(d, r, rb, spec); err != nil {
 			return nil, err

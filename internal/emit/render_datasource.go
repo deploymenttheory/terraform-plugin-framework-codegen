@@ -47,7 +47,11 @@ type datasourceData struct {
 	Collection  string
 	ItemModel   string
 	ElementType string
-	MapItemBody string
+	// AddressingHCL is the configuration the collection path's parameters
+	// need, already rendered, with any value the call parses as an integer
+	// pinned to digits.
+	AddressingHCL string
+	MapItemBody   string
 	// Lookup fields.
 	ReadModel string
 	StateBody string
@@ -112,7 +116,7 @@ func (e *serviceRenderer) datasource(ds *ir.Datasource, db *sdkbind.DatasourceBi
 		}
 	}
 
-	fixtures, err := e.datasourceFixtures(ds, spec, dir)
+	fixtures, err := e.datasourceFixtures(ds, spec, d.AddressingHCL, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +171,13 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	d.Models = renderModelDecls(decls)
 	d.ModelImports = e.datasourceModelImports(d.Models)
 
+	for _, p := range db.Read.Params {
+		if !namesAnAttribute(p, nodes) {
+			return fixtures.Fixture{}, unrenderable(
+				"read: the path parameter %q matches no argument the caller supplies, and a datasource has no id of its own to fall back on",
+				p.Wire)
+		}
+	}
 	plan, err := buildCallPlan(db.Read, "remote", nodes, "data", respDiagnostics())
 	if err != nil {
 		return fixtures.Fixture{}, fmt.Errorf("read: %w", err)
@@ -209,8 +220,9 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	d.StateImports = stateImports.render()
 
 	spec := deriveFixtures(ds.Schema, nodes)
+	spec.PinNumeric(integerParsedParams(db.Read, nodes))
 	e.datasourceMocks(d, ds, spec)
-	e.datasourceChecks(d, spec)
+	e.datasourceChecks(d, ds.Names.Key, spec)
 	return spec, nil
 }
 
@@ -250,6 +262,15 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 		allowed = append(allowed, `"id"`)
 	}
 	var b strings.Builder
+	// The addressing a parent-scoped collection is reached through, ahead of
+	// the filter inputs as the tree declares them. The model carries a field
+	// for each, and terraform refuses to decode a model whose schema declares
+	// fewer attributes than the struct has fields.
+	addressingNodes := make([]node, 0, len(companionAddressing(ds)))
+	for _, a := range companionAddressing(ds) {
+		addressingNodes = append(addressingNodes, node{attr: a})
+	}
+	b.WriteString(sb.attributeDecls(addressingNodes, 3))
 	b.WriteString("\t\t\t\"filter_type\": schema.StringAttribute{\n")
 	b.WriteString("\t\t\t\tRequired: true,\n")
 	fmt.Fprintf(&b, "\t\t\t\tMarkdownDescription: %s,\n", strconv.Quote("Which objects to return: "+strings.ReplaceAll(strings.Join(allowed, " | "), `"`, "")+"."))
@@ -300,10 +321,6 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	// is reached through org or owner, which sit on the datasource beside the
 	// filter inputs and never on an item. Resolving them against the element
 	// found its id instead and read the wrong field.
-	addressingNodes := make([]node, 0)
-	for _, a := range companionAddressing(ds) {
-		addressingNodes = append(addressingNodes, node{attr: a})
-	}
 	listPlan, err := buildCallPlan(db.List, "result", addressingNodes, "data", respDiagnostics())
 	if err != nil {
 		return fixtures.Fixture{}, fmt.Errorf("list: %w", err)
@@ -356,9 +373,13 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	e.addSDKImports(stateImports, mapBody, d.ElementType)
 	d.StateImports = stateImports.render()
 
+	addressing := fixtures.Derive(&ir.AttributeTree{Attributes: companionAddressing(ds)})
+	addressing.PinNumeric(integerParsedParams(db.List, addressingNodes))
+	d.AddressingHCL = addressing.HCL(fixtures.ConfigMinimal)
+
 	spec := deriveFixtures(itemTree, itemNodes)
 	e.datasourceMocks(d, ds, spec)
-	e.datasourceChecks(d, spec)
+	e.datasourceChecks(d, ds.Names.Key, spec)
 	return spec, nil
 }
 
@@ -426,7 +447,13 @@ func (e *serviceRenderer) datasourceMocks(d *datasourceData, ds *ir.Datasource, 
 	d.ResponseMaximal = string(spec.WireJSON(fixtures.ResponseMaximal))
 	d.ListPayload = listPayloadExpr(ds.ListEnvelopeKey, "[]map[string]any{object()}")
 	if ds.Operations.List != nil {
+		// A parent-scoped collection is requested with its addressing
+		// substituted in, so the mock matches the shape rather than the
+		// template. httpmock reads the =~ prefix as a regular expression.
 		d.CollectionURL = mockURL(ds.Operations.List.PathTemplate)
+		if len(companionAddressing(ds)) > 0 {
+			d.CollectionURL = mockPattern(ds.Operations.List.PathTemplate)
+		}
 	}
 	if ds.Operations.Read != nil {
 		d.ItemPattern = mockPattern(ds.Operations.Read.PathTemplate)
@@ -453,7 +480,7 @@ func (e *serviceRenderer) datasourceMocks(d *datasourceData, ds *ir.Datasource, 
 }
 
 // datasourceChecks builds the unit-test checks for the read result.
-func (e *serviceRenderer) datasourceChecks(d *datasourceData, spec fixtures.Fixture) {
+func (e *serviceRenderer) datasourceChecks(d *datasourceData, key string, spec fixtures.Fixture) {
 	address := "data." + d.TerraformType + ".test"
 	var b strings.Builder
 	prefix := ""
@@ -465,8 +492,22 @@ func (e *serviceRenderer) datasourceChecks(d *datasourceData, spec fixtures.Fixt
 		if v.Nested != nil || v.Kind == ir.TypeList {
 			continue
 		}
+		// A map is addressed by its element count or by a key, never as one
+		// value: terraform refuses a plain check on it and says so.
+		if v.Kind == ir.TypeMap {
+			fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %q),\n",
+				address, prefix+v.Name+".%", "1")
+			continue
+		}
 		if d.LookupByKey && v.ComputedOptionalRequired == ir.Required {
 			continue // the key argument, echoed from config, not the answer
+		}
+		// An attribute the join kept with no SDK field behind it reaches the
+		// schema, and nothing fills it: a datasource maps what the SDK
+		// answers with and has no path parameter to fall back on the way a
+		// resource does. Asserting a value for it fails on a null.
+		if e.keptUnbound[keptUnboundKey(bindingKindDatasource, key, v.Name)] {
+			continue
 		}
 		fmt.Fprintf(&b, "\t\t\t\t\tresource.TestCheckResourceAttr(%q, %q, %s),\n",
 			address, prefix+v.Name, strconv.Quote(checkValue(v.Scalar)))
@@ -476,7 +517,7 @@ func (e *serviceRenderer) datasourceChecks(d *datasourceData, spec fixtures.Fixt
 
 // datasourceFixtures emits the terraform fixture, the response fixture and
 // the example.
-func (e *serviceRenderer) datasourceFixtures(ds *ir.Datasource, spec fixtures.Fixture, dir string) ([]File, error) {
+func (e *serviceRenderer) datasourceFixtures(ds *ir.Datasource, spec fixtures.Fixture, addressingHCL, dir string) ([]File, error) {
 	source := ds.Names.Key
 	blockHeader := fmt.Sprintf("data %q %q", ds.Names.TerraformType, "test")
 
@@ -484,7 +525,10 @@ func (e *serviceRenderer) datasourceFixtures(ds *ir.Datasource, spec fixtures.Fi
 	if ds.LookupByKey {
 		body = spec.HCL(fixtures.ConfigMinimal)
 	} else {
-		body = "  filter_type = \"all\"\n"
+		// The addressing the collection path requires, then the filter. Both
+		// are required arguments, and terraform refuses a configuration
+		// missing either.
+		body = addressingHCL + "  filter_type = \"all\"\n"
 	}
 	fixture, err := hclBlock(source, blockHeader, body, nil)
 	if err != nil {

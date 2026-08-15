@@ -153,6 +153,23 @@ func (s *Fixture) applyVariant(tree *ir.AttributeTree) {
 	}
 }
 
+// PinNumeric replaces the value of each named top-level string entry with
+// digits.
+//
+// For a caller that knows something about an attribute the document does not
+// say: a path parameter the generated SDK parses as an integer is still a
+// string in the schema, and a value that is not digits is refused by that
+// parse rather than by any assertion.
+func (s *Fixture) PinNumeric(names map[string]bool) {
+	for name := range names {
+		if e := s.entry(name); e != nil {
+			if _, isString := e.Scalar.(string); isString {
+				e.Scalar = "7"
+			}
+		}
+	}
+}
+
 // entry returns a pointer to the top-level entry of the given terraform name,
 // or nil. The pointer aliases the slice element so a caller can pin its value.
 func (s *Fixture) entry(name string) *Entry {
@@ -317,7 +334,30 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 		}
 		values = append(values, v)
 	}
+	unifyByWire(values)
 	return values, skips
+}
+
+// unifyByWire gives every entry that speaks one wire property the same
+// value.
+//
+// Two attributes can share a wire name: the synthesised id names whatever
+// property the item path keys on, and the document usually declares that
+// property too. One JSON object then carries one key, so the mapping reads
+// one value into both attributes — and a fixture claiming two would assert a
+// value the state cannot hold. First declaration wins, which is the id.
+func unifyByWire(values []Entry) {
+	seen := map[string]any{}
+	for i := range values {
+		if values[i].Wire == "" || values[i].Nested != nil {
+			continue
+		}
+		if first, taken := seen[values[i].Wire]; taken {
+			values[i].Scalar = first
+			continue
+		}
+		seen[values[i].Wire] = values[i].Scalar
+	}
 }
 
 // scalarFor synthesises one scalar value: enum-driven when the document
@@ -345,6 +385,23 @@ func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) any {
 		}
 		return name
 	}
+}
+
+// ValueForSDKType is the fixture value a generated SDK's own type demands,
+// and whether it demands one.
+//
+// For a caller that can see the binding. A document declares format on some
+// of its timestamps and identifiers and not others, and the generator types
+// them all the same either way — so where the document is silent, only the
+// SDK's type says what the value has to be.
+func ValueForSDKType(sdkType string) (string, bool) {
+	switch strings.TrimPrefix(sdkType, "*") {
+	case "time.Time":
+		return formatValue("date-time", "")
+	case "uuid.UUID":
+		return formatValue("uuid", "")
+	}
+	return "", false
 }
 
 // formatValue synthesises a string the document says is more than a string,
