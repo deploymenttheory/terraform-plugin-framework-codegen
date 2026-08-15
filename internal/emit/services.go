@@ -488,9 +488,39 @@ func supportedTree(tree *ir.AttributeTree, nodes []node) *ir.AttributeTree {
 }
 
 // deriveFixtures is the one fixture derivation per entity: the joined
-// tree, handed to fixtures.
+// tree, handed to fixtures, with every value the SDK's own type constrains
+// pinned to what that type parses.
 func deriveFixtures(tree *ir.AttributeTree, nodes []node) fixtures.Fixture {
-	return fixtures.Derive(supportedTree(tree, nodes))
+	spec := fixtures.Derive(supportedTree(tree, nodes))
+	pinBySDKType(spec.Entries, nodes)
+	return spec
+}
+
+// pinBySDKType pins every fixture value the generated SDK parses into a type
+// the document did not name — a timestamp or an identifier the schema calls a
+// plain string. The document's format answers where it is declared; the
+// binding answers everywhere else.
+func pinBySDKType(entries []fixtures.Entry, nodes []node) {
+	byName := make(map[string]node, len(nodes))
+	for _, n := range nodes {
+		byName[n.attr.Name] = n
+	}
+	for i := range entries {
+		n, ok := byName[entries[i].Name]
+		if !ok {
+			continue
+		}
+		if len(entries[i].Nested) > 0 {
+			pinBySDKType(entries[i].Nested, n.children)
+			continue
+		}
+		if n.fb == nil {
+			continue
+		}
+		if value, demanded := fixtures.ValueForSDKType(n.fb.Access.SDKType); demanded {
+			entries[i].Scalar = value
+		}
+	}
 }
 
 // importSet collects the imports of one file, grouped the way the

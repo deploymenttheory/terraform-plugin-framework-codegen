@@ -387,6 +387,23 @@ func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) any {
 	}
 }
 
+// ValueForSDKType is the fixture value a generated SDK's own type demands,
+// and whether it demands one.
+//
+// For a caller that can see the binding. A document declares format on some
+// of its timestamps and identifiers and not others, and the generator types
+// them all the same either way — so where the document is silent, only the
+// SDK's type says what the value has to be.
+func ValueForSDKType(sdkType string) (string, bool) {
+	switch strings.TrimPrefix(sdkType, "*") {
+	case "time.Time":
+		return formatValue("date-time", "")
+	case "uuid.UUID":
+		return formatValue("uuid", "")
+	}
+	return "", false
+}
+
 // formatValue synthesises a string the document says is more than a string,
 // and reports whether the format is one it knows.
 //
