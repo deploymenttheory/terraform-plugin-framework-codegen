@@ -126,12 +126,18 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   rather than a thing terraform owns. Its operation sits in the
   classification's create slot, because the role slots describe HTTP
   position and the kind says what that position amounts to.
-- **datasource filter attributes** — the three attributes every datasource
-  with a list operation declares: `filter_type` (required) chooses how the
-  objects are reached, `filter_value` (optional, but required unless
-  `filter_type` is `all`) narrows them, and `items` carries what comes back.
-  They are the toolkit's own vocabulary rather than any API's, so they take
-  no wire names beyond their own.
+- **filter attribute** — an optional argument of a datasource with a list
+  operation, one per scalar field at the root of a listed object, named and
+  typed for the field it selects on. Objects and collections are not
+  offered: HCL would have to describe a whole object to match one leaf of
+  it, and a collection has no single value to compare. Matching is exact,
+  and a filter the configuration leaves out narrows nothing, so several
+  combine and none is mandatory. Filters carry no wire value and bind to no
+  SDK field — the match runs over the objects the list already answered
+  with. They are what makes such a datasource usable: without them the
+  collection comes back whole and HCL must address a result by its position
+  in it. `items`, which carries what matched, is the toolkit's own
+  vocabulary rather than any API's and takes no wire name beyond its own.
 - **lookup-by-key datasource** — a datasource whose only access is the item
   `GET`. With no list operation there is nothing to filter, so the item
   path parameter — often a name, in the APIs that address by one — becomes

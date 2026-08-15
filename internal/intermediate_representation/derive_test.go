@@ -227,13 +227,24 @@ func TestDerive_CompanionDatasource(t *testing.T) {
 		t.Fatalf("companion ops incomplete: %+v", ds.Operations)
 	}
 
-	ft := attribute(t, ds.Schema, "filter_type")
-	if ft.Kind != TypeString || ft.ComputedOptionalRequired != Required {
-		t.Errorf("filter_type = %+v", ft)
+	// Every scalar at the root of a listed object is offered as a filter,
+	// optional and typed as the field it selects on. A filter is how a
+	// caller names the object it wants instead of counting to it.
+	for _, name := range []string{"name", "quantity", "enabled"} {
+		f := attribute(t, ds.Schema, name)
+		if !f.Filter || f.ComputedOptionalRequired != Optional {
+			t.Errorf("%s = %+v, want an optional filter", name, f)
+		}
 	}
-	fv := attribute(t, ds.Schema, "filter_value")
-	if fv.ComputedOptionalRequired != Optional {
-		t.Errorf("filter_value = %+v", fv)
+	if got := attribute(t, ds.Schema, "quantity").Kind; got != TypeInt64 {
+		t.Errorf("a filter takes the type of the field it selects on, got %s", got)
+	}
+	// Nested fields are not filters: HCL would have to describe the whole
+	// object to match one leaf of it.
+	for _, a := range ds.Schema.Attributes {
+		if a.Filter && a.Nested != nil {
+			t.Errorf("nested attribute %q offered as a filter", a.Name)
+		}
 	}
 	items := attribute(t, ds.Schema, "items")
 	if items.Kind != TypeList || items.ElementType != TypeObject || items.ComputedOptionalRequired != Computed {

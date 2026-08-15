@@ -56,6 +56,13 @@ func attr(name, wire string, kind ir.AttributeType, presence ir.ComputedOptional
 	return ir.Attribute{Name: name, WireName: wire, Kind: kind, ComputedOptionalRequired: presence}
 }
 
+// filterAttr is one companion datasource filter: toolkit vocabulary with no
+// SDK side, so binding must leave it alone rather than look for a field.
+func filterAttr(name string) ir.Attribute {
+	return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeString,
+		ComputedOptionalRequired: ir.Optional, Filter: true}
+}
+
 // tagSchema is the shared attribute tree both fake SDKs carry variants
 // of: an identifier, scalars at several widths, a keyword-mangled name,
 // an inline enumeration, a scalar slice, and a nested object.
@@ -150,8 +157,8 @@ func kiotaModel() *ir.Model {
 					List: op(ir.OperationList, "GET", "/tags", ""),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("filter_type", "filter_type", ir.TypeString, ir.Required),
-					attr("filter_value", "filter_value", ir.TypeString, ir.Optional),
+					filterAttr("id"),
+					filterAttr("name"),
 					items,
 				}},
 			},
@@ -216,8 +223,8 @@ func oagModel() *ir.Model {
 					List: op(ir.OperationList, "GET", "/tags", "listTags"),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("filter_type", "filter_type", ir.TypeString, ir.Required),
-					attr("filter_value", "filter_value", ir.TypeString, ir.Optional),
+					filterAttr("id"),
+					filterAttr("name"),
 					items,
 				}},
 			},
