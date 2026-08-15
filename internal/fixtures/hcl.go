@@ -71,8 +71,13 @@ func writeNestedHCL(b *strings.Builder, v Entry, a Form, depth int) {
 // one.
 func scalarHCL(v Entry) string {
 	literal := hclLiteral(v.Scalar)
-	if v.Kind == ir.TypeList {
+	switch v.Kind {
+	case ir.TypeList:
 		return "[" + literal + "]"
+	case ir.TypeMap:
+		// One entry, keyed by the attribute's own name: a map's keys are the
+		// practitioner's, so the document names none to take.
+		return "{ " + hclLiteral(v.Name) + " = " + literal + " }"
 	}
 	return literal
 }

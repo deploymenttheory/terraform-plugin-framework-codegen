@@ -455,6 +455,26 @@ func paramNode(p sdkbind.CallParam, nodes []node, idFallback bool) (node, error)
 	return node{}, unrenderable("path parameter %q matches no scalar attribute and the entity has no id attribute", p.Wire)
 }
 
+// namesAnAttribute reports whether a path parameter matches an attribute by
+// name, without the id fallback paramNode offers.
+//
+// A datasource plans from configuration alone. The fallback answers a
+// parameter with the entity's id, which a resource knows before its read and
+// a datasource never does — its id is computed, so at plan time it is empty
+// and the call is made with nothing.
+func namesAnAttribute(p sdkbind.CallParam, nodes []node) bool {
+	snake := ir.TerraformName(p.Wire)
+	for _, n := range nodes {
+		if n.attr.Nested != nil {
+			continue
+		}
+		if n.attr.WireName == p.Wire || n.attr.Name == snake {
+			return true
+		}
+	}
+	return false
+}
+
 // valueMethod is the framework value accessor for one attribute kind. It
 // reads the model field, so it answers to the kind the model declares —
 // never to what the SDK happens to take, which is a separate question

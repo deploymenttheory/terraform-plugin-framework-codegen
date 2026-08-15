@@ -171,6 +171,13 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	d.Models = renderModelDecls(decls)
 	d.ModelImports = e.datasourceModelImports(d.Models)
 
+	for _, p := range db.Read.Params {
+		if !namesAnAttribute(p, nodes) {
+			return fixtures.Fixture{}, unrenderable(
+				"read: the path parameter %q matches no argument the caller supplies, and a datasource has no id of its own to fall back on",
+				p.Wire)
+		}
+	}
 	plan, err := buildCallPlan(db.Read, "remote", nodes, "data", respDiagnostics())
 	if err != nil {
 		return fixtures.Fixture{}, fmt.Errorf("read: %w", err)

@@ -45,6 +45,8 @@ func wireOne(v Entry, a Form) any {
 		return wireLevel(selected(v.Nested, a), a)
 	case v.Kind == ir.TypeList:
 		return []any{v.Scalar}
+	case v.Kind == ir.TypeMap:
+		return map[string]any{v.Name: v.Scalar}
 	default:
 		return v.Scalar
 	}
@@ -80,6 +82,10 @@ func writeWireValue(b *strings.Builder, v Entry, a Form, depth int) {
 		writeWireObject(b, selected(v.Nested, a), a, depth)
 	case v.Kind == ir.TypeList:
 		b.WriteString("[" + jsonScalar(v.Scalar) + "]")
+	case v.Kind == ir.TypeMap:
+		// One entry, keyed by the attribute's own name: a map's keys are the
+		// practitioner's, so the document names none to take.
+		b.WriteString("{" + jsonScalar(v.Name) + ": " + jsonScalar(v.Scalar) + "}")
 	default:
 		b.WriteString(jsonScalar(v.Scalar))
 	}
