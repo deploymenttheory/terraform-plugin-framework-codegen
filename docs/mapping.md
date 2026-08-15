@@ -1,8 +1,14 @@
 # API Behaviour → Terraform Plugin Framework Schema Mapping
 
+Two questions, one per section. What shape a field's observed behaviour
+demands, and what an entity's operation set makes it.
+
 Scope: `terraform-plugin-framework` only. No `helper/schema` (SDKv2) patterns.
 
-One row per scenario. Where behaviour differs by HTTP method, the method is called out inline within the Request and Response cells.
+## Field behaviour
+
+One row per scenario. Where behaviour differs by HTTP method, the method is
+called out inline within the Request and Response cells.
 
 | # | Scenario | HTTP Method | Request | Response | Provider Schema Type | Notes |
 |---|---|---|---|---|---|---|
@@ -18,3 +24,173 @@ One row per scenario. Where behaviour differs by HTTP method, the method is call
 | 10 | Field omitted from the request returns as an empty value rather than absent, so null in config never matches the response. | POST, GET | Omitted entirely | `""`, `[]`, or `0` | `Optional + Computed`, or normalise empty → null in the read mapper | Apply one approach provider-wide. Watch Go `omitempty` dropping deliberately-empty values from the body. |
 | 11 | Collection is returned with members in an order unrelated to submission order. | POST, PATCH, GET | Accepted in authored order | Same members, arbitrary order | `SetAttribute` / `SetNestedAttribute` | Costs index addressing and duplicates; one unknown member marks the whole set unknown. Use `List` only if order is genuinely meaningful. |
 | 12 | Collection is returned containing server-injected members the caller never submitted. | POST, PATCH, GET | Caller's members accepted | Superset of what was written | `Optional + Computed` on the collection, or filter injected members in the read mapper | Removal semantics differ sharply. If injected members are indistinguishable from the caller's, `Optional + Computed` is the only safe option. |
+
+## Entity operation sets
+
+One named shape per operation set: which kind the entity yields, and which API
+call each generated function makes. `internal/specmodel/classify.go` decides
+it.
+
+**Entities come from paths, not from schemas.** A collection path and its item
+sibling — `/tags` and `/tags/{tagId}` — are one entity, keyed off the
+collection. An operation's role is its HTTP position and nothing else:
+
+| Position | Role |
+|---|---|
+| `POST` on the collection | create |
+| `GET` on the collection | list |
+| `GET` on the item | read |
+| `PUT` or `PATCH` on the item | update |
+| `DELETE` on the item | delete |
+| `PUT` or `PATCH` on the collection | the update of a `create_with_ru_api`, and nothing on any other shape |
+
+A second claimant for a role, or a method in no role's position, is recorded as
+surplus rather than dropped, so the audit planner sees the whole surface.
+
+**A kind is what an entity becomes**: `resource`, `datasource`, `list-resource`
+or `action`. An entity commonly yields several, and the kinds are decided
+independently — a resource is always readable by id, so it yields a datasource
+too, and one kind never excludes another.
+
+**Each operation set has a name**: the terraform function it serves, then the
+API operations behind it. `create_with_crd_api` is the create function working
+against a create, read and delete API. New operation sets are named the same
+way.
+
+| Name | Kind | Operation set |
+|---|---|---|
+| `create_with_crud_api` | resource | `POST` + item `GET` + item `PUT`/`PATCH` + item `DELETE` |
+| `create_with_crd_api` | resource | `POST` + item `GET` + item `DELETE`, no update |
+| `create_with_ru_api` | resource | `GET` + `PUT`/`PATCH` on one id-free path |
+| `invoke_with_write_api` | action | exactly one operation, and it writes |
+| `list_with_list_api` | list resource | collection `GET`, beside a resource |
+| `read_with_list_and_get_api` | datasource | collection `GET` + item `GET` |
+| `read_with_get_api` | datasource | item `GET`, no collection `GET` |
+| `read_with_list_api` | datasource | collection `GET`, no item `GET` |
+
+A shape is only selected where the operations it needs carry schemas: the
+create a request body, the read and the list a success response. An operation
+present but undeclared classifies as nothing, and says so. An action is the
+exception — a write that takes no body is still a write.
+
+## Resources
+
+Three operation sets yield a resource. They differ in what the API lets
+terraform do to a live object, and the difference reaches the schema in two of
+the three.
+
+| Terraform function | `create_with_crud_api` | `create_with_crd_api` | `create_with_ru_api` |
+|---|---|---|---|
+| `Create` | `POST` the collection | `POST` the collection | `PUT`/`PATCH` the path |
+| `Read` | `GET` the item | `GET` the item | `GET` the path |
+| `Update` | `PUT`/`PATCH` the item | refuses | `PUT`/`PATCH` the path |
+| `Delete` | `DELETE` the item | `DELETE` the item | removes from state |
+| Schema consequence | none | `RequiresReplace()` on every writable attribute | `id` is synthesised |
+
+**`create_with_crud_api`** is the ordinary shape and needs no accommodation.
+The four functions each call their own operation.
+
+**`create_with_crd_api`** has no operation that changes a live object, so no
+change to one can be applied in place. Every writable attribute carries
+`RequiresReplace()`, which makes terraform destroy and recreate rather than
+update. `Update` is generated because the interface demands it, and errors: a
+plan that reached it would already have decided to replace.
+
+**`create_with_ru_api`** is a singleton — one object the API owns outright,
+typically the settings behind a screen of a product's own console. It has no
+create and no destroy, and its write returns no id. Terraform still needs one,
+so a constant is synthesised from the terraform type name. `Create` writes
+through the update call, which is also where the practitioner-settable
+attributes are read from, since there is no create body to read them from.
+`Delete` calls nothing: terraform stops managing the object and the API keeps
+it as it is. `PUT` and `PATCH` are the same scenario here, not two.
+
+The classifier tells it from a collection by the response, not by the path: a
+`GET` with no item sibling whose body carries no array is one object rather
+than a list of them. Read as a collection it would have no elements to reach
+and would fail for saying so.
+
+A `create_with_ru_api` yields no datasource. There is nothing to look up: the
+object is one fixed thing, and the resource already reads it.
+
+## Actions
+
+**`invoke_with_write_api`** is an entity whose whole surface is a single write —
+one `POST`, `PUT` or `PATCH`, with no read, no list and no delete beside it.
+Issuing a certificate, rotating a key, triggering a sync. It has no lifecycle,
+so it is an invocation rather than a thing terraform owns: its arguments are
+its request body and its path parameters, and it holds no state.
+
+The operation sits in the classification's create slot, because the slots
+describe HTTP position and the kind says what that position amounts to.
+
+Gap: `internal/specmodel/classify.go` recognises only the `POST` form. A lone
+`PUT` or `PATCH` yields nothing and the entity is excluded.
+
+## List resources
+
+**`list_with_list_api`** is the list capability of a resource, not a kind of
+entity in its own right: the same terraform type, streaming the identities of
+the objects that exist right now. It exists exactly where an entity is both a
+resource and enumerable. See the `list resource` entry in `docs/glossary.md`
+for why an enumerable entity with no resource behind it cannot be one.
+
+That confines it to `create_with_crud_api` and `create_with_crd_api`. A
+`create_with_ru_api` is one object at one path with nothing to enumerate.
+
+Gap: the `List` emitted from
+`internal/templates/services/list-resource/list.go.tmpl` makes one call and
+streams what it returns, so a paged API yields only its first page. The audit
+records the pagination style in `x-tfpfgen-list-response-shape`, but nothing
+downstream reads it, and the style alone is not enough to build a loop — the
+request parameter carrying the page and the response field carrying the next
+one are recorded nowhere.
+
+## Datasources
+
+Three operation sets yield a datasource, and none of them needs a resource.
+
+| Name | Argument | Calls | Answers |
+|---|---|---|---|
+| `read_with_list_and_get_api` | `filter_type`, `filter_value` | item `GET` where `filter_type` is `id`, collection `GET` otherwise | `items` |
+| `read_with_get_api` | the item path key, required | item `GET` | the object it identifies |
+| `read_with_list_api` | `filter_type`, `filter_value` | collection `GET` | `items` |
+
+**`read_with_list_and_get_api`** is the common shape, and the one every
+resource also yields. `filter_type` chooses how to reach the objects and
+`items` carries what comes back: `id` fetches the one object through the item
+`GET`, anything else lists the collection. `filter_value` is required unless
+`filter_type` is `all`.
+
+**`read_with_get_api`** is a lookup by key. With no list operation there is
+nothing to filter, so the item path parameter becomes the required argument —
+often a name, in the APIs that address by one — and the answer carries the id.
+It is the one datasource shape that answers a single object.
+
+**`read_with_list_api`** is a collection the API enumerates but cannot address
+one member of. It generates the same filter-and-items shape, without the `id`
+filter there is no operation to serve, and it takes the schema of one object
+from the collection's own element — the only account of it the document
+offers. It yields neither a resource nor a list resource, because neither can
+exist without a way to reach a single object.
+
+`filter_type`, `filter_value` and `items` are the toolkit's own vocabulary, not
+any API's, so they carry no wire names beyond their own.
+
+## What yields nothing
+
+An entity that fits no kind is excluded with a reason, never guessed at. The
+reasons are for people, and they surface in audit-planning output so a
+surprising omission traces to the document rather than to a hunch. Five name a
+shape that matched but lacked a schema:
+
+- create, read and delete are present but the create request or read success
+  response declares no schema
+- list and read are present but a success response schema is missing
+- one object at a fixed path with no operation that writes it, so terraform
+  would own nothing
+- list is present but its success response declares no schema
+- readable by id but the read success response declares no schema
+
+Where no shape matched at all, the reason names the roles the entity does have,
+or reports that it has none in a classifiable position.

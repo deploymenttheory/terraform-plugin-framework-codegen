@@ -158,9 +158,11 @@ nothing else exists. A correction is only worth compiling if it moves an
 attribute between them, or changes a plan modifier or a validator.
 
 `docs/mapping.md` is the wider specification these five outcomes serve: twelve
-API behaviours and the terraform-plugin-framework shape each demands. The table
-below decides presence; mapping.md also fixes which plan modifier, validator,
-custom type or collection kind that behaviour calls for.
+API behaviours and the terraform-plugin-framework shape each demands, and above
+them the operation sets an entity can carry. The table below decides presence;
+mapping.md also fixes which plan modifier, validator, custom type or collection
+kind that behaviour calls for, and which API call each generated function
+makes.
 
 | Outcome | When | Decided by |
 |---|---|---|

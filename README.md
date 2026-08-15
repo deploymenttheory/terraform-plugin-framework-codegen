@@ -46,7 +46,9 @@ tfpfgen version
 
 See `docs/contract.md` for pipeline stages, artifact names, and exit codes,
 `docs/glossary.md` for the vocabulary, every term in it is deliberate, and
-`docs/mapping.md` for the API behaviour each generated schema shape answers.
+`docs/mapping.md` for the API behaviour each generated schema shape answers
+and the operation set behind each generated resource, datasource, list
+resource and action.
 
 ## Status
 
@@ -60,4 +62,6 @@ well-formed against the SDK; it says nothing about whether an attribute is
 optional where it should be computed, sensitive where it should be plain, or
 a set where it should be a list. Making the schema right for the API's real
 behaviour is the work in progress, and `docs/mapping.md` specifies it: twelve
-API behaviours and the terraform-plugin-framework shape each one demands.
+API behaviours and the terraform-plugin-framework shape each one demands, then
+the operation sets an entity can carry and which call each generated function
+makes.

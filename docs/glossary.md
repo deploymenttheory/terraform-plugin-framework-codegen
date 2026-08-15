@@ -103,6 +103,42 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   it. The earlier meaning — a list-only entity, enumerable but not
   addressable — is retired: no resource can ever match such an entity, so
   it could not be a list resource at all. Those entities are datasources.
+- **operation set names** — one name per operation set an entity can carry,
+  spelling the terraform function first and the API operations behind it
+  second, so a name says what generation had to work with. The set is
+  closed until the owner extends it, and a new one is named the same way:
+  `create_with_crud_api`, `create_with_crd_api`, `create_with_ru_api`,
+  `invoke_with_write_api`, `list_with_list_api`,
+  `read_with_list_and_get_api`, `read_with_get_api`, `read_with_list_api`.
+  `docs/mapping.md` fixes which calls each one makes. They name shapes in
+  prose, not identifiers in Go: the classifier decides kinds, and a kind is
+  what the code carries.
+- **singleton** — one object the API owns outright at a single path,
+  readable and writable but neither created nor destroyed, and returning no
+  id when written. Terraform state needs one, so a constant is synthesised
+  from the terraform type name. It is the `create_with_ru_api` operation
+  set: create writes through the update call, delete stops managing the
+  object rather than removing it, and `PUT` and `PATCH` are the same
+  scenario. A singleton yields no datasource — the resource already reads
+  the only object there is.
+- **action** — an entity whose whole surface is a single write with no
+  lifecycle around it, generated as a terraform action: an invocation
+  rather than a thing terraform owns. Its operation sits in the
+  classification's create slot, because the role slots describe HTTP
+  position and the kind says what that position amounts to.
+- **datasource filter attributes** — the three attributes every datasource
+  with a list operation declares: `filter_type` (required) chooses how the
+  objects are reached, `filter_value` (optional, but required unless
+  `filter_type` is `all`) narrows them, and `items` carries what comes back.
+  They are the toolkit's own vocabulary rather than any API's, so they take
+  no wire names beyond their own.
+- **lookup-by-key datasource** — a datasource whose only access is the item
+  `GET`. With no list operation there is nothing to filter, so the item
+  path parameter — often a name, in the APIs that address by one — becomes
+  the required argument, and the answer carries the id. Carried as
+  `Classification.LookupByKey`, and set only where the entity is not also a
+  resource: a resource's by-id datasource is its normal companion, not a
+  key lookup.
 - **resource identity schema** — the separate object terraform stores
   beside a resource's state to name the remote object it stands for
   (`resource.ResourceWithIdentity`). It is the addressing attributes plus
