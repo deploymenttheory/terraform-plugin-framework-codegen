@@ -68,6 +68,18 @@ func resourceByKey(t *testing.T, m *Model, key string) Resource {
 	return Resource{}
 }
 
+// listResourceByKey finds a model list resource, or ends the test.
+func listResourceByKey(t *testing.T, m *Model, key string) ListResource {
+	t.Helper()
+	for _, lr := range m.ListResources {
+		if lr.Names.Key == key {
+			return lr
+		}
+	}
+	t.Fatalf("no list resource %q in the model", key)
+	return ListResource{}
+}
+
 // datasourceByKey finds a model datasource, or ends the test.
 func datasourceByKey(t *testing.T, m *Model, key string) Datasource {
 	t.Helper()

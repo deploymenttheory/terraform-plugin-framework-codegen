@@ -47,7 +47,7 @@ func resourceIdentity(r *ir.Resource) []identityAttribute {
 	if r.Schema == nil {
 		return nil
 	}
-	addressing := addressingNames(r.Operations.Read, r.Operations.Create, r.Operations.Delete)
+	addressing := identityAddressing(r.Operations.Read, r.Operations.Create, r.Operations.Delete)
 
 	var out []identityAttribute
 	var carriesID bool
@@ -82,6 +82,34 @@ func resourceIdentity(r *ir.Resource) []identityAttribute {
 		return nil
 	}
 	return out
+}
+
+// identityAddressing is the path parameters that scope an object, which is
+// every one but the parameter naming the object itself.
+//
+// That last parameter is the id, and the id is added to the identity by name.
+// Counting it as addressing as well puts one value in the identity twice
+// wherever the document also declares it as a property — /alerts/rules/{ruleId}
+// beside a ruleId field — and the duplicate is required for import and
+// required of every list result, which only the resource can supply.
+//
+// A path not ending in a parameter addresses a collection, so every parameter
+// on it is a parent.
+func identityAddressing(operations ...*ir.Operation) map[string]bool {
+	names := map[string]bool{}
+	for _, operation := range operations {
+		if operation == nil {
+			continue
+		}
+		parameters := operation.PathParameters
+		if len(parameters) > 0 && strings.HasSuffix(operation.PathTemplate, "}") {
+			parameters = parameters[:len(parameters)-1]
+		}
+		for _, parameter := range parameters {
+			names[ir.TerraformName(parameter.Name)] = true
+		}
+	}
+	return names
 }
 
 // identitySchemaDecls renders the identity schema's attribute declarations,

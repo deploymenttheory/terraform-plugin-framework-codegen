@@ -156,3 +156,91 @@ func TestUnit_ListResource_WithoutAddressingDeclaresNoConfiguration(t *testing.T
 		t.Errorf("an unparameterised collection path is mocked by exact URL:\n%s", test)
 	}
 }
+
+// An API that spells its key after the thing it identifies gives the element
+// an id whose wire name is the item path key, which is what derivation now
+// puts there. Emission has to publish that as the identity: refusing it lost
+// every entity whose document simply worded its key differently.
+func TestUnit_ListResource_PublishesAnIdentityKeyedTheAPIsWay(t *testing.T) {
+	m, b := fictionalModel(), fictionalBindings()
+
+	lr := &m.ListResources[0]
+	if lr.Names.Key != "http_server" {
+		t.Fatalf("the fictional list resource moved: %q", lr.Names.Key)
+	}
+	// The element carries the key as the API words it, not as "id".
+	for i := range lr.Schema.Attributes {
+		if lr.Schema.Attributes[i].Name == "id" {
+			lr.Schema.Attributes[i].WireName = "httpServerId"
+		}
+	}
+	lb := b.ListResources["http_server"]
+	fields := make([]sdkbind.FieldBinding, 0, len(lb.Fields))
+	for _, f := range lb.Fields {
+		if f.Attr == "id" {
+			f.Wire = "httpServerId"
+			f.Access = readOnly(kAccess("HttpServerId", "*string", "FromPtrString", "", ""))
+		}
+		fields = append(fields, f)
+	}
+	lb.Fields = fields
+
+	out, err := RenderServices(fictionalProviderCore(), m, b)
+	if err != nil {
+		t.Fatalf("an element keyed the API's way must still render: %v", err)
+	}
+	list := string(fileByPath(t, out, "internal/services/list-resources/servers/v7/http_server/list.go").Content)
+	if !strings.Contains(list, "GetHttpServerId()") {
+		t.Errorf("the identity is not read from the element's own key:\n%s", list)
+	}
+	if !strings.Contains(list, "identityModel{ID: types.StringValue(id)}") {
+		t.Errorf("the element's key is not published as the identity:\n%s", list)
+	}
+}
+
+// The refusal an element with no key at all still earns has to say what it
+// looked for and what the element does carry, or the only way to write the
+// correction is to read the toolkit.
+func TestUnit_ListResource_RefusalNamesWhatTheElementCarries(t *testing.T) {
+	m, b := fictionalModel(), fictionalBindings()
+
+	lr := &m.ListResources[0]
+	kept := make([]ir.Attribute, 0, len(lr.Schema.Attributes))
+	for _, a := range lr.Schema.Attributes {
+		if a.Name == "id" {
+			a.Name, a.WireName = "server_uid", "serverUid"
+		}
+		kept = append(kept, a)
+	}
+	lr.Schema.Attributes = kept
+	lb := b.ListResources["http_server"]
+	fields := make([]sdkbind.FieldBinding, 0, len(lb.Fields))
+	for _, f := range lb.Fields {
+		if f.Attr == "id" {
+			f.Attr, f.Wire = "server_uid", "serverUid"
+			f.Access = readOnly(kAccess("ServerUid", "*string", "FromPtrString", "", ""))
+		}
+		fields = append(fields, f)
+	}
+	lb.Fields = fields
+
+	out, err := RenderServices(fictionalProviderCore(), m, b)
+	if err != nil {
+		t.Fatalf("one refused list resource must not fail the run: %v", err)
+	}
+
+	var reason string
+	for _, e := range out.Excluded {
+		if e.Key == "http_server" {
+			reason = e.Reason
+		}
+	}
+	if reason == "" {
+		t.Fatalf("the refusal was not reported: %+v", out.Excluded)
+	}
+	for _, want := range []string{`no readable scalar "id"`, "serverUid"} {
+		if !strings.Contains(reason, want) {
+			t.Errorf("the refusal does not mention %q: %s", want, reason)
+		}
+	}
+}

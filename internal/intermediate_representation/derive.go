@@ -458,10 +458,24 @@ func (derivation *deriver) listResource(classification specmodel.Classification,
 	listOperation := *derivation.operation(classification.List, OperationList)
 	addressing := addressingSchema(listOperation.PathParameters)
 	refuseReservedRootNames(addressing)
+
+	// A list result is an identity, and an identity is the resource's id. The
+	// resource takes its id from the item path key where the object declares
+	// no property of that name, and the element has to answer the same key by
+	// the same rule: /tests/{testId} keys the object on testId whether it is
+	// being read one at a time or streamed.
+	//
+	// Without this the element kept only the document's own spelling, and an
+	// API that does not happen to call its key "id" published no identity at
+	// all — which refused the entity outright, for a difference in wording.
+	tree := buildTree(nil, element, nil, false)
+	keyParam, keyType := itemKeyParam(classification.ItemPath, derivation.full(classification.Read))
+	ensureID(tree, keyParam, keyType)
+
 	return ListResource{
 		Names:            names,
 		ListOperation:    listOperation,
-		Schema:           buildTree(nil, element, nil, false),
+		Schema:           tree,
 		AddressingSchema: addressing,
 		ListEnvelopeKey:  listEnvelopeKey(listFull),
 	}

@@ -26,29 +26,35 @@ were measured against, so a stale row is visible as a stale row.
 
 ## Measurement of 2026-08-15
 
-Toolkit at `8c68058`. Every tree regenerates byte-identical under `tfpfgen
-provider verify`.
+Toolkit at `list-identity-from-item-key`. Every tree regenerates byte-identical
+under `tfpfgen provider verify`.
 
 | Document | Provider tree files | Resources | Data sources | List resources | Actions | Builds |
 |---|---|---|---|---|---|---|
 | Jamf Pro | 3915 | 76 | 211 | 39 | 101 | yes |
-| GitHub | 4406 | 59 | 323 | 23 | 77 | yes |
-| ThousandEyes | 1798 | 35 | 95 | 11 | 51 | yes |
-| Total | 10119 | 170 | 629 | 73 | 229 | |
+| GitHub | 4442 | 59 | 323 | 29 | 77 | yes |
+| ThousandEyes | 1912 | 35 | 95 | 30 | 51 | yes |
+| Total | 10269 | 170 | 629 | 98 | 229 | |
 
 Refusals, by the stage that refused:
 
 | Document | Total | Derivation | Binding | Emission |
 |---|---|---|---|---|
 | Jamf Pro | 255 | 102 | 136 | 17 |
-| GitHub | 845 | 330 | 494 | 21 |
-| ThousandEyes | 361 | 87 | 251 | 23 |
-| Total | 1461 | 519 | 881 | 61 |
+| GitHub | 839 | 330 | 494 | 15 |
+| ThousandEyes | 342 | 87 | 251 | 4 |
+| Total | 1436 | 519 | 881 | 36 |
 
 Binding refuses most of what is refused, and that is the expected shape: it is
 the only stage that resolves a drafted mapping against the SDK that was
 actually generated, so it is where a document's ambition meets what the
 backend could carry.
+
+Eleven of the emission refusals are one shape: a list element whose key the
+document spells its own way, where no rule derives that spelling from the path
+— `/roles/{id}` beside an element carrying `roleId`, `/users/{id}` beside
+`uid`. Each names its candidates in its reason. They need the field named as
+data before they can publish an identity.
 
 ## The documents
 
