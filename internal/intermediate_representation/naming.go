@@ -221,7 +221,25 @@ func snakeCase(s string) string {
 			b.WriteRune(rune)
 		}
 	}
-	return b.String()
+	return leadWithALetter(b.String())
+}
+
+// leadWithALetter trims what a terraform attribute name may not begin with.
+//
+// The framework's own name rule admits a leading underscore, but the reflect
+// layer that decodes a model does not: a tfsdk tag "must only use lowercase
+// letters, underscores, and numbers, and must start with a letter". An API
+// property named _links reaches the schema, and the provider then fails to
+// decode any object carrying it.
+//
+// Trimmed rather than refused, because the name is the only thing wrong with
+// the attribute and the value behind it is ordinary.
+func leadWithALetter(name string) string {
+	trimmed := strings.TrimLeft(name, "_0123456789")
+	if trimmed == "" {
+		return name
+	}
+	return trimmed
 }
 
 // boundaryBefore reports whether a word boundary sits before the upper-case
