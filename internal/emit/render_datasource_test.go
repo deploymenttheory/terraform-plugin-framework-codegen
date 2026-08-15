@@ -117,6 +117,52 @@ func TestUnit_CompanionDatasource_FiltersOnEveryRootScalar(t *testing.T) {
 	}
 }
 
+// Binding deletes what the SDK cannot carry, and the item model is built
+// from what survives. A filter over a deleted field would compare against a
+// model field that does not exist, which the generated tree refuses to
+// compile — the filters are derived before pruning, so emission is where the
+// two have to be reconciled.
+func TestUnit_CompanionDatasource_DropsAFilterOverAPrunedField(t *testing.T) {
+	m, b := fictionalModel(), fictionalBindings()
+
+	ds := &m.Datasources[0]
+	if ds.Names.Key != "http_server" {
+		t.Fatalf("the fictional companion datasource moved: %q", ds.Names.Key)
+	}
+	db := b.Datasources["http_server"]
+	kept := make([]sdkbind.FieldBinding, 0, len(db.Fields))
+	for _, f := range db.Fields {
+		if f.Attr == "enabled" {
+			continue
+		}
+		kept = append(kept, f)
+	}
+	db.Fields = kept
+
+	out, err := RenderServices(fictionalProviderCore(), m, b)
+	if err != nil {
+		t.Fatalf("a companion whose field was pruned must still render: %v", err)
+	}
+	dir := "internal/services/datasources/servers/v7/http_server/"
+	read := string(fileByPath(t, out, dir+"read.go").Content)
+	schema := string(fileByPath(t, out, dir+"datasource.go").Content)
+	model := string(fileByPath(t, out, dir+"model.go").Content)
+
+	if strings.Contains(read, "item.Enabled") {
+		t.Errorf("the match consults a field binding deleted:\n%s", read)
+	}
+	if strings.Contains(schema, `"enabled": schema.`) {
+		t.Errorf("a filter survived its field:\n%s", schema)
+	}
+	if strings.Contains(model, "Enabled types.Bool") {
+		t.Errorf("the model carries a filter whose field was pruned:\n%s", model)
+	}
+	// The filters whose fields survived are untouched.
+	if !strings.Contains(read, "item.Name") {
+		t.Errorf("a surviving filter was dropped with it:\n%s", read)
+	}
+}
+
 // TestUnit_CompanionDatasource_MocksAParameterisedCollectionByShape proves
 // the generated mock matches the request the addressing produces, and that
 // the configuration supplies what the schema requires.

@@ -53,8 +53,8 @@ resource and action.
 ## Status
 
 The chain runs end to end. Three documents — Jamf Pro, ThousandEyes and
-GitHub — each generate a provider tree that builds, between them 161
-resources, 272 data sources, 69 list resources and 210 actions.
+GitHub — each generate a provider tree that builds, between them 170
+resources, 629 data sources, 73 list resources and 229 actions.
 
 What that does *not* yet mean: the generated schemas have not been exercised
 against a live API or a `terraform plan`. Building says the emitted Go is

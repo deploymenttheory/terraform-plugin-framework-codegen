@@ -37,7 +37,6 @@ type datasourceData struct {
 	LookupByKey bool
 	// Companion fields.
 	HasIDFilter bool
-	IDParamDecl string
 	// IDField is the model field the id filter reads from, spelled the Go
 	// way the model declares it.
 	IDField string
@@ -245,7 +244,16 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	}
 	itemNodes := e.joinTree(bindingKindDatasource, ds.Names.Key, itemTree, db.Fields)
 
-	filters := companionFilters(ds)
+	// A filter selects on a field of a listed object, so it survives exactly
+	// where that field does. Binding deletes what the SDK cannot carry, and
+	// the item model is built from what is left: a filter over a deleted
+	// field would compare against a model field that does not exist.
+	filters := make([]ir.Attribute, 0, len(ds.Schema.Attributes))
+	for _, f := range companionFilters(ds) {
+		if hasNode(itemNodes, f.Name) {
+			filters = append(filters, f)
+		}
+	}
 	d.FilterChecks = filterChecks(filters)
 
 	// Filtering on the id is answered by the by-id read rather than by
@@ -253,7 +261,8 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	// needs the read's payload to bridge to one list element: identical
 	// types, or a pointer the element type sits behind. A read shaped any
 	// other way leaves id an ordinary filter rather than a guessed call.
-	d.HasIDFilter = namesAFilter(filters, "id") &&
+	idFilter, hasID := filterNamed(filters, "id")
+	d.HasIDFilter = hasID &&
 		ds.Operations.Read != nil && db.Read != nil && len(db.Read.Params) == 1 &&
 		db.Read.Params[0].GoType == "string" && itemPayloadExpr(db) != ""
 
@@ -340,10 +349,12 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	}
 
 	if d.HasIDFilter {
-		p := db.Read.Params[0]
 		d.IDField = ir.GoName("id")
-		d.IDParamDecl = p.Local + " := data." + d.IDField + ".ValueString()"
-		readPlan, rerr := readPlanWithoutParams(db.Read, "remote")
+		// The id filter takes the type of the field it selects on, which is
+		// whatever the document declares — an integer key is as common as a
+		// string one. Building the parameter through the shared plan is what
+		// converts it, rather than assuming the attribute is a string.
+		readPlan, rerr := buildCallPlan(db.Read, "remote", []node{{attr: idFilter}}, "data", respDiagnostics())
 		if rerr != nil {
 			return fixtures.Fixture{}, fmt.Errorf("read: %w", rerr)
 		}
@@ -399,14 +410,6 @@ func itemPayloadExpr(db *sdkbind.DatasourceBinding) string {
 		return "*remote"
 	}
 	return ""
-}
-
-// readPlanWithoutParams renders a call plan whose parameter locals are
-// declared by the surrounding code rather than from model fields.
-func readPlanWithoutParams(call *sdkbind.Call, payloadName string) (callPlan, error) {
-	stripped := *call
-	stripped.Params = nil
-	return buildCallPlan(&stripped, payloadName, nil, "data", respDiagnostics())
 }
 
 // companionItemTree finds the items attribute's element tree.
@@ -589,14 +592,14 @@ func companionAddressing(ds *ir.Datasource) []ir.Attribute {
 	return out
 }
 
-// namesAFilter reports whether the filters include the named one.
-func namesAFilter(filters []ir.Attribute, name string) bool {
+// filterNamed answers the named filter, and whether there is one.
+func filterNamed(filters []ir.Attribute, name string) (ir.Attribute, bool) {
 	for _, a := range filters {
 		if a.Name == name {
-			return true
+			return a, true
 		}
 	}
-	return false
+	return ir.Attribute{}, false
 }
 
 // filterChecks renders the body of the generated match: one early return per
