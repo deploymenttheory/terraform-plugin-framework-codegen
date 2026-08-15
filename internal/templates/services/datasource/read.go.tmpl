@@ -59,7 +59,7 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 	// Listing the whole collection to discard all but one of it would cost
 	// every page for one result.
 	if !data.{{ .IDField }}.IsNull() {
-		{{ .IDParamDecl }}
+		{{ .ReadPlan.ParamDecls }}
 		{{ .ReadPlan.Assign }}
 		if err != nil {
 			errors.HandleDatasourceReadError(ctx, err, resp, nil)
