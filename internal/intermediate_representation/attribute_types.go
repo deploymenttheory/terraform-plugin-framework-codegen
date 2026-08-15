@@ -32,16 +32,73 @@ func deriveType(attribute *Attribute, flatPrimary flat, create, read, update *sp
 		attribute.Kind = TypeObject
 		attribute.Nested = buildTree(create, read, update, false)
 	case flatPrimary.declaredType == "" && flatPrimary.hasUnion:
-		// resolveUnion collapses a union whose branches are all scalars.
-		// What is left has an object branch, which the generated SDK models
-		// as a composed type carrying an accessor per branch — an attribute
-		// per variant, not one collapsed type.
-		refuse(attribute, "oneOf/anyOf union with an object branch: it needs one attribute per variant, which the document alone does not name")
+		deriveUnionType(attribute, flatPrimary, create, read)
 	case flatPrimary.declaredType == "":
 		refuse(attribute, "no type declared")
 	default:
 		refuse(attribute, fmt.Sprintf("type %q is not supported", flatPrimary.declaredType))
 	}
+}
+
+// deriveUnionType types a oneOf/anyOf the scalar collapse left alone, which
+// is one with an object branch. It becomes an object carrying one attribute
+// per branch: the shape the generated SDK already has, since a union arrives
+// there as a composed type with a field and an accessor per branch.
+//
+// A branch names itself by the component it references, which is also what
+// the SDK names its accessor after, so the two agree without either being
+// told about the other. An anonymous branch names nothing on either side, and
+// one of those refuses the whole union rather than half of it: a union missing
+// a variant is a schema that cannot hold what the API returns, which is worse
+// than one that says so.
+//
+// Only the read-only case is served. A writable union needs its variants
+// mutually exclusive in configuration, and no configurability alone expresses
+// that.
+func deriveUnionType(attribute *Attribute, flatPrimary flat, create, read *specmodel.Schema) {
+	if create != nil {
+		refuse(attribute, "oneOf/anyOf union in a writable position: its variants would have to be mutually exclusive in configuration, which the schema alone does not express")
+		return
+	}
+
+	variants := make([]Attribute, 0, len(flatPrimary.unionBranches))
+	for _, branch := range flatPrimary.unionBranches {
+		if branch == nil || branch.Ref == "" {
+			refuse(attribute, fmt.Sprintf(
+				"oneOf/anyOf union with %d branches, of which %d name no component: a variant the document does not name has no attribute to become",
+				len(flatPrimary.unionBranches), anonymousBranches(flatPrimary.unionBranches)))
+			return
+		}
+		variants = append(variants, Attribute{
+			Name:     snakeCase(branch.Ref),
+			WireName: branch.Ref,
+			Kind:     TypeObject,
+			// Read-only throughout: the API answers with one branch and the
+			// practitioner chooses none of them.
+			ComputedOptionalRequired: Computed,
+			Description:              flatten(branch).description,
+			Nested:                   buildTree(nil, branch, nil, false),
+		})
+	}
+	if len(variants) == 0 {
+		refuse(attribute, "oneOf/anyOf union declaring no branches")
+		return
+	}
+
+	attribute.Kind = TypeObject
+	attribute.Nested = &AttributeTree{Attributes: variants, Description: flatten(read).description}
+}
+
+// anonymousBranches counts the branches of a union that reference no
+// component, for a refusal that says how much of the union is unnameable.
+func anonymousBranches(branches []*specmodel.Schema) int {
+	n := 0
+	for _, branch := range branches {
+		if branch == nil || branch.Ref == "" {
+			n++
+		}
+	}
+	return n
 }
 
 // deriveMapType types an object that declares no properties. Only
