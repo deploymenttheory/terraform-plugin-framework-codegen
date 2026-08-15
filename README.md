@@ -48,18 +48,21 @@ See `docs/contract.md` for pipeline stages, artifact names, and exit codes,
 `docs/glossary.md` for the vocabulary, every term in it is deliberate, and
 `docs/mapping.md` for the API behaviour each generated schema shape answers
 and the operation set behind each generated resource, datasource, list
-resource and action.
+resource and action, and `docs/emittance_tracker.md` for what each pilot
+document currently emits and refuses.
 
 ## Status
 
 The chain runs end to end. Three documents — Jamf Pro, ThousandEyes and
-GitHub — each generate a provider tree that builds, between them 170
-resources, 629 data sources, 73 list resources and 229 actions.
+GitHub — each generate a provider tree that builds. What each currently emits
+and what it refuses is measured in `docs/emittance_tracker.md`, which is the
+only place those counts are kept: a count is a fact about one toolkit commit
+against one pinned document, and anywhere else it cannot be re-measured.
 
-What that does *not* yet mean: the generated schemas have not been exercised
-against a live API or a `terraform plan`. Building says the emitted Go is
-well-formed against the SDK; it says nothing about whether an attribute is
-optional where it should be computed, sensitive where it should be plain, or
+What a build does *not* yet mean: the generated schemas have not been
+exercised against a live API or a `terraform plan`. Building says the emitted
+Go is well-formed against the SDK; it says nothing about whether an attribute
+is optional where it should be computed, sensitive where it should be plain, or
 a set where it should be a list. Making the schema right for the API's real
 behaviour is the work in progress, and `docs/mapping.md` specifies it: twelve
 API behaviours and the terraform-plugin-framework shape each one demands, then
