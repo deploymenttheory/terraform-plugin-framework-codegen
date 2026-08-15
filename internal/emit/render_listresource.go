@@ -3,6 +3,7 @@ package emit
 import (
 	"fmt"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -236,7 +237,9 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 func listResultLines(nodes []node, identity []identityAttribute, config []node) (string, error) {
 	idNode, ok := findIdentityNode(nodes)
 	if !ok {
-		return "", unrenderable("the element carries no scalar id attribute to publish as the list identity")
+		return "", unrenderable(
+			"the element publishes no identity: it carries no readable scalar %q%s",
+			idAttributeName, identityCandidates(nodes))
 	}
 
 	configured := map[string]bool{}
@@ -275,6 +278,32 @@ func listResultLines(nodes []node, identity []identityAttribute, config []node) 
 	fmt.Fprintf(&b, "\t\t\tresult.Diagnostics.Append(result.Identity.Set(ctx, identityModel{%s})...)\n",
 		strings.Join(fields, ", "))
 	return b.String(), nil
+}
+
+// identityCandidates names the readable scalars whose spelling suggests they
+// key the object, so a refusal says what the element does carry rather than
+// only what it lacks. An operator reads it to decide which one to name in a
+// correction; without it the only way to find them is to open the document.
+func identityCandidates(nodes []node) string {
+	var found []string
+	for _, n := range nodes {
+		if n.attr.Nested != nil || n.fb == nil || n.fb.Access.Get == "" {
+			continue
+		}
+		switch n.attr.Kind {
+		case ir.TypeString, ir.TypeInt64, ir.TypeFloat64:
+		default:
+			continue
+		}
+		if strings.HasSuffix(n.attr.Name, "id") {
+			found = append(found, n.attr.WireName)
+		}
+	}
+	if len(found) == 0 {
+		return ", and no readable scalar it carries is spelled like a key"
+	}
+	sort.Strings(found)
+	return fmt.Sprintf(", though it carries %s", strings.Join(found, ", "))
 }
 
 // findStringNode finds a plain string attribute by name.
