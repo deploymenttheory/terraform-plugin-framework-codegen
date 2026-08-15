@@ -38,6 +38,12 @@ type datasourceData struct {
 	// Companion fields.
 	HasIDFilter bool
 	IDParamDecl string
+	// IDField is the model field the id filter reads from, spelled the Go
+	// way the model declares it.
+	IDField string
+	// FilterChecks is the body of the generated match: one early return per
+	// filter the configuration set, and true when every one of them agreed.
+	FilterChecks string
 	// ReadItem renders the by-id read's payload as one list element:
 	// "remote", or "*remote" when the read answers with a pointer to the
 	// element type.
@@ -226,8 +232,9 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	return spec, nil
 }
 
-// companionDatasource fills the render context for the
-// filter_type/filter_value/items pattern.
+// companionDatasource fills the render context for the filters-and-items
+// pattern: one optional argument per scalar field of a listed object, and the
+// computed list of the objects they selected.
 func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasource, db *sdkbind.DatasourceBinding) (fixtures.Fixture, error) {
 	if ds.Operations.List == nil || db.List == nil {
 		return fixtures.Fixture{}, unrenderable("a companion datasource needs a bound list call")
@@ -238,10 +245,16 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	}
 	itemNodes := e.joinTree(bindingKindDatasource, ds.Names.Key, itemTree, db.Fields)
 
-	// The id filter needs the by-id read's payload to bridge to one list
-	// element: identical types, or a pointer the element type sits behind.
-	// A read shaped any other way keeps the filter off rather than guessed.
-	d.HasIDFilter = ds.Operations.Read != nil && db.Read != nil && len(db.Read.Params) == 1 &&
+	filters := companionFilters(ds)
+	d.FilterChecks = filterChecks(filters)
+
+	// Filtering on the id is answered by the by-id read rather than by
+	// listing the whole collection and discarding all but one of it. That
+	// needs the read's payload to bridge to one list element: identical
+	// types, or a pointer the element type sits behind. A read shaped any
+	// other way leaves id an ordinary filter rather than a guessed call.
+	d.HasIDFilter = namesAFilter(filters, "id") &&
+		ds.Operations.Read != nil && db.Read != nil && len(db.Read.Params) == 1 &&
 		db.Read.Params[0].GoType == "string" && itemPayloadExpr(db) != ""
 
 	// Schema: the two filter inputs, then the computed items list.
@@ -251,16 +264,10 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	imports.add("", "time")
 	imports.add("", "github.com/hashicorp/terraform-plugin-framework/datasource")
 	imports.add("schema", "github.com/hashicorp/terraform-plugin-framework/datasource/schema")
-	imports.add("", "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator")
-	imports.add("", "github.com/hashicorp/terraform-plugin-framework/schema/validator")
 	imports.add("sdk", e.bindings.SDK.ImportPath)
 	imports.add("commonschema", e.pc.Module+"/internal/services/common/schema")
 	sb := &schemaBuilder{kind: schemaDatasource, imports: imports}
 
-	allowed := []string{`"all"`}
-	if d.HasIDFilter {
-		allowed = append(allowed, `"id"`)
-	}
 	var b strings.Builder
 	// The addressing a parent-scoped collection is reached through, ahead of
 	// the filter inputs as the tree declares them. The model carries a field
@@ -271,18 +278,14 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 		addressingNodes = append(addressingNodes, node{attr: a})
 	}
 	b.WriteString(sb.attributeDecls(addressingNodes, 3))
-	b.WriteString("\t\t\t\"filter_type\": schema.StringAttribute{\n")
-	b.WriteString("\t\t\t\tRequired: true,\n")
-	fmt.Fprintf(&b, "\t\t\t\tMarkdownDescription: %s,\n", strconv.Quote("Which objects to return: "+strings.ReplaceAll(strings.Join(allowed, " | "), `"`, "")+"."))
-	fmt.Fprintf(&b, "\t\t\t\tValidators: []validator.String{stringvalidator.OneOf(%s)},\n", strings.Join(allowed, ", "))
-	b.WriteString("\t\t\t},\n")
-	b.WriteString("\t\t\t\"filter_value\": schema.StringAttribute{\n")
-	b.WriteString("\t\t\t\tOptional: true,\n")
-	b.WriteString("\t\t\t\tMarkdownDescription: \"The value the filter matches. Not read when filter_type is all.\",\n")
-	b.WriteString("\t\t\t},\n")
+	filterNodes := make([]node, 0, len(filters))
+	for _, a := range filters {
+		filterNodes = append(filterNodes, node{attr: a})
+	}
+	b.WriteString(sb.attributeDecls(filterNodes, 3))
 	b.WriteString("\t\t\t\"items\": schema.ListNestedAttribute{\n")
 	b.WriteString("\t\t\t\tComputed: true,\n")
-	b.WriteString("\t\t\t\tMarkdownDescription: \"The objects the filter selected.\",\n")
+	b.WriteString("\t\t\t\tMarkdownDescription: \"The objects the filters selected.\",\n")
 	b.WriteString("\t\t\t\tNestedObject: schema.NestedAttributeObject{\n")
 	b.WriteString("\t\t\t\t\tAttributes: map[string]schema.Attribute{\n")
 	b.WriteString(sb.attributeDecls(itemNodes, 6))
@@ -303,10 +306,8 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	// field per addressing attribute the schema declares — the path
 	// parameters of a parent-scoped collection, which the read has to fill
 	// from config and which no item model can hold.
-	root := "type " + d.Type + "Model struct {\n" +
-		"\tFilterType types.String `tfsdk:\"filter_type\"`\n" +
-		"\tFilterValue types.String `tfsdk:\"filter_value\"`\n"
-	for _, a := range companionAddressing(ds) {
+	root := "type " + d.Type + "Model struct {\n"
+	for _, a := range append(companionAddressing(ds), filters...) {
 		root += "\t" + ir.GoName(a.Name) + " " + scalarSchemaType(a.Kind).ValueType +
 			" `tfsdk:\"" + a.Name + "\"`\n"
 	}
@@ -340,7 +341,8 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 
 	if d.HasIDFilter {
 		p := db.Read.Params[0]
-		d.IDParamDecl = p.Local + " := data.FilterValue.ValueString()"
+		d.IDField = ir.GoName("id")
+		d.IDParamDecl = p.Local + " := data." + d.IDField + ".ValueString()"
 		readPlan, rerr := readPlanWithoutParams(db.Read, "remote")
 		if rerr != nil {
 			return fixtures.Fixture{}, fmt.Errorf("read: %w", rerr)
@@ -351,7 +353,6 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 
 	readImports := newImportSet(e.pc.Module)
 	readImports.add("", "context")
-	readImports.add("", "fmt")
 	readImports.add("", "github.com/hashicorp/terraform-plugin-framework/datasource")
 	readImports.add("", e.pc.Module+"/internal/services/common/crud")
 	readImports.add("", e.pc.Module+"/internal/services/common/errors")
@@ -525,10 +526,10 @@ func (e *serviceRenderer) datasourceFixtures(ds *ir.Datasource, spec fixtures.Fi
 	if ds.LookupByKey {
 		body = spec.HCL(fixtures.ConfigMinimal)
 	} else {
-		// The addressing the collection path requires, then the filter. Both
-		// are required arguments, and terraform refuses a configuration
-		// missing either.
-		body = addressingHCL + "  filter_type = \"all\"\n"
+		// The addressing the collection path requires, and no filter: every
+		// filter is optional, and a fixture that set one would assert the
+		// whole collection matched it.
+		body = addressingHCL
 	}
 	fixture, err := hclBlock(source, blockHeader, body, nil)
 	if err != nil {
@@ -578,11 +579,53 @@ func companionAddressing(ds *ir.Datasource) []ir.Attribute {
 	}
 	var out []ir.Attribute
 	for _, a := range ds.Schema.Attributes {
-		switch a.Name {
-		case "filter_type", "filter_value", "items":
+		if a.Name == "items" || a.Filter {
 			continue
 		}
 		if a.Nested == nil {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// namesAFilter reports whether the filters include the named one.
+func namesAFilter(filters []ir.Attribute, name string) bool {
+	for _, a := range filters {
+		if a.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// filterChecks renders the body of the generated match: one early return per
+// filter the configuration set, comparing the terraform value the caller gave
+// against the one the mapped item carries. Both sides are the same terraform
+// type, so equality is the framework's own and needs no conversion.
+//
+// A filter the configuration left null is not a filter — it narrows nothing —
+// which is what makes several of them combine and none of them mandatory.
+func filterChecks(filters []ir.Attribute) string {
+	var b strings.Builder
+	for _, a := range filters {
+		field := ir.GoName(a.Name)
+		fmt.Fprintf(&b, "\tif !config.%s.IsNull() && !config.%s.Equal(item.%s) {\n\t\treturn false\n\t}\n",
+			field, field, field)
+	}
+	b.WriteString("\treturn true")
+	return b.String()
+}
+
+// companionFilters is the arguments that select which listed objects come
+// back: one per scalar field at the root of a listed object.
+func companionFilters(ds *ir.Datasource) []ir.Attribute {
+	if ds == nil || ds.Schema == nil {
+		return nil
+	}
+	var out []ir.Attribute
+	for _, a := range ds.Schema.Attributes {
+		if a.Filter {
 			out = append(out, a)
 		}
 	}

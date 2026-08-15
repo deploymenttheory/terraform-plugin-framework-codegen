@@ -152,15 +152,34 @@ Three operation sets yield a datasource, and none of them needs a resource.
 
 | Name | Argument | Calls | Answers |
 |---|---|---|---|
-| `read_with_list_and_get_api` | `filter_type`, `filter_value` | item `GET` where `filter_type` is `id`, collection `GET` otherwise | `items` |
+| `read_with_list_and_get_api` | one optional filter per root scalar | item `GET` where `id` is set, collection `GET` otherwise | `items` |
 | `read_with_get_api` | the item path key, required | item `GET` | the object it identifies |
-| `read_with_list_api` | `filter_type`, `filter_value` | collection `GET` | `items` |
+| `read_with_list_api` | one optional filter per root scalar | collection `GET` | `items` |
+
+**Filters are what make a datasource usable.** A datasource that only lists
+hands back the collection whole, and HCL then has to address a result by its
+position in it — `items[2]` — which no API promises to keep stable. So every
+scalar field at the root of a listed object is offered as an optional argument
+of that field's own type, and `items` carries the objects that matched every
+argument the configuration set. Nested fields and collections are not offered:
+HCL would have to describe a whole object to match one leaf of it, and a
+collection has no single value to compare. They are read off the items the
+filters selected.
+
+```hcl
+data "example_computer" "mine" {
+  name    = "abcd"
+  managed = true
+}
+```
+
+Matching is exact. A filter the configuration leaves out narrows nothing,
+which is what lets several combine and none be mandatory.
 
 **`read_with_list_and_get_api`** is the common shape, and the one every
-resource also yields. `filter_type` chooses how to reach the objects and
-`items` carries what comes back: `id` fetches the one object through the item
-`GET`, anything else lists the collection. `filter_value` is required unless
-`filter_type` is `all`.
+resource also yields. Setting `id` is answered by the item `GET` rather than
+by listing the collection and discarding all but one of it; every other filter
+lists and matches.
 
 **`read_with_get_api`** is a lookup by key. With no list operation there is
 nothing to filter, so the item path parameter becomes the required argument —
@@ -168,14 +187,14 @@ often a name, in the APIs that address by one — and the answer carries the id.
 It is the one datasource shape that answers a single object.
 
 **`read_with_list_api`** is a collection the API enumerates but cannot address
-one member of. It generates the same filter-and-items shape, without the `id`
-filter there is no operation to serve, and it takes the schema of one object
-from the collection's own element — the only account of it the document
-offers. It yields neither a resource nor a list resource, because neither can
-exist without a way to reach a single object.
+one member of. It generates the same filters and `items`, with no operation
+behind an `id`, and takes the schema of one object from the collection's own
+element — the only account of it the document offers. It yields neither a
+resource nor a list resource, because neither can exist without a way to reach
+a single object.
 
-`filter_type`, `filter_value` and `items` are the toolkit's own vocabulary, not
-any API's, so they carry no wire names beyond their own.
+A filter is named for the field it selects on, so its spelling is the API's.
+`items` is the toolkit's own, and carries no wire name beyond itself.
 
 ## What yields nothing
 

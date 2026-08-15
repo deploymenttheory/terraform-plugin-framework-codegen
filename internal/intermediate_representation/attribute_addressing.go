@@ -89,6 +89,50 @@ func ensureParentParameters(tree *AttributeTree, parents []Parameter) {
 	tree.Attributes = append(added, tree.Attributes...)
 }
 
+// ensureFilterAttributes offers one optional argument per scalar field at the
+// root of a listed object, so a caller selects the object it wants by a value
+// it knows instead of by its position in the collection.
+//
+// Only the root scalars. A nested field would need HCL to describe the whole
+// object to match one leaf of it, and a collection has no single value to
+// compare, so neither is offered — the caller reads those off the items the
+// filters selected.
+//
+// A name the tree already carries is left alone: it is an addressing
+// parameter, already required, and a required attribute narrows the results
+// as well as an optional one would.
+func ensureFilterAttributes(tree, item *AttributeTree) {
+	if tree == nil || item == nil {
+		return
+	}
+	declared := make(map[string]bool, len(tree.Attributes))
+	for _, attribute := range tree.Attributes {
+		declared[attribute.Name] = true
+	}
+
+	added := make([]Attribute, 0, len(item.Attributes))
+	for _, attribute := range item.Attributes {
+		if attribute.Nested != nil || declared[attribute.Name] {
+			continue
+		}
+		switch attribute.Kind {
+		case TypeString, TypeBool, TypeInt64, TypeFloat64:
+		default:
+			continue
+		}
+		declared[attribute.Name] = true
+		added = append(added, Attribute{
+			Name:                     attribute.Name,
+			WireName:                 attribute.WireName,
+			Description:              attribute.Description,
+			Kind:                     attribute.Kind,
+			ComputedOptionalRequired: Optional,
+			Filter:                   true,
+		})
+	}
+	tree.Attributes = append(tree.Attributes, added...)
+}
+
 // addressingSchema is a collection path's addressing attributes as a tree of
 // their own, for a list resource to declare as the configuration of its list
 // block. Nil when the path takes no parameters.

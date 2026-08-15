@@ -111,11 +111,11 @@ type Resource struct {
 type Datasource struct {
 	Names      Names      `json:"names"`
 	Operations Operations `json:"operations"`
-	// Schema is the datasource's attribute tree. A companion datasource
-	// follows the filter_type/filter_value/items pattern: two inputs and
-	// a computed list of the entity's objects. A lookup-by-key one is the
-	// entity's object with the key parameter as its single required
-	// argument.
+	// Schema is the datasource's attribute tree. A companion datasource is
+	// one optional filter per scalar field of a listed object, and a
+	// computed list of the objects the filters selected. A lookup-by-key
+	// one is the entity's object with the key parameter as its single
+	// required argument.
 	Schema *AttributeTree `json:"schema"`
 	// LookupByKey means there is no list operation: the caller supplies
 	// the item path parameter and reads the object it identifies.
@@ -332,6 +332,11 @@ type Attribute struct {
 	Sensitive bool `json:"sensitive,omitempty"`
 	// Deprecated marks a property the document declares deprecated.
 	Deprecated bool `json:"deprecated,omitempty"`
+	// Filter marks a datasource argument that selects which listed objects
+	// come back, rather than describing one. It carries no wire value and
+	// binds to no SDK field: the match runs over the items the list already
+	// answered with.
+	Filter bool `json:"filter,omitempty"`
 	// UniqueItems marks a collection whose members are a set, so the order
 	// they are returned in carries no meaning.
 	UniqueItems bool `json:"unique_items,omitempty"`

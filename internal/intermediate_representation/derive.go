@@ -421,21 +421,24 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 		}
 	}
 
-	// The companion datasource: filter_type and filter_value select which
-	// objects come back, items carries them. The filter attributes are the
-	// toolkit's own vocabulary, not the API's, so they take no wire names
-	// beyond their own.
+	// The companion datasource: the item's own scalar fields select which
+	// objects come back, items carries them. A datasource whose only
+	// argument is the collection itself makes the caller address results by
+	// position, so the filters are what makes it usable.
 	listOperation := derivation.operation(classification.List, OperationList)
-	companionTree := &AttributeTree{Attributes: []Attribute{
-		{Name: "filter_type", WireName: "filter_type", Kind: TypeString, ComputedOptionalRequired: Required},
-		{Name: "filter_value", WireName: "filter_value", Kind: TypeString, ComputedOptionalRequired: Optional},
-		{Name: "items", WireName: "items", Kind: TypeList, ElementType: TypeObject, ComputedOptionalRequired: Computed, Nested: itemTree},
-	}}
+	companionTree := &AttributeTree{}
 	// A collection path carries no item key, so every one of its path
-	// parameters is a parent the caller has to supply.
+	// parameters is a parent the caller has to supply. Ahead of the filters,
+	// because a parent is required and a filter optional: where both spell
+	// one name, the caller must still be able to fill the path.
 	if listOperation != nil {
 		ensureParentParameters(companionTree, listOperation.PathParameters)
 	}
+	ensureFilterAttributes(companionTree, itemTree)
+	companionTree.Attributes = append(companionTree.Attributes, Attribute{
+		Name: "items", WireName: "items", Kind: TypeList, ElementType: TypeObject,
+		ComputedOptionalRequired: Computed, Nested: itemTree,
+	})
 	refuseReservedRootNames(companionTree)
 
 	return Datasource{

@@ -75,8 +75,8 @@ func oagModel() *ir.Model {
 				List: &ir.Operation{Kind: ir.OperationList, Method: "GET", PathTemplate: "/tags", SuccessCode: 200},
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				{Name: "filter_type", WireName: "filter_type", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
-				{Name: "filter_value", WireName: "filter_value", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+				{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional, Filter: true},
+				{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional, Filter: true},
 				{Name: "items", WireName: "items", Kind: ir.TypeList, ElementType: ir.TypeObject, ComputedOptionalRequired: ir.Computed,
 					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
 						{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},

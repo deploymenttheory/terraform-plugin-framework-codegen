@@ -31,18 +31,18 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 {{ else }}
-// Read lists the collection and keeps what the filter selects.
+// matches reports whether one listed object satisfies every filter the
+// configuration set. A filter the configuration left null narrows nothing,
+// so a configuration setting none keeps the whole collection.
+func matches(config *{{ .Type }}Model, item *{{ .ItemModel }}) bool {
+{{ .FilterChecks }}
+}
+
+// Read lists the collection and keeps the objects the filters select.
 func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data {{ .Type }}Model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	filterType := data.FilterType.ValueString()
-	if filterType != "all" && (data.FilterValue.IsNull() || data.FilterValue.ValueString() == "") {
-		resp.Diagnostics.AddError("Missing filter_value",
-			fmt.Sprintf("filter_value must be set when filter_type is %q.", filterType))
 		return
 	}
 
@@ -54,18 +54,23 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 
 	client := d.client
 	items := []{{ .ItemModel }}{}
-	switch filterType {
 {{- if .HasIDFilter }}
-	case "id":
+	// The id identifies one object, and the API can answer for it directly.
+	// Listing the whole collection to discard all but one of it would cost
+	// every page for one result.
+	if !data.{{ .IDField }}.IsNull() {
 		{{ .IDParamDecl }}
 		{{ .ReadPlan.Assign }}
 		if err != nil {
 			errors.HandleDatasourceReadError(ctx, err, resp, nil)
 			return
 		}
-		items = append(items, mapItem(ctx, {{ .ReadItem }}))
+		item := mapItem(ctx, {{ .ReadItem }})
+		if matches(&data, &item) {
+			items = append(items, item)
+		}
+	} else {
 {{- end }}
-	default:
 {{- if .ListPlan.ParamDecls }}
 		{{ .ListPlan.ParamDecls }}
 {{- end }}
@@ -75,9 +80,15 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 			return
 		}
 		for _, element := range {{ .Collection }} {
-			items = append(items, mapItem(ctx, element))
+			item := mapItem(ctx, element)
+			if !matches(&data, &item) {
+				continue
+			}
+			items = append(items, item)
 		}
+{{- if .HasIDFilter }}
 	}
+{{- end }}
 
 	data.Items = items
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
