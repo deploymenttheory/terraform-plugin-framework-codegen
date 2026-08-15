@@ -17,10 +17,13 @@ const (
 	// KindDatasource can be looked up by id. Every resource also yields
 	// one; a list-plus-read entity yields one without being a resource.
 	KindDatasource Kind = "datasource"
-	// KindListResource is list-only: enumerable but not addressable.
+	// KindListResource is the list capability of a resource: the same
+	// terraform type, streaming the identities of the objects that exist
+	// now. Terraform matches the two by type name, so it exists only where
+	// a resource does.
 	KindListResource Kind = "list-resource"
-	// KindAction is a POST with no CRUD complement — an invocation, not
-	// a thing with a lifecycle.
+	// KindAction is a lone write with no CRUD complement — an invocation,
+	// not a thing with a lifecycle.
 	KindAction Kind = "action"
 )
 
@@ -215,8 +218,18 @@ func (e *entity) decide() (Classification, *Exclusion) {
 	// forgetting the object on destroy rather than calling anything.
 	singletonOK := singletonShape && e.collectionWrite != nil && e.list.SuccessSchema() != nil
 
-	actionShape := e.create != nil &&
-		e.read == nil && e.list == nil && e.update == nil && e.del == nil
+	// A write with nothing to read it back, list it or remove it is an
+	// invocation: something happens, and nothing is left for terraform to
+	// own. Usually that write is the collection POST, but an API that spells
+	// an invocation as a replacement offers only a PUT or a PATCH, and the
+	// call means the same thing.
+	//
+	// Exactly one of the two write positions, because an entity offering
+	// both has two candidate invocations and no way to choose between them.
+	loneWrite := e.create == nil && e.read == nil && e.list == nil && e.del == nil &&
+		(e.update != nil) != (e.collectionWrite != nil)
+	actionShape := loneWrite || (e.create != nil &&
+		e.read == nil && e.list == nil && e.update == nil && e.del == nil)
 
 	var kinds []Kind
 	for _, k := range kindOrder {
@@ -255,10 +268,15 @@ func (e *entity) decide() (Classification, *Exclusion) {
 		}
 	}
 
-	read, update, list := e.read, e.update, e.list
+	create, read, update, list := e.create, e.read, e.update, e.list
 	extra := e.extra
 	if singletonOK {
 		read, update, list = e.list, e.collectionWrite, nil
+	} else if loneWrite {
+		// The invocation goes in the create slot beside every other
+		// action's, so a consumer finds it in one place whichever method
+		// the document spelled it with.
+		create, update = firstOf(e.update, e.collectionWrite), nil
 	} else if e.collectionWrite != nil {
 		// A write on the collection path means nothing to an entity that is
 		// not a singleton: it is surplus, and surplus is recorded rather
@@ -271,7 +289,7 @@ func (e *entity) decide() (Classification, *Exclusion) {
 		CollectionPath: e.collection,
 		ItemPath:       e.item,
 		Kinds:          kinds,
-		Create:         opRef(e.create),
+		Create:         opRef(create),
 		Read:           opRef(read),
 		Update:         opRef(update),
 		Delete:         opRef(e.del),
@@ -329,6 +347,17 @@ func (e *entity) presentRoles() []string {
 		}
 	}
 	return out
+}
+
+// firstOf answers the first operation that is present, for the roles where
+// two positions can carry one operation and at most one of them does.
+func firstOf(ops ...*Operation) *Operation {
+	for _, op := range ops {
+		if op != nil {
+			return op
+		}
+	}
+	return nil
 }
 
 func opRef(op *Operation) *Op {

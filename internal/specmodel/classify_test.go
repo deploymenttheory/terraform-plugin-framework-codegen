@@ -209,14 +209,22 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 			wantExcluded: map[string]string{"dim": "success response schema is missing"},
 		},
 		{
-			name:         "an update-only entity is a partial lifecycle",
-			paths:        crud("/knobs/{knobId}", "patch!"),
-			wantExcluded: map[string]string{"knob": "partial lifecycle (update) fits no kind"},
+			// Nothing reads it back, lists it or removes it, so there is no
+			// object for terraform to own — only a call to make.
+			name:      "a lone item patch is an action",
+			paths:     crud("/knobs/{knobId}", "patch!"),
+			wantKinds: map[string]string{"knob": "action"},
 		},
 		{
-			name:         "a method outside every role classifies as nothing",
-			paths:        crud("/odd", "put!"),
-			wantExcluded: map[string]string{"odd": "no operations in classifiable positions"},
+			name:      "a lone collection put is an action",
+			paths:     crud("/odd", "put!"),
+			wantKinds: map[string]string{"odd": "action"},
+		},
+		{
+			// Two candidate invocations and no way to choose between them.
+			name:         "a write in both positions and nothing else is excluded",
+			paths:        crud("/dials", "put!") + crud("/dials/{dialId}", "patch!"),
+			wantExcluded: map[string]string{"dial": "partial lifecycle (update) fits no kind"},
 		},
 	}
 
@@ -504,6 +512,47 @@ func TestUnit_Specmodel_AWritableSingletonIsAResource(t *testing.T) {
 	}
 	if c.Create != nil || c.Delete != nil || c.List != nil {
 		t.Fatalf("a singleton has no create, delete or list: %+v", c)
+	}
+}
+
+// An action's operation sits in the create slot whichever method the
+// document spelled it with, so a consumer finds it in one place.
+func TestUnit_Specmodel_ALoneWriteInvokesFromTheCreateSlot(t *testing.T) {
+	for _, tc := range []struct {
+		name, paths, wantMethod, wantKey string
+	}{
+		{"collection put", crud("/rotate-keys", "put!"), "PUT", "rotate_key"},
+		{"collection patch", crud("/reindex", "patch!"), "PATCH", "reindex"},
+		{"item put", crud("/knobs/{knobId}", "put!"), "PUT", "knob"},
+		{"item patch", crud("/knobs/{knobId}", "patch!"), "PATCH", "knob"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			doc, err := Load([]byte(specWith(tc.paths)))
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+
+			got := Classify(doc)
+			if len(got.Entities) != 1 {
+				t.Fatalf("entities = %+v, excluded = %+v", got.Entities, got.Excluded)
+			}
+			c := got.Entities[0]
+			if c.Key != tc.wantKey {
+				t.Fatalf("key = %q, want %q", c.Key, tc.wantKey)
+			}
+			if kinds(c) != "action" {
+				t.Fatalf("kinds = %q, want action", kinds(c))
+			}
+			if c.Create == nil || c.Create.Method != tc.wantMethod {
+				t.Fatalf("the invocation must be in the create slot as %s, got %+v", tc.wantMethod, c.Create)
+			}
+			if c.Read != nil || c.Update != nil || c.Delete != nil || c.List != nil {
+				t.Fatalf("an action fills no other role: %+v", c)
+			}
+			if len(c.Extra) != 0 {
+				t.Fatalf("the invocation must not also be surplus: %+v", c.Extra)
+			}
+		})
 	}
 }
 
