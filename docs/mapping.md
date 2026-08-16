@@ -24,6 +24,23 @@ called out inline within the Request and Response cells.
 | 10 | Field omitted from the request returns as an empty value rather than absent, so null in config never matches the response. | POST, GET | Omitted entirely | `""`, `[]`, or `0` | `Optional + Computed`, or normalise empty → null in the read mapper | Apply one approach provider-wide. Watch Go `omitempty` dropping deliberately-empty values from the body. |
 | 11 | Collection is returned with members in an order unrelated to submission order. | POST, PATCH, GET | Accepted in authored order | Same members, arbitrary order | `SetAttribute` / `SetNestedAttribute` | Costs index addressing and duplicates; one unknown member marks the whole set unknown. Use `List` only if order is genuinely meaningful. |
 | 12 | Collection is returned containing server-injected members the caller never submitted. | POST, PATCH, GET | Caller's members accepted | Superset of what was written | `Optional + Computed` on the collection, or filter injected members in the read mapper | Removal semantics differ sharply. If injected members are indistinguishable from the caller's, `Optional + Computed` is the only safe option. |
+| 13 | Field carries one of several object shapes — a `oneOf`/`anyOf` — and the response holds whichever the server chose. | POST, PATCH, GET | One shape accepted | Exactly one shape returned | An object attribute carrying one nested attribute per variant | Computed throughout where nothing writes it. Where it is writable the variants are `Optional` and never `Computed`, with `resourcevalidator.Conflicting` over them — see the note below the table. |
+
+**Row 13, on why a variant is never `Optional + Computed`.** Terraform Core
+builds the proposed new state by taking a value from configuration where it is
+non-null and falling back to prior state otherwise. A variant that is
+`Computed` therefore survives its own removal from configuration, so switching
+from one variant to another leaves both set in the plan and the provider sends
+both. No config validator catches it: `Conflicting` and `ExactlyOneOf` read
+configuration, never the plan, and the configuration holds only the new
+variant. Row 3 records the same behaviour in general — removal from config is
+sticky — and a union is where it does real damage.
+
+A variant is named for the component its branch references, which is also what
+the SDK names its accessor after, so the two agree without either being told
+about the other. A branch that references no component names nothing on either
+side, and one of those refuses the whole union: half a union is a schema that
+cannot hold what the API returns.
 
 ## Entity operation sets
 

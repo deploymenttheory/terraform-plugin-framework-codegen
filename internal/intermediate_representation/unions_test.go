@@ -37,7 +37,7 @@ func TestUnit_ResolveUnion_CollapsesScalarBranches(t *testing.T) {
 		{"an object branch", &specmodel.Schema{OneOf: []*specmodel.Schema{
 			{Type: "string"},
 			{Type: "object", Properties: []specmodel.Property{{Name: "x", Schema: &specmodel.Schema{Type: "string"}}}},
-		}}, "", "one attribute per variant"},
+		}}, "", "writable position"},
 	} {
 		tree := buildTree(&specmodel.Schema{Type: "object", Properties: []specmodel.Property{
 			{Name: "field", Schema: testCase.schema},
@@ -58,6 +58,93 @@ func TestUnit_ResolveUnion_CollapsesScalarBranches(t *testing.T) {
 		}
 		if got.Kind != testCase.wantKind {
 			t.Errorf("%s: kind = %q, want %q", testCase.name, got.Kind, testCase.wantKind)
+		}
+	}
+}
+
+// unionSpec declares a read-only object whose owner is a union of two named
+// components, and a payload whose second branch names nothing.
+const unionSpec = `openapi: 3.0.3
+info: {title: U, version: "1"}
+paths: {}
+components:
+  schemas:
+    simple-user:
+      type: object
+      properties:
+        login: {type: string}
+    Enterprise:
+      type: object
+      properties:
+        slug: {type: string}
+    deployment:
+      type: object
+      properties:
+        task: {type: string}
+    thing:
+      type: object
+      properties:
+        owner:
+          oneOf:
+            - $ref: '#/components/schemas/simple-user'
+            - $ref: '#/components/schemas/Enterprise'
+        payload:
+          oneOf:
+            - $ref: '#/components/schemas/deployment'
+            - type: object
+              properties:
+                loose: {type: string}
+`
+
+// A union with an object branch is served where nothing writes it: one
+// attribute per branch, named for the component the branch references, which
+// is also what the SDK names its composed-type accessor after.
+func TestUnit_DeriveUnion_ReadOnlyYieldsAnAttributePerVariant(t *testing.T) {
+	// Read side only: nothing writes the union, which is the case the
+	// generated datasources and list elements are made of.
+	tree := buildTree(nil, mustLoad(t, unionSpec).Schemas["thing"], nil, false)
+
+	owner := attribute(t, tree, "owner")
+	if owner.Unsupported {
+		t.Fatalf("a read-only union refused: %s", owner.UnsupportedReason)
+	}
+	if owner.Kind != TypeObject || owner.Nested == nil {
+		t.Fatalf("owner = %+v, want an object carrying its variants", owner)
+	}
+
+	// The component names the variant, and the wire name keeps the
+	// component's own spelling so the drafted accessor lands on
+	// GetSimpleUser rather than on a name nothing in the SDK answers to.
+	for _, want := range []struct{ name, wire, field string }{
+		{"simple_user", "simple-user", "login"},
+		{"enterprise", "Enterprise", "slug"},
+	} {
+		v := attribute(t, owner.Nested, want.name)
+		if v.WireName != want.wire {
+			t.Errorf("%s wire name = %q, want %q", want.name, v.WireName, want.wire)
+		}
+		if v.Kind != TypeObject || v.ComputedOptionalRequired != Computed {
+			t.Errorf("%s = %+v, want a computed object", want.name, v)
+		}
+		if a := attribute(t, v.Nested, want.field); a.Kind != TypeString {
+			t.Errorf("%s does not carry its branch's own %s: %+v", want.name, want.field, a)
+		}
+	}
+}
+
+// A variant the document does not name has no attribute to become, and half
+// a union is a schema that cannot hold what the API returns. The refusal says
+// how many branches are anonymous so the document can be corrected.
+func TestUnit_DeriveUnion_AnAnonymousBranchRefusesTheWholeUnion(t *testing.T) {
+	tree := buildTree(nil, mustLoad(t, unionSpec).Schemas["thing"], nil, false)
+
+	payload := attribute(t, tree, "payload")
+	if !payload.Unsupported {
+		t.Fatalf("an anonymous branch derived: %+v", payload)
+	}
+	for _, want := range []string{"2 branches", "1 name no component"} {
+		if !strings.Contains(payload.UnsupportedReason, want) {
+			t.Errorf("reason does not state %q: %s", want, payload.UnsupportedReason)
 		}
 	}
 }

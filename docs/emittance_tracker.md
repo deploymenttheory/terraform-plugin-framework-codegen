@@ -26,7 +26,7 @@ were measured against, so a stale row is visible as a stale row.
 
 ## Measurement of 2026-08-15
 
-Toolkit at `list-identity-from-item-key`. Every tree regenerates byte-identical
+Toolkit at `union-variant-attributes`. Every tree regenerates byte-identical
 under `tfpfgen provider verify`.
 
 | Document | Provider tree files | Resources | Data sources | List resources | Actions | Builds |
@@ -41,9 +41,20 @@ Refusals, by the stage that refused:
 | Document | Total | Derivation | Binding | Emission |
 |---|---|---|---|---|
 | Jamf Pro | 255 | 102 | 136 | 17 |
-| GitHub | 839 | 330 | 494 | 15 |
-| ThousandEyes | 342 | 87 | 251 | 4 |
-| Total | 1436 | 519 | 881 | 36 |
+| GitHub | 909 | 270 | 624 | 15 |
+| ThousandEyes | 343 | 88 | 251 | 4 |
+| Total | 1507 | 460 | 1011 | 36 |
+
+A refusal total is not a score, and this one rose while the toolkit refused
+less. Unions now derive as one attribute per variant, which brings each
+variant's own fields into the tree: GitHub's derivation refusals fall by 60 as
+the unions clear, and its binding refusals rise by 130 as the fields those
+variants carry are each resolved against the SDK and some deleted. More schema
+is served, so more of it is individually accounted for.
+
+Union refusals, which is the number this measures against, fall from 90 to 13
+— all 13 in GitHub, 11 for a branch referencing no component and 2 for a union
+in a writable position.
 
 Binding refuses most of what is refused, and that is the expected shape: it is
 the only stage that resolves a drafted mapping against the SDK that was

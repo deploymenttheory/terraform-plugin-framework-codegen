@@ -146,6 +146,17 @@ sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
   `Classification.LookupByKey`, and set only where the entity is not also a
   resource: a resource's by-id datasource is its normal companion, not a
   key lookup.
+- **variant attribute** — one branch of a `oneOf`/`anyOf`, emitted as a
+  nested attribute under the union's own attribute, which becomes an object
+  carrying one variant per branch. It is the shape the generated SDK already
+  has: a union arrives there as a composed type with a field and an accessor
+  per branch. A variant takes its name from the component the branch
+  references and keeps that component's spelling as its wire name, which is
+  what makes the drafted accessor land on the one the SDK generated. A branch
+  referencing no component refuses the whole union rather than half of it.
+  Variants are computed wherever nothing writes the union; a writable union is
+  not served yet, because `Optional + Computed` cannot express mutual
+  exclusion — see `docs/mapping.md` row 13.
 - **resource identity schema** — the separate object terraform stores
   beside a resource's state to name the remote object it stands for
   (`resource.ResourceWithIdentity`). It is the addressing attributes plus
