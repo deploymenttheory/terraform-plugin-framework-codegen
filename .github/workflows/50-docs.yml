@@ -3,8 +3,7 @@ name: 50-docs
 # Registry documentation as a fixed point: terraform fmt the examples,
 # regenerate docs/ from the provider schema with tfplugindocs, and open a PR
 # when anything moved. The provider name comes from the repository name,
-# which the registry requires to be terraform-provider-<name>. Adapted from
-# the v1 template's generate-docs chain.
+# which the registry requires to be terraform-provider-<name>.
 on:
   workflow_call:
     inputs:

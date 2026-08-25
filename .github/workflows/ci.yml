@@ -1,7 +1,7 @@
 name: ci
 
-# Push and pull_request both — main is actually measured. v1's verify
-# workflow was PR-only, which is how a red main went unnoticed for days.
+# Push and pull_request both, so main is measured directly rather than only
+# through the pull requests that merge into it.
 #
 # Scoped to codegen: this workflow builds and tests the Go toolkit, so a
 # change that touches only docs, the reusable pipeline workflows, the

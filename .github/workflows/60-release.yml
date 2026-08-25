@@ -2,11 +2,10 @@ name: 60-release
 
 # Publishes a provider release to the Terraform Registry: preflight the tree,
 # import the signing key, and let goreleaser build, sign and upload. The
-# proven chain from the v1 template's provider-release and
-# tf-registry-goreleaser workflows (themselves from HashiCorp's release
-# workflow), folded into one numbered workflow_call. The caller wires the
-# v* tag-push trigger and passes GPG_PRIVATE_KEY (and its passphrase, if the
-# key has one) — the registry requires signed checksums.
+# chain follows HashiCorp's provider release workflow, folded into one
+# numbered workflow_call. The caller wires the v* tag-push trigger and passes
+# GPG_PRIVATE_KEY (and its passphrase, if the key has one) — the registry
+# requires signed checksums.
 on:
   workflow_call:
     inputs:

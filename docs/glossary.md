@@ -2,9 +2,10 @@
 
 Every domain term in this toolkit was individually approved by the
 repository owner. A term not in this table may not be introduced — present
-options to the owner first, record the decision here, then use it. The v1
-vocabulary (probe, cassette, recording, scenario, blueprint, draft, merge,
-sweep, doctor, facts, rehearsal, curate) is retired and may not reappear.
+options to the owner first, record the decision here, then use it. The
+retired terms cassette, blueprint and doctor may not reappear. Retirement
+covers the domain noun and not the English word: code that records a reason,
+a binder that drafts a call or a loader that merges `allOf` is prose.
 
 | Term | Meaning |
 |---|---|

@@ -2,7 +2,7 @@
 
 This document names the parts of the toolkit other repositories depend on.
 Changing anything here is a contract change: it follows semver, and a
-breaking change cuts a new major tag rather than moving `v1`.
+breaking change cuts a new major tag rather than moving `v0`.
 
 ## The pipeline
 

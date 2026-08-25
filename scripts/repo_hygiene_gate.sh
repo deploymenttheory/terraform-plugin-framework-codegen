@@ -9,7 +9,8 @@
 #      internal/vendor_openapi_specs, which exists to hold vendors'
 #      documents and so must name them. A document is not a default.
 #   3. No committed binaries: nothing tracked outside testdata/ may exceed
-#      1 MiB. Test inputs are exempt: a vendor's OpenAPI document is
+#      1 MiB. A build of the tool at the repo root is a commit, not a
+#      release. Test inputs are exempt: a vendor's OpenAPI document is
 #      committed on purpose and runs to megabytes.
 set -euo pipefail
 failed=0
