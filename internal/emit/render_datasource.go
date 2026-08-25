@@ -218,6 +218,10 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	d.StateBody = stateBody
 	stateImports := newImportSet(e.pc.Module)
 	stateImports.add("", "context")
+	stateImports.add("", "github.com/hashicorp/terraform-plugin-framework/diag")
+	if strings.Contains(stateBody, "types.") {
+		stateImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
+	}
 	if strings.Contains(stateBody, "convert.") {
 		stateImports.add("", e.pc.Module+"/internal/services/common/convert")
 	}
@@ -379,6 +383,10 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	d.MapItemBody = mapBody
 	stateImports := newImportSet(e.pc.Module)
 	stateImports.add("", "context")
+	stateImports.add("", "github.com/hashicorp/terraform-plugin-framework/diag")
+	if strings.Contains(mapBody, "types.") {
+		stateImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
+	}
 	if strings.Contains(mapBody, "convert.") {
 		stateImports.add("", e.pc.Module+"/internal/services/common/convert")
 	}
@@ -441,6 +449,9 @@ func (e *serviceRenderer) datasourceModelImports(models string) string {
 	imports.add("", "github.com/hashicorp/terraform-plugin-framework-timeouts/datasource/timeouts")
 	if strings.Contains(models, "types.") {
 		imports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
+	}
+	if strings.Contains(models, "attr.") {
+		imports.add("", "github.com/hashicorp/terraform-plugin-framework/attr")
 	}
 	return imports.render()
 }

@@ -224,12 +224,12 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 		"func (v kindRequiredWhenValidator) ValidateResource(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {",
 		// required-when: settings required when kind == advanced
 		`data.Kind.ValueString() == "advanced"`,
-		"data.Settings == nil",
+		"data.Settings.IsNull()",
 		// valid-when: rules valid only under kind == advanced
 		`data.Kind.ValueString() != "advanced"`,
-		"if data.Rules != nil {",
+		"if !data.Rules.IsNull() {",
 		// valid-configuration: port only under basic, settings only under advanced
-		`if data.Settings != nil && data.Kind.ValueString() != "advanced" {`,
+		`if !data.Settings.IsNull() && data.Kind.ValueString() != "advanced" {`,
 		`if !data.Port.IsNull() && data.Kind.ValueString() != "basic" {`,
 	} {
 		if !strings.Contains(validators, want) {

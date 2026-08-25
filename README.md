@@ -1,26 +1,40 @@
 # terraform-plugin-framework-codegen
 
-A community CLI tool `tfpfgen` that turns an OpenAPI 3 document into a complete
+A community CLI tool `tfpfgen` that turns an OpenAPI 3 document into a complete, opinionated,
 [terraform-plugin-framework](https://github.com/hashicorp/terraform-plugin-framework)
-provider, zero touch. An operator supplies a spec URL and API credentials;
-everything else cascades through a GitHub Actions pipeline:
+terraform provider, zero touch. An operator supplies a spec source URL and API credentials for discovery;
+everything else is cascaded through a GitHub Actions pipeline:
 
 ```
 config validate → spec import → audit run → spec revise → sdk generate → provider generate → verify → PR
 ```
 
-An OpenAPI document tells you what an API's fields are *called*. It does not
-tell you what makes a Terraform provider actually work. So the pipeline
-**audits** the live API, minimum and maximum valid configuration, field
-dependencies, value-conditional rules and records **observations**. Those
-observations become proposed **corrections** to the spec (RFC-6902 operations
+It's highly recconmended that you use this tool against a lab instance as the 
+generation workflow creates, updates and delete real resources within your 
+instance by design as part of the generation workflow.
+
+## Why
+
+Building terraform providers is a valuable but time consuming exercise. From
+experience there are lots of challenges with building them. Including: a lack
+of provider building experience, a lack of golang experience, api behaviours
+rarely match documentation with frequent inconsistencies to varying degrees
+of impact, api's frequently change and so too then does a terraform provider.
+
+So how do we solve for this ? Realistically the only way to have a fighting
+chance is if the vendor provides and maintains an OpenApi3 specification
+of their api. However while an OpenAPI document tells you what an API's fields are *called*. It does not
+tell you what makes a Terraform provider actually work. So this tools workflow pipeline
+**audits** the live API, attempts to identify minimum and maximum valid configuration, inter-field
+dependencies, value-conditional rules and records them as **observations**. Those
+observations then become proposed **corrections** to the Open Api spec if needed (RFC-6902 operations
 with a justification and a pointer to the observation that proves them). The
-**revised spec** is the single source of truth from which both the SDK and the
+**revised spec** is then used as a single source of truth from which both the SDK and the
 provider are generated. Every generated file is exactly that, generated;
-human judgment enters only as data: `tfpfgen.yaml`, accepted corrections, and
+human judgment enters only as configuratioin options within: `tfpfgen.yaml`, accepted corrections, and
 audit inputs.
 
-Generation happens twice, and the second half is what makes the output real.
+Generation happens in two phases, and the second half is what makes the output usable.
 An SDK is generated first, by the configured backend. The provider is then
 generated against that SDK and resolved onto it with `go/types`: every call
 expression, accessor and model type is checked against the SDK that was

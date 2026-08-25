@@ -7,17 +7,20 @@ package {{ .Package }}
 {{ if .LookupByKey }}
 // MapRemoteStateToDatasource maps the API's answer onto the framework
 // model. A nil field in the answer becomes a null attribute.
-func MapRemoteStateToDatasource(ctx context.Context, data *{{ .Type }}Model, remote {{ .ReadModel }}) {
+func MapRemoteStateToDatasource(ctx context.Context, data *{{ .Type }}Model, remote {{ .ReadModel }}) diag.Diagnostics {
+	var diags diag.Diagnostics
 	_ = ctx
 	if remote == nil {
-		return
+		return diags
 	}
-{{ .StateBody }}}
+{{ .StateBody }}	return diags
+}
 {{ else }}
 // mapItem maps one listed element onto the item model.
-func mapItem(ctx context.Context, remote {{ .ElementType }}) {{ .ItemModel }} {
+func mapItem(ctx context.Context, remote {{ .ElementType }}) ({{ .ItemModel }}, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	_ = ctx
 	item := {{ .ItemModel }}{}
-{{ .MapItemBody }}	return item
+{{ .MapItemBody }}	return item, diags
 }
 {{ end }}

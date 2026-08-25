@@ -25,7 +25,7 @@ func TestUnit_ConstructNested_SkipsAnUnwritableBlock(t *testing.T) {
 				Access: sdkbind.FieldAccess{Get: "GetRoles", Set: "SetRoles", SDKType: "[]models.Roleable"}},
 			children: []node{readOnlyChild},
 		}
-		lines, _, err := constructNested(n, "data", "body", "roles", 1)
+		lines, _, err := constructNested(newModelNamer("Entity", []node{n}), "roles", n, "data", "body", "roles", 1)
 		if err != nil {
 			t.Fatalf("%s: constructNested: %v", kind, err)
 		}
@@ -53,7 +53,7 @@ func TestUnit_ConstructNested_BuildsTheWriteType(t *testing.T) {
 		children: []node{child},
 	}
 
-	lines, _, err := constructNested(n, "data", "body", "services", 1)
+	lines, _, err := constructNested(newModelNamer("Entity", []node{n}), "services", n, "data", "body", "services", 1)
 	if err != nil {
 		t.Fatalf("constructNested: %v", err)
 	}

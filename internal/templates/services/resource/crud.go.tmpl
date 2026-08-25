@@ -46,7 +46,10 @@ func (r *{{ .Type }}) Create(ctx context.Context, req resource.CreateRequest, re
 		return
 	}
 {{ if .CreateMapsResponse }}
-	MapRemoteStateToTerraform(ctx, &data, {{ .CreatePlan.Payload }})
+	resp.Diagnostics.Append(MapRemoteStateToTerraform(ctx, &data, {{ .CreatePlan.Payload }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 {{ end }}
 {{- if .Singleton }}
 	data.ID = types.StringValue({{ .SingletonID | printf "%q" }})
@@ -89,7 +92,10 @@ func (r *{{ .Type }}) Read(ctx context.Context, req resource.ReadRequest, resp *
 		return
 	}
 
-	MapRemoteStateToTerraform(ctx, &data, {{ .ReadPlan.Payload }})
+	resp.Diagnostics.Append(MapRemoteStateToTerraform(ctx, &data, {{ .ReadPlan.Payload }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 {{- if .Singleton }}
 	data.ID = types.StringValue({{ .SingletonID | printf "%q" }})
 {{- end }}
@@ -141,7 +147,10 @@ func (r *{{ .Type }}) Update(ctx context.Context, req resource.UpdateRequest, re
 		return
 	}
 {{ if .UpdateMapsResponse }}
-	MapRemoteStateToTerraform(ctx, &data, {{ .UpdatePlan.Payload }})
+	resp.Diagnostics.Append(MapRemoteStateToTerraform(ctx, &data, {{ .UpdatePlan.Payload }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 {{ else if .UpdateParamCopies }}
 	{{ .UpdateParamCopies }}
 {{ end }}
