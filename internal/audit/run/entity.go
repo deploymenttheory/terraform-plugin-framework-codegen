@@ -247,10 +247,14 @@ func (r *runner) resolveCreated(ctx context.Context, ent *entityState, entity st
 	if !ok || rec.minimalBody == nil {
 		return "", blockedError{reason: fmt.Sprintf("no created %s object exists and its entity has no create recipe", entity)}
 	}
-	obj, _, err := r.createObject(ctx, ent, rec, rec.minimalBody)
+	// Healed like any other create: a parent the document understates is
+	// refused the same way its own create was, and without the loop every
+	// child of it blocks on a refusal the loop can read.
+	rr, err := r.adjustCreateRecording(ctx, ent, rec, cloneAnyMap(rec.minimalBody), "", false)
 	if err != nil {
 		return "", err
 	}
+	obj := rr.obj
 	if obj == nil {
 		return "", blockedError{reason: fmt.Sprintf("re-creating the %s parent object was refused", entity)}
 	}

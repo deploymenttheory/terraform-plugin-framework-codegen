@@ -33,7 +33,7 @@ func (r *runner) adjustUpdate(ctx context.Context, ent *entityState, step *plan.
 		if res.ok() || !res.refused() {
 			return res, sent, nil
 		}
-		if !r.applyAdjustment(ctx, ent, body, res, applied) {
+		if !r.applyAdjustment(ctx, ent, body, res, applied, true) {
 			return res, sent, nil
 		}
 	}
