@@ -103,6 +103,23 @@ var (
 	reNotValid  = regexp.MustCompile(`field (\S+) is not valid(?: when (\w+)=(\S+))?`)
 	reReference = regexp.MustCompile(`field (\S+) must reference an existing (\w+)`)
 	reRequired  = regexp.MustCompile(`field (\S+) is required(?: when (\w+)=(\S+))?`)
+
+	// reFieldNamed matches a refusal that names its field mid-sentence and
+	// states the complaint after a separator, which is how a framework that
+	// wraps its validation errors in prose reports them.
+	reFieldNamed = regexp.MustCompile(`(?i)\bfield\s+([\w.\[\]-]+)\s*[:\-]\s*(.+)`)
+	// reTheRequired matches the bare English an API writes when it names the
+	// field it wanted and nothing else about it.
+	reTheRequired = regexp.MustCompile(`(?i)\bthe\s+([\w.]+)\s+(?:is|are)\s+required\b`)
+	// reFieldSaid matches the field-prefixed refusal a validation framework
+	// emits: the property it rejected, a colon, then its complaint. The field
+	// is a dotted path when the API validates a nested request object, and the
+	// last segment is the name the request body spells.
+	reFieldSaid = regexp.MustCompile(`^\s*([\w.\[\]-]+)\s*:\s*(.+)$`)
+	// reAbsent matches the complaints that mean "you sent nothing for this",
+	// as distinct from "what you sent is wrong": only absence is healed by
+	// adding a value.
+	reAbsent = regexp.MustCompile(`(?i)\b(?:is required|is mandatory|must not be (?:null|empty|blank)|may not be (?:null|empty|blank)|cannot be (?:null|empty|blank)|must be (?:provided|specified|present)|missing)\b`)
 )
 
 // classifyRefusal reads a 4xx response body and decides what to change. The
@@ -126,7 +143,30 @@ func classifyRefusal(res *httpResult) refusalAction {
 	if m := reRequired.FindStringSubmatch(msg); m != nil {
 		return refusalAction{kind: actAdd, field: cleanField(m[1]), condGate: m[2], condVal: cleanField(m[3])}
 	}
+	if m := reFieldNamed.FindStringSubmatch(msg); m != nil && reAbsent.MatchString(m[2]) {
+		return refusalAction{kind: actAdd, field: leafField(m[1])}
+	}
+	if m := reTheRequired.FindStringSubmatch(msg); m != nil {
+		return refusalAction{kind: actAdd, field: leafField(m[1])}
+	}
+	// Checked last, because it is the loosest: any sentence at all can be read
+	// as "<field>: <complaint>", so it must not pre-empt a grammar that names
+	// two fields or a gate.
+	if m := reFieldSaid.FindStringSubmatch(msg); m != nil && reAbsent.MatchString(m[2]) {
+		return refusalAction{kind: actAdd, field: leafField(m[1])}
+	}
 	return refusalAction{kind: actStop}
+}
+
+// leafField is the last segment of a dotted refusal path, which is the name
+// the request body spells: an API that validates its own nested request object
+// reports "endpoint.url" for a property the document declares as "url".
+func leafField(s string) string {
+	s = cleanField(s)
+	if i := strings.LastIndex(s, "."); i >= 0 {
+		s = s[i+1:]
+	}
+	return s
 }
 
 // refusalMessage pulls the human-legible sentence out of whichever error
@@ -137,6 +177,12 @@ func classifyRefusal(res *httpResult) refusalAction {
 func refusalMessage(raw []byte) string {
 	var m map[string]any
 	if err := json.Unmarshal(raw, &m); err == nil {
+		// The listed complaints come first: an envelope that carries both
+		// names the field it rejected in the list and only summarises it in
+		// the sentence, and a summary heals nothing.
+		if listed := firstListed(m); listed != "" {
+			return listed
+		}
 		for _, k := range []string{"detail", "message", "error_description", "errorMessage", "error", "title"} {
 			if s, ok := m[k].(string); ok && s != "" {
 				return s
@@ -145,6 +191,54 @@ func refusalMessage(raw []byte) string {
 		return ""
 	}
 	return string(raw)
+}
+
+// firstListed pulls the first complaint out of an envelope that carries them
+// as a list rather than a sentence, which is how an API that validates every
+// property before answering reports what it rejected.
+//
+// Only the first is read: one refusal heals one field, and the next attempt
+// re-reads whatever the API then complains about, so taking them one at a time
+// converges without assuming the list is ordered or complete.
+func firstListed(m map[string]any) string {
+	for _, k := range []string{"errors", "messages", "details", "errorMessages", "validationErrors"} {
+		listed, ok := m[k].([]any)
+		if !ok {
+			continue
+		}
+		for _, entry := range listed {
+			switch e := entry.(type) {
+			case string:
+				if e != "" {
+					return e
+				}
+			case map[string]any:
+				// An entry that names the field separately is spelled back
+				// into the "<field>: <complaint>" shape the grammar reads.
+				field, _ := firstString(e, "field", "name", "property", "path", "pointer", "code")
+				complaint, found := firstString(e, "message", "defaultMessage", "detail", "description", "error", "reason")
+				if !found {
+					continue
+				}
+				if field != "" {
+					return field + ": " + complaint
+				}
+				return complaint
+			}
+		}
+	}
+	return ""
+}
+
+// firstString returns the first of the named keys the map carries as a
+// non-empty string, and whether it found one.
+func firstString(m map[string]any, keys ...string) (string, bool) {
+	for _, k := range keys {
+		if s, ok := m[k].(string); ok && s != "" {
+			return s, true
+		}
+	}
+	return "", false
 }
 
 // cleanField strips the trailing punctuation a refusal sentence might carry
@@ -162,6 +256,17 @@ func cleanField(s string) string {
 // for a per-enum-value create — so cycling searches the other enum fields for a
 // body the API accepts without abandoning what the step is exercising.
 func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any, held string) (adjustResult, error) {
+	return r.adjustCreateRecording(ctx, ent, rec, body, held, true)
+}
+
+// adjustCreateRecording is adjustCreate, and also says whether the healing it
+// does is a fact about the entity.
+//
+// Re-creating a parent so a child has something to address is a means to an
+// end: the fields that create needs are facts about the parent, and the
+// parent's own steps record them against the parent. Recorded here they would
+// be attributed to whichever child happened to need the parent first.
+func (r *runner) adjustCreateRecording(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any, held string, record bool) (adjustResult, error) {
 	applied := map[string]bool{}
 	var last *httpResult
 	adjusted := false
@@ -177,7 +282,7 @@ func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entity
 		if res == nil || !res.refused() {
 			return adjustResult{res: res, body: body, adjusted: adjusted, gaveUp: true}, nil
 		}
-		if r.applyAdjustment(ctx, ent, body, res, applied) {
+		if r.applyAdjustment(ctx, ent, body, res, applied, record) {
 			adjusted = true
 			continue
 		}
@@ -204,7 +309,7 @@ func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entity
 // already present, a remove of a field already absent, a nested "a.b" target
 // it cannot synthesise, or a borrow that returns the same value all stop the
 // loop rather than spin it.
-func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map[string]any, res *httpResult, applied map[string]bool) bool {
+func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map[string]any, res *httpResult, applied map[string]bool, record bool) bool {
 	act := classifyRefusal(res)
 	switch act.kind {
 	case actAdd:
@@ -213,7 +318,9 @@ func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map
 		}
 		body[act.field] = r.synthField(ent, act.field)
 		applied["a:"+act.field] = true
-		r.recordAdjustAdd(ent, act.field, act.condGate, act.condVal, res.excerpt)
+		if record {
+			r.recordAdjustAdd(ent, act.field, act.condGate, act.condVal, res.excerpt)
+		}
 		return true
 	case actRequires:
 		if strings.Contains(act.field, ".") || applied["a:"+act.field] || present(body, act.field) {
@@ -221,7 +328,9 @@ func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map
 		}
 		body[act.field] = r.synthField(ent, act.field)
 		applied["a:"+act.field] = true
-		r.recordAdjustment(ent, infer.AdjustRequires, act.field, act.trigger, "")
+		if record {
+			r.recordAdjustment(ent, infer.AdjustRequires, act.field, act.trigger, "")
+		}
 		return true
 	case actRemove:
 		if !present(body, act.field) || applied["r:"+act.field] {
@@ -229,7 +338,9 @@ func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map
 		}
 		delete(body, act.field)
 		applied["r:"+act.field] = true
-		r.recordAdjustment(ent, infer.AdjustRemove, act.field, act.condGate, act.condVal)
+		if record {
+			r.recordAdjustment(ent, infer.AdjustRemove, act.field, act.condGate, act.condVal)
+		}
 		return true
 	case actBorrow:
 		id, ok := r.borrow(ctx, ent, act.collection)
@@ -238,7 +349,9 @@ func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map
 		}
 		body[act.field] = id
 		applied["b:"+act.field] = true
-		r.recordAdjustment(ent, infer.AdjustBorrow, act.field, act.collection, "")
+		if record {
+			r.recordAdjustment(ent, infer.AdjustBorrow, act.field, act.collection, "")
+		}
 		return true
 	default:
 		return false

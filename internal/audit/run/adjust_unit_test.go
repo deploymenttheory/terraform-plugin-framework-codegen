@@ -63,6 +63,56 @@ func TestUnit_Adjust_ClassifyRefusalGrammar(t *testing.T) {
 		{"plain-text", `field interval is required`, actAdd, "interval", ""},
 		{"empty", ``, actStop, "", ""},
 		{"unparseable", `{"weird":true}`, actStop, "", ""},
+
+		// An envelope that lists its complaints rather than stating one, and
+		// spells the rejected property as a path into its own request object.
+		{"listed-strings",
+			`{"errors":["endpoint.streamEndpointUrl: Endpoint URL cannot be blank"],"httpStatus":"400 BAD_REQUEST"}`,
+			actAdd, "streamEndpointUrl", ""},
+		{"listed-objects",
+			`{"errors":[{"field":"interval","message":"must not be null"}]}`,
+			actAdd, "interval", ""},
+		{"listed-under-messages",
+			`{"messages":["interval: is required"]}`,
+			actAdd, "interval", ""},
+		{"listed-empty", `{"errors":[]}`, actStop, "", ""},
+		// A field-prefixed complaint about the value that was sent, rather
+		// than about its absence: adding a value cannot heal it.
+		{"field-said-not-absence",
+			`{"errors":["interval: must be one of 60, 120, 300"]}`,
+			actStop, "", ""},
+		// A sentence that merely contains a colon is not a field complaint.
+		{"prose-with-colon",
+			`{"detail":"Validation failed: the request was rejected"}`,
+			actStop, "", ""},
+		// Both shapes at once: the sentence only summarises, the list names
+		// the field, so the list is what the loop must act on.
+		{"summary-beside-listed",
+			`{"detail":"There are invalid or missing fields","errors":[{"field":"testName","message":"must not be null"}],"title":"Request validation failed"}`,
+			actAdd, "testName", ""},
+		// A validation framework's own error object, which spells the field
+		// as a code and the complaint as a default message.
+		{"listed-code-and-default-message",
+			`{"errors":[{"code":"name","defaultMessage":"must not be blank"}]}`,
+			actAdd, "name", ""},
+		// A refusal that names its field mid-sentence, wrapped in prose.
+		{"field-named-in-prose",
+			`{"title":"There were some errors in your request, please correct them before trying again. Error in field roleName : must not be null."}`,
+			actAdd, "roleName", ""},
+		// The same shape, but complaining about the value rather than its
+		// absence: adding one cannot heal it.
+		{"field-named-in-prose-not-absence",
+			`{"title":"Error in field roleName : must be one of a, b"}`,
+			actStop, "", ""},
+		// Bare English naming only the field it wanted.
+		{"the-field-is-required",
+			`{"title":"The loginAccountGroup is required"}`,
+			actAdd, "loginAccountGroup", ""},
+		// "field X is required" still wins over the bare-English reading, so
+		// the field is X and not the word "field".
+		{"field-keyword-beats-bare-english",
+			`{"detail":"the field interval is required"}`,
+			actAdd, "interval", ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -211,5 +261,31 @@ func TestUnit_Borrow_CollectionPaths(t *testing.T) {
 	}
 	if got := collectionPaths("agents"); len(got) != 1 || got[0] != "/agents" {
 		t.Errorf("collectionPaths(agents) = %v", got)
+	}
+}
+
+// TestUnit_Adjust_ParentRecreationHealsWithoutRecording pins the split
+// between healing and recording. A parent re-created so a child has something
+// to address must still be healed — otherwise every child of an understated
+// parent blocks — but the fields it needed are facts about the parent, and
+// recording them here would attribute them to the child that asked.
+func TestUnit_Adjust_ParentRecreationHealsWithoutRecording(t *testing.T) {
+	t.Parallel()
+
+	refusal := &httpResult{body: []byte(
+		`{"detail":"There are invalid or missing fields","errors":[{"field":"testName","message":"must not be null"}]}`)}
+
+	r := &runner{opts: Options{NamePrefix: "tfpfgen"}}
+	ent := &entityState{plan: &plan.EntityPlan{Entity: "scheduled_test"}}
+	body := map[string]any{}
+
+	if !r.applyAdjustment(context.Background(), ent, body, refusal, map[string]bool{}, false) {
+		t.Fatal("a listed field complaint did not heal the body")
+	}
+	if _, added := body["testName"]; !added {
+		t.Errorf("the named field was not added: %#v", body)
+	}
+	if len(r.adjustments) != 0 {
+		t.Errorf("a silent heal recorded %d adjustment(s)", len(r.adjustments))
 	}
 }
