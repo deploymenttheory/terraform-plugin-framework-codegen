@@ -50,9 +50,12 @@ Set by the repository owner; not open to per-PR relitigating:
 - **Never commit generated pilot output or binaries.** Generated provider trees
   live in provider repos; this repo holds only the machinery and its fixtures.
 - **Every verb keeps its exit-code contract** documented in `docs/contract.md`.
-- **Vendor OpenAPI specs are pinned by hash and fetched, not committed.**
-  A pin names bytes, so a document that moves under it fails loudly rather than
-  quietly changing what a test means.
+- **Vendor OpenAPI specs are committed and embedded.** The third-party
+  documents the tests parse live in `internal/vendor_openapi_specs`, taken as
+  the vendor published them. They are test input and nothing else: never
+  imported, corrected, revised or generated from. Replacing one is deliberate
+  — download over the file, then update the version and count its consumers
+  assert, which exist so a replacement is noticed rather than absorbed.
 - **No hand-written file over 800 lines.** Decompose by protocol instead.
   Generated and fixture code under `testdata/` is exempt — it is produced,
   not maintained, and reproducing it is cheap.

@@ -3,7 +3,6 @@ package intermediate_representation
 import (
 	"bytes"
 	"encoding/json"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,16 +13,8 @@ import (
 
 // The inline fixtures prove each rule in isolation; this proves derivation
 // against a real vendor document, where the shapes were not chosen to pass.
-// Skips when the pinned document is not cached and cannot be fetched,
-// unless TFPFGEN_VENDOR_OPENAPI_SPECS_REQUIRED says the machine must be honest — the
-// same split every pinned-document test in this repo follows.
 func TestIntegration_IntermediateRepresentation_DerivesAPinnedVendorDocument(t *testing.T) {
-	path := vendor_openapi_specs.SpecPath(t, "thousandeyes")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading %s: %v", path, err)
-	}
-	doc, err := specmodel.Load(data)
+	doc, err := specmodel.Load(vendor_openapi_specs.ThousandEyes())
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
