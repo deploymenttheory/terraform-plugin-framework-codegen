@@ -3,222 +3,161 @@
 Where the work stands, what it actually achieved, and what is left.
 
 Every number here is reproducible — see [Verifying these numbers](#verifying-these-numbers).
+Counts of what the toolkit emits and refuses are not repeated here;
+`docs/emittance_tracker.md` is the one place they live.
 
 ---
 
 ## Read this first
 
-**All fifteen merged PRs improved *coverage*, not *correctness*.** Coverage is
-how much of a document generates at all. Correctness is whether what generates
-matches how the API really behaves — which is what `mapping.md` asks for and
-what `README.md` calls "the work in progress".
+The distinction this document turns on: **coverage** is how much of a document
+generates at all. **Correctness** is whether what generates matches how the API
+really behaves — what `docs/mapping.md` specifies and what `README.md` calls
+"the work in progress". They are not the same thing.
 
-They are not the same thing, and the second has not been started.
+**Correctness work has now started, and the offline half is largely done.**
+Constraint keywords parse, bounds and patterns become validators, `format:
+password` and `writeOnly` become `Sensitive`, `deprecated` becomes a
+`DeprecationMessage`, and a documented default fills the response. Every one of
+those was zero when this document was first written.
 
-**Coverage moved:**
+**The half that needs a live API has not started, and cannot yet.** No audit has
+ever run against any of the three pilots: all three revised specs contain zero
+`x-tfpfgen-*` extensions, and no scratch tree has an `audit/` or
+`spec/corrections/` directory. Every shape that depends on an observation —
+server defaults, immutability, normalisation, conditional validity — is
+unexercised, and the generated config validators along with them.
 
-| | start | now |
-|---|---|---|
-| thousandeyes | 505 | 344 |
-| github | 1200 | 937 |
-| jamfpro | 470 | 319 |
-| **total refusals** | **2175** | **1600 (−26%)** |
+### The presence census
 
-**Correctness did not, and is now numerically worse:**
-
-| | start | now |
-|---|---|---|
-| plain `optional` attributes | 2,221 | **3,216** |
-| `computed_optional` attributes | 64 | **65** |
-
-`docs/contract.md:168` states the intent plainly:
+The measure of the remaining gap. `docs/contract.md` states the intent:
 
 > `Optional` alone is the rare one. Most APIs answer with a value for every
 > field they accept … emitting it as `Optional` alone gives the practitioner a
 > perpetual diff.
 
-It is currently **49× more common** than `computed_optional`. Every attribute
-the coverage work recovered is another attribute with the wrong presence, so
-the coverage work made this number grow. That is not an argument against the
-coverage work — those attributes had to exist before they could be correct —
-but it is the reason the headline figure moved the wrong way.
+Counting `computed_optional_required` across every attribute tree of all three
+pilots, at `30b23ac` on 2026-08-25:
+
+| | optional | computed_optional | ratio |
+|---|---|---|---|
+| when first measured | 2,221 | 64 | 35× |
+| after the coverage work | 3,216 | 65 | 49× |
+| now | 10,574 | 670 | **15.8×** |
+
+The absolute figures are not comparable across rows — union variants brought
+each branch's own fields into the tree, so there are far more attributes to
+count than there were. The ratio is the figure that means something, and it
+moved the right way for the first time: `x-tfpfgen-server-default` is still the
+thing that would close it, and only an audit produces one.
 
 ---
 
 ## What merged
 
-| PR | What | Measured effect |
-|---|---|---|
-| #72 | Realign vocabulary to terraform-plugin-codegen-spec; `internal/code` | byte-identical output |
-| #73 | One `schemaType` record replacing nine per-type switches | byte-identical; −114 lines |
-| #74 | `client_options` block; env prefix `TF_<P>_` → `<P>_` | +2 files/provider |
-| #75 | `unsupported.json` — the refusal report | made 2,175 refusals visible |
-| #76 | `RequiresReplace` from the create ∖ update body difference | +20 emitted |
-| #77 | Stop counting a pruned binding as a loss when the attribute survives | −350 |
-| #78 | Bridge `DateOnly`, `[]time.Time`, `[]byte` | −64 |
-| #79 | `CLAUDE.md`: comments say what and why | rule only |
-| #80 | Resolve SDK runtime types; interfaces that construct themselves | reasons corrected |
-| #81 | Bridge `uuid.UUID`, path params parsed with a diagnostic | −42, +8 entities |
-| #82 | `additionalProperties` as a typed map, via kiota's `additionalData` bag | −48 |
-| #83 | Collapse a union whose branches are all scalars | −17 |
-| #84 | 800-line ceiling covers hand-written code only | rule only |
-| #85 | Bridge a field the SDK reads and writes as different types | −55, +3 entities |
-| #86 | Repair `main` (mangled test file, one over the ceiling) | CI green |
+`#72`–`#86` are the coverage work, described in the git history. Since then:
 
-`unsupported.json` (#75) is the instrument the rest depends on. It is
-manifest-covered and drift-gated, so a refusal appearing or disappearing shows
-up as a line in a generation pull request rather than in a CI log nobody reads.
+| PR | What |
+|---|---|
+| #87 | `docs/mapping.md` committed — the specification for all correctness work |
+| #88 | Integer path parameters parsed with a diagnostic |
+| #89 | List-resource test content type |
+| #90 | List-resource addressing schema |
+| #91 | Schema constraint keywords parse (`maxLength`, `uniqueItems`, `minimum`, …) |
+| #92 | Update the ThousandEyes test document |
+| #93 | `Sensitive` and `DeprecationMessage` emitted |
+| #94 | Constraint validators emitted from declared bounds |
+| #95 | Point the GitHub test document at an immutable ref |
+| #96 | A documented default fills the response |
+| #97 | `prune.go` decomposed |
+| #98 | Comment sweep |
+| #99 | A list resource requires a resource to match |
+| #100 | Resource identity schema |
+| #101 | Fixtures respect `format` |
+| #102 | Generated tests assert what the provider actually produces |
+| #103 | `docs/mapping.md` gains the entity operation sets |
+| #104 | A lone write is an invocation, whichever method spells it |
+| #105 | A datasource filters on the fields of the objects it lists |
+| #106 | A filter survives only where the field it selects on does |
+| #107 | `docs/emittance_tracker.md` — counts live in one file |
+| #108 | A list result names the object by the key the resource is addressed by |
+| #109 | A union becomes one attribute per variant where nothing writes it |
+| #110 | `CLAUDE.md` and `README.md` restated against the tree they describe |
+| #112 | Update the ThousandEyes test document again |
+| #113 | The test documents named `vendor_openapi_specs` rather than *corpus* |
+| #114 | Those documents committed and embedded, retiring the fetch-and-pin scheme |
 
 ---
 
-## The objective that has not been started
+## Where correctness stands
 
-`mapping.md` lists twelve API behaviours and the terraform-plugin-framework
-shape each demands. **Detection** is whether the audit can observe the
-behaviour; **expression** is whether the generator can emit the shape.
+`docs/mapping.md` lists thirteen API behaviours and the shape each demands.
+**Detection** is whether the audit can observe the behaviour; **expression** is
+whether the generator can emit the shape. Measured in the generated trees, not
+in this repo's source — an emitter builds most of what it emits.
 
 | # | Behaviour | Detect | Express |
 |---|---|---|---|
 | 1 | Accepted on write, never returned | ✗ no observation kind | ✗ `WriteOnly` never emitted |
 | 2 | Never accepted, always returned | ~ `writable=false`, `serverForced`, `volatile` | ~ Computed yes; `UseStateForUnknown` still only on `id` |
-| 3 | Optional in, always returned | ✓ `serverDefault` | ~ presence yes; modifier no |
-| 4 | Returned obfuscated (`****`) | ✗ misreads as `serverForced` | ✗ **`Sensitive` never emitted on an entity attribute** |
-| 5 | Valid only when a sibling equals a value | ✓ `validWhen` | ~ `ValidateConfig` yes; plan modifier no |
+| 3 | Optional in, always returned | ✓ `serverDefault` | ~ a *documented* default now fills the response; an observed one needs the audit |
+| 4 | Returned obfuscated (`****`) | ✗ misreads as `serverForced` | ✓ `Sensitive` emitted from `format: password` / `writeOnly` |
+| 5 | Valid only when a sibling equals a value | ✓ `validWhen` | ~ emitter exists; **no tree contains one**, because no audit has run |
 | 6 | Settable at create, refused after | ✓ `immutable` | ~ `RequiresReplace` yes; `…IfConfigured` no |
 | 7 | Rejected at create, settable on update | ✗ | ✗ `construct.go` still discards `isCreate` |
 | 8 | Echoed back semantically equivalent | ✓ `normalisation` | ✗ no custom type, no `SemanticEquals` |
-| 9 | Silently clamped or truncated | ~ enums only | ✗ no constraint validators at all |
+| 9 | Silently clamped or truncated | ~ enums only | ✓ bounds, lengths and patterns become validators |
 | 10 | Omitted → returns `""`/`[]`/`0` | ~ lands as `serverDefault` | ✗ no policy either way |
-| 11 | Collection returned in arbitrary order | ✗ | ✗ **`SetAttribute` appears nowhere** |
+| 11 | Collection returned in arbitrary order | ✗ | ✗ `uniqueItems` now parses, but `SetAttribute` is never emitted |
 | 12 | Collection returns server-injected members | ✗ | ✗ |
+| 13 | Field carries one of several object shapes | n/a structural | ~ one attribute per variant where nothing writes it; a writable union is refused |
 
-Verified against current `main`: `Sensitive` 0, `SetAttribute` 0,
-`SetNestedAttribute` 0, `SemanticEquals` 0, `RequiresReplaceIfConfigured` 0,
-`Default` 0, `DeprecationMessage` 0, `LengthBetween` 0, `RegexMatches` 0,
-`int64validator.Between` 0 — counting non-test, non-provider-block occurrences.
+Emitted symbol counts across the three trees at `30b23ac`, 2026-08-25, every
+one of which was zero when this document was first written:
+`Sensitive` 53, `DeprecationMessage` 171, `int64validator.Between` 180,
+`UTF8LengthBetween` 42, `LengthAtLeast`/`LengthAtMost` 138, `RegexMatches` 21,
+`Default` 18.
 
-`specmodel.Schema` still does not parse `writeOnly`, `nullable`, `deprecated`,
-`uniqueItems`, `maxLength`, `minLength`, `maxItems`, `minItems`. Several rows
-are blocked on that parse alone.
+Still zero, and each is a row above: `WriteOnly`, `SetAttribute`,
+`SetNestedAttribute`, `SemanticEquals`, `RequiresReplaceIfConfigured`, and any
+config validator at all.
 
-### The cheapest correctness work, and it needs no credentials
-
-Rows 4, 9 and 11 are partly answerable from the document, offline:
-
-- **46 Jamf Pro properties declare `format: password` or `writeOnly: true`** and
-  every one generates as a plain, visible attribute today. That is a
-  security-visible defect the spec already tells us about.
-- `uniqueItems: true` → `SetAttribute` (row 11). ThousandEyes declares it 28
-  times.
-- `maximum` / `minimum` / `maxLength` / `minLength` / `pattern` → plan-time
-  validators (row 9). ~370 declarations across the three.
-
-### The expensive part, and it needs a live API
-
-Rows 1, 2, 3, 10 and 12 need the audit to have run. **It never has, against any
-of the three pilots** — there is no `audit/` directory and no
-`spec/corrections/` in any scratch tree. The 3,216 vs 65 figure is waiting on
-`x-tfpfgen-server-default`, which only an audit produces.
+`specmodel.Schema` now parses `writeOnly`, `deprecated`, `uniqueItems`,
+`maxLength`, `minLength`, `maxItems` and `minItems`. Only `nullable` remains
+unparsed.
 
 ---
 
 ## Outstanding coverage work
 
-Ordered by measured value per unit of effort, which is **not** the original plan
-order.
+Refusals grouped by what the reason says, across all three pilots. The stage
+split and the totals are in `docs/emittance_tracker.md`.
 
-### 1. Path parameter type mismatch — 250 refusals
+| Family | Share | Note |
+|---|---|---|
+| SDK model lacks the accessor | 729 | The biggest by far, and the one to characterise next. Mostly fields the generated model genuinely lacks rather than a naming bug. |
+| Object with no declared shape | 139 | `additionalProperties: true`, or neither properties nor `additionalProperties`. The vendor documented nothing — arguably a vendor-facing report rather than codegen work. |
+| Singleton at a fixed path with no operation set | 125 | One object at a fixed path that fits no operation set. |
+| Collection shape unsupported | 105 | Arrays of arrays, maps of objects. |
+| Read/write type mismatch | 89 | What survives after #85. |
+| Nothing survives to read back or send | 88 | Every field of the entity was refused, so the entity goes too. |
+| Terraform reserved name at a schema root | 17 | |
 
-```
-path parameter "hook_id" is string in the schema but int32 in the generated
-SDK, and no conversion between them is safe without a parse that can fail
-```
+Two families from the previous handoff have all but closed: the path-parameter
+type mismatch is down from 250 refusals to 1 (#88), and union refusals from 90
+to 13 (#109) — eleven of those thirteen a branch referencing no component.
 
-The mechanism already exists. #81 added `paramDeclaration`
-(`internal/emit/render_mapping.go`), which emits a fallible parse guarded by an
-attribute diagnostic:
+### Gap 2b — file transfer
 
-```go
-providerId, providerIdErr := uuid.Parse(data.ProviderID.ValueString())
-if providerIdErr != nil {
-    resp.Diagnostics.AddAttributeError(path.Root("provider_id"),
-        "Invalid providerId", providerIdErr.Error())
-    return
-}
-```
-
-This is the same shape with `strconv.ParseInt`. Every method a declaration lands
-in — Create, Read, Update, Delete, Invoke — carries a `resp` with `Diagnostics`
-and returns nothing, so it compiles in all of them. **Largest single win left,
-and the cheapest.**
-
-### 2. Gap 8 — SDK model lacks the getter, 442 refusals
-
-The biggest family. It could not be characterised honestly until #77 removed the
-benign removals from the signal; it can be now. Of an earlier sample, only 24 of
-752 had a did-you-mean near match, so these are mostly fields the model
-genuinely lacks rather than a naming bug. Needs measuring before designing.
-
-One known defect to fold in: a synthesised `id`'s removal reason is sometimes
-taken from a neighbouring field — `attribute "id"` carrying `carries no
-GetActorIdEscaped to read "actor_id"`.
-
-### 3. Gap 7 — document declares no response schema, 225 refusals
-
-Not a toolkit defect: the vendor declares a 200 with no schema, so there is
-nothing to map into state. Agreed approach is a new audit observation recording
-the observed response shape, compiled into a correction that adds the schema.
-
-**Blocked on naming** — see below. Also needs quirkserver ground truth: a shape
-whose document declares no response schema while the server returns one.
-
-### 4. Gap 9 — object unions as one attribute per variant, 84 refusals
-
-kiota models an object union as a composed type with **one named accessor per
-branch**:
-
-```go
-type Commit_Commit_author struct {
-    emptyObject EmptyObjectable
-    simpleUser  SimpleUserable
-}
-func (m *Commit_Commit_author) GetSimpleUser() SimpleUserable
-```
-
-So the shape that fits is a nested object with one mutually-exclusive
-sub-attribute per variant, named from the SDK. This **inverts the usual
-derive-then-bind order** — the names come from the SDK, not the document — which
-is why it is its own piece of work.
-
-Do not merge the branches into one flat object. That was tried and measured:
-GitHub's refusals went 967 → 2172, because the merged fields do not exist on the
-composed wrapper.
-
-Keep in reserve: a union at an *entity root* should become two resources. None
-of the 84 is at a root — all are nested attributes, some five levels deep — so
-splitting today would multiply entities combinatorially (one GitHub datasource
-would become 64).
-
-### 5. Gap 2b — file transfer, 13 refusals
-
-#80 fixed the lookups; the modelling is untouched. Agreed shape is `source` and
-`content_base64`, mutually exclusive via the existing
-`resourcevalidator.Conflicting` machinery, with a computed `content_base64` for
-downloads.
-
-Needs five things, which is why it was deferred: `multipart/form-data` parsing
-in `specmodel`; an IR flag for "this operation takes a file"; a construct idiom
-that is `AddOrReplacePart(name, contentType, content)` rather than field
-setters; the two attributes and their validator; and **a request adapter
-reachable from the resource** — `MultipartBody.SetRequestAdapter` needs one and
-generated services receive `*sdk.APIClient`, not the adapter.
-
-### 6. Smaller families
-
-`object with no declared shape` 140 (the vendor documented nothing — arguably a
-vendor-facing report, not codegen work), `SDK lacks the setter` 105,
-`read/write mismatch` 89 left after #85, `call shape unsupported` 58, `array
-shape` 57, `list element has no id` 48, `fits no kind` 47.
+`multipart/form-data`, untouched. Agreed shape is `source` and
+`content_base64`, mutually exclusive via `resourcevalidator.Conflicting`, with a
+computed `content_base64` for downloads. Needs five things, which is why it was
+deferred: `multipart/form-data` parsing in `specmodel`; an IR flag for "this
+operation takes a file"; a construct idiom that is `AddOrReplacePart(name,
+contentType, content)` rather than field setters; the two attributes and their
+validator; and **a request adapter reachable from the resource** —
+`MultipartBody.SetRequestAdapter` needs one and generated services receive
+`*sdk.APIClient`, not the adapter.
 
 ---
 
@@ -226,30 +165,19 @@ shape` 57, `list element has no id` 48, `fits no kind` 47.
 
 `CLAUDE.md` makes every domain term owner-approved. These block their gaps:
 
-- **Gap 7** — the observation kind, its `x-tfpfgen-*` extension key, and whether
-  it is eligible for `audit.auto_accept`.
-- **Gap 9** — how a variant sub-attribute is named. The SDK supplies a name
-  (`GetSimpleUser` → `simple_user`); whether the IR takes it from there or from
-  the document's `$ref` is the decision.
-- **mapping.md row 1** — `WriteOnly` plus an `..._version` Int64 trigger would be
-  the first generated attribute with no wire counterpart. Name and suffix.
-- **mapping.md row 8** — `x-tfpfgen-normalisation` and its value set.
-  `compile.go:114` already says this is an owner decision.
+- **The undeclared-response-schema observation** — its kind, its `x-tfpfgen-*`
+  key, and whether it is eligible for `audit.auto_accept`. The vendor declares a
+  200 with no schema, so there is nothing to map into state; the agreed approach
+  is an observation recording the shape the API actually returned. Also needs
+  quirkserver ground truth: a shape whose document declares no response schema
+  while the server returns one.
+- **`mapping.md` row 1** — `WriteOnly` plus an `..._version` Int64 trigger would
+  be the first generated attribute with no wire counterpart. Name and suffix.
+- **`mapping.md` row 8** — `x-tfpfgen-normalisation` and its value set.
+  `internal/spec/revise/compile.go:116` still refuses for want of it.
 
-`mapping.md` itself lives at `~/Desktop/mapping.md` and is **not in the repo**.
-It is the specification for all of the correctness work and should be committed.
-
----
-
-## Still queued
-
-**The comment sweep.** `CLAUDE.md` now requires comments to say what and why and
-nothing else. The existing tree has not been swept, and that includes comments
-written during #72–#86 — several carry counts from a particular run, which is
-exactly what the rule forbids.
-
-**`internal/sdkbind/prune.go` is at 799 lines**, one under the ceiling it is
-still held to. The next change to it fails the gate.
+Settled since this list was written: variant sub-attribute naming (#109, now in
+the glossary as **variant attribute**), and `docs/mapping.md` is committed.
 
 ---
 
@@ -258,48 +186,47 @@ still held to. The next change to it fails the gate.
 **Check what the SDK already decided before designing from the document.**
 Three premise failures in one session, all the same shape:
 
-- *Typed maps* — the plan assumed the SDK carries a Go map. kiota emits **zero**
-  `map[string]string` across all three SDKs; it generates a model whose only
-  field is `additionalData map[string]any`. 2,397 such models exist.
+- *Typed maps* — the plan assumed the SDK carries a Go map. kiota emits no
+  `map[string]string` at all; it generates a model whose only field is
+  `additionalData map[string]any`.
 - *Discriminated unions* — the plan assumed documents declare discriminators.
-  Twelve sites across three documents, and GitHub, which owns 102 of 103 union
-  refusals, has **none**.
+  GitHub, which owned almost every union refusal, declares none.
 - *Merging object unions* — argued for on the grounds that branches need naming
   and reads are ambiguous. Both false: kiota names every branch and exactly one
-  accessor is non-nil. Building it made GitHub's refusals worse by 1,205.
+  accessor is non-nil. Building it made GitHub's refusals sharply worse.
 
 In each case a five-minute `grep` of the generated SDK would have prevented
 hours. Measure the pilots before designing, not after.
+
+**Measure at the layer the claim is about.** An earlier revision of this file
+reported ten framework symbols as never emitted. Four of them were being emitted
+at the time. The census had been taken by grepping this repo for the symbol, and
+`internal/emit/render_constraints.go` spells a pair of bounds as
+`fmt.Sprintf("%sBetween(%v, %v)", …)` — so the string never appears here and
+always appears in the output. Grep the generated tree.
 
 **`postcheck` catches what unit tests do not.** Two bugs in #85 produced
 generated Go that did not compile, and neither would have surfaced in the
 toolkit's own suite: construction typed a slice from the *getter* while filling
 it with the *constructor's* values; and a nested block with no writable children
-rendered a loop declaring an index nothing read. The second predates #85 —
-entities carrying it were refused whole, so it had never reached a compiler.
+rendered a loop declaring an index nothing read.
 
-**Refusal counts going *up* can be correct.** #80 raised Jamf Pro by 5 and that
-was the point: one misleading entity-level refusal became several accurate
-field-level ones. Read the reasons, not just the total.
+**Refusal counts going *up* can be correct.** One misleading entity-level
+refusal becoming several accurate field-level ones raises the total and improves
+the toolkit. Read the reasons, not just the total.
 
 **Rebase rather than merge `main` into these branches.** #83 and #85 were merged
-the other way and both broke `main` — a test file joined mid-function so
-`internal/emit` would not compile, and a file left 12 lines over the ceiling.
-#86 repaired both.
+the other way and both broke `main`.
 
 ---
 
 ## Verifying these numbers
 
-Five local gates, all of which CI also runs. Run them **before** opening a PR —
-the hygiene gate and the linter each caught something CI would have:
+Five local gates, all of which CI also runs. `make check` is the first four:
 
 ```sh
-gofmt -l internal cmd            # must be empty
-bash scripts/repo_hygiene_gate.sh
-golangci-lint run
-go build ./... && go vet ./...
-go test ./...                    # coverage ≥90% total, ≥80% per core package
+make check                       # fmt, build, vet, coverage, hygiene
+golangci-lint run                # make check leaves this to CI
 ```
 
 Then the loop that matters, into `/Users/dafyddwatkins/GitHub/terraform/scratch/gen`:
@@ -311,12 +238,17 @@ tfpfgen provider generate     # postcheck: go mod tidy, go build, go vet
 tfpfgen provider verify       # must report no drift
 ```
 
-`provider generate` prints the refusal total. For the presence census behind the
-3,216 / 65 figure:
+The emitted-symbol census, which is a fact about the generated tree:
+
+```sh
+grep -rc 'Sensitive:' <pilot>/internal/services | grep -v ':0$'
+```
+
+The presence census:
 
 ```sh
 tfpfgen provider generate --print-ir > ir.json
-# then count computed_optional_required across every attribute tree
+# count computed_optional_required across every attribute tree
 ```
 
 **The report is the acceptance test.** Each piece of work should name the count
