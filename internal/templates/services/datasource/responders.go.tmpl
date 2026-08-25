@@ -9,7 +9,7 @@ package mocks
 {{ .MocksImports }}
 
 // responseMaximal is the wire shape of one fully-populated object.
-const responseMaximal = `{{ .ResponseMaximal }}`
+const responseMaximal = {{ .ResponseMaximal }}
 
 {{ if .CollectionURL }}
 // collectionURL is where the list operation answers.

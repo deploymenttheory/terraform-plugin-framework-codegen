@@ -324,6 +324,12 @@ type Attribute struct {
 	// Format is the document's declared format, which says what a string
 	// carries beyond being a string: "password", "date-time", "uuid".
 	Format string `json:"format,omitempty"`
+	// Example is the document's declared example value. Fixture derivation
+	// prefers it to an invented value: a document that declares no format
+	// often still states, through an example, that the value has a shape the
+	// API enforces — a URL, a dotted identifier — and an invented string of
+	// the right type is refused by the API for the wrong reason.
+	Example any `json:"example,omitempty"`
 	// WriteOnly marks a property the API accepts on write and never
 	// returns.
 	WriteOnly bool `json:"write_only,omitempty"`

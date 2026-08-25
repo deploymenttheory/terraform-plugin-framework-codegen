@@ -406,3 +406,99 @@ func TestUnit_Fixturespec_AFormatDecidesTheValueShape(t *testing.T) {
 		}
 	}
 }
+
+// exampleTree is one tree exercising the declared-example precedence: a
+// string the document describes only by example, one it also gives a format,
+// one it constrains to an enum, and numbers the document bounds.
+func exampleTree() *ir.AttributeTree {
+	minimum, maximum := 10.0, 1.0
+	return &ir.AttributeTree{
+		Attributes: []ir.Attribute{
+			{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required,
+				Example: "Production metrics stream"},
+			{Name: "endpoint_url", WireName: "endpointUrl", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required,
+				Example: "https://api.example.otel-collector"},
+			{Name: "created", WireName: "created", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+				Format: "date-time", Example: "whenever"},
+			{Name: "kind", WireName: "kind", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+				OneOf: []string{"basic", "advanced"}, Example: "advanced"},
+			{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional,
+				Minimum: &minimum},
+			{Name: "ratio", WireName: "ratio", Kind: ir.TypeFloat64, ComputedOptionalRequired: ir.Optional,
+				Maximum: &maximum},
+			{Name: "interval", WireName: "interval", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional,
+				Example: 300},
+		},
+	}
+}
+
+func TestUnit_Fixturespec_DeclaredExampleDisplacesTheInventedName(t *testing.T) {
+	s := Derive(exampleTree())
+
+	// A string the document describes only by example takes the example: an
+	// invented name is a string, and the API wanted a URL.
+	if got := valueByName(t, s, "endpoint_url").Scalar; got != "https://api.example.otel-collector" {
+		t.Errorf("endpoint_url = %#v, want the declared example", got)
+	}
+	// A declared format still wins: it synthesises a value of the right shape
+	// that keeps the prefix, which an example cannot.
+	if got := valueByName(t, s, "created").Scalar; got != "2026-01-02T03:04:05Z" {
+		t.Errorf("created = %#v, want the format-driven value", got)
+	}
+	// An enum still wins, being the stricter statement of the two.
+	if got := valueByName(t, s, "kind").Scalar; got != "basic" {
+		t.Errorf("kind = %#v, want the first enum value", got)
+	}
+}
+
+func TestUnit_Fixturespec_DeclaredBoundsMoveTheNumericConstant(t *testing.T) {
+	s := Derive(exampleTree())
+
+	// The constant sits below the declared minimum, so the value moves up to
+	// it; a value the document forbids is refused by the API, not asserted on.
+	if got := valueByName(t, s, "retries").Scalar; got != int64(10) {
+		t.Errorf("retries = %#v, want the declared minimum", got)
+	}
+	if got := valueByName(t, s, "ratio").Scalar; got != 1.0 {
+		t.Errorf("ratio = %#v, want the declared maximum", got)
+	}
+	if got := valueByName(t, s, "interval").Scalar; got != int64(300) {
+		t.Errorf("interval = %#v, want the declared example", got)
+	}
+}
+
+func TestUnit_Fixturespec_OneSynthesisedNameSurvivesForCleanup(t *testing.T) {
+	s := Derive(exampleTree())
+
+	// Every string in this tree could take an example, which would leave the
+	// created object carrying no prefix for the cleanup pass to match on.
+	if !anyPrefixed(s.Entries) {
+		t.Fatal("no derived string carries the name prefix")
+	}
+	// The first displaced name is the one restored, so the choice follows the
+	// document's order rather than the shape of any one field.
+	if got := valueByName(t, s, "name").Scalar; got != NamePrefix+"name" {
+		t.Errorf("name = %#v, want the restored synthesised name", got)
+	}
+	// Restoring one name does not take back any other example.
+	if got := valueByName(t, s, "endpoint_url").Scalar; got != "https://api.example.otel-collector" {
+		t.Errorf("endpoint_url = %#v, want the declared example kept", got)
+	}
+}
+
+func TestUnit_Fixturespec_APrefixedStringSuppressesTheRestore(t *testing.T) {
+	tree := exampleTree()
+	// A string the document says nothing about already carries the prefix, so
+	// nothing needs restoring and every example stands.
+	tree.Attributes = append(tree.Attributes, ir.Attribute{
+		Name: "label", WireName: "label", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional,
+	})
+	s := Derive(tree)
+
+	if got := valueByName(t, s, "label").Scalar; got != NamePrefix+"label" {
+		t.Fatalf("label = %#v, want the synthesised name", got)
+	}
+	if got := valueByName(t, s, "name").Scalar; got != "Production metrics stream" {
+		t.Errorf("name = %#v, want the declared example kept", got)
+	}
+}

@@ -167,8 +167,50 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 		return false
 	}
 
+	p.settleCreateID(rb, read)
 	p.settleUpdateBody(rb, read)
 	return true
+}
+
+// settleCreateID finds the accessor a create response answers the id through
+// when that response is not the read model.
+//
+// A create that answers its own type still names the object it made; taking
+// the id from it is what lets the settling read address the object at all.
+func (p *pruner) settleCreateID(rb *ResourceBinding, read types.Type) {
+	if rb.Create == nil || rb.Create.ResponseType == "" || rb.Create.ResponseType == rb.ReadModel || read == nil {
+		return
+	}
+	var idAccess string
+	for i := range rb.Fields {
+		if rb.Fields[i].Attr == "id" {
+			idAccess = rb.Fields[i].Access.Get
+			break
+		}
+	}
+	if idAccess == "" {
+		return
+	}
+	created, err := p.resolveType(rb.Create.ResponseType)
+	if err != nil {
+		return
+	}
+	fromCreate, ok := methodOn(created, idAccess)
+	if !ok {
+		return
+	}
+	fromRead, ok := methodOn(read, idAccess)
+	if !ok {
+		return
+	}
+	// The same accessor on both, answering the same type: the id the state
+	// mapper already converts from the read is the id this takes from the
+	// create, so the conversion settled for one is right for the other.
+	if fromCreate.Results().Len() != 1 || fromRead.Results().Len() != 1 ||
+		!types.Identical(fromCreate.Results().At(0).Type(), fromRead.Results().At(0).Type()) {
+		return
+	}
+	rb.CreateIDAccess = idAccess
 }
 
 // settleUpdateBody gives the update its own request body where the create's

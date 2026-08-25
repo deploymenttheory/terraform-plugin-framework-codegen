@@ -328,3 +328,71 @@ func assertBound(t *testing.T, name string, got *int64, want int64) {
 		t.Errorf("%s = %d, want %d", name, *got, want)
 	}
 }
+
+// exampleSpec declares its example on a referenced schema rather than on the
+// property, which is where a document that names its types puts it.
+const exampleSpec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /streams:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Stream'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Stream'}
+  /streams/{streamId}:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Stream'}
+    patch:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Stream'}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Stream'}
+    delete:
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Stream:
+      type: object
+      properties:
+        endpointUrl: {$ref: '#/components/schemas/EndpointUrl'}
+        retries: {type: integer, format: int64, example: 300}
+        plain: {type: string}
+    EndpointUrl:
+      type: string
+      description: The URL data is sent to.
+      example: https://api.example.otel-collector
+`
+
+// TestUnit_Attribute_CarriesTheDeclaredExample proves the example survives
+// the reference it is declared behind, which is the only place the fixture
+// derivation can learn that a string is more than a string when the document
+// declares no format.
+func TestUnit_Attribute_CarriesTheDeclaredExample(t *testing.T) {
+	r := resourceByKey(t, mustDerive(t, exampleSpec, testConfig()), "stream")
+
+	if got := attribute(t, r.Schema, "endpoint_url").Example; got != "https://api.example.otel-collector" {
+		t.Errorf("Example = %#v, want the one declared on the referenced schema", got)
+	}
+	if got := attribute(t, r.Schema, "retries").Example; got != 300 {
+		t.Errorf("Example = %#v, want the declared number", got)
+	}
+	if got := attribute(t, r.Schema, "plain").Example; got != nil {
+		t.Errorf("a property declaring no example carries %#v", got)
+	}
+}
