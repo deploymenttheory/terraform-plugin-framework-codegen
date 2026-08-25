@@ -1,4 +1,4 @@
-package corpus
+package vendor_openapi_specs
 
 import (
 	"errors"
@@ -17,7 +17,7 @@ type TB interface {
 
 // Document returns the pinned document, or ends the test.
 //
-// Skipping when offline and failing when TFPFGEN_CORPUS_REQUIRED is set is a
+// Skipping when offline and failing when TFPFGEN_VENDOR_OPENAPI_SPECS_REQUIRED is set is a
 // deliberate split rather than a hedge. Failing always would turn a
 // developer's flaky connection into a red suite, which teaches people to
 // ignore red. Skipping always would let CI skip its way to green, which is a

@@ -1,4 +1,4 @@
-package corpus
+package vendor_openapi_specs
 
 // The cache layout, one directory per pinned document:
 //
