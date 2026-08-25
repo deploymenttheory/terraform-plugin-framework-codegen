@@ -5,7 +5,9 @@
 #      not maintained, and reproducing it is cheap.
 #   2. No pilot leakage: vendor names from proof APIs may not appear in
 #      non-test source; a general toolkit must not ship one vendor's
-#      constants as defaults. Pinned test inputs under testdata/ are exempt.
+#      constants as defaults. Test inputs are exempt -- testdata/, and
+#      internal/vendor_openapi_specs, which exists to hold vendors'
+#      documents and so must name them. A document is not a default.
 #   3. No committed binaries: nothing tracked outside testdata/ may exceed
 #      1 MiB. Test inputs are exempt: a vendor's OpenAPI document is
 #      committed on purpose and runs to megabytes.
@@ -22,6 +24,7 @@ done < <(git ls-files '*.go' | grep -v '^testdata/' | grep -v '/testdata/')
 
 pattern='thousandeyes|jamfpro|msgraph|graph\.microsoft'
 if hits="$(git ls-files '*.go' | grep -v '_test\.go$' | grep -v '^testdata/' | grep -v '/testdata/' \
+    | grep -v '^internal/vendor_openapi_specs/' \
     | xargs -r grep -lniE "$pattern" 2>/dev/null)"; then
   if [[ -n "$hits" ]]; then
     echo "repo_hygiene: pilot vendor names found in non-test source:" >&2
