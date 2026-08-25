@@ -127,6 +127,13 @@ type ResourceBinding struct {
 	Read   *Call  `json:"read,omitempty"`
 	Update *Call  `json:"update,omitempty"`
 	Delete *Call  `json:"delete,omitempty"`
+	// CreateIDAccess is the accessor the create response answers the new
+	// object's id through, set only when that response is a different type
+	// from the read model and still carries the id.
+	//
+	// Without it the id is known only to the response the create discards,
+	// and the settling read addresses the object by an empty string.
+	CreateIDAccess string `json:"create_id_access,omitempty"`
 	// ReadModel is the finished type expression fields are read from,
 	// e.g. "models.Tagable" or "sdk.Tag".
 	ReadModel string `json:"read_model,omitempty"`

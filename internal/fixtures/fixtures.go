@@ -73,6 +73,12 @@ type Entry struct {
 	// Nested are the field values of an object attribute, or of the one
 	// element a list of objects carries.
 	Nested []Entry
+
+	// synthesised is the prefixed name this entry would carry had the
+	// document declared no example, and is empty unless the example is what
+	// displaced it. The prefix guard restores it when nothing else in the
+	// entity carries the prefix.
+	synthesised string
 }
 
 // Omission is one attribute that has no fixture value, and why.
@@ -111,7 +117,53 @@ func Derive(tree *ir.AttributeTree) Fixture {
 	}
 	s.Entries, s.Omissions = deriveTree(tree, nil)
 	s.applyVariant(tree)
+	s.keepOnePrefixed()
 	return s
+}
+
+// keepOnePrefixed restores one synthesised name when preferring declared
+// examples has left the entity with no prefixed string at all.
+//
+// The audit's cleanup contract matches a live object by any one of its string
+// fields carrying the prefix, so one is enough — and an entity whose every
+// string is an example is otherwise indistinguishable from an object the
+// toolkit did not create, which the prefix pass must never delete.
+func (s *Fixture) keepOnePrefixed() {
+	if len(s.Entries) == 0 || anyPrefixed(s.Entries) {
+		return
+	}
+	// The first displaced name, in attribute-tree order, so the choice is a
+	// function of the document rather than of which field happens to be
+	// nameable.
+	restoreFirstSynthesised(s.Entries)
+}
+
+// anyPrefixed reports whether any scalar in the tree carries the prefix.
+func anyPrefixed(values []Entry) bool {
+	for _, v := range values {
+		if s, ok := v.Scalar.(string); ok && strings.HasPrefix(s, NamePrefix) {
+			return true
+		}
+		if anyPrefixed(v.Nested) {
+			return true
+		}
+	}
+	return false
+}
+
+// restoreFirstSynthesised puts back the first entry's invented name and
+// reports whether it found one to put back.
+func restoreFirstSynthesised(values []Entry) bool {
+	for i := range values {
+		if values[i].synthesised != "" {
+			values[i].Scalar = values[i].synthesised
+			return true
+		}
+		if restoreFirstSynthesised(values[i].Nested) {
+			return true
+		}
+	}
+	return false
 }
 
 // applyVariant reads the tree's conditional-edge facts and, when the entity is
@@ -328,9 +380,9 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			v.Nested = nested
 			skips = append(skips, nestedSkips...)
 		case a.Kind == ir.TypeList:
-			v.Scalar = scalarFor(a.ElementType, a, at)
+			v.Scalar, v.synthesised = scalarFor(a.ElementType, a, at)
 		default:
-			v.Scalar = scalarFor(a.Kind, a, at)
+			v.Scalar, v.synthesised = scalarFor(a.Kind, a, at)
 		}
 		values = append(values, v)
 	}
@@ -364,27 +416,76 @@ func unifyByWire(values []Entry) {
 // declares values, format-driven when it declares what the string holds,
 // type-driven otherwise. A plain string carries the test prefix and the
 // attribute path so no two attributes share a value.
-func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) any {
+func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) (any, string) {
 	switch kind {
 	case ir.TypeBool:
-		return true
+		if b, ok := a.Example.(bool); ok {
+			return b, ""
+		}
+		return true, ""
 	case ir.TypeInt64:
-		return int64(7)
+		return int64(boundedNumber(a, 7)), ""
 	case ir.TypeFloat64:
-		return 1.5
+		return boundedNumber(a, 1.5), ""
 	default:
 		if len(a.OneOf) > 0 {
-			return a.OneOf[0]
+			return a.OneOf[0], ""
 		}
 		if len(a.AdvisoryValues) > 0 {
-			return a.AdvisoryValues[0]
+			return a.AdvisoryValues[0], ""
 		}
 		name := NamePrefix + strings.ReplaceAll(strings.Join(path, "-"), "_", "-")
 		if formatted, ok := formatValue(a.Format, name); ok {
-			return formatted
+			return formatted, ""
 		}
-		return name
+		// The document declared no format, so the invented name is the only
+		// thing saying what the value looks like — and it says "a string",
+		// which an API that wanted a URL refuses. An example is the vendor's
+		// own statement of a value that is accepted, so it wins; the name it
+		// displaces is kept for the prefix guard.
+		if example, ok := a.Example.(string); ok && example != "" {
+			return example, name
+		}
+		return name, ""
 	}
+}
+
+// boundedNumber is fallback moved inside whatever range the document
+// declares, preferring a declared example that the same range admits.
+//
+// A constant is refused by the API when the property declares a minimum above
+// it or a maximum below it, and that refusal names the constant rather than
+// the field it came from.
+func boundedNumber(a ir.Attribute, fallback float64) float64 {
+	value := fallback
+	if example, ok := numeric(a.Example); ok {
+		value = example
+	}
+	if a.Minimum != nil && value < *a.Minimum {
+		value = *a.Minimum
+	}
+	if a.Maximum != nil && value > *a.Maximum {
+		value = *a.Maximum
+	}
+	return value
+}
+
+// numeric reads a document-declared number, which decodes as any of Go's
+// numeric kinds depending on how it was spelled.
+func numeric(value any) (float64, bool) {
+	switch n := value.(type) {
+	case float64:
+		return n, true
+	case float32:
+		return float64(n), true
+	case int:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	case uint64:
+		return float64(n), true
+	}
+	return 0, false
 }
 
 // ValueForSDKType is the fixture value a generated SDK's own type demands,

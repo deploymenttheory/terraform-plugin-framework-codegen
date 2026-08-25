@@ -459,7 +459,7 @@ func (e *serviceRenderer) datasourceModelImports(models string) string {
 // datasourceMocks fills the responder context.
 func (e *serviceRenderer) datasourceMocks(d *datasourceData, ds *ir.Datasource, spec fixtures.Fixture) {
 	d.RegistryName = ds.Names.TerraformType + ".data"
-	d.ResponseMaximal = string(spec.WireJSON(fixtures.ResponseMaximal))
+	d.ResponseMaximal = goStringLiteral(string(spec.WireJSON(fixtures.ResponseMaximal)))
 	d.ListPayload = listPayloadExpr(ds.ListEnvelopeKey, "[]map[string]any{object()}")
 	if ds.Operations.List != nil {
 		// A parent-scoped collection is requested with its addressing

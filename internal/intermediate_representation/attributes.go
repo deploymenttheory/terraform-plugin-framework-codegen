@@ -36,7 +36,11 @@ type flat struct {
 	// an attribute is inferred.
 	description string
 	enum        []any
-	required    map[string]bool
+	// example is the document's declared example value. It is the vendor's
+	// own statement of a value the API accepts, which is the only thing a
+	// document says about a string whose shape it otherwise leaves to prose.
+	example  any
+	required map[string]bool
 	// properties preserves encounter order — document order first, allOf
 	// branches after — with the first declaration of a name winning.
 	properties []specmodel.Property
@@ -121,6 +125,9 @@ func flatten(schema *specmodel.Schema) flat {
 		}
 		if flattened.enum == nil {
 			flattened.enum = schema.Enum
+		}
+		if flattened.example == nil {
+			flattened.example = schema.Example
 		}
 		for _, name := range schema.Required {
 			flattened.required[name] = true
@@ -456,6 +463,7 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 	// extra. writeOnly is the exception — only a request schema can declare
 	// it, so a response-only attribute could never carry it anyway.
 	attribute.Format = flatPrimary.format
+	attribute.Example = flatPrimary.example
 	attribute.WriteOnly = flatCreate.writeOnly
 	attribute.Deprecated = flatCreate.deprecated || flatRead.deprecated
 	attribute.UniqueItems = flatPrimary.uniqueItems

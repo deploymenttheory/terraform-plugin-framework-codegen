@@ -51,6 +51,9 @@ func (r *{{ .Type }}) Create(ctx context.Context, req resource.CreateRequest, re
 		return
 	}
 {{ end }}
+{{- if .CreateIDFromResponse }}
+	{{ .CreateIDFromResponse }}
+{{- end }}
 {{- if .Singleton }}
 	data.ID = types.StringValue({{ .SingletonID | printf "%q" }})
 {{- end }}
@@ -58,6 +61,11 @@ func (r *{{ .Type }}) Create(ctx context.Context, req resource.CreateRequest, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{ if .IdentitySets }}
+{{ .IdentitySets }}	if resp.Diagnostics.HasError() {
+		return
+	}
+{{ end }}
 
 	readReq := resource.ReadRequest{State: resp.State, ProviderMeta: req.ProviderMeta}
 	opts := crud.ReadWithRetryOptions{Operation: errors.OperationCreate, ResourceTypeName: ResourceName}
@@ -99,6 +107,11 @@ func (r *{{ .Type }}) Read(ctx context.Context, req resource.ReadRequest, resp *
 {{- if .Singleton }}
 	data.ID = types.StringValue({{ .SingletonID | printf "%q" }})
 {{- end }}
+{{ if .IdentitySets }}
+{{ .IdentitySets }}	if resp.Diagnostics.HasError() {
+		return
+	}
+{{ end }}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 

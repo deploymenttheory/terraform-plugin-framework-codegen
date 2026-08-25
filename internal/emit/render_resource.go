@@ -45,6 +45,10 @@ type resourceData struct {
 	// IdentityAttributes is the identity schema's attribute declarations,
 	// empty for a resource nothing lists.
 	IdentityAttributes string
+	// IdentitySets writes the identity beside the state. The framework
+	// refuses a create or read that declares an identity schema and leaves
+	// the identity unset, so the two are emitted together or not at all.
+	IdentitySets string
 
 	SchemaDescription string
 	SchemaAttributes  string
@@ -75,9 +79,12 @@ type resourceData struct {
 	UpdatePlan         callPlan
 	DeletePlan         callPlan
 	CreateMapsResponse bool
-	UpdateMapsResponse bool
-	UpdateParamCopies  string
-	MissingUpdate      bool
+	// CreateIDFromResponse assigns the new object's id from a create
+	// response that is not the read model, and so is not mapped wholesale.
+	CreateIDFromResponse string
+	UpdateMapsResponse   bool
+	UpdateParamCopies    string
+	MissingUpdate        bool
 
 	HasEC      bool
 	ECDuration string
@@ -248,6 +255,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 		if identity := resourceIdentity(r); len(identity) > 0 {
 			e.identities[r.Names.Key] = identity
 			d.IdentityAttributes = identitySchemaDecls(identity, 3)
+			d.IdentitySets = identitySetLines(identity, "data", 1)
 			imports.add("identityschema", "github.com/hashicorp/terraform-plugin-framework/resource/identityschema")
 		}
 	}
@@ -378,6 +386,24 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	if d.CreateMapsResponse {
 		createPayload = "created"
 	}
+	// The create answers a type of its own, so nothing maps it — but it
+	// still carries the id, and the settling read has no other way to
+	// address what was just made.
+	if !d.CreateMapsResponse && rb.CreateIDAccess != "" {
+		for _, n := range nodes {
+			if n.attr.Name != idAttributeName || n.fb == nil {
+				continue
+			}
+			fn, cerr := readConvert(n.fb)
+			if cerr != nil {
+				break
+			}
+			createPayload = "created"
+			d.CreateIDFromResponse = fmt.Sprintf("data.%s = convert.%s(created.%s())",
+				ir.GoName(idAttributeName), fn, rb.CreateIDAccess)
+			break
+		}
+	}
 	if d.CreatePlan, err = buildCallPlan(createCall, createPayload, nodes, "data", respDiagnostics()); err != nil {
 		return fmt.Errorf("create: %w", err)
 	}
@@ -423,6 +449,12 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 	}
 	if d.Singleton {
 		imports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
+	}
+	if d.IdentitySets != "" {
+		imports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
+	}
+	if d.CreateIDFromResponse != "" {
+		imports.add("", e.pc.Module+"/internal/services/common/convert")
 	}
 	e.addSDKImports(imports, d.CreatePlan.Assign, d.ReadPlan.Assign, d.DeletePlan.ClosureBody, d.UpdatePlan.Assign)
 	addPlanImports(imports, d.CreatePlan, d.ReadPlan, d.UpdatePlan, d.DeletePlan)
@@ -493,8 +525,8 @@ func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdk
 		return unrenderable("the read path %s declares no parameter segment for the mock to key on", r.Operations.Read.PathTemplate)
 	}
 	d.IDWire = idWire(rb.Fields)
-	d.ResponseMinimal = string(spec.WireJSON(fixtures.ResponseMinimal))
-	d.ResponseMaximal = string(spec.WireJSON(fixtures.ResponseMaximal))
+	d.ResponseMinimal = goStringLiteral(string(spec.WireJSON(fixtures.ResponseMinimal)))
+	d.ResponseMaximal = goStringLiteral(string(spec.WireJSON(fixtures.ResponseMaximal)))
 	d.CreateStatus = successStatus(r.Operations.Create, 201)
 	d.DeleteStatus = successStatus(r.Operations.Delete, 204)
 	d.HasDelete = true
@@ -535,6 +567,20 @@ func successStatus(op *ir.Operation, fallback int) int {
 const unitEndpoint = "https://unit.invalid"
 
 // mockURL is the literal URL one collection operation answers on.
+// goStringLiteral renders a value as a finished Go string literal, its
+// delimiters included, so a template embeds one expression rather than
+// wrapping a value in quotes it cannot reason about.
+//
+// A raw literal keeps multi-line wire JSON legible, but no escape exists
+// inside one, so a value carrying a backtick — a document's own example may —
+// is spelled as an interpreted literal instead of ending the literal early.
+func goStringLiteral(value string) string {
+	if !strings.Contains(value, "`") {
+		return "`" + value + "`"
+	}
+	return strconv.Quote(value)
+}
+
 func mockURL(pathTemplate string) string {
 	return unitEndpoint + pathTemplate
 }

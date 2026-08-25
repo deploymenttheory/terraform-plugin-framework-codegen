@@ -142,3 +142,19 @@ func identityModelFields(identity []identityAttribute) string {
 func identityValueType(kind ir.AttributeType) string {
 	return scalarSchemaType(kind).ValueType
 }
+
+// identitySetLines renders the statements that write a resource's identity
+// from its model, indented to depth.
+//
+// The framework requires a resource declaring an identity schema to answer
+// with the identity as well as the state: a create or read that leaves it
+// unset is refused as a provider fault, whatever the API did.
+func identitySetLines(identity []identityAttribute, model string, depth int) string {
+	indent := strings.Repeat("\t", depth)
+	var b strings.Builder
+	for _, attribute := range identity {
+		fmt.Fprintf(&b, "%sresp.Diagnostics.Append(resp.Identity.SetAttribute(ctx, path.Root(%q), %s.%s)...)\n",
+			indent, attribute.Name, model, ir.GoName(attribute.Name))
+	}
+	return b.String()
+}
