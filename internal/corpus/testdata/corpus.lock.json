@@ -14,12 +14,12 @@
     },
     "thousandeyes": {
       "mirrorUrl": "",
-      "operationCount": 326,
-      "pathCount": 207,
-      "pinnedAt": "2026-08-14T14:57:52.057286Z",
-      "sha256": "68e45bf31813e6115b060bf14a720ee017dc00103e963cc552813958d1d8b82d",
+      "operationCount": 327,
+      "pathCount": 208,
+      "pinnedAt": "2026-08-25T09:25:47.069601Z",
+      "sha256": "b33faf23c39f64e124149760cccbc78d149ccbd5a32c128b113ba2e2286bf014",
       "upstreamUrl": "https://pubhub.devnetcloud.com/media/000-v7-apis/docs/reference/unified-oas/api.yaml",
-      "version": "7.0.100"
+      "version": "7.0.102"
     }
   }
 }
