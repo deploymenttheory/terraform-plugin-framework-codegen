@@ -64,10 +64,10 @@ thing that would close it, and only an audit produces one.
 | #89 | List-resource test content type |
 | #90 | List-resource addressing schema |
 | #91 | Schema constraint keywords parse (`maxLength`, `uniqueItems`, `minimum`, …) |
-| #92 | Repin corpus document |
+| #92 | Update the ThousandEyes test document |
 | #93 | `Sensitive` and `DeprecationMessage` emitted |
 | #94 | Constraint validators emitted from declared bounds |
-| #95 | Corpus pinned to an immutable ref rather than a branch tip |
+| #95 | Point the GitHub test document at an immutable ref |
 | #96 | A documented default fills the response |
 | #97 | `prune.go` decomposed |
 | #98 | Comment sweep |
@@ -82,6 +82,10 @@ thing that would close it, and only an audit produces one.
 | #107 | `docs/emittance_tracker.md` — counts live in one file |
 | #108 | A list result names the object by the key the resource is addressed by |
 | #109 | A union becomes one attribute per variant where nothing writes it |
+| #110 | `CLAUDE.md` and `README.md` restated against the tree they describe |
+| #112 | Update the ThousandEyes test document again |
+| #113 | The test documents named `vendor_openapi_specs` rather than *corpus* |
+| #114 | Those documents committed and embedded, retiring the fetch-and-pin scheme |
 
 ---
 
