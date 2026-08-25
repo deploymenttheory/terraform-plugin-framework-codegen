@@ -268,6 +268,14 @@ func (derivation *deriver) resource(classification specmodel.Classification, nam
 	}
 	tree := buildTree(createBody, readBody, updateBody, classification.MissingUpdate)
 	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
+	// The audit may have found that the response spells this identifier
+	// differently from the path parameter that addresses it. Where it has,
+	// that name is the one the response can actually be read through.
+	if readFull != nil {
+		if named, ok := readFull.Extensions.IdentifierProperty(); ok {
+			keyParam = named
+		}
+	}
 	ensureID(tree, keyParam, keyType)
 	refuseReservedRootNames(tree)
 	readOperation := derivation.operation(classification.Read, OperationRead)

@@ -116,6 +116,12 @@ type Evidence struct {
 	// the list-response-shape finding. Only the structure is read; no value
 	// is stored on the observation.
 	ListBodies [][]byte
+	// IdentifierProperty is the response property the run found carrying the
+	// object's id, empty when no object was created or none matched. It is a
+	// fact about the response, not the document, which is the point: a path
+	// parameter and the body property naming the same identifier need not
+	// share a spelling.
+	IdentifierProperty string
 	// RejectsUnknownFields is the summary's caution flag for this entity:
 	// when the API rejects unknown body fields, a removal-based signal is
 	// weaker, because a refusal might have been about the unknown field.

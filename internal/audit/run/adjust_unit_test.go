@@ -289,3 +289,36 @@ func TestUnit_Adjust_ParentRecreationHealsWithoutRecording(t *testing.T) {
 		t.Errorf("a silent heal recorded %d adjustment(s)", len(r.adjustments))
 	}
 }
+
+// TestUnit_Evidence_TheIdentifyingPropertyIsFoundByValue pins how an entity
+// whose response spells its id differently from its path is identified: by
+// matching the id the run already learned against the body, never by name.
+func TestUnit_Evidence_TheIdentifyingPropertyIsFoundByValue(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		got  map[string]any
+		id   string
+		want string
+	}{
+		{"a plain id key wins outright",
+			map[string]any{"id": "7", "aid": "9"}, "9", "id"},
+		{"the property carrying the learned id",
+			map[string]any{"aid": "281474976717041", "accountGroupName": "x"}, "281474976717041", "aid"},
+		{"a number renders without a decimal point",
+			map[string]any{"roleId": float64(42)}, "42", "roleId"},
+		{"sorted, so one response names one property",
+			map[string]any{"bid": "5", "aid": "5"}, "5", "aid"},
+		{"no id learned names nothing",
+			map[string]any{"aid": "9"}, "", ""},
+		{"no property carries it",
+			map[string]any{"name": "x"}, "9", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := identifyingProperty(tc.got, tc.id); got != tc.want {
+				t.Errorf("identifyingProperty = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

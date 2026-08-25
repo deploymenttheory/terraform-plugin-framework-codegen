@@ -149,14 +149,12 @@ func jsonTypeOf(v any) string {
 
 // observeOmittedSamples records what a create's response answered for
 // every field its body did not send.
-func (r *runner) observeOmittedSamples(ent *entityState, sent, got map[string]any) {
+func (r *runner) observeOmittedSamples(ent *entityState, sent, got map[string]any, id string) {
 	if ent == nil || got == nil {
 		return
 	}
 	if ent.ev.idField == "" {
-		if v, ok := got["id"]; ok && v != nil {
-			ent.ev.idField = "id"
-		}
+		ent.ev.idField = identifyingProperty(got, id)
 	}
 	for k, v := range got {
 		if _, wasSent := sent[k]; wasSent || v == nil {
@@ -164,6 +162,35 @@ func (r *runner) observeOmittedSamples(ent *entityState, sent, got map[string]an
 		}
 		ent.ev.omitted[k] = append(ent.ev.omitted[k], v)
 	}
+}
+
+// identifyingProperty names the response property carrying the object's id:
+// the plain "id" key when the response has one, otherwise the property whose
+// value is the id the run already learned. Empty when neither answers.
+//
+// The run learns an id from a Location header or a self link as readily as
+// from a body key, so an API whose path says {id} and whose body says "aid"
+// is identified without either name having to match the other.
+func identifyingProperty(got map[string]any, id string) string {
+	if v, ok := got["id"]; ok && v != nil {
+		return "id"
+	}
+	if id == "" {
+		return ""
+	}
+	// Sorted, so one response always names the same property when two carry
+	// the same value.
+	keys := make([]string, 0, len(got))
+	for k := range got {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		if scalarString(got[k]) == id {
+			return k
+		}
+	}
+	return ""
 }
 
 // valuesFor is the per-attribute accumulator.

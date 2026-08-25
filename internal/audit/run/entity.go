@@ -65,11 +65,12 @@ func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
 
 	r.finalizeEvidence(ent)
 	r.evidence[ep.Entity] = &infer.Evidence{
-		Entity:            ep.Entity,
-		AcceptedBodies:    ent.ev.acceptedBodies,
-		ListBodies:        ent.ev.listBodies,
-		CombinedRefusals:  ent.ev.combinedRefusals,
-		ConditionalValues: ent.ev.conditionalValues,
+		Entity:             ep.Entity,
+		AcceptedBodies:     ent.ev.acceptedBodies,
+		ListBodies:         ent.ev.listBodies,
+		CombinedRefusals:   ent.ev.combinedRefusals,
+		ConditionalValues:  ent.ev.conditionalValues,
+		IdentifierProperty: ent.ev.idField,
 	}
 	r.summary.Entities = append(r.summary.Entities, EntityResult{
 		Entity: ep.Entity, Status: ent.status, Reason: ent.reason,
@@ -300,7 +301,7 @@ func (r *runner) createObject(ctx context.Context, ent *entityState, rec *entity
 		id := learnID(rec.entity, res)
 		r.ledger.resolve(seq, activityCreated, id, res.status)
 		r.summary.ObjectsCreated++
-		r.observeOmittedSamples(ent, resolved, res.object())
+		r.observeOmittedSamples(ent, resolved, res.object(), id)
 		if id == "" {
 			// The object exists but its id could not be learned from any known
 			// response shape. The prefix pass still deletes it, but nothing can

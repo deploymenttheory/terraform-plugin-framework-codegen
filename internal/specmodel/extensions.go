@@ -68,6 +68,11 @@ const (
 	// operation rather than the response schema because it exists precisely
 	// where the document's own list schema is wrong.
 	ExtListResponseShape = "x-tfpfgen-list-response-shape"
+	// ExtIdentifierProperty records, on a read operation, which response
+	// property carries the value the item path addresses the object by.
+	// A document whose path says {id} while its body spells the same
+	// identifier "aid" states the correspondence nowhere else.
+	ExtIdentifierProperty = "x-tfpfgen-identifier-property"
 )
 
 // The envelope spellings x-tfpfgen-list-response-shape admits.
@@ -169,6 +174,7 @@ var extensionShapes = map[string]func(n *yaml.Node, at string) (any, error){
 	ExtMutuallyExclusive:       extMutuallyExclusive,
 	ExtValidConfiguration:      extValidConfiguration,
 	ExtListResponseShape:       extListResponseShape,
+	ExtIdentifierProperty:      extNonEmptyString,
 }
 
 // parseExtensions collects and shape-checks a mapping node's x-tfpfgen-*
@@ -233,6 +239,15 @@ func extScalar(n *yaml.Node, at string) (any, error) {
 		return nil, fmt.Errorf("%s: %w", at, err)
 	}
 	return v, nil
+}
+
+// extNonEmptyString accepts a single non-empty string, for an extension whose
+// value names something in the document.
+func extNonEmptyString(n *yaml.Node, at string) (any, error) {
+	if n.Kind != yaml.ScalarNode || n.Value == "" {
+		return nil, fmt.Errorf("%s: must be a non-empty name, got %q", at, n.Value)
+	}
+	return n.Value, nil
 }
 
 // nodeKind names a YAML node kind for an error message.
@@ -517,6 +532,12 @@ func (e Extensions) ValidConfiguration() (ValidConfiguration, bool) {
 func (e Extensions) ListResponseShape() (ListResponseShape, bool) {
 	s, ok := e[ExtListResponseShape].(ListResponseShape)
 	return s, ok
+}
+
+// IdentifierProperty reads x-tfpfgen-identifier-property.
+func (e Extensions) IdentifierProperty() (string, bool) {
+	name, ok := e[ExtIdentifierProperty].(string)
+	return name, ok
 }
 
 // EventualConsistency reads x-tfpfgen-eventual-consistency.
