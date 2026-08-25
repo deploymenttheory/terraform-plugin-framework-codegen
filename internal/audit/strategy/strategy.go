@@ -24,8 +24,7 @@
 // requiresField, mutuallyExclusive, validWhen) are working identifiers, and the
 // final observation-kind names are an owner decision settled in Wave 3. The
 // exported type names (Strategy, Variant, Skeleton, Hypothesis, Check, Step)
-// are likewise provisional; "probe" is deliberately not used because it is
-// retired v1 vocabulary.
+// are likewise provisional.
 package strategy
 
 import (

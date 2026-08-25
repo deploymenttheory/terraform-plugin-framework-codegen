@@ -3,15 +3,15 @@ name: release
 # Runs when a release tag is pushed. goreleaser builds the archives for every
 # platform and publishes them as a GitHub release; a stable tag then
 # fast-forwards the moving major tag (v0.1.4 moves v0, v1.2.3 moves v1) so
-# caller workflows pinned to @v1 pick up compatible releases without editing.
+# caller workflows pinned to that major tag pick up compatible releases
+# without editing.
 #
-# Version tags only. The moving major tag is an output of this workflow, not
-# an input to it, and `v*` matched it: pushing `v0` by hand started a second
-# build that raced the first onto the same GitHub release and lost — every
-# asset already uploaded, so the run failed with `already_exists` against a
-# release that was in fact complete. A push made with GITHUB_TOKEN cannot
-# re-enter a workflow, so the fast-forward below never tripped this itself,
-# and nothing noticed until a human pushed the tag.
+# The trigger matches version tags only, never a bare `v*`. The moving major
+# tag is an output of this workflow rather than an input to it, so matching it
+# would let a hand-pushed major tag start a second build racing the first onto
+# the same GitHub release, which fails with `already_exists` once the first has
+# uploaded its assets. The fast-forward below pushes with GITHUB_TOKEN, which
+# cannot re-enter a workflow, so only a human push reaches this.
 on:
   push:
     tags: ["v*.*.*"]
