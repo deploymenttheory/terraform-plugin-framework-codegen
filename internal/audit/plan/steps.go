@@ -37,6 +37,17 @@ func (d *deriver) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped
 		return EntityPlan{}, &Skipped{Entity: c.Key, Reason: reason}
 	}
 
+	// A singleton is a resource with no create operation: it is written
+	// through its update call, and the classification leaves the create slot
+	// empty. Auditing that shape is not derived yet, so the entity is
+	// refused rather than the run.
+	if createOp == nil {
+		return EntityPlan{}, &Skipped{
+			Entity: c.Key,
+			Reason: "the entity has no create operation to exercise: a singleton is written through its update call, which the audit does not derive",
+		}
+	}
+
 	createSchema := createOp.RequestBody
 	minimal, reason := sy.minimalBody(createSchema)
 	if reason != "" {
