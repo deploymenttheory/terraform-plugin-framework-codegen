@@ -1,7 +1,6 @@
 package specmodel
 
 import (
-	"os"
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/vendor_openapi_specs"
@@ -9,27 +8,26 @@ import (
 
 // The inline fixtures above prove each rule in isolation; this proves the
 // loader against a real vendor document, where the shapes were not chosen
-// to pass. Skips when the pinned document is not cached and cannot be
-// fetched, unless TFPFGEN_VENDOR_OPENAPI_SPECS_REQUIRED says the machine must be honest —
-// the same split every pinned-document test in this repo follows.
+// to pass.
+//
+// The version and path count are stated here rather than read from the
+// document, so replacing it fails this test rather than passing quietly
+// against whatever the new one happens to contain.
 func TestIntegration_Specmodel_LoadsAPinnedVendorDocument(t *testing.T) {
-	path := vendor_openapi_specs.SpecPath(t, "thousandeyes")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading %s: %v", path, err)
-	}
-
-	doc, err := Load(data)
+	doc, err := Load(vendor_openapi_specs.ThousandEyes())
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 
-	pin := vendor_openapi_specs.MustPin(t, "thousandeyes")
-	if doc.Info.Version != pin.Version {
-		t.Errorf("info.version = %q, want the pinned %q", doc.Info.Version, pin.Version)
+	const (
+		version   = "7.0.102"
+		pathCount = 208
+	)
+	if doc.Info.Version != version {
+		t.Errorf("info.version = %q, want %q", doc.Info.Version, version)
 	}
-	if got := len(doc.Paths); got != pin.PathCount {
-		t.Errorf("loaded %d paths, the pin says %d", got, pin.PathCount)
+	if got := len(doc.Paths); got != pathCount {
+		t.Errorf("loaded %d paths, want %d", got, pathCount)
 	}
 	if got := len(doc.Operations()); got == 0 {
 		t.Errorf("loaded no operations")

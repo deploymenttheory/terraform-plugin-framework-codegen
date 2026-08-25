@@ -6,8 +6,9 @@
 #   2. No pilot leakage: vendor names from proof APIs may not appear in
 #      non-test source; a general toolkit must not ship one vendor's
 #      constants as defaults. Pinned test inputs under testdata/ are exempt.
-#   3. No committed binaries: nothing tracked may exceed 1 MiB (v1 shipped a
-#      34 MB build of itself at the repo root).
+#   3. No committed binaries: nothing tracked outside testdata/ may exceed
+#      1 MiB. Test inputs are exempt: a vendor's OpenAPI document is
+#      committed on purpose and runs to megabytes.
 set -euo pipefail
 failed=0
 
@@ -35,6 +36,6 @@ while read -r file; do
     echo "repo_hygiene: $file is $size bytes — binaries and bulk artifacts are not committed" >&2
     failed=1
   fi
-done < <(git ls-files)
+done < <(git ls-files | grep -v '^testdata/' | grep -v '/testdata/')
 
 exit "$failed"
