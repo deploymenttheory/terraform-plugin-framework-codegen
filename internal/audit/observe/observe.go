@@ -197,6 +197,14 @@ const (
 	// executor captured, not from the document, because every API spells
 	// its envelope differently and the document often lies about it.
 	KindListResponseShape Kind = "listResponseShape"
+
+	// KindIdentifierProperty: the response property that carries the value
+	// the item path addresses the object by. Entity-level (empty Attribute);
+	// the Value is the property name. Learned by matching the id the run
+	// already extracted against the response body's own properties, because
+	// a path parameter named "id" and a body property named "aid" are the
+	// same identifier and nothing in the document says so.
+	KindIdentifierProperty Kind = "identifierProperty"
 )
 
 // knownKinds is the closed set, for validation.
@@ -209,7 +217,7 @@ var knownKinds = map[Kind]bool{
 	KindUndocumentedFieldInSpec: true,
 	KindValidConfiguration:      true, KindValidWhen: true,
 	KindDependsOn: true, KindMutuallyExclusive: true,
-	KindListResponseShape: true,
+	KindListResponseShape: true, KindIdentifierProperty: true,
 }
 
 // Provenance records how strongly an inferred edge is grounded: a structural
@@ -477,6 +485,11 @@ func valueShape(kind Kind, v any) error {
 		}
 	case KindListResponseShape:
 		return listShape(v)
+	case KindIdentifierProperty:
+		s, ok := v.(string)
+		if !ok || s == "" {
+			return fmt.Errorf("value must be the name of the identifying property, got %v", v)
+		}
 	}
 	return nil
 }

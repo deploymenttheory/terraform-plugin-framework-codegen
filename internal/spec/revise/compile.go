@@ -124,6 +124,8 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 		return c.validConfiguration(loc, cls, o), nil
 	case observe.KindListResponseShape:
 		return c.listResponseShape(loc, cls, o)
+	case observe.KindIdentifierProperty:
+		return c.identifierProperty(loc, cls, o)
 	default:
 		// observe.Read validates kinds against the closed set, so reaching
 		// here means the sets have drifted — the failure mode an evidence
@@ -612,6 +614,46 @@ func (c *compiler) listResponseShape(loc *locator, cls specmodel.Classification,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a listResponseShape observation on %s: %s (%s)",
 			o.Entity, finding, specmodel.ExtListResponseShape),
+	}, nil
+}
+
+// identifierProperty annotates the read operation with the response property
+// carrying the value its item path addresses the object by.
+//
+// It goes on the read because that is the operation whose path parameter the
+// property answers: derivation reads the two together, and the correspondence
+// exists nowhere else in the document.
+func (c *compiler) identifierProperty(loc *locator, cls specmodel.Classification, o observe.Observation) (compiled, error) {
+	property, ok := o.Value.(string)
+	if !ok || property == "" {
+		return compiled{}, fmt.Errorf("observation %s: its value is not a property name", o.ID)
+	}
+	if cls.Read == nil {
+		return unplaceable(fmt.Sprintf("entity %s has no read operation to annotate", o.Entity)), nil
+	}
+	// The property must exist on what the read answers, or the correction
+	// would name a field nothing can read.
+	node, ptr, ok := loc.responseSchema(cls.Read)
+	if !ok {
+		return unplaceable(fmt.Sprintf("entity %s has no read response schema to check %q against",
+			o.Entity, property)), nil
+	}
+	if _, found := loc.findProperty(node, ptr, property); !found {
+		return unplaceable(fmt.Sprintf("the read response of %s declares no %q to identify it by",
+			o.Entity, property)), nil
+	}
+
+	opPtr := opPointer(cls.Read)
+	if ext := mapValue(loc.nodeAt(opPtr), specmodel.ExtIdentifierProperty); ext != nil && ext.Value == property {
+		return stated("the document already names this identifying property"), nil
+	}
+	return compiled{
+		ops: []correction.Operation{{
+			Op: "add", Path: opPtr + "/" + specmodel.ExtIdentifierProperty, Value: property,
+		}},
+		justification: fmt.Sprintf("the audit confirmed an identifierProperty observation on %s: "+
+			"the live response carries its id as %q, which its item path does not name (%s)",
+			o.Entity, property, specmodel.ExtIdentifierProperty),
 	}, nil
 }
 

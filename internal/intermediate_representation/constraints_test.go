@@ -396,3 +396,79 @@ func TestUnit_Attribute_CarriesTheDeclaredExample(t *testing.T) {
 		t.Errorf("a property declaring no example carries %#v", got)
 	}
 }
+
+// identifierPropertySpec addresses its item by {id} while its response spells
+// the same identifier "aid" — the shape the extension exists to reconcile.
+const identifierPropertySpec = `openapi: 3.0.3
+info: {title: T, version: "1"}
+paths:
+  /groups:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Group'}
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Group'}
+  /groups/{id}:
+    get:
+      x-tfpfgen-identifier-property: aid
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Group'}
+    patch:
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Group'}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Group'}
+    delete:
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        "204": {description: gone}
+components:
+  schemas:
+    Group:
+      type: object
+      properties:
+        aid: {type: string}
+        groupName: {type: string}
+`
+
+// TestUnit_Attribute_TheIdentifierPropertyNamesTheIdsWire proves the id
+// attribute reads through the property the response actually carries. Without
+// it the id binds to an accessor no model has, the binding is pruned as
+// addressing, and the settling read addresses the object by an empty string.
+func TestUnit_Attribute_TheIdentifierPropertyNamesTheIdsWire(t *testing.T) {
+	r := resourceByKey(t, mustDerive(t, identifierPropertySpec, testConfig()), "group")
+
+	if id := attribute(t, r.Schema, "id"); id.WireName != "aid" {
+		t.Errorf("the id attribute reads %q, want the property the response carries", id.WireName)
+	}
+}
+
+// TestUnit_Attribute_TheIdWireFallsBackToThePathParameter proves the same
+// document without the extension still takes the path parameter's name, so
+// the extension corrects rather than replaces the derivation.
+func TestUnit_Attribute_TheIdWireFallsBackToThePathParameter(t *testing.T) {
+	plain := strings.Replace(identifierPropertySpec, "      x-tfpfgen-identifier-property: aid\n", "", 1)
+	r := resourceByKey(t, mustDerive(t, plain, testConfig()), "group")
+
+	if id := attribute(t, r.Schema, "id"); id.WireName != "id" {
+		t.Errorf("the id attribute reads %q, want the path parameter's name", id.WireName)
+	}
+}

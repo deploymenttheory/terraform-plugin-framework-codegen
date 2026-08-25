@@ -73,6 +73,7 @@ func Infer(ev Evidence, compiled *strategy.Strategy) []observe.Observation {
 		out = append(out, o)
 	}
 	out = append(out, m.listShape()...)
+	out = append(out, m.identifierProperty()...)
 	out = append(out, m.hypothesisGaps(confirmed)...)
 
 	return dedup(out)
@@ -350,6 +351,23 @@ func (m *model) listShape() []observe.Observation {
 	}
 	return []observe.Observation{
 		m.edgeAttr("", observe.KindListResponseShape, *shape, nil, observe.ProvenanceDerived, observe.OutcomeConfirmed),
+	}
+}
+
+// identifierProperty names the response property carrying the id the item
+// path addresses the object by, when the run found one that is not the plain
+// "id" the derivation already assumes.
+//
+// Only the disagreeing case is asserted: an entity whose response spells it
+// "id" needs no correction, and emitting one would state what the document
+// already says.
+func (m *model) identifierProperty() []observe.Observation {
+	property := m.ev.IdentifierProperty
+	if property == "" || property == "id" {
+		return nil
+	}
+	return []observe.Observation{
+		m.edgeAttr("", observe.KindIdentifierProperty, property, nil, observe.ProvenanceDerived, observe.OutcomeConfirmed),
 	}
 }
 

@@ -48,6 +48,7 @@ a binder that drafts a call or a loader that merges `allOf` is prose.
 | **dependsOn** | The observation kind claiming a field is settable only when a second field is present, whatever that second field's value. The attribute is the dependent field, the value is the name of the field it requires. Extension key `x-tfpfgen-depends-on`. Learned from a `requires` adjustment the API forced and the retry accepted. |
 | **mutuallyExclusive** | The observation kind claiming at most one of a set of fields may be set. Entity-level (empty attribute); the value is the sorted list of the mutually-exclusive field names. Extension key `x-tfpfgen-mutually-exclusive`. Learned when each field is accepted alone but the pair is refused together. |
 | **backoff** | How the audit answers a rate-limit refusal (HTTP 429): it waits, retries, and permanently slows the rest of the run down. Three parts — jitter on every request so a run's traffic does not march in lock-step into the server's metering window; retry with exponential backoff and full jitter, honouring `Retry-After` when the server sends one; and a halving of the token bucket's rate once refusals recur, never a raising of it. Lives in `internal/audit/run/backoff.go`; the token bucket it slows stays in `ratelimit.go`. Bounds are fixed constants, not configuration — operators size load through `audit.rate_limit_rps`. Reported on the run summary as `rateLimited`, `slowdowns` and `rateLimitRps`, because findings gathered while an API was refusing traffic are thinner than the same findings off a quiet one. |
+| **identifierProperty** | The observation kind naming the response property that carries the value an entity's item path addresses the object by. Entity-level (empty attribute); the value is the property name. Extension key `x-tfpfgen-identifier-property`, compiled onto the read operation; derivation gives the id attribute that wire name in place of the path parameter's. Learned by matching the id the run already extracted against the response body's own properties, never by naming rules — a path that says `{id}` and a body that says `aid` name one identifier and the document says so nowhere. Asserted only where the two disagree. |
 | **listResponseShape** | The observation kind recording a collection response's structure: a wrapped envelope (with its key) versus a bare array, plus the pagination style (`cursor`, `offset`, `page`, `none`). Entity-level; read from the live response body, never from the document. Extension key `x-tfpfgen-list-response-shape`, compiled onto the entity's list operation; derivation reads it in preference to the list response schema, which is exactly what the observation exists to contradict. |
 
 ## Fixed spellings
@@ -62,7 +63,8 @@ a binder that drafts a call or a loader that merges `allOf` is prose.
   `x-tfpfgen-update-style: patch-merge | put-full | replace-only`;
   `x-tfpfgen-list-response-shape: {envelope: wrapped | bare, key: <wrapping
   key, wrapped only>, pagination: cursor | offset | page | none}` — an
-  omitted `pagination` reads as `none`.
+  omitted `pagination` reads as `none`;
+  `x-tfpfgen-identifier-property: <property name>`, on a read operation.
 - Shared workflows, stage-numbered in pipeline order:
   `10-generate.yml`, `20-corrections.yml`, `30-ci.yml`,
   `40-acceptance.yml`, `50-docs.yml`, `60-release.yml`.
