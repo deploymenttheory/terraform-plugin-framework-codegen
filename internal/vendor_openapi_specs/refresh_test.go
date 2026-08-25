@@ -1,4 +1,4 @@
-package corpus
+package vendor_openapi_specs
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ func TestUnit_Refresh_LockPathHonoursTheEnvironment(t *testing.T) {
 	}
 
 	t.Setenv(EnvLockPath, "")
-	if got, want := LockPath(), filepath.Join("internal", "corpus", "testdata", LockFile); got != want {
+	if got, want := LockPath(), filepath.Join("internal", "vendor_openapi_specs", "testdata", LockFile); got != want {
 		t.Errorf("LockPath() = %q, want %q", got, want)
 	}
 }

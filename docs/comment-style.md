@@ -47,7 +47,7 @@ These are facts, and they are the point of the comment.
   status, a framework type name. They are what makes the surrounding claim
   checkable.
 - **Indented tabular blocks.** They render as godoc code blocks and usually carry
-  more than the prose around them. See `internal/corpus/cache.go` (the cache
+  more than the prose around them. See `internal/vendor_openapi_specs/cache.go` (the cache
   layout) and `internal/sdkbind/binder_kiota.go` (document shape → builder
   chain). Keep the table, rewrite the prose framing it.
 - **Cross-references.** Prefer paths and symbols over URLs: `docs/contract.md`,

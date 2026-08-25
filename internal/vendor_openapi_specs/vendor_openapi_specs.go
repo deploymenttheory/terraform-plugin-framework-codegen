@@ -1,4 +1,4 @@
-// Package corpus acquires the real third-party API documents the tests run
+// Package vendor_openapi_specs acquires the real third-party API documents the tests run
 // against, without committing any of them to this repository.
 //
 // This repository turns OpenAPI documents into providers; it is not the home
@@ -7,7 +7,7 @@
 // other, not by synthetic ones that agree with the code -- so the documents
 // are fetched at test time and pinned here rather than vendored.
 //
-// Pinned means pinned. testdata/corpus.lock.json pins a version, a SHA-256 and
+// Pinned means pinned. testdata/vendor_openapi_specs.lock.json pins a version, a SHA-256 and
 // the path and operation counts for every document, and a fetch that does not
 // match all of them fails loudly. That matters more than it looks: several
 // tests assert properties of these documents -- enum members, field shapes,
@@ -18,7 +18,7 @@
 // The cache holds one verified copy of each pinned document, in a directory
 // named deterministically from the pin so a pinned document is findable again
 // rather than merely present. See cache.go for the layout.
-package corpus
+package vendor_openapi_specs
 
 import (
 	"crypto/sha256"
@@ -38,18 +38,18 @@ import (
 // resolves it identically. It is the reviewable file of this whole scheme:
 // every change to what the tests read against shows up as a diff here.
 //
-//go:embed testdata/corpus.lock.json
+//go:embed testdata/vendor_openapi_specs.lock.json
 var lockBytes []byte
 
 // EnvCacheDir relocates the cache. CI sets it so the cache lands somewhere
 // actions/cache can restore.
-const EnvCacheDir = "TFPFGEN_CORPUS_DIR"
+const EnvCacheDir = "TFPFGEN_VENDOR_OPENAPI_SPECS_DIR"
 
 // EnvRequired makes a missing document a failure rather than a skip. Set in
 // CI, unset on a developer's machine: see the Document test helper.
-const EnvRequired = "TFPFGEN_CORPUS_REQUIRED"
+const EnvRequired = "TFPFGEN_VENDOR_OPENAPI_SPECS_REQUIRED"
 
-// cacheSubdir is the corpus's place within the user cache directory.
+// cacheSubdir is these documents' place within the user cache directory.
 //
 // Deliberately outside the repository, and this is not a preference. A
 // relative default is resolved against the working directory, and `go test`
@@ -59,15 +59,15 @@ const EnvRequired = "TFPFGEN_CORPUS_REQUIRED"
 // each.
 //
 // A cache belongs where the operating system puts caches. CI overrides it with
-// TFPFGEN_CORPUS_DIR to somewhere its cache action can restore.
-var cacheSubdir = filepath.Join("tfpfgen", "corpus")
+// TFPFGEN_VENDOR_OPENAPI_SPECS_DIR to somewhere its cache action can restore.
+var cacheSubdir = filepath.Join("tfpfgen", "vendor_openapi_specs")
 
 // ErrOffline reports that a document is not cached and could not be fetched.
 // Callers decide whether that is fatal; the Document test helper applies the
 // policy.
 var ErrOffline = errors.New("the document is not cached and could not be fetched")
 
-// Lock is corpus.lock.json.
+// Lock is vendor_openapi_specs.lock.json.
 type Lock struct {
 	FormatVersion string         `json:"formatVersion"`
 	OpenAPI       map[string]Pin `json:"openapi"`
@@ -116,11 +116,11 @@ var (
 func LoadLock() (Lock, error) {
 	lockOnce.Do(func() {
 		if err := json.Unmarshal(lockBytes, &lock); err != nil {
-			lockErr = fmt.Errorf("parsing corpus.lock.json: %w", err)
+			lockErr = fmt.Errorf("parsing vendor_openapi_specs.lock.json: %w", err)
 			return
 		}
 		if len(lock.OpenAPI) == 0 {
-			lockErr = errors.New("corpus.lock.json pins no documents")
+			lockErr = errors.New("vendor_openapi_specs.lock.json pins no documents")
 		}
 	})
 	return lock, lockErr
@@ -138,7 +138,7 @@ func PinFor(id string) (Pin, error) {
 		for k := range l.OpenAPI {
 			known = append(known, k)
 		}
-		return Pin{}, fmt.Errorf("corpus.lock.json pins no document %q (it pins %v)", id, known)
+		return Pin{}, fmt.Errorf("vendor_openapi_specs.lock.json pins no document %q (it pins %v)", id, known)
 	}
 	return p, nil
 }
@@ -156,7 +156,7 @@ func IDs() ([]string, error) {
 	return out, nil
 }
 
-// CacheDir is the corpus cache root.
+// CacheDir is the cache root these documents are materialised under.
 func CacheDir() string {
 	if d := os.Getenv(EnvCacheDir); d != "" {
 		return d
@@ -281,7 +281,7 @@ func publish(root, name string, doc []byte, pin Pin, source string) (CachedDocum
 		return CachedDocument{}, fmt.Errorf("creating %s: %w", filepath.Dir(root), err)
 	}
 
-	staging, err := os.MkdirTemp(filepath.Dir(root), ".corpus-staging-*")
+	staging, err := os.MkdirTemp(filepath.Dir(root), ".vendor-openapi-specs-staging-*")
 	if err != nil {
 		return CachedDocument{}, fmt.Errorf("creating a staging directory: %w", err)
 	}
@@ -342,7 +342,7 @@ func verifyAgainstPin(id string, doc []byte, pin Pin, source string) error {
 Tests assert properties of the pinned document -- enum members, field shapes,
 operation counts -- so this changes what they mean rather than merely failing a
 transport check. Review the change deliberately and update the %s pin in
-internal/corpus/testdata/corpus.lock.json`,
+internal/vendor_openapi_specs/testdata/vendor_openapi_specs.lock.json`,
 		id, source,
 		shortSHA(pin.SHA256), pin.Version, pin.PathCount, pin.OperationCount,
 		shortSHA(digest), version, paths, operations,

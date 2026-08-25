@@ -1,4 +1,4 @@
-package corpus
+package vendor_openapi_specs
 
 import (
 	"crypto/sha256"
@@ -11,11 +11,11 @@ import (
 )
 
 // LockFile is the pin set's name.
-const LockFile = "corpus.lock.json"
+const LockFile = "vendor_openapi_specs.lock.json"
 
 // EnvLockPath relocates the lock for a pin update invoked from outside the
 // repository root.
-const EnvLockPath = "TFPFGEN_CORPUS_LOCK"
+const EnvLockPath = "TFPFGEN_VENDOR_OPENAPI_SPECS_LOCK"
 
 // LockPath is where RewriteLock writes.
 //
@@ -26,7 +26,7 @@ func LockPath() string {
 	if p := os.Getenv(EnvLockPath); p != "" {
 		return p
 	}
-	return filepath.Join("internal", "corpus", "testdata", LockFile)
+	return filepath.Join("internal", "vendor_openapi_specs", "testdata", LockFile)
 }
 
 // Upstream is what a source is serving now, measured against a pin.

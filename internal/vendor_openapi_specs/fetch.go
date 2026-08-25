@@ -1,4 +1,4 @@
-package corpus
+package vendor_openapi_specs
 
 import (
 	"context"

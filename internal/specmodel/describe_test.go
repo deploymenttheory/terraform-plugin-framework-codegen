@@ -3,7 +3,7 @@ package specmodel
 import "testing"
 
 // TestUnit_Specmodel_DescribeMeasuresWhatAPinRecords proves Describe reports
-// the three values a corpus pin is written from, and reports nothing rather
+// the three values a pin is written from, and reports nothing rather
 // than a guess for bytes it cannot read — a truncated download must not pass
 // as a document with a plausible shape.
 func TestUnit_Specmodel_DescribeMeasuresWhatAPinRecords(t *testing.T) {

@@ -1,4 +1,4 @@
-package corpus
+package vendor_openapi_specs
 
 import (
 	"crypto/sha256"
@@ -64,11 +64,11 @@ func pinFor(t *testing.T, url, body string) Pin {
 	}
 }
 
-// TestUnit_Corpus_LockPinsTheDocumentsTheTestsRead guards the lock itself. It
+// TestUnit_VendorOpenAPISpecs_LockPinsTheDocumentsTheTestsRead guards the lock itself. It
 // is the file every other test's meaning rests on, so a malformed or truncated
 // one should fail here rather than as a confusing failure somewhere
 // downstream.
-func TestUnit_Corpus_LockPinsTheDocumentsTheTestsRead(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_LockPinsTheDocumentsTheTestsRead(t *testing.T) {
 	t.Parallel()
 
 	l, err := LoadLock()
@@ -144,10 +144,10 @@ func slicesEqual(a, b []string) bool {
 	return true
 }
 
-// TestUnit_Corpus_ColdCacheFetchesAndWarmCacheDoesNot is the property the
+// TestUnit_VendorOpenAPISpecs_ColdCacheFetchesAndWarmCacheDoesNot is the property the
 // whole scheme is for: the network is touched once, and never again until the
 // pin changes.
-func TestUnit_Corpus_ColdCacheFetchesAndWarmCacheDoesNot(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_ColdCacheFetchesAndWarmCacheDoesNot(t *testing.T) {
 	t.Parallel()
 
 	url, hits := serve(t, aDocument)
@@ -178,11 +178,11 @@ func TestUnit_Corpus_ColdCacheFetchesAndWarmCacheDoesNot(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_ADocumentThatIsNotThePinnedOneFailsLoudly is the failure
+// TestUnit_VendorOpenAPISpecs_ADocumentThatIsNotThePinnedOneFailsLoudly is the failure
 // that must never be a skip: the tests assert properties of the pinned
 // document, so different bytes mean something different, not merely a
 // transport problem.
-func TestUnit_Corpus_ADocumentThatIsNotThePinnedOneFailsLoudly(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_ADocumentThatIsNotThePinnedOneFailsLoudly(t *testing.T) {
 	t.Parallel()
 
 	url, _ := serve(t, aDocument)
@@ -202,7 +202,7 @@ func TestUnit_Corpus_ADocumentThatIsNotThePinnedOneFailsLoudly(t *testing.T) {
 		shortSHA(pin.SHA256),
 		shortSHA(digestOf(aDocument)),
 		"1.2.3",
-		"corpus.lock.json",
+		"vendor_openapi_specs.lock.json",
 	} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("the mismatch message does not mention %q:\n%s", want, msg)
@@ -210,10 +210,10 @@ func TestUnit_Corpus_ADocumentThatIsNotThePinnedOneFailsLoudly(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_ACorruptedCachedCopyIsReplaced covers the case a plain
+// TestUnit_VendorOpenAPISpecs_ACorruptedCachedCopyIsReplaced covers the case a plain
 // existence check would get wrong: a directory with the right name whose bytes
 // are not the pinned ones, which is what an interrupted write leaves.
-func TestUnit_Corpus_ACorruptedCachedCopyIsReplaced(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_ACorruptedCachedCopyIsReplaced(t *testing.T) {
 	t.Parallel()
 
 	url, hits := serve(t, aDocument)
@@ -243,10 +243,10 @@ func TestUnit_Corpus_ACorruptedCachedCopyIsReplaced(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_ACacheWrittenByAnOlderLockIsNotReused covers the second gate
+// TestUnit_VendorOpenAPISpecs_ACacheWrittenByAnOlderLockIsNotReused covers the second gate
 // on a cache hit: a cached copy that is internally consistent but was written
 // under a pin the lock no longer states.
-func TestUnit_Corpus_ACacheWrittenByAnOlderLockIsNotReused(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_ACacheWrittenByAnOlderLockIsNotReused(t *testing.T) {
 	t.Parallel()
 
 	oldURL, _ := serve(t, aDocument)
@@ -274,10 +274,10 @@ func TestUnit_Corpus_ACacheWrittenByAnOlderLockIsNotReused(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_TheMirrorIsPreferredAndCannotChangeMeaning proves both
+// TestUnit_VendorOpenAPISpecs_TheMirrorIsPreferredAndCannotChangeMeaning proves both
 // halves of the mirror's contract: it is asked first, and bytes that are not
 // the pinned ones are refused however authoritative the source looked.
-func TestUnit_Corpus_TheMirrorIsPreferredAndCannotChangeMeaning(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_TheMirrorIsPreferredAndCannotChangeMeaning(t *testing.T) {
 	t.Parallel()
 
 	mirror, mirrorHits := serve(t, aDocument)
@@ -306,9 +306,9 @@ func TestUnit_Corpus_TheMirrorIsPreferredAndCannotChangeMeaning(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_AnUnreachableSourceIsOfflineNotCorruption keeps the two
+// TestUnit_VendorOpenAPISpecs_AnUnreachableSourceIsOfflineNotCorruption keeps the two
 // failure modes apart. Offline is skippable; a mismatch never is.
-func TestUnit_Corpus_AnUnreachableSourceIsOfflineNotCorruption(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_AnUnreachableSourceIsOfflineNotCorruption(t *testing.T) {
 	t.Parallel()
 
 	pin := Pin{
@@ -327,10 +327,10 @@ func TestUnit_Corpus_AnUnreachableSourceIsOfflineNotCorruption(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_PublishToleratesLosingTheRace simulates the concurrent
+// TestUnit_VendorOpenAPISpecs_PublishToleratesLosingTheRace simulates the concurrent
 // publisher: the destination already holds the identical bytes when the rename
 // lands, and that is success, not failure.
-func TestUnit_Corpus_PublishToleratesLosingTheRace(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_PublishToleratesLosingTheRace(t *testing.T) {
 	t.Parallel()
 
 	root := filepath.Join(t.TempDir(), "openapi", "fixture")
@@ -350,10 +350,10 @@ func TestUnit_Corpus_PublishToleratesLosingTheRace(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_PublishReportsAnUnwritableDestination: a destination that
+// TestUnit_VendorOpenAPISpecs_PublishReportsAnUnwritableDestination: a destination that
 // cannot be created is reported at the point of failure, not as a later
 // missing-copy mystery.
-func TestUnit_Corpus_PublishReportsAnUnwritableDestination(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_PublishReportsAnUnwritableDestination(t *testing.T) {
 	t.Parallel()
 
 	base := t.TempDir()
@@ -376,9 +376,9 @@ func TestUnit_Corpus_PublishReportsAnUnwritableDestination(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_ShortSHAAbbreviatesOnlyWhatIsLong keeps failure messages
+// TestUnit_VendorOpenAPISpecs_ShortSHAAbbreviatesOnlyWhatIsLong keeps failure messages
 // readable without ever truncating a digest into ambiguity silently.
-func TestUnit_Corpus_ShortSHAAbbreviatesOnlyWhatIsLong(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_ShortSHAAbbreviatesOnlyWhatIsLong(t *testing.T) {
 	t.Parallel()
 
 	if got := shortSHA("abc"); got != "abc" {
@@ -389,10 +389,10 @@ func TestUnit_Corpus_ShortSHAAbbreviatesOnlyWhatIsLong(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_EnsureNamesTheLockOnAnUnknownID pins Ensure's failure mode
+// TestUnit_VendorOpenAPISpecs_EnsureNamesTheLockOnAnUnknownID pins Ensure's failure mode
 // for an id the lock does not carry, and that asking twice gives the one
 // answer rather than re-resolving.
-func TestUnit_Corpus_EnsureNamesTheLockOnAnUnknownID(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_EnsureNamesTheLockOnAnUnknownID(t *testing.T) {
 	t.Parallel()
 
 	_, err := Ensure("no-such-document")
@@ -406,9 +406,9 @@ func TestUnit_Corpus_EnsureNamesTheLockOnAnUnknownID(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_CacheDirIsRedirectable matters because CI must be able to
+// TestUnit_VendorOpenAPISpecs_CacheDirIsRedirectable matters because CI must be able to
 // put the cache where actions/cache can restore it.
-func TestUnit_Corpus_CacheDirIsRedirectable(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_CacheDirIsRedirectable(t *testing.T) {
 	t.Setenv(EnvCacheDir, filepath.Join("somewhere", "else"))
 
 	if got, want := CacheDir(), filepath.Join("somewhere", "else"); got != want {
@@ -419,7 +419,7 @@ func TestUnit_Corpus_CacheDirIsRedirectable(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_TheDefaultCacheIsNotRelative is the guard for a mistake v1
+// TestUnit_VendorOpenAPISpecs_TheDefaultCacheIsNotRelative is the guard for a mistake v1
 // made once.
 //
 // A relative default resolves against the working directory, and `go test`
@@ -427,7 +427,7 @@ func TestUnit_Corpus_CacheDirIsRedirectable(t *testing.T) {
 // document through the tree, in directories no root-anchored .gitignore
 // pattern reaches. The cache must be absolute and outside any checkout,
 // whatever else changes.
-func TestUnit_Corpus_TheDefaultCacheIsNotRelative(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_TheDefaultCacheIsNotRelative(t *testing.T) {
 	t.Setenv(EnvCacheDir, "")
 
 	dir := CacheDir()
@@ -446,10 +446,10 @@ func TestUnit_Corpus_TheDefaultCacheIsNotRelative(t *testing.T) {
 	}
 }
 
-// TestUnit_Corpus_NoUserCacheDirFallsBackToTempNotToRelative covers the
+// TestUnit_VendorOpenAPISpecs_NoUserCacheDirFallsBackToTempNotToRelative covers the
 // machine with no resolvable user cache directory: the fallback must still be
 // absolute and outside the checkout.
-func TestUnit_Corpus_NoUserCacheDirFallsBackToTempNotToRelative(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_NoUserCacheDirFallsBackToTempNotToRelative(t *testing.T) {
 	t.Setenv(EnvCacheDir, "")
 	t.Setenv("HOME", "")
 	t.Setenv("XDG_CACHE_HOME", "")
@@ -458,15 +458,15 @@ func TestUnit_Corpus_NoUserCacheDirFallsBackToTempNotToRelative(t *testing.T) {
 	if !filepath.IsAbs(dir) {
 		t.Fatalf("the fallback cache is %q, which is relative", dir)
 	}
-	if !strings.HasSuffix(dir, filepath.Join("tfpfgen", "corpus")) {
-		t.Errorf("the fallback cache %q is not under tfpfgen/corpus", dir)
+	if !strings.HasSuffix(dir, filepath.Join("tfpfgen", "vendor_openapi_specs")) {
+		t.Errorf("the fallback cache %q is not under tfpfgen/vendor_openapi_specs", dir)
 	}
 }
 
-// TestUnit_Corpus_AMovingRefIsRejected proves the guard above catches the
+// TestUnit_VendorOpenAPISpecs_AMovingRefIsRejected proves the guard above catches the
 // shape it exists for, so it cannot pass by accident on a lock that happens
 // to hold no branch URL.
-func TestUnit_Corpus_AMovingRefIsRejected(t *testing.T) {
+func TestUnit_VendorOpenAPISpecs_AMovingRefIsRejected(t *testing.T) {
 	t.Parallel()
 
 	for _, url := range []string{

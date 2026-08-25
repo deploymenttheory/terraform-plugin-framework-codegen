@@ -4,16 +4,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/corpus"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/vendor_openapi_specs"
 )
 
 // The inline fixtures above prove each rule in isolation; this proves the
 // loader against a real vendor document, where the shapes were not chosen
 // to pass. Skips when the pinned document is not cached and cannot be
-// fetched, unless TFPFGEN_CORPUS_REQUIRED says the machine must be honest —
-// the same split every corpus-backed test in this repo follows.
+// fetched, unless TFPFGEN_VENDOR_OPENAPI_SPECS_REQUIRED says the machine must be honest —
+// the same split every pinned-document test in this repo follows.
 func TestIntegration_Specmodel_LoadsAPinnedVendorDocument(t *testing.T) {
-	path := corpus.SpecPath(t, "thousandeyes")
+	path := vendor_openapi_specs.SpecPath(t, "thousandeyes")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("reading %s: %v", path, err)
@@ -24,7 +24,7 @@ func TestIntegration_Specmodel_LoadsAPinnedVendorDocument(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 
-	pin := corpus.MustPin(t, "thousandeyes")
+	pin := vendor_openapi_specs.MustPin(t, "thousandeyes")
 	if doc.Info.Version != pin.Version {
 		t.Errorf("info.version = %q, want the pinned %q", doc.Info.Version, pin.Version)
 	}
