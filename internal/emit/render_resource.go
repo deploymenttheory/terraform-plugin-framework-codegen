@@ -273,12 +273,15 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	if strings.Contains(d.Models, "types.") {
 		modelImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
 	}
+	if strings.Contains(d.Models, "attr.") {
+		modelImports.add("", "github.com/hashicorp/terraform-plugin-framework/attr")
+	}
 	d.ModelImports = modelImports.render()
 
 	// Construct.
 	d.ConstructReturnType = "*" + rb.WriteModel
 	d.WriteConstructor = rb.WriteConstructor
-	body, usesFmt, err := constructLines(nodes, "data", "body", "", 1, true)
+	body, usesFmt, err := constructLinesFor(nodes, d.Pascal, "data", "body", "", 1, true)
 	if err != nil {
 		return err
 	}
@@ -292,7 +295,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	if rb.UpdateWriteModel != "" {
 		updateNodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.UpdateFields, addressingNames(
 			r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
-		updateBody, updateUsesFmt, err = constructLines(updateNodes, "data", "body", "", 1, false)
+		updateBody, updateUsesFmt, err = constructLinesFor(updateNodes, d.Pascal, "data", "body", "", 1, false)
 		if err != nil {
 			return err
 		}
@@ -304,6 +307,9 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 
 	constructImports := newImportSet(e.pc.Module)
 	constructImports.add("", "context")
+	if strings.Contains(body+updateBody, "basetypes.") {
+		constructImports.add("", "github.com/hashicorp/terraform-plugin-framework/types/basetypes")
+	}
 	if usesFmt || updateUsesFmt {
 		constructImports.add("", "fmt")
 	}
@@ -322,6 +328,10 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	d.StateBody = stateBody
 	stateImports := newImportSet(e.pc.Module)
 	stateImports.add("", "context")
+	stateImports.add("", "github.com/hashicorp/terraform-plugin-framework/diag")
+	if strings.Contains(stateBody, "types.") {
+		stateImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
+	}
 	if strings.Contains(stateBody, "convert.") {
 		stateImports.add("", e.pc.Module+"/internal/services/common/convert")
 	}

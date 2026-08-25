@@ -575,3 +575,41 @@ func TestUnit_Plan_RunBudget(t *testing.T) {
 		t.Errorf("empty-plan duration = %q, want the floor", got.Duration)
 	}
 }
+
+// TestUnit_Plan_ASingletonIsRefusedNotPanicked pins the shape that crashed a
+// live run: a resource whose create slot is empty because it is written
+// through its update call. One entity is refused; the rest of the run stands.
+func TestUnit_Plan_ASingletonIsRefusedNotPanicked(t *testing.T) {
+	doc := loadDoc(t, `
+openapi: 3.0.1
+info: {title: t, version: "1"}
+paths:
+  /settings:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {type: object, properties: {name: {type: string}}}
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema: {type: object, properties: {name: {type: string}}}
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {type: object, properties: {name: {type: string}}}
+`)
+	p, err := Derive(doc, testConfig(), &Inputs{})
+	if err != nil {
+		t.Fatalf("Derive: %v", err)
+	}
+	for _, s := range p.Skipped {
+		if strings.Contains(s.Reason, "no create operation") {
+			return
+		}
+	}
+	t.Fatalf("the singleton was not refused with a reason; skipped: %+v", p.Skipped)
+}

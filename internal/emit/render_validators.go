@@ -280,21 +280,15 @@ func writeError(b *strings.Builder, indent, attr, summary, detail string) {
 }
 
 // nullCheck is the absent-value test for one attribute's model field.
+// Every field is a framework value, nested ones included, so one test
+// serves them all.
 func nullCheck(n node) string {
-	field := "data." + ir.GoName(n.attr.Name)
-	if n.attr.Nested != nil {
-		return field + " == nil"
-	}
-	return field + ".IsNull()"
+	return "data." + ir.GoName(n.attr.Name) + ".IsNull()"
 }
 
 // notNull is the present-value test, the negation of nullCheck.
 func notNull(n node) string {
-	field := "data." + ir.GoName(n.attr.Name)
-	if n.attr.Nested != nil {
-		return field + " != nil"
-	}
-	return "!" + field + ".IsNull()"
+	return "!data." + ir.GoName(n.attr.Name) + ".IsNull()"
 }
 
 // orList renders a set of values as human prose: "a", "a or b",

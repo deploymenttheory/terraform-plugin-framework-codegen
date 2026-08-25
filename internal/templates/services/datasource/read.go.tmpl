@@ -27,7 +27,10 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 		return
 	}
 
-	MapRemoteStateToDatasource(ctx, &data, {{ .ReadPlan.Payload }})
+	resp.Diagnostics.Append(MapRemoteStateToDatasource(ctx, &data, {{ .ReadPlan.Payload }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 {{ else }}
@@ -65,7 +68,8 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 			errors.HandleDatasourceReadError(ctx, err, resp, nil)
 			return
 		}
-		item := mapItem(ctx, {{ .ReadItem }})
+		item, itemDiags := mapItem(ctx, {{ .ReadItem }})
+		resp.Diagnostics.Append(itemDiags...)
 		if matches(&data, &item) {
 			items = append(items, item)
 		}
@@ -80,7 +84,8 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 			return
 		}
 		for _, element := range {{ .Collection }} {
-			item := mapItem(ctx, element)
+			item, itemDiags := mapItem(ctx, element)
+			resp.Diagnostics.Append(itemDiags...)
 			if !matches(&data, &item) {
 				continue
 			}

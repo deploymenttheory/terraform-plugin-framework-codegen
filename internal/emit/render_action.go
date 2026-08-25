@@ -90,6 +90,9 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	if strings.Contains(d.Models, "types.") {
 		modelImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
 	}
+	if strings.Contains(d.Models, "attr.") {
+		modelImports.add("", "github.com/hashicorp/terraform-plugin-framework/attr")
+	}
 	d.ModelImports = modelImports.render()
 
 	invokeImports := newImportSet(e.pc.Module)
@@ -100,13 +103,16 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	if d.HasBody {
 		d.ConstructReturnType = "*" + ab.WriteModel
 		d.WriteConstructor = ab.WriteConstructor
-		body, usesFmt, cerr := constructLines(bodyNodes, "data", "body", "", 1, false)
+		body, usesFmt, cerr := constructLinesFor(bodyNodes, d.Pascal, "data", "body", "", 1, false)
 		if cerr != nil {
 			return nil, cerr
 		}
 		d.ConstructBody = body
 		if usesFmt {
 			invokeImports.add("", "fmt")
+			if strings.Contains(body, "basetypes.") {
+				invokeImports.add("", "github.com/hashicorp/terraform-plugin-framework/types/basetypes")
+			}
 		}
 		if strings.Contains(body, "convert.") {
 			invokeImports.add("", e.pc.Module+"/internal/services/common/convert")

@@ -419,10 +419,26 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 		}
 		for _, n := range nodes {
 			fmt.Fprintf(&b, "\t%s %s `tfsdk:%q`\n",
-				ir.GoName(n.attr.Name), fieldType(namer, childPath(path, n), n), n.attr.Name)
+				ir.GoName(n.attr.Name), fieldType(n), n.attr.Name)
 		}
 		b.WriteString("}")
 		decls = append(decls, modelDecl{name: name, body: b.String()})
+
+		// The root model is read and written whole through Get and Set, so
+		// only nested shapes need an object type to be built from.
+		if path != "" {
+			var t strings.Builder
+			fmt.Fprintf(&t, "// %s is the object type %s maps onto.\n",
+				attrTypesFuncName(name), name)
+			fmt.Fprintf(&t, "func %s() map[string]attr.Type {\n", attrTypesFuncName(name))
+			t.WriteString("\treturn map[string]attr.Type{\n")
+			for _, n := range nodes {
+				fmt.Fprintf(&t, "\t\t%q: %s,\n",
+					n.attr.Name, attrTypeExpr(namer, childPath(path, n), n))
+			}
+			t.WriteString("\t}\n}")
+			decls = append(decls, modelDecl{name: attrTypesFuncName(name), body: t.String()})
+		}
 
 		for _, n := range nodes {
 			if n.attr.Nested == nil {
@@ -438,17 +454,51 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 }
 
 // fieldType is the Go type one model field carries.
-// A nested attribute's model field is a generated struct, so only the
-// nesting shape is decided here; everything else is the record's ValueType.
-func fieldType(namer *modelNamer, path string, n node) string {
+//
+// A nested attribute is held as types.Object or types.List rather than as
+// the generated struct, because a Computed attribute arrives unknown in the
+// plan and neither a struct pointer nor a slice can represent unknown. The
+// struct is still generated: it is what the object is built from and read
+// back into, through the AttrTypes function beside it.
+func fieldType(n node) string {
 	switch {
 	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
-		return "[]" + namer.name(path)
+		return "types.List"
 	case n.attr.Nested != nil:
-		return "*" + namer.name(path)
+		return "types.Object"
 	default:
 		return schemaTypeOf(n).ValueType
 	}
+}
+
+// attrTypeExpr is the attr.Type one model field is described by, which an
+// object or list value must be given to be built or nulled.
+func attrTypeExpr(namer *modelNamer, path string, n node) string {
+	switch {
+	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
+		return "types.ListType{ElemType: " + nestedObjectType(namer, path) + "}"
+	case n.attr.Nested != nil:
+		return nestedObjectType(namer, path)
+	default:
+		resolved := schemaTypeOf(n)
+		if resolved.ElementType != "" {
+			return resolved.ValueType + "Type{ElemType: " + resolved.ElementType + "}"
+		}
+		return resolved.ValueType + "Type"
+	}
+}
+
+// nestedObjectType is the object type one generated nested struct maps onto.
+func nestedObjectType(namer *modelNamer, path string) string {
+	return "types.ObjectType{AttrTypes: " + attrTypesFuncName(namer.name(path)) + "()}"
+}
+
+// attrTypesFuncName is the function beside a nested model that answers its
+// attribute types. Generated rather than assembled at run time: the shape is
+// known here, and a mismatch between the struct and its types is then a
+// compile-time fact rather than a runtime diagnostic.
+func attrTypesFuncName(modelName string) string {
+	return modelName + "AttrTypes"
 }
 
 // renderModelDecls joins model declarations into one finished block.

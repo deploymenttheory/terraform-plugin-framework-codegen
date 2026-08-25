@@ -6,9 +6,15 @@ package {{ .Package }}
 
 // MapRemoteStateToTerraform maps the API's answer onto the framework
 // model. A nil field in the answer becomes a null attribute.
-func MapRemoteStateToTerraform(ctx context.Context, data *{{ .Type }}Model, remote {{ .ReadModel }}) {
+//
+// Returns diagnostics because a nested attribute is built as an object or a
+// list value, and building one can report a mismatch against its declared
+// attribute types.
+func MapRemoteStateToTerraform(ctx context.Context, data *{{ .Type }}Model, remote {{ .ReadModel }}) diag.Diagnostics {
+	var diags diag.Diagnostics
 	_ = ctx
 	if remote == nil {
-		return
+		return diags
 	}
-{{ .StateBody }}}
+{{ .StateBody }}	return diags
+}
