@@ -195,6 +195,23 @@ func TestUnit_Strategize_SynthesisHelpers(t *testing.T) {
 	if v := synthValue(strategy.SynthHint{Field: "label", Type: "string"}, "ent", "tfpfgen"); v != "tfpfgen-<runid>-ent-label" {
 		t.Errorf("name-bearing string = %v", v)
 	}
+	// A name-bearing field takes the invented token over a declared example:
+	// this is the path a live run synthesises from, and an API that requires a
+	// unique name refuses the example every run after the first.
+	if v := synthValue(strategy.SynthHint{Field: "name", Type: "string", Example: "My thing"},
+		"ent", "tfpfgen"); v != "tfpfgen-<runid>-ent-name" {
+		t.Errorf("a name-bearing example = %#v, want the invented token", v)
+	}
+	// A field an enum, a format or a pattern constrains is not one to invent a
+	// name for, so the ordinary priority stands.
+	if v := synthValue(strategy.SynthHint{Field: "name", Type: "string", Example: "My thing",
+		Pattern: "^[A-Za-z ]+$"}, "ent", "tfpfgen"); v != "My thing" {
+		t.Errorf("a constrained name = %#v, want the declared example", v)
+	}
+	if v := synthValue(strategy.SynthHint{Field: "name", Type: "string", Format: "email"},
+		"ent", "tfpfgen"); v != "tfpfgen-<runid>@example.invalid" {
+		t.Errorf("a formatted name = %#v, want the format-driven value", v)
+	}
 	if v := synthValue(strategy.SynthHint{Field: "color", Type: "string"}, "ent", "p"); v != "sample-color" {
 		t.Errorf("plain string = %v", v)
 	}

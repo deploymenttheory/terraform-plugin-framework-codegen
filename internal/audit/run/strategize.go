@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math/bits"
 	"strconv"
-	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
@@ -336,7 +335,7 @@ func (r *runner) synthField(ent *entityState, field string) any {
 			return synthValue(h, ent.plan.Entity, r.opts.NamePrefix)
 		}
 	}
-	if nameBearing(field) {
+	if plan.NameBearing(field) {
 		return nameToken(r.opts.NamePrefix, ent.plan.Entity, field)
 	}
 	return "sample-" + field
@@ -346,6 +345,17 @@ func (r *runner) synthField(ent *entityState, field string) any {
 // plan package's synthesis: example, then default, then the first enum member,
 // then a format-driven value, then a type-driven one.
 func synthValue(h strategy.SynthHint, entity, prefix string) any {
+	// A name must be unique per run and must carry the prefix cleanup matches
+	// on, so the invented token beats a declared example. An example is a
+	// value the API accepted once; an API that requires a name to be unique
+	// refuses it every time after, and an object created under it is invisible
+	// to the prefix pass and stays in the tenant. An enum, a format or a
+	// pattern leaves the ordinary priority alone: the token satisfies none of
+	// those shapes, so a field carrying one is not a field to invent a name
+	// for.
+	if plan.NameBearing(h.Field) && len(h.Enum) == 0 && h.Format == "" && h.Pattern == "" {
+		return nameToken(prefix, entity, h.Field)
+	}
 	if h.Example != nil {
 		return h.Example
 	}
@@ -370,12 +380,12 @@ func synthValue(h strategy.SynthHint, entity, prefix string) any {
 	case "object":
 		return map[string]any{}
 	case "string":
-		if nameBearing(h.Field) {
+		if plan.NameBearing(h.Field) {
 			return nameToken(prefix, entity, h.Field)
 		}
 		return "sample-" + h.Field
 	default:
-		if nameBearing(h.Field) {
+		if plan.NameBearing(h.Field) {
 			return nameToken(prefix, entity, h.Field)
 		}
 		return "sample-" + h.Field
@@ -538,18 +548,6 @@ func formatValue(format, entity, prefix string) (any, bool) {
 // recognisable as audit debris and unique per attribute.
 func nameToken(prefix, entity, field string) string {
 	return prefix + "-" + plan.RunIDToken + "-" + entity + "-" + field
-}
-
-// nameBearing reports whether a string field names its object — the fields
-// whose synthesised values must carry the cleanup prefix.
-func nameBearing(field string) bool {
-	lf := strings.ToLower(field)
-	for _, suffix := range []string{"name", "title", "label"} {
-		if lf == suffix || strings.HasSuffix(lf, suffix) {
-			return true
-		}
-	}
-	return false
 }
 
 // bisectionAllowance is the extra createMaximal attempts worth reserving to

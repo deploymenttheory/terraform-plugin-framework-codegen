@@ -381,3 +381,45 @@ components:
 		t.Errorf("minimal body carries the optional self-reference: %#v", body)
 	}
 }
+
+func TestUnit_Plan_AnInventedNameOutranksADeclaredExample(t *testing.T) {
+	spec := resourceSpec(
+		"name, gated_name, shaped_name, summary",
+		`        name:
+          type: string
+          example: My thing
+        gated_name:
+          type: string
+          example: My thing
+          enum: [alpha, beta]
+        shaped_name:
+          type: string
+          example: my.thing
+          pattern: "^[a-z.]+$"
+        summary:
+          type: string
+          example: some words
+`)
+	p := mustDerive(t, loadDoc(t, spec), testConfig(), nil)
+	body := entityByKey(t, p, "thing").Steps[0].Body
+
+	// The example is a value the API took once; a unique name refuses it
+	// thereafter, and an object created under it never carries the prefix
+	// cleanup matches on.
+	if got := body["name"]; got != "tfpfgen-"+RunIDToken+"-thing-name" {
+		t.Errorf("name = %#v, want the invented token", got)
+	}
+	// A field an enum or a pattern constrains keeps the ordinary priority, in
+	// which a declared example already outranks both: the token satisfies
+	// neither shape, so such a field is not one to invent a name for.
+	if got := body["gated_name"]; got != "My thing" {
+		t.Errorf("gated_name = %#v, want the declared example", got)
+	}
+	if got := body["shaped_name"]; got != "my.thing" {
+		t.Errorf("shaped_name = %#v, want the declared example", got)
+	}
+	// A field that names nothing keeps its example.
+	if got := body["summary"]; got != "some words" {
+		t.Errorf("summary = %#v, want the declared example", got)
+	}
+}

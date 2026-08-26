@@ -95,6 +95,17 @@ func (sy synth) value(field string, s *specmodel.Schema, depth int, topLevel boo
 		return nil, false
 	}
 	r := s.Resolved()
+	// A name must be unique per run and must carry the prefix cleanup matches
+	// on, so the invented token beats a declared example. An example is a
+	// value the API accepted once; an API that requires a name to be unique
+	// refuses it every time after, and an object created under it is invisible
+	// to the prefix pass and stays in the tenant. An enum, a format or a
+	// pattern leaves the ordinary priority alone: the token satisfies none of
+	// those shapes, so a field carrying one is not a field to invent a name
+	// for.
+	if NameBearing(field) && len(r.Enum) == 0 && r.Format == "" && r.Pattern == "" {
+		return sy.nameToken(field), true
+	}
 	if r.Example != nil {
 		return r.Example, true
 	}
@@ -139,7 +150,7 @@ func (sy synth) formatValue(format string) (any, bool) {
 func (sy synth) typeValue(field string, r *specmodel.Schema, depth int) (any, bool) {
 	switch {
 	case r.Type == "string":
-		if nameBearing(field) {
+		if NameBearing(field) {
 			return sy.nameToken(field), true
 		}
 		return "sample-" + field, true
@@ -268,9 +279,9 @@ func (sy synth) nameToken(field string) string {
 	return sy.prefix + "-" + RunIDToken + "-" + sy.entity + "-" + field
 }
 
-// nameBearing reports whether a string field names its object — the
+// NameBearing reports whether a string field names its object — the
 // fields whose synthesized values must carry the cleanup prefix.
-func nameBearing(field string) bool {
+func NameBearing(field string) bool {
 	lf := strings.ToLower(field)
 	for _, suffix := range []string{"name", "title", "label"} {
 		if lf == suffix || strings.HasSuffix(lf, suffix) {
