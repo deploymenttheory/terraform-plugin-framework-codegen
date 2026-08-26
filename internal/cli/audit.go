@@ -39,8 +39,8 @@ const auditRunsDir = "audit/runs"
 
 // newAuditRunCommand executes the derived plan against the live API: the
 // only verb that touches a network with credentials. Observations land in
-// --out, one file per entity, and a summary table says how far the run
-// got.
+// --out, one file per entity, the accepted request bodies and the run
+// summary beside them, and a summary table says how far the run got.
 func newAuditRunCommand() *cobra.Command {
 	var (
 		dir           string
@@ -111,6 +111,18 @@ func newAuditRunCommand() *cobra.Command {
 					}
 					return writeErr
 				}
+			}
+			// The summary sits beside them both: the observations say what
+			// was learned and the request bodies what was accepted, and this
+			// says why an entity produced neither. Written whatever the run
+			// did, because a run where every entity blocked is exactly the
+			// run whose reasons are worth keeping.
+			summaryPath := filepath.Join(filepath.Dir(out), auditrun.SummaryFile)
+			if writeErr := auditrun.WriteSummary(summaryPath, sum); writeErr != nil {
+				if runErr != nil {
+					return fmt.Errorf("%v; additionally %w", runErr, writeErr)
+				}
+				return writeErr
 			}
 			printSummary(cmd.OutOrStdout(), out, len(obs), sum)
 			return runErr

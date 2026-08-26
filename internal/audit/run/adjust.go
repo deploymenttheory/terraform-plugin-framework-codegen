@@ -64,6 +64,10 @@ type adjustResult struct {
 	// that failed with adjusted true was partly built and then stuck, which is
 	// a weaker signal about the body it started from.
 	adjusted bool
+	// tried names the fields the additive search added, in the order it added
+	// them. Set only where the search ran and failed: it is what the block
+	// reason needs to say more than that a status came back.
+	tried []string
 	// gaveUp reports that the loop ended without success: the refusal could
 	// not be classified into an action, an action made no progress, a borrow
 	// found nothing, or the iteration bound was hit.

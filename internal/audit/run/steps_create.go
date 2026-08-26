@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
@@ -27,11 +28,20 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 	// only that the request was bad names nothing to act on, and the document
 	// that produced this body is the same document that understated it — so
 	// ask the API instead, one field at a time.
+	// A failed search still learned something: its last refusal answers a
+	// wider body than the one that started it, and the fields it added name
+	// what it asked for. Both are carried for the block reason alone — the
+	// grammar's own result still decides what happens next.
+	var searched adjustResult
 	if rr.obj == nil && rr.res != nil && rr.res.refused() {
-		if searched, serr := r.searchMinimal(ctx, ent, ent.recipe, rr.body, rr.res); serr != nil {
+		found, serr := r.searchMinimal(ctx, ent, ent.recipe, rr.body, rr.res)
+		if serr != nil {
 			return serr
-		} else if searched.obj != nil {
-			rr = searched
+		}
+		if found.obj != nil {
+			rr = found
+		} else {
+			searched = found
 		}
 	}
 	if rr.obj != nil {
@@ -66,11 +76,35 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		// the other variants and probes it can still run, so continue instead.
 		return nil
 	}
-	if rr.res != nil {
-		ent.cause = &rr.res.excerpt
-		return blockedError{reason: fmt.Sprintf("the minimal create was refused with status %d", rr.res.status)}
+	if refused := lastRefusal(rr, searched); refused != nil {
+		ent.cause = &refused.excerpt
+		return blockedError{reason: minimalRefusedReason(refused.status, searched.tried)}
 	}
 	return blockedError{reason: "the minimal create produced no object"}
+}
+
+// lastRefusal answers the later-informed of the two refusals a minimal create
+// can end on: the additive search's, when it ran, and the grammar's otherwise.
+func lastRefusal(grammar, searched adjustResult) *httpResult {
+	if searched.res != nil {
+		return searched.res
+	}
+	return grammar.res
+}
+
+// minimalRefusedReason spells why an entity produced no object, naming the
+// fields the search asked the API for.
+//
+// The status alone cannot be acted on. An operator reading a blocked entity
+// needs to know whether the document's body was refused as written or whether
+// a search widened it and was refused anyway, and which fields it widened it
+// with.
+func minimalRefusedReason(status int, tried []string) string {
+	if len(tried) == 0 {
+		return fmt.Sprintf("the minimal create was refused with status %d", status)
+	}
+	return fmt.Sprintf("the minimal create was refused with status %d, and adding %s did not heal it",
+		status, strings.Join(tried, ", "))
 }
 
 // runCreateMaximal creates with every writable field populated, refining the
@@ -357,9 +391,11 @@ func (r *runner) searchMinimal(ctx context.Context, ent *entityState, rec *entit
 	candidates := r.searchCandidates(ent, body, refusal)
 	allowance := searchAllowance(len(candidates))
 	last := refusal
+	var tried []string
 
 	for i := 0; i < allowance; i++ {
 		field := candidates[i]
+		tried = append(tried, field)
 		body[field] = r.synthField(ent, field)
 
 		obj, res, err := r.createObject(ctx, ent, rec, body)
@@ -377,7 +413,7 @@ func (r *runner) searchMinimal(ctx context.Context, ent *entityState, rec *entit
 			return adjustResult{obj: obj, res: res, body: body, adjusted: true}, nil
 		}
 		if res == nil || !res.refused() {
-			return adjustResult{res: res, body: body, adjusted: true, gaveUp: true}, nil
+			return adjustResult{res: res, body: body, adjusted: true, gaveUp: true, tried: tried}, nil
 		}
 		// The API now objects to the field just added, so it is not one this
 		// create wants; the ones before it stay.
@@ -386,7 +422,7 @@ func (r *runner) searchMinimal(ctx context.Context, ent *entityState, rec *entit
 		}
 		last = res
 	}
-	return adjustResult{res: last, body: body, adjusted: true, gaveUp: true}, nil
+	return adjustResult{res: last, body: body, adjusted: true, gaveUp: true, tried: tried}, nil
 }
 
 // searchCandidates orders the fields the search may add, cheapest-signal
