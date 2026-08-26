@@ -43,7 +43,7 @@ const (
 // themselves, which the triangulating inference reads for the hypotheses each
 // run was meant to confirm. The input plan is left untouched: a new plan is
 // built so the caller's copy is never mutated.
-func strategize(p *plan.Plan, doc *specmodel.Document, cfg *config.Config, prefix string) (*plan.Plan, map[string]map[string]strategy.SynthHint, map[string]*strategy.Strategy) {
+func strategize(p *plan.Plan, doc *specmodel.Document, cfg *config.Config, prefix string, inputs *plan.Inputs) (*plan.Plan, map[string]map[string]strategy.SynthHint, map[string]*strategy.Strategy) {
 	cls := specmodel.Classify(doc)
 	byKey := make(map[string]specmodel.Classification, len(cls.Entities))
 	for _, c := range cls.Entities {
@@ -69,7 +69,7 @@ func strategize(p *plan.Plan, doc *specmodel.Document, cfg *config.Config, prefi
 			continue
 		}
 		addr := addressingOf(&ep)
-		ep.Steps = translateProgram(compiled, addr, ep.Entity, prefix)
+		ep.Steps = translateProgram(compiled, addr, ep.Entity, prefix, inputs.ValuesFor(ep.Entity))
 		ep.Budget = plan.Budget{Requests: compiled.Budget.Requests}
 		hints[ep.Entity] = collectHints(compiled)
 		strategies[ep.Entity] = compiled
@@ -142,13 +142,33 @@ func addressingOf(ep *plan.EntityPlan) addressing {
 	return a
 }
 
+// entityValues indexes the operator's value overrides by entity, for every
+// entity the plan carries.
+//
+// The adjustment loop reads them as well as the translator: a field the API
+// forces into a body live is the same field the operator supplied a value for,
+// and synthesising a different one there would send two values for one field
+// across a single run.
+func entityValues(p *plan.Plan, inputs *plan.Inputs) map[string]map[string]any {
+	if p == nil || inputs == nil {
+		return nil
+	}
+	out := map[string]map[string]any{}
+	for i := range p.Entities {
+		if v := inputs.ValuesFor(p.Entities[i].Entity); len(v) > 0 {
+			out[p.Entities[i].Entity] = v
+		}
+	}
+	return out
+}
+
 // translateProgram turns a strategy's ordered, value-free program into
 // executable steps: addressing from addr, request bodies synthesised from the variant
 // skeletons and per-field hints.
-func translateProgram(compiled *strategy.Strategy, addr addressing, entity, prefix string) []plan.Step {
+func translateProgram(compiled *strategy.Strategy, addr addressing, entity, prefix string, values map[string]any) []plan.Step {
 	baseMinimal := map[string]any{}
 	if len(compiled.Variants) > 0 {
-		baseMinimal = synthSkeletonBody(compiled.Variants[0].Minimal, entity, prefix, "", "")
+		baseMinimal = synthSkeletonBody(compiled.Variants[0].Minimal, entity, prefix, "", "", values)
 	}
 	hints := collectHints(compiled)
 
@@ -160,11 +180,11 @@ func translateProgram(compiled *strategy.Strategy, addr addressing, entity, pref
 			steps = append(steps, plan.Step{
 				Kind: s.Kind, Method: addr.createMethod, Path: addr.collectionPath,
 				PathValues: addr.collectionValues,
-				Body:       synthSkeletonBody(v.Minimal, entity, prefix, s.GateField, s.GateValue),
+				Body:       synthSkeletonBody(v.Minimal, entity, prefix, s.GateField, s.GateValue, values),
 			})
 		case plan.StepCreateMaximal:
 			v := findVariant(compiled, s.GateField, s.GateValue)
-			body := synthSkeletonBody(v.Maximal, entity, prefix, s.GateField, s.GateValue)
+			body := synthSkeletonBody(v.Maximal, entity, prefix, s.GateField, s.GateValue, values)
 			steps = append(steps, plan.Step{
 				Kind: s.Kind, Method: addr.createMethod, Path: addr.collectionPath,
 				PathValues: addr.collectionValues, Body: body,
@@ -307,15 +327,26 @@ func countOptional(v strategy.Variant, body map[string]any) int {
 }
 
 // synthSkeletonBody synthesises a create body from a skeleton: one value per
-// field, drawn from that field's hint, with the gate field pinned to the
-// variant's value where one is given.
-func synthSkeletonBody(sk strategy.Skeleton, entity, prefix, gateField, gateValue string) map[string]any {
+// field, drawn from the operator's inputs where they name it and from that
+// field's hint otherwise, with the gate field pinned to the variant's value
+// where one is given.
+//
+// An operator value outranks everything, including the gate: it is supplied
+// precisely for the fields no synthesis can guess — a reachable endpoint, an
+// existing agent's id, the discriminator a polymorphic body is keyed on.
+// Scoped to the body's own fields, as the plan's synthesis is, because a
+// wire property name says nothing about which nested object it belongs to.
+func synthSkeletonBody(sk strategy.Skeleton, entity, prefix, gateField, gateValue string, values map[string]any) map[string]any {
 	byField := make(map[string]strategy.SynthHint, len(sk.Hints))
 	for _, h := range sk.Hints {
 		byField[h.Field] = h
 	}
 	body := map[string]any{}
 	for _, f := range sk.Fields {
+		if v, ok := values[f]; ok {
+			body[f] = v
+			continue
+		}
 		if f == gateField && gateValue != "" {
 			body[f] = typedGate(byField[f], gateValue)
 			continue
@@ -330,6 +361,9 @@ func synthSkeletonBody(sk strategy.Skeleton, entity, prefix, gateField, gateValu
 // synthField synthesises one field the adjustment loop must add live, from its
 // strategy hint when known and from its name and a string default otherwise.
 func (r *runner) synthField(ent *entityState, field string) any {
+	if v, ok := r.inputValues[ent.plan.Entity][field]; ok {
+		return v
+	}
 	if hints := r.hints[ent.plan.Entity]; hints != nil {
 		if h, ok := hints[field]; ok {
 			return synthValue(h, ent.plan.Entity, r.opts.NamePrefix)

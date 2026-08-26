@@ -59,7 +59,7 @@ func newAuditRunCommand() *cobra.Command {
 			"responsibility.",
 		Args: exactArgs("tfpfgen audit run [--dir spec] [--config tfpfgen.yaml] [--out audit/observations] [--base-url URL] [--force-api-audit]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, p, doc, lock, err := auditPlan(dir, cfgFile)
+			cfg, p, doc, inputs, lock, err := auditPlan(dir, cfgFile)
 			if err != nil {
 				return err
 			}
@@ -75,6 +75,7 @@ func newAuditRunCommand() *cobra.Command {
 				Plan:    p,
 				Doc:     doc,
 				Config:  cfg,
+				Inputs:  inputs,
 				BaseURL: base,
 				Auth: auditrun.Auth{
 					Method:       cfg.Auth.Method,
@@ -140,7 +141,7 @@ func newAuditCleanupCommand() *cobra.Command {
 		Short: "delete the live test objects a previous audit left behind",
 		Args:  exactArgs("tfpfgen audit cleanup [--dir spec] [--config tfpfgen.yaml] [--base-url URL] [--prefix NAME]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, p, _, _, err := auditPlan(dir, cfgFile)
+			cfg, p, _, _, _, err := auditPlan(dir, cfgFile)
 			if err != nil {
 				return err
 			}
@@ -185,46 +186,50 @@ func newAuditCleanupCommand() *cobra.Command {
 	return cmd
 }
 
-// auditPlan loads everything both audit verbs derive from: the config,
-// the revised document, the operator inputs, and the upstream pin the
+// auditPlan loads everything both audit verbs derive from: the config, the
+// revised document, the operator inputs, and the upstream pin the
 // observations are stamped with.
-func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Document, store.Lock, error) {
+//
+// The inputs are answered as well as applied. Derive resolves parentRefs and
+// skip from them, and their values reach the wire only through the run, which
+// rebuilds every body the plan derived.
+func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Document, *plan.Inputs, store.Lock, error) {
 	cfg, err := config.Load(cfgFile)
 	if err != nil {
-		return nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Lock{}, err
 	}
 	if !cfg.Audit.Enabled {
-		return nil, nil, nil, store.Lock{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
+		return nil, nil, nil, nil, store.Lock{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
 	}
 
 	data, srcPath, err := auditSpecBytes(dir)
 	if err != nil {
-		return nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Lock{}, err
 	}
 	doc, err := specmodel.Load(data)
 	if err != nil {
-		return nil, nil, nil, store.Lock{}, fmt.Errorf("%s: %w", srcPath, err)
+		return nil, nil, nil, nil, store.Lock{}, fmt.Errorf("%s: %w", srcPath, err)
 	}
 
 	lock, err := store.Verify(dir)
 	if err != nil {
-		return nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Lock{}, err
 	}
 
 	rawInputs, err := os.ReadFile(plan.InputsPath)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Lock{}, err
 	}
 	inputs, err := plan.ParseInputs(rawInputs)
 	if err != nil {
-		return nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Lock{}, err
 	}
 
 	p, err := plan.Derive(doc, cfg, inputs)
 	if err != nil {
-		return nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Lock{}, err
 	}
-	return cfg, p, doc, lock, nil
+	return cfg, p, doc, inputs, lock, nil
 }
 
 // auditBaseURL picks the audited API's root: the flag, then the config

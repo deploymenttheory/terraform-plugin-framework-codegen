@@ -544,3 +544,36 @@ func TestUnit_Adaptive_TheReductionKeepsWhatTheCreateNeeded(t *testing.T) {
 		t.Errorf("the reduction kept the field the API refused: %#v", recorded.Request)
 	}
 }
+
+// TestUnit_Adaptive_AnOperatorValueReachesTheWire: a value the operator
+// supplies for a field the audit cannot guess is what the live create sends.
+// Run rebuilds every body the plan derived, so a value applied at plan time
+// alone never leaves the plan.
+func TestUnit_Adaptive_AnOperatorValueReachesTheWire(t *testing.T) {
+	t.Parallel()
+	s := quirkserver.New(t, quirkserver.Quirks{})
+	opts := strategyOptions(t, s, nil)
+	opts.Inputs = &plan.Inputs{Entities: map[string]plan.EntityInputs{
+		"monitor": {Values: map[string]any{"interval": 42}},
+	}}
+
+	_, sum := mustRun(t, opts)
+
+	var sent map[string]any
+	for _, b := range sum.RequestBodies {
+		if b.Entity == "monitor" && b.Minimal != nil {
+			sent = b.Minimal.Request
+		}
+	}
+	if sent == nil {
+		t.Fatalf("no accepted create was recorded for monitor: %+v", sum.Entities)
+	}
+	if got := sent["interval"]; got != 42 {
+		t.Errorf("interval = %#v, want the operator's value on the wire", got)
+	}
+	// A field the operator said nothing about is still synthesised, so the
+	// override replaces one value rather than the whole body.
+	if got := sent["kind"]; got == nil || got == 42 {
+		t.Errorf("kind = %#v, want the synthesised value", got)
+	}
+}

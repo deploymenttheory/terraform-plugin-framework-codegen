@@ -417,3 +417,36 @@ func TestUnit_Search_MaximalCulpritPrefersTheNamedField(t *testing.T) {
 		t.Errorf("culprit = %q, want none", got)
 	}
 }
+
+// TestUnit_Strategize_AnOperatorValueOutranksEverySynthesis: the value an
+// operator supplies is what the skeleton sends, over an example, an enum and
+// the variant's own gate.
+func TestUnit_Strategize_AnOperatorValueOutranksEverySynthesis(t *testing.T) {
+	t.Parallel()
+	sk := strategy.Skeleton{
+		Fields: []string{"endpoint", "kind", "name"},
+		Hints: []strategy.SynthHint{
+			{Field: "endpoint", Type: "string", Example: "https://unreachable.invalid"},
+			{Field: "kind", Type: "string", Enum: []any{"ping", "web"}},
+			{Field: "name", Type: "string"},
+		},
+	}
+	values := map[string]any{"endpoint": "https://reachable.example", "kind": "web"}
+
+	body := synthSkeletonBody(sk, "monitor", "tfpfgen", "kind", "ping", values)
+
+	// The operator supplies a value precisely for the field no synthesis can
+	// guess: an example the API cannot reach is still an example.
+	if body["endpoint"] != "https://reachable.example" {
+		t.Errorf("endpoint = %#v, want the operator's value", body["endpoint"])
+	}
+	// Even the gate yields: a discriminator is one of the things an operator
+	// has to supply when the document does not say which shape is valid.
+	if body["kind"] != "web" {
+		t.Errorf("kind = %#v, want the operator's value over the variant gate", body["kind"])
+	}
+	// A field the operator said nothing about is synthesised as before.
+	if body["name"] != "tfpfgen-<runid>-monitor-name" {
+		t.Errorf("name = %#v, want the invented name", body["name"])
+	}
+}
