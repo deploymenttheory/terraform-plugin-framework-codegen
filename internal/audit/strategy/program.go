@@ -135,10 +135,6 @@ func buildProgram(createBody *specmodel.Schema, gates []Gate, variants []Variant
 			gatedStep(stepReadConsecutive, v),
 		)
 	}
-	// The widest valid body, per variant.
-	for _, v := range variants {
-		prog = append(prog, gatedStep(stepCreateMaximal, v))
-	}
 	// One update per writable field, capped.
 	for i, name := range fieldNames(fields) {
 		if i == maxUpdateFields {
@@ -166,11 +162,18 @@ func buildProgram(createBody *specmodel.Schema, gates []Gate, variants []Variant
 	// prose hypotheses the gate loop did not already cover.
 	prog = append(prog, perValueSteps(gates, hyps)...)
 
-	// Teardown.
-	prog = append(prog,
-		Step{Kind: stepDeleteWithConfirmation},
-		Step{Kind: stepCleanupDelete},
-	)
+	// Teardown, and the widest valid body inside it.
+	//
+	// The maximal create makes a second object and deletes it again, so it
+	// runs once the first is gone: an API that keys an object on fields the
+	// two bodies share — both are synthesised from the same document —
+	// answers the second create with a conflict, and a conflict says nothing
+	// about how wide a valid body is.
+	prog = append(prog, Step{Kind: stepDeleteWithConfirmation})
+	for _, v := range variants {
+		prog = append(prog, gatedStep(stepCreateMaximal, v))
+	}
+	prog = append(prog, Step{Kind: stepCleanupDelete})
 	return prog
 }
 
