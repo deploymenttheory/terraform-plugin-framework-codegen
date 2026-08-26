@@ -100,6 +100,18 @@ func newAuditRunCommand() *cobra.Command {
 					return writeErr
 				}
 			}
+			// The accepted bodies sit beside the observations: an observation
+			// says something about a property, these say what a whole create
+			// looked like when the API took it.
+			if len(sum.Bodies) > 0 {
+				bodiesDir := filepath.Join(filepath.Dir(out), "bodies")
+				if writeErr := observe.WriteBodies(bodiesDir, sum.Bodies); writeErr != nil {
+					if runErr != nil {
+						return fmt.Errorf("%v; additionally %w", runErr, writeErr)
+					}
+					return writeErr
+				}
+			}
 			printSummary(cmd.OutOrStdout(), out, len(obs), sum)
 			return runErr
 		},

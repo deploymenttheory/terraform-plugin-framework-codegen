@@ -108,8 +108,13 @@ func (r *{{ .Type }}) Read(ctx context.Context, req resource.ReadRequest, resp *
 	data.ID = types.StringValue({{ .SingletonID | printf "%q" }})
 {{- end }}
 {{ if .IdentitySets }}
-{{ .IdentitySets }}	if resp.Diagnostics.HasError() {
-		return
+	// The read-after-write loop calls Read with a response it makes itself,
+	// which carries no identity schema; the create that drove it has already
+	// written the identity.
+	if resp.Identity != nil {
+{{ .IdentitySetsRead }}		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 {{ end }}
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

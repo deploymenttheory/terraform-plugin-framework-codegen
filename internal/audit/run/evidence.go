@@ -24,6 +24,10 @@ type evidence struct {
 	// optional fields a minimal create never sends.
 	maximalSent map[string]any
 	maximalGot  map[string]any
+	// The status each accepted create answered, kept so the recorded body
+	// shows it was an acceptance rather than an assumption.
+	sentStatus    int
+	maximalStatus int
 	// volatile marks fields the consecutive read saw change.
 	volatile map[string]bool
 	// omitted collects, per field, the value each created object answered

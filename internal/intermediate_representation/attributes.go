@@ -442,7 +442,7 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 	serverForced, _ := extensions.ServerForced()
 	volatile, _ := extensions.Volatile()
 	createOnly, _ := extensions.CreateOnly()
-	_, serverFills := extensions.ServerDefault()
+	serverDefault, serverFills := extensions.ServerDefault()
 	attribute.SilentlyIgnoredOnUpdate, _ = extensions.SilentlyIgnoredOnUpdate()
 
 	// The document's prose, taken from whichever side declares any. A
@@ -464,6 +464,10 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 	// it, so a response-only attribute could never carry it anyway.
 	attribute.Format = flatPrimary.format
 	attribute.Example = flatPrimary.example
+	// What the API itself answered for this property, where a run has read
+	// one. It outranks every other source of a fixture value: a document says
+	// what should be accepted, this is what was.
+	attribute.ServerDefault = serverDefault
 	attribute.WriteOnly = flatCreate.writeOnly
 	attribute.Deprecated = flatCreate.deprecated || flatRead.deprecated
 	attribute.UniqueItems = flatPrimary.uniqueItems

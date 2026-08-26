@@ -502,3 +502,106 @@ func TestUnit_Fixturespec_APrefixedStringSuppressesTheRestore(t *testing.T) {
 		t.Errorf("name = %#v, want the declared example kept", got)
 	}
 }
+
+// acceptedTree is one entity whose shape covers what a replayed body has to
+// carry: scalars, a list of scalars, and a nested object.
+func acceptedTree() *ir.AttributeTree {
+	return &ir.AttributeTree{
+		Attributes: []ir.Attribute{
+			{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+			{Name: "match_type", WireName: "matchType", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "colour", WireName: "colour", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "labels", WireName: "labels", Kind: ir.TypeList, ElementType: ir.TypeString, ComputedOptionalRequired: ir.Optional},
+			{Name: "settings", WireName: "settings", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Optional,
+				Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
+					{Name: "retries", WireName: "retries", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional},
+				}}},
+		},
+	}
+}
+
+func TestUnit_Fixturespec_AReplayedBodyCarriesWhatTheAPITook(t *testing.T) {
+	spec := Derive(acceptedTree())
+	request := map[string]any{
+		"name":     "the-name-it-took",
+		"colour":   "#FF0000",
+		"labels":   []any{"first", "second"},
+		"settings": map[string]any{"retries": int64(3)},
+	}
+	response := map[string]any{
+		"name": "the-name-it-took", "colour": "#FF0000",
+		"labels": []any{"first"}, "settings": map[string]any{"retries": int64(3)},
+	}
+
+	got := spec.FromAcceptedBody(request, response, map[string]bool{"name": true})
+
+	// The values are the ones the request carried, not the ones derived.
+	if v := valueByName(t, got, "name").Scalar; v != "the-name-it-took" {
+		t.Errorf("name = %#v, want the value the API took", v)
+	}
+	if v := valueByName(t, got, "colour").Scalar; v != "#FF0000" {
+		t.Errorf("colour = %#v, want the value the API took", v)
+	}
+	// A list carries its first element, which is what one fixture renders.
+	if v := valueByName(t, got, "labels").Scalar; v != "first" {
+		t.Errorf("labels = %#v, want the first element sent", v)
+	}
+	// A nested object recurses.
+	settings := valueByName(t, got, "settings")
+	if len(settings.Nested) != 1 || settings.Nested[0].Scalar != int64(3) {
+		t.Errorf("settings = %#v, want the nested value the API took", settings.Nested)
+	}
+	// An attribute the request never carried is not in a replay of it.
+	for _, e := range got.Entries {
+		if e.Name == "match_type" {
+			t.Error("an attribute the accepted body did not carry was replayed")
+		}
+	}
+}
+
+func TestUnit_Fixturespec_AReplayDropsWhatTheAPINeverReturns(t *testing.T) {
+	spec := Derive(acceptedTree())
+	request := map[string]any{"name": "n", "match_type": "and", "matchType": "and", "colour": "#FF0000"}
+	// The API took matchType and answered without it.
+	response := map[string]any{"name": "n", "colour": "#FF0000"}
+
+	got := spec.FromAcceptedBody(request, response, map[string]bool{"name": true})
+
+	for _, e := range got.Entries {
+		if e.Name == "match_type" {
+			t.Fatal("a property the API never returns was left in a configuration")
+		}
+	}
+	var explained bool
+	for _, o := range got.Omissions {
+		if strings.Contains(o.Name, "match_type") && strings.Contains(o.Reason, "did not return it") {
+			explained = true
+		}
+	}
+	if !explained {
+		t.Errorf("the dropped property was not explained: %#v", got.Omissions)
+	}
+	// A required property stays even unreturned: the create needs it.
+	requiredUnreturned := spec.FromAcceptedBody(
+		map[string]any{"name": "n"}, map[string]any{}, map[string]bool{"name": true})
+	if len(requiredUnreturned.Entries) != 1 {
+		t.Errorf("a required property was dropped for not being echoed: %#v", requiredUnreturned.Entries)
+	}
+}
+
+func TestUnit_Fixturespec_TheRunSuffixOnlyTouchesInventedNames(t *testing.T) {
+	spec := Derive(acceptedTree())
+	spec.Entries[1].Scalar = NamePrefix + "invented"
+	spec.Entries[2].Scalar = "#FF0000"
+
+	got := spec.WithRunSuffix()
+
+	if v := got.Entries[1].Scalar; v != NamePrefix+"invented-"+RunSuffixExpr {
+		t.Errorf("an invented name = %#v, want the run suffix appended", v)
+	}
+	// A value the document supplied is one the API is known to accept;
+	// appending to it could make it invalid.
+	if v := got.Entries[2].Scalar; v != "#FF0000" {
+		t.Errorf("a document value = %#v, want it left alone", v)
+	}
+}

@@ -17,6 +17,12 @@ func TestAcc{{ .Pascal }}Resource_Lifecycle(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { acceptance.PreCheck(t) },
 		ProtoV6ProviderFactories: acceptance.ProtoV6ProviderFactories,
+		// The configuration suffixes its synthesised names with a random
+		// string, so a re-run never collides with what the last one left
+		// behind. The provider supplying it is external to this one.
+		ExternalProviders: map[string]resource.ExternalProvider{
+			"random": {Source: "hashicorp/random"},
+		},
 		Steps: []resource.TestStep{
 			{
 				Config: accConfigMinimal,

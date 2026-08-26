@@ -594,3 +594,137 @@ func (s Fixture) topLevel(a Form) []Entry {
 	}
 	return out
 }
+
+// RunSuffixExpr is the terraform expression an acceptance configuration
+// suffixes its synthesised names with, and the block that supplies it.
+//
+// A live API that requires a name to be unique refuses the second run of a
+// test whose name is a constant, and an object a failed run leaves behind
+// holds that name for good. The committed configuration stays byte-identical
+// because the expression, not a value, is what it carries.
+const (
+	RunSuffixExpr  = "${random_string.tfpfgen_run.result}"
+	RunSuffixBlock = `resource "random_string" "tfpfgen_run" {
+  length  = 10
+  special = false
+  upper   = false
+}`
+)
+
+// WithRunSuffix answers a copy whose synthesised names carry the run suffix.
+//
+// Only the names this package invented are suffixed: a value the document
+// supplied is one the API is known to accept, and appending to it could make
+// it invalid — a URL, an enum member, a formatted identifier.
+func (s Fixture) WithRunSuffix() Fixture {
+	out := s
+	out.Entries = suffixedEntries(s.Entries)
+	return out
+}
+
+// suffixedEntries copies a level, suffixing the synthesised names in it.
+func suffixedEntries(values []Entry) []Entry {
+	if values == nil {
+		return nil
+	}
+	out := make([]Entry, len(values))
+	copy(out, values)
+	for i := range out {
+		if text, ok := out[i].Scalar.(string); ok && strings.HasPrefix(text, NamePrefix) {
+			out[i].Scalar = text + "-" + RunSuffixExpr
+		}
+		out[i].Nested = suffixedEntries(out[i].Nested)
+	}
+	return out
+}
+
+// FromAcceptedBody answers the entries a recorded create actually carried,
+// with the values it carried them as.
+//
+// This is the difference between a configuration that looks like one the API
+// would take and one it demonstrably did. A value derived from the document is
+// a guess about what is acceptable; these were accepted.
+//
+// A property the request carried and the response did not is dropped, with the
+// reason recorded: terraform compares what it planned against what the
+// provider answers, so a value the API never echoes reads as the provider
+// losing it, and no configuration can hold one.
+func (s Fixture) FromAcceptedBody(request, response map[string]any, requiredWire map[string]bool) Fixture {
+	out := s
+	out.Entries, out.Omissions = overlayEntries(s.Entries, request, response, requiredWire, nil)
+	out.Omissions = append(out.Omissions, s.Omissions...)
+	return out
+}
+
+// overlayEntries keeps the entries the body carried, taking their values from
+// it, and reports the ones it dropped.
+func overlayEntries(values []Entry, request, response map[string]any, requiredWire map[string]bool, path []string) ([]Entry, []Omission) {
+	var kept []Entry
+	var dropped []Omission
+	for _, v := range values {
+		at := append(append([]string{}, path...), v.Name)
+		carried, inRequest := request[v.Wire]
+		if !inRequest {
+			continue
+		}
+		// A field the API takes and never returns cannot live in a
+		// configuration; a required one has to be sent anyway, so it stays
+		// and the risk is the API's rather than the generator's.
+		if response != nil && !requiredWire[v.Wire] {
+			if _, echoed := response[v.Wire]; !echoed {
+				dropped = append(dropped, Omission{
+					Name:   strings.Join(at, "."),
+					Reason: "the API accepted this property and did not return it, so terraform cannot hold it in state",
+				})
+				continue
+			}
+		}
+		kept = append(kept, overlayOne(v, carried, response, requiredWire, at, &dropped))
+	}
+	return kept, dropped
+}
+
+// overlayOne sets one entry from the value the body carried, recursing into
+// the nested shapes a body spells as objects and arrays of objects.
+func overlayOne(v Entry, carried any, response map[string]any, requiredWire map[string]bool, at []string, dropped *[]Omission) Entry {
+	switch nested := carried.(type) {
+	case map[string]any:
+		if v.Nested != nil {
+			var inner []Omission
+			v.Nested, inner = overlayEntries(v.Nested, nested, nestedResponse(response, v.Wire), requiredWire, at)
+			*dropped = append(*dropped, inner...)
+			return v
+		}
+	case []any:
+		if v.Nested != nil && len(nested) > 0 {
+			if first, ok := nested[0].(map[string]any); ok {
+				var inner []Omission
+				v.Nested, inner = overlayEntries(v.Nested, first, nil, requiredWire, at)
+				*dropped = append(*dropped, inner...)
+				return v
+			}
+		}
+		// A list of scalars: the fixture carries one element.
+		if len(nested) > 0 {
+			v.Scalar = nested[0]
+		}
+		return v
+	}
+	if v.Nested == nil {
+		v.Scalar = carried
+	}
+	return v
+}
+
+// nestedResponse is the object the response carried under one property, or nil
+// when it carried none — in which case the level below is not echo-checked,
+// because absence of the parent says nothing about its children.
+func nestedResponse(response map[string]any, wire string) map[string]any {
+	if response == nil {
+		return nil
+	}
+	if inner, ok := response[wire].(map[string]any); ok {
+		return inner
+	}
+	return nil
+}

@@ -177,7 +177,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 
 	exampleHeader := fmt.Sprintf("action %q %q", a.Names.TerraformType, "example")
 	exampleBody := "  config {\n" + reindent(spec.HCL(fixtures.ConfigMaximal), "  ") + "  }\n"
-	example, err := hclBlock(a.Names.Key, exampleHeader, exampleBody, nil)
+	example, err := hclBlock(a.Names.Key, exampleHeader, "", exampleBody, nil)
 	if err != nil {
 		return nil, err
 	}

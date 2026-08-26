@@ -49,6 +49,10 @@ type resourceData struct {
 	// refuses a create or read that declares an identity schema and leaves
 	// the identity unset, so the two are emitted together or not at all.
 	IdentitySets string
+	// IdentitySetsRead is IdentitySets indented for the guard Read wraps it
+	// in: the retrying read is driven by a response of the toolkit's own
+	// making, which carries no identity schema to write into.
+	IdentitySetsRead string
 
 	SchemaDescription string
 	SchemaAttributes  string
@@ -256,6 +260,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 			e.identities[r.Names.Key] = identity
 			d.IdentityAttributes = identitySchemaDecls(identity, 3)
 			d.IdentitySets = identitySetLines(identity, "data", 1)
+			d.IdentitySetsRead = identitySetLines(identity, "data", 2)
 			imports.add("identityschema", "github.com/hashicorp/terraform-plugin-framework/resource/identityschema")
 		}
 	}
