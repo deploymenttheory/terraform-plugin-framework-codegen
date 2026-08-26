@@ -492,3 +492,55 @@ func TestUnit_Adaptive_RedactionHoldsEndToEnd(t *testing.T) {
 	// The run's activity ledger must not carry it either.
 	_ = time.Now
 }
+
+// TestUnit_Adaptive_TheReductionKeepsWhatTheCreateNeeded: a field the API
+// demanded at createMinimal is not something the maximal reduction may drop.
+//
+// The reduction protects the body the entity creates by. That body is the one
+// the run got accepted, not the one the plan started from — the plan's is the
+// document's guess, and the guess is what needed healing. Protecting the guess
+// leaves the healed field droppable, and a reduction that drops it can never
+// reach an accepted create at all.
+func TestUnit_Adaptive_TheReductionKeepsWhatTheCreateNeeded(t *testing.T) {
+	t.Parallel()
+	s := quirkserver.New(t, quirkserver.Quirks{
+		// Demanded by the API, absent from the document, and named in a
+		// sentence the loop can act on.
+		RequiredButUndeclared:    []string{"serial"},
+		NamesRefusedFieldInProse: true,
+		// One optional field the maximal carries and the API will not take,
+		// so the maximal is refused and has to be reduced.
+		RejectsDocumentedValue: map[string]string{"colour": "bad-colour"},
+	})
+
+	p := &plan.Plan{
+		Entities: []plan.EntityPlan{{
+			Entity: "thing", Role: "resource", Budget: plan.Budget{Requests: 60},
+			Steps: []plan.Step{
+				{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",
+					Body: map[string]any{"name": "tfpfgen-<runid>-thing-name"}},
+				{Kind: plan.StepCreateMaximal, Method: "POST", Path: "/things",
+					Body: map[string]any{"name": "tfpfgen-<runid>-thing-name", "colour": "bad-colour"}},
+			},
+		}},
+		Budget: plan.RunBudget{Requests: 300, Objects: 10, Duration: "1m"},
+	}
+
+	_, sum := mustRun(t, testOptions(t, s, p, testEnv(), nil))
+
+	var recorded *observe.AcceptedBody
+	for _, b := range sum.Bodies {
+		if b.Entity == "thing" {
+			recorded = b.Maximal
+		}
+	}
+	if recorded == nil {
+		t.Fatal("no maximal create was ever accepted: the reduction dropped what the create needed")
+	}
+	if _, kept := recorded.Request["serial"]; !kept {
+		t.Errorf("the reduction dropped the field the API demanded: %#v", recorded.Request)
+	}
+	if _, dropped := recorded.Request["colour"]; dropped {
+		t.Errorf("the reduction kept the field the API refused: %#v", recorded.Request)
+	}
+}

@@ -1,257 +1,266 @@
 # Handoff
 
-Where the work stands, what it actually achieved, and what is left.
+## The job, and the only measure of it
 
-Every number here is reproducible — see [Verifying these numbers](#verifying-these-numbers).
-Counts of what the toolkit emits and refuses are not repeated here;
-`docs/emittance_tracker.md` is the one place they live.
+Make the 35 generated ThousandEyes resource acceptance tests pass. A test
+passes when, and only when, this says so:
 
----
+```sh
+sh '/Users/dafyddwatkins/localtesting/thousandeyes/tf_acceptance_tests.sh'
+```
 
-## Read this first
+Nothing else counts. Audit observation counts, correction counts, attribute
+counts, `postcheck`, `make check` — all of these have moved a great deal while
+the benchmark stayed at zero. Run the benchmark, quote its number, and treat a
+change that does not move it as a change that did nothing.
 
-The distinction this document turns on: **coverage** is how much of a document
-generates at all. **Correctness** is whether what generates matches how the API
-really behaves — what `docs/mapping.md` specifies and what `README.md` calls
-"the work in progress". They are not the same thing.
-
-**Correctness work has now started, and the offline half is largely done.**
-Constraint keywords parse, bounds and patterns become validators, `format:
-password` and `writeOnly` become `Sensitive`, `deprecated` becomes a
-`DeprecationMessage`, and a documented default fills the response. Every one of
-those was zero when this document was first written.
-
-**The half that needs a live API has not started, and cannot yet.** No audit has
-ever run against any of the three pilots: all three revised specs contain zero
-`x-tfpfgen-*` extensions, and no scratch tree has an `audit/` or
-`spec/corrections/` directory. Every shape that depends on an observation —
-server defaults, immutability, normalisation, conditional validity — is
-unexercised, and the generated config validators along with them.
-
-### The presence census
-
-The measure of the remaining gap. `docs/contract.md` states the intent:
-
-> `Optional` alone is the rare one. Most APIs answer with a value for every
-> field they accept … emitting it as `Optional` alone gives the practitioner a
-> perpetual diff.
-
-Counting `computed_optional_required` across every attribute tree of all three
-pilots, at `30b23ac` on 2026-08-25:
-
-| | optional | computed_optional | ratio |
-|---|---|---|---|
-| when first measured | 2,221 | 64 | 35× |
-| after the coverage work | 3,216 | 65 | 49× |
-| now | 10,574 | 670 | **15.8×** |
-
-The absolute figures are not comparable across rows — union variants brought
-each branch's own fields into the tree, so there are far more attributes to
-count than there were. The ratio is the figure that means something, and it
-moved the right way for the first time: `x-tfpfgen-server-default` is still the
-thing that would close it, and only an audit produces one.
+**Current score: 1 passed, 34 failed.** It was 0/35 at the start of this work.
 
 ---
 
-## What merged
+## The test harness, in full
 
-`#72`–`#86` are the coverage work, described in the git history. Since then:
+### Where everything lives
+
+| What | Path |
+|---|---|
+| Toolkit (this repo) | `/Users/dafyddwatkins/GitHub/terraform/terraform-plugin-framework-codegen` |
+| Generated provider under test | `/Users/dafyddwatkins/GitHub/terraform/scratch/gen/thousandeyes` |
+| Built CLI | `/Users/dafyddwatkins/GitHub/terraform/scratch/bin/tfpfgen` |
+| Test scripts | `/Users/dafyddwatkins/localtesting/thousandeyes/` |
+
+Other pilot trees sit beside the ThousandEyes one: `github`, `jamfpro`,
+`credentials`. Only ThousandEyes has a live token and an audit.
+
+### The scripts
+
+`tf_set_env_var.sh` — the one place the lab credential lives. Every other
+script sources it. It exports `THOUSANDEYES_API_TOKEN` (what the generated
+provider reads), `TFPFGEN_AUTH_TOKEN` (what `tfpfgen audit run` reads — the
+toolkit's fixed secret contract) and `TE_PROVIDER_DIR`.
+
+`tf_acceptance_tests.sh [filter]` — **the benchmark**. Discovers every package
+under `internal/services` holding a `TestAcc`, runs them with `TF_ACC=1`, and
+prints a summary ending `N passed, M failed, K skipped`. The optional argument
+is a case-insensitive substring matched against package paths:
+
+```sh
+sh tf_acceptance_tests.sh                 # all 35
+sh tf_acceptance_tests.sh tags/v1/tag     # one resource, ~7s
+sh tf_acceptance_tests.sh tests/v1        # a group
+```
+
+Knobs: `TE_PARALLEL` (default 1 — both `-p` and `-parallel`, so nothing runs
+concurrently against the live tenant), `TE_TIMEOUT` (default 120m, the whole
+run's `go test` timeout, not per test).
+
+Logs land at `/Users/dafyddwatkins/localtesting/thousandeyes/acceptance-<stamp>.log`.
+
+`tf_remediation_loop.sh [filter]` — the full loop: build tfpfgen → probe the
+live API → compile and accept corrections → regenerate → run the benchmark,
+repeated until the pass count stops moving. Knobs: `TE_LOOP_MAX` (default 5),
+`TE_LOOP_AUDIT` (`0` reuses the last probe findings — much faster when only
+generator code changed), `TE_LOOP_ACCEPT` (`0` stops and leaves proposals for
+review). It ends by ranking the distinct `Error:` reasons from the last run,
+which is where the next change comes from. Per-phase logs go to a timestamped
+`remediation-<stamp>/` directory.
+
+**`TE_LOOP_ACCEPT=1` crosses the correction gate automatically.** That gate is
+deliberate — accepting a correction is a human decision the pipeline exists to
+enforce. The loop crosses it on purpose; run with `TE_LOOP_ACCEPT=0` first if
+you want to read what the probe wants to change.
+
+### What each generated resource carries
+
+For `<entity>` under `internal/services/resources/<group>/v1/<entity>/`:
+
+| File | Purpose |
+|---|---|
+| `resource_acceptance_test.go` | the live lifecycle: **step 1** apply minimal, **step 2** import + `ImportStateVerify`, **step 3** apply maximal |
+| `tests/terraform/acceptance/resource_{minimal,maximal}.tf` | what the live steps apply — **built from recorded bodies** |
+| `tests/terraform/unit/resource_{minimal,maximal}.tf` | what the unit tests apply — **still derived from the document** |
+| `tests/responses/resource_{minimal,maximal}.json` | wire JSON the mocks answer with |
+| `mocks/responders.go` | httpmock responders built from those |
+| `crud.go`, `state.go`, `construct.go`, `model.go`, `resource.go` | the provider itself |
+
+The acceptance and unit fixtures diverge on purpose. Unit configs must keep
+matching their mocks, which are built from the same derivation; acceptance
+configs replay what the API accepted and carry a per-run random suffix.
+
+### The audit artifacts
+
+Under the provider tree:
+
+| Path | What |
+|---|---|
+| `audit/observations/<entity>.observations.json` | one fact per property |
+| `audit/bodies/<entity>.bodies.json` | **the accepted create bodies** — request, response, status |
+| `audit/inputs.json` | operator-supplied values the probe cannot invent (authored) |
+| `spec/corrections/*.correction.json` | accepted corrections (authored) |
+| `spec/corrections/proposed/` | awaiting a human decision |
+| `spec/revised.yaml` | generated — never hand-edit |
+
+---
+
+## The architecture
+
+The document is a hypothesis; the API is the authority.
+
+```
+OpenAPI doc ──> specmodel ──> IR ──> sdkbind ──> emit ──> provider tree
+                   ^                                          |
+                   |                                          v
+              corrections <── revise <── observations <── audit (live probe)
+                                          + bodies
+```
+
+Presence (`required` / `optional` / `computed`) is corrected into the document
+and re-derived. **Values are not.** Values come from `audit/bodies/` and are
+replayed directly into acceptance fixtures. That split is the point: deriving
+values again from the document is what produced a year of one-field-at-a-time
+failures (`icon`, `match_type`, `filters` were all the same bug).
+
+### Key code
+
+| Concern | Where |
+|---|---|
+| Additive minimal search (add a field until 2xx) | `internal/audit/run/steps_create.go: searchMinimal` |
+| Subtractive maximal reduction (drop until 2xx) | `internal/audit/run/steps_create.go: reduceMaximal` |
+| Refusal grammar (what a 4xx names) | `internal/audit/run/adjust.go: classifyRefusal` |
+| Recorded bodies artifact | `internal/audit/observe/bodies.go` |
+| Replaying a body into a fixture | `internal/fixtures/fixtures.go: FromAcceptedBody` |
+| Per-run unique names | `internal/fixtures/fixtures.go: WithRunSuffix`, `RunSuffixBlock` |
+| Acceptance vs unit split | `internal/emit/render_fixtures.go: resourceFixtures` |
+| Probe step ordering | `internal/audit/strategy/program.go: buildProgram` |
+| Presence rule | `internal/intermediate_representation/attributes.go` (~line 490) |
+
+---
+
+## What has merged
 
 | PR | What |
 |---|---|
-| #87 | `docs/mapping.md` committed — the specification for all correctness work |
-| #88 | Integer path parameters parsed with a diagnostic |
-| #89 | List-resource test content type |
-| #90 | List-resource addressing schema |
-| #91 | Schema constraint keywords parse (`maxLength`, `uniqueItems`, `minimum`, …) |
-| #92 | Update the ThousandEyes test document |
-| #93 | `Sensitive` and `DeprecationMessage` emitted |
-| #94 | Constraint validators emitted from declared bounds |
-| #95 | Point the GitHub test document at an immutable ref |
-| #96 | A documented default fills the response |
-| #97 | `prune.go` decomposed |
-| #98 | Comment sweep |
-| #99 | A list resource requires a resource to match |
-| #100 | Resource identity schema |
-| #101 | Fixtures respect `format` |
-| #102 | Generated tests assert what the provider actually produces |
-| #103 | `docs/mapping.md` gains the entity operation sets |
-| #104 | A lone write is an invocation, whichever method spells it |
-| #105 | A datasource filters on the fields of the objects it lists |
-| #106 | A filter survives only where the field it selects on does |
-| #107 | `docs/emittance_tracker.md` — counts live in one file |
-| #108 | A list result names the object by the key the resource is addressed by |
-| #109 | A union becomes one attribute per variant where nothing writes it |
-| #110 | `CLAUDE.md` and `README.md` restated against the tree they describe |
-| #112 | Update the ThousandEyes test document again |
-| #113 | The test documents named `vendor_openapi_specs` rather than *corpus* |
-| #114 | Those documents committed and embedded, retiring the fetch-and-pin scheme |
+| #115 | a nested attribute is held as a value that can be unknown |
+| #116 | the audit reads the refusals it is given |
+| #117 | a created resource answers with what names it (identity, create-response id, examples, safe literals) |
+| #118 | an entity names the property that identifies it (`x-tfpfgen-identifier-property`) |
+| #119 | an acceptance test replays a request the API took |
+
+**Open PR** — the branch this handoff is on: the maximal create ordering fix,
+plus the quirkserver's `NamesRefusedFieldInProse`.
 
 ---
 
-## Where correctness stands
+## Where the 34 failures actually are
 
-`docs/mapping.md` lists thirteen API behaviours and the shape each demands.
-**Detection** is whether the audit can observe the behaviour; **expression** is
-whether the generator can emit the shape. Measured in the generated trees, not
-in this repo's source — an emitter builds most of what it emits.
+```
+33  fail at Step 1/3   (create)
+ 1  fail at Step 3/3
 
-| # | Behaviour | Detect | Express |
-|---|---|---|---|
-| 1 | Accepted on write, never returned | ✗ no observation kind | ✗ `WriteOnly` never emitted |
-| 2 | Never accepted, always returned | ~ `writable=false`, `serverForced`, `volatile` | ~ Computed yes; `UseStateForUnknown` still only on `id` |
-| 3 | Optional in, always returned | ✓ `serverDefault` | ~ a *documented* default now fills the response; an observed one needs the audit |
-| 4 | Returned obfuscated (`****`) | ✗ misreads as `serverForced` | ✓ `Sensitive` emitted from `format: password` / `writeOnly` |
-| 5 | Valid only when a sibling equals a value | ✓ `validWhen` | ~ emitter exists; **no tree contains one**, because no audit has run |
-| 6 | Settable at create, refused after | ✓ `immutable` | ~ `RequiresReplace` yes; `…IfConfigured` no |
-| 7 | Rejected at create, settable on update | ✗ | ✗ `construct.go` still discards `isCreate` |
-| 8 | Echoed back semantically equivalent | ✓ `normalisation` | ✗ no custom type, no `SemanticEquals` |
-| 9 | Silently clamped or truncated | ~ enums only | ✓ bounds, lengths and patterns become validators |
-| 10 | Omitted → returns `""`/`[]`/`0` | ~ lands as `serverDefault` | ✗ no policy either way |
-| 11 | Collection returned in arbitrary order | ✗ | ✗ `uniqueItems` now parses, but `SetAttribute` is never emitted |
-| 12 | Collection returns server-injected members | ✗ | ✗ |
-| 13 | Field carries one of several object shapes | n/a structural | ~ one attribute per variant where nothing writes it; a writable union is refused |
-
-Emitted symbol counts across the three trees at `30b23ac`, 2026-08-25, every
-one of which was zero when this document was first written:
-`Sensitive` 53, `DeprecationMessage` 171, `int64validator.Between` 180,
-`UTF8LengthBetween` 42, `LengthAtLeast`/`LengthAtMost` 138, `RegexMatches` 21,
-`Default` 18.
-
-Still zero, and each is a row above: `WriteOnly`, `SetAttribute`,
-`SetNestedAttribute`, `SemanticEquals`, `RequiresReplaceIfConfigured`, and any
-config validator at all.
-
-`specmodel.Schema` now parses `writeOnly`, `deprecated`, `uniqueItems`,
-`maxLength`, `minLength`, `maxItems` and `minItems`. Only `nullable` remains
-unparsed.
-
----
-
-## Outstanding coverage work
-
-Refusals grouped by what the reason says, across all three pilots. The stage
-split and the totals are in `docs/emittance_tracker.md`.
-
-| Family | Share | Note |
-|---|---|---|
-| SDK model lacks the accessor | 729 | The biggest by far, and the one to characterise next. Mostly fields the generated model genuinely lacks rather than a naming bug. |
-| Object with no declared shape | 139 | `additionalProperties: true`, or neither properties nor `additionalProperties`. The vendor documented nothing — arguably a vendor-facing report rather than codegen work. |
-| Singleton at a fixed path with no operation set | 125 | One object at a fixed path that fits no operation set. |
-| Collection shape unsupported | 105 | Arrays of arrays, maps of objects. |
-| Read/write type mismatch | 89 | What survives after #85. |
-| Nothing survives to read back or send | 88 | Every field of the entity was refused, so the entity goes too. |
-| Terraform reserved name at a schema root | 17 | |
-
-Two families from the previous handoff have all but closed: the path-parameter
-type mismatch is down from 250 refusals to 1 (#88), and union refusals from 90
-to 13 (#109) — eleven of those thirteen a branch referencing no component.
-
-### Gap 2b — file transfer
-
-`multipart/form-data`, untouched. Agreed shape is `source` and
-`content_base64`, mutually exclusive via `resourcevalidator.Conflicting`, with a
-computed `content_base64` for downloads. Needs five things, which is why it was
-deferred: `multipart/form-data` parsing in `specmodel`; an IR flag for "this
-operation takes a file"; a construct idiom that is `AddOrReplacePart(name,
-contentType, content)` rather than field setters; the two attributes and their
-validator; and **a request adapter reachable from the resource** —
-`MultipartBody.SetRequestAdapter` needs one and generated services receive
-`*sdk.APIClient`, not the adapter.
-
----
-
-## Owed by the repository owner before work can start
-
-`CLAUDE.md` makes every domain term owner-approved. These block their gaps:
-
-- **The undeclared-response-schema observation** — its kind, its `x-tfpfgen-*`
-  key, and whether it is eligible for `audit.auto_accept`. The vendor declares a
-  200 with no schema, so there is nothing to map into state; the agreed approach
-  is an observation recording the shape the API actually returned. Also needs
-  quirkserver ground truth: a shape whose document declares no response schema
-  while the server returns one.
-- **`mapping.md` row 1** — `WriteOnly` plus an `..._version` Int64 trigger would
-  be the first generated attribute with no wire counterpart. Name and suffix.
-- **`mapping.md` row 8** — `x-tfpfgen-normalisation` and its value set.
-  `internal/spec/revise/compile.go:116` still refuses for want of it.
-
-Settled since this list was written: variant sub-attribute naming (#109, now in
-the glossary as **variant attribute**), and `docs/mapping.md` is committed.
-
----
-
-## Lessons that change how to work on this
-
-**Check what the SDK already decided before designing from the document.**
-Three premise failures in one session, all the same shape:
-
-- *Typed maps* — the plan assumed the SDK carries a Go map. kiota emits no
-  `map[string]string` at all; it generates a model whose only field is
-  `additionalData map[string]any`.
-- *Discriminated unions* — the plan assumed documents declare discriminators.
-  GitHub, which owned almost every union refusal, declares none.
-- *Merging object unions* — argued for on the grounds that branches need naming
-  and reads are ambiguous. Both false: kiota names every branch and exactly one
-  accessor is non-nil. Building it made GitHub's refusals sharply worse.
-
-In each case a five-minute `grep` of the generated SDK would have prevented
-hours. Measure the pilots before designing, not after.
-
-**Measure at the layer the claim is about.** An earlier revision of this file
-reported ten framework symbols as never emitted. Four of them were being emitted
-at the time. The census had been taken by grepping this repo for the symbol, and
-`internal/emit/render_constraints.go` spells a pair of bounds as
-`fmt.Sprintf("%sBetween(%v, %v)", …)` — so the string never appears here and
-always appears in the output. Grep the generated tree.
-
-**`postcheck` catches what unit tests do not.** Two bugs in #85 produced
-generated Go that did not compile, and neither would have surfaced in the
-toolkit's own suite: construction typed a slice from the *getter* while filling
-it with the *constructor's* values; and a nested block with no writable children
-rendered a loop declaring an index nothing read.
-
-**Refusal counts going *up* can be correct.** One misleading entity-level
-refusal becoming several accurate field-level ones raises the total and improves
-the toolkit. Read the reasons, not just the total.
-
-**Rebase rather than merge `main` into these branches.** #83 and #85 were merged
-the other way and both broke `main`.
-
----
-
-## Verifying these numbers
-
-Five local gates, all of which CI also runs. `make check` is the first four:
-
-```sh
-make check                       # fmt, build, vet, coverage, hygiene
-golangci-lint run                # make check leaves this to CI
+30  Error: Create failed (HTTP 4xx)
+ 4  Error: Provider produced inconsistent result after apply
+ 1  Error: Invalid id
+ 1  Error: Create failed: the request never completed
 ```
 
-Then the loop that matters, into `/Users/dafyddwatkins/GitHub/terraform/scratch/gen`:
+**The score tracks recorded-body coverage.** Only four entities have a body
+recorded — `tag`, `credential`, `dashboard`, `connectors_generic` — because
+only four got through the probe. The other 31 still have document-derived
+configs, which is why they fail at step 1 with a 4xx.
 
-```sh
-go build -o …/scratch/bin/tfpfgen ./cmd/tfpfgen
-cd …/scratch/gen/<pilot>
-tfpfgen provider generate     # postcheck: go mod tidy, go build, go vet
-tfpfgen provider verify       # must report no drift
+So the single highest-value work is **getting more entities through the
+probe**. Everything else is downstream of that.
+
+### Next steps, ranked
+
+1. **Unblock the probe.** 30 entities blocked in the last run. Read the reasons
+   in the audit output — they group into: parent objects that cannot be
+   re-created, creates the search could not heal, and a tenant ceiling on
+   `/templates`. Each group unblocked is several tests.
+2. **Populate `audit/inputs.json`.** Some entities need real tenant values no
+   generator can invent: a reachable stream endpoint URL, an agent id
+   (`tests_ftp_server`), a dashboard id (`dashboard_snapshot`), a discriminator
+   `type` for `connectors_generic` / `operations_webhook`.
+3. **The four inconsistent-result failures.** A value sent and echoed back
+   differently. `FromAcceptedBody` already drops what is never returned; this is
+   the narrower case of a value the API rewrites.
+4. **`Invalid id` / `request never completed`** — one each, `templates_sharing_setting`
+   (a singleton) and `stream` (`lastSuccess`/`lastFailure` declared `int64`, the
+   API answers RFC 3339).
+
+---
+
+## Blockers that are not code
+
+**`account_group` cannot pass.** A leaked object permanently holds the fixture
+name and the API refuses to delete it:
+
+```
+DELETE /v7/account-groups/281474976717041
+400 "Unable to delete accounts outside your organization."
 ```
 
-The emitted-symbol census, which is a fact about the generated tree:
+It needs org-admin or ThousandEyes support. The per-run random suffix (#119)
+means new leaks will not recur, but this one predates it.
+
+**Import is flaky.** `tag` failed once at step 2 with `Read failed (HTTP 403)`
+and passed on a re-run with no change — read-after-write lag, with ThousandEyes
+answering 403 where 404 is expected. Any full-suite number is unreliable until
+the retry predicate treats that as lag. Re-run a single failure before
+believing it.
+
+**A full suite run is slow.** Serial by design (`TE_PARALLEL=1`). One earlier
+run had a single resource burn 1802s on a create timeout. Prefer filtered runs
+while iterating.
+
+---
+
+## Lessons that would have saved hours
+
+**Run the benchmark.** Every proxy metric moved while it sat at zero. If a
+change cannot be shown to move the pass count, say so plainly rather than
+reporting the proxy.
+
+**Verify a diagnosis before acting on it.** Three claims in this work were
+asserted confidently and were wrong: that a live minimal object was racing the
+maximal create (it was — but only under the *strategy* program, not the plan
+path that was read first); that the recipe carrying a stale body caused the
+maximal failures (it did not — two tests written to prove it passed without the
+fix); and that a regression was caused by a code change when it was a local DNS
+failure. Instrument and look. One `fmt.Fprintf` to stderr settled in one run
+what an hour of reading did not.
+
+**Fix a fact in the layer that owns it.** Two workarounds were written into the
+emitter for facts that belong to the probe — sending `x-tfpfgen-server-default`
+as an input value, and stopping the state mapper nulling any optional
+attribute. Both were reverted in #119. If a fact about the API has nowhere to
+live, that is a missing observation kind, not a licence to put policy in the
+generator.
+
+**Naming is owner-owned.** A new observation kind or `x-tfpfgen-*` key needs
+the repository owner to approve the name before it is coined, and the decision
+recorded in `docs/glossary.md`. `identifierProperty` went through that; the
+"accepted on write, never returned" fact (`docs/mapping.md` row 1) still needs
+it.
+
+---
+
+## Verifying the toolkit itself
 
 ```sh
-grep -rc 'Sensitive:' <pilot>/internal/services | grep -v ':0$'
+make check          # fmt, build, vet, coverage gate, hygiene gate
+golangci-lint run   # make check leaves this to CI
 ```
 
-The presence census:
+Coverage gate: 90% total, 80% per package under `internal/`. Currently 90.7%.
+
+Regenerating a pilot tree:
 
 ```sh
-tfpfgen provider generate --print-ir > ir.json
-# count computed_optional_required across every attribute tree
+go build -o ../scratch/bin/tfpfgen ./cmd/tfpfgen
+cd ../scratch/gen/thousandeyes
+tfpfgen provider generate    # postcheck: go mod tidy, go build, go vet
 ```
 
-**The report is the acceptance test.** Each piece of work should name the count
-it expects to move, and the before/after `unsupported.json` totals should show
-it moved by that much and nothing else changed. That is a stronger gate than any
-unit test here, because it measures three real documents.
+Claims about generated output are verified against a generated tree, never by
+grepping this repo for a symbol — an emitter builds most of what it emits.

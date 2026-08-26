@@ -117,6 +117,16 @@ type Quirks struct {
 	// EventuallyConsistentReads makes the first N reads of a new object 404.
 	EventuallyConsistentReads int
 
+	// NamesRefusedFieldInProse makes a refusal spell the missing field into a
+	// sentence — "field serial is required" — rather than leaving the bare
+	// name in the detail beside a generic title.
+	//
+	// Both are real. The bare form is deliberately unhealable, because a name
+	// alone beside a generic title could be about anything; this is the form
+	// an adjustment loop can act on, and an API that writes it is one whose
+	// refusals teach the auditor what the create needs.
+	NamesRefusedFieldInProse bool
+
 	// ErrorEnvelope selects which shape errors take. Defaults to problem+json.
 	ErrorEnvelope Envelope
 

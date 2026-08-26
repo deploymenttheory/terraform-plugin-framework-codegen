@@ -749,3 +749,35 @@ func TestCompileErrors(t *testing.T) {
 		t.Fatal("resource with no create body should error")
 	}
 }
+
+// TestUnit_Strategy_TheMaximalCreateFollowsTheDelete pins the one ordering the
+// maximal create depends on.
+//
+// It makes a second object and deletes it again, so the first has to be gone
+// first: an API that keys an object on fields both bodies carry — and both are
+// synthesised from the same document — answers the second create with a
+// conflict, and a conflict says nothing about how wide a valid body is.
+func TestUnit_Strategy_TheMaximalCreateFollowsTheDelete(t *testing.T) {
+	s := compile(t, flatSpec, "widget", defaultCfg())
+
+	posOf := func(kind string) int {
+		for i, st := range s.Program {
+			if string(st.Kind) == kind {
+				return i
+			}
+		}
+		t.Fatalf("the program has no %s step: %+v", kind, s.Program)
+		return -1
+	}
+
+	create := posOf("createMinimal")
+	del := posOf("deleteWithConfirmation")
+	maximal := posOf("createMaximal")
+	cleanup := posOf("cleanupDelete")
+
+	if !(create < del && del < maximal && maximal < cleanup) {
+		t.Errorf("program order is createMinimal=%d delete=%d createMaximal=%d cleanup=%d; "+
+			"the maximal create must sit between the delete and the cleanup",
+			create, del, maximal, cleanup)
+	}
+}

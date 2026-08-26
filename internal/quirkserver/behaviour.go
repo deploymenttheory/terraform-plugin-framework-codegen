@@ -66,6 +66,15 @@ func (s *Server) normalise(field string, v any) any {
 	return v
 }
 
+// refusedFieldDetail renders the missing field as the quirk asks: a bare name,
+// or a sentence an adjustment loop can read.
+func (s *Server) refusedFieldDetail(field string) string {
+	if s.quirks.NamesRefusedFieldInProse {
+		return "field " + field + " is required"
+	}
+	return field
+}
+
 func (s *Server) missingRequired(body map[string]any) string {
 	for _, field := range s.quirks.RequiredButUndeclared {
 		if _, ok := body[field]; !ok {

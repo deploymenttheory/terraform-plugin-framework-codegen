@@ -39,6 +39,12 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		if err != nil {
 			return err
 		}
+		// The recipe learns the body that worked. Everything downstream
+		// replays it — re-creating this entity as another's parent, narrowing
+		// a refused maximal, cleaning up at the end — and the body the plan
+		// started from is the document's guess, which is what needed healing
+		// in the first place.
+		ent.recipe.minimalBody = cloneAnyMap(rr.body)
 		r.registry[ent.plan.Entity] = rr.obj
 		ent.createdAt = time.Now()
 		ent.ev.sent = sent
