@@ -439,3 +439,46 @@ func TestUnit_RenderProviderCore_NonGoFilesAreNotHeldToGofmt(t *testing.T) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
+
+// TestUnit_RenderProviderCore_BothDialectsCarryWhatTheAPISaid proves neither
+// generated extractor reports a refusal as the SDK's own constant when the
+// response body carried the API's words.
+func TestUnit_RenderProviderCore_BothDialectsCarryWhatTheAPISaid(t *testing.T) {
+	for backend, want := range map[string][]string{
+		// kiota deserializes the body into the properties the document
+		// declared and leaves the embedded ApiError's message unset, so the
+		// getters are the only place the API's words survive.
+		config.BackendKiota: {
+			"kiotaSilence",
+			"GetDetail() *string",
+			"GetTitle() *string",
+			"GetAdditionalData() map[string]any",
+			"validationErrors",
+		},
+		// openapi-generator hands the raw body over, so reading it is enough.
+		config.BackendOpenAPIGenerator: {"apiErr.Body()"},
+	} {
+		pc, err := FromConfig(testConfig(backend, config.AuthBearerToken), "")
+		if err != nil {
+			t.Fatalf("FromConfig(%s): %v", backend, err)
+		}
+		files, err := RenderProviderCore(pc)
+		if err != nil {
+			t.Fatalf("RenderProviderCore(%s): %v", backend, err)
+		}
+		var extractor string
+		for _, f := range files {
+			if strings.HasPrefix(f.Path, "internal/services/common/errors/extract_") {
+				extractor = string(f.Content)
+			}
+		}
+		if extractor == "" {
+			t.Fatalf("%s rendered no extractor", backend)
+		}
+		for _, fragment := range want {
+			if !strings.Contains(extractor, fragment) {
+				t.Errorf("%s extractor does not read %q", backend, fragment)
+			}
+		}
+	}
+}

@@ -4,6 +4,8 @@ package errors
 
 import (
 	stderrors "errors"
+	"fmt"
+	"strings"
 )
 
 // kiotaAPIError is what every kiota-generated error type satisfies by
@@ -14,6 +16,26 @@ type kiotaAPIError interface {
 	GetStatusCode() int
 }
 
+// kiotaSilence is what ApiError.Error() answers when nothing set its Message.
+//
+// kiota deserializes an error body into the properties the document declared
+// and never copies any of them onto the embedded parent, so every generated
+// error type answers this one constant however much the API said. Treated as
+// silence rather than as a message: it names no field, no value and no
+// condition, and a practitioner reading it learns only that something failed.
+const kiotaSilence = "error status code received from the API"
+
+// The error-body accessors a generated type carries. kiota names a getter
+// after the property its own schema declared, so a type has the spellings
+// that document used and no others, and each is asserted separately.
+type (
+	kiotaDetailed   interface{ GetDetail() *string }
+	kiotaTitled     interface{ GetTitle() *string }
+	kiotaMessaged   interface{ GetMessage() *string }
+	kiotaErrored    interface{ GetError() *string }
+	kiotaUndeclared interface{ GetAdditionalData() map[string]any }
+)
+
 // kiotaExtractor reads the kiota SDK's error shape.
 type kiotaExtractor struct{}
 
@@ -23,10 +45,111 @@ var wire extractor = kiotaExtractor{}
 
 // extract answers for any error in the chain that carries a kiota API
 // error; everything else is not an API error.
+//
+// What the API said outranks what the SDK said: the SDK's own Error() is a
+// constant unless something set it, and the words that name the refused field
+// are on the generated type's getters.
 func (kiotaExtractor) extract(err error) (Info, bool) {
 	var apiErr kiotaAPIError
-	if stderrors.As(err, &apiErr) {
-		return Info{Status: apiErr.GetStatusCode(), Message: apiErr.Error()}, true
+	if !stderrors.As(err, &apiErr) {
+		return Info{}, false
 	}
-	return Info{}, false
+	info := Info{Status: apiErr.GetStatusCode(), Message: apiErr.Error()}
+	if said := kiotaSaid(apiErr); said != "" {
+		info.Message = said
+	}
+	return info, true
+}
+
+// kiotaSaid answers what the API's error body carried, and empty when it
+// carried nothing this SDK kept.
+//
+// A problem document sends a summary and a specific explanation — "Request
+// validation failed" and "Required request body is missing mandatory field" —
+// and only the pair is worth acting on, so both are joined when both are
+// present and distinct. Everything else falls back to the single property
+// that carried a sentence.
+func kiotaSaid(err error) string {
+	var said []string
+	if v, ok := err.(kiotaTitled); ok {
+		said = appendText(said, v.GetTitle())
+	}
+	if v, ok := err.(kiotaDetailed); ok {
+		said = appendText(said, v.GetDetail())
+	}
+	if len(said) == 0 {
+		if v, ok := err.(kiotaMessaged); ok {
+			said = appendText(said, v.GetMessage())
+		}
+		if v, ok := err.(kiotaErrored); ok {
+			said = appendText(said, v.GetError())
+		}
+	}
+	if len(said) == 0 {
+		if v, ok := err.(kiotaUndeclared); ok {
+			return undeclaredText(v.GetAdditionalData())
+		}
+	}
+	return strings.Join(said, ": ")
+}
+
+// appendText adds one non-empty, not-already-present string.
+//
+// A body that repeats its summary as its explanation is common, and saying it
+// twice reads as two problems.
+func appendText(said []string, text *string) []string {
+	if text == nil || strings.TrimSpace(*text) == "" {
+		return said
+	}
+	trimmed := strings.TrimSpace(*text)
+	for _, existing := range said {
+		if existing == trimmed {
+			return said
+		}
+	}
+	return append(said, trimmed)
+}
+
+// undeclaredText reads a message out of the properties the document did not
+// declare, which kiota keeps rather than discards.
+//
+// The listed complaints come first: an envelope that carries both names the
+// field it rejected in the list and only summarises it in the sentence, and a
+// summary names nothing to act on.
+func undeclaredText(extra map[string]any) string {
+	for _, key := range []string{"errors", "messages", "details", "errorMessages", "validationErrors"} {
+		if listed := listedText(extra[key]); listed != "" {
+			return listed
+		}
+	}
+	for _, key := range []string{"detail", "message", "error_description", "errorMessage", "error", "title"} {
+		if text, ok := extra[key].(string); ok && strings.TrimSpace(text) != "" {
+			return strings.TrimSpace(text)
+		}
+	}
+	return ""
+}
+
+// listedText renders the first entry of a list of complaints, spelling an
+// object entry back as "<field>: <complaint>".
+func listedText(value any) string {
+	entries, ok := value.([]any)
+	if !ok || len(entries) == 0 {
+		return ""
+	}
+	switch first := entries[0].(type) {
+	case string:
+		return strings.TrimSpace(first)
+	case map[string]any:
+		field, _ := first["field"].(string)
+		for _, key := range []string{"message", "detail", "error", "reason"} {
+			if text, ok := first[key].(string); ok && strings.TrimSpace(text) != "" {
+				if field != "" {
+					return fmt.Sprintf("%s: %s", field, strings.TrimSpace(text))
+				}
+				return strings.TrimSpace(text)
+			}
+		}
+	}
+	return ""
 }
