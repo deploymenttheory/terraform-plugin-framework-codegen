@@ -317,3 +317,91 @@ func TestUnit_Prenormalize_LeavesADocumentWithoutUnionsAlone(t *testing.T) {
 		t.Fatal("prenormalizing an already-prenormalized document must be a fixed point")
 	}
 }
+
+// acceptSample mirrors the shape a real document takes: one shared error
+// response, referenced by an operation that answers 204 and by one that
+// answers a body.
+const acceptSample = `openapi: 3.0.3
+info:
+  title: sample
+  version: 1.0.0
+components:
+  responses:
+    Unauthorized:
+      description: unauthorized
+      content:
+        application/problem+json:
+          schema:
+            type: object
+paths:
+  /things/{id}:
+    delete:
+      responses:
+        "204":
+          description: gone
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "500":
+          description: broken
+          content:
+            application/problem+json:
+              schema:
+                type: object
+    get:
+      responses:
+        "200":
+          description: ok
+          content:
+            application/hal+json:
+              schema:
+                type: object
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+`
+
+func TestUnit_Prenormalize_DropsErrorContentWhereNoSuccessDeclaresAny(t *testing.T) {
+	out, _, _, err := Prenormalize([]byte(acceptSample))
+	if err != nil {
+		t.Fatalf("Prenormalize: %v", err)
+	}
+	got := string(out)
+
+	// The delete answers 204 and nothing else carries a body, so neither its
+	// referenced nor its inline error response may still offer a media type
+	// for kiota to ask the server for.
+	deleteBlock := got[strings.Index(got, "delete:"):strings.Index(got, "get:")]
+	if strings.Contains(deleteBlock, "application/problem+json") {
+		t.Errorf("the error media type survived an operation with no success body:\n%s", deleteBlock)
+	}
+	if strings.Contains(deleteBlock, "$ref") {
+		t.Errorf("the error response was left as a reference to content:\n%s", deleteBlock)
+	}
+	// The description is the one member a Response Object must carry, and a
+	// referenced response keeps its own words.
+	if !strings.Contains(deleteBlock, "unauthorized") {
+		t.Errorf("the referenced response lost its description:\n%s", deleteBlock)
+	}
+}
+
+func TestUnit_Prenormalize_LeavesAnOperationWhoseSuccessDeclaresAMediaType(t *testing.T) {
+	out, _, _, err := Prenormalize([]byte(acceptSample))
+	if err != nil {
+		t.Fatalf("Prenormalize: %v", err)
+	}
+	got := string(out)
+
+	// The get answers a body, so kiota builds its Accept from that and never
+	// reaches the errors: the reference and the shared component both stand.
+	getBlock := got[strings.Index(got, "get:"):]
+	if !strings.Contains(getBlock, "$ref") {
+		t.Errorf("an operation with a success body lost its error reference:\n%s", getBlock)
+	}
+	if !strings.Contains(getBlock, "application/hal+json") {
+		t.Errorf("the success media type must survive:\n%s", getBlock)
+	}
+	// One component answers many operations, so it is never stripped.
+	components := got[strings.Index(got, "components:"):strings.Index(got, "paths:")]
+	if !strings.Contains(components, "application/problem+json") {
+		t.Errorf("the shared component was stripped for one operation's sake:\n%s", components)
+	}
+}
