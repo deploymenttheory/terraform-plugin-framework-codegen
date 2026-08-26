@@ -50,7 +50,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		ent.ev.sent = sent
 		ent.ev.sentStatus = rr.res.status
 		ent.ev.createProof = &rr.res.excerpt
-		ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(rr.body))
+		ent.ev.acceptedRequestBodies = append(ent.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
 		return nil
 	}
 	if _, exists := r.registry[ent.plan.Entity]; exists {
@@ -92,7 +92,7 @@ func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *p
 		ent.ev.maximalSent = sent
 		ent.ev.maximalGot = rr.res.object()
 		ent.ev.maximalStatus = rr.res.status
-		ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(rr.body))
+		ent.ev.acceptedRequestBodies = append(ent.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
 		_, _ = r.deleteObject(ctx, ent, ent.recipe, rr.obj)
 		return nil
 	}
@@ -104,7 +104,7 @@ func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *p
 	if err := r.bisectMaximal(ctx, ent, step, rr.res); err != nil {
 		return err
 	}
-	return r.reduceMaximal(ctx, ent, step, rr.body, rr.res)
+	return r.reduceMaximal(ctx, ent, rr.body, rr.res)
 }
 
 // bisectMaximal narrows a refused maximal create to the optional field
@@ -271,7 +271,7 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, st
 	}
 	accepted := obj != nil
 	if accepted {
-		ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(rr.body))
+		ent.ev.acceptedRequestBodies = append(ent.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
 		_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
 	} else if !res.refused() {
 		return nil
@@ -436,7 +436,7 @@ func (r *runner) searchCandidates(ent *entityState, body map[string]any, refusal
 // one removes. What survives is the fullest create this run could get taken,
 // which is what a generated maximal configuration has to be — every field in
 // it is one the API demonstrably tolerates alongside the others.
-func (r *runner) reduceMaximal(ctx context.Context, ent *entityState, step *plan.Step, body map[string]any, refusal *httpResult) error {
+func (r *runner) reduceMaximal(ctx context.Context, ent *entityState, body map[string]any, refusal *httpResult) error {
 	minimal := ent.recipe.minimalBody
 	allowance := searchAllowance(len(body))
 	last := refusal
@@ -462,7 +462,7 @@ func (r *runner) reduceMaximal(ctx context.Context, ent *entityState, step *plan
 			ent.ev.maximalSent = sent
 			ent.ev.maximalGot = res.object()
 			ent.ev.maximalStatus = res.status
-			ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(body))
+			ent.ev.acceptedRequestBodies = append(ent.ev.acceptedRequestBodies, cloneAnyMap(body))
 			_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
 			return nil
 		}

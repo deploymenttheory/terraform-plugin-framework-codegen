@@ -5,16 +5,16 @@ import (
 	"testing"
 )
 
-// TestUnit_Observe_RecordedBodiesRoundTrip proves a recorded body survives the
+// TestUnit_Observe_RecordedRequestBodiesRoundTrip proves a recorded body survives the
 // trip to disk unchanged. A generated configuration is built from these, so a
 // value that shifts in the file is a configuration that no longer matches the
 // request the API accepted.
-func TestUnit_Observe_RecordedBodiesRoundTrip(t *testing.T) {
+func TestUnit_Observe_RecordedRequestBodiesRoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	in := []Bodies{
+	in := []RequestBodies{
 		{
 			Entity: "tag",
-			Minimal: &AcceptedBody{
+			Minimal: &AcceptedRequestBody{
 				Status:   201,
 				Request:  map[string]any{"key": "branch", "value": "sfo"},
 				Response: map[string]any{"key": "branch", "value": "sfo", "id": "7"},
@@ -22,18 +22,18 @@ func TestUnit_Observe_RecordedBodiesRoundTrip(t *testing.T) {
 		},
 		{
 			Entity:  "role",
-			Maximal: &AcceptedBody{Status: 200, Request: map[string]any{"name": "n"}},
+			Maximal: &AcceptedRequestBody{Status: 200, Request: map[string]any{"name": "n"}},
 		},
 		// Neither shape accepted: nothing to record, and nothing written.
 		{Entity: "user"},
 	}
-	if err := WriteBodies(dir, in); err != nil {
-		t.Fatalf("WriteBodies: %v", err)
+	if err := WriteRequestBodies(dir, in); err != nil {
+		t.Fatalf("WriteRequestBodies: %v", err)
 	}
 
-	out, err := ReadBodies(dir)
+	out, err := ReadRequestBodies(dir)
 	if err != nil {
-		t.Fatalf("ReadBodies: %v", err)
+		t.Fatalf("ReadRequestBodies: %v", err)
 	}
 	if len(out) != 2 {
 		t.Fatalf("read %d entities, want the two that had an accepted create", len(out))
@@ -57,7 +57,7 @@ func TestUnit_Observe_RecordedBodiesRoundTrip(t *testing.T) {
 // depends on: a property the API took and never returned cannot be held in
 // terraform state.
 func TestUnit_Observe_EchoedReadsTheResponse(t *testing.T) {
-	b := &AcceptedBody{
+	b := &AcceptedRequestBody{
 		Request:  map[string]any{"name": "n", "matchType": "and"},
 		Response: map[string]any{"name": "n"},
 	}
@@ -68,17 +68,17 @@ func TestUnit_Observe_EchoedReadsTheResponse(t *testing.T) {
 		t.Error("a property the response omitted reads as echoed")
 	}
 	// No response recorded says nothing about any property.
-	var none *AcceptedBody
+	var none *AcceptedRequestBody
 	if none.Echoed("name") {
 		t.Error("an absent record claimed an echo")
 	}
 }
 
-// TestUnit_Observe_ReadBodiesToleratesNoRun proves a tree the probe has never
+// TestUnit_Observe_ReadRequestBodiesToleratesNoRun proves a tree the probe has never
 // run against reads as empty rather than as an error: generation falls back to
 // deriving values from the document.
-func TestUnit_Observe_ReadBodiesToleratesNoRun(t *testing.T) {
-	out, err := ReadBodies(filepath.Join(t.TempDir(), "never-written"))
+func TestUnit_Observe_ReadRequestBodiesToleratesNoRun(t *testing.T) {
+	out, err := ReadRequestBodies(filepath.Join(t.TempDir(), "never-written"))
 	if err != nil {
 		t.Fatalf("a missing directory is a normal state: %v", err)
 	}

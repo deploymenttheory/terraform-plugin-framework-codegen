@@ -7,7 +7,7 @@ package run
 // shaped by that strategy: creates and reads repeated per variant, the widest
 // body per variant, the negatives and per-value creates the gates imply, all
 // under a complexity-scaled budget. The addressing is reused verbatim; only
-// the program, the bodies and the per-entity request budget change.
+// the program, the request bodies and the per-entity request budget change.
 //
 // Field values are synthesised here, at run start, from the strategy's
 // per-field SynthHints — never baked into the compiled strategy, which stays a
@@ -144,7 +144,7 @@ func addressingOf(ep *plan.EntityPlan) addressing {
 }
 
 // translateProgram turns a strategy's ordered, value-free program into
-// executable steps: addressing from addr, bodies synthesised from the variant
+// executable steps: addressing from addr, request bodies synthesised from the variant
 // skeletons and per-field hints.
 func translateProgram(compiled *strategy.Strategy, addr addressing, entity, prefix string) []plan.Step {
 	baseMinimal := map[string]any{}

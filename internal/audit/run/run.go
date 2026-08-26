@@ -155,10 +155,10 @@ type Summary struct {
 	Blocked  int `json:"blocked"`
 	TimedOut int `json:"timedOut"`
 	Skipped  int `json:"skipped"`
-	// Bodies is what each entity's accepted creates looked like. A generated
+	// RequestBodies is what each entity's accepted creates looked like. A generated
 	// acceptance test is built from these rather than from values derived
 	// again from the document, because only these were actually accepted.
-	Bodies []observe.Bodies `json:"-"`
+	RequestBodies []observe.RequestBodies `json:"-"`
 	// SkippedEntities is every entity the plan left out, with its reason.
 	// Carried because the count alone cannot be acted on: it does not
 	// distinguish a run that covered the API from one that skipped most of it.
@@ -303,7 +303,7 @@ type runner struct {
 	// non-strategy run, which is what makes such a run skip inference.
 	strategies map[string]*strategy.Strategy
 	// evidence accumulates, per entity, the raw record the inference reads —
-	// accepted bodies, forced adjustments, list responses.
+	// accepted request bodies, forced adjustments, list responses.
 	evidence map[string]*infer.Evidence
 	// borrowed caches one real id per collection the run has borrowed a
 	// reference from, so a second create needing it costs no extra request.

@@ -775,7 +775,7 @@ func TestUnit_Strategy_TheMaximalCreateFollowsTheDelete(t *testing.T) {
 	maximal := posOf("createMaximal")
 	cleanup := posOf("cleanupDelete")
 
-	if !(create < del && del < maximal && maximal < cleanup) {
+	if create >= del || del >= maximal || maximal >= cleanup {
 		t.Errorf("program order is createMinimal=%d delete=%d createMaximal=%d cleanup=%d; "+
 			"the maximal create must sit between the delete and the cleanup",
 			create, del, maximal, cleanup)

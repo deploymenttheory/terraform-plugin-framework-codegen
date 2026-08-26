@@ -115,7 +115,7 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 	if d, err := time.ParseDuration(ra.Value.(string)); err != nil || d > time.Second {
 		t.Errorf("readAfterWrite = %v, want a small duration", ra.Value)
 	}
-	// PUT preserved what the update bodies omitted.
+	// PUT preserved what the update request bodies omitted.
 	if o := wantConfirmed(t, obs, "thing", "", observe.KindUpdateStyle); o.Value != "patch-merge" {
 		t.Errorf("updateStyle = %v, want patch-merge", o.Value)
 	}

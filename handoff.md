@@ -77,7 +77,7 @@ For `<entity>` under `internal/services/resources/<group>/v1/<entity>/`:
 | File | Purpose |
 |---|---|
 | `resource_acceptance_test.go` | the live lifecycle: **step 1** apply minimal, **step 2** import + `ImportStateVerify`, **step 3** apply maximal |
-| `tests/terraform/acceptance/resource_{minimal,maximal}.tf` | what the live steps apply — **built from recorded bodies** |
+| `tests/terraform/acceptance/resource_{minimal,maximal}.tf` | what the live steps apply — **built from recorded request bodies** |
 | `tests/terraform/unit/resource_{minimal,maximal}.tf` | what the unit tests apply — **still derived from the document** |
 | `tests/responses/resource_{minimal,maximal}.json` | wire JSON the mocks answer with |
 | `mocks/responders.go` | httpmock responders built from those |
@@ -94,7 +94,7 @@ Under the provider tree:
 | Path | What |
 |---|---|
 | `audit/observations/<entity>.observations.json` | one fact per property |
-| `audit/bodies/<entity>.bodies.json` | **the accepted create bodies** — request, response, status |
+| `audit/request_bodies/<entity>.request_bodies.json` | **the accepted create request bodies** — request, response, status |
 | `audit/inputs.json` | operator-supplied values the probe cannot invent (authored) |
 | `spec/corrections/*.correction.json` | accepted corrections (authored) |
 | `spec/corrections/proposed/` | awaiting a human decision |
@@ -111,11 +111,11 @@ OpenAPI doc ──> specmodel ──> IR ──> sdkbind ──> emit ──> pr
                    ^                                          |
                    |                                          v
               corrections <── revise <── observations <── audit (live probe)
-                                          + bodies
+                                          + request bodies
 ```
 
 Presence (`required` / `optional` / `computed`) is corrected into the document
-and re-derived. **Values are not.** Values come from `audit/bodies/` and are
+and re-derived. **Values are not.** Values come from `audit/request_bodies/` and are
 replayed directly into acceptance fixtures. That split is the point: deriving
 values again from the document is what produced a year of one-field-at-a-time
 failures (`icon`, `match_type`, `filters` were all the same bug).
@@ -127,8 +127,8 @@ failures (`icon`, `match_type`, `filters` were all the same bug).
 | Additive minimal search (add a field until 2xx) | `internal/audit/run/steps_create.go: searchMinimal` |
 | Subtractive maximal reduction (drop until 2xx) | `internal/audit/run/steps_create.go: reduceMaximal` |
 | Refusal grammar (what a 4xx names) | `internal/audit/run/adjust.go: classifyRefusal` |
-| Recorded bodies artifact | `internal/audit/observe/bodies.go` |
-| Replaying a body into a fixture | `internal/fixtures/fixtures.go: FromAcceptedBody` |
+| Recorded request bodies artifact | `internal/audit/observe/request_bodies.go` |
+| Replaying a request body into a fixture | `internal/fixtures/fixtures.go: FromAcceptedRequestBody` |
 | Per-run unique names | `internal/fixtures/fixtures.go: WithRunSuffix`, `RunSuffixBlock` |
 | Acceptance vs unit split | `internal/emit/render_fixtures.go: resourceFixtures` |
 | Probe step ordering | `internal/audit/strategy/program.go: buildProgram` |
@@ -182,7 +182,7 @@ probe**. Everything else is downstream of that.
    (`tests_ftp_server`), a dashboard id (`dashboard_snapshot`), a discriminator
    `type` for `connectors_generic` / `operations_webhook`.
 3. **The four inconsistent-result failures.** A value sent and echoed back
-   differently. `FromAcceptedBody` already drops what is never returned; this is
+   differently. `FromAcceptedRequestBody` already drops what is never returned; this is
    the narrower case of a value the API rewrites.
 4. **`Invalid id` / `request never completed`** — one each, `templates_sharing_setting`
    (a singleton) and `stream` (`lastSuccess`/`lastFailure` declared `int64`, the

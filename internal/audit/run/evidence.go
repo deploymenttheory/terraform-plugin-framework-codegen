@@ -62,15 +62,15 @@ type evidence struct {
 	readProof   *observe.Excerpt
 
 	// The raw material the triangulating inference reads, gathered across
-	// every step. acceptedBodies is every create body the API accepted,
+	// every step. acceptedRequestBodies is every create body the API accepted,
 	// resolved as sent — the positive half of variant diffing. listBodies is
 	// the collection responses the pre-flight captured, for the list-shape
 	// finding. combinedRefusals holds any field pairs a create was refused
 	// for carrying together — the mutual-exclusion signal, empty unless the
 	// refusal grammar names one.
-	acceptedBodies   []map[string]any
-	listBodies       [][]byte
-	combinedRefusals []infer.FieldPair
+	acceptedRequestBodies []map[string]any
+	listBodies            [][]byte
+	combinedRefusals      []infer.FieldPair
 	// conditionalValues records the value-cycling outcomes the executor
 	// gathered healing free-form conditional refusals — each (discriminator
 	// value, sibling field, sibling value) the API accepted or refused — the

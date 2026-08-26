@@ -528,8 +528,8 @@ func TestUnit_Adaptive_TheReductionKeepsWhatTheCreateNeeded(t *testing.T) {
 
 	_, sum := mustRun(t, testOptions(t, s, p, testEnv(), nil))
 
-	var recorded *observe.AcceptedBody
-	for _, b := range sum.Bodies {
+	var recorded *observe.AcceptedRequestBody
+	for _, b := range sum.RequestBodies {
 		if b.Entity == "thing" {
 			recorded = b.Maximal
 		}

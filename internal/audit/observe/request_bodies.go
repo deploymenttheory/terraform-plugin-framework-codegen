@@ -16,34 +16,36 @@ import (
 	"sort"
 )
 
-// encodeBodies renders one entity's record deterministically, matching the
-// observations beside it: sorted map keys, no HTML escaping, two-space indent.
-func encodeBodies(b Bodies) ([]byte, error) {
+// encodeRequestBodies renders one entity's record deterministically,
+// matching the observations beside it: sorted map keys, no HTML escaping,
+// two-space indent.
+func encodeRequestBodies(b RequestBodies) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(b); err != nil {
-		return nil, fmt.Errorf("encoding bodies for %s: %w", b.Entity, err)
+		return nil, fmt.Errorf("encoding request bodies for %s: %w", b.Entity, err)
 	}
 	return buf.Bytes(), nil
 }
 
-// BodiesSuffix is the committed file naming, one file per entity, matching
-// the observations beside it.
-const BodiesSuffix = ".bodies.json"
+// RequestBodiesSuffix is the committed file naming, one file per entity,
+// matching the observations beside it.
+const RequestBodiesSuffix = ".request_bodies.json"
 
-// Bodies is what one entity's creates looked like when the API accepted them.
-type Bodies struct {
+// RequestBodies is what one entity's creates looked like when the API
+// accepted them.
+type RequestBodies struct {
 	Entity string `json:"entity"`
 	// Minimal is the smallest create the run got accepted, and Maximal the
 	// fullest. Either may be absent when no create of that shape succeeded.
-	Minimal *AcceptedBody `json:"minimal,omitempty"`
-	Maximal *AcceptedBody `json:"maximal,omitempty"`
+	Minimal *AcceptedRequestBody `json:"minimal,omitempty"`
+	Maximal *AcceptedRequestBody `json:"maximal,omitempty"`
 }
 
-// AcceptedBody is one create the API answered 2xx to.
-type AcceptedBody struct {
+// AcceptedRequestBody is one create the API answered 2xx to.
+type AcceptedRequestBody struct {
 	// Status is the code the API answered, kept so a reader can see that this
 	// was an acceptance rather than an assumption.
 	Status int `json:"status"`
@@ -61,7 +63,7 @@ type AcceptedBody struct {
 // A field the API accepts and never echoes cannot appear in a generated
 // configuration: terraform compares what it planned against what the provider
 // answers, and a value that never comes back reads as the provider losing it.
-func (b *AcceptedBody) Echoed(wire string) bool {
+func (b *AcceptedRequestBody) Echoed(wire string) bool {
 	if b == nil || b.Response == nil {
 		return false
 	}
@@ -69,15 +71,15 @@ func (b *AcceptedBody) Echoed(wire string) bool {
 	return ok
 }
 
-// WriteBodies commits one <entity>.bodies.json per entity under dir.
-// Encoding matches the observations: sorted keys, stable bytes, so a re-run
-// that learned nothing new rewrites nothing.
-func WriteBodies(dir string, bodies []Bodies) error {
-	if len(bodies) == 0 {
+// WriteRequestBodies commits one <entity>.request_bodies.json per entity
+// under dir. Encoding matches the observations: sorted keys, stable bytes,
+// so a re-run that learned nothing new rewrites nothing.
+func WriteRequestBodies(dir string, requestBodies []RequestBodies) error {
+	if len(requestBodies) == 0 {
 		return nil
 	}
-	byEntity := map[string]Bodies{}
-	for _, b := range bodies {
+	byEntity := map[string]RequestBodies{}
+	for _, b := range requestBodies {
 		if b.Entity == "" || (b.Minimal == nil && b.Maximal == nil) {
 			continue
 		}
@@ -91,7 +93,7 @@ func WriteBodies(dir string, bodies []Bodies) error {
 
 	encoded := make(map[string][]byte, len(entities))
 	for _, entity := range entities {
-		raw, err := encodeBodies(byEntity[entity])
+		raw, err := encodeRequestBodies(byEntity[entity])
 		if err != nil {
 			return err
 		}
@@ -101,7 +103,7 @@ func WriteBodies(dir string, bodies []Bodies) error {
 		return fmt.Errorf("creating %s: %w", dir, err)
 	}
 	for _, entity := range entities {
-		path := filepath.Join(dir, entity+BodiesSuffix)
+		path := filepath.Join(dir, entity+RequestBodiesSuffix)
 		if err := os.WriteFile(path, encoded[entity], 0o644); err != nil {
 			return fmt.Errorf("writing %s: %w", path, err)
 		}
@@ -109,11 +111,12 @@ func WriteBodies(dir string, bodies []Bodies) error {
 	return nil
 }
 
-// ReadBodies loads every recorded body under dir, keyed by entity. A missing
-// directory is not an error: an entity the probe never cleared has none, and
-// generation falls back to deriving values from the document.
-func ReadBodies(dir string) (map[string]Bodies, error) {
-	out := map[string]Bodies{}
+// ReadRequestBodies loads every recorded request body under dir, keyed by
+// entity. A missing directory is not an error: an entity the probe never
+// cleared has none, and generation falls back to deriving values from the
+// document.
+func ReadRequestBodies(dir string) (map[string]RequestBodies, error) {
+	out := map[string]RequestBodies{}
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -129,7 +132,7 @@ func ReadBodies(dir string) (map[string]Bodies, error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading %s: %w", e.Name(), err)
 		}
-		var b Bodies
+		var b RequestBodies
 		if err := json.Unmarshal(raw, &b); err != nil {
 			return nil, fmt.Errorf("reading %s: %w", e.Name(), err)
 		}

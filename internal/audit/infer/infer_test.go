@@ -33,7 +33,7 @@ func monitorEvidence() Evidence {
 	}
 	return Evidence{
 		Entity: "monitor",
-		AcceptedBodies: []map[string]any{
+		AcceptedRequestBodies: []map[string]any{
 			{"kind": "ping", "interval": 5.0, "target_host": "h", "name": "n"},
 			{"kind": "web", "interval": 5.0, "web": map[string]any{"url": "u"}, "name": "n"},
 			{"kind": "dns", "interval": 5.0, "domain": "d", "dnssec": true, "name": "n"},
@@ -176,7 +176,7 @@ func TestUnit_Infer_PlantedFalseEdgeIsInconclusive(t *testing.T) {
 	}
 	ev := Evidence{
 		Entity: "monitor",
-		AcceptedBodies: []map[string]any{
+		AcceptedRequestBodies: []map[string]any{
 			{"kind": "ping", "foo": "x"},
 			{"kind": "dns", "foo": "y"}, // foo accepted under BOTH values: not gated
 		},
@@ -203,8 +203,8 @@ func TestUnit_Infer_LoneAmbiguousRemovalAssertsNothing(t *testing.T) {
 		Variants: []strategy.Variant{{}, {GateField: "kind", GateValue: "ping"}, {GateField: "kind", GateValue: "dns"}},
 	}
 	ev := Evidence{
-		Entity:         "monitor",
-		AcceptedBodies: []map[string]any{{"kind": "ping"}},
+		Entity:                "monitor",
+		AcceptedRequestBodies: []map[string]any{{"kind": "ping"}},
 		Adjustments: []RequestAdjustment{
 			{Entity: "monitor", Action: AdjustRemove, Field: "bar", GateField: "kind", GateValue: "dns"},
 		},
@@ -223,8 +223,8 @@ func TestUnit_Infer_ConflictingAcceptanceAndRemovalIsNoEdge(t *testing.T) {
 		Variants: []strategy.Variant{{}, {GateField: "kind", GateValue: "a"}, {GateField: "kind", GateValue: "b"}},
 	}
 	ev := Evidence{
-		Entity:         "e",
-		AcceptedBodies: []map[string]any{{"kind": "a", "foo": 1.0}},
+		Entity:                "e",
+		AcceptedRequestBodies: []map[string]any{{"kind": "a", "foo": 1.0}},
 		Adjustments: []RequestAdjustment{
 			{Entity: "e", Action: AdjustRemove, Field: "foo", GateField: "kind", GateValue: "a"},
 		},
@@ -240,7 +240,7 @@ func TestUnit_Infer_MutuallyExclusive(t *testing.T) {
 	t.Parallel()
 	ev := Evidence{
 		Entity: "widget",
-		AcceptedBodies: []map[string]any{
+		AcceptedRequestBodies: []map[string]any{
 			{"a": 1.0, "name": "n"},
 			{"b": 2.0, "name": "n"},
 		},
@@ -262,9 +262,9 @@ func TestUnit_Infer_MutuallyExclusive(t *testing.T) {
 func TestUnit_Infer_MutuallyExclusiveNeedsBothAlone(t *testing.T) {
 	t.Parallel()
 	ev := Evidence{
-		Entity:           "widget",
-		AcceptedBodies:   []map[string]any{{"a": 1.0, "b": 2.0}}, // never a without b
-		CombinedRefusals: []FieldPair{{A: "a", B: "b"}},
+		Entity:                "widget",
+		AcceptedRequestBodies: []map[string]any{{"a": 1.0, "b": 2.0}}, // never a without b
+		CombinedRefusals:      []FieldPair{{A: "a", B: "b"}},
 	}
 	if o := find(Infer(ev, &strategy.Strategy{Entity: "widget"}), "", observe.KindMutuallyExclusive); o != nil {
 		t.Fatalf("asserted %+v without evidence each is valid alone", o)
@@ -276,8 +276,8 @@ func TestUnit_Infer_MutuallyExclusiveNeedsBothAlone(t *testing.T) {
 func TestUnit_Infer_FlatResourceHasNoVariantEdges(t *testing.T) {
 	t.Parallel()
 	ev := Evidence{
-		Entity:         "assignment",
-		AcceptedBodies: []map[string]any{{"name": "n", "agent_id": "agent-1"}},
+		Entity:                "assignment",
+		AcceptedRequestBodies: []map[string]any{{"name": "n", "agent_id": "agent-1"}},
 		Adjustments: []RequestAdjustment{
 			{Entity: "assignment", Action: AdjustBorrow, Field: "agent_id", GateField: "agent"},
 		},
@@ -305,7 +305,7 @@ func TestUnit_Infer_ValidConfigurationNeedsADistinguishingField(t *testing.T) {
 	}
 	ev := Evidence{
 		Entity: "e",
-		AcceptedBodies: []map[string]any{
+		AcceptedRequestBodies: []map[string]any{
 			{"kind": "a", "name": "n"},
 			{"kind": "b", "name": "n"},
 		},
@@ -327,8 +327,8 @@ func TestUnit_Infer_HypothesisProvenanceIsCarried(t *testing.T) {
 		},
 	}
 	ev := Evidence{
-		Entity:         "e",
-		AcceptedBodies: []map[string]any{{"kind": "a", "foo": 1.0}, {"kind": "b"}},
+		Entity:                "e",
+		AcceptedRequestBodies: []map[string]any{{"kind": "a", "foo": 1.0}, {"kind": "b"}},
 		Adjustments: []RequestAdjustment{
 			{Entity: "e", Action: AdjustRemove, Field: "foo", GateField: "kind", GateValue: "b"},
 		},
@@ -454,7 +454,7 @@ func TestUnit_Infer_ValueConditionalConfiguration(t *testing.T) {
 	}
 	ev := Evidence{
 		Entity: "stream",
-		AcceptedBodies: []map[string]any{
+		AcceptedRequestBodies: []map[string]any{
 			{"format": "avro", "mode": "streaming", "name": "n"},
 			{"format": "json", "mode": "batch", "name": "n"},
 		},
@@ -486,7 +486,7 @@ func TestUnit_Infer_ValueConditionalNeedsBothDirections(t *testing.T) {
 	}
 	ev := Evidence{
 		Entity: "stream",
-		AcceptedBodies: []map[string]any{
+		AcceptedRequestBodies: []map[string]any{
 			{"format": "avro", "mode": "streaming", "name": "n"},
 			{"format": "json", "mode": "streaming", "name": "n"},
 		},
@@ -511,8 +511,8 @@ func TestUnit_Infer_ValueConditionalNeedsTwoCreatedValues(t *testing.T) {
 		Variants: []strategy.Variant{{}, {GateField: "format", GateValue: "avro"}, {GateField: "format", GateValue: "json"}},
 	}
 	ev := Evidence{
-		Entity:         "stream",
-		AcceptedBodies: []map[string]any{{"format": "avro", "mode": "streaming", "name": "n"}},
+		Entity:                "stream",
+		AcceptedRequestBodies: []map[string]any{{"format": "avro", "mode": "streaming", "name": "n"}},
 		ConditionalValues: []ConditionalValue{
 			{GateField: "format", GateValue: "avro", Field: "mode", Value: "batch", Accepted: false},
 			{GateField: "format", GateValue: "json", Field: "mode", Value: "batch", Accepted: true},
