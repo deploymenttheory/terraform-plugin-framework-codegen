@@ -199,6 +199,32 @@ var writeExhibits = map[string]func(*testing.T){
 		}
 	},
 
+	"NamesRefusedFieldInProse": func(t *testing.T) {
+		t.Parallel()
+
+		// The same missing field, said two ways. Only the sentence is one an
+		// adjustment loop can act on; the bare name beside a generic title
+		// could be about anything, which is why it stays unhealable.
+		bare := New(t, Quirks{RequiredButUndeclared: []string{"key"}})
+		_, body := post(t, bare.CollectionURL(), map[string]any{"value": "v"})
+		if detail, _ := body["detail"].(string); detail != "key" {
+			t.Errorf("without the quirk the detail should be the bare name, got %v", body)
+		}
+
+		prose := New(t, Quirks{RequiredButUndeclared: []string{"key"}, NamesRefusedFieldInProse: true})
+		status, body := post(t, prose.CollectionURL(), map[string]any{"value": "v"})
+		if status != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400", status)
+		}
+		if detail, _ := body["detail"].(string); detail != "field key is required" {
+			t.Errorf("the refusal should spell the field into a sentence, got %v", body)
+		}
+
+		if status, _ := post(t, prose.CollectionURL(), map[string]any{"key": "k"}); status != http.StatusCreated {
+			t.Errorf("supplying it should succeed, got %d", status)
+		}
+	},
+
 	"ConditionallyRequired": func(t *testing.T) {
 		t.Parallel()
 

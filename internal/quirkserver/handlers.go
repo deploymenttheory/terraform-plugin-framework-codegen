@@ -48,7 +48,7 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 		// Naming the field is what lets the auditor write the requirement down
 		// as observed rather than guessed: an error that does not name it
 		// could have been about anything.
-		s.fail(w, http.StatusBadRequest, "missing required field", missing)
+		s.fail(w, http.StatusBadRequest, "missing required field", s.refusedFieldDetail(missing))
 		return
 	}
 
