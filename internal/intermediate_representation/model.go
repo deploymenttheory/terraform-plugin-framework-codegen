@@ -324,6 +324,10 @@ type Attribute struct {
 	// Format is the document's declared format, which says what a string
 	// carries beyond being a string: "password", "date-time", "uuid".
 	Format string `json:"format,omitempty"`
+	// ServerDefault is the value a run read back for this property when a
+	// create omitted it, from x-tfpfgen-server-default; nil when no run has
+	// measured one. It is a fact about the API rather than the document.
+	ServerDefault any `json:"server_default,omitempty"`
 	// Example is the document's declared example value. Fixture derivation
 	// prefers it to an invented value: a document that declares no format
 	// often still states, through an example, that the value has a shape the

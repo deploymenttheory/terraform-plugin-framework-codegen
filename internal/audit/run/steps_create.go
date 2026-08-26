@@ -23,6 +23,17 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 	if err != nil {
 		return err
 	}
+	// The grammar heals a refusal that names its field. A refusal that says
+	// only that the request was bad names nothing to act on, and the document
+	// that produced this body is the same document that understated it — so
+	// ask the API instead, one field at a time.
+	if rr.obj == nil && rr.res != nil && rr.res.refused() {
+		if searched, serr := r.searchMinimal(ctx, ent, ent.recipe, rr.body, rr.res); serr != nil {
+			return serr
+		} else if searched.obj != nil {
+			rr = searched
+		}
+	}
 	if rr.obj != nil {
 		sent, err := r.resolveBody(ctx, ent, rr.body)
 		if err != nil {
@@ -31,6 +42,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		r.registry[ent.plan.Entity] = rr.obj
 		ent.createdAt = time.Now()
 		ent.ev.sent = sent
+		ent.ev.sentStatus = rr.res.status
 		ent.ev.createProof = &rr.res.excerpt
 		ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(rr.body))
 		return nil
@@ -73,6 +85,7 @@ func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *p
 		}
 		ent.ev.maximalSent = sent
 		ent.ev.maximalGot = rr.res.object()
+		ent.ev.maximalStatus = rr.res.status
 		ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(rr.body))
 		_, _ = r.deleteObject(ctx, ent, ent.recipe, rr.obj)
 		return nil
@@ -80,7 +93,12 @@ func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *p
 	if rr.res == nil || !rr.res.refused() {
 		return nil
 	}
-	return r.bisectMaximal(ctx, ent, step, rr.res)
+	// Narrow first, so a single culprit is named as rejected evidence, then
+	// drop what the API will not take until it takes the rest.
+	if err := r.bisectMaximal(ctx, ent, step, rr.res); err != nil {
+		return err
+	}
+	return r.reduceMaximal(ctx, ent, step, rr.body, rr.res)
 }
 
 // bisectMaximal narrows a refused maximal create to the optional field
@@ -299,4 +317,180 @@ func appendProof(proof []observe.Excerpt, e observe.Excerpt) []observe.Excerpt {
 		return proof
 	}
 	return append(proof, e)
+}
+
+// searchAllowance bounds the additive minimal search: how many extra create
+// attempts one entity may spend looking for a body the API accepts.
+//
+// Sized from the candidate count the way bisectionAllowance is sized from the
+// optional count, and capped, because a wide entity would otherwise spend the
+// whole run's requests on one search. A refused create makes no object, so the
+// cost is requests and wall clock, never debris.
+func searchAllowance(candidates int) int {
+	const cap = 24
+	if candidates > cap {
+		return cap
+	}
+	return candidates
+}
+
+// searchMinimal looks for a create body the API accepts by adding one field at
+// a time to a body it refused.
+//
+// The document is only a hypothesis about what a create needs, and an API that
+// declares nothing required leaves the derivation with an empty body that
+// cannot make anything. The refusal grammar handles a refusal that names its
+// field; this handles the rest, which is every API whose 400 says only that
+// the request was bad.
+//
+// Additive rather than combinatorial: each field that does not provoke a
+// refusal naming it stays, so a body needing several fields is found in as
+// many attempts rather than exponentially many. What it finds is a viable
+// minimal body, not a proof that every field in it is individually necessary.
+func (r *runner) searchMinimal(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any, refusal *httpResult) (adjustResult, error) {
+	candidates := r.searchCandidates(ent, body, refusal)
+	allowance := searchAllowance(len(candidates))
+	last := refusal
+
+	for i := 0; i < allowance; i++ {
+		field := candidates[i]
+		body[field] = r.synthField(ent, field)
+
+		obj, res, err := r.createObject(ctx, ent, rec, body)
+		if err != nil {
+			return adjustResult{}, err
+		}
+		if obj != nil {
+			// Every field the search added is part of the smallest body this
+			// run could get accepted, which is what the fixture must carry.
+			for _, added := range candidates[:i+1] {
+				if _, kept := body[added]; kept {
+					r.recordAdjustAdd(ent, added, "", "", res.excerpt)
+				}
+			}
+			return adjustResult{obj: obj, res: res, body: body, adjusted: true}, nil
+		}
+		if res == nil || !res.refused() {
+			return adjustResult{res: res, body: body, adjusted: true, gaveUp: true}, nil
+		}
+		// The API now objects to the field just added, so it is not one this
+		// create wants; the ones before it stay.
+		if res.mentions(field) {
+			delete(body, field)
+		}
+		last = res
+	}
+	return adjustResult{res: last, body: body, adjusted: true, gaveUp: true}, nil
+}
+
+// searchCandidates orders the fields the search may add, cheapest-signal
+// first, so the common case ends in a handful of attempts and a re-run repeats
+// the same order.
+func (r *runner) searchCandidates(ent *entityState, body map[string]any, refusal *httpResult) []string {
+	hints := r.hints[ent.plan.Entity]
+	type candidate struct {
+		field string
+		rank  int
+	}
+	var out []candidate
+	for field, h := range hints {
+		if _, present := body[field]; present {
+			continue
+		}
+		rank := 3
+		switch {
+		case refusal != nil && refusal.mentions(field):
+			// The API has already said this field's name out loud.
+			rank = 0
+		case len(h.Enum) > 0 || h.Example != nil || h.Default != nil:
+			// The document states a value the API is known to accept.
+			rank = 1
+		case h.Type != "" && h.Type != "object" && h.Type != "array":
+			rank = 2
+		}
+		out = append(out, candidate{field: field, rank: rank})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].rank != out[j].rank {
+			return out[i].rank < out[j].rank
+		}
+		return out[i].field < out[j].field
+	})
+	fields := make([]string, 0, len(out))
+	for _, c := range out {
+		fields = append(fields, c.field)
+	}
+	return fields
+}
+
+// reduceMaximal drops the fields the API objects to until it accepts the
+// create, and records the body it accepted.
+//
+// The counterpart to searchMinimal: that one adds until a create works, this
+// one removes. What survives is the fullest create this run could get taken,
+// which is what a generated maximal configuration has to be — every field in
+// it is one the API demonstrably tolerates alongside the others.
+func (r *runner) reduceMaximal(ctx context.Context, ent *entityState, step *plan.Step, body map[string]any, refusal *httpResult) error {
+	minimal := ent.recipe.minimalBody
+	allowance := searchAllowance(len(body))
+	last := refusal
+
+	for i := 0; i < allowance; i++ {
+		culprit := r.maximalCulprit(body, minimal, last)
+		if culprit == "" {
+			return nil
+		}
+		// The evidence for a refusal is bisectMaximal's to record; this only
+		// shapes the body, so a field dropped here is not claimed twice.
+		delete(body, culprit)
+
+		obj, res, err := r.createObject(ctx, ent, ent.recipe, body)
+		if err != nil {
+			return err
+		}
+		if obj != nil {
+			sent, err := r.resolveBody(ctx, ent, body)
+			if err != nil {
+				return err
+			}
+			ent.ev.maximalSent = sent
+			ent.ev.maximalGot = res.object()
+			ent.ev.maximalStatus = res.status
+			ent.ev.acceptedBodies = append(ent.ev.acceptedBodies, cloneAnyMap(body))
+			_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
+			return nil
+		}
+		if res == nil || !res.refused() {
+			return nil
+		}
+		last = res
+	}
+	return nil
+}
+
+// maximalCulprit names the optional field to drop next: the one the refusal
+// mentions, else the last in document order, which is deterministic and so
+// repeats the same reduction on a re-run.
+//
+// A field the minimal create needs is never a candidate — removing it would
+// trade a refused maximal for a refused minimal.
+func (r *runner) maximalCulprit(body, minimal map[string]any, refusal *httpResult) string {
+	var optional []string
+	for k := range body {
+		if _, needed := minimal[k]; !needed {
+			optional = append(optional, k)
+		}
+	}
+	if len(optional) == 0 {
+		return ""
+	}
+	sort.Strings(optional)
+	if refusal != nil {
+		for _, k := range optional {
+			if refusal.mentions(k) {
+				return k
+			}
+		}
+	}
+	return optional[len(optional)-1]
 }

@@ -322,3 +322,81 @@ func TestUnit_Evidence_TheIdentifyingPropertyIsFoundByValue(t *testing.T) {
 		})
 	}
 }
+
+// TestUnit_Search_CandidatesAreOrderedCheapestSignalFirst pins the order the
+// additive search adds fields in. The order decides how many live creates a
+// blocked entity costs, and it must be the same on a re-run.
+func TestUnit_Search_CandidatesAreOrderedCheapestSignalFirst(t *testing.T) {
+	t.Parallel()
+
+	r := &runner{hints: map[string]map[string]strategy.SynthHint{
+		"widget": {
+			"alreadySent": {Field: "alreadySent", Type: "string"},
+			"zNamed":      {Field: "zNamed", Type: "string"},
+			"aPlain":      {Field: "aPlain", Type: "string"},
+			"bPlain":      {Field: "bPlain", Type: "string"},
+			"withEnum":    {Field: "withEnum", Type: "string", Enum: []any{"x"}},
+			"nested":      {Field: "nested", Type: "object"},
+		},
+	}}
+	ent := &entityState{plan: &plan.EntityPlan{Entity: "widget"}}
+	body := map[string]any{"alreadySent": "v"}
+	refusal := &httpResult{body: []byte(`{"detail":"zNamed is wrong somehow"}`)}
+
+	got := r.searchCandidates(ent, body, refusal)
+	want := []string{"zNamed", "withEnum", "aPlain", "bPlain", "nested"}
+	if len(got) != len(want) {
+		t.Fatalf("candidates = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("candidates = %v, want %v", got, want)
+		}
+	}
+	// A field the body already carries is never a candidate.
+	for _, f := range got {
+		if f == "alreadySent" {
+			t.Error("a field already in the body was offered as a candidate")
+		}
+	}
+}
+
+// TestUnit_Search_AllowanceIsBounded pins the ceiling on how many live creates
+// one entity's search may spend.
+func TestUnit_Search_AllowanceIsBounded(t *testing.T) {
+	t.Parallel()
+	if got := searchAllowance(3); got != 3 {
+		t.Errorf("searchAllowance(3) = %d, want 3", got)
+	}
+	if got := searchAllowance(500); got != 24 {
+		t.Errorf("searchAllowance(500) = %d, want the cap", got)
+	}
+}
+
+// TestUnit_Search_MaximalCulpritPrefersTheNamedField pins which field the
+// reduction drops next. A refusal that names one is believed; otherwise the
+// choice is the last in order, so a re-run reduces the same way.
+func TestUnit_Search_MaximalCulpritPrefersTheNamedField(t *testing.T) {
+	t.Parallel()
+
+	r := &runner{}
+	body := map[string]any{"name": "n", "colour": "c", "shape": "s"}
+	minimal := map[string]any{"name": "n"}
+
+	named := &httpResult{body: []byte(`{"detail":"colour is not valid here"}`)}
+	if got := r.maximalCulprit(body, minimal, named); got != "colour" {
+		t.Errorf("culprit = %q, want the field the refusal named", got)
+	}
+
+	// Nothing named: the last optional field in order, never a field the
+	// minimal create needs.
+	silent := &httpResult{body: []byte(`{"detail":"bad request"}`)}
+	if got := r.maximalCulprit(body, minimal, silent); got != "shape" {
+		t.Errorf("culprit = %q, want the last optional field", got)
+	}
+
+	// Only the minimal body left: there is nothing safe to drop.
+	if got := r.maximalCulprit(minimal, minimal, silent); got != "" {
+		t.Errorf("culprit = %q, want none", got)
+	}
+}

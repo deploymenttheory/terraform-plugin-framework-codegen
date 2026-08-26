@@ -545,7 +545,7 @@ func (e *serviceRenderer) datasourceFixtures(ds *ir.Datasource, spec fixtures.Fi
 		// whole collection matched it.
 		body = addressingHCL
 	}
-	fixture, err := hclBlock(source, blockHeader, body, nil)
+	fixture, err := hclBlock(source, blockHeader, "", body, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -563,7 +563,7 @@ func (e *serviceRenderer) datasourceFixtures(ds *ir.Datasource, spec fixtures.Fi
 	}
 
 	exampleHeader := fmt.Sprintf("data %q %q", ds.Names.TerraformType, "example")
-	example, err := hclBlock(source, exampleHeader, body, nil)
+	example, err := hclBlock(source, exampleHeader, "", body, nil)
 	if err != nil {
 		return nil, err
 	}

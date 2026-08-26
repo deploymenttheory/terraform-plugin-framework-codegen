@@ -16,6 +16,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"os"
 	"path/filepath"
 	"sort"
@@ -248,6 +249,13 @@ func generate(opts Options) (*generation, error) {
 	}
 
 	pc, err := emit.FromConfig(opts.Config, firstServerURL(doc))
+	if err != nil {
+		return nil, err
+	}
+	// What a probe run recorded of the API's accepted creates. Absent before
+	// any run, which leaves every acceptance fixture derived from the
+	// document as it was.
+	pc.AcceptedBodies, err = observe.ReadBodies(filepath.Join(opts.Root, "audit", "bodies"))
 	if err != nil {
 		return nil, err
 	}
