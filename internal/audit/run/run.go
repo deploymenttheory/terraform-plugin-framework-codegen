@@ -76,8 +76,13 @@ type Options struct {
 	// strategy.Strategy describes, under a complexity-scaled per-entity
 	// budget. When Doc is nil the plan is executed as given — the path the
 	// executor's own unit tests take.
-	Doc     *specmodel.Document
-	Config  *config.Config
+	Doc    *specmodel.Document
+	Config *config.Config
+	// Inputs are the operator-supplied values the audit cannot synthesize,
+	// read from audit/inputs.json. The plan resolves parentRefs and skip from
+	// them; the values reach the wire through strategize, which rebuilds every
+	// body the plan derived and would otherwise not see them.
+	Inputs  *plan.Inputs
 	BaseURL string
 	Auth    Auth
 	// NamePrefix marks every created object's name-bearing fields and
@@ -228,13 +233,14 @@ func Run(ctx context.Context, opts Options) ([]observe.Observation, Summary, err
 	var hints map[string]map[string]strategy.SynthHint
 	var strategies map[string]*strategy.Strategy
 	if opts.Plan != nil && opts.Doc != nil && opts.Config != nil {
-		opts.Plan, hints, strategies = strategize(opts.Plan, opts.Doc, opts.Config, opts.NamePrefix)
+		opts.Plan, hints, strategies = strategize(opts.Plan, opts.Doc, opts.Config, opts.NamePrefix, opts.Inputs)
 	}
 	r, err := newRunner(opts)
 	if err != nil {
 		return nil, Summary{}, err
 	}
 	r.hints = hints
+	r.inputValues = entityValues(opts.Plan, opts.Inputs)
 	r.strategies = strategies
 	defer r.ledger.close()
 
@@ -306,6 +312,10 @@ type runner struct {
 	// loop draws on when it must add a field a refusal named. Nil on a
 	// non-strategy run.
 	hints map[string]map[string]strategy.SynthHint
+	// inputValues carries, per entity, the operator's value overrides, so the
+	// adjustment loop adding a field live uses the same value the plan would
+	// have sent for it.
+	inputValues map[string]map[string]any
 	// strategies carries each entity's compiled strategy, so the inference
 	// can read the hypotheses the run was meant to confirm. Nil on a
 	// non-strategy run, which is what makes such a run skip inference.

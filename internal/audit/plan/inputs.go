@@ -110,6 +110,16 @@ func parseEntityInputs(entity string, raw json.RawMessage) (EntityInputs, error)
 
 // forEntity is the lookup Derive uses: absent entities read as the zero
 // value, per the graceful-degradation contract.
+// ValuesFor answers the operator's value overrides for one entity, keyed by
+// wire property name, and nil where none were supplied.
+//
+// The audit cannot invent a value the API will take for every field: a
+// reachable endpoint, an existing agent's id, the discriminator a polymorphic
+// body is keyed on. These are what the operator supplies in their place.
+func (in *Inputs) ValuesFor(entity string) map[string]any {
+	return in.forEntity(entity).Values
+}
+
 func (in *Inputs) forEntity(entity string) EntityInputs {
 	if in == nil || in.Entities == nil {
 		return EntityInputs{}
