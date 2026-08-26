@@ -647,3 +647,43 @@ func TestUnit_Fixturespec_AReplayKeepsEveryValueThatDoesNotNameTheObject(t *test
 		t.Errorf("interval = %#v, want the value the API took", v)
 	}
 }
+
+func TestUnit_Fixturespec_AReplayDropsWhatTheAPIReturnsDifferently(t *testing.T) {
+	spec := Derive(acceptedTree())
+	request := map[string]any{"name": "n", "colour": "#FF0000"}
+	// Sent five stars, answered six: a masked value, and no configuration can
+	// plan a value the API rewrites on the way back.
+	response := map[string]any{"name": "n", "colour": "#ff0000ff"}
+
+	got := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true})
+
+	for _, e := range got.Entries {
+		if e.Name == "colour" {
+			t.Fatal("a property the API answers differently was left in a configuration")
+		}
+	}
+	var explained bool
+	for _, o := range got.Omissions {
+		if strings.Contains(o.Name, "colour") && strings.Contains(o.Reason, "different value") {
+			explained = true
+		}
+	}
+	if !explained {
+		t.Errorf("the rewritten property was not explained: %#v", got.Omissions)
+	}
+}
+
+func TestUnit_Fixturespec_AReplayDropsAnObjectTheBodyCarriedEmpty(t *testing.T) {
+	spec := Derive(acceptedTree())
+	body := map[string]any{"name": "n", "settings": map[string]any{}}
+
+	got := spec.FromAcceptedRequestBody(body, body, map[string]bool{"name": true})
+
+	// An empty object leaves nothing to render, and rendered anyway it spells
+	// the absent value as a literal that does not plan.
+	for _, e := range got.Entries {
+		if e.Name == "settings" {
+			t.Fatalf("an empty object was left in a configuration: %#v", e)
+		}
+	}
+}

@@ -45,7 +45,10 @@ func TestAttributes_TypeMapping(t *testing.T) {
 	if kind := attribute(t, rules.Nested, "kind"); kind.ComputedOptionalRequired != Required {
 		t.Errorf("kind inside rules = %+v, want required", kind)
 	}
-	if limit := attribute(t, rules.Nested, "limit"); limit.ComputedOptionalRequired != Optional || limit.Kind != TypeInt64 {
+	// Nested attributes take the same presence rule as top-level ones, and
+	// this response describes the create schema wholesale.
+	if limit := attribute(t, rules.Nested, "limit"); limit.ComputedOptionalRequired != ComputedOptional ||
+		limit.Kind != TypeInt64 {
 		t.Errorf("limit inside rules = %+v", limit)
 	}
 	settings := attribute(t, tree, "settings")
@@ -130,12 +133,15 @@ func TestAttributes_Presence(t *testing.T) {
 	}{
 		// Every attribute reaches exactly one of these; a fifth outcome,
 		// omitted from the schema entirely, is the unsupported-type path.
-		{"name", Required},   // required and writable
-		{"region", Optional}, // writable, and the server leaves it absent: the rare one
-		// The two routes to Optional+Computed. `mode` takes the weak one — the
-		// response schema happens to list it as required — and `filled` takes
-		// the one the audit measures, which is the only route available on an
-		// API that declares nothing required in its responses.
+		{"name", Required}, // required and writable
+		// The routes to Optional+Computed. `mode` takes the weak one — the
+		// response schema happens to list it as required — `filled` takes the
+		// one the audit measures, and `region` takes the one that catches a
+		// document declaring nothing required in its responses: this entity's
+		// response is an allOf over the create schema, so it describes region
+		// and the server may fill it. Plain Optional is left for a writable
+		// property no response describes at all, covered in constraints_test.
+		{"region", ComputedOptional},
 		{"mode", ComputedOptional},
 		{"filled", ComputedOptional}, // x-tfpfgen-server-default
 		{"stamp", Computed},          // readOnly

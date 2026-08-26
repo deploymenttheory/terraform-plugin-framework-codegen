@@ -49,15 +49,15 @@ func (vn *validatorNamer) name(base string) string {
 }
 
 // configValidators renders the two halves of the conditional_validators file:
-// exprs, the elements of the ConfigValidators return slice — one finished
-// expression per line — and decls, the named custom validator type
-// declarations those elements refer to. typeName is the resource's Go type.
-func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (exprs, decls string, err error) {
+// the elements of the ConfigValidators return slice — one finished expression
+// per line — and the named custom validator type declarations those elements
+// refer to. typeName is the resource's Go type.
+func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (expressions, declarations string, err error) {
 	byName := map[string]node{}
 	for _, n := range nodes {
 		byName[n.attr.Name] = n
 	}
-	var declB, exprB strings.Builder
+	var declarationLines, expressionLines strings.Builder
 	namer := &validatorNamer{}
 
 	for _, req := range t.ConditionalRequirements {
@@ -68,8 +68,8 @@ func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (exprs
 		name := namer.name(lowerFirst(ir.GoName(req.Property)) + "RequiredWhen")
 		desc := fmt.Sprintf("%s must be set when %s is %q.",
 			strings.Join(req.Required, ", "), req.Property, req.Equals)
-		declB.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
-		fmt.Fprintf(&exprB, "\t\t%s{},\n", name)
+		declarationLines.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
+		fmt.Fprintf(&expressionLines, "\t\t%s{},\n", name)
 	}
 	for _, v := range t.ConditionalValidities {
 		var body strings.Builder
@@ -79,8 +79,8 @@ func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (exprs
 		name := namer.name(lowerFirst(ir.GoName(v.Property)) + "ValidWhen")
 		desc := fmt.Sprintf("%s may be set only when %s is %q.",
 			strings.Join(v.Valid, ", "), v.Property, v.Equals)
-		declB.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
-		fmt.Fprintf(&exprB, "\t\t%s{},\n", name)
+		declarationLines.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
+		fmt.Fprintf(&expressionLines, "\t\t%s{},\n", name)
 	}
 	for _, vc := range t.ValidConfigurations {
 		var body strings.Builder
@@ -89,17 +89,17 @@ func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (exprs
 		}
 		name := namer.name(lowerFirst(ir.GoName(vc.Discriminator)) + "ValidConfiguration")
 		desc := fmt.Sprintf("only the attributes each %s value admits are set.", vc.Discriminator)
-		declB.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
-		fmt.Fprintf(&exprB, "\t\t%s{},\n", name)
+		declarationLines.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
+		fmt.Fprintf(&expressionLines, "\t\t%s{},\n", name)
 	}
 	for _, group := range t.MutuallyExclusiveGroups {
 		expr := conflictingExpr(byName, group)
 		if expr == "" {
 			continue
 		}
-		fmt.Fprintf(&exprB, "\t\t%s,\n", expr)
+		fmt.Fprintf(&expressionLines, "\t\t%s,\n", expr)
 	}
-	return exprB.String(), declB.String(), nil
+	return expressionLines.String(), declarationLines.String(), nil
 }
 
 // renderCustomValidator renders one named custom validator type: an empty

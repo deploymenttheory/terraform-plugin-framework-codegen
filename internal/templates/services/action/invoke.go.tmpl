@@ -30,7 +30,7 @@ func (a *{{ .Type }}) Invoke(ctx context.Context, req action.InvokeRequest, resp
 	_ = body
 {{ end }}
 	client := a.client
-{{ if .InvokePlan.ParamDecls }}	{{ .InvokePlan.ParamDecls }}
+{{ if .InvokePlan.ParameterDeclarations }}	{{ .InvokePlan.ParameterDeclarations }}
 {{ end }}	{{ .InvokePlan.Assign }}
 	if err != nil {
 		errors.HandleActionError(ctx, err, &resp.Diagnostics, nil)

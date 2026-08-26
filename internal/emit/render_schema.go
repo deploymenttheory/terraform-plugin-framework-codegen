@@ -74,19 +74,19 @@ type schemaBuilder struct {
 	rootDepth int
 }
 
-// attributeDecls renders one level of attribute declarations, one line
+// attributeDeclarations renders one level of attribute declarations, one line
 // block per attribute, each ending with a comma — ready to sit inside a
 // map[string]schema.Attribute literal.
-func (sb *schemaBuilder) attributeDecls(nodes []node, depth int) string {
+func (sb *schemaBuilder) attributeDeclarations(nodes []node, depth int) string {
 	var b strings.Builder
 	for _, n := range nodes {
-		b.WriteString(sb.attributeDecl(n, depth))
+		b.WriteString(sb.attributeDeclaration(n, depth))
 	}
 	return b.String()
 }
 
-// attributeDecl renders one attribute declaration.
-func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
+// attributeDeclaration renders one attribute declaration.
+func (sb *schemaBuilder) attributeDeclaration(n node, depth int) string {
 	indent := strings.Repeat("\t", depth)
 	var b strings.Builder
 
@@ -121,11 +121,11 @@ func (sb *schemaBuilder) attributeDecl(n node, depth int) string {
 		if n.attr.Kind == ir.TypeList {
 			fmt.Fprintf(&b, "%s\tNestedObject: %s.NestedAttributeObject{\n", indent, sb.pkg())
 			fmt.Fprintf(&b, "%s\t\tAttributes: map[string]%s.Attribute{\n", indent, sb.pkg())
-			b.WriteString(sb.attributeDecls(n.children, depth+3))
+			b.WriteString(sb.attributeDeclarations(n.children, depth+3))
 			fmt.Fprintf(&b, "%s\t\t},\n%s\t},\n", indent, indent)
 		} else {
 			fmt.Fprintf(&b, "%s\tAttributes: map[string]%s.Attribute{\n", indent, sb.pkg())
-			b.WriteString(sb.attributeDecls(n.children, depth+2))
+			b.WriteString(sb.attributeDeclarations(n.children, depth+2))
 			fmt.Fprintf(&b, "%s\t},\n", indent)
 		}
 	}
@@ -228,8 +228,7 @@ func (sb *schemaBuilder) computedOptionalRequiredLines(n node, indent string) st
 // planModifiers is every plan modifier one resource attribute carries,
 // each a finished expression travelling with the imports it needs:
 // RequiresReplace on create-only attributes, and UseStateForUnknown on the
-// computed id — the one attribute whose value is stable across writes by
-// definition. Empty for a datasource or an action, neither of which has
+// computed id and on every computed-optional attribute. Empty for a datasource or an action, neither of which has
 // plan modifiers at all.
 func (sb *schemaBuilder) planModifiers(n node) []code.CustomPlanModifier {
 	if sb.kind != schemaResource {
@@ -250,7 +249,18 @@ func (sb *schemaBuilder) planModifiers(n node) []code.CustomPlanModifier {
 			SchemaDefinition: pkg + ".RequiresReplace()",
 		})
 	}
-	if n.attr.Name == "id" && n.attr.ComputedOptionalRequired == ir.Computed && n.attr.Kind == ir.TypeString && n.attr.Nested == nil {
+	isID := n.attr.Name == "id" && n.attr.ComputedOptionalRequired == ir.Computed &&
+		n.attr.Kind == ir.TypeString && n.attr.Nested == nil
+	// A computed-optional attribute is one the practitioner may set and the
+	// server fills when they do not. Unpinned it re-plans as unknown on every
+	// run, which is a permanent diff on a resource nothing has changed.
+	//
+	// Only computed-optional, never plain computed. A server-owned value the
+	// document says nothing about — a link, a modification stamp — is not
+	// stable just because it is computed, and pinning it makes terraform
+	// insist on a value the next read contradicts. Which of those are settled
+	// is a fact an audit measures, not one the document states.
+	if isID || n.attr.ComputedOptionalRequired == ir.ComputedOptional {
 		modifiers = append(modifiers, code.CustomPlanModifier{
 			Imports:          imports,
 			SchemaDefinition: pkg + ".UseStateForUnknown()",
@@ -317,8 +327,8 @@ func terminated(sentence string) string {
 	return sentence + "."
 }
 
-// modelDecl is one rendered model struct declaration.
-type modelDecl struct {
+// modelDeclaration is one rendered model struct declaration.
+type modelDeclaration struct {
 	name string
 	body string
 }
@@ -406,9 +416,9 @@ func childPath(parent string, n node) string {
 // buildModels renders the framework model structs for one entity: the
 // root struct plus one struct per nested object shape, pre-order. The
 // extra fields land in the root struct before the attribute fields.
-func buildModels(rootName, typePrefix string, nodes []node, extraFields []string) []modelDecl {
+func buildModels(rootName, typePrefix string, nodes []node, extraFields []string) []modelDeclaration {
 	namer := newModelNamer(typePrefix, nodes)
-	var decls []modelDecl
+	var declarations []modelDeclaration
 
 	var walk func(name, path string, nodes []node, extra []string)
 	walk = func(name, path string, nodes []node, extra []string) {
@@ -422,7 +432,7 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 				ir.GoName(n.attr.Name), fieldType(n), n.attr.Name)
 		}
 		b.WriteString("}")
-		decls = append(decls, modelDecl{name: name, body: b.String()})
+		declarations = append(declarations, modelDeclaration{name: name, body: b.String()})
 
 		// The root model is read and written whole through Get and Set, so
 		// only nested shapes need an object type to be built from.
@@ -437,7 +447,7 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 					n.attr.Name, attrTypeExpr(namer, childPath(path, n), n))
 			}
 			t.WriteString("\t}\n}")
-			decls = append(decls, modelDecl{name: attrTypesFuncName(name), body: t.String()})
+			declarations = append(declarations, modelDeclaration{name: attrTypesFuncName(name), body: t.String()})
 		}
 
 		for _, n := range nodes {
@@ -450,7 +460,7 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 	}
 
 	walk(rootName, "", nodes, extraFields)
-	return decls
+	return declarations
 }
 
 // fieldType is the Go type one model field carries.
@@ -501,10 +511,10 @@ func attrTypesFuncName(modelName string) string {
 	return modelName + "AttrTypes"
 }
 
-// renderModelDecls joins model declarations into one finished block.
-func renderModelDecls(decls []modelDecl) string {
-	parts := make([]string, len(decls))
-	for i, d := range decls {
+// renderModelDeclarations joins model declarations into one finished block.
+func renderModelDeclarations(declarations []modelDeclaration) string {
+	parts := make([]string, len(declarations))
+	for i, d := range declarations {
 		parts[i] = d.body
 	}
 	return strings.Join(parts, "\n\n")

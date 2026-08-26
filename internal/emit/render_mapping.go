@@ -335,9 +335,9 @@ func reindent(block, extra string) string {
 // callPlan is one SDK invocation rendered for a template: the parameter
 // declarations, the assignment shape, and the expression.
 type callPlan struct {
-	// ParamDecls declares the locals the expression references, one
+	// ParameterDeclarations declares the locals the expression references, one
 	// finished statement per line.
-	ParamDecls string
+	ParameterDeclarations string
 	// Assign is the finished assignment statement including the
 	// expression, e.g. "created, err := client.Tags().Post(ctx, body, nil)".
 	Assign string
@@ -400,7 +400,7 @@ func streamDiagnostics() paramFailure {
 func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVar string, fail paramFailure) (callPlan, error) {
 	var plan callPlan
 
-	var decls []string
+	var declarations []string
 	for position, p := range call.Params {
 		// The last path parameter addresses the object itself, which is what
 		// the id attribute holds however the API spells the parameter. The
@@ -412,14 +412,14 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 		if err != nil {
 			return callPlan{}, err
 		}
-		decl, needs, err := paramDeclaration(p, modelVar, ir.GoName(n.attr.Name), n.attr.Kind, n.attr.Name, fail)
+		declaration, needs, err := parameterDeclaration(p, modelVar, ir.GoName(n.attr.Name), n.attr.Kind, n.attr.Name, fail)
 		if err != nil {
 			return callPlan{}, err
 		}
 		plan.Imports = append(plan.Imports, needs...)
-		decls = append(decls, decl)
+		declarations = append(declarations, declaration)
 	}
-	plan.ParamDecls = strings.Join(decls, "\n\t")
+	plan.ParameterDeclarations = strings.Join(declarations, "\n\t")
 
 	results := call.Results
 	if len(results) == 0 {
@@ -545,7 +545,7 @@ func valueMethod(kind ir.AttributeType) string {
 // where both happened to be integers it passed an int64 to an int32
 // parameter, which does not either.
 //
-// This answers only the conversions that cannot fail. paramDeclaration wraps
+// This answers only the conversions that cannot fail. parameterDeclaration wraps
 // it and takes the fallible ones first, because a conversion that can fail
 // needs a statement and a diagnostic rather than an expression; a conversion
 // neither can spell refuses the entity rather than guessing.
@@ -574,11 +574,11 @@ func paramValue(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeTy
 		p.Wire, kind, p.GoType)
 }
 
-// paramDeclaration renders the statements that bind one path parameter's
+// parameterDeclaration renders the statements that bind one path parameter's
 // local: an assignment for a conversion that cannot fail, and a parse
 // guarded by a diagnostic for one that can. fail says how that diagnostic is
 // reported in the method the declaration lands in.
-func paramDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType, attribute string, fail paramFailure) (string, []string, error) {
+func parameterDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType, attribute string, fail paramFailure) (string, []string, error) {
 	if kind == ir.TypeString {
 		read := modelVar + "." + field + ".ValueString()"
 		switch {
@@ -662,7 +662,7 @@ func integerBits(goType string) int {
 
 // integerParsedParams names the attributes a call reaches through a parse
 // that only digits survive: the document declares them strings and the
-// generated SDK takes an integer, so paramDeclaration emits strconv.ParseInt.
+// generated SDK takes an integer, so parameterDeclaration emits strconv.ParseInt.
 //
 // A fixture value is derived from the document, which says string, and would
 // be refused by that parse before the generated test reached an assertion.

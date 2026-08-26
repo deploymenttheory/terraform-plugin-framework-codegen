@@ -228,7 +228,6 @@ components:
         retries: {type: integer}
         enabled: {type: boolean}
         label: {type: string}
-        note: {type: string}
         summary: {type: string, default: "none"}
 `
 	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "job")
@@ -240,6 +239,8 @@ components:
 			t.Errorf("%q with a declared default = %q, want computed_optional", name, got)
 		}
 	}
+	// note declares no default and the response does not describe it, so
+	// nothing says the server fills it: the one route left to plain Optional.
 	if got := attribute(t, r.Schema, "note").ComputedOptionalRequired; got != Optional {
 		t.Errorf("%q declares no default and became %q", "note", got)
 	}

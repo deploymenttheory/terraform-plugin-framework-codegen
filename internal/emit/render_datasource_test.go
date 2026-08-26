@@ -86,13 +86,13 @@ func TestUnit_CompanionDatasource_FiltersOnEveryRootScalar(t *testing.T) {
 
 	// The fictional item carries id and name as strings and enabled as a
 	// bool; each is offered as an optional argument of its own type.
-	for decl, want := range map[string]string{
+	for declaration, want := range map[string]string{
 		"id":      "schema.StringAttribute{",
 		"name":    "schema.StringAttribute{",
 		"enabled": "schema.BoolAttribute{",
 	} {
-		if !strings.Contains(schema, `"`+decl+`": `+want) {
-			t.Errorf("%q is not offered as a filter of its own type:\n%s", decl, schema)
+		if !strings.Contains(schema, `"`+declaration+`": `+want) {
+			t.Errorf("%q is not offered as a filter of its own type:\n%s", declaration, schema)
 		}
 	}
 	if !regexp.MustCompile("Enabled\\s+types.Bool\\s+`tfsdk:\"enabled\"`").MatchString(model) {

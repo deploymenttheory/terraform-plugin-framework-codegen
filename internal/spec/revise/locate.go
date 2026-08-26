@@ -213,10 +213,10 @@ func isJSONMedia(mediaType string) bool {
 // target's own) and the object schema declaring it (whose required list and
 // resolved shape standard corrections address).
 type propSite struct {
-	prop    *yaml.Node
-	propPtr string
-	decl    *yaml.Node
-	declPtr string
+	prop               *yaml.Node
+	propPtr            string
+	declaration        *yaml.Node
+	declarationPointer string
 }
 
 // findProperty locates a property's declaration inside a schema: its own
@@ -235,10 +235,10 @@ func (l *locator) findPropertyGuarded(node *yaml.Node, ptr, name string, seen ma
 
 	if prop := mapValue(mapValue(node, "properties"), name); prop != nil {
 		return propSite{
-			prop:    prop,
-			propPtr: ptr + "/properties/" + escapeToken(name),
-			decl:    node,
-			declPtr: ptr,
+			prop:               prop,
+			propPtr:            ptr + "/properties/" + escapeToken(name),
+			declaration:        node,
+			declarationPointer: ptr,
 		}, true
 	}
 	if allOf := mapValue(node, "allOf"); allOf != nil && allOf.Kind == yaml.SequenceNode {

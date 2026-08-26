@@ -9,8 +9,8 @@ import (
 
 func i64(v int64) *int64     { return &v }
 func f64(v float64) *float64 { return &v }
-func constraintDecl(attr ir.Attribute) string {
-	return declOf(schemaResource, attr)
+func constraintDeclaration(attr ir.Attribute) string {
+	return declarationOf(schemaResource, attr)
 }
 
 // TestUnit_ConstraintValidators_RenderTheDeclaredBounds proves each declared
@@ -68,8 +68,8 @@ func TestUnit_ConstraintValidators_RenderTheDeclaredBounds(t *testing.T) {
 			"stringvalidator.RegexMatches(regexp.MustCompile(`^[a-z]+$`), \"must match ^[a-z]+$\")",
 		},
 	} {
-		if decl := constraintDecl(testCase.attr); !strings.Contains(decl, testCase.want) {
-			t.Errorf("%s: does not carry %q:\n%s", testCase.name, testCase.want, decl)
+		if declaration := constraintDeclaration(testCase.attr); !strings.Contains(declaration, testCase.want) {
+			t.Errorf("%s: does not carry %q:\n%s", testCase.name, testCase.want, declaration)
 		}
 	}
 }
@@ -79,16 +79,16 @@ func TestUnit_ConstraintValidators_RenderTheDeclaredBounds(t *testing.T) {
 // all. Emitting it would panic the generated provider inside MustCompile at
 // package initialisation, where go build cannot see it.
 func TestUnit_ConstraintValidators_SkipAPatternRE2CannotCompile(t *testing.T) {
-	decl := constraintDecl(ir.Attribute{
+	declaration := constraintDeclaration(ir.Attribute{
 		Name: "n", Kind: ir.TypeString, Pattern: `^(?=.*[A-Z]).{8,}$`,
 	})
-	if strings.Contains(decl, "RegexMatches") {
-		t.Errorf("a pattern RE2 cannot compile was emitted anyway:\n%s", decl)
+	if strings.Contains(declaration, "RegexMatches") {
+		t.Errorf("a pattern RE2 cannot compile was emitted anyway:\n%s", declaration)
 	}
 
 	// The rest of the attribute still stands: one unrenderable pattern is a
 	// fact about the pattern, not about the length bound beside it.
-	both := constraintDecl(ir.Attribute{
+	both := constraintDeclaration(ir.Attribute{
 		Name: "n", Kind: ir.TypeString, Pattern: `^(?=.*[A-Z]).{8,}$`, MaxLength: i64(64),
 	})
 	if !strings.Contains(both, "stringvalidator.UTF8LengthAtMost(64)") {
@@ -100,14 +100,14 @@ func TestUnit_ConstraintValidators_SkipAPatternRE2CannotCompile(t *testing.T) {
 // bound the attribute's type cannot hold is dropped rather than truncated,
 // which would silently move the boundary.
 func TestUnit_ConstraintValidators_DropAFractionalBoundOnAnInteger(t *testing.T) {
-	decl := constraintDecl(ir.Attribute{
+	declaration := constraintDeclaration(ir.Attribute{
 		Name: "n", Kind: ir.TypeInt64, Minimum: f64(1.5), Maximum: f64(10),
 	})
-	if strings.Contains(decl, "1.5") || strings.Contains(decl, "Between") {
-		t.Errorf("a fractional minimum survived onto an integer attribute:\n%s", decl)
+	if strings.Contains(declaration, "1.5") || strings.Contains(declaration, "Between") {
+		t.Errorf("a fractional minimum survived onto an integer attribute:\n%s", declaration)
 	}
-	if !strings.Contains(decl, "int64validator.AtMost(10)") {
-		t.Errorf("the integral bound beside it was dropped too:\n%s", decl)
+	if !strings.Contains(declaration, "int64validator.AtMost(10)") {
+		t.Errorf("the integral bound beside it was dropped too:\n%s", declaration)
 	}
 }
 
@@ -120,14 +120,14 @@ func TestUnit_ConstraintValidators_LeaveANestedObjectAlone(t *testing.T) {
 		{Name: "inner", Kind: ir.TypeString, ComputedOptionalRequired: ir.Optional},
 	}}
 
-	object := constraintDecl(ir.Attribute{
+	object := constraintDeclaration(ir.Attribute{
 		Name: "n", Kind: ir.TypeObject, Nested: nested, MaxLength: i64(64), Maximum: f64(10),
 	})
 	if strings.Contains(object, "Validators:") {
 		t.Errorf("a bound was applied to an object:\n%s", object)
 	}
 
-	list := constraintDecl(ir.Attribute{
+	list := constraintDeclaration(ir.Attribute{
 		Name: "n", Kind: ir.TypeList, Nested: nested, MaxItems: i64(5),
 	})
 	if !strings.Contains(list, "listvalidator.SizeAtMost(5)") {
@@ -140,7 +140,7 @@ func TestUnit_ConstraintValidators_LeaveANestedObjectAlone(t *testing.T) {
 // a file whose import block forgot it.
 func TestUnit_ConstraintValidators_DeclareTheirOwnImports(t *testing.T) {
 	sb := &schemaBuilder{kind: schemaResource, imports: newImportSet("example.com/m")}
-	sb.attributeDecl(node{attr: ir.Attribute{
+	sb.attributeDeclaration(node{attr: ir.Attribute{
 		Name: "n", Kind: ir.TypeString, MaxLength: i64(64), Pattern: `^[a-z]+$`,
 	}}, 0)
 

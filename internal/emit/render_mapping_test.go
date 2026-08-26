@@ -14,9 +14,9 @@ import (
 func TestUnit_ParamDeclaration_UUIDParsesWithADiagnostic(t *testing.T) {
 	p := sdkbind.CallParam{Local: "agentId", Wire: "agentId", GoType: "uuid.UUID"}
 
-	decl, imports, err := paramDeclaration(p, "data", "AgentID", ir.TypeString, "agent_id", respDiagnostics())
+	declaration, imports, err := parameterDeclaration(p, "data", "AgentID", ir.TypeString, "agent_id", respDiagnostics())
 	if err != nil {
-		t.Fatalf("paramDeclaration refused a uuid path parameter: %v", err)
+		t.Fatalf("parameterDeclaration refused a uuid path parameter: %v", err)
 	}
 	for _, want := range []string{
 		"agentId, agentIdErr := uuid.Parse(data.AgentID.ValueString())",
@@ -24,8 +24,8 @@ func TestUnit_ParamDeclaration_UUIDParsesWithADiagnostic(t *testing.T) {
 		`resp.Diagnostics.AddAttributeError(path.Root("agent_id")`,
 		"return",
 	} {
-		if !strings.Contains(decl, want) {
-			t.Errorf("the declaration does not carry %q:\n%s", want, decl)
+		if !strings.Contains(declaration, want) {
+			t.Errorf("the declaration does not carry %q:\n%s", want, declaration)
 		}
 	}
 	for _, want := range []string{"github.com/google/uuid", "github.com/hashicorp/terraform-plugin-framework/path"} {
@@ -82,18 +82,18 @@ func TestUnit_ParamDeclaration_IntegerParsesWithADiagnostic(t *testing.T) {
 			},
 		},
 	} {
-		decl, imports, err := paramDeclaration(testCase.param, "data", "HookID", ir.TypeString, "hook_id", respDiagnostics())
+		declaration, imports, err := parameterDeclaration(testCase.param, "data", "HookID", ir.TypeString, "hook_id", respDiagnostics())
 		if err != nil {
-			t.Errorf("%s: paramDeclaration refused an integer path parameter: %v", testCase.name, err)
+			t.Errorf("%s: parameterDeclaration refused an integer path parameter: %v", testCase.name, err)
 			continue
 		}
 		for _, want := range testCase.want {
-			if !strings.Contains(decl, want) {
-				t.Errorf("%s: the declaration does not carry %q:\n%s", testCase.name, want, decl)
+			if !strings.Contains(declaration, want) {
+				t.Errorf("%s: the declaration does not carry %q:\n%s", testCase.name, want, declaration)
 			}
 		}
-		if !strings.Contains(decl, "return") {
-			t.Errorf("%s: the declaration does not stop on a failed parse:\n%s", testCase.name, decl)
+		if !strings.Contains(declaration, "return") {
+			t.Errorf("%s: the declaration does not stop on a failed parse:\n%s", testCase.name, declaration)
 		}
 		for _, want := range []string{"strconv", "github.com/hashicorp/terraform-plugin-framework/path"} {
 			found := false
@@ -115,8 +115,8 @@ func TestUnit_ParamDeclaration_IntegerParsesWithADiagnostic(t *testing.T) {
 func TestUnit_ParamDeclaration_RefusesATruncatingConversion(t *testing.T) {
 	p := sdkbind.CallParam{Local: "groupId", Wire: "runner_group_id", GoType: "int32"}
 
-	if _, _, err := paramDeclaration(p, "data", "GroupID", ir.TypeFloat64, "runner_group_id", respDiagnostics()); err == nil {
-		t.Fatal("paramDeclaration rendered a float64 into an int32 parameter; it must refuse")
+	if _, _, err := parameterDeclaration(p, "data", "GroupID", ir.TypeFloat64, "runner_group_id", respDiagnostics()); err == nil {
+		t.Fatal("parameterDeclaration rendered a float64 into an int32 parameter; it must refuse")
 	}
 }
 
@@ -135,13 +135,13 @@ func TestUnit_ParamDeclaration_InfallibleConversionsStayOneLine(t *testing.T) {
 		{"int64 narrowed", sdkbind.CallParam{Local: "id", Wire: "id", GoType: "int32"}, ir.TypeInt64, "id := int32(data.ID.ValueInt64())", ""},
 		{"int64 to string", sdkbind.CallParam{Local: "id", Wire: "id", GoType: "string"}, ir.TypeInt64, "id := strconv.FormatInt(data.ID.ValueInt64(), 10)", "strconv"},
 	} {
-		decl, imports, err := paramDeclaration(testCase.param, "data", "ID", testCase.kind, "id", respDiagnostics())
+		declaration, imports, err := parameterDeclaration(testCase.param, "data", "ID", testCase.kind, "id", respDiagnostics())
 		if err != nil {
 			t.Errorf("%s: %v", testCase.name, err)
 			continue
 		}
-		if decl != testCase.want {
-			t.Errorf("%s: declaration = %q, want %q", testCase.name, decl, testCase.want)
+		if declaration != testCase.want {
+			t.Errorf("%s: declaration = %q, want %q", testCase.name, declaration, testCase.want)
 		}
 		if testCase.needed == "" && len(imports) != 0 {
 			t.Errorf("%s: declared imports %v, want none", testCase.name, imports)

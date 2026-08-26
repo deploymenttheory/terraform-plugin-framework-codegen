@@ -120,7 +120,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	}
 	d.ResultLines = resultLines
 	d.IdentityFields = identityModelFields(identity)
-	d.IdentitySchema = identitySchemaDecls(identity, 2)
+	d.IdentitySchema = identitySchemaDeclarations(identity, 2)
 
 	imports := newImportSet(e.pc.Module)
 	imports.add("", "context")
@@ -130,11 +130,11 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	imports.add("", "github.com/hashicorp/terraform-plugin-framework/resource")
 	imports.add("sdk", e.bindings.SDK.ImportPath)
 	sb := &schemaBuilder{kind: schemaListResource, imports: imports}
-	d.SchemaAttributes = sb.attributeDecls(configNodes, 3)
+	d.SchemaAttributes = sb.attributeDeclarations(configNodes, 3)
 	d.Imports = imports.render()
 
 	if len(configNodes) > 0 {
-		d.ConfigModel = renderModelDecls(buildModels(listConfigModelName, lr.Names.Pascal+"ListConfig", configNodes, nil))
+		d.ConfigModel = renderModelDeclarations(buildModels(listConfigModelName, lr.Names.Pascal+"ListConfig", configNodes, nil))
 	}
 
 	listImports := newImportSet(e.pc.Module)

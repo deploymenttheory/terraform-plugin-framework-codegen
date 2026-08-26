@@ -20,7 +20,7 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 	defer cancel()
 
 	client := d.client
-{{ if .ReadPlan.ParamDecls }}	{{ .ReadPlan.ParamDecls }}
+{{ if .ReadPlan.ParameterDeclarations }}	{{ .ReadPlan.ParameterDeclarations }}
 {{ end }}	{{ .ReadPlan.Assign }}
 	if err != nil {
 		errors.HandleDatasourceReadError(ctx, err, resp, nil)
@@ -62,7 +62,7 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 	// Listing the whole collection to discard all but one of it would cost
 	// every page for one result.
 	if !data.{{ .IDField }}.IsNull() {
-		{{ .ReadPlan.ParamDecls }}
+		{{ .ReadPlan.ParameterDeclarations }}
 		{{ .ReadPlan.Assign }}
 		if err != nil {
 			errors.HandleDatasourceReadError(ctx, err, resp, nil)
@@ -75,8 +75,8 @@ func (d *{{ .Type }}) Read(ctx context.Context, req datasource.ReadRequest, resp
 		}
 	} else {
 {{- end }}
-{{- if .ListPlan.ParamDecls }}
-		{{ .ListPlan.ParamDecls }}
+{{- if .ListPlan.ParameterDeclarations }}
+		{{ .ListPlan.ParameterDeclarations }}
 {{- end }}
 		{{ .ListPlan.Assign }}
 		if err != nil {

@@ -76,7 +76,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	imports.add("schema", "github.com/hashicorp/terraform-plugin-framework/action/schema")
 	imports.add("sdk", e.bindings.SDK.ImportPath)
 	sb := &schemaBuilder{kind: schemaAction, imports: imports}
-	d.SchemaAttributes = sb.attributeDecls(nodes, 3)
+	d.SchemaAttributes = sb.attributeDeclarations(nodes, 3)
 	description := entityDescription(a.RequestSchema, "Invokes the "+a.Names.Key+" operation.")
 	if a.CoManagementNote != "" {
 		description += " " + a.CoManagementNote
@@ -84,8 +84,8 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	d.SchemaDescription = strconv.Quote(description)
 	d.Imports = imports.render()
 
-	decls := buildModels(d.Type+"Model", d.Pascal, nodes, nil)
-	d.Models = renderModelDecls(decls)
+	declarations := buildModels(d.Type+"Model", d.Pascal, nodes, nil)
+	d.Models = renderModelDeclarations(declarations)
 	modelImports := newImportSet(e.pc.Module)
 	if strings.Contains(d.Models, "types.") {
 		modelImports.add("", "github.com/hashicorp/terraform-plugin-framework/types")

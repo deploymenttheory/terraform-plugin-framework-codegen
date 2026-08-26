@@ -2,6 +2,7 @@ package fixtures
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -75,11 +76,32 @@ func scalarHCL(v Entry) string {
 	case ir.TypeList:
 		return "[" + literal + "]"
 	case ir.TypeMap:
-		// One entry, keyed by the attribute's own name: a map's keys are the
-		// practitioner's, so the document names none to take.
+		// A replayed body carries the keys the API took, and they are the
+		// point: rendering them as one synthetic entry sends a map the API
+		// never saw. A derived fixture has none, because a map's keys are the
+		// practitioner's and the document names none to take, so it falls
+		// back to one entry keyed by the attribute's own name.
+		if carried, ok := v.Scalar.(map[string]any); ok {
+			return mapHCL(carried)
+		}
 		return "{ " + hclLiteral(v.Name) + " = " + literal + " }"
 	}
 	return literal
+}
+
+// mapHCL renders a map's own entries, in key order so a regenerated fixture
+// is byte-identical.
+func mapHCL(carried map[string]any) string {
+	keys := make([]string, 0, len(carried))
+	for key := range carried {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	entries := make([]string, 0, len(keys))
+	for _, key := range keys {
+		entries = append(entries, hclLiteral(key)+" = "+hclLiteral(carried[key]))
+	}
+	return "{ " + strings.Join(entries, ", ") + " }"
 }
 
 // hclLiteral renders one plain value as HCL.

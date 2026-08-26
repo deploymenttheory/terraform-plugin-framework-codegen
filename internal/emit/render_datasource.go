@@ -163,7 +163,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	imports.add("sdk", e.bindings.SDK.ImportPath)
 	imports.add("commonschema", e.pc.Module+"/internal/services/common/schema")
 	sb := &schemaBuilder{kind: schemaDatasource, imports: imports}
-	d.SchemaAttributes = sb.attributeDecls(nodes, 3)
+	d.SchemaAttributes = sb.attributeDeclarations(nodes, 3)
 	description := entityDescription(ds.Schema, "Reads one "+ds.Names.Key+" by its "+key+".")
 	if ds.CoManagementNote != "" {
 		description += " " + ds.CoManagementNote
@@ -171,9 +171,9 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	d.SchemaDescription = strconv.Quote(description)
 	d.Imports = imports.render()
 
-	decls := buildModels(d.Type+"Model", d.Pascal+"Lookup", nodes,
+	declarations := buildModels(d.Type+"Model", d.Pascal+"Lookup", nodes,
 		[]string{"Timeouts timeouts.Value `tfsdk:\"timeouts\"`"})
-	d.Models = renderModelDecls(decls)
+	d.Models = renderModelDeclarations(declarations)
 	d.ModelImports = e.datasourceModelImports(d.Models)
 
 	for _, p := range db.Read.Params {
@@ -290,18 +290,18 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	for _, a := range companionAddressing(ds) {
 		addressingNodes = append(addressingNodes, node{attr: a})
 	}
-	b.WriteString(sb.attributeDecls(addressingNodes, 3))
+	b.WriteString(sb.attributeDeclarations(addressingNodes, 3))
 	filterNodes := make([]node, 0, len(filters))
 	for _, a := range filters {
 		filterNodes = append(filterNodes, node{attr: a})
 	}
-	b.WriteString(sb.attributeDecls(filterNodes, 3))
+	b.WriteString(sb.attributeDeclarations(filterNodes, 3))
 	b.WriteString("\t\t\t\"items\": schema.ListNestedAttribute{\n")
 	b.WriteString("\t\t\t\tComputed: true,\n")
 	b.WriteString("\t\t\t\tMarkdownDescription: \"The objects the filters selected.\",\n")
 	b.WriteString("\t\t\t\tNestedObject: schema.NestedAttributeObject{\n")
 	b.WriteString("\t\t\t\t\tAttributes: map[string]schema.Attribute{\n")
-	b.WriteString(sb.attributeDecls(itemNodes, 6))
+	b.WriteString(sb.attributeDeclarations(itemNodes, 6))
 	b.WriteString("\t\t\t\t\t},\n\t\t\t\t},\n\t\t\t},\n")
 	d.SchemaAttributes = b.String()
 
@@ -314,7 +314,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 
 	// Models: a fixed root plus the item element structs.
 	d.ItemModel = d.Pascal + "ItemModel"
-	itemDecls := buildModels(d.ItemModel, d.Pascal+"Item", itemNodes, nil)
+	itemDeclarations := buildModels(d.ItemModel, d.Pascal+"Item", itemNodes, nil)
 	// The root carries the two filter inputs and the item list, plus one
 	// field per addressing attribute the schema declares — the path
 	// parameters of a parent-scoped collection, which the read has to fill
@@ -327,7 +327,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	root += "\tItems []" + d.ItemModel + " `tfsdk:\"items\"`\n" +
 		"\tTimeouts timeouts.Value `tfsdk:\"timeouts\"`\n" +
 		"}"
-	d.Models = root + "\n\n" + renderModelDecls(itemDecls)
+	d.Models = root + "\n\n" + renderModelDeclarations(itemDeclarations)
 	d.ModelImports = e.datasourceModelImports(d.Models)
 
 	// Calls. The list call's path parameters are filled from the companion's

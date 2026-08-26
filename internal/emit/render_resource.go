@@ -93,12 +93,12 @@ type resourceData struct {
 	HasEC      bool
 	ECDuration string
 
-	HasValidators        bool
-	ConfigValidatorExprs string
-	CustomValidatorDecls string
-	MinimalChecks        string
-	MaximalChecks        string
-	ProviderModule       string
+	HasValidators               bool
+	ConfigValidatorExprs        string
+	CustomValidatorDeclarations string
+	MinimalChecks               string
+	MaximalChecks               string
+	ProviderModule              string
 
 	// Mock responder fields.
 	RegistryName    string
@@ -249,7 +249,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	}
 
 	sb := &schemaBuilder{kind: schemaResource, imports: imports, deps: deps, rootDepth: 3}
-	d.SchemaAttributes = sb.attributeDecls(nodes, 3)
+	d.SchemaAttributes = sb.attributeDeclarations(nodes, 3)
 
 	// A resource declares an identity when it is listed: a list resource's
 	// results are identities, and the framework reads the schema they
@@ -258,7 +258,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	if e.listed[r.Names.Key] {
 		if identity := resourceIdentity(r); len(identity) > 0 {
 			e.identities[r.Names.Key] = identity
-			d.IdentityAttributes = identitySchemaDecls(identity, 3)
+			d.IdentityAttributes = identitySchemaDeclarations(identity, 3)
 			d.IdentitySets = identitySetLines(identity, "data", 1)
 			d.IdentitySetsRead = identitySetLines(identity, "data", 2)
 			imports.add("identityschema", "github.com/hashicorp/terraform-plugin-framework/resource/identityschema")
@@ -278,9 +278,9 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	d.Imports = imports.render()
 
 	// Model.
-	decls := buildModels(d.Type+"Model", d.Pascal, nodes,
+	declarations := buildModels(d.Type+"Model", d.Pascal, nodes,
 		[]string{"Timeouts timeouts.Value `tfsdk:\"timeouts\"`"})
-	d.Models = renderModelDecls(decls)
+	d.Models = renderModelDeclarations(declarations)
 	modelImports := newImportSet(e.pc.Module)
 	modelImports.add("", "github.com/hashicorp/terraform-plugin-framework-timeouts/resource/timeouts")
 	if strings.Contains(d.Models, "types.") {
@@ -356,13 +356,13 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	// ConfigValidators method — the stock Conflicting for mutually-exclusive
 	// groups and the named custom validators for the value-conditional edges.
 	if treeHasConfigValidators(r.Schema) {
-		exprs, decls, err := configValidators(d.Type, r.Schema, nodes)
+		exprs, declarations, err := configValidators(d.Type, r.Schema, nodes)
 		if err != nil {
 			return err
 		}
 		d.HasValidators = true
 		d.ConfigValidatorExprs = exprs
-		d.CustomValidatorDecls = decls
+		d.CustomValidatorDeclarations = declarations
 		validatorImports := newImportSet(e.pc.Module)
 		validatorImports.add("", "context")
 		validatorImports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
