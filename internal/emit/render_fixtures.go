@@ -81,15 +81,15 @@ func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture
 	// because its mock is built from the same derived values.
 	accMinimal, accMaximal := spec, spec
 	replayed := false
-	if rec, ok := e.pc.AcceptedBodies[r.Names.Key]; ok {
+	if rec, ok := e.pc.AcceptedRequestBodies[r.Names.Key]; ok {
 		required := requiredWireNames(spec)
 		if rec.Minimal != nil {
-			accMinimal = spec.FromAcceptedBody(rec.Minimal.Request, rec.Minimal.Response, required)
+			accMinimal = spec.FromAcceptedRequestBody(rec.Minimal.Request, rec.Minimal.Response, required)
 			replayed = true
 		}
 		switch {
 		case rec.Maximal != nil:
-			accMaximal = spec.FromAcceptedBody(rec.Maximal.Request, rec.Maximal.Response, required)
+			accMaximal = spec.FromAcceptedRequestBody(rec.Maximal.Request, rec.Maximal.Response, required)
 			replayed = true
 		case rec.Minimal != nil:
 			// No larger create was ever accepted, so the fullest known

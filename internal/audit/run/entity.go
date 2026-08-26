@@ -65,35 +65,35 @@ func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
 
 	r.finalizeEvidence(ent)
 	r.evidence[ep.Entity] = &infer.Evidence{
-		Entity:             ep.Entity,
-		AcceptedBodies:     ent.ev.acceptedBodies,
-		ListBodies:         ent.ev.listBodies,
-		CombinedRefusals:   ent.ev.combinedRefusals,
-		ConditionalValues:  ent.ev.conditionalValues,
-		IdentifierProperty: ent.ev.idField,
+		Entity:                ep.Entity,
+		AcceptedRequestBodies: ent.ev.acceptedRequestBodies,
+		ListBodies:            ent.ev.listBodies,
+		CombinedRefusals:      ent.ev.combinedRefusals,
+		ConditionalValues:     ent.ev.conditionalValues,
+		IdentifierProperty:    ent.ev.idField,
 	}
-	r.summary.Bodies = append(r.summary.Bodies, recordedBodies(ep.Entity, ent))
+	r.summary.RequestBodies = append(r.summary.RequestBodies, recordedRequestBodies(ep.Entity, ent))
 	r.summary.Entities = append(r.summary.Entities, EntityResult{
 		Entity: ep.Entity, Status: ent.status, Reason: ent.reason,
 	})
 	r.log.Info().Str("entity", ep.Entity).Str("status", ent.status).Str("reason", ent.reason).Int("requests", ent.requests).Msg("entity finished")
 }
 
-// recordedBodies is what this entity's accepted creates looked like, for the
-// generated acceptance tests to be built from.
+// recordedRequestBodies is what this entity's accepted creates looked like,
+// for the generated acceptance tests to be built from.
 //
 // A create the API refused is not here: the point of the record is that these
 // are requests it took, so a configuration replaying one is a configuration
 // known to apply.
-func recordedBodies(entity string, ent *entityState) observe.Bodies {
-	out := observe.Bodies{Entity: entity}
+func recordedRequestBodies(entity string, ent *entityState) observe.RequestBodies {
+	out := observe.RequestBodies{Entity: entity}
 	if ent.ev.sent != nil {
-		out.Minimal = &observe.AcceptedBody{
+		out.Minimal = &observe.AcceptedRequestBody{
 			Status: ent.ev.sentStatus, Request: ent.ev.sent, Response: ent.ev.got,
 		}
 	}
 	if ent.ev.maximalSent != nil {
-		out.Maximal = &observe.AcceptedBody{
+		out.Maximal = &observe.AcceptedRequestBody{
 			Status: ent.ev.maximalStatus, Request: ent.ev.maximalSent, Response: ent.ev.maximalGot,
 		}
 	}

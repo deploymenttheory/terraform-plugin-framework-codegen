@@ -92,7 +92,7 @@ type model struct {
 
 func newModel(ev Evidence, compiled *strategy.Strategy) *model {
 	g := gateOf(compiled)
-	accepted := acceptedUnder(ev.AcceptedBodies, g.field)
+	accepted := acceptedUnder(ev.AcceptedRequestBodies, g.field)
 	created := make([]string, 0, len(accepted))
 	for v := range accepted {
 		if v != "" {
@@ -466,7 +466,7 @@ func (m *model) removedValues(f string) []string {
 // acceptedAlone reports whether field a appeared in an accepted body that did
 // not also carry field b.
 func (m *model) acceptedAlone(a, b string) bool {
-	for _, body := range m.ev.AcceptedBodies {
+	for _, body := range m.ev.AcceptedRequestBodies {
 		if _, hasA := body[a]; !hasA {
 			continue
 		}

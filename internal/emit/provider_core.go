@@ -27,12 +27,12 @@ const DefaultGoVersion = "1.25"
 // template assembles a value — and the backend and auth booleans exist so
 // templates branch on presence, never on meaning.
 type ProviderCore struct {
-	// AcceptedBodies is what the probe recorded of each entity's accepted
+	// AcceptedRequestBodies is what the probe recorded of each entity's accepted
 	// creates, keyed by entity. An acceptance fixture is built from these
 	// rather than from values derived again from the document: the document
 	// says what should be accepted, these are what was. Empty for an entity
 	// no run has cleared, which falls back to the derivation.
-	AcceptedBodies map[string]observe.Bodies
+	AcceptedRequestBodies map[string]observe.RequestBodies
 
 	// Module is the provider repo's Go module path, e.g.
 	// "github.com/exampleco/terraform-provider-petstore".

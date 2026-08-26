@@ -34,10 +34,10 @@ func Load(data []byte) (*Document, error) {
 	}
 
 	l := &loader{
-		doc:        &Document{Schemas: map[string]*Schema{}},
-		parameters: map[string]Parameter{},
-		bodies:     map[string]*Schema{},
-		responses:  map[string]*Schema{},
+		doc:           &Document{Schemas: map[string]*Schema{}},
+		parameters:    map[string]Parameter{},
+		requestBodies: map[string]*Schema{},
+		responses:     map[string]*Schema{},
 	}
 	if err := l.document(top); err != nil {
 		return nil, err
@@ -52,11 +52,11 @@ func Load(data []byte) (*Document, error) {
 // that exist only to be referenced, and the reference fixups the resolution
 // pass completes once every named schema exists.
 type loader struct {
-	doc        *Document
-	parameters map[string]Parameter
-	bodies     map[string]*Schema
-	responses  map[string]*Schema
-	refs       []pendingRef
+	doc           *Document
+	parameters    map[string]Parameter
+	requestBodies map[string]*Schema
+	responses     map[string]*Schema
+	refs          []pendingRef
 }
 
 func (l *loader) document(top *yaml.Node) error {
@@ -128,13 +128,13 @@ func (l *loader) components(node *yaml.Node) error {
 			l.parameters[name] = p
 		}
 	}
-	if bodies := lookup(node, "requestBodies"); bodies != nil {
-		for name, bn := range pairs(bodies) {
+	if requestBodies := lookup(node, "requestBodies"); requestBodies != nil {
+		for name, bn := range pairs(requestBodies) {
 			s, err := l.contentSchema(deref(bn), "components.requestBodies."+name)
 			if err != nil {
 				return err
 			}
-			l.bodies[name] = s
+			l.requestBodies[name] = s
 		}
 	}
 	if responses := lookup(node, "responses"); responses != nil {
@@ -238,7 +238,7 @@ func (l *loader) bodySchema(node *yaml.Node, at string) (*Schema, error) {
 		if err != nil {
 			return nil, err
 		}
-		s, ok := l.bodies[name]
+		s, ok := l.requestBodies[name]
 		if !ok {
 			return nil, fmt.Errorf("%s: references #/components/requestBodies/%s, which the document does not declare", at, name)
 		}

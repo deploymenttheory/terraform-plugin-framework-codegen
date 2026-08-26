@@ -255,7 +255,7 @@ func generate(opts Options) (*generation, error) {
 	// What a probe run recorded of the API's accepted creates. Absent before
 	// any run, which leaves every acceptance fixture derived from the
 	// document as it was.
-	pc.AcceptedBodies, err = observe.ReadBodies(filepath.Join(opts.Root, "audit", "bodies"))
+	pc.AcceptedRequestBodies, err = observe.ReadRequestBodies(filepath.Join(opts.Root, "audit", "request_bodies"))
 	if err != nil {
 		return nil, err
 	}

@@ -96,10 +96,10 @@ type ConditionalValue struct {
 type Evidence struct {
 	// Entity is the classified entity key the evidence is about.
 	Entity string
-	// AcceptedBodies is every create body the API accepted, resolved as
+	// AcceptedRequestBodies is every create body the API accepted, resolved as
 	// sent. Their gate values and field sets are the positive half of
 	// variant diffing.
-	AcceptedBodies []map[string]any
+	AcceptedRequestBodies []map[string]any
 	// Adjustments is every body change the executor was forced to make.
 	Adjustments []RequestAdjustment
 	// CombinedRefusals lists field pairs a create was refused for carrying
@@ -164,9 +164,9 @@ func gateOf(compiled *strategy.Strategy) gate {
 // value that body pinned, returning value -> set of field names present
 // (excluding the gate field itself). A body with no gate value lands under the
 // empty string.
-func acceptedUnder(bodies []map[string]any, gateField string) map[string]map[string]bool {
+func acceptedUnder(requestBodies []map[string]any, gateField string) map[string]map[string]bool {
 	out := map[string]map[string]bool{}
-	for _, body := range bodies {
+	for _, body := range requestBodies {
 		val := ""
 		if gateField != "" {
 			if raw, ok := body[gateField]; ok {
