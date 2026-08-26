@@ -11,36 +11,43 @@ import (
 )
 
 // Prenormalize applies the document rewrites every SDK generation needs,
-// whatever the API and whichever the backend: they answer generator
-// behaviour, not any one document's mistakes, so they are built in rather
-// than committed as corrections. It runs over a copy — the revised document
-// on disk never changes — and it is deterministic by construction: the same
-// input always yields the same bytes.
+// whatever the API and whichever the backend. Each answers a standing
+// generator behaviour rather than one document's mistake, so they are built
+// in rather than committed as corrections. It runs over a copy — the revised
+// document on disk never changes — and the same input always yields the same
+// bytes.
 //
-// Four passes, then block style. Schema defaults are stripped because a
-// generated model constructor stamps every spec-declared default onto the
-// model it builds, so a defaulted field the provider never wires leaks into
-// every request body — and response-side, a constructor default masks field
-// absence. A single-member anonymous allOf is collapsed into its parent
-// because generators synthesize names for anonymous schemas and dedupe
-// structurally identical ones with an unstable canonical winner — roughly
-// one generation in five picks a different name, which makes byte-identical
-// regeneration a coin flip. An array of format: byte strings is widened to
-// plain strings because kiota generates a collection-of-byte-arrays writer
-// its own runtime does not implement, so the generated SDK does not compile;
-// the wire carries base64 text either way, so nothing about any request or
-// response changes. A union is reduced to its first branch because Go has no
-// type that is either of two shapes: a generator asked to merge incompatible
-// branches emits a model with no properties at all, and kiota then declares
-// that model's interface as embedding IAdditionalDataHolder without importing
-// it, so the SDK does not compile. A large real document carries hundreds of
-// such sites, and one of them is enough to break the whole build.
+// Five passes, then block style.
 //
-// The reduction costs the provider nothing, because it never reaches the
-// provider: Prenormalize rewrites a copy handed to the backend, while
-// derivation reads spec/revised.yaml itself and refuses a union outright
-// ("oneOf/anyOf union: no single attribute type describes it"). An attribute
-// the reduction narrows was already omitted from every generated schema.
+// Schema defaults are stripped: a generated model constructor stamps every
+// declared default onto the model it builds, so a defaulted field the
+// provider never wires leaks into every request body, and response-side a
+// constructor default masks field absence.
+//
+// A single-member anonymous allOf is collapsed into its parent: generators
+// synthesize names for anonymous schemas and dedupe structurally identical
+// ones with an unstable winner, so the name a regeneration picks is not a
+// function of the document.
+//
+// An array of format: byte strings is widened to plain strings: kiota
+// generates a collection-of-byte-arrays writer its own runtime does not
+// implement, so the SDK does not compile. The wire carries base64 text
+// either way.
+//
+// A union is reduced to its first branch: Go has no type that is either of
+// two shapes, and kiota asked to merge incompatible branches emits a model
+// with no properties, then declares that model's interface as embedding
+// IAdditionalDataHolder without importing it. The reduction costs the
+// provider nothing — derivation reads spec/revised.yaml itself and refuses a
+// union outright ("oneOf/anyOf union: no single attribute type describes
+// it"), so an attribute it narrows was already absent from every generated
+// schema.
+//
+// An operation whose success responses declare no media type has the content
+// of its error responses dropped: kiota builds a request's Accept header
+// from the media types its responses declare and reaches the error responses
+// when no success response offers one, which asks a server for the single
+// representation it produces only when refusing.
 //
 // Every pass accepts zero hits: a document without the shapes needs no
 // rewriting, which is not an error.
@@ -58,6 +65,7 @@ func Prenormalize(revised []byte) (out []byte, stripped, collapsed int, err erro
 	collapsed = collapseAnonymousAllOfs(top)
 	widenByteArrayCollections(top)
 	reduceUnions(top)
+	dropUnacceptableErrorContent(top)
 
 	yamlwalk.ForceBlockStyle(&root)
 
@@ -282,6 +290,119 @@ func removeKey(mapping *yaml.Node, key string) {
 			mapping.Content = append(mapping.Content[:i:i], mapping.Content[i+2:]...)
 			return
 		}
+	}
+}
+
+// httpMethods are the operation keys a path item may carry.
+var httpMethods = []string{"get", "put", "post", "delete", "patch", "head", "options", "trace"}
+
+// dropUnacceptableErrorContent inlines an operation's error responses
+// without their content when no success response declares any, and answers
+// how many responses it rewrote.
+//
+// kiota builds a request's Accept header from the media types the operation's
+// responses declare, and reaches the error responses when no success response
+// offers one. An operation answering 204 therefore sends
+// Accept: application/problem+json, and a server that produces that
+// representation only when refusing answers 406.
+//
+// The response is inlined rather than the shared component stripped: one
+// component answers many operations, and an operation whose success response
+// does declare a media type still needs it. Only the description survives,
+// which is the one member a Response Object must carry.
+//
+// The error mappings the content also generates go with it, and cost the
+// provider nothing: the generated error handling reads a status code and a
+// message, which kiota's untyped error carries as well as a typed one.
+func dropUnacceptableErrorContent(top *yaml.Node) int {
+	paths := yamlwalk.ChildValue(top, "paths")
+	if paths == nil || paths.Kind != yaml.MappingNode {
+		return 0
+	}
+	rewritten := 0
+	for i := 1; i < len(paths.Content); i += 2 {
+		item := paths.Content[i]
+		if item.Kind != yaml.MappingNode {
+			continue
+		}
+		for _, method := range httpMethods {
+			op := yamlwalk.ChildValue(item, method)
+			if op == nil || op.Kind != yaml.MappingNode {
+				continue
+			}
+			rewritten += dropErrorContent(top, op)
+		}
+	}
+	return rewritten
+}
+
+// dropErrorContent rewrites one operation's responses, and answers how many
+// it rewrote. An operation whose success responses declare a media type is
+// left alone: kiota builds its Accept from those and never reaches the
+// errors.
+func dropErrorContent(top *yaml.Node, op *yaml.Node) int {
+	responses := yamlwalk.ChildValue(op, "responses")
+	if responses == nil || responses.Kind != yaml.MappingNode {
+		return 0
+	}
+	for i := 0; i+1 < len(responses.Content); i += 2 {
+		if !strings.HasPrefix(responses.Content[i].Value, "2") {
+			continue
+		}
+		if yamlwalk.ChildValue(resolveResponse(top, responses.Content[i+1]), "content") != nil {
+			return 0
+		}
+	}
+	rewritten := 0
+	for i := 0; i+1 < len(responses.Content); i += 2 {
+		node := responses.Content[i+1]
+		resolved := resolveResponse(top, node)
+		if resolved == nil || yamlwalk.ChildValue(resolved, "content") == nil {
+			continue
+		}
+		describeOnly(node, resolved)
+		rewritten++
+	}
+	return rewritten
+}
+
+// resolveResponse answers the Response Object a response node stands for,
+// following one $ref into components. A reference the document does not
+// declare answers nil, and the caller leaves such a node alone.
+func resolveResponse(top *yaml.Node, node *yaml.Node) *yaml.Node {
+	if node == nil || node.Kind != yaml.MappingNode {
+		return nil
+	}
+	ref := yamlwalk.ChildValue(node, "$ref")
+	if ref == nil {
+		return node
+	}
+	name, ok := strings.CutPrefix(ref.Value, "#/components/responses/")
+	if !ok {
+		return nil
+	}
+	components := yamlwalk.ChildValue(top, "components")
+	if components == nil {
+		return nil
+	}
+	return yamlwalk.ChildValue(yamlwalk.ChildValue(components, "responses"), name)
+}
+
+// describeOnly replaces a response node in place with the one member a
+// Response Object must carry, taking the description from whatever the node
+// resolved to so a referenced response keeps its own words.
+func describeOnly(node *yaml.Node, resolved *yaml.Node) {
+	text := ""
+	if described := yamlwalk.ChildValue(resolved, "description"); described != nil {
+		text = described.Value
+	}
+	node.Kind = yaml.MappingNode
+	node.Tag = "!!map"
+	node.Value = ""
+	node.Style = 0
+	node.Content = []*yaml.Node{
+		{Kind: yaml.ScalarNode, Tag: "!!str", Value: "description"},
+		{Kind: yaml.ScalarNode, Tag: "!!str", Value: text},
 	}
 }
 
