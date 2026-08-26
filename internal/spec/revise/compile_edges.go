@@ -93,16 +93,16 @@ func (c *compiler) dependentRequired(site propSite, o observe.Observation, requi
 	just := fmt.Sprintf("the audit confirmed a dependsOn observation on %s.%s: "+
 		"the property is settable only when %s is also present (dependentRequired)",
 		o.Entity, o.Attribute, requires)
-	dr := mapValue(site.decl, "dependentRequired")
+	dr := mapValue(site.declaration, "dependentRequired")
 	switch {
 	case dr == nil:
 		return compiled{ops: []correction.Operation{{
-			Op: "add", Path: site.declPtr + "/dependentRequired",
+			Op: "add", Path: site.declarationPointer + "/dependentRequired",
 			Value: map[string]any{o.Attribute: []any{requires}},
 		}}, justification: just}
 	case mapValue(dr, o.Attribute) == nil:
 		return compiled{ops: []correction.Operation{{
-			Op: "add", Path: site.declPtr + "/dependentRequired/" + escapeToken(o.Attribute),
+			Op: "add", Path: site.declarationPointer + "/dependentRequired/" + escapeToken(o.Attribute),
 			Value: []any{requires},
 		}}, justification: just}
 	}
@@ -113,7 +113,7 @@ func (c *compiler) dependentRequired(site propSite, o observe.Observation, requi
 		}
 	}
 	return compiled{ops: []correction.Operation{{
-		Op: "add", Path: site.declPtr + "/dependentRequired/" + escapeToken(o.Attribute) + "/-",
+		Op: "add", Path: site.declarationPointer + "/dependentRequired/" + escapeToken(o.Attribute) + "/-",
 		Value: requires,
 	}}, justification: just}
 }
@@ -165,7 +165,7 @@ func (c *compiler) validConfiguration(loc *locator, cls specmodel.Classification
 		variantMap[v] = toAnyList(uniqueStrings(fields))
 	}
 	value := map[string]any{"discriminator": o.Attribute, "variants": variantMap}
-	if ext := mapValue(site.decl, specmodel.ExtValidConfiguration); ext != nil {
+	if ext := mapValue(site.declaration, specmodel.ExtValidConfiguration); ext != nil {
 		var cur any
 		if ext.Decode(&cur) == nil && jsonEqual(cur, value) {
 			return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtValidConfiguration))
@@ -173,7 +173,7 @@ func (c *compiler) validConfiguration(loc *locator, cls specmodel.Classification
 	}
 	return compiled{
 		ops: []correction.Operation{{
-			Op: "add", Path: site.declPtr + "/" + specmodel.ExtValidConfiguration, Value: value,
+			Op: "add", Path: site.declarationPointer + "/" + specmodel.ExtValidConfiguration, Value: value,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a validConfiguration observation on %s.%s: "+
 			"the property gates the valid field set, one variant per value (%s)",

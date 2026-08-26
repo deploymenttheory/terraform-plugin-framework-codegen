@@ -14,7 +14,7 @@ func (r *{{ .Type }}) List(ctx context.Context, req list.ListRequest, stream *li
 		stream.Results = list.ListResultsStreamDiagnostics(diags)
 		return
 	}
-	{{ .ListPlan.ParamDecls }}
+	{{ .ListPlan.ParameterDeclarations }}
 {{- end }}
 	{{ .ListPlan.Assign }}
 	if err != nil {

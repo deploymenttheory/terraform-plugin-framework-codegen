@@ -39,7 +39,7 @@ func (r *{{ .Type }}) Create(ctx context.Context, req resource.CreateRequest, re
 	_ = body
 
 	client := r.client
-{{ if .CreatePlan.ParamDecls }}	{{ .CreatePlan.ParamDecls }}
+{{ if .CreatePlan.ParameterDeclarations }}	{{ .CreatePlan.ParameterDeclarations }}
 {{ end }}	{{ .CreatePlan.Assign }}
 	if err != nil {
 		errors.HandleCreateError(ctx, err, resp, nil)
@@ -93,7 +93,7 @@ func (r *{{ .Type }}) Read(ctx context.Context, req resource.ReadRequest, resp *
 	defer cancel()
 
 	client := r.client
-{{ if .ReadPlan.ParamDecls }}	{{ .ReadPlan.ParamDecls }}
+{{ if .ReadPlan.ParameterDeclarations }}	{{ .ReadPlan.ParameterDeclarations }}
 {{ end }}	{{ .ReadPlan.Assign }}
 	if err != nil {
 		errors.HandleReadError(ctx, err, resp, nil)
@@ -158,7 +158,7 @@ func (r *{{ .Type }}) Update(ctx context.Context, req resource.UpdateRequest, re
 	_ = body
 
 	client := r.client
-{{ if .UpdatePlan.ParamDecls }}	{{ .UpdatePlan.ParamDecls }}
+{{ if .UpdatePlan.ParameterDeclarations }}	{{ .UpdatePlan.ParameterDeclarations }}
 {{ end }}	{{ .UpdatePlan.Assign }}
 	if err != nil {
 		errors.HandleUpdateError(ctx, err, resp, nil)
@@ -209,7 +209,7 @@ func (r *{{ .Type }}) Delete(ctx context.Context, req resource.DeleteRequest, re
 }
 {{- else }}
 	client := r.client
-{{ if .DeletePlan.ParamDecls }}	{{ .DeletePlan.ParamDecls }}
+{{ if .DeletePlan.ParameterDeclarations }}	{{ .DeletePlan.ParameterDeclarations }}
 {{ end }}	deleteErr := crud.DeleteWithRetry(ctx, func(ctx context.Context) error {
 		{{ .DeletePlan.ClosureBody }}
 	}, crud.DeleteWithRetryOptions{ResourceTypeName: ResourceName})

@@ -112,12 +112,12 @@ func identityAddressing(operations ...*ir.Operation) map[string]bool {
 	return names
 }
 
-// identitySchemaDecls renders the identity schema's attribute declarations,
+// identitySchemaDeclarations renders the identity schema's attribute declarations,
 // ready to sit inside a map[string]identityschema.Attribute literal.
 //
 // Every attribute is required for import: an identity names one object, and a
 // partial identity names none.
-func identitySchemaDecls(identity []identityAttribute, depth int) string {
+func identitySchemaDeclarations(identity []identityAttribute, depth int) string {
 	indent := strings.Repeat("\t", depth)
 	var b strings.Builder
 	for _, attribute := range identity {

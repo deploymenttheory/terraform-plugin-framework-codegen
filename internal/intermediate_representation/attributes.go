@@ -494,7 +494,7 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 		attribute.ComputedOptionalRequired = Computed
 	case attributeSite.requiredCreate:
 		attribute.ComputedOptionalRequired = Required
-	case serverFills || attributeSite.requiredRead || flatCreate.hasDefault:
+	case serverFills || attributeSite.requiredRead || flatCreate.hasDefault || attributeSite.read != nil:
 		// Writable, and the response carries a value whether or not the
 		// request supplied one: the practitioner may set it and Terraform
 		// must accept the server's choice when they do not.
@@ -506,11 +506,21 @@ func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges)
 		// default is the document stating what the server substitutes for an
 		// omitted value, which is the same claim in different words.
 		//
-		// None is redundant. requiredRead alone is too weak: an API that
-		// declares nothing required in its responses — as real documents
-		// routinely do — sends every writable optional field to plain
-		// Optional below, which is a perpetual diff for any field the server
-		// fills.
+		// None is redundant, and none of the three is reached often enough
+		// on its own. An API that declares nothing required in its responses
+		// — as real documents routinely do — sent every writable optional
+		// field to plain Optional below, and terraform refuses an apply whose
+		// result differs from its plan, so each field the server filled
+		// failed the apply outright rather than merely diffing.
+		//
+		// The response schema declaring the property at all is the fourth and
+		// weakest route, and the one that catches those documents: a property
+		// the response describes is a property the response can carry, and an
+		// attribute terraform must let the server fill. Where the server does
+		// leave it absent the cost is the one row 3 of docs/mapping.md
+		// records — it plans as unknown until the create fills it, and
+		// removal from configuration is sticky — which is a diff to explain
+		// rather than an apply that cannot succeed.
 		attribute.ComputedOptionalRequired = ComputedOptional
 	default:
 		// Writable, and the server leaves it absent when the request omits it.

@@ -226,13 +226,13 @@ func (c *compiler) requiredByAPI(loc *locator, cls specmodel.Classification, o o
 	if node, ptr, ok := loc.requestSchema(cls.Create); ok && loc.requiredHas(node, ptr, o.Attribute) {
 		return stated("the document already requires the property")
 	}
-	if loc.requiredHas(site.decl, site.declPtr, o.Attribute) {
+	if loc.requiredHas(site.declaration, site.declarationPointer, o.Attribute) {
 		return stated("the document already requires the property")
 	}
 
-	op := correction.Operation{Op: "add", Path: site.declPtr + "/required", Value: []any{o.Attribute}}
-	if req := mapValue(site.decl, "required"); req != nil {
-		op = correction.Operation{Op: "add", Path: site.declPtr + "/required/-", Value: o.Attribute}
+	op := correction.Operation{Op: "add", Path: site.declarationPointer + "/required", Value: []any{o.Attribute}}
+	if req := mapValue(site.declaration, "required"); req != nil {
+		op = correction.Operation{Op: "add", Path: site.declarationPointer + "/required/-", Value: o.Attribute}
 	}
 	return compiled{
 		ops: []correction.Operation{op},
@@ -325,7 +325,7 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 	if !ok {
 		return why, nil
 	}
-	enumDecl, enumPtr, hasEnum := loc.enumSite(site.prop, site.propPtr)
+	enumDeclaration, enumPtr, hasEnum := loc.enumSite(site.prop, site.propPtr)
 	if !hasEnum {
 		return stated("the document declares no enum for the property; there is nothing to correct"), nil
 	}
@@ -337,7 +337,7 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 		value any
 	}
 	var sim []entry
-	for _, n := range mapValue(enumDecl, "enum").Content {
+	for _, n := range mapValue(enumDeclaration, "enum").Content {
 		var v any
 		if err := n.Decode(&v); err != nil {
 			return compiled{}, fmt.Errorf("%s/enum: %w", enumPtr, err)
