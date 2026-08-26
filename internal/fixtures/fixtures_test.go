@@ -533,7 +533,7 @@ func TestUnit_Fixturespec_AReplayedBodyCarriesWhatTheAPITook(t *testing.T) {
 		"labels": []any{"first"}, "settings": map[string]any{"retries": int64(3)},
 	}
 
-	got := spec.FromAcceptedBody(request, response, map[string]bool{"name": true})
+	got := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true})
 
 	// The values are the ones the request carried, not the ones derived.
 	if v := valueByName(t, got, "name").Scalar; v != "the-name-it-took" {
@@ -565,7 +565,7 @@ func TestUnit_Fixturespec_AReplayDropsWhatTheAPINeverReturns(t *testing.T) {
 	// The API took matchType and answered without it.
 	response := map[string]any{"name": "n", "colour": "#FF0000"}
 
-	got := spec.FromAcceptedBody(request, response, map[string]bool{"name": true})
+	got := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true})
 
 	for _, e := range got.Entries {
 		if e.Name == "match_type" {
@@ -582,7 +582,7 @@ func TestUnit_Fixturespec_AReplayDropsWhatTheAPINeverReturns(t *testing.T) {
 		t.Errorf("the dropped property was not explained: %#v", got.Omissions)
 	}
 	// A required property stays even unreturned: the create needs it.
-	requiredUnreturned := spec.FromAcceptedBody(
+	requiredUnreturned := spec.FromAcceptedRequestBody(
 		map[string]any{"name": "n"}, map[string]any{}, map[string]bool{"name": true})
 	if len(requiredUnreturned.Entries) != 1 {
 		t.Errorf("a required property was dropped for not being echoed: %#v", requiredUnreturned.Entries)
@@ -603,5 +603,47 @@ func TestUnit_Fixturespec_TheRunSuffixOnlyTouchesInventedNames(t *testing.T) {
 	// appending to it could make it invalid.
 	if v := got.Entries[2].Scalar; v != "#FF0000" {
 		t.Errorf("a document value = %#v, want it left alone", v)
+	}
+}
+
+func TestUnit_Fixturespec_AReplayedNameGoesBackToTheInventedOne(t *testing.T) {
+	spec := Derive(exampleTree())
+	// What the audit sent and the API took: the document's own example, which
+	// an API that requires a unique name accepts once and refuses thereafter.
+	body := map[string]any{
+		"name":        "Production metrics stream",
+		"endpointUrl": "https://api.example.otel-collector",
+	}
+
+	got := spec.FromAcceptedRequestBody(body, body, map[string]bool{"name": true})
+
+	if v := valueByName(t, got, "name").Scalar; v != NamePrefix+"name" {
+		t.Errorf("name = %#v, want the invented name back", v)
+	}
+	// The invented name is what the run suffix recognises, so a replayed
+	// configuration is unique per run rather than a constant that collides.
+	suffixed := got.WithRunSuffix()
+	if v := valueByName(t, suffixed, "name").Scalar; v != NamePrefix+"name-"+RunSuffixExpr {
+		t.Errorf("suffixed name = %#v, want the run suffix appended", v)
+	}
+}
+
+func TestUnit_Fixturespec_AReplayKeepsEveryValueThatDoesNotNameTheObject(t *testing.T) {
+	spec := Derive(exampleTree())
+	body := map[string]any{
+		"name":        "Production metrics stream",
+		"endpointUrl": "https://api.example.otel-collector",
+		"interval":    int64(300),
+	}
+
+	got := spec.FromAcceptedRequestBody(body, body, map[string]bool{"name": true})
+
+	// A string the API took that names nothing keeps the value it took: an
+	// invented name is a string, and this one had to be a URL.
+	if v := valueByName(t, got, "endpoint_url").Scalar; v != "https://api.example.otel-collector" {
+		t.Errorf("endpoint_url = %#v, want the value the API took", v)
+	}
+	if v := valueByName(t, got, "interval").Scalar; v != int64(300) {
+		t.Errorf("interval = %#v, want the value the API took", v)
 	}
 }

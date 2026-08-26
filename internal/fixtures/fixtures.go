@@ -638,8 +638,8 @@ func suffixedEntries(values []Entry) []Entry {
 	return out
 }
 
-// FromAcceptedBody answers the entries a recorded create actually carried,
-// with the values it carried them as.
+// FromAcceptedRequestBody answers the entries a recorded create actually
+// carried, with the values it carried them as.
 //
 // This is the difference between a configuration that looks like one the API
 // would take and one it demonstrably did. A value derived from the document is
@@ -649,11 +649,55 @@ func suffixedEntries(values []Entry) []Entry {
 // reason recorded: terraform compares what it planned against what the
 // provider answers, so a value the API never echoes reads as the provider
 // losing it, and no configuration can hold one.
-func (s Fixture) FromAcceptedBody(request, response map[string]any, requiredWire map[string]bool) Fixture {
+func (s Fixture) FromAcceptedRequestBody(request, response map[string]any, requiredWire map[string]bool) Fixture {
 	out := s
 	out.Entries, out.Omissions = overlayEntries(s.Entries, request, response, requiredWire, nil)
 	out.Omissions = append(out.Omissions, s.Omissions...)
+	out.Entries = restoredNames(out.Entries)
 	return out
+}
+
+// restoredNames puts back the invented name of every name-bearing entry a
+// declared example displaced.
+//
+// A replayed body carries the values the API accepted, and for most properties
+// that is exactly what a configuration wants. A name is the exception. An API
+// that requires one to be unique accepted the document's example once and
+// refuses it for good afterwards, so the value that proves the shape is the one
+// value the configuration cannot reuse. The invented name carries NamePrefix,
+// which is what WithRunSuffix needs to make it unique per run and what the
+// audit's cleanup contract matches a live object by.
+//
+// Only name-bearing entries are restored: every other property keeps the value
+// the API took, because nothing about it demands a different one. A field
+// whose document declares a format has no invented name to put back —
+// scalarFor keeps none — so a URL, an email or a uuid is never rewritten.
+func restoredNames(values []Entry) []Entry {
+	if values == nil {
+		return nil
+	}
+	out := make([]Entry, len(values))
+	copy(out, values)
+	for i := range out {
+		if out[i].synthesised != "" && nameBearing(out[i].Name) {
+			out[i].Scalar = out[i].synthesised
+		}
+		out[i].Nested = restoredNames(out[i].Nested)
+	}
+	return out
+}
+
+// nameBearing reports whether an attribute names its object — the attributes
+// whose values must be unique per run and must carry the prefix cleanup
+// matches on.
+func nameBearing(name string) bool {
+	lower := strings.ToLower(name)
+	for _, suffix := range []string{"name", "title", "label"} {
+		if lower == suffix || strings.HasSuffix(lower, suffix) {
+			return true
+		}
+	}
+	return false
 }
 
 // overlayEntries keeps the entries the body carried, taking their values from
