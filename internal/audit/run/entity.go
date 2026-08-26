@@ -74,7 +74,7 @@ func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
 	}
 	r.summary.RequestBodies = append(r.summary.RequestBodies, recordedRequestBodies(ep.Entity, ent))
 	r.summary.Entities = append(r.summary.Entities, EntityResult{
-		Entity: ep.Entity, Status: ent.status, Reason: ent.reason,
+		Entity: ep.Entity, Status: ent.status, Reason: ent.reason, Refusal: ent.cause,
 	})
 	r.log.Info().Str("entity", ep.Entity).Str("status", ent.status).Str("reason", ent.reason).Int("requests", ent.requests).Msg("entity finished")
 }

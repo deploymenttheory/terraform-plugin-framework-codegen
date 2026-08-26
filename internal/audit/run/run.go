@@ -143,6 +143,14 @@ type EntityResult struct {
 	Status string `json:"status"`
 	// Reason is set when the status is not audited.
 	Reason string `json:"reason,omitempty"`
+	// Refusal is the redacted request and response behind a status that is
+	// not audited, carrying the API's own words for why it stopped.
+	//
+	// The reason names the step and the status; only the excerpt says what
+	// the API objected to, and an entity that produced no request body
+	// leaves no other trace of it. Absent where nothing was refused — a
+	// budget exhausted, a path parameter with no value.
+	Refusal *observe.Excerpt `json:"refusal,omitempty"`
 }
 
 // Summary is what a run did, for the operator's table.

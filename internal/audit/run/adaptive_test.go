@@ -449,6 +449,16 @@ func TestUnit_Adaptive_UnintelligibleRefusalIsBoundedAndContinues(t *testing.T) 
 	if got := entityStatus(t, sum, "gadget"); got.Status != StatusAudited {
 		t.Fatalf("gadget = %+v, want audited after the blocked entity", got)
 	}
+	// The block carries the API's own words and names what the search asked
+	// for: a status alone cannot be acted on, and an entity that produced no
+	// request body leaves no other trace of either.
+	blocked := entityStatus(t, sum, "thing")
+	if blocked.Refusal == nil || blocked.Refusal.Status != 400 {
+		t.Errorf("thing = %+v, want the refusal behind the block", blocked)
+	}
+	if !strings.Contains(blocked.Reason, "refused with status 400") {
+		t.Errorf("reason = %q, want the refusing status", blocked.Reason)
+	}
 	// Bounded: the unintelligible create was not retried into the ground.
 	if spent := s.Requests() - before; spent > 20 {
 		t.Errorf("the run spent %d requests; an unhealable create must not spin the loop", spent)
