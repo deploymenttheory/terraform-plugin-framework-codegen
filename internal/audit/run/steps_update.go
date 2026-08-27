@@ -17,6 +17,7 @@ func (r *runner) adjustUpdate(ctx context.Context, ent *entityState, step *plan.
 	applied := map[string]bool{}
 	var last *httpResult
 	var sent map[string]any
+	var healed []pendingAdd
 	for i := 0; i < maxAdjustIters; i++ {
 		resolved, err := r.resolveBody(ctx, ent, body)
 		if err != nil {
@@ -31,11 +32,17 @@ func (r *runner) adjustUpdate(ctx context.Context, ent *entityState, step *plan.
 		}
 		last = res
 		if res.ok() || !res.refused() {
+			// The API took a body carrying every field the grammar added.
+			for _, add := range healed {
+				r.recordAdjustAdd(ent, add.field, add.condGate, add.condVal, add.excerpt)
+			}
 			return res, sent, nil
 		}
-		if !r.applyAdjustment(ctx, ent, body, res, applied, true) {
+		added, ok := r.applyAdjustment(ctx, ent, body, res, applied, true)
+		if !ok {
 			return res, sent, nil
 		}
+		healed = append(healed, added...)
 	}
 	return last, sent, nil
 }

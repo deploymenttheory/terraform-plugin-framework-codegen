@@ -587,3 +587,88 @@ func TestUnit_Adaptive_AnOperatorValueReachesTheWire(t *testing.T) {
 		t.Errorf("kind = %#v, want the synthesised value", got)
 	}
 }
+
+// TestUnit_Adaptive_AFieldTheAPIDemandedTeachesTheDocument: an API that
+// requires a property the document never declares yields both findings — that
+// the property exists, and that it is required. Without the first the second
+// is unplaceable: revision cannot write required onto a property no schema
+// declares.
+func TestUnit_Adaptive_AFieldTheAPIDemandedTeachesTheDocument(t *testing.T) {
+	t.Parallel()
+	// serial is refused when absent and declared by no schema. The refusal
+	// names it in prose, which is the shape the grammar reads.
+	s := quirkserver.New(t, quirkserver.Quirks{
+		RequiredButUndeclared:    []string{"serial"},
+		NamesRefusedFieldInProse: true,
+	})
+	p := &plan.Plan{
+		Entities: []plan.EntityPlan{{
+			Entity: "thing", Role: "resource", Budget: plan.Budget{Requests: 30},
+			DeclaredProperties: []string{"name"},
+			Steps: []plan.Step{
+				{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",
+					Body: map[string]any{"name": "tfpfgen-<runid>-thing-name"}},
+				{Kind: plan.StepCleanupDelete, Method: "DELETE", Path: "/things/{thingId}",
+					PathValues: map[string]string{"thingId": "$created:thing"}},
+			},
+		}},
+		Budget: plan.RunBudget{Requests: 200, Objects: 10, Duration: "1m"},
+	}
+
+	obs, _ := mustRun(t, testOptions(t, s, p, testEnv(), nil))
+
+	required := findObs(obs, "thing", "serial", observe.KindRequiredByAPI)
+	if required == nil || required.Outcome != observe.OutcomeConfirmed {
+		t.Fatalf("no confirmed requiredByAPI for the demanded field: %+v", required)
+	}
+	declared := findObs(obs, "thing", "serial", observe.KindUndocumentedFieldInSpec)
+	if declared == nil || declared.Outcome != observe.OutcomeConfirmed {
+		t.Fatalf("no confirmed undocumentedFieldInSpec for the demanded field: %+v", declared)
+	}
+	// The type is the one the accepted create carried, which is what the
+	// correction adds the property as.
+	if declared.Value != "string" {
+		t.Errorf("declared type = %#v, want the type the accepted body sent", declared.Value)
+	}
+	// A property the document does declare is not reported as undocumented.
+	if name := findObs(obs, "thing", "name", observe.KindUndocumentedFieldInSpec); name != nil {
+		t.Errorf("a declared property was reported undocumented: %+v", name)
+	}
+}
+
+// TestUnit_Adaptive_AGuessedFieldIsNotAssertedUntilTheAPITakesIt: a refusal
+// names a field in the API's own vocabulary, which is not always the wire's.
+// One pilot answers a create carrying roleName with "Error in field roleName :
+// must not be null", and names loginAccountGroup for a property the document
+// spells loginAccountGroupId. A requirement read from the sentence alone would
+// put a property the API never accepts into the document.
+func TestUnit_Adaptive_AGuessedFieldIsNotAssertedUntilTheAPITakesIt(t *testing.T) {
+	t.Parallel()
+	// serial is demanded and named, so the grammar adds it — but no value the
+	// run can invent is accepted, so no create ever carries it successfully.
+	s := quirkserver.New(t, quirkserver.Quirks{
+		RequiredButUndeclared:    []string{"serial"},
+		NamesRefusedFieldInProse: true,
+		ClosedEnum:               map[string][]string{"serial": {"only-this-one"}},
+	})
+	p := &plan.Plan{
+		Entities: []plan.EntityPlan{{
+			Entity: "thing", Role: "resource", Budget: plan.Budget{Requests: 30},
+			DeclaredProperties: []string{"name"},
+			Steps: []plan.Step{
+				{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",
+					Body: map[string]any{"name": "tfpfgen-<runid>-thing-name"}},
+			},
+		}},
+		Budget: plan.RunBudget{Requests: 200, Objects: 10, Duration: "1m"},
+	}
+
+	obs, _ := mustRun(t, testOptions(t, s, p, testEnv(), nil))
+
+	if got := findObs(obs, "thing", "serial", observe.KindRequiredByAPI); got != nil {
+		t.Errorf("a field no accepted create carried was asserted required: %+v", got)
+	}
+	if got := findObs(obs, "thing", "serial", observe.KindUndocumentedFieldInSpec); got != nil {
+		t.Errorf("a field no accepted create carried was asserted to exist: %+v", got)
+	}
+}

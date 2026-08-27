@@ -31,22 +31,22 @@ func acceptedFiles(t *testing.T, specDir string) []string {
 }
 
 // TestUnit_Propose_SecondRoundOrdinalsContinuePastAcceptedOnes is Bug 1's
-// reproduction. A serverDefault on an undocumented field is unplaceable until
-// its undocumentedFieldInSpec correction is accepted, so it only proposes in a
-// second round. That second round must number past the accepted first round,
-// never reissuing an ordinal whose acceptance would then clobber committed
-// evidence.
+// reproduction. A round that proposes after an earlier round was accepted must
+// number past it, never reissuing an ordinal whose acceptance would then
+// clobber committed evidence.
+//
+// The rounds are staged by what a run has observed so far, which is what makes
+// a second round happen at all: within one round the placement order in
+// observe.Sort already puts the field-adding correction ahead of everything
+// that annotates the field.
 func TestUnit_Propose_SecondRoundOrdinalsContinuePastAcceptedOnes(t *testing.T) {
 	t.Parallel()
 	root, specDir, lock := pinnedTree(t)
+	// Round one knows only that the document omits aid.
 	commitObs(t, root,
-		// aid is undocumented: the serverDefault cannot land until the field
-		// the undocumentedFieldInSpec correction adds exists.
-		confirmedObs("aid", observe.KindServerDefault, float64(100), nil, lock.SHA256),
 		confirmedObs("aid", observe.KindUndocumentedFieldInSpec, "number", nil, lock.SHA256),
 	)
 
-	// Round one: only the field-adding correction is placeable.
 	p1, err := Propose(specDir)
 	if err != nil {
 		t.Fatalf("round-one Propose: %v", err)
@@ -54,14 +54,17 @@ func TestUnit_Propose_SecondRoundOrdinalsContinuePastAcceptedOnes(t *testing.T) 
 	if len(p1.Proposed) != 1 || p1.Proposed[0].Kind != observe.KindUndocumentedFieldInSpec {
 		t.Fatalf("round one Proposed = %+v, want only the undocumentedFieldInSpec", p1.Proposed)
 	}
-	if len(p1.Unplaceable) != 1 || p1.Unplaceable[0].Kind != observe.KindServerDefault {
-		t.Fatalf("round one Unplaceable = %+v, want the serverDefault held back", p1.Unplaceable)
-	}
 	round1Accepted := filepath.Base(p1.Proposed[0].Path)
 	acceptAll(t, specDir)
 
-	// Round two: the serverDefault is now placeable and must not reuse the
-	// ordinal round one already committed.
+	// A later run measures what the server puts in that field.
+	commitObs(t, root,
+		confirmedObs("aid", observe.KindUndocumentedFieldInSpec, "number", nil, lock.SHA256),
+		confirmedObs("aid", observe.KindServerDefault, float64(100), nil, lock.SHA256),
+	)
+
+	// Round two: the serverDefault must not reuse the ordinal round one
+	// already committed.
 	p2, err := Propose(specDir)
 	if err != nil {
 		t.Fatalf("round-two Propose: %v", err)
@@ -286,8 +289,11 @@ func TestIntegration_Revise_ThousandEyesTagConvergesAcrossRounds(t *testing.T) {
 			t.Fatal("the loop did not converge within five rounds")
 		}
 	}
-	if rounds < 2 {
-		t.Fatalf("converged in %d round(s); the scenario needs a second round for the deferred serverDefaults", rounds)
+	// One round is enough: observe.Sort places the field-adding corrections
+	// ahead of the serverDefaults that annotate those same fields, so every
+	// one of them is placeable the first time it is compiled.
+	if rounds != 1 {
+		t.Fatalf("converged in %d round(s), want one", rounds)
 	}
 
 	// Every accepted ordinal is unique — nothing was clobbered along the way.
