@@ -575,10 +575,17 @@ func valuesShape(v any) error {
 }
 
 // Sort orders observations so a committed document is byte-stable: by
-// entity, attribute, kind, then condition key. Never by discovery order —
-// the order steps ran in is an implementation detail, and letting it into
-// a committed artefact would churn the file whenever the plan is
+// entity, attribute, placement, kind, then condition key. Never by discovery
+// order — the order steps ran in is an implementation detail, and letting it
+// into a committed artefact would churn the file whenever the plan is
 // reordered.
+//
+// Placement orders one attribute's kinds by what each needs to exist first.
+// Revision applies corrections in this order, so a kind that declares a
+// property must come before every kind that annotates one: an API demanding a
+// property the document omits yields both an undocumentedFieldInSpec and a
+// requiredByAPI, and required cannot be written onto a property no schema
+// declares yet.
 func Sort(obs []Observation) {
 	sort.SliceStable(obs, func(i, j int) bool {
 		a, b := obs[i], obs[j]
@@ -588,9 +595,22 @@ func Sort(obs []Observation) {
 		if a.Attribute != b.Attribute {
 			return a.Attribute < b.Attribute
 		}
+		if placement(a.Kind) != placement(b.Kind) {
+			return placement(a.Kind) < placement(b.Kind)
+		}
 		if a.Kind != b.Kind {
 			return a.Kind < b.Kind
 		}
 		return conditionKey(a.Condition) < conditionKey(b.Condition)
 	})
+}
+
+// placement ranks a kind by what it needs to exist before it can be applied:
+// a kind that declares a property sorts ahead of every kind that annotates
+// one.
+func placement(k Kind) int {
+	if k == KindUndocumentedFieldInSpec {
+		return 0
+	}
+	return 1
 }

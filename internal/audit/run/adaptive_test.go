@@ -587,3 +587,51 @@ func TestUnit_Adaptive_AnOperatorValueReachesTheWire(t *testing.T) {
 		t.Errorf("kind = %#v, want the synthesised value", got)
 	}
 }
+
+// TestUnit_Adaptive_AFieldTheAPIDemandedTeachesTheDocument: an API that
+// requires a property the document never declares yields both findings — that
+// the property exists, and that it is required. Without the first the second
+// is unplaceable: revision cannot write required onto a property no schema
+// declares.
+func TestUnit_Adaptive_AFieldTheAPIDemandedTeachesTheDocument(t *testing.T) {
+	t.Parallel()
+	// serial is refused when absent and declared by no schema. The refusal
+	// names it in prose, which is the shape the grammar reads.
+	s := quirkserver.New(t, quirkserver.Quirks{
+		RequiredButUndeclared:    []string{"serial"},
+		NamesRefusedFieldInProse: true,
+	})
+	p := &plan.Plan{
+		Entities: []plan.EntityPlan{{
+			Entity: "thing", Role: "resource", Budget: plan.Budget{Requests: 30},
+			DeclaredProperties: []string{"name"},
+			Steps: []plan.Step{
+				{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",
+					Body: map[string]any{"name": "tfpfgen-<runid>-thing-name"}},
+				{Kind: plan.StepCleanupDelete, Method: "DELETE", Path: "/things/{thingId}",
+					PathValues: map[string]string{"thingId": "$created:thing"}},
+			},
+		}},
+		Budget: plan.RunBudget{Requests: 200, Objects: 10, Duration: "1m"},
+	}
+
+	obs, _ := mustRun(t, testOptions(t, s, p, testEnv(), nil))
+
+	required := findObs(obs, "thing", "serial", observe.KindRequiredByAPI)
+	if required == nil || required.Outcome != observe.OutcomeConfirmed {
+		t.Fatalf("no confirmed requiredByAPI for the demanded field: %+v", required)
+	}
+	declared := findObs(obs, "thing", "serial", observe.KindUndocumentedFieldInSpec)
+	if declared == nil || declared.Outcome != observe.OutcomeConfirmed {
+		t.Fatalf("no confirmed undocumentedFieldInSpec for the demanded field: %+v", declared)
+	}
+	// The type is the one the accepted create carried, which is what the
+	// correction adds the property as.
+	if declared.Value != "string" {
+		t.Errorf("declared type = %#v, want the type the accepted body sent", declared.Value)
+	}
+	// A property the document does declare is not reported as undocumented.
+	if name := findObs(obs, "thing", "name", observe.KindUndocumentedFieldInSpec); name != nil {
+		t.Errorf("a declared property was reported undocumented: %+v", name)
+	}
+}

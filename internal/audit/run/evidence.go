@@ -224,10 +224,48 @@ func (r *runner) finalizeEvidence(ent *entityState) {
 		r.finalizeFields(entity, ev, ev.maximalSent, ev.maximalGot, false)
 	}
 
+	r.observeUndeclaredSent(ent)
 	r.finalizeValues(entity, ev)
 	r.finalizeRequiredWhens(ev)
 	r.finalizeUpdateStyle(entity, ev)
 	r.finalizeUndeclaredFields(entity, ev)
+}
+
+// observeUndeclaredSent adds every property an accepted create carried that
+// the entity's declared schema lacks, with the JSON type it was sent as.
+//
+// The twin of observeUndeclaredFields, on the request side. An API that
+// demands a property the document never declares refuses every create until
+// the adjustment loop invents it, and the loop's own finding — requiredByAPI —
+// cannot be applied to a property no schema declares. Recording the property
+// as well as the requirement is what makes the requirement placeable.
+//
+// Only an accepted create counts. A field added into a body the API went on to
+// refuse is a guess, and a guess is not evidence that the field exists.
+func (r *runner) observeUndeclaredSent(ent *entityState) {
+	if len(ent.plan.DeclaredProperties) == 0 || ent.ev.createProof == nil {
+		return
+	}
+	if ent.declared == nil {
+		ent.declared = make(map[string]bool, len(ent.plan.DeclaredProperties))
+		for _, name := range ent.plan.DeclaredProperties {
+			ent.declared[name] = true
+		}
+	}
+	for _, body := range ent.ev.acceptedRequestBodies {
+		for name, value := range body {
+			if ent.declared[name] || value == nil {
+				continue
+			}
+			t := jsonTypeOf(value)
+			if prev, seen := ent.ev.undeclared[name]; seen && prev != t {
+				ent.ev.undeclaredUnstable[name] = true
+				continue
+			}
+			ent.ev.undeclared[name] = t
+			ent.ev.undeclaredProof[name] = appendProof(ent.ev.undeclaredProof[name], *ent.ev.createProof)
+		}
+	}
 }
 
 // finalizeUndeclaredFields emits one undocumentedFieldInSpec observation
