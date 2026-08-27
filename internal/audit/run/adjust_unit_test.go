@@ -296,11 +296,17 @@ func TestUnit_Adjust_ParentRecreationHealsWithoutRecording(t *testing.T) {
 	ent := &entityState{plan: &plan.EntityPlan{Entity: "scheduled_test"}}
 	body := map[string]any{}
 
-	if !r.applyAdjustment(context.Background(), ent, body, refusal, map[string]bool{}, false) {
+	added, ok := r.applyAdjustment(context.Background(), ent, body, refusal, map[string]bool{}, false)
+	if !ok {
 		t.Fatal("a listed field complaint did not heal the body")
 	}
-	if _, added := body["testName"]; !added {
+	if _, in := body["testName"]; !in {
 		t.Errorf("the named field was not added: %#v", body)
+	}
+	// The add is answered, not asserted: only an accepted create makes it a
+	// fact about the entity.
+	if len(added) != 1 || added[0].field != "testName" {
+		t.Errorf("the add was not answered for the caller to confirm: %+v", added)
 	}
 	if len(r.adjustments) != 0 {
 		t.Errorf("a silent heal recorded %d adjustment(s)", len(r.adjustments))

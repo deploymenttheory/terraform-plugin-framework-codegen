@@ -273,6 +273,7 @@ func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entity
 func (r *runner) adjustCreateRecording(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any, held string, record bool) (adjustResult, error) {
 	applied := map[string]bool{}
 	var last *httpResult
+	var healed []pendingAdd
 	adjusted := false
 	for i := 0; i < maxAdjustIters; i++ {
 		obj, res, err := r.createObject(ctx, ent, rec, body)
@@ -281,12 +282,21 @@ func (r *runner) adjustCreateRecording(ctx context.Context, ent *entityState, re
 		}
 		last = res
 		if obj != nil {
+			// The API took a body carrying every field the grammar added, so
+			// each of those fields is a fact about this entity rather than a
+			// reading of a sentence.
+			if record {
+				for _, add := range healed {
+					r.recordAdjustAdd(ent, add.field, add.condGate, add.condVal, add.excerpt)
+				}
+			}
 			return adjustResult{obj: obj, res: res, body: body, adjusted: adjusted}, nil
 		}
 		if res == nil || !res.refused() {
 			return adjustResult{res: res, body: body, adjusted: adjusted, gaveUp: true}, nil
 		}
-		if r.applyAdjustment(ctx, ent, body, res, applied, record) {
+		if added, ok := r.applyAdjustment(ctx, ent, body, res, applied, record); ok {
+			healed = append(healed, added...)
 			adjusted = true
 			continue
 		}
@@ -308,57 +318,77 @@ func (r *runner) adjustCreateRecording(ctx context.Context, ent *entityState, re
 		conditional: r.isConditionalRefusal(ent, last)}, nil
 }
 
+// pendingAdd is one field the grammar added to a body, held until the API
+// takes that body.
+//
+// A refusal names a field in the API's own vocabulary, which is not always the
+// vocabulary of the wire: one pilot answers a create carrying roleName with
+// "Error in field roleName : must not be null", and another names
+// loginAccountGroup for a property the document spells loginAccountGroupId.
+// Asserting a requirement from the sentence alone puts a property the API
+// never accepts into the document.
+type pendingAdd struct {
+	field    string
+	condGate string
+	condVal  string
+	excerpt  observe.Excerpt
+}
+
 // applyAdjustment classifies one refusal and mutates body toward acceptance,
-// reporting whether it made progress. It refuses to loop: an add of a field
-// already present, a remove of a field already absent, a nested "a.b" target
-// it cannot synthesise, or a borrow that returns the same value all stop the
-// loop rather than spin it.
-func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map[string]any, res *httpResult, applied map[string]bool, record bool) bool {
+// reporting the adds it made and whether it made progress. It refuses to loop:
+// an add of a field already present, a remove of a field already absent, a
+// nested "a.b" target it cannot synthesise, or a borrow that returns the same
+// value all stop the loop rather than spin it.
+//
+// An add is answered rather than recorded: only the caller knows whether the
+// API went on to take the body carrying it. Removes, requires and borrows are
+// recorded here as before — each is a raw signal for the inference to weigh,
+// not a claim about a property's existence.
+func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map[string]any, res *httpResult, applied map[string]bool, record bool) ([]pendingAdd, bool) {
 	act := classifyRefusal(res)
 	switch act.kind {
 	case actAdd:
 		if strings.Contains(act.field, ".") || applied["a:"+act.field] || present(body, act.field) {
-			return false
+			return nil, false
 		}
 		body[act.field] = r.synthField(ent, act.field)
 		applied["a:"+act.field] = true
-		if record {
-			r.recordAdjustAdd(ent, act.field, act.condGate, act.condVal, res.excerpt)
-		}
-		return true
+		return []pendingAdd{{
+			field: act.field, condGate: act.condGate, condVal: act.condVal, excerpt: res.excerpt,
+		}}, true
 	case actRequires:
 		if strings.Contains(act.field, ".") || applied["a:"+act.field] || present(body, act.field) {
-			return false
+			return nil, false
 		}
 		body[act.field] = r.synthField(ent, act.field)
 		applied["a:"+act.field] = true
 		if record {
 			r.recordAdjustment(ent, infer.AdjustRequires, act.field, act.trigger, "")
 		}
-		return true
+		return nil, true
 	case actRemove:
 		if !present(body, act.field) || applied["r:"+act.field] {
-			return false
+			return nil, false
 		}
 		delete(body, act.field)
 		applied["r:"+act.field] = true
 		if record {
 			r.recordAdjustment(ent, infer.AdjustRemove, act.field, act.condGate, act.condVal)
 		}
-		return true
+		return nil, true
 	case actBorrow:
 		id, ok := r.borrow(ctx, ent, act.collection)
 		if !ok || fmt.Sprint(body[act.field]) == id {
-			return false
+			return nil, false
 		}
 		body[act.field] = id
 		applied["b:"+act.field] = true
 		if record {
 			r.recordAdjustment(ent, infer.AdjustBorrow, act.field, act.collection, "")
 		}
-		return true
+		return nil, true
 	default:
-		return false
+		return nil, false
 	}
 }
 
