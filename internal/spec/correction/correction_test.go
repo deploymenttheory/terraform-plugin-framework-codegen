@@ -77,10 +77,10 @@ func propsOf(t *testing.T, doc map[string]any) map[string]any {
 	return doc["components"].(map[string]any)["schemas"].(map[string]any)["T"].(map[string]any)["properties"].(map[string]any)
 }
 
-// The exact ThousandEyes shape: 001 (sorting first) adds a property's default,
-// 006 (sorting later) adds the property. File order would apply the default
-// against a node that does not exist yet; the dependency order applies the
-// property-creating add first.
+// A correction sorting first adds a property's default; one sorting later adds
+// the property itself. File order would apply the default against a node that
+// does not exist yet; the dependency order applies the property-creating add
+// first.
 func TestUnit_Correction_AppliesAContainerAddBeforeItsDescendant(t *testing.T) {
 	t.Parallel()
 
@@ -524,8 +524,7 @@ func TestUnit_Correction_StripSchemaDefaultsRefusesWhenNoneExist(t *testing.T) {
 }
 
 // A JSON document is valid YAML in flow style, so without forceBlockStyle a
-// corrected JSON-published document would come back as one enormous line —
-// the shape that silently broke a 7 MB document in v1.
+// corrected JSON-published document comes back as one enormous line.
 func TestUnit_Correction_JSONSourceComesBackAsBlockYAML(t *testing.T) {
 	t.Parallel()
 

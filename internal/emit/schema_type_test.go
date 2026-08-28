@@ -20,9 +20,9 @@ func nestedNode(kind ir.AttributeType) node {
 	return node{attr: ir.Attribute{Name: "x", WireName: "x", Kind: kind, Nested: &ir.AttributeTree{}}}
 }
 
-// TestUnit_SchemaTypeOf_EverySpelling pins the whole table. These are the
-// names the six switches this record replaced used to answer, so a change
-// to any of them is a change to generated code and must be deliberate.
+// TestUnit_SchemaTypeOf_EverySpelling pins the whole table. Generated code
+// depends on every one of these names, so a change to any of them is a change
+// to generated code and must be deliberate.
 func TestUnit_SchemaTypeOf_EverySpelling(t *testing.T) {
 	for _, testCase := range []struct {
 		name                string

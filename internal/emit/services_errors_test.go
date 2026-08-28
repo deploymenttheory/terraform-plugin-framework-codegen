@@ -662,7 +662,7 @@ func TestUnit_AttributeDescription_LeadsWithTheDocumentsOwnProse(t *testing.T) {
 }
 
 func TestUnit_AttributeDescription_FallsBackToTheWireName(t *testing.T) {
-	// Real documents leave most properties bare — one pilot annotates 12%.
+	// Real documents leave most properties bare.
 	got := attributeDescription(ir.Attribute{Name: "path", WireName: "path"})
 	if got != "The path property." {
 		t.Fatalf("an undescribed attribute keeps the derived sentence, got %q", got)

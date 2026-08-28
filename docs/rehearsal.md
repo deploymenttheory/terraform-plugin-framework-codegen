@@ -134,14 +134,13 @@ the config is refused when a variant's required field is missing or when a
 field is set under the wrong `kind`. The generated resource unit tests
 apply variant-consistent configurations and pass against them.
 
-## ListWrap closed
+## The list envelope is derived, not assumed
 
 The document declares every collection response a bare array; the server
-answers a wrapped envelope (`{"monitors":[…]}`). The v1 rehearsal left a
-defect here — the emitted mock responders hardcoded `{"value":[…]}`,
-disagreeing with the SDK the bare-array document produced, and the
-datasource unit test failed to parse it. In v2 the emit layer derives the
-list shape from the declared envelope: the generated mock now serves a bare
+answers a wrapped envelope (`{"monitors":[…]}`). A mock responder that
+hardcodes `{"value":[…]}` disagrees with the SDK a bare-array document
+produces, and the datasource unit test cannot parse it. The emit layer
+derives the list shape from the declared envelope instead: the generated mock now serves a bare
 array (`SuccessResponse(200, []map[string]any{object()})`), the datasource
 `Read` iterates the SDK's returned slice directly, and **all four datasource
 unit tests pass**. The defect is closed.

@@ -29,8 +29,8 @@ package quirkserver
 // The exact 400 grammar the monitor and assignment emit is documented on
 // validateMonitor and validateAssignment; every sentence begins `field <name>
 // ...` so a parser can pull the offending field out with one expression. The
-// stream's value-conditional refusal deliberately does not, which is the whole
-// point of it.
+// stream's value-conditional refusal does not, so that the executor's fallback
+// path is exercised.
 
 import (
 	"fmt"

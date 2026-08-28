@@ -6,15 +6,15 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
 )
 
-// The ThousandEyes proof run recorded `interval` as server-forced on three
-// resources. It was not. The audit sent the string "120" into an integer enum,
-// the API accepted it and answered with the integer 120, and a byte-strict
-// comparison read the echo as the server substituting a value of its own.
-// serverForced makes an attribute Computed, so merging those findings would
-// have taken the test interval away from practitioners on all three.
+// A serverForced finding must not be manufactured out of the audit's own
+// probe value. Sending the string "120" into an integer enum, having the API
+// accept it and answer with the integer 120, and comparing the echo
+// byte-strictly reads as the server substituting a value of its own. It is
+// not: the value came back unchanged, in the type the document declared.
 //
-// Three separate things had to be wrong for that to happen, and each is
-// pinned here.
+// The distinction matters because serverForced makes an attribute Computed,
+// taking it away from practitioners. Three separate things have to hold for
+// the comparison to be honest, and each is pinned here.
 
 func TestUnit_Run_IntegerEnumVariantKeepsItsDeclaredType(t *testing.T) {
 	h := strategy.SynthHint{

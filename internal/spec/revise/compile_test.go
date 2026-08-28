@@ -697,10 +697,9 @@ func TestUnit_Propose_ReportsAnUnplaceableObservation(t *testing.T) {
 
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
 
-// TestUnit_Propose_AZeroReadAfterWriteLagProposesNothing is the defect the
-// first live run surfaced: five pull requests, each asking a human to approve
-// an eventual-consistency annotation of "0s". A zero lag means the read never
-// lagged the write, so there is nothing to declare and nothing to decide.
+// TestUnit_Propose_AZeroReadAfterWriteLagProposesNothing pins that a zero lag
+// proposes nothing. A zero lag means the read never lagged the write, so there
+// is nothing to declare and nothing to ask a human to approve.
 func TestUnit_Propose_AZeroReadAfterWriteLagProposesNothing(t *testing.T) {
 	t.Parallel()
 	for _, lag := range []string{"0s", "0ms", "0"} {

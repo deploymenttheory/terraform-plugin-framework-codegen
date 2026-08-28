@@ -180,10 +180,9 @@ func TestUnit_FilterPaths_RefusesUnusableDocuments(t *testing.T) {
 	}
 }
 
-// unionSample carries every union shape the reduction has to answer: a union
-// inline on a response (the shape that broke a real build), a union of $refs
-// beside a discriminator, a union whose parent already declares one of the
-// branch's keys, and a branch that is itself a union.
+// unionSample carries every union the reduction has to answer: one inline on a
+// response, one of $refs beside a discriminator, one whose parent already
+// declares a branch's key, and a branch that is itself a union.
 const unionSample = `openapi: 3.0.3
 info:
   title: unions

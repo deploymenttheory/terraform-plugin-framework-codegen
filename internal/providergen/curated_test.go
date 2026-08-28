@@ -15,7 +15,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/store"
 )
 
-// The curated fixture is Phase 1's exit gate: a committed, fictional
+// The curated fixture is the chain's offline end-to-end gate: a committed, fictional
 // OpenAPI document (testdata/curated at the repo root) plus one
 // hand-written stub SDK per dialect, driven through the real verbs — the
 // document is imported and revised with the spec packages, the stub stands

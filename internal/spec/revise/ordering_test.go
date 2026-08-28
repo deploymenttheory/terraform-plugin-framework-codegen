@@ -150,8 +150,8 @@ func TestUnit_Propose_AnAutoAcceptedValueThatMovesOverwritesItsOwnFile(t *testin
 	}
 }
 
-// tagInfoSpec is the ThousandEyes tag surface in miniature: a full-lifecycle
-// entity whose documented schema omits the aid and builtIn fields the live API
+// tagInfoSpec is a full-lifecycle entity in miniature, whose documented schema
+// omits the aid and builtIn fields the live API
 // carries, whose color has a server-applied default, whose objectType is
 // immutable, and whose type enum documents a value the API rejects.
 const tagInfoSpec = `openapi: 3.0.3
@@ -251,14 +251,13 @@ func pinnedSpec(t *testing.T, spec string) (root, specDir string, lock store.Loc
 	return root, specDir, res.Lock
 }
 
-// TestIntegration_Revise_ThousandEyesTagConvergesAcrossRounds mirrors the live
-// audit that surfaced both bugs: corrections that only become placeable after
-// an earlier round is accepted, proposed and accepted round by round until a
-// re-propose yields nothing, then materialized. The revised document must
-// carry the added fields with their defaults, the corrected enum, and the
-// annotations — proof the accepted evidence was neither clobbered (Bug 1) nor
-// applied against a node that did not exist yet (Bug 2).
-func TestIntegration_Revise_ThousandEyesTagConvergesAcrossRounds(t *testing.T) {
+// TestIntegration_Revise_TagConvergesAcrossRounds covers corrections that only
+// become placeable once an earlier round is accepted: proposed and accepted
+// round by round until a re-propose yields nothing, then materialized. The
+// revised document must carry the added fields with their defaults, the
+// corrected enum and the annotations — so accepted evidence is neither
+// overwritten nor applied against a node that does not exist yet.
+func TestIntegration_Revise_TagConvergesAcrossRounds(t *testing.T) {
 	t.Parallel()
 	root, specDir, lock := pinnedSpec(t, tagInfoSpec)
 	commitObs(t, root,

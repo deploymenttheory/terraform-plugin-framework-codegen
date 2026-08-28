@@ -35,16 +35,13 @@ type ServiceFiles struct {
 	KeptUnbound map[string]bool
 }
 
-// unrenderableError marks an entity whose shape emission cannot serve — a
-// path parameter naming nothing in the schema, a call the bindings cannot
-// satisfy. It is a fact about one entity, not a defect in the emitter, so
-// RenderServices records it and carries on with the rest.
+// unrenderableError marks an entity emission cannot serve — a path parameter
+// naming nothing in the schema, a call the bindings cannot satisfy.
 //
-// Aborting the whole run instead was the old behaviour, and one entity took
-// every other entity with it: an item path carrying a second path parameter
-// no attribute answers is enough, and that single shape emitted nothing at
-// all for the provider. Every other error still aborts, because an emitter
-// that cannot render a shape it accepted is a bug and must say so.
+// Refuses one entity rather than the run: an unrenderable entity is a fact
+// about that entity, and the rest still generate. Every other error still
+// aborts, because an emitter that cannot render something it accepted is a
+// bug and must say so.
 type unrenderableError struct{ reason string }
 
 func (e *unrenderableError) Error() string { return e.reason }

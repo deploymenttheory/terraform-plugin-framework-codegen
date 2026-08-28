@@ -50,9 +50,8 @@ components:
 `
 
 // A list result is an identity and an identity is the resource's id, so the
-// element has to answer the key the resource is addressed by. An API that
-// spells that key after the thing it identifies used to publish no identity
-// at all, and the entity was refused downstream for the wording.
+// element has to answer the key the resource is addressed by — including where
+// the API spells that key after the thing it identifies rather than as `id`.
 func TestDerive_ListResourceTakesItsIDFromTheItemPathKey(t *testing.T) {
 	m := mustDerive(t, keyedSpec, testConfig())
 

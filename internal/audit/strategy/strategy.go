@@ -8,23 +8,16 @@
 //
 // Compile is pure and deterministic: the same document, classification and
 // config always produce the same Strategy, byte for byte under JSON. No
-// network, no clock, no randomness, no map-order leaks. It supersedes the
-// uniform step derivation in internal/audit/plan — where plan applied one
-// fixed sequence to every entity, strategy shapes the sequence to what the
-// resource declares — and reuses plan's closed step-kind vocabulary
-// (plan.StepKind) rather than minting a second copy of it.
+// network, no clock, no randomness, no map-order leaks. Where
+// internal/audit/plan applies one fixed sequence to every entity, strategy
+// shapes the sequence to what the resource declares; it reuses plan's closed
+// step-kind vocabulary (plan.StepKind) rather than declaring a second copy.
 //
 // The compiler asserts nothing about the live API. Structural signals
 // (oneOf/discriminator/dependentRequired) are the strongest baseline; prose in
-// descriptions is the weakest, general, vendor-neutral hint; the live API,
-// exercised in a later wave, is the only thing that confirms. Every finding
-// leaves here as a hypothesis carrying its provenance, never an assertion.
-//
-// Deferred naming: the hypothesis-kind values (variant, requiredWhen,
-// requiresField, mutuallyExclusive, validWhen) are working identifiers, and the
-// final observation-kind names are an owner decision settled in Wave 3. The
-// exported type names (Strategy, Variant, Skeleton, Hypothesis, Check, Step)
-// are likewise provisional.
+// descriptions is the weakest, general, vendor-neutral hint; only the live API
+// confirms. Every finding leaves here as a hypothesis carrying its provenance,
+// never an assertion.
 package strategy
 
 import (
@@ -40,7 +33,8 @@ import (
 // Provenance records how strongly a variant or hypothesis is grounded. The
 // set is closed and ordered weakest-last for sorting: structural claims (the
 // document's own composition keywords) outrank prose (mined description text),
-// and derived is reserved for the triangulating inference of a later wave.
+// which outranks derived. It mirrors observe.Provenance deliberately, so that
+// strategy stays free of a dependency on the package that writes observations.
 type Provenance string
 
 const (
@@ -55,10 +49,8 @@ const (
 	ProvenanceDerived Provenance = "derived"
 )
 
-// HypothesisKind names the shape of a candidate conditional edge. These are
-// WORKING IDENTIFIERS: the final observation-kind names are an owner decision
-// settled in Wave 3, so nothing downstream should treat these spellings as the
-// committed vocabulary.
+// HypothesisKind names the kind of candidate conditional edge a hypothesis
+// carries. The set is closed.
 type HypothesisKind string
 
 const (
@@ -189,8 +181,7 @@ type Variant struct {
 
 // Check describes the request that would confirm or refute a hypothesis: which
 // step kind exercises it, the field it targets, the gate it pins, and what the
-// API is expected to do. (Working name — see the package note on deferred
-// naming; the retired term "probe" is deliberately avoided.)
+// API is expected to do.
 type Check struct {
 	// Step is the step kind that exercises the hypothesis.
 	Step plan.StepKind `json:"step"`
