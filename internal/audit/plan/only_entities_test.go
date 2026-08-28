@@ -49,3 +49,15 @@ func TestUnit_Plan_OnlyEntitiesWithNoNamesLeavesThePlanAlone(t *testing.T) {
 		t.Fatalf("plan changed: %v / %v", p.Entities, p.Skipped)
 	}
 }
+
+func TestUnit_Plan_DurationFollowsTheRequestsAtTheRate(t *testing.T) {
+	if got := DurationFor(8000, 2); got != "2h13m20s" {
+		t.Errorf("DurationFor(8000, 2) = %s, want twice the time 8000 requests take at 2/s", got)
+	}
+	if got := DurationFor(10, 2); got != "1m0s" {
+		t.Errorf("DurationFor(10, 2) = %s, want the one-minute floor", got)
+	}
+	if got := DurationFor(120, 0); got != "2m0s" {
+		t.Errorf("DurationFor(120, 0) = %s, want the default rate of 2", got)
+	}
+}

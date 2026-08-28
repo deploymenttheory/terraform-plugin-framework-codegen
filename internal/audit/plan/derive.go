@@ -265,13 +265,23 @@ func runBudget(configuration *config.Config, entities int) RunBudget {
 		rps = 2
 	}
 
+	return RunBudget{
+		Requests: requests,
+		Objects:  objects,
+		Duration: DurationFor(requests, rps),
+	}
+}
+
+// DurationFor is the wall-clock allowance for a number of requests at a
+// rate: twice the time the requests take at the rate — retries and
+// read-back polling — with a one-minute floor.
+func DurationFor(requests, rps int) string {
+	if rps < 1 {
+		rps = 2
+	}
 	seconds := 2 * ((requests + rps - 1) / rps)
 	if seconds < 60 {
 		seconds = 60
 	}
-	return RunBudget{
-		Requests: requests,
-		Objects:  objects,
-		Duration: (time.Duration(seconds) * time.Second).String(),
-	}
+	return (time.Duration(seconds) * time.Second).String()
 }

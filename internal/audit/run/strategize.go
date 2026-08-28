@@ -82,9 +82,14 @@ func applyStrategies(p *plan.Plan, document *specmodel.Document, configuration *
 		out.Entities = append(out.Entities, ep)
 		total += compiled.Budget.Requests
 	}
-	// The run-wide request ceiling becomes the sum of the strategy budgets;
-	// the object and duration ceilings stay as the config derived them.
+	// The run-wide request ceiling becomes the sum of the strategy budgets,
+	// and the time ceiling follows it at the configured rate with the same
+	// doubling the plan allows for retries and read-back polling: a time
+	// budget sized from the uniform plan ends a strategy-driven run with
+	// entities never reached. The object ceiling stays as the config
+	// derived it.
 	out.Budget.Requests = total
+	out.Budget.Duration = plan.DurationFor(total, configuration.Audit.RateLimitRPS)
 	return out, hints, strategies, syntheses
 }
 
