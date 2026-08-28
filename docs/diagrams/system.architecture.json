@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "tfpfgen: the whole system",
+    "output": "system.architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "what-is-authored",
+        "label": "What a human writes",
+        "focus": [
+          "authored",
+          "reviewer"
+        ],
+        "note": "Three committed data paths and a decision. There is no authored code in a provider repo."
+      },
+      {
+        "id": "what-is-generated",
+        "label": "What is generated",
+        "focus": [
+          "toolkit",
+          "generated",
+          "sdk"
+        ],
+        "note": "Every other file is derived, manifest-covered, and regenerated wholesale."
+      },
+      {
+        "id": "the-loop",
+        "label": "Where the truth comes from",
+        "focus": [
+          "vendor",
+          "liveapi",
+          "reviewer"
+        ],
+        "note": "The document says what the fields are called. Only the live API says what it accepts."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "vendor",
+      "type": "external",
+      "label": "Vendor",
+      "sublabel": "publishes OpenAPI",
+      "pos": [
+        40,
+        190
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "liveapi",
+      "type": "external",
+      "label": "Live API",
+      "sublabel": "sandbox tenant",
+      "pos": [
+        40,
+        330
+      ],
+      "size": [
+        130,
+        60
+      ],
+      "tag": "credentialed"
+    },
+    {
+      "id": "reviewer",
+      "type": "security",
+      "label": "Reviewer",
+      "sublabel": "accepts or refuses",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        130,
+        60
+      ]
+    },
+    {
+      "id": "toolkit",
+      "type": "backend",
+      "label": "tfpfgen",
+      "sublabel": "CLI + workflows",
+      "pos": [
+        270,
+        180
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "tag": "pinned @v0"
+    },
+    {
+      "id": "templates",
+      "type": "backend",
+      "label": "Templates",
+      "sublabel": "provider-core",
+      "pos": [
+        270,
+        320
+      ],
+      "size": [
+        150,
+        60
+      ]
+    },
+    {
+      "id": "authored",
+      "type": "security",
+      "label": "Authored",
+      "sublabel": "config, corrections, inputs",
+      "pos": [
+        530,
+        60
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "committed"
+    },
+    {
+      "id": "spec",
+      "type": "database",
+      "label": "Revised spec",
+      "sublabel": "source of truth",
+      "pos": [
+        530,
+        200
+      ],
+      "size": [
+        160,
+        60
+      ]
+    },
+    {
+      "id": "sdk",
+      "type": "cloud",
+      "label": "Generated SDK",
+      "sublabel": "kiota or openapi-gen",
+      "pos": [
+        530,
+        340
+      ],
+      "size": [
+        160,
+        60
+      ]
+    },
+    {
+      "id": "generated",
+      "type": "cloud",
+      "label": "Provider code",
+      "sublabel": "100% generated",
+      "pos": [
+        530,
+        480
+      ],
+      "size": [
+        160,
+        60
+      ],
+      "tag": "manifest"
+    },
+    {
+      "id": "registry",
+      "type": "cloud",
+      "label": "Terraform Registry",
+      "sublabel": "published by tag",
+      "pos": [
+        800,
+        340
+      ],
+      "size": [
+        160,
+        60
+      ]
+    },
+    {
+      "id": "practitioner",
+      "type": "frontend",
+      "label": "Practitioner",
+      "sublabel": "writes HCL",
+      "pos": [
+        800,
+        480
+      ],
+      "size": [
+        160,
+        60
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "This repository \u2014 the machinery",
+      "wraps": [
+        "toolkit",
+        "templates"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "A generated provider repository",
+      "wraps": [
+        "authored",
+        "spec",
+        "sdk",
+        "generated"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "publishes",
+      "from": "vendor",
+      "to": "toolkit",
+      "label": "OpenAPI document",
+      "variant": "emphasis",
+      "labelDy": -32
+    },
+    {
+      "id": "audits",
+      "from": "toolkit",
+      "to": "liveapi",
+      "label": "audit run",
+      "variant": "security",
+      "labelDy": 24
+    },
+    {
+      "id": "decides",
+      "from": "reviewer",
+      "to": "authored",
+      "label": "accepts corrections",
+      "variant": "security"
+    },
+    {
+      "id": "reads",
+      "from": "authored",
+      "to": "spec",
+      "label": "applied",
+      "labelDy": 24
+    },
+    {
+      "id": "gen-sdk",
+      "from": "spec",
+      "to": "sdk",
+      "label": "sdk generate",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "id": "gen-provider",
+      "from": "sdk",
+      "to": "generated",
+      "label": "provider generate",
+      "variant": "emphasis",
+      "labelDy": 24
+    },
+    {
+      "id": "emits",
+      "from": "templates",
+      "to": "generated",
+      "label": "emitted",
+      "variant": "dashed"
+    },
+    {
+      "id": "publish",
+      "from": "generated",
+      "to": "registry",
+      "label": "release",
+      "variant": "emphasis"
+    },
+    {
+      "id": "consume",
+      "from": "registry",
+      "to": "practitioner",
+      "label": "terraform init",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Three things a human writes",
+      "items": [
+        "tfpfgen.yaml \u2014 the provider's configuration",
+        "spec/corrections/** \u2014 accepted corrections, each with a justification",
+        "audit/inputs.json \u2014 values the audit cannot synthesise"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Everything else is derived",
+      "items": [
+        "A provider repo holds no authored Go at all",
+        "Every generated file carries a DO-NOT-EDIT header and a manifest entry",
+        "verify regenerates and byte-compares, so a hand edit fails the build"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Why the audit exists",
+      "items": [
+        "An OpenAPI document says what an API's fields are called",
+        "It does not say which may be sent together, which the server overwrites, or which a create refuses",
+        "Only the live API says that, and only by being asked"
+      ]
+    }
+  ]
+}

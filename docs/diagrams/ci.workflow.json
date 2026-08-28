@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "The generation pipeline and its decision gate",
+    "output": "ci.workflow.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "the-gate",
+        "label": "The decision gate",
+        "focus": [
+          "propose",
+          "review",
+          "generate",
+          "closed"
+        ],
+        "note": "Generation refuses to continue while a correction awaits a human. Merging accepts; closing rejects."
+      },
+      {
+        "id": "credentialed",
+        "label": "The credentialed job",
+        "focus": [
+          "audit",
+          "observed"
+        ],
+        "note": "The only job carrying secrets, and the only one that reaches an API beyond GitHub."
+      },
+      {
+        "id": "release",
+        "label": "To the registry",
+        "focus": [
+          "generate",
+          "verify",
+          "release"
+        ],
+        "note": "A tree that regenerates byte-identically, passes acceptance, and is published by tag."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "source",
+      "label": "10-generate \u00b7 import"
+    },
+    {
+      "id": "audit",
+      "label": "10-generate \u00b7 audit"
+    },
+    {
+      "id": "decide",
+      "label": "20-corrections"
+    },
+    {
+      "id": "build",
+      "label": "10-generate \u00b7 build"
+    },
+    {
+      "id": "gates",
+      "label": "30-ci \u00b7 40-acceptance"
+    },
+    {
+      "id": "refused",
+      "label": "Refused",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "learn",
+      "label": "Learn",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "decide-phase",
+      "label": "Decide",
+      "fromCol": 2,
+      "toCol": 3
+    },
+    {
+      "id": "ship",
+      "label": "Build and publish",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "import",
+    "audit",
+    "propose",
+    "review",
+    "generate",
+    "verify"
+  ],
+  "nodes": [
+    {
+      "id": "import",
+      "type": "frontend",
+      "label": "spec import",
+      "sublabel": "pin the document",
+      "lane": "source",
+      "col": 0
+    },
+    {
+      "id": "audit",
+      "type": "security",
+      "label": "audit run",
+      "sublabel": "the live API",
+      "lane": "audit",
+      "col": 1,
+      "tag": "secrets"
+    },
+    {
+      "id": "observed",
+      "type": "backend",
+      "label": "observations",
+      "sublabel": "committed",
+      "lane": "source",
+      "col": 2
+    },
+    {
+      "id": "propose",
+      "type": "backend",
+      "label": "spec revise",
+      "sublabel": "propose",
+      "lane": "audit",
+      "col": 3
+    },
+    {
+      "id": "review",
+      "type": "security",
+      "label": "Human review",
+      "sublabel": "one PR per kind",
+      "lane": "decide",
+      "col": 3,
+      "tag": "blocks"
+    },
+    {
+      "id": "closed",
+      "type": "external",
+      "label": "Closed",
+      "sublabel": "marker written",
+      "lane": "refused",
+      "col": 4
+    },
+    {
+      "id": "generate",
+      "type": "backend",
+      "label": "generate",
+      "sublabel": "SDK + provider",
+      "lane": "build",
+      "col": 4
+    },
+    {
+      "id": "verify",
+      "type": "cloud",
+      "label": "verify",
+      "sublabel": "byte-compare",
+      "lane": "gates",
+      "col": 5
+    },
+    {
+      "id": "release",
+      "type": "cloud",
+      "label": "Release",
+      "sublabel": "by tag",
+      "lane": "build",
+      "col": 5
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-import",
+      "from": "import",
+      "to": "audit",
+      "label": "classify and plan",
+      "role": "main"
+    },
+    {
+      "id": "e-observed",
+      "from": "audit",
+      "to": "observed",
+      "label": "commit findings",
+      "role": "branch"
+    },
+    {
+      "id": "e-propose",
+      "from": "audit",
+      "to": "propose",
+      "label": "compile",
+      "role": "main"
+    },
+    {
+      "id": "e-review",
+      "from": "propose",
+      "to": "review",
+      "label": "opens pull requests",
+      "role": "main"
+    },
+    {
+      "id": "e-merge",
+      "from": "review",
+      "to": "generate",
+      "label": "merged",
+      "role": "main",
+      "labelDx": 40
+    },
+    {
+      "id": "e-close",
+      "from": "review",
+      "to": "closed",
+      "label": "closed",
+      "role": "error"
+    },
+    {
+      "id": "e-verify",
+      "from": "generate",
+      "to": "verify",
+      "label": "drift gate",
+      "role": "main"
+    },
+    {
+      "id": "e-release",
+      "from": "generate",
+      "to": "release",
+      "label": "tag",
+      "role": "async"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "The gate is the point",
+      "items": [
+        "Generation refuses to write a revised spec while a correction awaits a decision",
+        "The continuation waits for every decision, not for an empty queue"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "One decision, one group",
+      "items": [
+        "A pull request answers every finding of one kind on one entity",
+        "Closing rejects the group and writes a marker that suppresses re-proposal"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Nothing ships unverified",
+      "items": [
+        "verify regenerates into a temporary tree and byte-compares",
+        "Acceptance replays request bodies the API actually accepted"
+      ]
+    }
+  ]
+}

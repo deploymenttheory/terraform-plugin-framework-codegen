@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "The life of a correction",
+    "output": "correction.lifecycle.html",
+    "viewBox": [
+      980,
+      660
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "the-decision",
+        "label": "The decision",
+        "focus": [
+          "proposed",
+          "accepted",
+          "rejected"
+        ],
+        "note": "Merging the pull request accepts the correction. Closing it rejects the whole group."
+      },
+      {
+        "id": "not-a-rejection",
+        "label": "Withdrawal is not rejection",
+        "focus": [
+          "proposed",
+          "withdrawn"
+        ],
+        "note": "A later run that no longer proposes it closes the request and records nothing, so it can return."
+      },
+      {
+        "id": "never-again",
+        "label": "What a rejection costs",
+        "focus": [
+          "rejected",
+          "suppressed"
+        ],
+        "note": "A marker suppresses re-proposal permanently. Deleting the marker is the only way back."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "From observation to revision"
+    },
+    {
+      "id": "terminal",
+      "label": "Terminal outcomes"
+    }
+  ],
+  "states": [
+    {
+      "id": "observed",
+      "type": "start",
+      "label": "Observed",
+      "sublabel": "the API disagreed",
+      "lane": "main",
+      "col": 0,
+      "step": "01"
+    },
+    {
+      "id": "compiled",
+      "type": "active",
+      "label": "Compiled",
+      "sublabel": "into RFC 6902 ops",
+      "lane": "main",
+      "col": 1,
+      "step": "02"
+    },
+    {
+      "id": "proposed",
+      "type": "decision",
+      "label": "Proposed",
+      "sublabel": "one PR per entity per kind",
+      "lane": "main",
+      "col": 2,
+      "step": "03"
+    },
+    {
+      "id": "accepted",
+      "type": "active",
+      "label": "Accepted",
+      "sublabel": "the PR was merged",
+      "lane": "main",
+      "col": 3,
+      "step": "04"
+    },
+    {
+      "id": "revised",
+      "type": "success",
+      "label": "In the revised spec",
+      "sublabel": "generation reads it",
+      "lane": "main",
+      "col": 4,
+      "step": "05"
+    },
+    {
+      "id": "withdrawn",
+      "type": "neutral",
+      "label": "Withdrawn",
+      "sublabel": "a later run dropped it",
+      "lane": "terminal",
+      "col": 0
+    },
+    {
+      "id": "rejected",
+      "type": "failure",
+      "label": "Rejected",
+      "sublabel": "the PR was closed",
+      "lane": "terminal",
+      "col": 1
+    },
+    {
+      "id": "suppressed",
+      "type": "failure",
+      "label": "Suppressed",
+      "sublabel": "a marker on disk",
+      "lane": "terminal",
+      "col": 2
+    }
+  ],
+  "transitions": [
+    {
+      "id": "compile",
+      "from": "observed",
+      "to": "compiled",
+      "label": "spec revise",
+      "labelDy": -25
+    },
+    {
+      "id": "open",
+      "from": "compiled",
+      "to": "proposed",
+      "label": "opens a pull request",
+      "labelDy": -25
+    },
+    {
+      "id": "merge",
+      "from": "proposed",
+      "to": "accepted",
+      "label": "merged",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": -25
+    },
+    {
+      "id": "apply",
+      "from": "accepted",
+      "to": "revised",
+      "label": "applied",
+      "variant": "emphasis",
+      "labelDy": -25
+    },
+    {
+      "id": "close",
+      "from": "proposed",
+      "to": "rejected",
+      "label": "closed",
+      "variant": "security"
+    },
+    {
+      "id": "mark",
+      "from": "rejected",
+      "to": "suppressed",
+      "label": "writes a marker",
+      "variant": "security",
+      "labelDy": -23
+    },
+    {
+      "id": "drop",
+      "from": "proposed",
+      "to": "withdrawn",
+      "label": "no longer proposed",
+      "variant": "dashed",
+      "labelDx": -78,
+      "labelDy": 90
+    },
+    {
+      "id": "return",
+      "from": "withdrawn",
+      "to": "proposed",
+      "label": "can return",
+      "variant": "dashed",
+      "labelDx": 25
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Merging accepts, closing rejects",
+      "items": [
+        "One pull request answers every finding of one kind on one entity",
+        "A merge moves the correction to accepted; only then does it reach the revised document"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "A rejection is permanent",
+      "items": [
+        "Closing writes a marker naming the observation and the reason",
+        "The marker suppresses re-proposal for good \u2014 deleting it is the only way back"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "A withdrawal is not a rejection",
+      "items": [
+        "A later run that no longer proposes the correction closes its request and records nothing",
+        "The observation stays free to be proposed again, which is the whole difference"
+      ]
+    }
+  ]
+}

@@ -108,6 +108,7 @@ the GitHub document below.
 
 | Doc | What it covers |
 |---|---|
+| `docs/diagrams/` | Five rendered views of the system — start with `system.architecture.html` for the whole thing on one page |
 | `docs/contract.md` | The cross-repo contract: pipeline stages, artifact names, exit codes, secrets, the correction decision gate |
 | `docs/config.md` | Every `tfpfgen.yaml` key, its default and its allowed values — generated from `internal/config`, not hand-written |
 | `docs/glossary.md` | The vocabulary; every term in it is deliberate |
@@ -116,6 +117,7 @@ the GitHub document below.
 | `docs/rehearsal.md` | The first full local run of the chain against the test API server, stage by stage |
 | `docs/releasing.md` | How a release is cut and how the moving major tag moves |
 | `docs/comment-style.md` | What a comment in this repo may and may not say |
+| `docs/naming-standard.md` | The rules a name has to pass before it reaches the glossary |
 
 ## Status
 
