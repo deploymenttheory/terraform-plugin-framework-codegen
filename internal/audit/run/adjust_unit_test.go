@@ -2,6 +2,7 @@ package run
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
@@ -454,5 +455,97 @@ func TestUnit_Strategize_AnOperatorValueOutranksEverySynthesis(t *testing.T) {
 	// A field the operator said nothing about is synthesised as before.
 	if body["name"] != "tfpfgen-<runid>-monitor-name" {
 		t.Errorf("name = %#v, want the invented name", body["name"])
+	}
+}
+
+func TestUnit_Adjust_ClassifyRefusalWiderGrammar(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name       string
+		body       string
+		field      string
+		candidates []string
+		declared   bool
+	}{
+		// A deserialiser naming the discriminator it could not find.
+		{"missing-property",
+			`{"message":"JSON parse error: Could not resolve subtype of [simple type, class Authentication]: missing type id property 'type' (for POJO property 'authentication')"}`,
+			"type", nil, false},
+		// A choice: any one of the listed fields satisfies the refusal.
+		{"at-least-one",
+			`{"errors":[{"defaultMessage":"At least one of the following is required: payload, query params or headers."}]}`,
+			"payload", []string{"payload", "query params", "headers"}, true},
+		// The word before an absence complaint, with nothing vouching for it
+		// as a wire property.
+		{"bare-absent", `{"title":"400 Bad Request\nendRepeat must be specified"}`, "endRepeat", nil, true},
+		{"bare-absent-qualified", `{"title":"400 Bad Request\nalertSuppressionWindow name must be specified"}`, "name", nil, true},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := classifyRefusal(&httpResult{status: 400, body: []byte(testCase.body)})
+			if got.kind != adjustmentAdd || got.field != testCase.field {
+				t.Fatalf("classify = %+v, want add %s", got, testCase.field)
+			}
+			if got.mustBeDeclared != testCase.declared {
+				t.Errorf("mustBeDeclared = %v, want %v", got.mustBeDeclared, testCase.declared)
+			}
+			if testCase.candidates != nil && !reflect.DeepEqual(got.candidates, testCase.candidates) {
+				t.Errorf("candidates = %v, want %v", got.candidates, testCase.candidates)
+			}
+		})
+	}
+}
+
+func TestUnit_Adjust_AddFieldPrefersWhatTheEntityDeclares(t *testing.T) {
+	t.Parallel()
+	known := map[string]strategy.SyntheticValueRules{
+		"payload": {Field: "payload"}, "queryParams": {Field: "queryParams"}, "repeat": {Field: "repeat"},
+	}
+	r := &runner{hints: map[string]map[string]strategy.SyntheticValueRules{"webhook": known}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "webhook"}}
+
+	// The first offered field the body lacks, in the entity's own spelling.
+	choice := parsedRefusal{kind: adjustmentAdd, field: "payload", candidates: []string{"payload", "query params", "headers"}, mustBeDeclared: true}
+	if got := r.addField(entity, map[string]any{"payload": "{}"}, choice, ""); got != "queryParams" {
+		t.Errorf("addField = %q, want queryParams", got)
+	}
+	// A loose sentence whose word is not a declared field falls back on a
+	// declared field the sentence names, and otherwise adds nothing.
+	loose := parsedRefusal{kind: adjustmentAdd, field: "conditions", mustBeDeclared: true}
+	if got := r.addField(entity, map[string]any{}, loose, "repeat conditions must be specified"); got != "repeat" {
+		t.Errorf("addField = %q, want the declared field the sentence names", got)
+	}
+	if got := r.addField(entity, map[string]any{}, loose, "conditions must be specified"); got != "" {
+		t.Errorf("addField = %q, want nothing for an undeclared word", got)
+	}
+	// A marked field is taken at its word even when undeclared: an API
+	// routinely requires a property the document omits.
+	marked := parsedRefusal{kind: adjustmentAdd, field: "loginAccountGroupId"}
+	if got := r.addField(entity, map[string]any{}, marked, ""); got != "loginAccountGroupId" {
+		t.Errorf("addField = %q, want the marked field", got)
+	}
+	// Without hints — a run with no strategy — the first absent candidate.
+	bare := &runner{}
+	if got := bare.addField(entity, map[string]any{"payload": 1}, choice, ""); got != "headers" {
+		t.Errorf("addField without hints = %q, want headers (query params carries a space)", got)
+	}
+}
+
+func TestUnit_Cycle_QuotedEnumFieldAndSegments(t *testing.T) {
+	t.Parallel()
+	hints := map[string]strategy.SyntheticValueRules{
+		"type": {Field: "type", Enum: []any{"generic"}},
+		"name": {Field: "name"},
+	}
+	body := map[string]any{"type": "generic", "name": "generic"}
+	field, value := quotedEnumField("Could not resolve type id 'generic' as a subtype of X", body, hints)
+	if field != "type" || value != "generic" {
+		t.Errorf("quotedEnumField = %q %q, want type generic", field, value)
+	}
+	if field, _ := quotedEnumField(`object "generic" not found`, map[string]any{"name": "generic"}, hints); field != "" {
+		t.Errorf("a quoted value under a non-enum field matched: %q", field)
+	}
+	if got := staticSegments("/connectors/{kind}/panorama"); !reflect.DeepEqual(got, []string{"connectors", "panorama"}) {
+		t.Errorf("staticSegments = %v", got)
 	}
 }

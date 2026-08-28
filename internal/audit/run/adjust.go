@@ -42,6 +42,7 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
 )
 
 // maxBodyCorrectionAttempts bounds one create-or-update attempt's adjustments. Combined
@@ -100,6 +101,14 @@ type parsedRefusal struct {
 	trigger    string
 	condGate   string
 	condVal    string
+	// candidates lists every field an add may satisfy the refusal with,
+	// first choice first, where the sentence offered more than one.
+	candidates []string
+	// mustBeDeclared marks an add read out of a looser sentence: the word
+	// before an absence complaint, with no "field" marker to vouch for it.
+	// Such a field is added only where the entity declares it; the
+	// sentence alone does not prove the word is a wire property.
+	mustBeDeclared bool
 }
 
 var (
@@ -124,6 +133,16 @@ var (
 	// as distinct from "what you sent is wrong": only absence is corrected by
 	// adding a value.
 	reAbsent = regexp.MustCompile(`(?i)\b(?:is required|is mandatory|must not be (?:null|empty|blank)|may not be (?:null|empty|blank)|cannot be (?:null|empty|blank)|must be (?:provided|specified|present)|missing)\b`)
+	// reMissingProperty matches a deserialiser naming the property it could
+	// not find, quoted — the shape a polymorphic body's discriminator is
+	// reported missing in.
+	reMissingProperty = regexp.MustCompile(`(?i)\bmissing (?:[\w-]+ )*property '([\w.]+)'`)
+	// reAtLeastOne matches a refusal offering a choice of fields, one of
+	// which has to be present; the list after the colon is the candidates.
+	reAtLeastOne = regexp.MustCompile(`(?i)\bat least one of (?:the following )?(?:is |are )?(?:required|mandatory)\s*[:\-]?\s*(.+)`)
+	// reBareAbsent matches the word before an absence complaint, in a
+	// sentence carrying no "field" marker: "endRepeat must be specified".
+	reBareAbsent = regexp.MustCompile(`(?i)\b([A-Za-z][\w.]*)\s+(?:must be (?:specified|provided|present|set)|is required|is mandatory|cannot be (?:null|empty|blank)|must not be (?:null|empty|blank)|may not be (?:null|empty|blank))\b`)
 )
 
 // classifyRefusal reads a 4xx response body and decides what to change. The
@@ -147,19 +166,119 @@ func classifyRefusal(res *httpResult) parsedRefusal {
 	if m := reRequired.FindStringSubmatch(message); m != nil {
 		return parsedRefusal{kind: adjustmentAdd, field: cleanField(m[1]), condGate: m[2], condVal: cleanField(m[3])}
 	}
+	// A choice of fields is read before the bare "the X is required", which
+	// would otherwise take "the following" for a field name.
+	if m := reAtLeastOne.FindStringSubmatch(message); m != nil {
+		if candidates := listedCandidates(m[1]); len(candidates) > 0 {
+			return parsedRefusal{kind: adjustmentAdd, field: candidates[0], candidates: candidates, mustBeDeclared: true}
+		}
+	}
+	if m := reMissingProperty.FindStringSubmatch(message); m != nil {
+		return parsedRefusal{kind: adjustmentAdd, field: leafField(m[1])}
+	}
 	if m := reFieldNamed.FindStringSubmatch(message); m != nil && reAbsent.MatchString(m[2]) {
 		return parsedRefusal{kind: adjustmentAdd, field: leafField(m[1])}
 	}
 	if m := reTheRequired.FindStringSubmatch(message); m != nil {
 		return parsedRefusal{kind: adjustmentAdd, field: leafField(m[1])}
 	}
-	// Checked last, because it is the loosest: any sentence at all can be read
-	// as "<field>: <complaint>", so it must not pre-empt a grammar that names
-	// two fields or a gate.
+	// Checked after every marked grammar, because it is loose: any sentence
+	// at all can be read as "<field>: <complaint>", so it must not pre-empt a
+	// grammar that names two fields or a gate.
 	if m := reFieldSaid.FindStringSubmatch(message); m != nil && reAbsent.MatchString(m[2]) {
 		return parsedRefusal{kind: adjustmentAdd, field: leafField(m[1])}
 	}
+	if m := reBareAbsent.FindStringSubmatch(message); m != nil {
+		return parsedRefusal{kind: adjustmentAdd, field: leafField(m[1]), mustBeDeclared: true}
+	}
 	return parsedRefusal{kind: adjustmentNone}
+}
+
+// listedCandidates splits the field list a choice refusal ends with — "a, b
+// or c" — into its members, in the order offered.
+func listedCandidates(list string) []string {
+	list = strings.TrimRight(strings.TrimSpace(list), ".")
+	list = strings.ReplaceAll(list, " or ", ",")
+	list = strings.ReplaceAll(list, " and ", ",")
+	var out []string
+	for _, part := range strings.Split(list, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
+
+// declaredSpelling answers the wire name an entity declares for a field a
+// refusal spelt in its own words — "query params" for queryParams — comparing
+// with case and punctuation removed. Empty when nothing declared matches.
+func declaredSpelling(candidate string, known map[string]strategy.SyntheticValueRules) string {
+	wanted := lettersOf(candidate)
+	if wanted == "" {
+		return ""
+	}
+	names := make([]string, 0, len(known))
+	for name := range known {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if lettersOf(name) == wanted {
+			return name
+		}
+	}
+	return ""
+}
+
+// lettersOf lower-cases a name and drops everything but letters and digits.
+func lettersOf(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(s) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// addField settles which field an add puts into the body: the first candidate
+// the entity declares and the body lacks, spelt as the entity declares it. A
+// refusal that names a field with a marker vouching for it is taken at its
+// word even where nothing declared matches, because an API routinely
+// requires a property the document omits; one read out of a looser sentence
+// is not, and falls back on any declared field the sentence names before
+// giving up.
+func (r *runner) addField(entity *entityState, body map[string]any, act parsedRefusal, message string) string {
+	candidates := act.candidates
+	if len(candidates) == 0 {
+		candidates = []string{act.field}
+	}
+	known := r.hints[entity.plan.Entity]
+	if known == nil {
+		for _, c := range candidates {
+			if !strings.Contains(c, ".") && !strings.Contains(c, " ") && !present(body, c) {
+				return c
+			}
+		}
+		return ""
+	}
+	for _, c := range candidates {
+		if declared := declaredSpelling(c, known); declared != "" && !present(body, declared) {
+			return declared
+		}
+	}
+	if !act.mustBeDeclared {
+		if c := candidates[0]; !strings.Contains(c, ".") && !strings.Contains(c, " ") && !present(body, c) {
+			return c
+		}
+		return ""
+	}
+	for _, named := range declaredFieldsNamedIn(message, known) {
+		if !present(body, named) {
+			return named
+		}
+	}
+	return ""
 }
 
 // leafField is the last segment of a dotted refusal path, which is the name
@@ -301,9 +420,17 @@ func (r *runner) correctCreateBodyRecording(ctx context.Context, entity *entityS
 			continue
 		}
 		// The grammar could not correct the refusal. Before giving up, try
-		// value-cycling: a free-form conditional refusal that names an enum
-		// field the entity declares is often satisfied by another of that
-		// field's values.
+		// the entity's own name for a discriminator value the API refused,
+		// then value-cycling: a free-form conditional refusal that names an
+		// enum field the entity declares is often satisfied by another of
+		// that field's values.
+		sobj, sres, corrected, err := r.retryCollectionSegments(ctx, entity, rec, body, held, res, applied)
+		if err != nil {
+			return bodyCorrection{}, err
+		}
+		if corrected {
+			return bodyCorrection{obj: sobj, res: sres, body: body, bodyCorrected: true}, nil
+		}
 		cobj, cres, corrected, err := r.retryAcrossValues(ctx, entity, rec, body, held, res, applied)
 		if err != nil {
 			return bodyCorrection{}, err
@@ -348,13 +475,14 @@ func (r *runner) applyAdjustment(ctx context.Context, entity *entityState, body 
 	act := classifyRefusal(res)
 	switch act.kind {
 	case adjustmentAdd:
-		if strings.Contains(act.field, ".") || applied["a:"+act.field] || present(body, act.field) {
+		field := r.addField(entity, body, act, refusalMessage(res.body))
+		if field == "" || applied["a:"+field] {
 			return nil, false
 		}
-		body[act.field] = r.synthesiseField(entity, act.field)
-		applied["a:"+act.field] = true
+		body[field] = r.synthesiseField(entity, field)
+		applied["a:"+field] = true
 		return []pendingAdd{{
-			field: act.field, condGate: act.condGate, condVal: act.condVal, excerpt: res.excerpt,
+			field: field, condGate: act.condGate, condVal: act.condVal, excerpt: res.excerpt,
 		}}, true
 	case adjustmentRequires:
 		if strings.Contains(act.field, ".") || applied["a:"+act.field] || present(body, act.field) {

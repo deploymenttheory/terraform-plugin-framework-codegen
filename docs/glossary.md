@@ -240,7 +240,10 @@ single recorded exception.
 - Audit plan tokens: `<runid>` is the run-id placeholder execution
   substitutes into synthesised names; `${VAR}` marks an operator input
   read from the named environment variable at execution time;
-  `$created:<entity>` is the id of an object the audit itself created.
+  `$created:<entity>` is the id of an object the audit itself created;
+  `$borrow:<collection path>` is the id of an object the API already
+  serves at that path, read once per run — the value synthesis binds to a
+  field whose name says it references another object.
 - Operator environment variables a generated provider reads:
   `<PROVIDER>_*` — the uppercased provider name, bare, e.g.
   `THOUSANDEYES_API_TOKEN`. The earlier `TF_<PROVIDER>_*` spelling is

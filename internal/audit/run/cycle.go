@@ -15,6 +15,7 @@ package run
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -237,4 +238,107 @@ func isWordByte(b byte) bool {
 		(b >= '0' && b <= '9') ||
 		(b >= 'a' && b <= 'z') ||
 		(b >= 'A' && b <= 'Z')
+}
+
+// reQuotedValue matches a value a refusal quotes, in either quote style.
+var reQuotedValue = regexp.MustCompile(`'([^']+)'|"([^"]+)"`)
+
+// retryCollectionSegments corrects a refusal of a documented discriminator
+// value by trying the entity's own name for it. A document that declares one
+// enum for several sibling entities — every connector's type spelt "generic",
+// every operation's "webhook" — is refused by the API with the value quoted,
+// and the value it wants is the one the entity's collection path already
+// spells: the connector under /connectors/panorama is of type panorama. The
+// segments are tried last first, the most specific being the entity's own.
+//
+// It acts only when the refusal quotes a value the body carries under a
+// top-level enum field, so a quoted id or name never triggers it. An accepted
+// segment is recorded as that field's value evidence: the documented value
+// refused, the segment accepted, for the values observation to compile into
+// the document's enum.
+func (r *runner) retryCollectionSegments(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, held string, refusal *httpResult, applied map[string]bool) (*createdObject, *httpResult, bool, error) {
+	hints := r.hints[entity.plan.Entity]
+	if hints == nil || refusal == nil {
+		return nil, nil, false, nil
+	}
+	field, current := quotedEnumField(refusalMessage(refusal.body), body, hints)
+	if field == "" || field == held || applied["s:"+field] {
+		return nil, nil, false, nil
+	}
+	applied["s:"+field] = true
+
+	segments := staticSegments(rec.collectionPath)
+	for i := len(segments) - 1; i >= 0; i-- {
+		segment := segments[i]
+		if segment == current {
+			continue
+		}
+		body[field] = segment
+		obj, res, err := r.createObject(ctx, entity, rec, body)
+		if err != nil {
+			return nil, nil, false, err
+		}
+		if obj != nil {
+			values := entity.ev.valuesFor(field)
+			values.Accepted = append(values.Accepted, segment)
+			if enumMember(hints[field], current) {
+				values.Rejected = append(values.Rejected, current)
+			}
+			entity.ev.valuesProof[field] = append(entity.ev.valuesProof[field], refusal.excerpt, res.excerpt)
+			return obj, res, true, nil
+		}
+		if res == nil || !res.refused() {
+			break
+		}
+	}
+	body[field] = typedGate(hints[field], current)
+	return nil, nil, false, nil
+}
+
+// quotedEnumField finds the top-level enum field whose current value the
+// refusal quotes, and that value; empty when the refusal quotes none.
+func quotedEnumField(message string, body map[string]any, hints map[string]strategy.SyntheticValueRules) (string, string) {
+	for _, m := range reQuotedValue.FindAllStringSubmatch(message, -1) {
+		quoted := m[1]
+		if quoted == "" {
+			quoted = m[2]
+		}
+		fields := make([]string, 0, len(body))
+		for f := range body {
+			fields = append(fields, f)
+		}
+		sort.Strings(fields)
+		for _, f := range fields {
+			h, declared := hints[f]
+			if !declared || len(h.Enum) == 0 {
+				continue
+			}
+			if s, ok := body[f].(string); ok && s == quoted {
+				return f, quoted
+			}
+		}
+	}
+	return "", ""
+}
+
+// enumMember reports whether a hint's declared enum carries the value, as
+// text.
+func enumMember(h strategy.SyntheticValueRules, value string) bool {
+	for _, v := range h.Enum {
+		if fmt.Sprint(v) == value {
+			return true
+		}
+	}
+	return false
+}
+
+// staticSegments lists a path's non-parameter segments in order.
+func staticSegments(path string) []string {
+	var out []string
+	for _, segment := range strings.Split(path, "/") {
+		if segment != "" && !strings.HasPrefix(segment, "{") {
+			out = append(out, segment)
+		}
+	}
+	return out
 }
