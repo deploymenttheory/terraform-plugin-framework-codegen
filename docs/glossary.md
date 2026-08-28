@@ -1,7 +1,8 @@
 # Glossary
 
 Every domain term in this toolkit was individually approved by the
-repository owner. A term not in this table may not be introduced — present
+repository owner. `docs/naming-standard.md` is the rule set a name has to
+pass before it is proposed for this table. A term not in this table may not be introduced — present
 options to the owner first, record the decision here, then use it. The
 retired terms cassette, blueprint and doctor may not reappear. Retirement
 covers the domain noun and not the English word: code that records a reason,
