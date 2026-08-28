@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Correcting a create the API refused",
+    "output": "refused-body.sequence.html",
+    "viewBox": [
+      1050,
+      560
+    ],
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "first-attempt",
+        "label": "The first attempt",
+        "focus": [
+          "executor",
+          "api"
+        ],
+        "note": "The body is built from the document. The document says interval is optional; the API does not."
+      },
+      {
+        "id": "reading-refusal",
+        "label": "Reading the refusal",
+        "focus": [
+          "parser",
+          "executor"
+        ],
+        "note": "Every refusal begins `field <name> ...`, so one expression pulls the offending field out of it."
+      },
+      {
+        "id": "recorded",
+        "label": "What is recorded",
+        "focus": [
+          "executor",
+          "observations"
+        ],
+        "note": "The finding is kept with the request and response that prove it, redacted."
+      }
+    ]
+  },
+  "participants": [
+    {
+      "id": "executor",
+      "type": "backend",
+      "label": "audit run",
+      "sublabel": "the executor"
+    },
+    {
+      "id": "parser",
+      "type": "security",
+      "label": "Parser",
+      "sublabel": "the grammar"
+    },
+    {
+      "id": "api",
+      "type": "external",
+      "label": "Live API",
+      "sublabel": "a sandbox tenant"
+    },
+    {
+      "id": "observations",
+      "type": "database",
+      "label": "observations/",
+      "sublabel": "with proof"
+    }
+  ],
+  "segments": [
+    {
+      "from": 152,
+      "to": 272,
+      "label": "Refused as sent"
+    },
+    {
+      "from": 278,
+      "to": 399,
+      "label": "Corrected and retried"
+    },
+    {
+      "from": 405,
+      "to": 483,
+      "label": "Recorded"
+    }
+  ],
+  "messages": [
+    {
+      "id": "minimal",
+      "from": "executor",
+      "to": "api",
+      "y": 170,
+      "label": "POST the minimal body",
+      "variant": "emphasis"
+    },
+    {
+      "id": "refused",
+      "from": "api",
+      "to": "executor",
+      "y": 212,
+      "label": "400 field interval is required",
+      "variant": "security"
+    },
+    {
+      "id": "classify",
+      "from": "executor",
+      "to": "parser",
+      "y": 254,
+      "label": "classify the refusal",
+      "variant": "default"
+    },
+    {
+      "id": "instruction",
+      "from": "parser",
+      "to": "executor",
+      "y": 296,
+      "label": "add interval",
+      "variant": "return",
+      "note": "One of four: add, remove, requires, borrow. Anything else stops the entity."
+    },
+    {
+      "id": "retry",
+      "from": "executor",
+      "to": "api",
+      "y": 339,
+      "label": "POST again, interval added",
+      "variant": "emphasis"
+    },
+    {
+      "id": "accepted",
+      "from": "api",
+      "to": "executor",
+      "y": 381,
+      "label": "201 created",
+      "variant": "return"
+    },
+    {
+      "id": "record",
+      "from": "executor",
+      "to": "observations",
+      "y": 423,
+      "label": "requiredByAPI on interval",
+      "variant": "emphasis",
+      "note": "The document called it optional. The API required it. That difference is the finding."
+    },
+    {
+      "id": "cleanup",
+      "from": "executor",
+      "to": "api",
+      "y": 465,
+      "label": "DELETE what was created",
+      "variant": "security"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "executor",
+      "from": 156,
+      "to": 479,
+      "type": "backend"
+    },
+    {
+      "participant": "parser",
+      "from": 244,
+      "to": 306,
+      "type": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "The refusal is read, not guessed",
+      "items": [
+        "The fake API and the executor share one sentence form, so a parser can pull the field name out with one expression",
+        "A refusal that fits no clause stops the entity rather than inventing a fix"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Four corrections, and no more",
+      "items": [
+        "add a field the API named",
+        "remove one it rejected",
+        "add a field another requires",
+        "borrow a real id for a reference"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "When the grammar cannot read it",
+      "items": [
+        "A free-form refusal that still names a declared field is retried across that field's other enum values",
+        "Which combinations were accepted and refused is itself the evidence a conditional rule is inferred from"
+      ]
+    }
+  ]
+}

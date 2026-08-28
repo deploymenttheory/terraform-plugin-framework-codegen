@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "How a document becomes a provider",
+    "output": "pipeline.dataflow.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      590
+    ],
+    "views": [
+      {
+        "id": "evidence",
+        "label": "What the audit learns",
+        "focus": [
+          "imported",
+          "observations",
+          "summary"
+        ],
+        "note": "The audit exercises a live API and records what it accepted or refused, with a redacted request and response as proof."
+      },
+      {
+        "id": "decision",
+        "label": "What a human decides",
+        "focus": [
+          "observations",
+          "corrections",
+          "revised"
+        ],
+        "note": "An observation becomes a proposed correction. Only the ones a human accepts reach the revised document."
+      },
+      {
+        "id": "generation",
+        "label": "What is generated",
+        "focus": [
+          "revised",
+          "sdk-tree",
+          "provider-tree"
+        ],
+        "note": "One document is the source of truth for both the SDK and the provider."
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "Vendor"
+    },
+    {
+      "label": "Pinned"
+    },
+    {
+      "label": "Audited"
+    },
+    {
+      "label": "Corrected"
+    },
+    {
+      "label": "Generated"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "vendor-doc",
+      "type": "external",
+      "label": "Vendor document",
+      "sublabel": "as published",
+      "stage": 0,
+      "row": 1
+    },
+    {
+      "id": "imported",
+      "type": "database",
+      "label": "imported.yaml",
+      "sublabel": "pinned bytes",
+      "stage": 1,
+      "row": 1,
+      "tag": "evidence"
+    },
+    {
+      "id": "pin",
+      "type": "security",
+      "label": "imported.pin.json",
+      "sublabel": "hash + source",
+      "stage": 1,
+      "row": 2
+    },
+    {
+      "id": "observations",
+      "type": "database",
+      "label": "observations/",
+      "sublabel": "what the API did",
+      "stage": 2,
+      "row": 0,
+      "tag": "with proof"
+    },
+    {
+      "id": "summary",
+      "type": "database",
+      "label": "summary.json",
+      "sublabel": "per-entity outcome",
+      "stage": 2,
+      "row": 2
+    },
+    {
+      "id": "corrections",
+      "type": "security",
+      "label": "corrections/",
+      "sublabel": "RFC 6902 + why",
+      "stage": 3,
+      "row": 0,
+      "tag": "a human decides"
+    },
+    {
+      "id": "revised",
+      "type": "database",
+      "label": "revised.yaml",
+      "sublabel": "source of truth",
+      "stage": 3,
+      "row": 2,
+      "tag": "derived"
+    },
+    {
+      "id": "sdk-tree",
+      "type": "cloud",
+      "label": "internal/sdk",
+      "sublabel": "generated client",
+      "stage": 4,
+      "row": 0
+    },
+    {
+      "id": "provider-tree",
+      "type": "cloud",
+      "label": "Provider tree",
+      "sublabel": "generated code",
+      "stage": 4,
+      "row": 2,
+      "tag": "+ manifest.json"
+    }
+  ],
+  "flows": [
+    {
+      "id": "import",
+      "from": "vendor-doc",
+      "to": "imported",
+      "label": "spec import",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "pin-it",
+      "from": "vendor-doc",
+      "to": "pin",
+      "label": "pin by hash"
+    },
+    {
+      "id": "record",
+      "from": "imported",
+      "to": "observations",
+      "label": "audit run",
+      "variant": "emphasis"
+    },
+    {
+      "id": "report",
+      "from": "imported",
+      "to": "summary",
+      "label": "per-entity outcome"
+    },
+    {
+      "id": "propose",
+      "from": "observations",
+      "to": "corrections",
+      "label": "spec revise proposes",
+      "variant": "emphasis",
+      "labelDy": -23
+    },
+    {
+      "id": "accept",
+      "from": "corrections",
+      "to": "revised",
+      "label": "accepted only",
+      "variant": "security"
+    },
+    {
+      "id": "sdk",
+      "from": "revised",
+      "to": "sdk-tree",
+      "label": "sdk generate",
+      "variant": "emphasis"
+    },
+    {
+      "id": "provider",
+      "from": "revised",
+      "to": "provider-tree",
+      "label": "provider generate",
+      "variant": "emphasis",
+      "labelDy": 30,
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "The document is evidence",
+      "items": [
+        "Pinned by hash and never corrected in place",
+        "A correction is committed separately, with a justification and a pointer to the observation that proves it"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Only the audit touches a network",
+      "items": [
+        "It creates and deletes real objects in a sandbox tenant",
+        "It learns what the API accepts, not what the document claims",
+        "Cleanup runs at both ends of every run"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Generation reads one document",
+      "items": [
+        "The revised spec is the source of truth for both the SDK and the provider",
+        "The provider is resolved onto the SDK with go/types; whatever it cannot carry lands in unsupported.json"
+      ]
+    }
+  ]
+}

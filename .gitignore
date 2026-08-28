@@ -16,3 +16,6 @@ coverage.html
 # Agent worktrees and local session state.
 .claude/
 .worktrees/
+
+# Agent skills, installed from skills-lock.json by `npx skills add`.
+.agents/
