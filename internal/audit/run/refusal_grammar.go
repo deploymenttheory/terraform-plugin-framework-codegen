@@ -46,6 +46,12 @@ var (
 	// reUnwanted matches the complaints that mean "you sent this and must
 	// not", the opposite of reAbsent: only presence is corrected by removal.
 	reUnwanted = regexp.MustCompile(`(?i)^\s*(?:must be null|is not allowed|not allowed|should not be (?:set|present)|cannot be set|must not be set|unknown (?:property|field)|unrecognized (?:property|field))\b`)
+	// reExactlyOne matches a refusal that two fields were sent where the
+	// API takes only one of them: the second named field is removed.
+	reExactlyOne = regexp.MustCompile(`(?i)\b(?:exactly|only|at most) (?:1|one) (?:field |of (?:them |these )?)?(?:must|may|can|should) be (?:defined|set|specified|provided|present) (?:between|among|of|from) ([\w.]+) (?:and|or) ([\w.]+)`)
+	// rePositive matches a refusal of a number that is not positive: the
+	// field takes the smallest positive value instead.
+	rePositive = regexp.MustCompile(`(?i)\b([\w.]+) must be (?:a )?(?:positive|greater than (?:0|zero))`)
 	// reBareAbsent matches the word before an absence complaint, in a
 	// sentence carrying no "field" marker: "endRepeat must be specified".
 	reBareAbsent = regexp.MustCompile(`(?i)\b([A-Za-z][\w.]*)\s+(?:must be (?:specified|provided|present|set)|is required|is mandatory|cannot be (?:null|empty|blank)|must not be (?:null|empty|blank)|may not be (?:null|empty|blank))\b`)
@@ -71,6 +77,12 @@ func classifyRefusal(res *httpResult) parsedRefusal {
 	}
 	if m := reRequired.FindStringSubmatch(message); m != nil {
 		return parsedRefusal{kind: adjustmentAdd, field: cleanField(m[1]), condGate: m[2], condVal: cleanField(m[3])}
+	}
+	if m := reExactlyOne.FindStringSubmatch(message); m != nil {
+		return parsedRefusal{kind: adjustmentRemove, field: leafField(m[2]), mutuallyExclusiveWith: leafField(m[1])}
+	}
+	if m := rePositive.FindStringSubmatch(message); m != nil {
+		return parsedRefusal{kind: adjustmentRevalue, field: leafField(m[1]), revalue: positiveValue}
 	}
 	// A choice of fields is read before the bare "the X is required", which
 	// would otherwise take "the following" for a field name.

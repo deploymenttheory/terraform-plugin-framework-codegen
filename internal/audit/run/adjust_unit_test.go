@@ -611,3 +611,54 @@ func TestUnit_Adjust_ARefusedChoiceMovesOnToTheNextOffered(t *testing.T) {
 		t.Errorf("withoutAdd = %+v", adds)
 	}
 }
+
+func TestUnit_Adjust_ExactlyOneOfAPairRemovesTheSecond(t *testing.T) {
+	t.Parallel()
+	got := classifyRefusal(&httpResult{status: 400, body: []byte(`{"title":"minimumSources: Exactly 1 field must be defined between minimumSources and minimumSourcesPct"}`)})
+	if got.kind != adjustmentRemove || got.field != "minimumSourcesPct" || got.mutuallyExclusiveWith != "minimumSources" {
+		t.Fatalf("classify = %+v, want remove minimumSourcesPct beside minimumSources", got)
+	}
+	r := &runner{}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "rule"}}
+	body := map[string]any{"minimumSources": 10, "minimumSourcesPct": 99}
+	if _, ok := r.applyAdjustment(context.Background(), entity, body, &httpResult{status: 400,
+		body: []byte(`{"title":"Exactly 1 field must be defined between minimumSources and minimumSourcesPct"}`)}, map[string]bool{}, false); !ok {
+		t.Fatal("the pair was not reduced")
+	}
+	if _, still := body["minimumSourcesPct"]; still || body["minimumSources"] != 10 {
+		t.Errorf("body = %v, want the first of the pair alone", body)
+	}
+	// With only one of the pair present the sentence is about something
+	// else, and removing the one present would leave neither.
+	lone := map[string]any{"minimumSourcesPct": 99}
+	if _, ok := r.applyAdjustment(context.Background(), entity, lone, &httpResult{status: 400,
+		body: []byte(`{"title":"Exactly 1 field must be defined between minimumSources and minimumSourcesPct"}`)}, map[string]bool{}, false); ok {
+		t.Error("a lone field of the pair was removed")
+	}
+}
+
+func TestUnit_Adjust_ANumberRefusedAsNotPositiveTakesTheSmallestPositiveValue(t *testing.T) {
+	t.Parallel()
+	got := classifyRefusal(&httpResult{status: 400, body: []byte(`{"title":"400 Bad Request\nduration must be a positive value"}`)})
+	if got.kind != adjustmentRevalue || got.field != "duration" || got.revalue != positiveValue {
+		t.Fatalf("classify = %+v, want a positive revalue of duration", got)
+	}
+	minimum := 30.0
+	hints := map[string]strategy.SyntheticValueRules{
+		"duration": {Field: "duration", Type: "integer"},
+		"ratio":    {Field: "ratio", Type: "number", Minimum: &minimum},
+	}
+	r := &runner{hints: map[string]map[string]strategy.SyntheticValueRules{"window": hints}}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "window"}}
+	body := map[string]any{"duration": 0, "ratio": -1.5}
+	refusal := &httpResult{status: 400, body: []byte(`{"title":"duration must be a positive value"}`)}
+	if _, ok := r.applyAdjustment(context.Background(), entity, body, refusal, map[string]bool{}, false); !ok || body["duration"] != int64(1) {
+		t.Errorf("duration = %#v, want 1", body["duration"])
+	}
+	if v, ok := revalued(positiveValue, -1.5, hints["ratio"]); !ok || v != 30.0 {
+		t.Errorf("a bounded number = %#v, want the declared minimum", v)
+	}
+	if _, ok := revalued(positiveValue, 5, hints["duration"]); ok {
+		t.Error("a positive value was replaced")
+	}
+}

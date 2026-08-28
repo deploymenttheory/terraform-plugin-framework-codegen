@@ -478,6 +478,27 @@ func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T)
             example:
               agentId: "125"
               sourceIpAddress: 1.1.1.1
+        authentication:
+          type: object
+          discriminator:
+            propertyName: type
+          oneOf:
+            - type: object
+              required: [token, type]
+              properties:
+                token:
+                  type: string
+                type:
+                  type: string
+                  enum: [other-token]
+            - type: object
+              required: [username, type]
+              properties:
+                username:
+                  type: string
+                type:
+                  type: string
+                  enum: [pan-key-gen]
         unshaped:
           type: array
         tally:
@@ -494,6 +515,9 @@ func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T)
 		// An object's own example is a whole element; the smaller form is
 		// built from the properties instead.
 		"agents": []any{map[string]any{"agentId": "sample-agentId"}},
+		// A union declared as an object with no properties of its own is
+		// its first branch.
+		"authentication": map[string]any{"token": "sample-token", "type": "other-token"},
 	}
 	wantAttested := map[string]any{
 		// Every member the document states a value for, none it does not.
@@ -502,7 +526,8 @@ func TestUnit_Plan_CompositeValuesCarryTheDocumentsAttestedMembers(t *testing.T)
 		// not a value the document attests, in either form.
 		"context": []any{map[string]any{"dataSourceId": "VIRTUAL_AGENT"}},
 		// The whole example, optional members included.
-		"agents": []any{map[string]any{"agentId": "125", "sourceIpAddress": "1.1.1.1"}},
+		"agents":         []any{map[string]any{"agentId": "125", "sourceIpAddress": "1.1.1.1"}},
+		"authentication": map[string]any{"token": "sample-token", "type": "other-token"},
 	}
 	if !reflect.DeepEqual(minimal, wantMinimal) {
 		t.Errorf("minimal composites = %#v\nwant %#v", minimal, wantMinimal)

@@ -43,6 +43,7 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
 )
 
 // maxBodyCorrectionAttempts bounds one create-or-update attempt's adjustments. Combined
@@ -91,6 +92,18 @@ const (
 	adjustmentRemove
 	adjustmentRequires
 	adjustmentBorrow
+	// adjustmentRevalue keeps the field and replaces its value with one of
+	// the shape the refusal asked for.
+	adjustmentRevalue
+)
+
+// revalueRule names how a refused value is replaced.
+type revalueRule int
+
+const (
+	// positiveValue replaces a number that is not positive with the
+	// smallest positive one the document admits.
+	positiveValue revalueRule = iota + 1
 )
 
 // parsedRefusal is one parsed instruction from a refusal.
@@ -104,6 +117,11 @@ type parsedRefusal struct {
 	// candidates lists every field an add may satisfy the refusal with,
 	// first choice first, where the sentence offered more than one.
 	candidates []string
+	// mutuallyExclusiveWith names the field the refusal said this one may
+	// not be sent beside, on a removal read out of an exactly-one sentence.
+	mutuallyExclusiveWith string
+	// revalue names the replacement rule on a revalue.
+	revalue revalueRule
 	// mustBeDeclared marks an add read out of a looser sentence: the word
 	// before an absence complaint, with no "field" marker to vouch for it.
 	// Such a field is added only where the entity declares it; the
@@ -416,8 +434,25 @@ func (r *runner) applyAdjustment(ctx context.Context, entity *entityState, body 
 			r.recordAdjustment(entity, infer.AdjustRequires, act.field, act.trigger, "")
 		}
 		return nil, true
+	case adjustmentRevalue:
+		current, has := body[act.field]
+		if !has || applied["v:"+act.field] {
+			return nil, false
+		}
+		replacement, ok := revalued(act.revalue, current, r.hints[entity.plan.Entity][act.field])
+		if !ok {
+			return nil, false
+		}
+		body[act.field] = replacement
+		applied["v:"+act.field] = true
+		return nil, true
 	case adjustmentRemove:
 		if applied["r:"+act.field] {
+			return nil, false
+		}
+		if act.mutuallyExclusiveWith != "" && !present(body, act.mutuallyExclusiveWith) {
+			// Only one of the pair was sent, so it is not the pair the API
+			// objects to; removing the one present would leave neither.
 			return nil, false
 		}
 		if strings.ContainsAny(act.field, ".[") {
@@ -581,4 +616,25 @@ func splitIndex(segment string) (string, int, bool) {
 		return segment, -1, false
 	}
 	return segment[:open], index, true
+}
+
+// revalued answers the replacement a revalue rule makes for a refused value,
+// and false where the rule does not apply to it.
+func revalued(rule revalueRule, current any, h strategy.SyntheticValueRules) (any, bool) {
+	switch rule {
+	case positiveValue:
+		n, ok := asFloat(current)
+		if !ok || n > 0 {
+			return nil, false
+		}
+		least := 1.0
+		if h.Minimum != nil && *h.Minimum > least {
+			least = *h.Minimum
+		}
+		if _, isFloat := current.(float64); isFloat && h.Type != "integer" {
+			return least, true
+		}
+		return int64(least), true
+	}
+	return nil, false
 }

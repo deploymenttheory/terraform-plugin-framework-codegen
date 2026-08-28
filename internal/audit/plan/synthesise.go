@@ -220,12 +220,14 @@ func (sy valueSynthesiser) typeValue(field string, r *specmodel.Schema, depth in
 			return []any{}, true
 		}
 		return []any{v}, true
+	// A union declared as an object with no properties of its own is its
+	// branches: the first is the value, as the document lists them.
+	case len(r.Properties) == 0 && len(r.AllOf) == 0 && len(r.OneOf) > 0:
+		return sy.value(field, r.OneOf[0], depth+1, false)
+	case len(r.Properties) == 0 && len(r.AllOf) == 0 && len(r.AnyOf) > 0:
+		return sy.value(field, r.AnyOf[0], depth+1, false)
 	case r.Type == "object" || len(r.Properties) > 0 || len(r.AllOf) > 0:
 		return sy.objectValue(r, depth)
-	case len(r.OneOf) > 0:
-		return sy.value(field, r.OneOf[0], depth+1, false)
-	case len(r.AnyOf) > 0:
-		return sy.value(field, r.AnyOf[0], depth+1, false)
 	default:
 		return nil, false
 	}
