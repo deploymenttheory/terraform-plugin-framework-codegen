@@ -354,6 +354,11 @@ type Attribute struct {
 	// API enforces — a URL, a dotted identifier — and an invented string of
 	// the right type is refused by the API for the wrong reason.
 	Example any `json:"example,omitempty"`
+	// Normalisation names how the API stores the value in a spelling of
+	// its own (x-tfpfgen-normalisation): generated state keeps the
+	// configured spelling when the answer is the stored form of it. Empty
+	// where the API answers what it was sent.
+	Normalisation string `json:"normalisation,omitempty"`
 	// WriteOnly marks a property the API accepts on write and never
 	// returns.
 	WriteOnly bool `json:"write_only,omitempty"`

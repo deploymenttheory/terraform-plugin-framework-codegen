@@ -77,12 +77,13 @@ const (
 	KindDerivedDefault Kind = "derivedDefault"
 
 	// KindNormalisation: the server stored a transform of the accepted
-	// value — case-folded, trimmed, reformatted — and the Value is the
-	// normalised form that came back. Learned when the read-back differs
-	// from what was sent but is derivable from it. No mechanical
-	// correction today; it is recorded so provider semantic-equality
-	// handling can be configured from evidence, and so the finding is not
-	// misread as immutability or a server-forced value.
+	// value — case-folded, trimmed, extended, the same instant, reordered
+	// — and the Value is the normalised form that came back. Learned when
+	// the read-back differs from what was sent but is derivable from it.
+	// Becomes an x-tfpfgen-normalisation correction naming the kind, read
+	// back from the excerpts, so generated state keeps the configured
+	// spelling; recorded also so the finding is not misread as
+	// immutability or a server-forced value.
 	KindNormalisation Kind = "normalisation"
 
 	// KindIgnoredOnUpdate: an update accepted a new value with a success

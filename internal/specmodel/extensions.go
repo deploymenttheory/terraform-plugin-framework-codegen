@@ -2,6 +2,8 @@ package specmodel
 
 import (
 	"fmt"
+
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"sort"
 	"strings"
 	"time"
@@ -40,6 +42,11 @@ const (
 	// ExtServerForced marks a property the server overwrites regardless
 	// of what was sent.
 	ExtServerForced = "x-tfpfgen-server-forced"
+	// ExtNormalisation names how the server stores a property in a spelling
+	// of its own — case-folded, trimmed, extended, the same instant, or a
+	// list reordered — so generated state keeps the configured spelling
+	// when the answer is the stored form of it.
+	ExtNormalisation = "x-tfpfgen-normalisation"
 	// ExtServerDefault carries the value the server stores for a writable
 	// property the request omitted. It is deliberately not OpenAPI's own
 	// `default`, which declares what the document says should happen; this
@@ -157,6 +164,7 @@ var extensionParsers = map[string]func(n *yaml.Node, at string) (any, error){
 	ExtValues:             extBool,
 	ExtVolatile:           extBool,
 	ExtServerForced:       extBool,
+	ExtNormalisation:      extNormalisation,
 	ExtServerDefault:      extScalar,
 	ExtIgnoredOnUpdate:    extBool,
 	ExtValidWhen:          extValidWhen,
@@ -239,6 +247,14 @@ func extNonEmptyString(n *yaml.Node, at string) (any, error) {
 		return nil, fmt.Errorf("%s: must be a non-empty name, got %q", at, n.Value)
 	}
 	return n.Value, nil
+}
+
+// extNormalisation accepts one of the normalisation kinds.
+func extNormalisation(n *yaml.Node, at string) (any, error) {
+	if n.Kind == yaml.ScalarNode && observe.NormalisationKinds[n.Value] {
+		return n.Value, nil
+	}
+	return nil, fmt.Errorf("%s: must be one of \"case-folded\", \"trimmed\", \"extended\", \"same-instant\" or \"reordered\", got %q", at, n.Value)
 }
 
 // nodeKind names a YAML node kind for an error message.
@@ -562,6 +578,12 @@ func (e Extensions) Values() (bool, bool) { return e.boolKey(ExtValues) }
 
 // Volatile reads x-tfpfgen-volatile.
 func (e Extensions) Volatile() (bool, bool) { return e.boolKey(ExtVolatile) }
+
+// Normalisation reads x-tfpfgen-normalisation.
+func (e Extensions) Normalisation() (string, bool) {
+	kind, ok := e[ExtNormalisation].(string)
+	return kind, ok
+}
 
 // ServerForced reads x-tfpfgen-server-forced.
 func (e Extensions) ServerForced() (bool, bool) { return e.boolKey(ExtServerForced) }

@@ -211,6 +211,16 @@ single recorded exception.
   name at most one remote object per provider, and an `id` alone does not
   where a parent scopes it. A list resource's results are identities in
   this shape, which is why the resource must declare it.
+- **normalisation kind** — the relation between a value sent and the
+  spelling the API stores it in, recorded on the property as
+  `x-tfpfgen-normalisation` from a confirmed `normalisation` observation:
+  `case-folded`, `trimmed`, `extended` (the answer carries the value inside
+  a longer spelling — a scheme, a port, a unit), `same-instant` (a
+  timestamp respelt) or `reordered` (a list in another order). Generated
+  state keeps the configured spelling when the answer is that form of it,
+  so a host the API answers with its port is not drift; a `date-time`
+  property answered outside RFC 3339 also loses its format, because the SDK
+  cannot read the answer through it.
 - **addressing attribute** — a generated attribute that exists to fill an
   operation's path parameter rather than to carry a field of the object.
   Every path parameter above the item key becomes one: required, spelled

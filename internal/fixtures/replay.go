@@ -184,7 +184,10 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 			// recurses and its own fields are compared as leaves, and a list
 			// renders one element rather than the collection, so comparing
 			// the collection would judge a value no configuration carries.
-			if present && v.Nested == nil && v.Kind != ir.TypeList && !reflect.DeepEqual(carried, echoed) {
+			// A normalised property keeps the value sent: the provider reads
+			// the stored spelling back as that value, and the stored spelling
+			// is not always one the API takes on a create.
+			if present && v.Nested == nil && v.Kind != ir.TypeList && !reflect.DeepEqual(carried, echoed) && !v.Normalised {
 				text, isText := echoed.(string)
 				switch {
 				case isText && isMask(text):

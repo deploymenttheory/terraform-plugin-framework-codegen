@@ -584,7 +584,6 @@ func TestUnit_Propose_ReportsKindsWithoutACorrectionForm(t *testing.T) {
 	t.Parallel()
 	root, specDir, lock := pinnedTree(t)
 	commitObs(t, root,
-		confirmedObs("name", observe.KindNormalisation, "trimmed", nil, lock.SHA256),
 		confirmedObs("mode", observe.KindDerivedDefault, true, nil, lock.SHA256),
 	)
 
@@ -595,8 +594,8 @@ func TestUnit_Propose_ReportsKindsWithoutACorrectionForm(t *testing.T) {
 	if len(p.Proposed)+len(p.AutoAccepted) != 0 {
 		t.Errorf("wrote files for kinds with no correction form: %+v %+v", p.Proposed, p.AutoAccepted)
 	}
-	if len(p.NoForm) != 2 {
-		t.Fatalf("NoForm = %+v, want both observations", p.NoForm)
+	if len(p.NoForm) != 1 {
+		t.Fatalf("NoForm = %+v, want the derivedDefault observation", p.NoForm)
 	}
 	for _, n := range p.NoForm {
 		if n.Reason != "no correction form exists yet; adding an x-tfpfgen-* key is an owner decision" {

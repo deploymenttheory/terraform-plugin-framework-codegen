@@ -470,6 +470,7 @@ func buildAttribute(wire string, attributeSite foldedProperty) (Attribute, attri
 	createOnly, _ := extensions.Immutable()
 	serverDefault, serverFills := extensions.ServerDefault()
 	attribute.SilentlyIgnoredOnUpdate, _ = extensions.IgnoredOnUpdate()
+	attribute.Normalisation, _ = extensions.Normalisation()
 
 	// The document's prose, taken from whichever side declares any. A
 	// request schema and a response schema describe the same field, and one

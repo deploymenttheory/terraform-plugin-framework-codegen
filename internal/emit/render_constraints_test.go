@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/sdkbind"
 	"testing"
 
 	ir "github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/intermediate_representation"
@@ -189,5 +190,24 @@ func TestUnit_CheckLines_AddressMapsByKeyAndReferencesByPresence(t *testing.T) {
 	}
 	if strings.Contains(got, `"tags", `) || strings.Contains(got, `"labels", `) {
 		t.Errorf("a map was checked whole: %q", got)
+	}
+}
+
+func TestUnit_StateLines_ANormalisedStringKeepsTheConfiguredSpelling(t *testing.T) {
+	nodes := []node{
+		{attribute: ir.Attribute{Name: "server", Kind: ir.TypeString, Normalisation: "extended"},
+			fb: &sdkbind.FieldBinding{Attr: "server", Wire: "server", Kind: ir.TypeString, Access: kiotaAccess("Server", "*string", "FromPtrString", "ToPtrString", "")}},
+		{attribute: ir.Attribute{Name: "name", Kind: ir.TypeString},
+			fb: &sdkbind.FieldBinding{Attr: "name", Wire: "name", Kind: ir.TypeString, Access: kiotaAccess("Name", "*string", "FromPtrString", "ToPtrString", "")}},
+	}
+	got, err := stateLines(nodes, "Thing", "remote", "data", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, `data.Server = convert.Normalised(data.Server, convert.APIToFrameworkString(remote.GetServer()), "extended")`) {
+		t.Errorf("state lines = %q, want the normalised read", got)
+	}
+	if !strings.Contains(got, "data.Name = convert.APIToFrameworkString(remote.GetName())") {
+		t.Errorf("state lines = %q, want the plain read for the other attribute", got)
 	}
 }

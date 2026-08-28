@@ -77,6 +77,10 @@ type Entry struct {
 	// renders in place of Scalar — a reference to another block's
 	// attribute, which no literal spells.
 	Expression string
+	// Normalised marks an attribute the API stores in a spelling of its
+	// own, which generated state reads back as the configured value: a
+	// replay keeps the value sent rather than the one answered.
+	Normalised bool
 
 	// synthesised is the prefixed name this entry carries or would carry
 	// had the document declared no example; empty for a value a format
@@ -377,6 +381,7 @@ func deriveTree(tree *ir.AttributeTree, path []string) ([]Entry, []Omission) {
 			Kind:                     a.Kind,
 			ElementType:              a.ElementType,
 			ComputedOptionalRequired: a.ComputedOptionalRequired,
+			Normalised:               a.Normalisation != "",
 		}
 		switch {
 		case a.Nested != nil:

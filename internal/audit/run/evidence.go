@@ -2,11 +2,9 @@ package run
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
@@ -525,77 +523,12 @@ func numeric(v any) (float64, bool) {
 }
 
 // normalisedForm reports whether got is a recognisable transform of sent
-// — case-folded, trimmed, or a re-sorted list — and returns the stored
-// form as the string a normalisation observation carries.
+// and answers the stored form as the string a normalisation observation
+// carries; the kind is what the correction compiler reads back from the
+// excerpts.
 func normalisedForm(sent, got any) (string, bool) {
-	if ss, ok := sent.(string); ok {
-		gs, ok := got.(string)
-		if !ok {
-			return "", false
-		}
-		for _, candidate := range []string{
-			strings.ToLower(ss), strings.TrimSpace(ss), strings.ToLower(strings.TrimSpace(ss)), strings.ToUpper(ss),
-		} {
-			if gs == candidate && gs != ss {
-				return gs, true
-			}
-		}
-		// The answer carries what was sent inside a longer spelling — a
-		// scheme and a trailing slash around a host, a unit after a number
-		// — which is the value stored in the API's own form, not another
-		// value.
-		if ss != "" && gs != ss && strings.Contains(gs, ss) && !isMask(gs) {
-			return gs, true
-		}
-		// The same instant in another spelling — a timestamp sent as RFC
-		// 3339 and answered without the T, the zone or the fraction — is
-		// the API's own form of the value, not a different value.
-		if gs != ss && sameInstant(ss, gs) {
-			return gs, true
-		}
-		return "", false
-	}
-	sentList, okS := sent.([]any)
-	gotList, okG := got.([]any)
-	if okS && okG && len(sentList) == len(gotList) {
-		sorted := make([]any, len(sentList))
-		copy(sorted, sentList)
-		sort.Slice(sorted, func(i, j int) bool { return fmt.Sprint(sorted[i]) < fmt.Sprint(sorted[j]) })
-		if equalJSON(sorted, gotList) && !equalJSON(sentList, gotList) {
-			raw, _ := json.Marshal(gotList)
-			return string(raw), true
-		}
-	}
-	return "", false
-}
-
-// timestampLayouts is every spelling a timestamp is read in: RFC 3339
-// with or without a fraction, and the forms that drop the zone, the T or
-// the time of day.
-var timestampLayouts = []string{
-	time.RFC3339Nano,
-	"2006-01-02T15:04:05",
-	"2006-01-02 15:04:05.999999999",
-	"2006-01-02 15:04:05",
-	"2006-01-02",
-}
-
-// sameInstant reports whether two strings both spell a timestamp and spell
-// the same one. A spelling without a zone is read as UTC, which is what an
-// API answering a zoned value without its zone has done.
-func sameInstant(a, b string) bool {
-	ta, okA := parseTimestamp(a)
-	tb, okB := parseTimestamp(b)
-	return okA && okB && ta.Equal(tb)
-}
-
-func parseTimestamp(s string) (time.Time, bool) {
-	for _, layout := range timestampLayouts {
-		if t, err := time.Parse(layout, s); err == nil {
-			return t, true
-		}
-	}
-	return time.Time{}, false
+	_, form, ok := observe.Normalisation(sent, got)
+	return form, ok
 }
 
 // maskedEcho reports whether a string went in and a mask came back: the

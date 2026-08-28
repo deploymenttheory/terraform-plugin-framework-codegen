@@ -240,6 +240,14 @@ func stateLinesWith(namer *modelNamer, path string, nodes []node, source, destin
 		if err != nil {
 			return "", err
 		}
+		// A root string the API stores in a spelling of its own reads back
+		// as the configured value where the answer is that spelling: the
+		// model being filled still holds the planned or prior value.
+		if path == "" && n.attribute.Normalisation != "" && n.attribute.Kind == ir.TypeString {
+			fmt.Fprintf(&b, "%s%s.%s = convert.Normalised(%s.%s, convert.%s(%s.%s()), %q)\n",
+				indent, destination, ir.GoName(n.attribute.Name), destination, ir.GoName(n.attribute.Name), fn, source, n.fb.Access.Get, n.attribute.Normalisation)
+			continue
+		}
 		fmt.Fprintf(&b, "%s%s.%s = convert.%s(%s.%s())\n",
 			indent, destination, ir.GoName(n.attribute.Name), fn, source, n.fb.Access.Get)
 	}

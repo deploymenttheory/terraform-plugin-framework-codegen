@@ -121,36 +121,59 @@ func TestUnit_Compile_ANormalisedTimestampWithdrawsTheDateTimeFormat(t *testing.
 	comp := &compiler{entities: entities, state: state, vetoes: map[[2]string]bool{},
 		variants: map[[2]string]map[string][]string{}, restated: map[string]string{}}
 
+	pair := func(attribute, sent, got string) []observe.Excerpt {
+		return []observe.Excerpt{
+			{Method: "POST", PathTemplate: "/tags", Status: 201, RequestFragment: json.RawMessage(`{"` + attribute + `":"` + sent + `"}`)},
+			{Method: "GET", PathTemplate: "/tags/{tagId}", Status: 200, ResponseFragment: json.RawMessage(`{"` + attribute + `":"` + got + `"}`)},
+		}
+	}
 	respelt := confirmedObs("expires", observe.KindNormalisation, "2026-12-31 00:00:00", nil, res.Lock.SHA256)
+	respelt.Excerpts = pair("expires", "2026-12-31T00:00:00Z", "2026-12-31 00:00:00")
 	out, err := comp.compile(respelt)
 	if err != nil {
 		t.Fatal(err)
 	}
 	formatPtr := "/components/schemas/Tag/properties/expires/format"
-	if len(out.operations) != 2 || out.operations[0].Op != "test" || out.operations[0].Path != formatPtr ||
-		out.operations[1].Op != "remove" || out.operations[1].Path != formatPtr {
-		t.Fatalf("a non-RFC 3339 spelling compiled to %+v, want the format tested and removed", out)
+	if len(out.operations) != 3 || out.operations[0].Op != "add" || out.operations[0].Value != observe.NormalisationSameInstant ||
+		out.operations[1].Op != "test" || out.operations[1].Path != formatPtr ||
+		out.operations[2].Op != "remove" || out.operations[2].Path != formatPtr {
+		t.Fatalf("a non-RFC 3339 spelling compiled to %+v, want the kind recorded and the format tested and removed", out)
 	}
 	if !strings.Contains(out.justification, `"2026-12-31 00:00:00"`) || !strings.Contains(out.justification, "date-time format is withdrawn") {
 		t.Errorf("justification = %q", out.justification)
 	}
 
+	// An RFC 3339 respelling keeps the format and records the kind alone.
 	rfc := confirmedObs("expires", observe.KindNormalisation, "2026-12-31T00:00:00.000Z", nil, res.Lock.SHA256)
+	rfc.Excerpts = pair("expires", "2026-12-31T00:00:00Z", "2026-12-31T00:00:00.000Z")
 	out, err = comp.compile(rfc)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.category != catAlreadyStated {
-		t.Errorf("an RFC 3339 spelling compiled to %+v, want nothing", out)
+	if len(out.operations) != 1 || out.operations[0].Path != "/components/schemas/Tag/properties/expires/x-tfpfgen-normalisation" {
+		t.Errorf("an RFC 3339 spelling compiled to %+v, want the kind alone", out)
 	}
 
-	plain := confirmedObs("name", observe.KindNormalisation, "lower", nil, res.Lock.SHA256)
-	out, err = comp.compile(plain)
+	// A host answered with a scheme around it is extended; the plain string
+	// keeps no format to withdraw.
+	extended := confirmedObs("name", observe.KindNormalisation, "https://host/", nil, res.Lock.SHA256)
+	extended.Excerpts = pair("name", "host", "https://host/")
+	out, err = comp.compile(extended)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.category != catNoForm {
-		t.Errorf("a normalisation on a property with no format compiled to %+v, want no form", out)
+	if len(out.operations) != 1 || out.operations[0].Value != observe.NormalisationExtended {
+		t.Errorf("an extended spelling compiled to %+v, want the extended kind", out)
+	}
+
+	// No excerpt pair to read the relation from: nothing can be stated.
+	bare := confirmedObs("name", observe.KindNormalisation, "lower", nil, res.Lock.SHA256)
+	out, err = comp.compile(bare)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.category != catUnplaceable {
+		t.Errorf("a normalisation with no excerpts compiled to %+v, want it unplaceable", out)
 	}
 }
 
