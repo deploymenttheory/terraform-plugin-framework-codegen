@@ -156,13 +156,13 @@ func (d *deriver) adminSkip(key string, excluded map[string]bool) *Skipped {
 	return nil
 }
 
-// pathParam matches one {param} segment.
-var pathParam = regexp.MustCompile(`\{([^}]+)\}`)
+// pathParameterPattern matches one {parameter} segment.
+var pathParameterPattern = regexp.MustCompile(`\{([^}]+)\}`)
 
-// pathParams lists a path's parameters in path order.
-func pathParams(path string) []string {
+// pathParameters lists a path's parameters in path order.
+func pathParameters(path string) []string {
 	var out []string
-	for _, m := range pathParam.FindAllStringSubmatch(path, -1) {
+	for _, m := range pathParameterPattern.FindAllStringSubmatch(path, -1) {
 		out = append(out, m[1])
 	}
 	return out
@@ -176,33 +176,33 @@ func pathParams(path string) []string {
 // to the entity's own created object. A parameter nothing can supply is
 // the returned reason.
 func (d *deriver) pathValues(path, selfKey string, ei EntityInputs) (map[string]string, []string, string) {
-	params := pathParams(path)
-	if len(params) == 0 {
+	parameters := pathParameters(path)
+	if len(parameters) == 0 {
 		return nil, nil, ""
 	}
-	values := make(map[string]string, len(params))
+	values := make(map[string]string, len(parameters))
 	var parents []string
-	for i, param := range params {
-		if v, ok := ei.ParentRefs[param]; ok {
-			values[param] = v
+	for i, parameter := range parameters {
+		if v, ok := ei.ParentRefs[parameter]; ok {
+			values[parameter] = v
 			continue
 		}
-		if selfKey != "" && i == len(params)-1 && strings.HasSuffix(path, "{"+param+"}") {
-			values[param] = CreatedRef(selfKey)
+		if selfKey != "" && i == len(parameters)-1 && strings.HasSuffix(path, "{"+parameter+"}") {
+			values[parameter] = CreatedRef(selfKey)
 			continue
 		}
-		if parentKey, ok := d.parentFor(path, param); ok && hasKind(d.byKey[parentKey], specmodel.KindResource) {
+		if parentKey, ok := d.parentFor(path, parameter); ok && hasKind(d.byKey[parentKey], specmodel.KindResource) {
 			if d.planned[parentKey] {
-				values[param] = CreatedRef(parentKey)
+				values[parameter] = CreatedRef(parentKey)
 				parents = append(parents, parentKey)
 				continue
 			}
 			return nil, nil, fmt.Sprintf(
 				"path parameter %q needs parent %q, which is not audited; supply parentRefs.%s in %s",
-				param, parentKey, param, InputsPath)
+				parameter, parentKey, parameter, InputsPath)
 		}
 		return nil, nil, fmt.Sprintf(
-			"no value for path parameter %q; supply parentRefs.%s in %s", param, param, InputsPath)
+			"no value for path parameter %q; supply parentRefs.%s in %s", parameter, parameter, InputsPath)
 	}
 	return values, parents, ""
 }
@@ -210,8 +210,8 @@ func (d *deriver) pathValues(path, selfKey string, ei EntityInputs) (map[string]
 // parentFor maps a path parameter to the entity whose collection encloses
 // it: for "/projects/{projectId}/tags", parameter projectId's enclosing
 // prefix is "/projects", and the entity classified there is the parent.
-func (d *deriver) parentFor(path, param string) (string, bool) {
-	idx := strings.Index(path, "{"+param+"}")
+func (d *deriver) parentFor(path, parameter string) (string, bool) {
+	idx := strings.Index(path, "{"+parameter+"}")
 	if idx <= 1 {
 		return "", false
 	}
@@ -221,7 +221,7 @@ func (d *deriver) parentFor(path, param string) (string, bool) {
 }
 
 // operation finds the loaded operation a classification role points at.
-func (d *deriver) operation(ref *specmodel.Op) *specmodel.Operation {
+func (d *deriver) operation(ref *specmodel.OperationReference) *specmodel.Operation {
 	if ref == nil {
 		return nil
 	}

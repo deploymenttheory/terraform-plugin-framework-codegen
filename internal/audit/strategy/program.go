@@ -45,14 +45,14 @@ const (
 	maxPerEnumValues = 6
 )
 
-// The per-step request reserves the entity budget is summed from. Each is the
+// The per-step request allocations the entity budget is summed from. Each is the
 // requests one step of that kind is expected to spend in a normal (non-
 // pathological) run: the happy-path call plus headroom for what that step kind
-// legitimately retries. The create-family kinds reserve the executor's adaptive
-// adjustment loop; the read-family kinds reserve their poll/retry reads; the
-// delete-with-confirmation kind reserves its confirm-and-repeat.
+// legitimately retries. The create-family kinds cover the executor's adaptive
+// adjustment loop; the read-family kinds cover their poll/retry reads; the
+// delete-with-confirmation kind covers its confirm-and-repeat.
 //
-// The reserves are deliberately generous. Audit cost is expected to grow with a
+// The allocations are deliberately generous. Audit cost is expected to grow with a
 // resource's complexity, and the guards against a runaway are the object ceiling
 // above and the run-wide duration and rate limits — never a tight request cap. A
 // budget too small to let a resource's whole program complete is the exhaustion
@@ -61,63 +61,63 @@ const (
 // runs once per variant, so its cost tracks the step count and not the width of
 // the create body.
 const (
-	// refineReserve is a create-family step's reserve: one create plus the
+	// createStepRequests is a create-family step's allocation: one create plus the
 	// retries the adaptive loop makes as it adds, removes or borrows a field a
 	// refusal named. It mirrors the executor's adjustment cap (maxAdjustIters in
 	// internal/audit/run) so a body that needs several honest adjustments to be
 	// accepted never exhausts the entity mid-program.
-	refineReserve = 5
-	// maximalReserve is a maximal create's reserve: the adaptive create, the
+	createStepRequests = 5
+	// maximalStepRequests is a maximal create's allocation: the adaptive create, the
 	// bounded bisection that narrows a refused optional field, and the delete
 	// that levels the object afterward.
-	maximalReserve = 6
-	// updateReserve is a per-field update's reserve: the adaptive update and the
+	maximalStepRequests = 6
+	// updateStepRequests is a per-field update's allocation: the adaptive update and the
 	// read-back that classifies what the API did with the field.
-	updateReserve = 4
-	// pollReserve is a read-with-retry's reserve: the reads it may spend polling
+	updateStepRequests = 4
+	// pollStepRequests is a read-with-retry's allocation: the reads it may spend polling
 	// for the created object to become readable.
-	pollReserve = 3
-	// deleteConfirmReserve is a delete-with-confirmation's reserve: the delete,
+	pollStepRequests = 3
+	// deleteStepRequests is a delete-with-confirmation's allocation: the delete,
 	// the read that confirms it gone, and the second delete that observes the
 	// 404 semantics.
-	deleteConfirmReserve = 3
-	// cleanupReserve is an end-of-entity cleanup's reserve: the deletes it may
+	deleteStepRequests = 3
+	// cleanupStepRequests is an end-of-entity cleanup's allocation: the deletes it may
 	// spend clearing whatever objects the entity left unresolved.
-	cleanupReserve = 3
-	// negativeReserve is a single-shot negative create's reserve: the create and
+	cleanupStepRequests = 3
+	// negativeStepRequests is a single-shot negative create's allocation: the create and
 	// the delete that follows an unexpected acceptance.
-	negativeReserve = 2
-	// preflightReserve is the one foreign-object pre-flight read every mutating
+	negativeStepRequests = 2
+	// preflightRequests is the one foreign-object pre-flight read every mutating
 	// entity spends before its first create.
-	preflightReserve = 1
+	preflightRequests = 1
 )
 
 // stepRequests is the request weight one program step of the given kind
-// contributes to the entity budget. The default is the negative-create reserve:
+// contributes to the entity budget. The default is the negative-create allocation:
 // a kind the budget does not specially recognise still gets create-shaped
 // headroom rather than a bare single request.
 func stepRequests(kind plan.StepKind) int {
 	switch kind {
 	case stepCreateMinimal, stepCreatePerEnumValue:
-		return refineReserve
+		return createStepRequests
 	case stepCreateMaximal:
-		return maximalReserve
+		return maximalStepRequests
 	case stepUpdateField:
-		return updateReserve
+		return updateStepRequests
 	case stepReadWithRetry:
-		return pollReserve
+		return pollStepRequests
 	case stepReadConsecutive:
 		return 2
 	case stepRead:
 		return 1
 	case stepOmitRequired, stepUndocumentedEnumValue, stepUndeclaredSpecField:
-		return negativeReserve
+		return negativeStepRequests
 	case stepDeleteWithConfirmation:
-		return deleteConfirmReserve
+		return deleteStepRequests
 	case stepCleanupDelete:
-		return cleanupReserve
+		return cleanupStepRequests
 	default:
-		return negativeReserve
+		return negativeStepRequests
 	}
 }
 
@@ -225,7 +225,7 @@ func gatedStep(kind plan.StepKind, v Variant) Step {
 
 // deriveBudget sizes the per-resource request budget from the resource's actual
 // step program: the one-time pre-flight read plus the summed per-step request
-// reserve of every step the program will run. Because the program grows with the
+// allocation of every step the program will run. Because the program grows with the
 // resource's variants, writable fields and gates, so does the budget — a
 // multi-variant resource is budgeted for the many creates, reads, updates and
 // per-value probes its program actually contains, each with headroom for the
@@ -237,10 +237,10 @@ func gatedStep(kind plan.StepKind, v Variant) Step {
 // complexity stays well under it. The run-wide duration and rate limits are the
 // other guards. The formula string records the arithmetic for a plan dump.
 //
-//	requests = preflight + Σ step-request reserve over the program
+//	requests = preflight + Σ step-request allocation over the program
 //	           (capped at maxObjects × perObjectCost)
 func deriveBudget(program []Step, cfg *config.Config) Budget {
-	requests := preflightReserve
+	requests := preflightRequests
 	for i := range program {
 		requests += stepRequests(program[i].Kind)
 	}
@@ -258,6 +258,6 @@ func deriveBudget(program []Step, cfg *config.Config) Budget {
 	}
 	return Budget{
 		Requests: requests,
-		Formula:  fmt.Sprintf("preflight(%d) + Σ step-request reserve over %d program steps%s", preflightReserve, len(program), capped),
+		Formula:  fmt.Sprintf("preflight(%d) + Σ step-request allocation over %d program steps%s", preflightRequests, len(program), capped),
 	}
 }

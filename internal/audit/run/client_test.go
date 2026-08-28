@@ -90,10 +90,10 @@ func TestUnit_Client_MentionsIsCaseInsensitive(t *testing.T) {
 
 func TestUnit_Client_SelfParamAndPartialPaths(t *testing.T) {
 	t.Parallel()
-	if got := selfParam("/things/{thingId}"); got != "thingId" {
+	if got := selfParameter("/things/{thingId}"); got != "thingId" {
 		t.Errorf("selfParam = %q", got)
 	}
-	if got := selfParam("/things"); got != "" {
+	if got := selfParameter("/things"); got != "" {
 		t.Errorf("selfParam of a collection = %q", got)
 	}
 
@@ -115,7 +115,7 @@ func TestUnit_Client_SelfParamAndPartialPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got != "/projects/seeded-parent/tags/{tagId}" {
-		t.Fatalf("partialItemPath = %q, want the parent substituted and the self param kept", got)
+		t.Fatalf("partialItemPath = %q, want the parent substituted and the self parameter kept", got)
 	}
 
 	values := itemValuesFor(rec, "42")

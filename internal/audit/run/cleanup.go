@@ -127,7 +127,7 @@ func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, sum *C
 		return e.Name != ""
 	}
 	path := e.ItemPath
-	if p := selfParam(path); p != "" {
+	if p := selfParameter(path); p != "" {
 		path = strings.ReplaceAll(path, "{"+p+"}", e.ID)
 	}
 	res, err := r.do(ctx, nil, reqSpec{method: "DELETE", path: path})
@@ -161,7 +161,7 @@ func (r *runner) cleanupByPrefix(ctx context.Context, sum *CleanupSummary) {
 		// child collection cannot even be listed — its objects cascade
 		// with the parent's own deletion or are caught while it exists.
 		parentValues := map[string]string{}
-		self := selfParam(rec.itemPath)
+		self := selfParameter(rec.itemPath)
 		for k, v := range rec.itemValues {
 			if k != self {
 				parentValues[k] = v

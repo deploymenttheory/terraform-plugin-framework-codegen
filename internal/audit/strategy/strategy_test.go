@@ -732,7 +732,7 @@ func TestCompileErrors(t *testing.T) {
 	action := specmodel.Classification{
 		Key:    "invoke",
 		Kinds:  []specmodel.Kind{specmodel.KindAction},
-		Create: &specmodel.Op{Method: "POST", Path: "/invoke"},
+		Create: &specmodel.OperationReference{Method: "POST", Path: "/invoke"},
 	}
 	if _, err := strategy.Compile(doc, action, defaultCfg()); err == nil {
 		t.Fatal("non-auditable entity should error")
@@ -741,7 +741,7 @@ func TestCompileErrors(t *testing.T) {
 	bad := specmodel.Classification{
 		Key:    "phantom",
 		Kinds:  []specmodel.Kind{specmodel.KindResource},
-		Create: &specmodel.Op{Method: "POST", Path: "/nowhere"},
+		Create: &specmodel.OperationReference{Method: "POST", Path: "/nowhere"},
 	}
 	if _, err := strategy.Compile(doc, bad, defaultCfg()); err == nil {
 		t.Fatal("resource with no create body should error")

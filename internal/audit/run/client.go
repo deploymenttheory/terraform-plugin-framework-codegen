@@ -272,12 +272,12 @@ func (r *runner) guardMutation(u *url.URL) error {
 // references surface as blockedError.
 func (r *runner) resolvePath(ctx context.Context, ent *entityState, path string, values map[string]string) (string, error) {
 	out := path
-	for param, v := range values {
+	for parameter, v := range values {
 		resolved, err := r.resolveValue(ctx, ent, v)
 		if err != nil {
 			return "", err
 		}
-		out = strings.ReplaceAll(out, "{"+param+"}", url.PathEscape(resolved))
+		out = strings.ReplaceAll(out, "{"+parameter+"}", url.PathEscape(resolved))
 	}
 	if strings.Contains(out, "{") {
 		return "", blockedError{reason: fmt.Sprintf("path %s has a parameter no value was supplied for", path)}

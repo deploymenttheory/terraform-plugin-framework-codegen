@@ -100,7 +100,7 @@ func TestDerive_ResourceLifecycle(t *testing.T) {
 	}
 	want := []Parameter{{Name: "thingId", Type: TypeString}}
 	if !reflect.DeepEqual(deleteOperation.PathParameters, want) {
-		t.Errorf("delete path params = %+v, want %+v", deleteOperation.PathParameters, want)
+		t.Errorf("delete path parameters = %+v, want %+v", deleteOperation.PathParameters, want)
 	}
 }
 

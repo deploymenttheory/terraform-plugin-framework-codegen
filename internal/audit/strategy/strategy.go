@@ -350,7 +350,7 @@ func (s *Strategy) JSON() ([]byte, error) {
 
 // findOp resolves a classification operation reference to the loaded
 // operation, nil when the reference is nil or unresolvable.
-func findOp(doc *specmodel.Document, ref *specmodel.Op) *specmodel.Operation {
+func findOp(doc *specmodel.Document, ref *specmodel.OperationReference) *specmodel.Operation {
 	if ref == nil {
 		return nil
 	}

@@ -26,8 +26,8 @@ func TestStepRequestsCoversEveryKind(t *testing.T) {
 	if got := stepRequests(stepRead); got != 1 {
 		t.Errorf("stepRequests(read) = %d, want 1", got)
 	}
-	if got := stepRequests(plan.StepKind("nonesuch")); got != negativeReserve {
-		t.Errorf("stepRequests(unknown) = %d, want the negative reserve %d", got, negativeReserve)
+	if got := stepRequests(plan.StepKind("nonesuch")); got != negativeStepRequests {
+		t.Errorf("stepRequests(unknown) = %d, want the negative reserve %d", got, negativeStepRequests)
 	}
 }
 

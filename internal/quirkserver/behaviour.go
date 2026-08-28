@@ -131,12 +131,12 @@ func (s *Server) rejectedEnumValue(body map[string]any) (string, any) {
 	return "", nil
 }
 
-// knownQueryParams are the parameters the server understands.
-var knownQueryParams = map[string]bool{
+// knownQueryParameters are the parameters the server understands.
+var knownQueryParameters = map[string]bool{
 	"expand": true, "limit": true, "cursor": true, "aid": true,
 }
 
-func (s *Server) badQueryParam(r *http.Request) string {
+func (s *Server) badQueryParameter(r *http.Request) string {
 	keys := make([]string, 0, len(r.URL.Query()))
 	for k := range r.URL.Query() {
 		keys = append(keys, k)
@@ -144,7 +144,7 @@ func (s *Server) badQueryParam(r *http.Request) string {
 	sort.Strings(keys)
 
 	for _, k := range keys {
-		if !knownQueryParams[k] {
+		if !knownQueryParameters[k] {
 			return k
 		}
 	}
@@ -152,9 +152,9 @@ func (s *Server) badQueryParam(r *http.Request) string {
 	return ""
 }
 
-// badTypedParam rejects a bad value for a parameter that has a type, which is
+// badTypedParameter rejects a bad value for a parameter that has a type, which is
 // how the error-envelope check provokes an error without mutating anything.
-func (s *Server) badTypedParam(r *http.Request) string {
+func (s *Server) badTypedParameter(r *http.Request) string {
 	for _, name := range s.quirks.TypedQueryParams {
 		v := r.URL.Query().Get(name)
 		if v == "" {

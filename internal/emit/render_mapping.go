@@ -352,11 +352,11 @@ type callPlan struct {
 	Imports []string
 }
 
-// paramFailure is what a path-parameter conversion that fails does in the
+// parameterFailure is what a path-parameter conversion that fails does in the
 // method its declaration lands in. Every lifecycle and invoke method carries
 // a resp with Diagnostics; a list resource carries a results stream instead,
 // and the two report an error by different names.
-type paramFailure struct {
+type parameterFailure struct {
 	// report renders the statements a failed conversion runs, given the
 	// terraform attribute at fault, the parameter's wire name, and the local
 	// holding the error. It ends by leaving the method.
@@ -368,8 +368,8 @@ type paramFailure struct {
 // respDiagnostics reports a failed conversion against the attribute at fault.
 // Every method a declaration lands in — Create, Read, Update, Delete, Invoke —
 // carries a resp with Diagnostics and returns nothing.
-func respDiagnostics() paramFailure {
-	return paramFailure{
+func respDiagnostics() parameterFailure {
+	return parameterFailure{
 		report: func(attribute, wire, errLocal string) string {
 			return fmt.Sprintf("\tresp.Diagnostics.AddAttributeError(path.Root(%q), \"Invalid %s\", %s.Error())\n\t\treturn",
 				attribute, wire, errLocal)
@@ -381,8 +381,8 @@ func respDiagnostics() paramFailure {
 // streamDiagnostics reports a failed conversion into a list resource's
 // results stream, which is the only channel List has: it takes no resp, and
 // a stream carrying diagnostics is how the framework surfaces the failure.
-func streamDiagnostics() paramFailure {
-	return paramFailure{
+func streamDiagnostics() parameterFailure {
+	return parameterFailure{
 		report: func(attribute, wire, errLocal string) string {
 			return fmt.Sprintf("\tstream.Results = list.ListResultsStreamDiagnostics(diag.Diagnostics{\n\t\t\tdiag.NewErrorDiagnostic(\"Invalid %s\", %s.Error()),\n\t\t})\n\t\treturn",
 				wire, errLocal)
@@ -397,18 +397,18 @@ func streamDiagnostics() paramFailure {
 // buildCallPlan renders one bound call. payloadName names the success
 // payload local; nodes and modelVar say where parameter values come from;
 // fail says how a conversion that cannot succeed reports itself.
-func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVar string, fail paramFailure) (callPlan, error) {
+func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVar string, fail parameterFailure) (callPlan, error) {
 	var plan callPlan
 
 	var declarations []string
-	for position, p := range call.Params {
+	for position, p := range call.Parameters {
 		// The last path parameter addresses the object itself, which is what
 		// the id attribute holds however the API spells the parameter. The
 		// fallback is offered on position rather than on the call taking
 		// exactly one parameter: only a flat API is single-parameter, and
 		// /enterprises/{enterprise}/code-security/configurations/{configuration_id}
 		// takes two while still naming one object.
-		n, err := paramNode(p, nodes, position == len(call.Params)-1)
+		n, err := parameterNode(p, nodes, position == len(call.Parameters)-1)
 		if err != nil {
 			return callPlan{}, err
 		}
@@ -455,21 +455,21 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 	return plan, nil
 }
 
-// paramField finds the model field a path parameter reads from: the
+// parameterField finds the model field a path parameter reads from: the
 // attribute speaking the same wire name, its terraform spelling, or — for
 // a single-parameter call only — the id attribute, which is how an item
 // path names its key in every REST shape the derivation admits.
-func paramField(p sdkbind.CallParam, nodes []node, idFallback bool) (string, error) {
-	n, err := paramNode(p, nodes, idFallback)
+func parameterField(p sdkbind.CallParameter, nodes []node, idFallback bool) (string, error) {
+	n, err := parameterNode(p, nodes, idFallback)
 	if err != nil {
 		return "", err
 	}
 	return ir.GoName(n.attr.Name), nil
 }
 
-// paramNode is paramField's answer before it is reduced to a spelling: the
+// parameterNode is paramField's answer before it is reduced to a spelling: the
 // attribute itself, whose declared kind decides how its value is read.
-func paramNode(p sdkbind.CallParam, nodes []node, idFallback bool) (node, error) {
+func parameterNode(p sdkbind.CallParameter, nodes []node, idFallback bool) (node, error) {
 	// A path parameter is a scalar in the URL. An attribute of the same name
 	// that is an object is a different thing the document happens to spell
 	// the same way — a repository's owner block beside the owner segment of
@@ -502,7 +502,7 @@ func paramNode(p sdkbind.CallParam, nodes []node, idFallback bool) (node, error)
 // parameter with the entity's id, which a resource knows before its read and
 // a datasource never does — its id is computed, so at plan time it is empty
 // and the call is made with nothing.
-func namesAnAttribute(p sdkbind.CallParam, nodes []node) bool {
+func namesAnAttribute(p sdkbind.CallParameter, nodes []node) bool {
 	snake := ir.TerraformName(p.Wire)
 	for _, n := range nodes {
 		if n.attr.Nested != nil {
@@ -532,7 +532,7 @@ func valueMethod(kind ir.AttributeType) string {
 	}
 }
 
-// paramValue renders the expression one path parameter is passed as: the
+// parameterValue renders the expression one path parameter is passed as: the
 // model field read through its own accessor, converted to whatever the SDK
 // method really takes.
 //
@@ -549,7 +549,7 @@ func valueMethod(kind ir.AttributeType) string {
 // it and takes the fallible ones first, because a conversion that can fail
 // needs a statement and a diagnostic rather than an expression; a conversion
 // neither can spell refuses the entity rather than guessing.
-func paramValue(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType) (string, string, error) {
+func parameterValue(p sdkbind.CallParameter, modelVar, field string, kind ir.AttributeType) (string, string, error) {
 	read := modelVar + "." + field + "." + valueMethod(kind) + "()"
 
 	switch {
@@ -578,7 +578,7 @@ func paramValue(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeTy
 // local: an assignment for a conversion that cannot fail, and a parse
 // guarded by a diagnostic for one that can. fail says how that diagnostic is
 // reported in the method the declaration lands in.
-func parameterDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.AttributeType, attribute string, fail paramFailure) (string, []string, error) {
+func parameterDeclaration(p sdkbind.CallParameter, modelVar, field string, kind ir.AttributeType, attribute string, fail parameterFailure) (string, []string, error) {
 	if kind == ir.TypeString {
 		read := modelVar + "." + field + ".ValueString()"
 		switch {
@@ -595,7 +595,7 @@ func parameterDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.A
 		}
 	}
 
-	value, needs, err := paramValue(p, modelVar, field, kind)
+	value, needs, err := parameterValue(p, modelVar, field, kind)
 	if err != nil {
 		return "", nil, err
 	}
@@ -613,7 +613,7 @@ func parameterDeclaration(p sdkbind.CallParam, modelVar, field string, kind ir.A
 // parse must be a two-value expression yielding a value and an error. When
 // cast is empty the parsed value is already the local, so the parse binds it
 // directly; otherwise the parse binds an intermediate the cast reads.
-func guardedParse(p sdkbind.CallParam, parse, cast, attribute string, fail paramFailure) string {
+func guardedParse(p sdkbind.CallParameter, parse, cast, attribute string, fail parameterFailure) string {
 	bound, tail := p.Local, ""
 	if cast != "" {
 		bound = p.Local + "Parsed"
@@ -631,7 +631,7 @@ func guardedParse(p sdkbind.CallParam, parse, cast, attribute string, fail param
 // Signed and unsigned take different functions because ParseInt rejects
 // nothing a uint64 parameter would accept above its own range. A bit size of
 // 0 is strconv's spelling for int and uint, whose width is the platform's.
-func integerParse(p sdkbind.CallParam, read string) (parse, cast string) {
+func integerParse(p sdkbind.CallParameter, read string) (parse, cast string) {
 	function, bits, parsed := "strconv.ParseInt", integerBits(p.GoType), "int64"
 	if strings.HasPrefix(p.GoType, "uint") {
 		function, parsed = "strconv.ParseUint", "uint64"
@@ -660,20 +660,20 @@ func integerBits(goType string) int {
 	}
 }
 
-// integerParsedParams names the attributes a call reaches through a parse
+// integerParsedParameters names the attributes a call reaches through a parse
 // that only digits survive: the document declares them strings and the
 // generated SDK takes an integer, so parameterDeclaration emits strconv.ParseInt.
 //
 // A fixture value is derived from the document, which says string, and would
 // be refused by that parse before the generated test reached an assertion.
 // This is what a caller consults to pin those values to something numeric.
-func integerParsedParams(call *sdkbind.Call, nodes []node) map[string]bool {
+func integerParsedParameters(call *sdkbind.Call, nodes []node) map[string]bool {
 	if call == nil {
 		return nil
 	}
 	out := map[string]bool{}
-	for position, p := range call.Params {
-		n, err := paramNode(p, nodes, position == len(call.Params)-1)
+	for position, p := range call.Parameters {
+		n, err := parameterNode(p, nodes, position == len(call.Parameters)-1)
 		if err != nil {
 			continue
 		}

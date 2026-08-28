@@ -236,9 +236,9 @@ func recipeOf(ep *plan.EntityPlan) *entityRecipe {
 	return rec
 }
 
-// selfParam is the trailing path parameter an item path addresses the
+// selfParameter is the trailing path parameter an item path addresses the
 // object itself by.
-func selfParam(itemPath string) string {
+func selfParameter(itemPath string) string {
 	if i := strings.LastIndex(itemPath, "{"); i >= 0 && strings.HasSuffix(itemPath, "}") {
 		return itemPath[i+1 : len(itemPath)-1]
 	}
@@ -252,7 +252,7 @@ func itemValuesFor(rec *entityRecipe, id string) map[string]string {
 	for k, v := range rec.itemValues {
 		out[k] = v
 	}
-	if p := selfParam(rec.itemPath); p != "" {
+	if p := selfParameter(rec.itemPath); p != "" {
 		out[p] = id
 	}
 	return out
@@ -352,17 +352,17 @@ func (r *runner) partialItemPath(ctx context.Context, ent *entityState, rec *ent
 	if rec.itemPath == "" {
 		return "", nil
 	}
-	self := selfParam(rec.itemPath)
+	self := selfParameter(rec.itemPath)
 	out := rec.itemPath
-	for param, v := range rec.itemValues {
-		if param == self {
+	for parameter, v := range rec.itemValues {
+		if parameter == self {
 			continue
 		}
 		resolved, err := r.resolveValue(ctx, ent, v)
 		if err != nil {
 			return "", err
 		}
-		out = strings.ReplaceAll(out, "{"+param+"}", resolved)
+		out = strings.ReplaceAll(out, "{"+parameter+"}", resolved)
 	}
 	return out, nil
 }

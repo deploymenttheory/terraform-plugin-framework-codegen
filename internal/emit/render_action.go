@@ -65,7 +65,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 
 	// The schema is the invocation's arguments: one attribute per path
 	// parameter, then the request body's tree.
-	paramNodes := actionParamNodes(&a.InvokeOperation)
+	paramNodes := actionParameterNodes(&a.InvokeOperation)
 	bodyNodes := e.joinTree(bindingKindAction, a.Names.Key, a.RequestSchema, ab.Fields)
 	nodes := append(append([]node{}, paramNodes...), invocable(bodyNodes)...)
 
@@ -130,7 +130,7 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 
 	// Test wiring.
 	spec := deriveFixtures(actionTree(paramNodes, a.RequestSchema), nodes)
-	spec.PinNumeric(integerParsedParams(ab.Invoke, nodes))
+	spec.PinNumeric(integerParsedParameters(ab.Invoke, nodes))
 	d.InvokeMethod = a.InvokeOperation.Method
 	d.InvokeStatus = successStatus(&a.InvokeOperation, 204)
 	if len(a.InvokeOperation.PathParameters) > 0 {
@@ -186,10 +186,10 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 	return files, nil
 }
 
-// actionParamNodes synthesises the argument attributes an invocation's
+// actionParameterNodes synthesises the argument attributes an invocation's
 // path parameters need: the model does not carry them as schema, but the
 // caller must supply them somewhere.
-func actionParamNodes(op *ir.Operation) []node {
+func actionParameterNodes(op *ir.Operation) []node {
 	var out []node
 	for _, p := range op.PathParameters {
 		kind := p.Type

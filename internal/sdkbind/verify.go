@@ -311,22 +311,22 @@ func (v *verifier) fields(kind, key, path string, fbs []FieldBinding, read, writ
 }
 
 // accessor resolves one accessor method, holding it to the accessor shape
-// (0 params and 1 result for a getter, exactly params for a setter). It
+// (0 parameters and 1 result for a getter, exactly parameters for a setter). It
 // returns the getter's result type or the setter's parameter type.
-func (v *verifier) accessor(kind, key, path string, model types.Type, name string, params int) (types.Type, bool) {
+func (v *verifier) accessor(kind, key, path string, model types.Type, name string, parameters int) (types.Type, bool) {
 	sig, ok := methodOn(model, name)
 	if !ok {
 		v.problem(kind, key, path, "%s has no method %s%s",
 			shortType(model), name, didYouMean(name, methodNamesOf(model)))
 		return nil, false
 	}
-	if sig.Params().Len() != params || (params == 0 && sig.Results().Len() != 1) {
+	if sig.Params().Len() != parameters || (parameters == 0 && sig.Results().Len() != 1) {
 		v.problem(kind, key, path, "%s.%s is not an accessor: %s",
 			shortType(model), name, shortSignature(sig))
 		return nil, false
 	}
 	v.r.Checked++
-	if params == 0 {
+	if parameters == 0 {
 		return sig.Results().At(0).Type(), true
 	}
 	return sig.Params().At(0).Type(), true
@@ -424,15 +424,15 @@ func resolveChain(start types.Type, segs []Segment) (*types.Signature, int, erro
 // shortSignature renders a signature for messages that show what the SDK
 // actually offers rather than only that the guess was wrong.
 func shortSignature(sig *types.Signature) string {
-	params := make([]string, 0, sig.Params().Len())
+	parameters := make([]string, 0, sig.Params().Len())
 	for i := range sig.Params().Len() {
-		params = append(params, shortType(sig.Params().At(i).Type()))
+		parameters = append(parameters, shortType(sig.Params().At(i).Type()))
 	}
 	results := make([]string, 0, sig.Results().Len())
 	for i := range sig.Results().Len() {
 		results = append(results, shortType(sig.Results().At(i).Type()))
 	}
-	return fmt.Sprintf("(%s) (%s)", strings.Join(params, ", "), strings.Join(results, ", "))
+	return fmt.Sprintf("(%s) (%s)", strings.Join(parameters, ", "), strings.Join(results, ", "))
 }
 
 // unwrapDetail strips the sentinel prefix so a Problem's detail is not

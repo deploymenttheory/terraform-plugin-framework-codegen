@@ -94,15 +94,15 @@ func parseEntityInputs(entity string, raw json.RawMessage) (EntityInputs, error)
 	if err := json.Unmarshal(raw, &ei); err != nil {
 		return EntityInputs{}, fmt.Errorf("%s: entity %q: %w", InputsPath, entity, err)
 	}
-	params := make([]string, 0, len(ei.ParentRefs))
-	for param := range ei.ParentRefs {
-		params = append(params, param)
+	parameters := make([]string, 0, len(ei.ParentRefs))
+	for parameter := range ei.ParentRefs {
+		parameters = append(parameters, parameter)
 	}
-	sort.Strings(params)
-	for _, param := range params {
-		if val := ei.ParentRefs[param]; val == "" || val == envRefOpen+envRefClose {
+	sort.Strings(parameters)
+	for _, parameter := range parameters {
+		if val := ei.ParentRefs[parameter]; val == "" || val == envRefOpen+envRefClose {
 			return EntityInputs{}, fmt.Errorf("%s: entity %q: parentRefs.%s: must be a literal or ${VAR} naming an environment variable",
-				InputsPath, entity, param)
+				InputsPath, entity, parameter)
 		}
 	}
 	return ei, nil

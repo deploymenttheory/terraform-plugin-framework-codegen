@@ -49,7 +49,7 @@ func opMethodName(op *ir.Operation) string {
 // client, repairing only where the SDK admits exactly one answer.
 func (openAPIGeneratorBinder) call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call {
 	args := []string{"ctx"}
-	for _, p := range callParams(op) {
+	for _, p := range callParameters(op) {
 		args = append(args, p.Local)
 	}
 
@@ -65,9 +65,9 @@ func (openAPIGeneratorBinder) call(op *ir.Operation, n ir.Names, hasBody bool, i
 	segs = append(segs, Segment{Name: "Execute", Call: true})
 
 	c := &Call{
-		Segments: segs,
-		Imports:  []string{info.ImportPath, "net/http"},
-		Params:   callParams(op),
+		Segments:   segs,
+		Imports:    []string{info.ImportPath, "net/http"},
+		Parameters: callParameters(op),
 	}
 
 	model := "sdk." + exportedName(n.Key)

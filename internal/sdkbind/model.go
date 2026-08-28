@@ -221,9 +221,9 @@ type Call struct {
 	Segments []Segment `json:"segments"`
 	// Imports are the packages the expression and its types need.
 	Imports []string `json:"imports,omitempty"`
-	// Params are the locals the expression references beyond the fixed
+	// Parameters are the locals the expression references beyond the fixed
 	// names, in order of first use.
-	Params []CallParam `json:"params,omitempty"`
+	Parameters []CallParameter `json:"parameters,omitempty"`
 	// ResponseType is the finished Go type expression of the success
 	// payload, empty when the call yields none.
 	ResponseType string `json:"response_type,omitempty"`
@@ -244,8 +244,8 @@ type Segment struct {
 	Args []string `json:"args,omitempty"`
 }
 
-// CallParam is one local a Call's expression references.
-type CallParam struct {
+// CallParameter is one local a Call's expression references.
+type CallParameter struct {
 	// Local is the Go identifier the expression uses.
 	Local string `json:"local"`
 	// GoType is the finished type the emitter declares it with.
@@ -285,7 +285,7 @@ type FieldBinding struct {
 	// pruning and the emitter know the framework side without
 	// re-deriving it.
 	Kind        ir.AttributeType `json:"kind,omitempty"`
-	ElementType ir.AttributeType `json:"element_kind,omitempty"`
+	ElementType ir.AttributeType `json:"element_type,omitempty"`
 	// Access is the rendered accessor and conversion set.
 	Access FieldAccess `json:"access"`
 	// NestedModel is the SDK type one nested object is read as;

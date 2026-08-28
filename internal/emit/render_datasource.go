@@ -176,7 +176,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	d.Models = renderModelDeclarations(declarations)
 	d.ModelImports = e.datasourceModelImports(d.Models)
 
-	for _, p := range db.Read.Params {
+	for _, p := range db.Read.Parameters {
 		if !namesAnAttribute(p, nodes) {
 			return fixtures.Fixture{}, unrenderable(
 				"read: the path parameter %q matches no argument the caller supplies, and a datasource has no id of its own to fall back on",
@@ -229,7 +229,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	d.StateImports = stateImports.render()
 
 	spec := deriveFixtures(ds.Schema, nodes)
-	spec.PinNumeric(integerParsedParams(db.Read, nodes))
+	spec.PinNumeric(integerParsedParameters(db.Read, nodes))
 	e.datasourceMocks(d, ds, spec)
 	e.datasourceChecks(d, ds.Names.Key, spec)
 	return spec, nil
@@ -267,8 +267,8 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	// other way leaves id an ordinary filter rather than a guessed call.
 	idFilter, hasID := filterNamed(filters, "id")
 	d.HasIDFilter = hasID &&
-		ds.Operations.Read != nil && db.Read != nil && len(db.Read.Params) == 1 &&
-		db.Read.Params[0].GoType == "string" && itemPayloadExpr(db) != ""
+		ds.Operations.Read != nil && db.Read != nil && len(db.Read.Parameters) == 1 &&
+		db.Read.Parameters[0].GoType == "string" && itemPayloadExpr(db) != ""
 
 	// Schema: the two filter inputs, then the computed items list.
 	imports := newImportSet(e.pc.Module)
@@ -394,7 +394,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	d.StateImports = stateImports.render()
 
 	addressing := fixtures.Derive(&ir.AttributeTree{Attributes: companionAddressing(ds)})
-	addressing.PinNumeric(integerParsedParams(db.List, addressingNodes))
+	addressing.PinNumeric(integerParsedParameters(db.List, addressingNodes))
 	d.AddressingHCL = addressing.HCL(fixtures.ConfigMinimal)
 
 	spec := deriveFixtures(itemTree, itemNodes)

@@ -110,7 +110,7 @@ func oagBindings() *sdkbind.Bindings {
 		ModelsImportPath: "example.test/provider/internal/sdk",
 		ClientTypeName:   "APIClient",
 	}
-	tagParam := []sdkbind.CallParam{{Local: "tagId", GoType: "string", Wire: "tagId"}}
+	tagParam := []sdkbind.CallParameter{{Local: "tagId", GoType: "string", Wire: "tagId"}}
 
 	return &sdkbind.Bindings{
 		SDK: info,
@@ -199,7 +199,7 @@ func oagBindings() *sdkbind.Bindings {
 			"tag_rotate": {
 				Key: "tag_rotate",
 				Invoke: call("client.TagsAPI.RotateTag(ctx, tagId).RotateRequest(*body).Execute()",
-					[]sdkbind.CallParam{{Local: "tagId", GoType: "int64", Wire: "tagId"}},
+					[]sdkbind.CallParameter{{Local: "tagId", GoType: "int64", Wire: "tagId"}},
 					"", "*http.Response", "error"),
 				WriteModel:       "sdk.RotateRequest",
 				WriteConstructor: "sdk.NewRotateRequestWithDefaults()",

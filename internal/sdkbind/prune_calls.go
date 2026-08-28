@@ -48,7 +48,7 @@ func (p *pruner) resolveCall(c *Call) string {
 			return fmt.Sprintf("%s takes %d argument(s) but the call passes %d: %s",
 				seg.Name, want, got, shortSignature(sig))
 		}
-		settleParamTypes(c, seg, sig)
+		settleParameterTypes(c, seg, sig)
 		if last {
 			final = sig
 			break
@@ -225,7 +225,7 @@ func (p *pruner) writeModelFor(requestType string) (model, constructor, reason s
 	return qualifier + "." + name, "&" + qualifier + "." + name + "{}", ""
 }
 
-// settleParamTypes records what the SDK method really takes for each path
+// settleParameterTypes records what the SDK method really takes for each path
 // parameter the segment passes, replacing the type drafted from the document.
 //
 // The draft can only spell what the intermediate representation knows, and
@@ -239,7 +239,7 @@ func (p *pruner) writeModelFor(requestType string) (model, constructor, reason s
 // Resolution is by argument position against the real signature, which is the
 // only place the truth lives. A parameter the segment does not pass is left
 // exactly as drafted.
-func settleParamTypes(c *Call, seg *Segment, sig *types.Signature) {
+func settleParameterTypes(c *Call, seg *Segment, sig *types.Signature) {
 	if c == nil || sig == nil {
 		return
 	}
@@ -247,11 +247,11 @@ func settleParamTypes(c *Call, seg *Segment, sig *types.Signature) {
 		if position >= sig.Params().Len() {
 			return
 		}
-		for i := range c.Params {
-			if c.Params[i].Local != arg {
+		for i := range c.Parameters {
+			if c.Parameters[i].Local != arg {
 				continue
 			}
-			c.Params[i].GoType = shortType(sig.Params().At(position).Type())
+			c.Parameters[i].GoType = shortType(sig.Params().At(position).Type())
 		}
 	}
 }

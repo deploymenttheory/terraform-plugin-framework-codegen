@@ -12,7 +12,7 @@ import (
 // parameter the SDK types as uuid.UUID is parsed rather than refused, and
 // that a malformed value reports against its own attribute.
 func TestUnit_ParamDeclaration_UUIDParsesWithADiagnostic(t *testing.T) {
-	p := sdkbind.CallParam{Local: "agentId", Wire: "agentId", GoType: "uuid.UUID"}
+	p := sdkbind.CallParameter{Local: "agentId", Wire: "agentId", GoType: "uuid.UUID"}
 
 	declaration, imports, err := parameterDeclaration(p, "data", "AgentID", ir.TypeString, "agent_id", respDiagnostics())
 	if err != nil {
@@ -47,13 +47,13 @@ func TestUnit_ParamDeclaration_UUIDParsesWithADiagnostic(t *testing.T) {
 // reaches the local the call passes.
 func TestUnit_ParamDeclaration_IntegerParsesWithADiagnostic(t *testing.T) {
 	for _, testCase := range []struct {
-		name  string
-		param sdkbind.CallParam
-		want  []string
+		name      string
+		parameter sdkbind.CallParameter
+		want      []string
 	}{
 		{
 			"narrowed to int32",
-			sdkbind.CallParam{Local: "hookId", Wire: "hook_id", GoType: "int32"},
+			sdkbind.CallParameter{Local: "hookId", Wire: "hook_id", GoType: "int32"},
 			[]string{
 				"hookIdParsed, hookIdErr := strconv.ParseInt(data.HookID.ValueString(), 10, 32)",
 				`resp.Diagnostics.AddAttributeError(path.Root("hook_id"), "Invalid hook_id", hookIdErr.Error())`,
@@ -62,12 +62,12 @@ func TestUnit_ParamDeclaration_IntegerParsesWithADiagnostic(t *testing.T) {
 		},
 		{
 			"int64 needs no cast",
-			sdkbind.CallParam{Local: "hookId", Wire: "hook_id", GoType: "int64"},
+			sdkbind.CallParameter{Local: "hookId", Wire: "hook_id", GoType: "int64"},
 			[]string{"hookId, hookIdErr := strconv.ParseInt(data.HookID.ValueString(), 10, 64)"},
 		},
 		{
 			"unsigned parses unsigned",
-			sdkbind.CallParam{Local: "hookId", Wire: "hook_id", GoType: "uint32"},
+			sdkbind.CallParameter{Local: "hookId", Wire: "hook_id", GoType: "uint32"},
 			[]string{
 				"hookIdParsed, hookIdErr := strconv.ParseUint(data.HookID.ValueString(), 10, 32)",
 				"hookId := uint32(hookIdParsed)",
@@ -75,14 +75,14 @@ func TestUnit_ParamDeclaration_IntegerParsesWithADiagnostic(t *testing.T) {
 		},
 		{
 			"platform width int",
-			sdkbind.CallParam{Local: "hookId", Wire: "hook_id", GoType: "int"},
+			sdkbind.CallParameter{Local: "hookId", Wire: "hook_id", GoType: "int"},
 			[]string{
 				"hookIdParsed, hookIdErr := strconv.ParseInt(data.HookID.ValueString(), 10, 0)",
 				"hookId := int(hookIdParsed)",
 			},
 		},
 	} {
-		declaration, imports, err := parameterDeclaration(testCase.param, "data", "HookID", ir.TypeString, "hook_id", respDiagnostics())
+		declaration, imports, err := parameterDeclaration(testCase.parameter, "data", "HookID", ir.TypeString, "hook_id", respDiagnostics())
 		if err != nil {
 			t.Errorf("%s: parameterDeclaration refused an integer path parameter: %v", testCase.name, err)
 			continue
@@ -113,7 +113,7 @@ func TestUnit_ParamDeclaration_IntegerParsesWithADiagnostic(t *testing.T) {
 // field into a narrower integer parameter is still refused: the conversion
 // loses information silently, and no parse reports that.
 func TestUnit_ParamDeclaration_RefusesATruncatingConversion(t *testing.T) {
-	p := sdkbind.CallParam{Local: "groupId", Wire: "runner_group_id", GoType: "int32"}
+	p := sdkbind.CallParameter{Local: "groupId", Wire: "runner_group_id", GoType: "int32"}
 
 	if _, _, err := parameterDeclaration(p, "data", "GroupID", ir.TypeFloat64, "runner_group_id", respDiagnostics()); err == nil {
 		t.Fatal("parameterDeclaration rendered a float64 into an int32 parameter; it must refuse")
@@ -125,17 +125,17 @@ func TestUnit_ParamDeclaration_RefusesATruncatingConversion(t *testing.T) {
 // assignment, with no diagnostic scaffolding around it.
 func TestUnit_ParamDeclaration_InfallibleConversionsStayOneLine(t *testing.T) {
 	for _, testCase := range []struct {
-		name   string
-		param  sdkbind.CallParam
-		kind   ir.AttributeType
-		want   string
-		needed string
+		name      string
+		parameter sdkbind.CallParameter
+		kind      ir.AttributeType
+		want      string
+		needed    string
 	}{
-		{"string to string", sdkbind.CallParam{Local: "id", Wire: "id", GoType: "string"}, ir.TypeString, "id := data.ID.ValueString()", ""},
-		{"int64 narrowed", sdkbind.CallParam{Local: "id", Wire: "id", GoType: "int32"}, ir.TypeInt64, "id := int32(data.ID.ValueInt64())", ""},
-		{"int64 to string", sdkbind.CallParam{Local: "id", Wire: "id", GoType: "string"}, ir.TypeInt64, "id := strconv.FormatInt(data.ID.ValueInt64(), 10)", "strconv"},
+		{"string to string", sdkbind.CallParameter{Local: "id", Wire: "id", GoType: "string"}, ir.TypeString, "id := data.ID.ValueString()", ""},
+		{"int64 narrowed", sdkbind.CallParameter{Local: "id", Wire: "id", GoType: "int32"}, ir.TypeInt64, "id := int32(data.ID.ValueInt64())", ""},
+		{"int64 to string", sdkbind.CallParameter{Local: "id", Wire: "id", GoType: "string"}, ir.TypeInt64, "id := strconv.FormatInt(data.ID.ValueInt64(), 10)", "strconv"},
 	} {
-		declaration, imports, err := parameterDeclaration(testCase.param, "data", "ID", testCase.kind, "id", respDiagnostics())
+		declaration, imports, err := parameterDeclaration(testCase.parameter, "data", "ID", testCase.kind, "id", respDiagnostics())
 		if err != nil {
 			t.Errorf("%s: %v", testCase.name, err)
 			continue
