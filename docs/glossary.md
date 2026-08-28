@@ -27,6 +27,7 @@ single recorded exception.
 | **import** | To pin the upstream OpenAPI document by hash — `tfpfgen spec import`. The imported document is immutable evidence of what the vendor published, committed at `spec/imported.yaml` beside its **pin**. |
 | **pin** | The record of where an imported document came from and what it was: source, SHA-256, fetch time, format and version, committed at `spec/imported.pin.json`. Carried as the `Pin` type. |
 | **validate** | The offline preflight — `tfpfgen config validate`: tfpfgen.yaml is well-formed, the auth method's secrets are present, tool pins match. Dies in seconds, before anything credentialed runs. |
+| **verify generated tree** | The toolchain gate `provider generate` runs after installing the tree: `go mod tidy`, `go build ./...`, `go vet ./...`. Enabled by `--verify-tree`, on by default where a Go toolchain is on PATH. The files it finalises — `go.mod`, `go.sum` — are recorded in the manifest under the `toolchain` origin, so the drift gate covers what no template emitted. |
 | **generate** | Code generation — `tfpfgen sdk generate`, `tfpfgen provider generate`. Every generated file carries a DO-NOT-EDIT header and a manifest entry. |
 | **verify** | The drift gate — `tfpfgen spec verify`, `tfpfgen sdk verify`, `tfpfgen provider verify`: regenerate into a temporary tree, byte-compare, fail on any difference. |
 | **cleanup** | Deleting the live test objects an audit created, matched by name prefix — `tfpfgen audit cleanup`. Runs automatically at the start and end of every audit, and standalone on demand. |
@@ -92,6 +93,21 @@ single recorded exception.
   wrapped only>}`;
   `x-tfpfgen-list-pagination: cursor | offset | page | none`;
   `x-tfpfgen-identifier-property: <property name>`, on a read operation.
+- The full approved `x-tfpfgen-*` set. Every key is spelled as the
+  **observation kind** that writes it, in kebab case, so one fact never has
+  two names because it crossed a serialisation boundary:
+  `-immutable`, `-required-when`, `-read-after-write`, `-update-style`,
+  `-delete-not-found-ok`, `-values`, `-volatile`, `-server-forced`,
+  `-server-default`, `-ignored-on-update`, `-valid-when`, `-depends-on`,
+  `-mutually-exclusive`, `-valid-configuration`, `-list-wrapper`,
+  `-list-pagination`, `-identifier-property`.
+- The observation kinds, closed and spelled identically in Go (`Kind*`) and
+  in observation JSON: `writable`, `immutable`, `requiredByAPI`,
+  `requiredWhen`, `serverDefault`, `derivedDefault`, `normalisation`,
+  `ignoredOnUpdate`, `serverForced`, `volatile`, `values`, `updateStyle`,
+  `deleteNotFoundOK`, `readAfterWrite`, `undocumentedFieldInSpec`,
+  `validConfiguration`, `validWhen`, `dependsOn`, `mutuallyExclusive`,
+  `listWrapper`, `listPagination`, `identifierProperty`.
 - Shared workflows, stage-numbered in pipeline order:
   `10-generate.yml`, `20-corrections.yml`, `30-ci.yml`,
   `40-acceptance.yml`, `50-docs.yml`, `60-release.yml`.
@@ -231,8 +247,12 @@ single recorded exception.
   from the pipeline's `TFPFGEN_AUTH_*` secrets, which only the toolkit
   reads.
 - Provider block attributes: `endpoint`, `api_token`, `username`,
-  `password`, `client_id`, `client_secret`, `token_url`, `request_timeout`,
-  and the `client_options` block.
+  `password`, `client_id`, `client_secret`, `token_url`, `app_id`,
+  `app_private_key`, `request_timeout`, and the `client_options` block.
+  `app_id` and `app_private_key` are the GitHub App credentials; they match
+  `client_id`/`client_secret` in shape, and their `<PROVIDER>_APP_ID` and
+  `<PROVIDER>_APP_PRIVATE_KEY` environment fallbacks follow the operator
+  convention above.
 - **client_options** — the provider block that paces the retry loops the
   generated provider runs on the practitioner's behalf:
   `read_retry_delay_seconds` and `delete_retry_delay_seconds`. Named on the
@@ -243,7 +263,18 @@ single recorded exception.
   paced loop into a busy one. Installed once by `Configure` through
   `crud.SetRetryCadence`.
 - Conversion catalog function families: `APIToFramework*` and
-  `FrameworkToAPI*`.
+  `FrameworkToAPI*`. In emitted service code the two directions are
+  `MapRemoteStateToResource` / `MapRemoteStateToDatasource` (the API's answer
+  onto the framework model) and the `construct*` family (the plan onto the
+  SDK request body).
+- Emitted provider-core vocabulary: `APIError` and `Describe` in the errors
+  package; `LifecycleMethod`; `StateContainer`, `CreateResponseContainer`,
+  `UpdateResponseContainer` and `ConsistencyPredicate` in the read-after-write
+  loop; `MockBaseURL` and the mock `Registry`; `RemoteObjectCheck`,
+  `CheckExists` and `CheckDestroyed` in the acceptance harness;
+  `SharedCollectionNote` for a **co-managed entity**; `tfpfgen_run`, the
+  `random_string` whose value suffixes synthesised names in every generated
+  acceptance fixture.
 - Go-idiomatic acronym casing in generated names: known acronyms uppercase
   whole in Pascal/camel spellings (`HTTPServer`, `APIKey`), and a leading
   acronym lowers whole in camel (`id`, `apiKey`). The acronym table lives in
