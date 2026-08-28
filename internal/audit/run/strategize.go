@@ -463,7 +463,17 @@ func (r *runner) synthesiseField(entity *entityState, field string) any {
 	synthesis := r.syntheses[entity.plan.Entity]
 	if hints := r.hints[entity.plan.Entity]; hints != nil {
 		if h, ok := hints[field]; ok {
-			return bindReferences(synthesis.fieldValue(h), field, synthesis.references, nil)
+			value := synthesis.fieldValue(h)
+			// A composite the API asked for by name is added in the form
+			// the document attests when its smallest form is empty: an
+			// object with nothing in it is what the refusal was about, or
+			// what the next one will be.
+			if object, isObject := value.(map[string]any); isObject && len(object) == 0 {
+				if wider, has := synthesis.attestedValue(field); has {
+					value = wider
+				}
+			}
+			return bindReferences(value, field, synthesis.references, nil)
 		}
 	}
 	if plan.NameBearing(field) {

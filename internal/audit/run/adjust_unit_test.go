@@ -779,3 +779,23 @@ func TestUnit_Adjust_ABareAbsenceNamingAnObjectsMemberAddsTheMember(t *testing.T
 		t.Error("a scalar field was taken for a container")
 	}
 }
+
+func TestUnit_Adjust_AnAddedCompositeTakesItsAttestedFormWhenTheMinimalIsEmpty(t *testing.T) {
+	t.Parallel()
+	r := &runner{
+		hints: map[string]map[string]strategy.SyntheticValueRules{"window": {"endRepeat": {Field: "endRepeat"}, "repeat": {Field: "repeat"}}},
+		syntheses: map[string]bodySynthesis{"window": {
+			composites:         map[string]any{"endRepeat": map[string]any{}, "repeat": map[string]any{"type": "day"}},
+			attestedComposites: map[string]any{"endRepeat": map[string]any{"type": "never", "count": 3}, "repeat": map[string]any{"type": "week", "intervalType": "day"}},
+		}},
+	}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "window"}}
+	added, _ := r.synthesiseField(entity, "endRepeat").(map[string]any)
+	if added["type"] != "never" || added["count"] != 3 {
+		t.Errorf("an empty composite was added as %#v, want its attested form", added)
+	}
+	minimal, _ := r.synthesiseField(entity, "repeat").(map[string]any)
+	if len(minimal) != 1 || minimal["type"] != "day" {
+		t.Errorf("a composite with a minimal form was widened: %#v", minimal)
+	}
+}
