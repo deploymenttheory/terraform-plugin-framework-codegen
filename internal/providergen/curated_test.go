@@ -52,7 +52,7 @@ func curatedRepo(t *testing.T, dialect string) (string, Options) {
 	if _, err := store.Import(specDir, document, "testdata/curated/openapi.yaml"); err != nil {
 		t.Fatalf("spec import: %v", err)
 	}
-	if _, err := revise.Materialize(specDir); err != nil {
+	if _, err := revise.WriteRevision(specDir); err != nil {
 		t.Fatalf("spec revise: %v", err)
 	}
 
@@ -102,8 +102,8 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 			if res.Files == 0 {
 				t.Fatal("Run reported no files")
 			}
-			if res.Postcheck.Ran || res.Postcheck.SkippedReason != "postcheck disabled" {
-				t.Errorf("postcheck = %+v; the fixture run disables it", res.Postcheck)
+			if res.TreeVerification.Ran || res.TreeVerification.SkippedReason != "tree verification disabled" {
+				t.Errorf("tree verification = %+v; the fixture run disables it", res.TreeVerification)
 			}
 
 			for _, path := range []string{

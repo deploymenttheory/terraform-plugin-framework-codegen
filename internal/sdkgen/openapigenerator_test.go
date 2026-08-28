@@ -63,7 +63,7 @@ func TestUnit_OpenAPIGeneratorGenerate_PassesTheDocumentedFlagsAndWritesTheIgnor
 	argsFile := installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "1.2.3")
 	configuration := testConfig(config.BackendOpenAPIGenerator, nil, nil)
 	out := filepath.Join(t.TempDir(), "sdk")
-	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
+	spec := filepath.Join(t.TempDir(), "revised.prenormalised.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestUnit_OpenAPIGeneratorGenerate_FiltersTheDocumentForPathGlobs(t *testing
 	argsFile := installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "1.2.3")
 	configuration := testConfig(config.BackendOpenAPIGenerator, []string{"/widgets/**", "/widgets"}, []string{"/widgets/{id}"})
 	out := filepath.Join(t.TempDir(), "sdk")
-	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
+	spec := filepath.Join(t.TempDir(), "revised.prenormalised.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestUnit_OpenAPIGeneratorGenerate_FiltersTheDocumentForPathGlobs(t *testing
 func TestUnit_OpenAPIGeneratorGenerate_RefusesAFilterThatKeepsNothing(t *testing.T) {
 	installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "1.2.3")
 	configuration := testConfig(config.BackendOpenAPIGenerator, []string{"/nothing/**"}, nil)
-	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
+	spec := filepath.Join(t.TempDir(), "revised.prenormalised.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestUnit_OpenAPIGeneratorNormalize_SortsFILESAndDeletesScaffolding(t *testi
 	installStub(t, "openapi-generator-cli", openAPIGeneratorStub, "1.2.3")
 	configuration := testConfig(config.BackendOpenAPIGenerator, nil, nil)
 	out := filepath.Join(t.TempDir(), "sdk")
-	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
+	spec := filepath.Join(t.TempDir(), "revised.prenormalised.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}

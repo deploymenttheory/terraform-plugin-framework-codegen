@@ -252,8 +252,8 @@ func TestUnit_Plan_CapsBoundWideSchemas(t *testing.T) {
 	// 21 writable fields, 11 optional and derivable: allowance is
 	// ceil(log2(11)) + 1.
 	for _, s := range steps {
-		if s.Kind == StepCreateMaximal && s.BisectionAllowance != 5 {
-			t.Errorf("bisection allowance = %d, want 5 for 11 optionals", s.BisectionAllowance)
+		if s.Kind == StepCreateMaximal && s.FieldNarrowingAttemptLimit != 5 {
+			t.Errorf("bisection allowance = %d, want 5 for 11 optionals", s.FieldNarrowingAttemptLimit)
 		}
 	}
 }

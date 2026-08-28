@@ -6,7 +6,7 @@ package run
 // enforces it with prose the refusal grammar cannot parse. The executor
 // synthesises the first enum value of every field, so the first body it sends
 // carries the combination least likely to be right, and a conditional API
-// refuses it. Rather than give up, cycleConditional holds the field the step is
+// refuses it. Rather than give up, retryAcrossValues holds the field the step is
 // exercising fixed and tries the other enum fields' remaining values until the
 // API accepts a body — recording which combinations were refused and which
 // accepted, the both-direction evidence the inference confirms a
@@ -28,23 +28,23 @@ import (
 // never spin the loop.
 const maxCycleAttempts = 8
 
-// cycleConditional heals a free-form conditional refusal by trying alternate
+// retryAcrossValues corrects a free-form conditional refusal by trying alternate
 // enum values for the sibling fields present in the body, holding the pinned
 // field fixed. It returns the accepted object and its response when a
 // combination works, and records every combination it tried — refused and
 // accepted — as value-conditional evidence. When nothing works within the cap
-// it records an inconclusive edge per implicated sibling and returns healed
+// it records an inconclusive edge per implicated sibling and returns corrected
 // false, so the caller continues rather than blocking.
 //
 // It acts only when the refusal names a field the entity declares (the
 // generalized extraction) and the body carries a cyclable enum sibling; on a
 // non-strategy run, where no synthesis hints exist, it is inert.
-func (r *runner) cycleConditional(ctx context.Context, entity *entityState, rec *entityRecipe, body map[string]any, held string, refusal *httpResult, applied map[string]bool) (*createdObject, *httpResult, bool, error) {
+func (r *runner) retryAcrossValues(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, held string, refusal *httpResult, applied map[string]bool) (*createdObject, *httpResult, bool, error) {
 	hints := r.hints[entity.plan.Entity]
 	if hints == nil || refusal == nil {
 		return nil, nil, false, nil
 	}
-	if len(namedKnownFields(refusalMessage(refusal.body), hints)) == 0 {
+	if len(declaredFieldsNamedIn(refusalMessage(refusal.body), hints)) == 0 {
 		// Nothing the entity declares is named: an unintelligible refusal, not a
 		// conditional constraint. Give up without spending a request.
 		return nil, nil, false, nil
@@ -53,7 +53,7 @@ func (r *runner) cycleConditional(ctx context.Context, entity *entityState, rec 
 	if gate == "" {
 		gate = held
 	}
-	targets := cyclableSiblings(body, hints, held)
+	targets := retryableSiblings(body, hints, held)
 	attempts := 0
 	for i := range targets {
 		tgt := targets[i]
@@ -65,8 +65,8 @@ func (r *runner) cycleConditional(ctx context.Context, entity *entityState, rec 
 
 		// The current value under the current discriminator value is what was
 		// just refused.
-		discriminator, cf, cv := condCoords(body, tgt.Field, held, gate)
-		r.recordConditional(entity, gate, discriminator, cf, cv, false)
+		discriminator, cf, cv := valueOutcomeKey(body, tgt.Field, held, gate)
+		r.recordValueOutcome(entity, gate, discriminator, cf, cv, false)
 
 		for _, v := range tgt.Enum {
 			// Compared as text because the body holds whatever JSON decoding
@@ -81,8 +81,8 @@ func (r *runner) cycleConditional(ctx context.Context, entity *entityState, rec 
 			if err != nil {
 				return nil, nil, false, err
 			}
-			d2, f2, v2 := condCoords(body, tgt.Field, held, gate)
-			r.recordConditional(entity, gate, d2, f2, v2, obj != nil)
+			d2, f2, v2 := valueOutcomeKey(body, tgt.Field, held, gate)
+			r.recordValueOutcome(entity, gate, d2, f2, v2, obj != nil)
 			if obj != nil {
 				return obj, res, true, nil
 			}
@@ -98,18 +98,18 @@ func (r *runner) cycleConditional(ctx context.Context, entity *entityState, rec 
 	// so the suspicion is visible without being asserted, and let the entity
 	// continue with the variants and probes it can still exercise.
 	for i := range targets {
-		discriminator, cf, _ := condCoords(body, targets[i].Field, held, gate)
+		discriminator, cf, _ := valueOutcomeKey(body, targets[i].Field, held, gate)
 		r.recordConditionalInconclusive(entity, gate, discriminator, cf, refusal.excerpt)
 	}
 	return nil, nil, false, nil
 }
 
-// condCoords resolves one value-cycling attempt to the coordinates the evidence
+// valueOutcomeKey resolves one value-cycling attempt to the coordinates the evidence
 // is keyed on: the discriminator (primary-gate) value, the constrained sibling
 // field, and its current value. When the field being cycled is the gate itself
 // (a per-enum-value step that pins a non-primary field), the constrained field
 // is the held one instead.
-func condCoords(body map[string]any, cycled, held, gate string) (discriminator, field, value string) {
+func valueOutcomeKey(body map[string]any, cycled, held, gate string) (discriminator, field, value string) {
 	discriminator = fmt.Sprint(body[gate])
 	field = cycled
 	if cycled == gate {
@@ -122,11 +122,11 @@ func condCoords(body map[string]any, cycled, held, gate string) (discriminator, 
 	return discriminator, field, value
 }
 
-// cyclableSiblings is the sorted set of enum-typed fields present in the body
+// retryableSiblings is the sorted set of enum-typed fields present in the body
 // that value-cycling may vary: every declared enum field with at least two
 // members, except the one the step holds fixed.
-func cyclableSiblings(body map[string]any, hints map[string]strategy.SynthHint, held string) []strategy.SynthHint {
-	var out []strategy.SynthHint
+func retryableSiblings(body map[string]any, hints map[string]strategy.SyntheticValueRules, held string) []strategy.SyntheticValueRules {
+	var out []strategy.SyntheticValueRules
 	for f := range body {
 		if f == held {
 			continue
@@ -141,8 +141,8 @@ func cyclableSiblings(body map[string]any, hints map[string]strategy.SynthHint, 
 	return out
 }
 
-// recordConditional appends one value-cycling outcome for the inference to read.
-func (r *runner) recordConditional(entity *entityState, gateField, gateValue, field, value string, accepted bool) {
+// recordValueOutcome appends one value-cycling outcome for the inference to read.
+func (r *runner) recordValueOutcome(entity *entityState, gateField, gateValue, field, value string, accepted bool) {
 	if gateField == "" || field == "" || value == "" {
 		return
 	}
@@ -180,10 +180,10 @@ func (r *runner) isConditionalRefusal(entity *entityState, res *httpResult) bool
 	if res == nil {
 		return false
 	}
-	return len(namedKnownFields(refusalMessage(res.body), r.hints[entity.plan.Entity])) > 0
+	return len(declaredFieldsNamedIn(refusalMessage(res.body), r.hints[entity.plan.Entity])) > 0
 }
 
-// namedKnownFields is the generalized field extraction: it scans a refusal the
+// declaredFieldsNamedIn is the generalized field extraction: it scans a refusal the
 // grammar could not classify for any field the entity declares, returning the
 // ones it names. A real API phrases a value-conditional refusal in prose —
 // "type: Dynamic tags are not supported for the provided object type" — that
@@ -193,7 +193,7 @@ func (r *runner) isConditionalRefusal(entity *entityState, res *httpResult) bool
 //
 // Matching is on word boundaries so a field is recognised as a whole token, not
 // as a fragment of an unrelated word.
-func namedKnownFields(message string, known map[string]strategy.SynthHint) []string {
+func declaredFieldsNamedIn(message string, known map[string]strategy.SyntheticValueRules) []string {
 	if message == "" || len(known) == 0 {
 		return nil
 	}

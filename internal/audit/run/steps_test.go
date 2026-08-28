@@ -120,7 +120,7 @@ func TestUnit_Steps_LookupReadOfAMissingKeyBlocks(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 	p := thingPlan(nil, 10)
-	p.Entities[0].Role = "lookup"
+	p.Entities[0].AuditShape = "lookupByKey"
 	p.Entities[0].Steps = []plan.Step{{
 		Kind: plan.StepRead, Method: "GET", Path: "/things/{thingId}",
 		PathValues: map[string]string{"thingId": "does-not-exist"},

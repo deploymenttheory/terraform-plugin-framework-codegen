@@ -253,10 +253,10 @@ func entityStatus(t *testing.T, summary Summary, entity string) EntityResult {
 func thingPlan(steps []plan.Step, budget int) *plan.Plan {
 	return &plan.Plan{
 		Entities: []plan.EntityPlan{{
-			Entity: "thing",
-			Role:   "resource",
-			Budget: plan.Budget{Requests: budget},
-			Steps:  steps,
+			Entity:     "thing",
+			AuditShape: "resource",
+			Budget:     plan.Budget{Requests: budget},
+			Steps:      steps,
 		}},
 		Budget: plan.RunBudget{Requests: 200, Objects: 10, Duration: "1m"},
 	}

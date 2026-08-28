@@ -83,7 +83,7 @@ func (b openAPIGeneratorBackend) Generate(ctx context.Context, revisedSpecPath s
 	// meaning kiota's flags give them.
 	specPath := revisedSpecPath
 	if len(configuration.SDK.IncludePaths)+len(configuration.SDK.ExcludePaths) > 0 {
-		document, err := os.ReadFile(revisedSpecPath) //nolint:gosec // the pre-normalized copy this run wrote
+		document, err := os.ReadFile(revisedSpecPath) //nolint:gosec // the pre-normalised copy this run wrote
 		if err != nil {
 			return err
 		}

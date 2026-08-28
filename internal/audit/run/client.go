@@ -92,7 +92,7 @@ func (r *runner) do(ctx context.Context, entity *entityState, spec reqSpec) (*ht
 	}
 
 	if mutatingMethod(spec.method) {
-		if err := r.guardMutation(&u); err != nil {
+		if err := r.refuseForeignHostWrite(&u); err != nil {
 			return nil, err
 		}
 	}
@@ -257,10 +257,10 @@ func (r *runner) spend(entity *entityState) error {
 	return nil
 }
 
-// guardMutation is the per-request guard: the host allowlist derived from
+// refuseForeignHostWrite is the per-request guard: the host allowlist derived from
 // the base URL, checked before every mutating request however the URL was
 // built.
-func (r *runner) guardMutation(u *url.URL) error {
+func (r *runner) refuseForeignHostWrite(u *url.URL) error {
 	if u.Host != r.base.Host {
 		return fmt.Errorf("audit run: refusing a mutating request to %s: the host allowlist derived from the base URL admits only %s", u.Host, r.base.Host)
 	}

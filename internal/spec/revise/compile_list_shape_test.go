@@ -52,9 +52,9 @@ func TestUnit_Propose_ListResponseShapeConvergesOnceStated(t *testing.T) {
 	}
 
 	// And the revised document really carries the key, loadable and typed.
-	revised, err := Materialize(specDir)
+	revised, err := WriteRevision(specDir)
 	if err != nil {
-		t.Fatalf("Materialize: %v", err)
+		t.Fatalf("WriteRevision: %v", err)
 	}
 	raw, err := os.ReadFile(revised.OutputPath)
 	if err != nil {

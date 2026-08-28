@@ -180,7 +180,7 @@ func TestUnit_Run_EventuallyConsistentReadsMeasureTheLag(t *testing.T) {
 }
 
 // TestUnit_Run_MaximalRefusalBisectsToTheCulprit uses an empty error
-// envelope — no field named — so the executor must earn the culprit by
+// envelope — no field named — so the executor must earn the refused field by
 // halving the optional set.
 func TestUnit_Run_MaximalRefusalBisectsToTheCulprit(t *testing.T) {
 	t.Parallel()
@@ -200,7 +200,7 @@ func TestUnit_Run_MaximalRefusalBisectsToTheCulprit(t *testing.T) {
 	var v observe.Values
 	_ = json.Unmarshal(raw, &v)
 	if len(v.Rejected) != 1 || v.Rejected[0] != "sample-color" {
-		t.Errorf("values(color).rejected = %v, want the bisected culprit value", v.Rejected)
+		t.Errorf("values(color).rejected = %v, want the bisected refused field value", v.Rejected)
 	}
 	if left := s.Objects(); len(left) != 0 {
 		t.Errorf("bisection left objects behind: %v", left)
@@ -273,9 +273,9 @@ func TestUnit_Run_MissingEnvVarBlocksTheEntityAndTheRunContinues(t *testing.T) {
 
 	p := thingPlan(resourceSteps(), 60)
 	p.Entities = append(p.Entities, plan.EntityPlan{
-		Entity: "gadget",
-		Role:   "lookup",
-		Budget: plan.Budget{Requests: 10},
+		Entity:     "gadget",
+		AuditShape: "lookupByKey",
+		Budget:     plan.Budget{Requests: 10},
 		Steps: []plan.Step{{
 			Kind: plan.StepRead, Method: "GET", Path: "/things/{thingId}",
 			PathValues: map[string]string{"thingId": "${TFPFGEN_TEST_UNSET_VAR}"},
@@ -307,10 +307,10 @@ func TestUnit_Run_CreatedChainingRecreatesTheParent(t *testing.T) {
 
 	p := thingPlan(resourceSteps(), 60)
 	p.Entities = append(p.Entities, plan.EntityPlan{
-		Entity:  "gadget",
-		Role:    "lookup",
-		Parents: []string{"thing"},
-		Budget:  plan.Budget{Requests: 10},
+		Entity:     "gadget",
+		AuditShape: "lookupByKey",
+		Parents:    []string{"thing"},
+		Budget:     plan.Budget{Requests: 10},
 		Steps: []plan.Step{{
 			Kind: plan.StepRead, Method: "GET", Path: "/things/{thingId}",
 			PathValues: map[string]string{"thingId": "$created:thing"},
@@ -340,9 +340,9 @@ func TestUnit_Run_BudgetExhaustionRecordsAndMovesOn(t *testing.T) {
 
 	p := thingPlan(resourceSteps(), 2)
 	p.Entities = append(p.Entities, plan.EntityPlan{
-		Entity: "gadget",
-		Role:   "lookup",
-		Budget: plan.Budget{Requests: 10},
+		Entity:     "gadget",
+		AuditShape: "lookupByKey",
+		Budget:     plan.Budget{Requests: 10},
 		Steps: []plan.Step{{
 			Kind: plan.StepRead, Method: "GET", Path: "/things/{thingId}",
 			PathValues: map[string]string{"thingId": seeded},

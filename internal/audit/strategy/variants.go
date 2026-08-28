@@ -138,23 +138,23 @@ func branchAdmitsValue(branch *specmodel.Schema, gateField, value string) bool {
 	return false
 }
 
-// deriveHypotheses composes every candidate conditional edge: the structural
+// deriveClaims composes every candidate conditional edge: the structural
 // ones (variants, dependentRequired, dependentSchemas) and the prose ones
 // (mined from descriptions), sorted and de-duplicated.
-func deriveHypotheses(createBody *specmodel.Schema, variants []Variant) []Hypothesis {
-	var hyps []Hypothesis
-	hyps = append(hyps, variantHypotheses(variants)...)
-	hyps = append(hyps, dependentHypotheses(createBody)...)
-	hyps = append(hyps, proseHypotheses(createBody)...)
+func deriveClaims(createBody *specmodel.Schema, variants []Variant) []Claim {
+	var claims []Claim
+	claims = append(claims, variantClaims(variants)...)
+	claims = append(claims, dependentClaims(createBody)...)
+	claims = append(claims, descriptionClaims(createBody)...)
 
-	sortHypotheses(hyps)
-	return dedupHypotheses(hyps)
+	sortClaims(claims)
+	return dedupeClaims(claims)
 }
 
-// variantHypotheses emits one variant edge per structural (branch-backed)
+// variantClaims emits one variant edge per structural (branch-backed)
 // variant: the fields the branch adds beyond the baseline are valid only under
 // that gate value.
-func variantHypotheses(variants []Variant) []Hypothesis {
+func variantClaims(variants []Variant) []Claim {
 	if len(variants) == 0 {
 		return nil
 	}
@@ -162,7 +162,7 @@ func variantHypotheses(variants []Variant) []Hypothesis {
 	for _, f := range variants[0].Maximal.Fields {
 		baseline[f] = true
 	}
-	var out []Hypothesis
+	var out []Claim
 	for _, v := range variants[1:] {
 		if v.Provenance != ProvenanceStructural {
 			continue
@@ -177,32 +177,32 @@ func variantHypotheses(variants []Variant) []Hypothesis {
 			continue
 		}
 		sort.Strings(only)
-		out = append(out, Hypothesis{
-			Kind:       HypothesisVariant,
+		out = append(out, Claim{
+			Kind:       ClaimValidConfiguration,
 			Subjects:   only,
 			GateField:  v.GateField,
 			GateValue:  v.GateValue,
 			Provenance: ProvenanceStructural,
-			Check: Check{
+			Check: Probe{
 				Step: stepCreateMaximal, GateField: v.GateField, GateValue: v.GateValue,
-				Expect: "conditional",
+				ExpectedAnswer: "conditional",
 			},
 		})
 	}
 	return out
 }
 
-// dependentHypotheses emits the co-requirement edges JSON-Schema declares:
+// dependentClaims emits the co-requirement edges JSON-Schema declares:
 // dependentRequired (present X ⇒ required Y…) and dependentSchemas whose
-// subschema adds a required set. Both become requiresField hypotheses with
+// subschema adds a required set. Both become requiresField claims with
 // structural provenance.
-func dependentHypotheses(createBody *specmodel.Schema) []Hypothesis {
+func dependentClaims(createBody *specmodel.Schema) []Claim {
 	r := createBody.Resolved()
-	var out []Hypothesis
+	var out []Claim
 	for _, dr := range r.DependentRequired {
 		subjects := appendUnique(append([]string(nil), dr.Requires...), dr.Property)
 		sort.Strings(subjects)
-		out = append(out, requiresFieldHypothesis(subjects, dr.Property))
+		out = append(out, dependsOnClaim(subjects, dr.Property))
 	}
 	for _, ds := range r.DependentSchemas {
 		request := ds.Schema.Resolved().Required
@@ -211,20 +211,20 @@ func dependentHypotheses(createBody *specmodel.Schema) []Hypothesis {
 		}
 		subjects := appendUnique(append([]string(nil), request...), ds.Property)
 		sort.Strings(subjects)
-		out = append(out, requiresFieldHypothesis(subjects, ds.Property))
+		out = append(out, dependsOnClaim(subjects, ds.Property))
 	}
 	return out
 }
 
-// requiresFieldHypothesis builds a structural requiresField edge whose check is
+// dependsOnClaim builds a structural requiresField edge whose check is
 // a maximal create — send the whole set and see whether the API enforces the
 // co-requirement.
-func requiresFieldHypothesis(subjects []string, trigger string) Hypothesis {
-	return Hypothesis{
-		Kind:       HypothesisRequiresField,
+func dependsOnClaim(subjects []string, trigger string) Claim {
+	return Claim{
+		Kind:       ClaimDependsOn,
 		Subjects:   subjects,
 		Provenance: ProvenanceStructural,
-		Check:      Check{Step: stepCreateMaximal, Field: trigger, Expect: "conditional"},
+		Check:      Probe{Step: stepCreateMaximal, Field: trigger, ExpectedAnswer: "conditional"},
 	}
 }
 
@@ -260,11 +260,11 @@ func appendUniqueField(fields []field, f field) []field {
 	return append(fields, f)
 }
 
-// sortHypotheses orders hypotheses so the compiled strategy is byte-stable: by
+// sortClaims orders claims so the compiled strategy is byte-stable: by
 // kind, then subjects, then gate, then provenance.
-func sortHypotheses(hyps []Hypothesis) {
-	sort.SliceStable(hyps, func(i, j int) bool {
-		a, b := hyps[i], hyps[j]
+func sortClaims(claims []Claim) {
+	sort.SliceStable(claims, func(i, j int) bool {
+		a, b := claims[i], claims[j]
 		if a.Kind != b.Kind {
 			return a.Kind < b.Kind
 		}
@@ -281,13 +281,13 @@ func sortHypotheses(hyps []Hypothesis) {
 	})
 }
 
-// dedupHypotheses drops hypotheses identical in kind, subjects and gate,
+// dedupeClaims drops claims identical in kind, subjects and gate,
 // keeping the first — which, after the structural-before-prose append order and
 // the stable sort, is the better-grounded one.
-func dedupHypotheses(hyps []Hypothesis) []Hypothesis {
+func dedupeClaims(claims []Claim) []Claim {
 	seen := map[string]bool{}
-	out := hyps[:0]
-	for _, h := range hyps {
+	out := claims[:0]
+	for _, h := range claims {
 		key := string(h.Kind) + "\x00" + joinSubjects(h.Subjects) + "\x00" + h.GateField + "\x00" + h.GateValue
 		if seen[key] {
 			continue

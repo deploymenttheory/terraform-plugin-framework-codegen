@@ -72,10 +72,10 @@ func fieldNames(fields []field) []string {
 	return out
 }
 
-// synthHint pulls one field's synthesis material out of its resolved schema.
-func synthHint(f field) SynthHint {
+// valueRulesFor pulls one field's synthesis material out of its resolved schema.
+func valueRulesFor(f field) SyntheticValueRules {
 	r := f.schema.Resolved()
-	h := SynthHint{
+	h := SyntheticValueRules{
 		Field:    f.name,
 		Required: f.required,
 		Type:     r.Type,
@@ -94,22 +94,22 @@ func synthHint(f field) SynthHint {
 
 // hintsFor builds the sorted per-field synthesis hints for a set of field
 // names, drawn from the given fields.
-func hintsFor(names []string, byName map[string]field) []SynthHint {
-	hints := make([]SynthHint, 0, len(names))
+func hintsFor(names []string, byName map[string]field) []SyntheticValueRules {
+	hints := make([]SyntheticValueRules, 0, len(names))
 	for _, n := range names {
 		if f, ok := byName[n]; ok {
-			hints = append(hints, synthHint(f))
+			hints = append(hints, valueRulesFor(f))
 		}
 	}
 	sort.Slice(hints, func(i, j int) bool { return hints[i].Field < hints[j].Field })
 	return hints
 }
 
-// skeleton assembles a Skeleton from a sorted name set and the field index.
-func skeleton(names []string, byName map[string]field) Skeleton {
+// skeleton assembles a RequestFields from a sorted name set and the field index.
+func skeleton(names []string, byName map[string]field) RequestFields {
 	sorted := append([]string(nil), names...)
 	sort.Strings(sorted)
-	return Skeleton{Fields: sorted, Hints: hintsFor(sorted, byName)}
+	return RequestFields{Fields: sorted, Rules: hintsFor(sorted, byName)}
 }
 
 // indexFields maps a field slice by name.

@@ -163,7 +163,7 @@ components:
                 deep:
                   type: string
 `
-	out, _, collapsed, err := Prenormalize([]byte(document))
+	out, _, collapsed, err := Prenormalise([]byte(document))
 	if err != nil {
 		t.Fatal(err)
 	}

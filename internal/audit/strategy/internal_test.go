@@ -91,13 +91,13 @@ func TestTokenIndex(t *testing.T) {
 func TestExtractProseNamingSiblingButNoValue(t *testing.T) {
 	// A conditional phrase naming a sibling with no matchable value becomes a
 	// requiresField co-requirement, prose provenance.
-	got := extractProse(
+	got := extractDescriptionClaims(
 		"deep",
 		"Must be set when advanced is present.",
 		[]string{"deep", "advanced"},
 		map[string][]string{}, // advanced has no enum values
 	)
-	if len(got) != 1 || got[0].Kind != HypothesisRequiresField {
+	if len(got) != 1 || got[0].Kind != ClaimDependsOn {
 		t.Fatalf("got %+v, want one requiresField", got)
 	}
 	if got[0].Provenance != ProvenanceProse {
@@ -109,7 +109,7 @@ func TestExtractProseNamingSiblingButNoValue(t *testing.T) {
 }
 
 func TestExtractProseNamingNothingDiscarded(t *testing.T) {
-	got := extractProse(
+	got := extractDescriptionClaims(
 		"x",
 		"Required when something unrelated happens.",
 		[]string{"x", "y"},

@@ -127,9 +127,9 @@ type Step struct {
 	PathValues map[string]string `json:"pathValues,omitempty"`
 	// Poll bounds a readWithRetry step.
 	Poll *Poll `json:"poll,omitempty"`
-	// BisectionAllowance is the extra createMaximal attempts execution may
+	// FieldNarrowingAttemptLimit is the extra createMaximal attempts execution may
 	// spend narrowing a refusal; zero elsewhere.
-	BisectionAllowance int `json:"bisectionAllowance,omitempty"`
+	FieldNarrowingAttemptLimit int `json:"fieldNarrowingAttemptLimit,omitempty"`
 }
 
 // Budget is what one entity's steps may spend.
@@ -149,9 +149,9 @@ type RunBudget struct {
 // EntityPlan is one entity's derived audit.
 type EntityPlan struct {
 	Entity string `json:"entity"`
-	// Role is "resource" for a full lifecycle, "lookup" for a datasource
+	// AuditShape is "resource" for a full lifecycle, "lookupByKey" for a datasource
 	// that is only read.
-	Role string `json:"role"`
+	AuditShape string `json:"auditShape"`
 	// Parents lists the entity keys whose created objects this entity's
 	// paths embed, in path order. Every parent appears earlier in the
 	// plan.

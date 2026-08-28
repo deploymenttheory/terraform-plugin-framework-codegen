@@ -62,20 +62,20 @@ func (f *providerFlags) options() (providergen.Options, error) {
 // is held to `go mod tidy`, `go build` and `go vet`.
 func newProviderGenerateCommand() *cobra.Command {
 	var (
-		flags     providerFlags
-		printIR   bool
-		postcheck bool
+		flags      providerFlags
+		printIR    bool
+		verifyTree bool
 	)
 	cmd := &cobra.Command{
 		Use:   "generate",
 		Short: "generate the provider tree from the revised spec and the generated SDK",
-		Args:  exactArgs("tfpfgen provider generate [--dir spec] [--sdk internal/sdk] [--out .] [--config tfpfgen.yaml] [--print-ir] [--postcheck]"),
+		Args:  exactArgs("tfpfgen provider generate [--dir spec] [--sdk internal/sdk] [--out .] [--config tfpfgen.yaml] [--print-ir] [--verify-tree]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := flags.options()
 			if err != nil {
 				return err
 			}
-			opts.Postcheck = postcheck
+			opts.VerifyTree = verifyTree
 
 			out := cmd.OutOrStdout()
 			if printIR {
@@ -112,17 +112,17 @@ func newProviderGenerateCommand() *cobra.Command {
 			case runErr != nil:
 				// Reported above; the report is the point, and the error
 				// still decides the exit code.
-			case res.Postcheck.Ran:
-				fmt.Fprintln(out, "postcheck passed: go mod tidy, go build, go vet")
+			case res.TreeVerification.Ran:
+				fmt.Fprintln(out, "tree verified: go mod tidy, go build, go vet")
 			default:
-				fmt.Fprintf(out, "postcheck skipped: %s\n", res.Postcheck.SkippedReason)
+				fmt.Fprintf(out, "tree verification skipped: %s\n", res.TreeVerification.SkippedReason)
 			}
 			return runErr
 		},
 	}
 	flags.register(cmd)
 	cmd.Flags().BoolVar(&printIR, "print-ir", false, "print the derived intermediate representation as JSON and generate nothing")
-	cmd.Flags().BoolVar(&postcheck, "postcheck", goOnPath(), "run go mod tidy, go build and go vet in the generated tree")
+	cmd.Flags().BoolVar(&verifyTree, "verify-tree", goOnPath(), "run go mod tidy, go build and go vet in the generated tree")
 	return cmd
 }
 
@@ -175,7 +175,7 @@ func newProviderVerifyCommand() *cobra.Command {
 	return cmd
 }
 
-// goOnPath is the postcheck default: on exactly when a go toolchain is
+// goOnPath is the tree-verification default: on exactly when a go toolchain is
 // present to run it.
 func goOnPath() bool {
 	_, err := exec.LookPath("go")

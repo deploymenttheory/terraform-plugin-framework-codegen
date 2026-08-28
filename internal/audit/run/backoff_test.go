@@ -432,9 +432,9 @@ func TestUnit_Run_RateLimitedRequestsAreRetriedNotRecorded(t *testing.T) {
 	item := map[string]string{"widgetId": "$created:widget"}
 	p := &plan.Plan{
 		Entities: []plan.EntityPlan{{
-			Entity: "widget",
-			Role:   "resource",
-			Budget: plan.Budget{Requests: 50},
+			Entity:     "widget",
+			AuditShape: "resource",
+			Budget:     plan.Budget{Requests: 50},
 			Steps: []plan.Step{
 				{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/widgets",
 					Body: map[string]any{"name": "tfpfgen-<runid>-widget-name"}},
@@ -502,9 +502,9 @@ func TestUnit_Run_RelentlessRateLimitingGivesUpWithoutOrphaning(t *testing.T) {
 
 	p := &plan.Plan{
 		Entities: []plan.EntityPlan{{
-			Entity: "widget",
-			Role:   "resource",
-			Budget: plan.Budget{Requests: 50},
+			Entity:     "widget",
+			AuditShape: "resource",
+			Budget:     plan.Budget{Requests: 50},
 			Steps: []plan.Step{
 				{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/widgets",
 					Body: map[string]any{"name": "tfpfgen-<runid>-widget-name"}},

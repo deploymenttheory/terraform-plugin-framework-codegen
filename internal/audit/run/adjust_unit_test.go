@@ -47,72 +47,72 @@ func TestUnit_Adjust_ClassifyRefusalGrammar(t *testing.T) {
 	cases := []struct {
 		name  string
 		body  string
-		kind  actKind
+		kind  adjustmentKind
 		field string
 		extra string // collection / trigger / condVal, per kind
 	}{
-		{"required", `{"detail":"field interval is required"}`, actAdd, "interval", ""},
-		{"required-when", `{"detail":"field target_host is required when kind=ping"}`, actAdd, "target_host", "ping"},
-		{"not-valid", `{"detail":"field domain is not valid when kind=ping"}`, actRemove, "domain", "ping"},
-		{"requires", `{"detail":"field dnssec requires field domain to be set"}`, actRequires, "domain", "dnssec"},
-		{"reference", `{"detail":"field agent_id must reference an existing agent"}`, actBorrow, "agent_id", "agent"},
-		{"enum-list", `{"detail":"field kind must be one of ping, web, dns"}`, actStop, "", ""},
-		{"bare-field", `{"title":"missing required field","detail":"serial"}`, actStop, "", ""},
-		{"oauth-envelope", `{"error":"invalid_token","error_description":"bad: field interval is required"}`, actAdd, "interval", ""},
-		{"legacy-envelope", `{"errorMessage":"nope: field interval is required"}`, actAdd, "interval", ""},
-		{"plain-text", `field interval is required`, actAdd, "interval", ""},
-		{"empty", ``, actStop, "", ""},
-		{"unparseable", `{"weird":true}`, actStop, "", ""},
+		{"required", `{"detail":"field interval is required"}`, adjustmentAdd, "interval", ""},
+		{"required-when", `{"detail":"field target_host is required when kind=ping"}`, adjustmentAdd, "target_host", "ping"},
+		{"not-valid", `{"detail":"field domain is not valid when kind=ping"}`, adjustmentRemove, "domain", "ping"},
+		{"requires", `{"detail":"field dnssec requires field domain to be set"}`, adjustmentRequires, "domain", "dnssec"},
+		{"reference", `{"detail":"field agent_id must reference an existing agent"}`, adjustmentBorrow, "agent_id", "agent"},
+		{"enum-list", `{"detail":"field kind must be one of ping, web, dns"}`, adjustmentNone, "", ""},
+		{"bare-field", `{"title":"missing required field","detail":"serial"}`, adjustmentNone, "", ""},
+		{"oauth-envelope", `{"error":"invalid_token","error_description":"bad: field interval is required"}`, adjustmentAdd, "interval", ""},
+		{"legacy-envelope", `{"errorMessage":"nope: field interval is required"}`, adjustmentAdd, "interval", ""},
+		{"plain-text", `field interval is required`, adjustmentAdd, "interval", ""},
+		{"empty", ``, adjustmentNone, "", ""},
+		{"unparseable", `{"weird":true}`, adjustmentNone, "", ""},
 
 		// An envelope that lists its complaints rather than stating one, and
 		// spells the rejected property as a path into its own request object.
 		{"listed-strings",
 			`{"errors":["endpoint.streamEndpointUrl: Endpoint URL cannot be blank"],"httpStatus":"400 BAD_REQUEST"}`,
-			actAdd, "streamEndpointUrl", ""},
+			adjustmentAdd, "streamEndpointUrl", ""},
 		{"listed-objects",
 			`{"errors":[{"field":"interval","message":"must not be null"}]}`,
-			actAdd, "interval", ""},
+			adjustmentAdd, "interval", ""},
 		{"listed-under-messages",
 			`{"messages":["interval: is required"]}`,
-			actAdd, "interval", ""},
-		{"listed-empty", `{"errors":[]}`, actStop, "", ""},
+			adjustmentAdd, "interval", ""},
+		{"listed-empty", `{"errors":[]}`, adjustmentNone, "", ""},
 		// A field-prefixed complaint about the value that was sent, rather
-		// than about its absence: adding a value cannot heal it.
+		// than about its absence: adding a value cannot correct it.
 		{"field-said-not-absence",
 			`{"errors":["interval: must be one of 60, 120, 300"]}`,
-			actStop, "", ""},
+			adjustmentNone, "", ""},
 		// A sentence that merely contains a colon is not a field complaint.
 		{"prose-with-colon",
 			`{"detail":"Validation failed: the request was rejected"}`,
-			actStop, "", ""},
+			adjustmentNone, "", ""},
 		// Both shapes at once: the sentence only summarises, the list names
 		// the field, so the list is what the loop must act on.
 		{"summary-beside-listed",
 			`{"detail":"There are invalid or missing fields","errors":[{"field":"testName","message":"must not be null"}],"title":"Request validation failed"}`,
-			actAdd, "testName", ""},
+			adjustmentAdd, "testName", ""},
 		// A validation framework's own error object, which spells the field
 		// as a code and the complaint as a default message.
 		{"listed-code-and-default-message",
 			`{"errors":[{"code":"name","defaultMessage":"must not be blank"}]}`,
-			actAdd, "name", ""},
+			adjustmentAdd, "name", ""},
 		// A refusal that names its field mid-sentence, wrapped in prose.
 		{"field-named-in-prose",
 			`{"title":"There were some errors in your request, please correct them before trying again. Error in field roleName : must not be null."}`,
-			actAdd, "roleName", ""},
+			adjustmentAdd, "roleName", ""},
 		// The same shape, but complaining about the value rather than its
-		// absence: adding one cannot heal it.
+		// absence: adding one cannot correct it.
 		{"field-named-in-prose-not-absence",
 			`{"title":"Error in field roleName : must be one of a, b"}`,
-			actStop, "", ""},
+			adjustmentNone, "", ""},
 		// Bare English naming only the field it wanted.
 		{"the-field-is-required",
 			`{"title":"The loginAccountGroup is required"}`,
-			actAdd, "loginAccountGroup", ""},
+			adjustmentAdd, "loginAccountGroup", ""},
 		// "field X is required" still wins over the bare-English reading, so
 		// the field is X and not the word "field".
 		{"field-keyword-beats-bare-english",
 			`{"detail":"the field interval is required"}`,
-			actAdd, "interval", ""},
+			adjustmentAdd, "interval", ""},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -124,15 +124,15 @@ func TestUnit_Adjust_ClassifyRefusalGrammar(t *testing.T) {
 				t.Errorf("field = %q, want %q", act.field, testCase.field)
 			}
 			switch testCase.kind {
-			case actBorrow:
+			case adjustmentBorrow:
 				if act.collection != testCase.extra {
 					t.Errorf("collection = %q, want %q", act.collection, testCase.extra)
 				}
-			case actRequires:
+			case adjustmentRequires:
 				if act.trigger != testCase.extra {
 					t.Errorf("trigger = %q, want %q", act.trigger, testCase.extra)
 				}
-			case actAdd, actRemove:
+			case adjustmentAdd, adjustmentRemove:
 				if act.condVal != testCase.extra {
 					t.Errorf("condVal = %q, want %q", act.condVal, testCase.extra)
 				}
@@ -167,19 +167,19 @@ func TestUnit_Adjust_SortedAdjustmentsDedupsAndOrders(t *testing.T) {
 // adjustment loop and the translator both draw on, across every branch.
 func TestUnit_Strategize_SynthesisHelpers(t *testing.T) {
 	t.Parallel()
-	h := func(hh strategy.SynthHint) strategy.SynthHint { return hh }
+	h := func(hh strategy.SyntheticValueRules) strategy.SyntheticValueRules { return hh }
 
 	// synthValue priority and type fallbacks.
-	if v := synthValue(h(strategy.SynthHint{Field: "x", Example: "ex"}), "e", "p"); v != "ex" {
+	if v := synthesiseValue(h(strategy.SyntheticValueRules{Field: "x", Example: "ex"}), "e", "p"); v != "ex" {
 		t.Errorf("example not preferred: %v", v)
 	}
-	if v := synthValue(h(strategy.SynthHint{Field: "x", Default: "df"}), "e", "p"); v != "df" {
+	if v := synthesiseValue(h(strategy.SyntheticValueRules{Field: "x", Default: "df"}), "e", "p"); v != "df" {
 		t.Errorf("default not used: %v", v)
 	}
-	if v := synthValue(h(strategy.SynthHint{Field: "x", Enum: []any{"a", "b"}}), "e", "p"); v != "a" {
+	if v := synthesiseValue(h(strategy.SyntheticValueRules{Field: "x", Enum: []any{"a", "b"}}), "e", "p"); v != "a" {
 		t.Errorf("enum not used: %v", v)
 	}
-	if v := synthValue(h(strategy.SynthHint{Field: "x", Format: "email"}), "e", "p"); v == nil {
+	if v := synthesiseValue(h(strategy.SyntheticValueRules{Field: "x", Format: "email"}), "e", "p"); v == nil {
 		t.Error("format not used")
 	}
 	for _, testCase := range []struct {
@@ -188,74 +188,74 @@ func TestUnit_Strategize_SynthesisHelpers(t *testing.T) {
 	}{
 		{"boolean", true}, {"integer", 1}, {"number", 1.5},
 	} {
-		if v := synthValue(strategy.SynthHint{Field: "x", Type: testCase.typ}, "e", "p"); v != testCase.want {
+		if v := synthesiseValue(strategy.SyntheticValueRules{Field: "x", Type: testCase.typ}, "e", "p"); v != testCase.want {
 			t.Errorf("type %s = %v, want %v", testCase.typ, v, testCase.want)
 		}
 	}
-	if v := synthValue(strategy.SynthHint{Field: "label", Type: "string"}, "ent", "tfpfgen"); v != "tfpfgen-<runid>-ent-label" {
+	if v := synthesiseValue(strategy.SyntheticValueRules{Field: "label", Type: "string"}, "ent", "tfpfgen"); v != "tfpfgen-<runid>-ent-label" {
 		t.Errorf("name-bearing string = %v", v)
 	}
 	// A name-bearing field takes the invented token over a declared example:
 	// this is the path a live run synthesises from, and an API that requires a
 	// unique name refuses the example every run after the first.
-	if v := synthValue(strategy.SynthHint{Field: "name", Type: "string", Example: "My thing"},
+	if v := synthesiseValue(strategy.SyntheticValueRules{Field: "name", Type: "string", Example: "My thing"},
 		"ent", "tfpfgen"); v != "tfpfgen-<runid>-ent-name" {
 		t.Errorf("a name-bearing example = %#v, want the invented token", v)
 	}
 	// A field an enum, a format or a pattern constrains is not one to invent a
 	// name for, so the ordinary priority stands.
-	if v := synthValue(strategy.SynthHint{Field: "name", Type: "string", Example: "My thing",
+	if v := synthesiseValue(strategy.SyntheticValueRules{Field: "name", Type: "string", Example: "My thing",
 		Pattern: "^[A-Za-z ]+$"}, "ent", "tfpfgen"); v != "My thing" {
 		t.Errorf("a constrained name = %#v, want the declared example", v)
 	}
-	if v := synthValue(strategy.SynthHint{Field: "name", Type: "string", Format: "email"},
+	if v := synthesiseValue(strategy.SyntheticValueRules{Field: "name", Type: "string", Format: "email"},
 		"ent", "tfpfgen"); v != "tfpfgen-<runid>@example.invalid" {
 		t.Errorf("a formatted name = %#v, want the format-driven value", v)
 	}
-	if v := synthValue(strategy.SynthHint{Field: "color", Type: "string"}, "ent", "p"); v != "sample-color" {
+	if v := synthesiseValue(strategy.SyntheticValueRules{Field: "color", Type: "string"}, "ent", "p"); v != "sample-color" {
 		t.Errorf("plain string = %v", v)
 	}
-	if _, ok := synthValue(strategy.SynthHint{Field: "x", Type: "array"}, "e", "p").([]any); !ok {
+	if _, ok := synthesiseValue(strategy.SyntheticValueRules{Field: "x", Type: "array"}, "e", "p").([]any); !ok {
 		t.Error("array type did not synth a slice")
 	}
-	if _, ok := synthValue(strategy.SynthHint{Field: "x", Type: "object"}, "e", "p").(map[string]any); !ok {
+	if _, ok := synthesiseValue(strategy.SyntheticValueRules{Field: "x", Type: "object"}, "e", "p").(map[string]any); !ok {
 		t.Error("object type did not synth a map")
 	}
 
 	// typedGate across declared types.
-	if v := typedGate(strategy.SynthHint{Type: "boolean"}, "true"); v != true {
+	if v := typedGate(strategy.SyntheticValueRules{Type: "boolean"}, "true"); v != true {
 		t.Errorf("bool gate = %v", v)
 	}
-	if v := typedGate(strategy.SynthHint{Type: "integer"}, "7"); v != 7 {
+	if v := typedGate(strategy.SyntheticValueRules{Type: "integer"}, "7"); v != 7 {
 		t.Errorf("int gate = %v", v)
 	}
-	if v := typedGate(strategy.SynthHint{Type: "number"}, "2.5"); v != 2.5 {
+	if v := typedGate(strategy.SyntheticValueRules{Type: "number"}, "2.5"); v != 2.5 {
 		t.Errorf("number gate = %v", v)
 	}
-	if v := typedGate(strategy.SynthHint{Type: "string"}, "dns"); v != "dns" {
+	if v := typedGate(strategy.SyntheticValueRules{Type: "string"}, "dns"); v != "dns" {
 		t.Errorf("string gate = %v", v)
 	}
-	if v := typedGate(strategy.SynthHint{Type: "integer"}, "notanint"); v != "notanint" {
+	if v := typedGate(strategy.SyntheticValueRules{Type: "integer"}, "notanint"); v != "notanint" {
 		t.Errorf("bad int gate should fall back to the string: %v", v)
 	}
 
 	// variantValue produces a distinct second value per type.
-	if v, ok := variantValue(strategy.SynthHint{Enum: []any{"a", "b"}}, "a"); !ok || v != "b" {
+	if v, ok := variantValue(strategy.SyntheticValueRules{Enum: []any{"a", "b"}}, "a"); !ok || v != "b" {
 		t.Errorf("enum variant = %v", v)
 	}
-	if _, ok := variantValue(strategy.SynthHint{Enum: []any{"only"}}, "only"); ok {
+	if _, ok := variantValue(strategy.SyntheticValueRules{Enum: []any{"only"}}, "only"); ok {
 		t.Error("single-value enum should have no variant")
 	}
-	if v, ok := variantValue(strategy.SynthHint{Type: "boolean"}, true); !ok || v != false {
+	if v, ok := variantValue(strategy.SyntheticValueRules{Type: "boolean"}, true); !ok || v != false {
 		t.Errorf("bool variant = %v", v)
 	}
-	if v, ok := variantValue(strategy.SynthHint{Type: "string", Field: "n"}, "base"); !ok || v != "base-2" {
+	if v, ok := variantValue(strategy.SyntheticValueRules{Type: "string", Field: "n"}, "base"); !ok || v != "base-2" {
 		t.Errorf("string variant = %v", v)
 	}
-	if v, ok := variantValue(strategy.SynthHint{Type: "integer"}, 1); !ok || v != int64(2) {
+	if v, ok := variantValue(strategy.SyntheticValueRules{Type: "integer"}, 1); !ok || v != int64(2) {
 		t.Errorf("int variant = %v", v)
 	}
-	if _, ok := variantValue(strategy.SynthHint{Type: "object"}, nil); ok {
+	if _, ok := variantValue(strategy.SyntheticValueRules{Type: "object"}, nil); ok {
 		t.Error("object has no scalar variant")
 	}
 
@@ -282,8 +282,8 @@ func TestUnit_Borrow_CollectionPaths(t *testing.T) {
 }
 
 // TestUnit_Adjust_ParentRecreationHealsWithoutRecording pins the split
-// between healing and recording. A parent re-created so a child has something
-// to address must still be healed — otherwise every child of an understated
+// between correcting and recording. A parent re-created so a child has something
+// to address must still be corrected — otherwise every child of an understated
 // parent blocks — but the fields it needed are facts about the parent, and
 // recording them here would attribute them to the child that asked.
 func TestUnit_Adjust_ParentRecreationHealsWithoutRecording(t *testing.T) {
@@ -298,7 +298,7 @@ func TestUnit_Adjust_ParentRecreationHealsWithoutRecording(t *testing.T) {
 
 	added, ok := r.applyAdjustment(context.Background(), entity, body, refusal, map[string]bool{}, false)
 	if !ok {
-		t.Fatal("a listed field complaint did not heal the body")
+		t.Fatal("a listed field complaint did not correct the body")
 	}
 	if _, in := body["testName"]; !in {
 		t.Errorf("the named field was not added: %#v", body)
@@ -309,7 +309,7 @@ func TestUnit_Adjust_ParentRecreationHealsWithoutRecording(t *testing.T) {
 		t.Errorf("the add was not answered for the caller to confirm: %+v", added)
 	}
 	if len(r.adjustments) != 0 {
-		t.Errorf("a silent heal recorded %d adjustment(s)", len(r.adjustments))
+		t.Errorf("a silent correct recorded %d adjustment(s)", len(r.adjustments))
 	}
 }
 
@@ -352,7 +352,7 @@ func TestUnit_Evidence_TheIdentifyingPropertyIsFoundByValue(t *testing.T) {
 func TestUnit_Search_CandidatesAreOrderedCheapestSignalFirst(t *testing.T) {
 	t.Parallel()
 
-	r := &runner{hints: map[string]map[string]strategy.SynthHint{
+	r := &runner{hints: map[string]map[string]strategy.SyntheticValueRules{
 		"widget": {
 			"alreadySent": {Field: "alreadySent", Type: "string"},
 			"zNamed":      {Field: "zNamed", Type: "string"},
@@ -366,7 +366,7 @@ func TestUnit_Search_CandidatesAreOrderedCheapestSignalFirst(t *testing.T) {
 	body := map[string]any{"alreadySent": "v"}
 	refusal := &httpResult{body: []byte(`{"detail":"zNamed is wrong somehow"}`)}
 
-	got := r.searchCandidates(entity, body, refusal)
+	got := r.fieldsToTry(entity, body, refusal)
 	want := []string{"zNamed", "withEnum", "aPlain", "bPlain", "nested"}
 	if len(got) != len(want) {
 		t.Fatalf("candidates = %v, want %v", got, want)
@@ -388,10 +388,10 @@ func TestUnit_Search_CandidatesAreOrderedCheapestSignalFirst(t *testing.T) {
 // one entity's search may spend.
 func TestUnit_Search_AllowanceIsBounded(t *testing.T) {
 	t.Parallel()
-	if got := searchAllowance(3); got != 3 {
+	if got := fieldAdditionAttemptLimit(3); got != 3 {
 		t.Errorf("searchAllowance(3) = %d, want 3", got)
 	}
-	if got := searchAllowance(500); got != 24 {
+	if got := fieldAdditionAttemptLimit(500); got != 24 {
 		t.Errorf("searchAllowance(500) = %d, want the cap", got)
 	}
 }
@@ -407,20 +407,20 @@ func TestUnit_Search_MaximalCulpritPrefersTheNamedField(t *testing.T) {
 	minimal := map[string]any{"name": "n"}
 
 	named := &httpResult{body: []byte(`{"detail":"colour is not valid here"}`)}
-	if got := r.maximalCulprit(body, minimal, named); got != "colour" {
-		t.Errorf("culprit = %q, want the field the refusal named", got)
+	if got := r.refusedOptionalField(body, minimal, named); got != "colour" {
+		t.Errorf("refusedField = %q, want the field the refusal named", got)
 	}
 
 	// Nothing named: the last optional field in order, never a field the
 	// minimal create needs.
 	silent := &httpResult{body: []byte(`{"detail":"bad request"}`)}
-	if got := r.maximalCulprit(body, minimal, silent); got != "shape" {
-		t.Errorf("culprit = %q, want the last optional field", got)
+	if got := r.refusedOptionalField(body, minimal, silent); got != "shape" {
+		t.Errorf("refusedField = %q, want the last optional field", got)
 	}
 
 	// Only the minimal body left: there is nothing safe to drop.
-	if got := r.maximalCulprit(minimal, minimal, silent); got != "" {
-		t.Errorf("culprit = %q, want none", got)
+	if got := r.refusedOptionalField(minimal, minimal, silent); got != "" {
+		t.Errorf("refusedField = %q, want none", got)
 	}
 }
 
@@ -429,9 +429,9 @@ func TestUnit_Search_MaximalCulpritPrefersTheNamedField(t *testing.T) {
 // the variant's own gate.
 func TestUnit_Strategize_AnOperatorValueOutranksEverySynthesis(t *testing.T) {
 	t.Parallel()
-	sk := strategy.Skeleton{
+	sk := strategy.RequestFields{
 		Fields: []string{"endpoint", "kind", "name"},
-		Hints: []strategy.SynthHint{
+		Rules: []strategy.SyntheticValueRules{
 			{Field: "endpoint", Type: "string", Example: "https://unreachable.invalid"},
 			{Field: "kind", Type: "string", Enum: []any{"ping", "web"}},
 			{Field: "name", Type: "string"},
@@ -439,7 +439,7 @@ func TestUnit_Strategize_AnOperatorValueOutranksEverySynthesis(t *testing.T) {
 	}
 	values := map[string]any{"endpoint": "https://reachable.example", "kind": "web"}
 
-	body := synthSkeletonBody(sk, "monitor", "tfpfgen", "kind", "ping", values)
+	body := synthesiseRequestBody(sk, "monitor", "tfpfgen", "kind", "ping", values)
 
 	// The operator supplies a value precisely for the field no synthesis can
 	// guess: an example the API cannot reach is still an example.

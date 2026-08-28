@@ -43,10 +43,10 @@ type Options struct {
 	// Root is the provider repo root — where manifest.json lives, what
 	// manifest paths are relative to, and where the generated tree lands.
 	Root string
-	// Postcheck holds the installed tree to `go mod tidy`, `go build` and
+	// VerifyTree holds the installed tree to `go mod tidy`, `go build` and
 	// `go vet` after a generate. Skipped cleanly when the toolchain is
 	// absent or the module proxy is unreachable.
-	Postcheck bool
+	VerifyTree bool
 }
 
 // Result reports one `provider generate` run.
@@ -71,8 +71,8 @@ type Result struct {
 	// exclusions above plus the attribute refusals, which surface nowhere
 	// else.
 	Unsupported []emit.Unsupported
-	// Postcheck reports the toolchain gate.
-	Postcheck PostcheckReport
+	// TreeVerification reports the toolchain gate.
+	TreeVerification TreeVerificationReport
 }
 
 // Run generates the provider tree: derive, bind, prune, verify, render,
@@ -136,9 +136,9 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	}
 
 	g.res.Files = len(entries)
-	g.res.Postcheck, err = postcheck(ctx, opts.Root, opts.Postcheck)
+	g.res.TreeVerification, err = verifyGeneratedTree(ctx, opts.Root, opts.VerifyTree)
 	if err != nil {
-		// The tree is already on disk — postcheck is the gate after the
+		// The tree is already on disk — tree verification is the gate after the
 		// install, not before it — so the result travels with the error. A
 		// caller that discards it reports nothing about a run that wrote a
 		// thousand files, and the exclusions explaining what is missing are
@@ -146,28 +146,28 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		return g.res, err
 	}
 
-	// Postcheck's `go mod tidy` rewrites go.mod and writes go.sum after the
+	// Tree verification's `go mod tidy` rewrites go.mod and writes go.sum after the
 	// manifest recorded the emitted bytes; refreshing their entries makes
 	// the manifest describe the committed truth, which is what `provider
 	// verify` holds those files to.
-	if err := recordPostcheckOwned(opts.Root); err != nil {
+	if err := recordToolchainWritten(opts.Root); err != nil {
 		return Result{}, err
 	}
 	return g.res, nil
 }
 
-// postcheckOwned are the paths the toolchain finalises after install:
+// toolchainWritten are the paths the toolchain finalises after install:
 // `go mod tidy` rewrites go.mod (the go directive, the indirect require
 // closure) and writes go.sum, which no template emits. No regeneration
 // reproduces them without running the toolchain, so the drift gate holds
 // them to the manifest digests recorded here instead.
-var postcheckOwned = []string{"go.mod", "go.sum"}
+var toolchainWritten = []string{"go.mod", "go.sum"}
 
-// recordPostcheckOwned re-records the toolchain-finalised files in the
-// manifest, as they stand on disk after postcheck. Idempotent, and cheap
-// enough to run whether or not postcheck did: a digest recomputed from
+// recordToolchainWritten re-records the toolchain-finalised files in the
+// manifest, as they stand on disk after verification. Idempotent, and cheap
+// enough to run whether or not verification did: a digest recomputed from
 // unchanged bytes changes nothing.
-func recordPostcheckOwned(root string) error {
+func recordToolchainWritten(root string) error {
 	m, _, err := manifest.Load(root)
 	if err != nil {
 		return err
@@ -179,7 +179,7 @@ func recordPostcheckOwned(root string) error {
 	}
 
 	changed := false
-	for _, path := range postcheckOwned {
+	for _, path := range toolchainWritten {
 		summary, there, err := fileDigest(root, path)
 		if err != nil {
 			return err

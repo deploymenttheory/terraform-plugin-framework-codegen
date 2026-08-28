@@ -4,7 +4,7 @@
 // strategies —
 // a flat resource gets a single baseline, a discriminated one gets a variant
 // per gate value, a resource whose prose or dependentRequired declares
-// co-requirements gets hypotheses to confirm live.
+// co-requirements gets claims to confirm live.
 //
 // Compile is pure and deterministic: the same document, classification and
 // config always produce the same Strategy, byte for byte under JSON. No
@@ -16,7 +16,7 @@
 // The compiler asserts nothing about the live API. Structural signals
 // (oneOf/discriminator/dependentRequired) are the strongest baseline; prose in
 // descriptions is the weakest, general, vendor-neutral hint; only the live API
-// confirms. Every finding leaves here as a hypothesis carrying its provenance,
+// confirms. Every finding leaves here as a claim carrying its provenance,
 // never an assertion.
 package strategy
 
@@ -30,7 +30,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
-// Provenance records how strongly a variant or hypothesis is grounded. The
+// Provenance records how strongly a variant or claim is grounded. The
 // set is closed and ordered weakest-last for sorting: structural claims (the
 // document's own composition keywords) outrank prose (mined description text),
 // which outranks derived. It mirrors observe.Provenance deliberately, so that
@@ -49,24 +49,24 @@ const (
 	ProvenanceDerived Provenance = "derived"
 )
 
-// HypothesisKind names the kind of candidate conditional edge a hypothesis
+// ClaimKind names the kind of candidate conditional edge a claim
 // carries. The set is closed.
-type HypothesisKind string
+type ClaimKind string
 
 const (
-	// HypothesisVariant: a gate value selects a distinct valid field set.
-	HypothesisVariant HypothesisKind = "variant"
-	// HypothesisRequiredWhen: a field is required only when a sibling gate
+	// ClaimValidConfiguration: a gate value selects a distinct valid field set.
+	ClaimValidConfiguration ClaimKind = "validConfiguration"
+	// ClaimRequiredWhen: a field is required only when a sibling gate
 	// holds a particular value.
-	HypothesisRequiredWhen HypothesisKind = "requiredWhen"
-	// HypothesisRequiresField: a field is settable only when a sibling is
+	ClaimRequiredWhen ClaimKind = "requiredWhen"
+	// ClaimDependsOn: a field is settable only when a sibling is
 	// present, regardless of that sibling's value.
-	HypothesisRequiresField HypothesisKind = "requiresField"
-	// HypothesisMutuallyExclusive: at most one of a set of fields may be set.
-	HypothesisMutuallyExclusive HypothesisKind = "mutuallyExclusive"
-	// HypothesisValidWhen: a field is valid (or prohibited) only when a
+	ClaimDependsOn ClaimKind = "dependsOn"
+	// ClaimMutuallyExclusive: at most one of a set of fields may be set.
+	ClaimMutuallyExclusive ClaimKind = "mutuallyExclusive"
+	// ClaimValidWhen: a field is valid (or prohibited) only when a
 	// sibling gate holds a particular value.
-	HypothesisValidWhen HypothesisKind = "validWhen"
+	ClaimValidWhen ClaimKind = "validWhen"
 )
 
 // GateKind ranks a gate candidate by discriminating power: a required enum is
@@ -112,11 +112,11 @@ type Gate struct {
 	Values []any `json:"values"`
 }
 
-// SynthHint is the raw material the live executor synthesises a field's value
+// SyntheticValueRules is the raw material the live executor synthesises a field's value
 // from. It carries what the schema declares, never a value: value synthesis
 // happens live, so a plan derived twice is identical and a field with no
 // example is not guessed at offline.
-type SynthHint struct {
+type SyntheticValueRules struct {
 	// Field is the wire property name.
 	Field string `json:"field"`
 	// Required reports whether the field is required in the flattened create
@@ -148,15 +148,15 @@ type SynthHint struct {
 	Maximum *float64 `json:"maximum,omitempty"`
 }
 
-// Skeleton is a field list plus the per-field synthesis hints for one shape of
+// RequestFields is a field list plus the per-field synthesis hints for one shape of
 // create body. Values are not synthesised here — the executor does that live —
 // so a skeleton says which fields to send and what material to build each
 // from, not what to send.
-type Skeleton struct {
+type RequestFields struct {
 	// Fields is the sorted list of writable wire field names to send.
 	Fields []string `json:"fields"`
-	// Hints carries one synthesis hint per field, sorted by field.
-	Hints []SynthHint `json:"hints"`
+	// Rules carries one synthesis hint per field, sorted by field.
+	Rules []SyntheticValueRules `json:"hints"`
 }
 
 // Variant is one shape the resource's create body can take: the no-gate
@@ -174,35 +174,35 @@ type Variant struct {
 	// gate value with no declared distinct field set.
 	Provenance Provenance `json:"provenance"`
 	// Minimal is the smallest valid body for this variant.
-	Minimal Skeleton `json:"minimal"`
+	Minimal RequestFields `json:"minimal"`
 	// Maximal is the widest plausibly-valid body for this variant.
-	Maximal Skeleton `json:"maximal"`
+	Maximal RequestFields `json:"maximal"`
 }
 
-// Check describes the request that would confirm or refute a hypothesis: which
+// Probe describes the request that would confirm or refute a claim: which
 // step kind exercises it, the field it targets, the gate it pins, and what the
 // API is expected to do.
-type Check struct {
-	// Step is the step kind that exercises the hypothesis.
+type Probe struct {
+	// Step is the step kind that exercises the claim.
 	Step plan.StepKind `json:"step"`
 	// Field is the field the check targets, empty when it is about a whole
 	// variant.
 	Field string `json:"field,omitempty"`
 	// GateField and GateValue pin the gate the check holds, where the
-	// hypothesis has one.
+	// claim has one.
 	GateField string `json:"gateField,omitempty"`
 	GateValue string `json:"gateValue,omitempty"`
-	// Expect is a human-readable statement of the expected outcome:
+	// ExpectedAnswer is a human-readable statement of the expected outcome:
 	// "accept", "reject" or "conditional".
-	Expect string `json:"expect"`
+	ExpectedAnswer string `json:"expect"`
 }
 
-// Hypothesis is one candidate conditional edge for the executor to confirm or
+// Claim is one candidate conditional edge for the executor to confirm or
 // refute live. Its kind is a working identifier (see HypothesisKind); its
 // provenance says how strongly the document grounds it.
-type Hypothesis struct {
+type Claim struct {
 	// Kind names the edge shape (a working identifier).
-	Kind HypothesisKind `json:"kind"`
+	Kind ClaimKind `json:"kind"`
 	// Subjects are the field(s) the edge is about, sorted.
 	Subjects []string `json:"subjects"`
 	// GateField and GateValue name the gate value the edge is conditioned on,
@@ -212,7 +212,7 @@ type Hypothesis struct {
 	// Provenance is structural or prose.
 	Provenance Provenance `json:"provenance"`
 	// Check is the request that would confirm or refute the edge.
-	Check Check `json:"check"`
+	Check Probe `json:"check"`
 }
 
 // Step is one ordered step of the resource's step program. It reuses the
@@ -238,23 +238,23 @@ type Budget struct {
 }
 
 // Strategy is the compiled step program for one resource: the gate candidates
-// found, the variants (baseline plus one per gate value), the hypotheses to
+// found, the variants (baseline plus one per gate value), the claims to
 // confirm live, the ordered step program, and the scaled budget.
 type Strategy struct {
 	// Entity is the classified entity key the strategy is for.
 	Entity string `json:"entity"`
-	// Role is "resource" for a full lifecycle, "lookup" for a datasource
+	// AuditShape is "resource" for a full lifecycle, "lookupByKey" for a datasource
 	// whose only access is the item read, "datasource" for a list-plus-read
 	// datasource read read-only.
-	Role string `json:"role"`
+	AuditShape string `json:"auditShape"`
 	// ReadOnly marks a strategy that never writes: its program is reads only.
 	ReadOnly bool `json:"readOnly"`
 	// Gates lists the gate candidates, ranked likeliest-first.
 	Gates []Gate `json:"gates,omitempty"`
 	// Variants lists the baseline and one variant per gate value.
 	Variants []Variant `json:"variants,omitempty"`
-	// Hypotheses lists the candidate conditional edges, sorted.
-	Hypotheses []Hypothesis `json:"hypotheses,omitempty"`
+	// Claims lists the candidate conditional edges, sorted.
+	Claims []Claim `json:"claims,omitempty"`
 	// Program is the ordered steps.
 	Program []Step `json:"program"`
 	// Budget is the per-resource request budget.
@@ -265,7 +265,7 @@ type Strategy struct {
 // same document, classification and config always produce the same Strategy.
 //
 // A resource (full create/read/delete lifecycle) yields a writing strategy —
-// gates, variants, hypotheses and the full step program. An entity whose only
+// gates, variants, claims and the full step program. An entity whose only
 // access is a read yields a read-only strategy. An entity that is neither is an
 // error: the caller decides what to audit, and a strategy for something with no
 // exercisable surface would be an empty program masquerading as a plan.
@@ -290,14 +290,14 @@ func Compile(document *specmodel.Document, class specmodel.Classification, confi
 // lookup-by-key datasource, or a list-plus-read datasource. Nothing is
 // created, so the program is the read and a consecutive read for volatility.
 func compileReadOnly(class specmodel.Classification) *Strategy {
-	role := "datasource"
+	auditShape := "datasource"
 	if class.LookupByKey {
-		role = "lookup"
+		auditShape = "lookupByKey"
 	}
 	return &Strategy{
-		Entity:   class.Key,
-		Role:     role,
-		ReadOnly: true,
+		Entity:     class.Key,
+		AuditShape: auditShape,
+		ReadOnly:   true,
 		Program: []Step{
 			{Kind: plan.StepRead},
 			{Kind: plan.StepReadConsecutive},
@@ -319,16 +319,16 @@ func compileResource(document *specmodel.Document, class specmodel.Classificatio
 
 	gates := detectGates(createBody)
 	variants := deriveVariants(createBody, gates)
-	hyps := deriveHypotheses(createBody, variants)
+	claims := deriveClaims(createBody, variants)
 
 	s := &Strategy{
 		Entity:     class.Key,
-		Role:       "resource",
+		AuditShape: "resource",
 		Gates:      gates,
 		Variants:   variants,
-		Hypotheses: hyps,
+		Claims:     claims,
 	}
-	s.Program = buildProgram(createBody, gates, variants, hyps)
+	s.Program = buildProgram(createBody, gates, variants, claims)
 	s.Budget = deriveBudget(s.Program, configuration)
 	return s, nil
 }

@@ -17,7 +17,7 @@ import (
 // the comparison to be honest, and each is pinned here.
 
 func TestUnit_Run_IntegerEnumVariantKeepsItsDeclaredType(t *testing.T) {
-	h := strategy.SynthHint{
+	h := strategy.SyntheticValueRules{
 		Field: "interval",
 		Type:  "integer",
 		Enum:  []any{60, 120, 300, 600, 900, 1800, 3600},
@@ -38,8 +38,8 @@ func TestUnit_Run_IntegerEnumVariantKeepsItsDeclaredType(t *testing.T) {
 // [60 120 300 600 900 1800 3600], so both the value synthesis reached for and
 // the members the per-value probes covered were chosen by spelling.
 func TestUnit_Run_EnumVariantFollowsDocumentOrder(t *testing.T) {
-	h := strategy.SynthHint{Field: "interval", Type: "integer", Enum: []any{60, 120, 300}}
-	if got := synthValue(h, "e", "p"); got != 60 {
+	h := strategy.SyntheticValueRules{Field: "interval", Type: "integer", Enum: []any{60, 120, 300}}
+	if got := synthesiseValue(h, "e", "p"); got != 60 {
 		t.Errorf("synthValue = %#v, want the document's first member, 60", got)
 	}
 }
@@ -49,7 +49,7 @@ func TestUnit_Run_EnumVariantFollowsDocumentOrder(t *testing.T) {
 // compare across types or it hands back the value it was told to move away
 // from — an update that changes nothing, which reads as ignoredOnUpdate.
 func TestUnit_Run_EnumVariantDiffersFromABaseOfAnotherNumericType(t *testing.T) {
-	h := strategy.SynthHint{Field: "interval", Type: "integer", Enum: []any{60, 120}}
+	h := strategy.SyntheticValueRules{Field: "interval", Type: "integer", Enum: []any{60, 120}}
 	got, ok := variantValue(h, float64(60))
 	if !ok {
 		t.Fatal("no variant")
@@ -63,7 +63,7 @@ func TestUnit_Run_EnumVariantDiffersFromABaseOfAnotherNumericType(t *testing.T) 
 // field. httpTimeLimit declares minimum 5, and the audit sent the constant 2.
 func TestUnit_Run_NumericVariantStaysInsideDeclaredBounds(t *testing.T) {
 	min, max := 5.0, 60.0
-	h := strategy.SynthHint{Field: "httpTimeLimit", Type: "integer", Minimum: &min, Maximum: &max}
+	h := strategy.SyntheticValueRules{Field: "httpTimeLimit", Type: "integer", Minimum: &min, Maximum: &max}
 
 	got, ok := variantValue(h, 5)
 	if !ok {
@@ -85,7 +85,7 @@ func TestUnit_Run_NumericVariantStaysInsideDeclaredBounds(t *testing.T) {
 
 	// A field pinned to one legal value has no variant worth sending.
 	only := 7.0
-	pinned := strategy.SynthHint{Field: "x", Type: "integer", Minimum: &only, Maximum: &only}
+	pinned := strategy.SyntheticValueRules{Field: "x", Type: "integer", Minimum: &only, Maximum: &only}
 	if v, ok := variantValue(pinned, 7); ok {
 		t.Errorf("variant = %#v for a field with a single legal value; want none", v)
 	}

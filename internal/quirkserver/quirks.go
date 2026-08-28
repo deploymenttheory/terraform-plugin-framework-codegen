@@ -121,7 +121,7 @@ type Quirks struct {
 	// sentence — "field serial is required" — rather than leaving the bare
 	// name in the detail beside a generic title.
 	//
-	// Both are real. The bare form is deliberately unhealable, because a name
+	// Both are real. The bare form is deliberately uncorrectable, because a name
 	// alone beside a generic title could be about anything; this is the form
 	// an adjustment loop can act on, and an API that writes it is one whose
 	// refusals teach the auditor what the create needs.

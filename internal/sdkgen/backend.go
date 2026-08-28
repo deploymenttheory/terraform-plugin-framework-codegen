@@ -8,7 +8,7 @@
 // CheckTool compares it against the binary on PATH and refuses on mismatch,
 // naming both versions.
 //
-// This package owns invocation only: gate the tool, pre-normalize the
+// This package owns invocation only: gate the tool, pre-normalise the
 // revised document, run the generator, scrub what little nondeterminism its
 // output carries. Mapping the generated SDK's surface onto provider code is
 // a later package's job.
@@ -39,14 +39,14 @@ type Backend interface {
 	// on a mismatch naming both versions. The toolkit never downloads the
 	// tool — the refusal says how to install the pinned one.
 	CheckTool(ctx context.Context, configuration *config.Config) error
-	// Generate invokes the tool over the pre-normalized revised document,
+	// Generate invokes the tool over the pre-normalised revised document,
 	// writing the SDK tree into outDir.
 	Generate(ctx context.Context, revisedSpecPath string, configuration *config.Config, outDir string) error
 	// Normalize scrubs the nondeterminism the tool's output carries —
 	// timestamps, temp-file paths — so regeneration from unchanged inputs is
 	// byte-identical. recordedSpecPath is the durable, repo-relative path of
 	// the revised document, for output that names its input (the temp
-	// pre-normalized copy's path must never leak into the committed tree).
+	// pre-normalised copy's path must never leak into the committed tree).
 	Normalize(outDir, recordedSpecPath string) error
 }
 

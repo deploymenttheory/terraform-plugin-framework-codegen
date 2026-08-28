@@ -253,7 +253,7 @@ func pinnedSpec(t *testing.T, spec string) (root, specDir string, lock store.Loc
 
 // TestIntegration_Revise_TagConvergesAcrossRounds covers corrections that only
 // become placeable once an earlier round is accepted: proposed and accepted
-// round by round until a re-propose yields nothing, then materialized. The
+// round by round until a re-propose yields nothing, then written. The
 // revised document must carry the added fields with their defaults, the
 // corrected enum and the annotations — so accepted evidence is neither
 // overwritten nor applied against a node that does not exist yet.
@@ -304,9 +304,9 @@ func TestIntegration_Revise_TagConvergesAcrossRounds(t *testing.T) {
 		seen[name] = true
 	}
 
-	res, err := Materialize(specDir)
+	res, err := WriteRevision(specDir)
 	if err != nil {
-		t.Fatalf("Materialize: %v", err)
+		t.Fatalf("WriteRevision: %v", err)
 	}
 	if len(res.Applied) != 8 {
 		t.Errorf("Applied = %d corrections, want the 8 accepted across the rounds", len(res.Applied))

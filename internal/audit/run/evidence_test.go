@@ -149,13 +149,13 @@ func TestUnit_Evidence_StepClaims(t *testing.T) {
 		{plan.Step{Kind: plan.StepCreatePerEnumValue, Attribute: "mode", Condition: cond}, observe.KindValues, "mode"},
 	}
 	for _, testCase := range cases {
-		claims := stepClaims(&testCase.step)
+		claims := stepPendingObservations(&testCase.step)
 		if len(claims) != 1 || claims[0].kind != testCase.kind || claims[0].attribute != testCase.attribute {
 			t.Errorf("stepClaims(%s %s) = %+v, want one %s claim on %q", testCase.step.Kind, testCase.step.Attribute, claims, testCase.kind, testCase.attribute)
 		}
 	}
 	for _, silent := range []plan.StepKind{plan.StepCreateMinimal, plan.StepCreateMaximal, plan.StepRead, plan.StepReadConsecutive, plan.StepCleanupDelete, plan.StepUndeclaredSpecField} {
-		if got := stepClaims(&plan.Step{Kind: silent}); got != nil {
+		if got := stepPendingObservations(&plan.Step{Kind: silent}); got != nil {
 			t.Errorf("stepClaims(%s) = %+v, want none", silent, got)
 		}
 	}

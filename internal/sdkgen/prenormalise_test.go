@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-const prenormalizeSample = `openapi: 3.0.3
+const prenormaliseSample = `openapi: 3.0.3
 info:
   title: sample
   version: 1.0.0
@@ -50,30 +50,30 @@ components:
 `
 
 func TestUnit_Prenormalize_IsDeterministicByteForByte(t *testing.T) {
-	first, _, _, err := Prenormalize([]byte(prenormalizeSample))
+	first, _, _, err := Prenormalise([]byte(prenormaliseSample))
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, _, _, err := Prenormalize([]byte(prenormalizeSample))
+	second, _, _, err := Prenormalise([]byte(prenormaliseSample))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(first, second) {
-		t.Fatal("two pre-normalizations of the same input differ")
+		t.Fatal("two pre-normalisations of the same input differ")
 	}
 
 	// And it is a fixed point: pre-normalizing the output changes nothing.
-	third, _, _, err := Prenormalize(first)
+	third, _, _, err := Prenormalise(first)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(first, third) {
-		t.Fatal("pre-normalization is not a fixed point")
+		t.Fatal("pre-normalisation is not a fixed point")
 	}
 }
 
 func TestUnit_Prenormalize_StripsDefaultsCollapsesAllOfsWidensByteArrays(t *testing.T) {
-	out, stripped, collapsed, err := Prenormalize([]byte(prenormalizeSample))
+	out, stripped, collapsed, err := Prenormalise([]byte(prenormaliseSample))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestUnit_Prenormalize_StripsDefaultsCollapsesAllOfsWidensByteArrays(t *test
 func TestUnit_Prenormalize_EmitsBlockStyleFromAJSONDocument(t *testing.T) {
 	json := `{"openapi": "3.0.3", "info": {"title": "t", "version": "1"}, "paths": {}}`
 
-	out, _, _, err := Prenormalize([]byte(json))
+	out, _, _, err := Prenormalise([]byte(json))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,10 +111,10 @@ func TestUnit_Prenormalize_EmitsBlockStyleFromAJSONDocument(t *testing.T) {
 }
 
 func TestUnit_Prenormalize_RefusesUnusableInput(t *testing.T) {
-	if _, _, _, err := Prenormalize([]byte(":\n bad\n :")); err == nil {
+	if _, _, _, err := Prenormalise([]byte(":\n bad\n :")); err == nil {
 		t.Error("unparseable YAML should refuse")
 	}
-	if _, _, _, err := Prenormalize([]byte("")); err == nil {
+	if _, _, _, err := Prenormalise([]byte("")); err == nil {
 		t.Error("an empty document should refuse")
 	}
 }
@@ -237,9 +237,9 @@ components:
 `
 
 func TestUnit_Prenormalize_ReducesAUnionToItsFirstBranch(t *testing.T) {
-	out, _, _, err := Prenormalize([]byte(unionSample))
+	out, _, _, err := Prenormalise([]byte(unionSample))
 	if err != nil {
-		t.Fatalf("Prenormalize: %v", err)
+		t.Fatalf("Prenormalise: %v", err)
 	}
 	got := string(out)
 
@@ -257,9 +257,9 @@ func TestUnit_Prenormalize_ReducesAUnionToItsFirstBranch(t *testing.T) {
 }
 
 func TestUnit_Prenormalize_UnionReductionKeepsTheParentAndDropsTheDiscriminator(t *testing.T) {
-	out, _, _, err := Prenormalize([]byte(unionSample))
+	out, _, _, err := Prenormalise([]byte(unionSample))
 	if err != nil {
-		t.Fatalf("Prenormalize: %v", err)
+		t.Fatalf("Prenormalise: %v", err)
 	}
 	got := string(out)
 
@@ -275,9 +275,9 @@ func TestUnit_Prenormalize_UnionReductionKeepsTheParentAndDropsTheDiscriminator(
 }
 
 func TestUnit_Prenormalize_UnionReductionFoldsUntilNoUnionRemains(t *testing.T) {
-	out, _, _, err := Prenormalize([]byte(unionSample))
+	out, _, _, err := Prenormalise([]byte(unionSample))
 	if err != nil {
-		t.Fatalf("Prenormalize: %v", err)
+		t.Fatalf("Prenormalise: %v", err)
 	}
 	// Nested's anyOf branch is itself a oneOf; one pass would leave it.
 	if strings.Contains(string(out), "oneOf") {
@@ -286,14 +286,14 @@ func TestUnit_Prenormalize_UnionReductionFoldsUntilNoUnionRemains(t *testing.T) 
 }
 
 func TestUnit_Prenormalize_UnionReductionIsDeterministic(t *testing.T) {
-	first, _, _, err := Prenormalize([]byte(unionSample))
+	first, _, _, err := Prenormalise([]byte(unionSample))
 	if err != nil {
-		t.Fatalf("Prenormalize: %v", err)
+		t.Fatalf("Prenormalise: %v", err)
 	}
 	for i := range 5 {
-		again, _, _, err := Prenormalize([]byte(unionSample))
+		again, _, _, err := Prenormalise([]byte(unionSample))
 		if err != nil {
-			t.Fatalf("Prenormalize (run %d): %v", i, err)
+			t.Fatalf("Prenormalise (run %d): %v", i, err)
 		}
 		if !bytes.Equal(first, again) {
 			t.Fatalf("run %d differs; the reduction must be byte-stable", i)
@@ -302,18 +302,18 @@ func TestUnit_Prenormalize_UnionReductionIsDeterministic(t *testing.T) {
 }
 
 func TestUnit_Prenormalize_LeavesADocumentWithoutUnionsAlone(t *testing.T) {
-	out, _, _, err := Prenormalize([]byte(prenormalizeSample))
+	out, _, _, err := Prenormalise([]byte(prenormaliseSample))
 	if err != nil {
-		t.Fatalf("Prenormalize: %v", err)
+		t.Fatalf("Prenormalise: %v", err)
 	}
 	// Zero hits is not an error: the sample carries no union, and reducing
 	// nothing must not perturb what the other passes produced.
-	again, _, _, err := Prenormalize(out)
+	again, _, _, err := Prenormalise(out)
 	if err != nil {
-		t.Fatalf("Prenormalize (second): %v", err)
+		t.Fatalf("Prenormalise (second): %v", err)
 	}
 	if !bytes.Equal(out, again) {
-		t.Fatal("prenormalizing an already-prenormalized document must be a fixed point")
+		t.Fatal("prenormalizing an already-prenormalised document must be a fixed point")
 	}
 }
 
@@ -359,9 +359,9 @@ paths:
 `
 
 func TestUnit_Prenormalize_DropsErrorContentWhereNoSuccessDeclaresAny(t *testing.T) {
-	out, _, _, err := Prenormalize([]byte(acceptSample))
+	out, _, _, err := Prenormalise([]byte(acceptSample))
 	if err != nil {
-		t.Fatalf("Prenormalize: %v", err)
+		t.Fatalf("Prenormalise: %v", err)
 	}
 	got := string(out)
 
@@ -383,9 +383,9 @@ func TestUnit_Prenormalize_DropsErrorContentWhereNoSuccessDeclaresAny(t *testing
 }
 
 func TestUnit_Prenormalize_LeavesAnOperationWhoseSuccessDeclaresAMediaType(t *testing.T) {
-	out, _, _, err := Prenormalize([]byte(acceptSample))
+	out, _, _, err := Prenormalise([]byte(acceptSample))
 	if err != nil {
-		t.Fatalf("Prenormalize: %v", err)
+		t.Fatalf("Prenormalise: %v", err)
 	}
 	got := string(out)
 

@@ -1,6 +1,6 @@
 // Package yamlwalk holds the YAML node-tree helpers every stage that
 // rewrites an OpenAPI document shares: correction application and the SDK
-// pre-normalization both work on the yaml.Node tree rather than a decoded
+// pre-normalisation both work on the yaml.Node tree rather than a decoded
 // map, because document order is load-bearing downstream — SDK generators
 // resolve naming collisions between structurally identical inline schemas by
 // encounter order, so a rewritten copy must differ from its input by exactly

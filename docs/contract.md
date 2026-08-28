@@ -26,7 +26,7 @@ succeeded jobs' artifacts persist within the run.
 
 ## The decision gate
 
-Job [6] refuses to materialize while any correction awaits a decision. That
+Job [6] refuses to write while any correction awaits a decision. That
 refusal is the point, but a refusal alone destroys what it refuses: proposals
 written into the runner's workspace by a job that then exits 1 leave with the
 runner, and the operator has nothing to review. Jobs [4] and [5] and the

@@ -10,7 +10,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/spec/yamlwalk"
 )
 
-// Prenormalize applies the document rewrites every SDK generation needs,
+// Prenormalise applies the document rewrites every SDK generation needs,
 // whatever the API and whichever the backend. Each answers a standing
 // generator behaviour rather than one document's mistake, so they are built
 // in rather than committed as corrections. It runs over a copy — the revised
@@ -51,7 +51,7 @@ import (
 //
 // Every pass accepts zero hits: a document without the shapes needs no
 // rewriting, which is not an error.
-func Prenormalize(revised []byte) (out []byte, stripped, collapsed int, err error) {
+func Prenormalise(revised []byte) (out []byte, stripped, collapsed int, err error) {
 	var root yaml.Node
 	if err := yaml.Unmarshal(revised, &root); err != nil {
 		return nil, 0, 0, fmt.Errorf("the revised document is not usable YAML: %w", err)

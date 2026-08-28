@@ -72,7 +72,7 @@ type evidence struct {
 	listBodies            [][]byte
 	combinedRefusals      []infer.FieldPair
 	// conditionalValues records the value-cycling outcomes the executor
-	// gathered healing free-form conditional refusals — each (discriminator
+	// gathered correcting free-form conditional refusals — each (discriminator
 	// value, sibling field, sibling value) the API accepted or refused — the
 	// both-direction signal for a value-conditional validConfiguration.
 	conditionalValues []infer.ConditionalValue

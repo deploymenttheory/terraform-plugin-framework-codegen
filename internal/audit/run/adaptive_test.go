@@ -298,7 +298,7 @@ func hasAdjustment(summary Summary, entity string, action infer.AdjustAction, fi
 }
 
 // TestUnit_Adaptive_MonitorSelfHealsTheIntervalRequirement is the headline
-// self-heal: interval is optional in the document and enforced by the API, so
+// self-correct: interval is optional in the document and enforced by the API, so
 // the minimal create is refused naming it, the loop adds it and retries, and
 // the entity completes rather than blocking — with a requiredByAPI(interval)
 // observation to show for it.
@@ -310,7 +310,7 @@ func TestUnit_Adaptive_MonitorSelfHealsTheIntervalRequirement(t *testing.T) {
 
 	got := entityStatus(t, summary, "monitor")
 	if got.Status == StatusBlocked {
-		t.Fatalf("monitor blocked despite the self-heal: %+v", got)
+		t.Fatalf("monitor blocked despite the self-correct: %+v", got)
 	}
 	o := findObs(obs, "monitor", "interval", observe.KindRequiredByAPI)
 	if o == nil || o.Outcome != observe.OutcomeConfirmed || o.Value != true {
@@ -385,7 +385,7 @@ func TestUnit_Adaptive_RequiresFieldIsAdded(t *testing.T) {
 	}
 	p := &plan.Plan{
 		Entities: []plan.EntityPlan{{
-			Entity: "monitor", Role: "resource",
+			Entity: "monitor", AuditShape: "resource",
 			Budget: plan.Budget{Requests: 20}, Steps: steps,
 		}},
 		Budget: plan.RunBudget{Requests: 40, Objects: 10, Duration: "1m"},
@@ -420,7 +420,7 @@ func TestUnit_Adaptive_UnintelligibleRefusalIsBoundedAndContinues(t *testing.T) 
 	p := &plan.Plan{
 		Entities: []plan.EntityPlan{
 			{
-				Entity: "thing", Role: "resource", Budget: plan.Budget{Requests: 30},
+				Entity: "thing", AuditShape: "resource", Budget: plan.Budget{Requests: 30},
 				Steps: []plan.Step{
 					{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",
 						Body: map[string]any{"name": "tfpfgen-<runid>-thing-name"}},
@@ -428,7 +428,7 @@ func TestUnit_Adaptive_UnintelligibleRefusalIsBoundedAndContinues(t *testing.T) 
 				},
 			},
 			{
-				Entity: "gadget", Role: "lookup", Budget: plan.Budget{Requests: 10},
+				Entity: "gadget", AuditShape: "lookupByKey", Budget: plan.Budget{Requests: 10},
 				Steps: []plan.Step{{
 					Kind: plan.StepRead, Method: "GET", Path: "/things/{thingId}",
 					PathValues: map[string]string{"thingId": seeded},
@@ -441,7 +441,7 @@ func TestUnit_Adaptive_UnintelligibleRefusalIsBoundedAndContinues(t *testing.T) 
 	before := s.Requests()
 	obs, summary, err := Run(context.Background(), testOptions(t, s, p, testEnv(), nil))
 	if err != nil {
-		t.Fatalf("an unhealable refusal blocks the entity, not the run: %v", err)
+		t.Fatalf("an uncorrectable refusal blocks the entity, not the run: %v", err)
 	}
 	if got := entityStatus(t, summary, "thing"); got.Status != StatusBlocked {
 		t.Fatalf("thing = %+v, want blocked on the unintelligible refusal", got)
@@ -461,7 +461,7 @@ func TestUnit_Adaptive_UnintelligibleRefusalIsBoundedAndContinues(t *testing.T) 
 	}
 	// Bounded: the unintelligible create was not retried into the ground.
 	if spent := s.Requests() - before; spent > 20 {
-		t.Errorf("the run spent %d requests; an unhealable create must not spin the loop", spent)
+		t.Errorf("the run spent %d requests; an uncorrectable create must not spin the loop", spent)
 	}
 	_ = obs
 }
@@ -508,8 +508,8 @@ func TestUnit_Adaptive_RedactionHoldsEndToEnd(t *testing.T) {
 //
 // The reduction protects the body the entity creates by. That body is the one
 // the run got accepted, not the one the plan started from — the plan's is the
-// document's guess, and the guess is what needed healing. Protecting the guess
-// leaves the healed field droppable, and a reduction that drops it can never
+// document's guess, and the guess is what needed correcting. Protecting the guess
+// leaves the corrected field droppable, and a reduction that drops it can never
 // reach an accepted create at all.
 func TestUnit_Adaptive_TheReductionKeepsWhatTheCreateNeeded(t *testing.T) {
 	t.Parallel()
@@ -525,7 +525,7 @@ func TestUnit_Adaptive_TheReductionKeepsWhatTheCreateNeeded(t *testing.T) {
 
 	p := &plan.Plan{
 		Entities: []plan.EntityPlan{{
-			Entity: "thing", Role: "resource", Budget: plan.Budget{Requests: 60},
+			Entity: "thing", AuditShape: "resource", Budget: plan.Budget{Requests: 60},
 			Steps: []plan.Step{
 				{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",
 					Body: map[string]any{"name": "tfpfgen-<runid>-thing-name"}},
@@ -603,7 +603,7 @@ func TestUnit_Adaptive_AFieldTheAPIDemandedTeachesTheDocument(t *testing.T) {
 	})
 	p := &plan.Plan{
 		Entities: []plan.EntityPlan{{
-			Entity: "thing", Role: "resource", Budget: plan.Budget{Requests: 30},
+			Entity: "thing", AuditShape: "resource", Budget: plan.Budget{Requests: 30},
 			DeclaredProperties: []string{"name"},
 			Steps: []plan.Step{
 				{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",
@@ -653,7 +653,7 @@ func TestUnit_Adaptive_AGuessedFieldIsNotAssertedUntilTheAPITakesIt(t *testing.T
 	})
 	p := &plan.Plan{
 		Entities: []plan.EntityPlan{{
-			Entity: "thing", Role: "resource", Budget: plan.Budget{Requests: 30},
+			Entity: "thing", AuditShape: "resource", Budget: plan.Budget{Requests: 30},
 			DeclaredProperties: []string{"name"},
 			Steps: []plan.Step{
 				{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",

@@ -82,9 +82,9 @@ func TestUnit_Revise_WritesTheUpstreamRoundTripWithNoCorrections(t *testing.T) {
 	t.Parallel()
 	dir := pinned(t, upstreamYAML)
 
-	res, err := Materialize(dir)
+	res, err := WriteRevision(dir)
 	if err != nil {
-		t.Fatalf("Materialize: %v", err)
+		t.Fatalf("WriteRevision: %v", err)
 	}
 	if len(res.Applied) != 0 {
 		t.Errorf("Applied = %v, want none", res.Applied)
@@ -104,8 +104,8 @@ func TestUnit_Revise_NormalizesAJSONPublishedDocumentToBlockYAML(t *testing.T) {
 	t.Parallel()
 	dir := pinned(t, upstreamJSON)
 
-	if _, err := Materialize(dir); err != nil {
-		t.Fatalf("Materialize: %v", err)
+	if _, err := WriteRevision(dir); err != nil {
+		t.Fatalf("WriteRevision: %v", err)
 	}
 	data, err := os.ReadFile(filepath.Join(dir, OutputName))
 	if err != nil {
@@ -126,9 +126,9 @@ func TestUnit_Revise_AppliesAcceptedCorrectionsInOrder(t *testing.T) {
 	writeFile(t, filepath.Join(corrections, "20-add-none.correction.json"), addEnumValue("none"))
 	writeFile(t, filepath.Join(corrections, "10-add-month.correction.json"), addEnumValue("month"))
 
-	res, err := Materialize(dir)
+	res, err := WriteRevision(dir)
 	if err != nil {
-		t.Fatalf("Materialize: %v", err)
+		t.Fatalf("WriteRevision: %v", err)
 	}
 	want := []string{
 		filepath.Join(corrections, "10-add-month.correction.json"),
@@ -148,7 +148,7 @@ func TestUnit_Revise_IsByteIdenticalAcrossRuns(t *testing.T) {
 	dir := pinned(t, upstreamYAML)
 	writeFile(t, filepath.Join(dir, correction.DirName, "add.correction.json"), addEnumValue("none"))
 
-	if _, err := Materialize(dir); err != nil {
+	if _, err := WriteRevision(dir); err != nil {
 		t.Fatalf("first run: %v", err)
 	}
 	first, err := os.ReadFile(filepath.Join(dir, OutputName))
@@ -156,7 +156,7 @@ func TestUnit_Revise_IsByteIdenticalAcrossRuns(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := Materialize(dir); err != nil {
+	if _, err := WriteRevision(dir); err != nil {
 		t.Fatalf("second run: %v", err)
 	}
 	second, err := os.ReadFile(filepath.Join(dir, OutputName))
@@ -176,9 +176,9 @@ func TestUnit_Revise_RefusesWhileProposedCorrectionsAwaitADecision(t *testing.T)
 	writeFile(t, filepath.Join(proposed, "a.correction.json"), addEnumValue("none"))
 	writeFile(t, filepath.Join(proposed, "b.correction.json"), addEnumValue("month"))
 
-	_, err := Materialize(dir)
+	_, err := WriteRevision(dir)
 	if err == nil {
-		t.Fatal("Materialize succeeded with proposals pending")
+		t.Fatal("WriteRevision succeeded with proposals pending")
 	}
 	for _, want := range []string{
 		"2 proposed corrections await a decision",
@@ -202,7 +202,7 @@ func TestUnit_Revise_RefusalNamesASingleProposalInTheSingular(t *testing.T) {
 	dir := pinned(t, upstreamYAML)
 	writeFile(t, filepath.Join(dir, correction.DirName, ProposedDirName, "a.correction.json"), addEnumValue("none"))
 
-	_, err := Materialize(dir)
+	_, err := WriteRevision(dir)
 	if err == nil || !strings.Contains(err.Error(), "1 proposed correction awaits a decision") {
 		t.Fatalf("error does not count the single proposal: %v", err)
 	}
@@ -217,7 +217,7 @@ func TestUnit_Revise_IgnoresNonCorrectionFilesInProposed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := Materialize(dir); err != nil {
+	if _, err := WriteRevision(dir); err != nil {
 		t.Fatalf("an empty proposed directory must not block revision: %v", err)
 	}
 }
@@ -228,9 +228,9 @@ func TestUnit_Revise_IgnoresRejectedMarkers(t *testing.T) {
 	writeFile(t, filepath.Join(dir, correction.DirName, RejectedDirName, "a.json"),
 		`{"rejected": "the observation was a transient API bug"}`)
 
-	res, err := Materialize(dir)
+	res, err := WriteRevision(dir)
 	if err != nil {
-		t.Fatalf("Materialize: %v", err)
+		t.Fatalf("WriteRevision: %v", err)
 	}
 	if len(res.Applied) != 0 {
 		t.Errorf("Applied = %v; a rejected marker is not a correction", res.Applied)
@@ -239,7 +239,7 @@ func TestUnit_Revise_IgnoresRejectedMarkers(t *testing.T) {
 
 func TestUnit_Revise_RefusesWhenNothingIsPinned(t *testing.T) {
 	t.Parallel()
-	_, err := Materialize(filepath.Join(t.TempDir(), "spec"))
+	_, err := WriteRevision(filepath.Join(t.TempDir(), "spec"))
 	if err == nil || !strings.Contains(err.Error(), "tfpfgen spec import") {
 		t.Fatalf("error does not say what to run: %v", err)
 	}
@@ -250,7 +250,7 @@ func TestUnit_Revise_RefusesATamperedPin(t *testing.T) {
 	dir := pinned(t, upstreamYAML)
 	writeFile(t, filepath.Join(dir, store.DocumentName), "openapi: 3.0.3\nedited: true\n")
 
-	_, err := Materialize(dir)
+	_, err := WriteRevision(dir)
 	if err == nil || !strings.Contains(err.Error(), "does not match its lock") {
 		t.Fatalf("a tampered tree must refuse to revise: %v", err)
 	}
@@ -265,7 +265,7 @@ func TestUnit_Revise_SurfacesAStaleCorrection(t *testing.T) {
 	path := filepath.Join(dir, correction.DirName, "stale.correction.json")
 	writeFile(t, path, addEnumValue("week")) // already upstream
 
-	_, err := Materialize(dir)
+	_, err := WriteRevision(dir)
 	if err == nil {
 		t.Fatal("a stale correction must refuse")
 	}
@@ -281,7 +281,7 @@ func TestUnit_Revise_RefusesAnUnusableCorrection(t *testing.T) {
 	dir := pinned(t, upstreamYAML)
 	writeFile(t, filepath.Join(dir, correction.DirName, "broken.correction.json"), "not json")
 
-	_, err := Materialize(dir)
+	_, err := WriteRevision(dir)
 	if err == nil || !strings.Contains(err.Error(), "not a usable correction") {
 		t.Fatalf("a malformed correction must refuse: %v", err)
 	}
@@ -294,7 +294,7 @@ func TestUnit_Revise_RefusesAnUnreadableProposedDirectory(t *testing.T) {
 	// something other than not-exist.
 	writeFile(t, filepath.Join(dir, correction.DirName, ProposedDirName), "a file, not a directory")
 
-	if _, err := Materialize(dir); err == nil {
+	if _, err := WriteRevision(dir); err == nil {
 		t.Fatal("an unreadable proposed path must surface, not be ignored")
 	}
 }

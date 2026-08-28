@@ -40,7 +40,7 @@ var EdgeKinds = map[observe.Kind]bool{
 //	a collection response's structure
 //	    -> listResponseShape     (read from the body, not the document)
 //
-// A strategy hypothesis the evidence does not confirm becomes an inconclusive
+// A strategy claim the evidence does not confirm becomes an inconclusive
 // observation, never an assertion — so a planted or mistaken edge is reported
 // as untested rather than asserted.
 func Infer(ev Evidence, compiled *strategy.Strategy) []observe.Observation {
@@ -74,7 +74,7 @@ func Infer(ev Evidence, compiled *strategy.Strategy) []observe.Observation {
 	}
 	out = append(out, m.listShape()...)
 	out = append(out, m.identifierProperty()...)
-	out = append(out, m.hypothesisGaps(confirmed)...)
+	out = append(out, m.unconfirmedClaims(confirmed)...)
 
 	return dedup(out)
 }
@@ -184,7 +184,7 @@ func (m *model) validConfiguration(validEdges []observe.Observation) []observe.O
 }
 
 // valueConditionalConfig asserts a validConfiguration the executor learned by
-// value-cycling: a free-form conditional refusal it could not classify, healed
+// value-cycling: a free-form conditional refusal it could not classify, corrected
 // by trying alternate enum values for a sibling field. The edge is confirmed
 // only with both-direction corroboration — a sibling value the API accepted
 // under one discriminator value and refused under another — and only when at
@@ -371,18 +371,18 @@ func (m *model) identifierProperty() []observe.Observation {
 	}
 }
 
-// hypothesisGaps turns every strategy hypothesis the evidence did not confirm
-// into an inconclusive observation. This is the false-edge guard: a hypothesis
+// unconfirmedClaims turns every strategy claim the evidence did not confirm
+// into an inconclusive observation. This is the false-edge guard: a claim
 // the run could not corroborate is recorded as tested-and-unconfirmed, so it
 // is visible without ever becoming an assertion.
-func (m *model) hypothesisGaps(confirmed map[string]bool) []observe.Observation {
+func (m *model) unconfirmedClaims(confirmed map[string]bool) []observe.Observation {
 	if m.compiled == nil {
 		return nil
 	}
 	var out []observe.Observation
 	seen := map[string]bool{}
-	for _, h := range m.compiled.Hypotheses {
-		for _, o := range m.hypothesisObservations(h) {
+	for _, h := range m.compiled.Claims {
+		for _, o := range m.claimObservations(h) {
 			k := keyOf(o)
 			if confirmed[k] || seen[k] {
 				continue
@@ -394,12 +394,12 @@ func (m *model) hypothesisGaps(confirmed map[string]bool) []observe.Observation 
 	return out
 }
 
-// hypothesisObservations maps one hypothesis to the inconclusive observation(s)
+// claimObservations maps one claim to the inconclusive observation(s)
 // it would become if unconfirmed.
-func (m *model) hypothesisObservations(h strategy.Hypothesis) []observe.Observation {
+func (m *model) claimObservations(h strategy.Claim) []observe.Observation {
 	prov := observe.Provenance(h.Provenance)
 	switch h.Kind {
-	case strategy.HypothesisVariant, strategy.HypothesisValidWhen:
+	case strategy.ClaimValidConfiguration, strategy.ClaimValidWhen:
 		cond := &observe.Condition{Attribute: h.GateField, Equals: h.GateValue}
 		if h.GateField == "" {
 			return nil
@@ -409,26 +409,26 @@ func (m *model) hypothesisObservations(h strategy.Hypothesis) []observe.Observat
 			out = append(out, m.edge(f, observe.KindValidWhen, nil, cond, prov, observe.OutcomeInconclusive))
 		}
 		return out
-	case strategy.HypothesisRequiredWhen:
+	case strategy.ClaimRequiredWhen:
 		if h.GateField == "" || len(h.Subjects) == 0 {
 			return nil
 		}
 		cond := &observe.Condition{Attribute: h.GateField, Equals: h.GateValue}
 		return []observe.Observation{m.edge(h.Subjects[0], observe.KindRequiredWhen, nil, cond, prov, observe.OutcomeInconclusive)}
-	case strategy.HypothesisRequiresField:
+	case strategy.ClaimDependsOn:
 		subjects := append([]string(nil), h.Subjects...)
 		sort.Strings(subjects)
 		if len(subjects) < 2 {
 			return nil
 		}
-		// A requiresField hypothesis names the whole co-requirement set; the
+		// A requiresField claim names the whole co-requirement set; the
 		// subject is the trigger the check field records, or the first member.
 		trigger := h.Check.Field
 		if trigger == "" {
 			trigger = subjects[0]
 		}
 		return []observe.Observation{m.edge(trigger, observe.KindDependsOn, nil, nil, prov, observe.OutcomeInconclusive)}
-	case strategy.HypothesisMutuallyExclusive:
+	case strategy.ClaimMutuallyExclusive:
 		set := append([]string(nil), h.Subjects...)
 		sort.Strings(set)
 		if len(set) < 2 {
@@ -478,13 +478,13 @@ func (m *model) acceptedAlone(a, b string) bool {
 }
 
 // provenanceFor finds the provenance of a confirmed validWhen edge from a
-// matching strategy hypothesis, defaulting to derived.
+// matching strategy claim, defaulting to derived.
 func (m *model) provenanceFor(field, gateValue string) observe.Provenance {
 	if m.compiled == nil {
 		return observe.ProvenanceDerived
 	}
-	for _, h := range m.compiled.Hypotheses {
-		if h.Kind != strategy.HypothesisValidWhen && h.Kind != strategy.HypothesisVariant {
+	for _, h := range m.compiled.Claims {
+		if h.Kind != strategy.ClaimValidWhen && h.Kind != strategy.ClaimValidConfiguration {
 			continue
 		}
 		if h.GateField != m.gate.field || h.GateValue != gateValue {
@@ -497,28 +497,28 @@ func (m *model) provenanceFor(field, gateValue string) observe.Provenance {
 	return observe.ProvenanceDerived
 }
 
-// variantProvenance finds the provenance of a structural variant hypothesis on
+// variantProvenance finds the provenance of a structural variant claim on
 // the gate, for the validConfiguration finding.
 func (m *model) variantProvenance() (observe.Provenance, bool) {
 	if m.compiled == nil {
 		return "", false
 	}
-	for _, h := range m.compiled.Hypotheses {
-		if h.Kind == strategy.HypothesisVariant && h.GateField == m.gate.field {
+	for _, h := range m.compiled.Claims {
+		if h.Kind == strategy.ClaimValidConfiguration && h.GateField == m.gate.field {
 			return observe.Provenance(h.Provenance), true
 		}
 	}
 	return "", false
 }
 
-// requiresProvenance finds the provenance of a requiresField hypothesis
+// requiresProvenance finds the provenance of a requiresField claim
 // covering the co-requirement, defaulting to derived.
 func (m *model) requiresProvenance(trigger, required string) observe.Provenance {
 	if m.compiled == nil {
 		return observe.ProvenanceDerived
 	}
-	for _, h := range m.compiled.Hypotheses {
-		if h.Kind != strategy.HypothesisRequiresField {
+	for _, h := range m.compiled.Claims {
+		if h.Kind != strategy.ClaimDependsOn {
 			continue
 		}
 		if contains(h.Subjects, trigger) && contains(h.Subjects, required) {
@@ -528,15 +528,15 @@ func (m *model) requiresProvenance(trigger, required string) observe.Provenance 
 	return observe.ProvenanceDerived
 }
 
-// provenanceForSet finds the provenance of a hypothesis whose subjects equal
+// provenanceForSet finds the provenance of a claim whose subjects equal
 // the given set, defaulting to derived.
 func (m *model) provenanceForSet(set []string) observe.Provenance {
 	if m.compiled == nil {
 		return observe.ProvenanceDerived
 	}
 	want := joinSorted(set)
-	for _, h := range m.compiled.Hypotheses {
-		if h.Kind == strategy.HypothesisMutuallyExclusive && joinSorted(h.Subjects) == want {
+	for _, h := range m.compiled.Claims {
+		if h.Kind == strategy.ClaimMutuallyExclusive && joinSorted(h.Subjects) == want {
 			return observe.Provenance(h.Provenance)
 		}
 	}

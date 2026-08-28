@@ -22,7 +22,7 @@ const UndeclaredSpecFieldName = "tfpfgen_unknown_field"
 // derive.go bound each rule.
 func (d *planBuilder) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped) {
 	ei := d.inputs.forEntity(c.Key)
-	sy := synth{entity: c.Key, prefix: d.configuration.Audit.NamePrefix, inputs: ei}
+	sy := valueSynthesiser{entity: c.Key, prefix: d.configuration.Audit.NamePrefix, inputs: ei}
 
 	createOp := d.operation(c.Create)
 	readOp := d.operation(c.Read)
@@ -78,7 +78,7 @@ func (d *planBuilder) resourcePlan(c specmodel.Classification) (EntityPlan, *Ski
 
 	maximal, optional := sy.maximalBody(createSchema)
 	createMaximal := post(StepCreateMaximal, "", maximal)
-	createMaximal.BisectionAllowance = bisectionAllowance(optional)
+	createMaximal.FieldNarrowingAttemptLimit = fieldNarrowingAttemptLimit(optional)
 	steps = append(steps, createMaximal)
 
 	steps = append(steps, negativeSteps(createSchema, minimal, post)...)
@@ -87,7 +87,7 @@ func (d *planBuilder) resourcePlan(c specmodel.Classification) (EntityPlan, *Ski
 
 	return EntityPlan{
 		Entity:             c.Key,
-		Role:               "resource",
+		AuditShape:         "resource",
 		Parents:            parents,
 		DeclaredProperties: declaredProperties(createSchema, successSchemaOf(readOp)),
 		Budget:             Budget{Requests: entityRequestBudget},
@@ -109,7 +109,7 @@ func (d *planBuilder) lookupPlan(c specmodel.Classification) (EntityPlan, *Skipp
 	double.Kind = StepReadConsecutive
 	return EntityPlan{
 		Entity:             c.Key,
-		Role:               "lookup",
+		AuditShape:         "lookupByKey",
 		Parents:            parents,
 		DeclaredProperties: declaredProperties(successSchemaOf(d.operation(c.Read))),
 		Budget:             Budget{Requests: entityRequestBudget},
@@ -153,7 +153,7 @@ func declaredProperties(schemas ...*specmodel.Schema) []string {
 // updateSteps derives one update per writable scalar field, capped. Each
 // body is the minimal body with that one field moved to a variant value,
 // so a refusal names the field and nothing else.
-func (d *planBuilder) updateSteps(c specmodel.Classification, sy synth, schema *specmodel.Schema, minimal map[string]any, itemValues map[string]string) []Step {
+func (d *planBuilder) updateSteps(c specmodel.Classification, sy valueSynthesiser, schema *specmodel.Schema, minimal map[string]any, itemValues map[string]string) []Step {
 	properties, _ := flatProps(schema)
 	var steps []Step
 	for _, p := range properties {
@@ -228,7 +228,7 @@ func negativeSteps(schema *specmodel.Schema, minimal map[string]any, post func(S
 // document hints that behaviour varies: an x-tfpfgen-required-when
 // annotation, or an enum-typed field with siblings whose behaviour could
 // depend on it. Enum values are capped across the entity.
-func conditionalSteps(sy synth, schema *specmodel.Schema, minimal map[string]any, post func(StepKind, string, map[string]any) Step) []Step {
+func conditionalSteps(sy valueSynthesiser, schema *specmodel.Schema, minimal map[string]any, post func(StepKind, string, map[string]any) Step) []Step {
 	properties, _ := flatProps(schema)
 	var steps []Step
 

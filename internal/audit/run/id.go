@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// learnID extracts a created object's id from a create — or a subsequent read —
+// extractID extracts a created object's id from a create — or a subsequent read —
 // response, trying the shapes real APIs use in a fixed, documented order so the
 // same response always yields the same id. The order runs strongest-signal
 // first:
@@ -27,7 +27,7 @@ import (
 // 2xx) but its id could not be learned, so it stays addressable only by the
 // cleanup prefix pass and its id-derived observations must be inconclusive
 // rather than silently skipped.
-func learnID(entity string, res *httpResult) string {
+func extractID(entity string, res *httpResult) string {
 	if res == nil {
 		return ""
 	}
@@ -48,7 +48,7 @@ func learnID(entity string, res *httpResult) string {
 			}
 		}
 	}
-	return idFromSelfLink(obj)
+	return idFromResourceURL(obj)
 }
 
 // idFromLocation reads the id out of a Location or Content-Location header: the
@@ -98,10 +98,10 @@ func idFromObject(entity string, obj map[string]any) string {
 	return ""
 }
 
-// idFromSelfLink reads the id out of a self link: a top-level "self" URL string,
+// idFromResourceURL reads the id out of a self link: a top-level "self" URL string,
 // or a "links" object carrying a "self" URL. The id is the link's last path
 // segment.
-func idFromSelfLink(obj map[string]any) string {
+func idFromResourceURL(obj map[string]any) string {
 	if s, ok := obj["self"].(string); ok {
 		if id := idFromURLString(s); id != "" {
 			return id

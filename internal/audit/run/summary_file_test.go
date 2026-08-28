@@ -20,7 +20,7 @@ func TestUnit_Run_SummaryKeepsWhyAnEntityProducedNothing(t *testing.T) {
 		Entities: []EntityResult{{
 			Entity: "thing",
 			Status: StatusBlocked,
-			Reason: "the minimal create was refused with status 400, and adding name did not heal it",
+			Reason: "the minimal create was refused with status 400, and adding name did not correct it",
 			Refusal: &observe.Excerpt{
 				Method: "POST", PathTemplate: "/things", Status: 400,
 				ResponseFragment: json.RawMessage(`{"detail":"field serial is required"}`),
@@ -79,7 +79,7 @@ func TestUnit_Run_ABlockedCreateNamesWhatTheSearchAskedFor(t *testing.T) {
 	// widened it with is the difference between a document that understates
 	// the create and an API refusing it for another reason entirely.
 	got := minimalRefusedReason(400, []string{"serial", "kind"})
-	want := "the minimal create was refused with status 400, and adding serial, kind did not heal it"
+	want := "the minimal create was refused with status 400, and adding serial, kind did not correct it"
 	if got != want {
 		t.Errorf("reason = %q, want %q", got, want)
 	}

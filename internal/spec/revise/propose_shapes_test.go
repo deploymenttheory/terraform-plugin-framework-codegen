@@ -139,8 +139,8 @@ func TestUnit_Propose_PlacesCorrectionsThroughComposedSchemas(t *testing.T) {
 
 	// The corrections apply cleanly to the composed document.
 	acceptAll(t, specDir)
-	if _, err := Materialize(specDir); err != nil {
-		t.Fatalf("Materialize: %v", err)
+	if _, err := WriteRevision(specDir); err != nil {
+		t.Fatalf("WriteRevision: %v", err)
 	}
 	p2, err := Propose(specDir)
 	if err != nil {

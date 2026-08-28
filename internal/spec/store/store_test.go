@@ -163,7 +163,7 @@ func TestUnit_SpecStore_ImportRestoresATamperedDocumentUnderAnUnchangedLock(t *t
 		t.Fatal(err)
 	}
 	// Somebody edits the pinned document in place; the lock still records the
-	// published hash. Importing the published bytes again must heal the tree,
+	// published hash. Importing the published bytes again must correct the tree,
 	// not report "nothing changed" over a broken pin.
 	if err := os.WriteFile(filepath.Join(dir, DocumentName), []byte("tampered"), 0o600); err != nil {
 		t.Fatal(err)
@@ -177,7 +177,7 @@ func TestUnit_SpecStore_ImportRestoresATamperedDocumentUnderAnUnchangedLock(t *t
 		t.Fatal("a tampered document was reported as already pinned")
 	}
 	if _, err := Verify(dir); err != nil {
-		t.Fatalf("Verify after the healing import: %v", err)
+		t.Fatalf("Verify after the correcting import: %v", err)
 	}
 }
 

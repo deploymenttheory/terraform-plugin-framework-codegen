@@ -256,17 +256,17 @@ func TestUnit_Adaptive_StreamRunIsDeterministic(t *testing.T) {
 // real API's wording, which names the field in prose no clause matches.
 func TestUnit_ClassifyRefusal_GeneralizedFieldExtraction(t *testing.T) {
 	t.Parallel()
-	known := func(fields ...string) map[string]strategy.SynthHint {
-		out := map[string]strategy.SynthHint{}
+	known := func(fields ...string) map[string]strategy.SyntheticValueRules {
+		out := map[string]strategy.SyntheticValueRules{}
 		for _, f := range fields {
-			out[f] = strategy.SynthHint{Field: f}
+			out[f] = strategy.SyntheticValueRules{Field: f}
 		}
 		return out
 	}
 	cases := []struct {
 		name    string
 		message string
-		known   map[string]strategy.SynthHint
+		known   map[string]strategy.SyntheticValueRules
 		want    []string
 	}{
 		{
@@ -308,7 +308,7 @@ func TestUnit_ClassifyRefusal_GeneralizedFieldExtraction(t *testing.T) {
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			got := namedKnownFields(testCase.message, testCase.known)
+			got := declaredFieldsNamedIn(testCase.message, testCase.known)
 			if !reflect.DeepEqual(got, testCase.want) {
 				t.Fatalf("namedKnownFields(%q) = %v, want %v", testCase.message, got, testCase.want)
 			}

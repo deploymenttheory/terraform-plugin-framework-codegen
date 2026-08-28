@@ -314,7 +314,7 @@ func TestUnit_Run_PostcheckFailureSurfacesVerbatim(t *testing.T) {
 		t.Skip("go is not on PATH")
 	}
 	_, opts := curatedRepo(t, "kiota")
-	opts.Postcheck = true
+	opts.VerifyTree = true
 
 	// A toolchain that answers everything except `go mod` normally, so
 	// binding still type-checks and only the postcheck's first step fails.
