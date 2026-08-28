@@ -609,6 +609,28 @@ func TestUnit_Fixturespec_AReplayedRequiredPropertyTakesTheAPIsSpelling(t *testi
 	}
 }
 
+func TestUnit_Fixturespec_AnExpressionRendersUnquoted(t *testing.T) {
+	spec := Derive(acceptedTree())
+	got := spec.WithExpression("name", "petstore_owner.owner.id")
+	if v := valueByName(t, got, "name").Expression; v != "petstore_owner.owner.id" {
+		t.Fatalf("expression = %q, want it set on the named entry", v)
+	}
+	if spec.Entries[1].Expression != "" {
+		t.Fatal("WithExpression changed the fixture it was called on")
+	}
+	hcl := got.HCL(ConfigMaximal)
+	if !regexp.MustCompile(`(?m)^  name +?= petstore_owner\.owner\.id$`).MatchString(hcl) {
+		t.Errorf("HCL = %q, want the expression rendered bare", hcl)
+	}
+	if strings.Contains(hcl, `"petstore_owner.owner.id"`) {
+		t.Errorf("HCL = %q, want the expression unquoted", hcl)
+	}
+	// A name the fixture does not carry changes nothing.
+	if same := spec.WithExpression("absent", "x"); len(same.Entries) != len(spec.Entries) {
+		t.Errorf("an absent name changed the entries: %d", len(same.Entries))
+	}
+}
+
 func TestUnit_Fixturespec_TheRunSuffixOnlyTouchesInventedNames(t *testing.T) {
 	spec := Derive(acceptedTree())
 	spec.Entries[1].Scalar = NamePrefix + "invented"

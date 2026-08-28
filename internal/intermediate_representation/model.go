@@ -103,6 +103,11 @@ type Resource struct {
 	// the response is a bare array. It drives the generated list-mock
 	// envelope, replacing the assumption that every API wraps under "value".
 	ListWrapperKey string `json:"list_wrapper_key,omitempty"`
+	// ParentEntity is the key of the entity whose collection path encloses
+	// this one's; empty at the top level. A singleton's path parameters all
+	// address that parent, and the attribute answering a parameter the
+	// document spells `id` is named after it.
+	ParentEntity string `json:"parent_entity,omitempty"`
 }
 
 // Datasource is one entity readable outside Terraform's ownership. Every

@@ -450,7 +450,7 @@ func TestUnit_AddressingNames_TakesEveryPathParameterInTerraformSpelling(t *test
 	}}
 	list := &ir.Operation{PathParameters: []ir.Parameter{{Name: "org", Type: ir.TypeString}}}
 
-	names := addressingNames(read, nil, list)
+	names := addressingNames(nil, read, nil, list)
 	for _, want := range []string{"owner", "repo", "ruleset_id", "org"} {
 		if !names[want] {
 			t.Fatalf("%s must be addressing, got %v", want, names)

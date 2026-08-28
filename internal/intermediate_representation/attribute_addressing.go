@@ -45,7 +45,13 @@ func ensureID(tree *AttributeTree, keyParam string, keyType AttributeType) {
 // A parent the body does declare is left as the body declares it; the
 // document is a better authority on its own field than the URL is. Only a
 // parameter no attribute answers is added.
-func ensureParentParameters(tree *AttributeTree, parents []Parameter) {
+//
+// A parameter the document spells `id` cannot take that name: `id` is the
+// resource's own identity. It is named after the parent entity it addresses
+// — `template_id` for the template whose settings these are — and keeps
+// the parameter's spelling as its wire name, which is how a call finds it.
+// With no parent entity to name it after, it is left to emission to refuse.
+func ensureParentParameters(tree *AttributeTree, parents []Parameter, parentEntity string) {
 	if tree == nil || len(parents) == 0 {
 		return
 	}
@@ -64,6 +70,9 @@ func ensureParentParameters(tree *AttributeTree, parents []Parameter) {
 	added := make([]Attribute, 0, len(parents))
 	for _, parent := range parents {
 		name := snakeCase(parent.Name)
+		if name == "id" && parentEntity != "" {
+			name = parentEntity + "_id"
+		}
 		if declared[name] {
 			continue
 		}
@@ -146,7 +155,7 @@ func addressingSchema(parameters []Parameter) *AttributeTree {
 		return nil
 	}
 	tree := &AttributeTree{}
-	ensureParentParameters(tree, parameters)
+	ensureParentParameters(tree, parameters, "")
 	for index := range tree.Attributes {
 		tree.Attributes[index].RequiresReplace = false
 	}

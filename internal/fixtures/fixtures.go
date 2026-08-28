@@ -73,6 +73,10 @@ type Entry struct {
 	// Nested are the field values of an object attribute, or of the one
 	// element a list of objects carries.
 	Nested []Entry
+	// Expression, when set, is the terraform expression the configuration
+	// renders in place of Scalar — a reference to another block's
+	// attribute, which no literal spells.
+	Expression string
 
 	// synthesised is the prefixed name this entry would carry had the
 	// document declared no example, and is empty unless the example is what

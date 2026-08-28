@@ -558,7 +558,7 @@ func TestUnit_EnsureParentParameters_AddsWhatNoBodyDeclares(t *testing.T) {
 	ensureParentParameters(tree, []Parameter{
 		{Name: "owner", Type: TypeString},
 		{Name: "repo", Type: TypeString},
-	})
+	}, "")
 
 	if len(tree.Attributes) != 4 {
 		t.Fatalf("want four attributes, got %d", len(tree.Attributes))
@@ -584,13 +584,36 @@ func TestUnit_EnsureParentParameters_LeavesWhatTheBodyAlreadyDeclares(t *testing
 	tree := &AttributeTree{Attributes: []Attribute{
 		{Name: "owner", WireName: "owner", Kind: TypeString, ComputedOptionalRequired: Optional},
 	}}
-	ensureParentParameters(tree, []Parameter{{Name: "owner", Type: TypeString}})
+	ensureParentParameters(tree, []Parameter{{Name: "owner", Type: TypeString}}, "")
 
 	if len(tree.Attributes) != 1 {
 		t.Fatalf("a declared parent must not be added twice, got %d", len(tree.Attributes))
 	}
 	if tree.Attributes[0].ComputedOptionalRequired != Optional {
 		t.Fatalf("a declared parent keeps its declared presence, got %s", tree.Attributes[0].ComputedOptionalRequired)
+	}
+}
+
+func TestUnit_EnsureParentParameters_NamesAParentSpelledIdAfterItsEntity(t *testing.T) {
+	tree := &AttributeTree{Attributes: []Attribute{
+		{Name: "id", WireName: "id", Kind: TypeString, ComputedOptionalRequired: Computed},
+		{Name: "scope", WireName: "scope", Kind: TypeString, ComputedOptionalRequired: Required},
+	}}
+	ensureParentParameters(tree, []Parameter{{Name: "id", Type: TypeString}}, "template")
+
+	if len(tree.Attributes) != 3 || tree.Attributes[0].Name != "template_id" {
+		t.Fatalf("want template_id prepended, got %+v", tree.Attributes)
+	}
+	if got := tree.Attributes[0]; got.WireName != "id" || got.ComputedOptionalRequired != Required {
+		t.Fatalf("the parent keeps the parameter's spelling as its wire name and is required, got %+v", got)
+	}
+
+	// With no parent entity to name it after, the parameter is not added:
+	// the resource's own id already holds the name.
+	bare := &AttributeTree{Attributes: []Attribute{{Name: "id", WireName: "id", Kind: TypeString, ComputedOptionalRequired: Computed}}}
+	ensureParentParameters(bare, []Parameter{{Name: "id", Type: TypeString}}, "")
+	if len(bare.Attributes) != 1 {
+		t.Fatalf("an unnameable parent was added: %+v", bare.Attributes)
 	}
 }
 

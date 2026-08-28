@@ -373,10 +373,12 @@ func (r *runner) resolveBody(ctx context.Context, entity *entityState, body map[
 //
 // A reference the API cannot satisfy — the collection is empty — is left out
 // where leaving it out is a body the API can still read: an element of a
-// list of ids, or a top-level field the entity does not require. Anywhere
-// else it blocks with the collection named, because a nested object missing
-// its id, or a required field missing outright, is refused for a reason the
-// refusal will not spell.
+// list of ids, a top-level field the entity does not require, or a member
+// of a nested object — whether that object needed the member is the API's
+// to say, and a refusal costs one request where a block costs the entity.
+// A required top-level field blocks with the collection named: sent with an
+// invented id or left out, it is refused for a reason the refusal will not
+// spell.
 func (r *runner) resolveAny(ctx context.Context, entity *entityState, field string, value any, top bool) (any, error) {
 	switch v := value.(type) {
 	case map[string]any:
@@ -384,7 +386,7 @@ func (r *runner) resolveAny(ctx context.Context, entity *entityState, field stri
 		for k, inner := range v {
 			resolved, err := r.resolveAny(ctx, entity, k, inner, false)
 			var unsatisfied unsatisfiedReference
-			if errors.As(err, &unsatisfied) && top && !r.requiredField(entity, k) {
+			if errors.As(err, &unsatisfied) && (!top || !r.requiredField(entity, k)) {
 				continue
 			}
 			if err != nil {

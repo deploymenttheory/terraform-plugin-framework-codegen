@@ -71,22 +71,95 @@ func retainedWireNames(spec fixtures.Fixture, nodes []node) map[string]bool {
 	return out
 }
 
-// resourceFixtures emits a resource's terraform fixtures, response
-// fixtures and examples.
-func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture, nodes []node, dir string) ([]File, error) {
-	key := r.Names.Key
-	source := key
-	blockHeader := fmt.Sprintf("resource %q %q", r.Names.TerraformType, "test")
+// parentBlockDepth bounds how far up a chain of parents a fixture reaches:
+// a parent's parent is rendered too, and a document whose paths nest deeper
+// than this is one no fixture is going to exercise honestly.
+const parentBlockDepth = 4
 
-	// The unit suite meets a mock built from these same values, so its
-	// configuration carries them verbatim. The acceptance suite meets a live
-	// API, where a name that is a constant collides with whatever the last
-	// run left behind.
-	// What the probe got the API to accept, where it cleared this entity.
-	// The acceptance suite replays those; the unit suite keeps the derivation,
-	// because its mock is built from the same derived values.
-	accMinimal, accMaximal := spec, spec
-	replayed := false
+// parentBlocks is the configuration of the parent a resource addresses, and
+// of that parent's own parents: one block per ancestor, each named for its
+// entity and minimal. live selects the live suite's spelling — the accepted
+// body, invented names, the run suffix — over the unit suite's derivation.
+// attribute names the resource's own attribute that takes the parent's id,
+// and reference is the expression it takes. Empty when the resource has no
+// parent the provider emits, in which case the fixture keeps its invented
+// value.
+//
+// The parent's block is its own minimal configuration: the smallest object
+// the API accepts is the one a child needs to exist under, and the values
+// are the same ones the parent's own test sends.
+func (e *serviceRenderer) parentBlocks(r *ir.Resource, depth int, live bool) (blocks, attribute, reference string) {
+	parent := e.resources[r.ParentEntity]
+	if parent == nil || depth >= parentBlockDepth {
+		return "", "", ""
+	}
+	attribute = parentAttribute(r)
+	if attribute == "" {
+		return "", "", ""
+	}
+	pb := e.bindings.Resources[parent.Names.Key]
+	if pb == nil {
+		return "", "", ""
+	}
+	e.parentTypes = append(e.parentTypes, parent.Names.TerraformType)
+	nodes := e.joinTree(bindingKindResource, parent.Names.Key, parent.Schema, pb.Fields, addressingNames(parent.Schema,
+		parent.Operations.Read, parent.Operations.Create, parent.Operations.Update, parent.Operations.Delete))
+	spec := deriveFixtures(parent.Schema, nodes)
+	// A replayed body is already the smallest accepted create and renders
+	// whole; a derived fixture still selects the required attributes.
+	minimal, form := spec, fixtures.ConfigMinimal
+	if live {
+		accepted, _, replayed := e.acceptedFixtures(parent, spec, nodes)
+		minimal = accepted.WithInventedNames().WithRunSuffix()
+		if replayed {
+			form = fixtures.ConfigMaximal
+		}
+	}
+	above, parentAttr, parentRef := e.parentBlocks(parent, depth+1, live)
+	if parentAttr != "" {
+		minimal = minimal.WithExpression(parentAttr, parentRef)
+	}
+	label := parent.Names.Key
+	block := fmt.Sprintf("resource %q %q {\n%s}", parent.Names.TerraformType, label, minimal.HCL(form))
+	if above != "" {
+		block = above + "\n\n" + block
+	}
+	return block, attribute, parent.Names.TerraformType + "." + label + ".id"
+}
+
+// parentAttribute names the root attribute answering the path parameter of
+// the immediate parent: the last parameter above the item key, or the last
+// parameter of a singleton, whose path names no item of its own.
+func parentAttribute(r *ir.Resource) string {
+	if r.Operations.Read == nil || r.Schema == nil {
+		return ""
+	}
+	parameters := r.Operations.Read.PathParameters
+	if !r.Singleton {
+		if len(parameters) < 2 {
+			return ""
+		}
+		parameters = parameters[:len(parameters)-1]
+	}
+	if len(parameters) == 0 {
+		return ""
+	}
+	last := parameters[len(parameters)-1]
+	for _, a := range r.Schema.Attributes {
+		if a.Nested != nil || a.Name == idAttributeName {
+			continue
+		}
+		if a.WireName == last.Name || a.Name == ir.TerraformName(last.Name) {
+			return a.Name
+		}
+	}
+	return ""
+}
+
+// acceptedFixtures replays what the probe got the API to accept, where it
+// cleared this entity; replayed reports whether it did.
+func (e *serviceRenderer) acceptedFixtures(r *ir.Resource, spec fixtures.Fixture, nodes []node) (accMinimal, accMaximal fixtures.Fixture, replayed bool) {
+	accMinimal, accMaximal = spec, spec
 	if rec, ok := e.pc.AcceptedRequestBodies[r.Names.Key]; ok {
 		required := retainedWireNames(spec, nodes)
 		if rec.Minimal != nil {
@@ -109,16 +182,49 @@ func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture
 			})
 		}
 	}
+	return accMinimal, accMaximal, replayed
+}
+
+// resourceFixtures emits a resource's terraform fixtures, response
+// fixtures and examples.
+func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture, nodes []node, dir string) ([]File, error) {
+	key := r.Names.Key
+	source := key
+	blockHeader := fmt.Sprintf("resource %q %q", r.Names.TerraformType, "test")
+
+	// The unit suite meets a mock built from these same values, so its
+	// configuration carries them verbatim. The acceptance suite meets a live
+	// API, where a name that is a constant collides with whatever the last
+	// run left behind.
+	accMinimal, accMaximal, replayed := e.acceptedFixtures(r, spec, nodes)
 	liveMinimal := accMinimal.WithInventedNames().WithRunSuffix()
 	liveMaximal := accMaximal.WithInventedNames().WithRunSuffix()
+	unitMinimal, unitMaximal := spec, spec
+
+	// An object under a parent is configured under that parent's block, and
+	// takes its identifier from it: an invented parent id addresses nothing,
+	// live or mocked.
+	livePreamble, unitPreamble := fixtures.RunSuffixBlock, ""
+	e.parentTypes = nil
+	if parents, attribute, reference := e.parentBlocks(r, 0, true); parents != "" {
+		liveMinimal = liveMinimal.WithExpression(attribute, reference)
+		liveMaximal = liveMaximal.WithExpression(attribute, reference)
+		livePreamble += "\n\n" + parents
+	}
+	e.parentTypes = nil
+	if parents, attribute, reference := e.parentBlocks(r, 0, false); parents != "" {
+		unitMinimal = unitMinimal.WithExpression(attribute, reference)
+		unitMaximal = unitMaximal.WithExpression(attribute, reference)
+		unitPreamble = parents
+	}
 	suites := []struct {
 		name     string
 		minimal  fixtures.Fixture
 		maximal  fixtures.Fixture
 		preamble string
 	}{
-		{name: "unit", minimal: spec, maximal: spec},
-		{name: "acceptance", minimal: liveMinimal, maximal: liveMaximal, preamble: fixtures.RunSuffixBlock},
+		{name: "unit", minimal: unitMinimal, maximal: unitMaximal, preamble: unitPreamble},
+		{name: "acceptance", minimal: liveMinimal, maximal: liveMaximal, preamble: livePreamble},
 	}
 
 	var files []File

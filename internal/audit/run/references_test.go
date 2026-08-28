@@ -1,6 +1,9 @@
 package run
 
 import (
+	"context"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 	"reflect"
 	"testing"
 
@@ -138,5 +141,35 @@ func TestUnit_Strategize_ACompositeOutranksTheScalarSynthesis(t *testing.T) {
 	body["agents"].([]any)[0].(map[string]any)["agentId"] = "edited"
 	if again := synthesis.requestBody(sk, "", "")["agents"].([]any)[0].(map[string]any)["agentId"]; again != BorrowToken+"/agents" {
 		t.Errorf("the composite was shared between bodies: %#v", again)
+	}
+}
+
+func TestUnit_References_ANestedReferenceNothingServesIsLeftOut(t *testing.T) {
+	t.Parallel()
+	s := testapiserver.New(t, testapiserver.Quirks{})
+	r, err := newRunner(testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "assignment", Budget: plan.Budget{Requests: 20}}}
+	body := map[string]any{
+		"name":     "n",
+		"settings": map[string]any{"widgetId": BorrowToken + "/widgets", "mode": "auto"},
+		"widgetId": BorrowToken + "/widgets",
+		"labels":   []any{BorrowToken + "/widgets"},
+	}
+	got, err := r.resolveBody(context.Background(), entity, body)
+	if err != nil {
+		t.Fatalf("resolveBody: %v", err)
+	}
+	settings, _ := got["settings"].(map[string]any)
+	if _, present := settings["widgetId"]; present || settings["mode"] != "auto" {
+		t.Errorf("settings = %#v, want the unsatisfiable member left out and the rest kept", settings)
+	}
+	if _, present := got["widgetId"]; present {
+		t.Errorf("an optional top-level reference nothing serves was kept: %#v", got)
+	}
+	if labels, _ := got["labels"].([]any); len(labels) != 0 {
+		t.Errorf("labels = %#v, want the unsatisfiable element left out", labels)
 	}
 }

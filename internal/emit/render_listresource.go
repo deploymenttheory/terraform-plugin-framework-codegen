@@ -69,7 +69,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	if lb.List == nil {
 		return nil, unrenderable("a list resource needs a bound list call")
 	}
-	nodes := e.joinTree(bindingKindListResource, lr.Names.Key, lr.Schema, lb.Fields, addressingNames(&lr.ListOperation))
+	nodes := e.joinTree(bindingKindListResource, lr.Names.Key, lr.Schema, lb.Fields, addressingNames(lr.Schema, &lr.ListOperation))
 
 	d := &listResourceData{
 		Package:       lr.Names.Package,
@@ -94,7 +94,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 	// configuration, not from an element: a list resource has no object to
 	// address, so the practitioner supplies the scope the collection path
 	// names.
-	configNodes := joinTree(lr.AddressingSchema, nil, addressingNames(&lr.ListOperation))
+	configNodes := joinTree(lr.AddressingSchema, nil, addressingNames(lr.AddressingSchema, &lr.ListOperation))
 
 	listOp := lr.ListOperation
 	plan, err := buildCallPlan(lb.List, "result", configNodes, "config", streamDiagnostics())

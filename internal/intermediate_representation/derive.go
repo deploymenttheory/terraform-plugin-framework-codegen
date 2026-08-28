@@ -106,7 +106,7 @@ func Derive(document *specmodel.Document, configuration *config.Config) (*Model,
 		for _, kind := range candidate.classification.Kinds {
 			switch kind {
 			case specmodel.KindResource:
-				resource := derivation.resource(candidate.classification, candidate.names)
+				resource := derivation.resource(candidate.classification, candidate.names, parentKey)
 				resource.CoManagementNote = note
 				model.Resources = append(model.Resources, resource)
 			case specmodel.KindDatasource:
@@ -278,7 +278,8 @@ func requiredQueryParameters(operation *specmodel.Operation) []QueryParameter {
 	return out
 }
 
-func (derivation *operationIndexer) resource(classification specmodel.Classification, names Names) Resource {
+func (derivation *operationIndexer) resource(classification specmodel.Classification, names Names, parentKey map[string]string) Resource {
+	parentEntity := enclosingEntity(classification.CollectionPath, parentKey)
 	createFull, readFull := derivation.full(classification.Create), derivation.full(classification.Read)
 	updateFull, deleteFull := derivation.full(classification.Update), derivation.full(classification.Delete)
 
@@ -304,6 +305,11 @@ func (derivation *operationIndexer) resource(classification specmodel.Classifica
 	}
 	tree := buildTree(createBody, readBody, updateBody, classification.MissingUpdate)
 	keyParam, keyType := itemKeyParameter(classification.ItemPath, readFull)
+	// A singleton is not keyed: its path names no item, so its trailing
+	// parameter addresses the parent it sits under, not the object.
+	if classification.Singleton {
+		keyParam, keyType = "", ""
+	}
 	// The audit may have found that the response spells this identifier
 	// differently from the path parameter that addresses it. Where it has,
 	// that name is the one the response can actually be read through.
@@ -316,7 +322,11 @@ func (derivation *operationIndexer) resource(classification specmodel.Classifica
 	refuseReservedRootNames(tree)
 	readOperation := derivation.operation(classification.Read, OperationRead)
 	if readOperation != nil {
-		ensureParentParameters(tree, parentParameters(readOperation.PathParameters))
+		parents := parentParameters(readOperation.PathParameters)
+		if classification.Singleton {
+			parents = readOperation.PathParameters
+		}
+		ensureParentParameters(tree, parents, parentEntity)
 	}
 
 	updateStyle := ""
@@ -346,6 +356,7 @@ func (derivation *operationIndexer) resource(classification specmodel.Classifica
 		Schema:              tree,
 		MissingUpdate:       classification.MissingUpdate,
 		Singleton:           classification.Singleton,
+		ParentEntity:        parentEntity,
 		UpdateStyle:         updateStyle,
 		EventualConsistency: maxEventualConsistency(createFull, readFull, updateFull, deleteFull),
 		DeleteNotFoundOK:    deleteNotFoundOK,
@@ -454,7 +465,7 @@ func (derivation *operationIndexer) datasource(classification specmodel.Classifi
 		refuseReservedRootNames(itemTree)
 		readOperation := derivation.operation(classification.Read, OperationRead)
 		if readOperation != nil {
-			ensureParentParameters(itemTree, parentParameters(readOperation.PathParameters))
+			ensureParentParameters(itemTree, parentParameters(readOperation.PathParameters), "")
 		}
 		return Datasource{
 			Names:        names,
@@ -476,7 +487,7 @@ func (derivation *operationIndexer) datasource(classification specmodel.Classifi
 	// because a parent is required and a filter optional: where both spell
 	// one name, the caller must still be able to fill the path.
 	if listOperation != nil {
-		ensureParentParameters(companionTree, listOperation.PathParameters)
+		ensureParentParameters(companionTree, listOperation.PathParameters, "")
 	}
 	ensureFilterAttributes(companionTree, itemTree)
 	companionTree.Attributes = append(companionTree.Attributes, Attribute{

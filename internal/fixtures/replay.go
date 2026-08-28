@@ -300,3 +300,20 @@ func isMask(s string) bool {
 	}
 	return true
 }
+
+// WithExpression answers a copy whose root entry of the given name renders
+// the expression instead of a value: the configuration of an object under
+// a parent names the parent block's identifier rather than inventing one.
+// An entry of another name is untouched, and a name the fixture does not
+// carry changes nothing.
+func (s Fixture) WithExpression(name, expression string) Fixture {
+	out := s
+	out.Entries = make([]Entry, len(s.Entries))
+	copy(out.Entries, s.Entries)
+	for i := range out.Entries {
+		if out.Entries[i].Name == name {
+			out.Entries[i].Expression = expression
+		}
+	}
+	return out
+}

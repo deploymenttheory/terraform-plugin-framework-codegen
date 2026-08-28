@@ -42,6 +42,10 @@ type resourceData struct {
 
 	HasImport  bool
 	ImportAttr string
+	// ParentTypes is the terraform type of every ancestor whose block the
+	// unit configuration carries, so the unit test activates their mocks
+	// beside the resource's own.
+	ParentTypes []string
 	// ImportStateVerifyIgnore is the rendered tail of the attribute list an
 	// import verification leaves out — a leading comma and each name
 	// quoted — for the attributes an import cannot know: the ones whose
@@ -135,7 +139,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, unrenderable("a resource needs bound create, read and delete calls")
 	}
 
-	nodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.Fields, addressingNames(
+	nodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.Fields, addressingNames(r.Schema,
 		r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 	d := &resourceData{
 		Package:        r.Names.Package,
@@ -181,6 +185,13 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 	e.resourceChecks(d, spec)
 
 	dir := e.dir(kindResources, r.Names)
+	// The fixtures come first: the unit test activates the mock of every
+	// parent block its configuration carries, which the fixtures decide.
+	fixtureFiles, err := e.resourceFixtures(r, spec, nodes, dir)
+	if err != nil {
+		return nil, err
+	}
+	d.ParentTypes = e.parentTypes
 	var files []File
 
 	renderGo := func(tmpl, out string) error {
@@ -223,11 +234,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		}
 	}
 
-	fixtures, err := e.resourceFixtures(r, spec, nodes, dir)
-	if err != nil {
-		return nil, err
-	}
-	files = append(files, fixtures...)
+	files = append(files, fixtureFiles...)
 
 	return files, nil
 }
@@ -312,7 +319,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 	updateBody := ""
 	updateUsesFmt := false
 	if rb.UpdateWriteModel != "" {
-		updateNodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.UpdateFields, addressingNames(
+		updateNodes := e.joinTree(bindingKindResource, r.Names.Key, r.Schema, rb.UpdateFields, addressingNames(r.Schema,
 			r.Operations.Read, r.Operations.Create, r.Operations.Update, r.Operations.Delete))
 		updateBody, updateUsesFmt, err = constructLinesFor(updateNodes, d.Pascal, "data", "body", "", 1, false)
 		if err != nil {

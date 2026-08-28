@@ -143,7 +143,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 		return fixtures.Fixture{}, unrenderable("a lookup-by-key datasource needs a bound read call")
 	}
 
-	nodes := e.joinTree(bindingKindDatasource, ds.Names.Key, ds.Schema, db.Fields, addressingNames(ds.Operations.Read, ds.Operations.List))
+	nodes := e.joinTree(bindingKindDatasource, ds.Names.Key, ds.Schema, db.Fields, addressingNames(ds.Schema, ds.Operations.Read, ds.Operations.List))
 	key := keyAttrName(ds)
 	if !hasNode(nodes, key) {
 		// The SDK model does not carry the key parameter as a field; the
