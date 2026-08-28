@@ -21,6 +21,12 @@ Retirement covers the domain noun, not the English word. Code that records a
 reason, a binder that drafts a call, a loader that merges `allOf` — that is
 prose describing what the code does, and it stays.
 
+`docs/naming-standard.md` is the rule set a name has to pass before it reaches
+the glossary: it states what a name must do, bans metaphor and abbreviation,
+and fixes one spelling per concept across Go, JSON, the wire and disk. The test
+it applies is that a reader who has never seen the code can tell from the
+identifier alone what the thing holds or does.
+
 ## Library mandates
 
 Set by the repository owner; not open to per-PR relitigating:
