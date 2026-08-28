@@ -58,6 +58,12 @@ func (kiotaExtractor) extract(err error) (Info, bool) {
 	if said := kiotaSaid(apiErr); said != "" {
 		info.Message = said
 	}
+	// A status the document declares no response for reaches here with
+	// nothing said: the SDK has no model to keep the body in. Saying so
+	// beats a blank line, and names the gap in the document.
+	if strings.TrimSpace(info.Message) == "" {
+		info.Message = fmt.Sprintf("the API answered HTTP %d with a body the SDK kept no model for; the document declares no such response for this operation", info.Status)
+	}
 	return info, true
 }
 
