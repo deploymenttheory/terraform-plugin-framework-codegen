@@ -589,6 +589,26 @@ func TestUnit_Fixturespec_AReplayDropsWhatTheAPINeverReturns(t *testing.T) {
 	}
 }
 
+func TestUnit_Fixturespec_AReplayedRequiredPropertyTakesTheAPIsSpelling(t *testing.T) {
+	spec := Derive(acceptedTree())
+	// The API stores the required name in its own spelling and answers the
+	// colour masked: the name takes the spelling, the masked colour stays
+	// because the create needs it.
+	got := spec.FromAcceptedRequestBody(
+		map[string]any{"name": "host", "colour": "#FF0000"},
+		map[string]any{"name": "https://host/", "colour": "*****"},
+		map[string]bool{"name": true, "colour": true})
+	if v := valueByName(t, got, "name").Scalar; v != "https://host/" {
+		t.Errorf("name = %#v, want the spelling the API stored", v)
+	}
+	if v := valueByName(t, got, "colour").Scalar; v != "#FF0000" {
+		t.Errorf("colour = %#v, want the value sent, since the create needs it", v)
+	}
+	if len(got.Omissions) != 0 {
+		t.Errorf("a required property was dropped: %#v", got.Omissions)
+	}
+}
+
 func TestUnit_Fixturespec_TheRunSuffixOnlyTouchesInventedNames(t *testing.T) {
 	spec := Derive(acceptedTree())
 	spec.Entries[1].Scalar = NamePrefix + "invented"

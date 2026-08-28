@@ -54,6 +54,14 @@ import (
 // left out.
 const maxBodyCorrectionAttempts = 12
 
+// maxConditionalProbeAttempts bounds the adjustments of a create pinned to
+// one value of a gate field. The body is already the accepted minimal with
+// the value swapped in, so what the grammar can still add is a field that
+// value alone requires; a refusal that outlasts these attempts is about the
+// value's other siblings, which no adjustment supplies, and the full bound
+// would spend the same requests on every value of every gate.
+const maxConditionalProbeAttempts = 4
+
 // bodyCorrection is the outcome of a bounded adjustment loop.
 type bodyCorrection struct {
 	// obj is the created object when a create attempt finally succeeded.
@@ -183,7 +191,7 @@ func (r *runner) addField(entity *entityState, body map[string]any, act parsedRe
 // for a per-enum-value create — so cycling searches the other enum fields for a
 // body the API accepts without abandoning what the step is exercising.
 func (r *runner) correctCreateBody(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, held string) (bodyCorrection, error) {
-	return r.correctCreateBodyRecording(ctx, entity, rec, body, held, true)
+	return r.correctCreateBodyRecording(ctx, entity, rec, body, held, true, maxBodyCorrectionAttempts)
 }
 
 // correctCreateBodyRecording is adjustCreate, and also says whether the correcting it
@@ -193,7 +201,10 @@ func (r *runner) correctCreateBody(ctx context.Context, entity *entityState, rec
 // end: the fields that create needs are facts about the parent, and the
 // parent's own steps record them against the parent. Recorded here they would
 // be attributed to whichever child happened to need the parent first.
-func (r *runner) correctCreateBodyRecording(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, held string, record bool) (bodyCorrection, error) {
+//
+// attempts bounds the adjustments made before the last refusal is answered
+// as the result.
+func (r *runner) correctCreateBodyRecording(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, held string, record bool, attempts int) (bodyCorrection, error) {
 	applied := map[string]bool{}
 	var last *httpResult
 	var adds []pendingAdd
@@ -216,7 +227,7 @@ func (r *runner) correctCreateBodyRecording(ctx context.Context, entity *entityS
 		return bodyCorrection{obj: obj, res: res, body: body, bodyCorrected: adjusted}
 	}
 
-	for i := 0; i < maxBodyCorrectionAttempts; i++ {
+	for i := 0; i < attempts; i++ {
 		var obj *createdObject
 		var res *httpResult
 		if pending != nil {

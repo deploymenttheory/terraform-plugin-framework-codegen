@@ -161,9 +161,9 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 		// A field the API takes and never returns cannot live in a
 		// configuration; a required one has to be sent anyway, so it stays
 		// and the risk is the API's rather than the generator's.
-		if response != nil && !keepWhole {
+		if response != nil {
 			echoed, present := response[v.Wire]
-			if !present {
+			if !present && !keepWhole {
 				dropped = append(dropped, Omission{
 					Name:   strings.Join(at, "."),
 					Reason: "the API accepted this property and did not return it, so terraform cannot hold it in state",
@@ -175,24 +175,29 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 			// the value sent cannot live in a configuration. The value
 			// answered can, where it is one of the same type and not a mask
 			// — the API's own spelling of what it stored is the one spelling
-			// it will not rewrite again. A mask is not a value at all, and
-			// the property goes with the reason recorded.
+			// it will not rewrite again, and a kept property takes that
+			// spelling for the same reason. A mask is not a value at all,
+			// and the property goes with the reason recorded unless the
+			// create needs it.
 			//
 			// Only a value the fixture carries whole is compared. An object
 			// recurses and its own fields are compared as leaves, and a list
 			// renders one element rather than the collection, so comparing
 			// the collection would judge a value no configuration carries.
-			if v.Nested == nil && v.Kind != ir.TypeList && !reflect.DeepEqual(carried, echoed) {
-				if text, ok := echoed.(string); ok && isMask(text) {
-					dropped = append(dropped, Omission{
-						Name:   strings.Join(at, "."),
-						Reason: "the API returns this property masked, so no configuration can hold a value it will read back",
-					})
-					continue
-				}
-				if sameScalarType(carried, echoed) {
+			if present && v.Nested == nil && v.Kind != ir.TypeList && !reflect.DeepEqual(carried, echoed) {
+				text, isText := echoed.(string)
+				switch {
+				case isText && isMask(text):
+					if !keepWhole {
+						dropped = append(dropped, Omission{
+							Name:   strings.Join(at, "."),
+							Reason: "the API returns this property masked, so no configuration can hold a value it will read back",
+						})
+						continue
+					}
+				case sameScalarType(carried, echoed):
 					carried = echoed
-				} else {
+				case !keepWhole:
 					dropped = append(dropped, Omission{
 						Name:   strings.Join(at, "."),
 						Reason: "the API returned this property with a different value from the one it was sent, so no configuration can hold it",

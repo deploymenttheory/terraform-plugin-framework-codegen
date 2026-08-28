@@ -285,7 +285,7 @@ func (r *runner) resolveCreated(ctx context.Context, entity *entityState, entity
 	// Healed like any other create: a parent the document understates is
 	// refused the same way its own create was, and without the loop every
 	// child of it blocks on a refusal the loop can read.
-	rr, err := r.correctCreateBodyRecording(ctx, entity, rec, cloneAnyMap(rec.minimalBody), "", false)
+	rr, err := r.correctCreateBodyRecording(ctx, entity, rec, cloneAnyMap(rec.minimalBody), "", false, maxBodyCorrectionAttempts)
 	if err != nil {
 		return "", err
 	}

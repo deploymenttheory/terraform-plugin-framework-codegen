@@ -373,7 +373,7 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 			return nil
 		}
 	}
-	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, held)
+	rr, err := r.correctCreateBodyRecording(ctx, entity, entity.recipe, body, held, true, maxConditionalProbeAttempts)
 	if err != nil {
 		return err
 	}

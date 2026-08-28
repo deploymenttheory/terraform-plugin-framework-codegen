@@ -66,6 +66,11 @@ type compiler struct {
 	// compiled a value for to that value, so a second entity observing a
 	// different default on a shared site in the same run proposes nothing.
 	defaulted map[string]any
+	// enumAccepted maps each enum site to the values some entity's
+	// observation accepted there, this run's or an accepted correction's,
+	// so one entity's rejection of a value never removes what another
+	// entity sharing the site sends successfully.
+	enumAccepted map[string]map[string]bool
 	// variants gathers, per (entity, gate field), the validWhen edges the
 	// run confirmed: gate value -> the subject fields valid under it. A
 	// validConfiguration correction reads it to assemble its per-value field
@@ -120,9 +125,10 @@ func (c *compiler) compile(o observe.Observation) (compiled, error) {
 			"updates accept a new value with a success status and do not apply it"), nil
 	case observe.KindUndocumentedFieldInSpec:
 		return c.undocumentedField(loc, cls, o), nil
-	case observe.KindNormalisation, observe.KindDerivedDefault:
-		return compiled{category: catNoForm,
-			reason: "no correction form exists yet; adding an x-tfpfgen-* key is an owner decision"}, nil
+	case observe.KindNormalisation:
+		return c.normalisation(loc, cls, o), nil
+	case observe.KindDerivedDefault:
+		return compiled{category: catNoForm, reason: noFormReason}, nil
 	case observe.KindValidWhen:
 		return c.validWhen(loc, cls, o), nil
 	case observe.KindDependsOn:
@@ -400,10 +406,18 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 
 	rejected := append([]string(nil), values.Rejected...)
 	sort.Strings(rejected)
-	var removed []string
+	var removed, kept []string
 	for _, r := range rejected {
 		index := indexOf(r)
 		if index < 0 {
+			continue
+		}
+		// The enum site is shared between every property resolving to it,
+		// and a value one entity's create refuses is one another entity's
+		// create sends successfully — one interval among eight test types.
+		// Acceptance anywhere on the site is the fact about the document.
+		if c.enumAccepted[enumPtr][r] {
+			kept = append(kept, r)
 			continue
 		}
 		at := enumPtr + "/enum/" + strconv.Itoa(index)
@@ -416,6 +430,9 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 	}
 	if len(removed) > 0 {
 		parts = append(parts, fmt.Sprintf("rejects the documented value(s) %s", strings.Join(removed, ", ")))
+	}
+	if len(kept) > 0 {
+		parts = append(parts, fmt.Sprintf("refuses %s here, which stays declared because another entity sharing the enum accepts it", strings.Join(kept, ", ")))
 	}
 
 	accepted := append([]string(nil), values.Accepted...)
@@ -441,6 +458,9 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 	}
 
 	if len(operations) == 0 {
+		if len(kept) > 0 {
+			return stated(fmt.Sprintf("the value(s) %s stay declared: another entity sharing the enum accepts them", strings.Join(kept, ", "))), nil
+		}
 		return stated("the document already agrees with the observed value set"), nil
 	}
 	return compiled{
@@ -448,6 +468,89 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 		justification: fmt.Sprintf("the audit confirmed a values observation on %s.%s: the live API %s",
 			o.Entity, o.Attribute, strings.Join(parts, "; ")),
 	}, nil
+}
+
+// noFormReason is the report line for a kind no correction form exists for.
+const noFormReason = "no correction form exists yet; adding an x-tfpfgen-* key is an owner decision"
+
+// normalisation compiles a normalisation observation. Most have no
+// correction form: an API storing a value in its own spelling is a fact the
+// provider meets at read time, not a document error. The exception is a
+// property declared `format: date-time` whose stored spelling is not an RFC
+// 3339 timestamp — the document promises a wire format the API does not
+// speak, an SDK built on the promise cannot read the answer, and the format
+// is withdrawn so the property travels as the string it is.
+func (c *compiler) normalisation(loc *locator, cls specmodel.Classification, o observe.Observation) compiled {
+	site, why, ok := c.property(loc, cls, o)
+	if !ok {
+		return why
+	}
+	spelling, _ := o.Value.(string)
+	formatNode, formatPtr, declared := loc.scalarSite(site.property, site.propPtr, "format")
+	if !declared || formatNode.Value != "date-time" || spelling == "" {
+		return compiled{category: catNoForm, reason: noFormReason}
+	}
+	if _, err := time.Parse(time.RFC3339Nano, spelling); err == nil {
+		return stated("the live API's spelling of the value is an RFC 3339 timestamp, which the declared date-time format already describes")
+	}
+	return compiled{
+		operations: []correction.Operation{
+			{Op: "test", Path: formatPtr, Value: "date-time"},
+			{Op: "remove", Path: formatPtr},
+		},
+		justification: fmt.Sprintf("the audit confirmed a normalisation observation on %s.%s: the live API answers the property as %q, "+
+			"which is not an RFC 3339 timestamp, so the declared date-time format is withdrawn and the property is a plain string",
+			o.Entity, o.Attribute, spelling),
+	}
+}
+
+// acceptedValueSites gathers, per enum site, every value a confirmed values
+// observation in obs accepted, on top of the values already known accepted
+// (an accepted correction's additions). Sites are located against the
+// compiler's current state; a site is a schema pointer, which no correction
+// moves.
+func (c *compiler) acceptedValueSites(obs []observe.Observation, known map[string]map[string]bool) map[string]map[string]bool {
+	out := map[string]map[string]bool{}
+	for site, values := range known {
+		out[site] = map[string]bool{}
+		for v := range values {
+			out[site][v] = true
+		}
+	}
+	var root yaml.Node
+	if err := yaml.Unmarshal(c.state, &root); err != nil || root.Kind != yaml.DocumentNode || len(root.Content) == 0 {
+		return out
+	}
+	loc := &locator{top: root.Content[0]}
+	for _, o := range obs {
+		if o.Kind != observe.KindValues || o.Outcome != observe.OutcomeConfirmed {
+			continue
+		}
+		var values observe.Values
+		raw, err := json.Marshal(o.Value)
+		if err != nil || json.Unmarshal(raw, &values) != nil || len(values.Accepted) == 0 {
+			continue
+		}
+		cls, ok := c.entities[o.Entity]
+		if !ok {
+			continue
+		}
+		site, _, ok := c.property(loc, cls, o)
+		if !ok {
+			continue
+		}
+		_, enumPtr, hasEnum := loc.enumSite(site.property, site.propPtr)
+		if !hasEnum {
+			continue
+		}
+		if out[enumPtr] == nil {
+			out[enumPtr] = map[string]bool{}
+		}
+		for _, v := range values.Accepted {
+			out[enumPtr][v] = true
+		}
+	}
+	return out
 }
 
 // undocumentedField compiles an undocumentedFieldInSpec observation into an

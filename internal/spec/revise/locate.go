@@ -325,6 +325,22 @@ func (l *locator) extensionNode(node *yaml.Node, pointer, key string) *yaml.Node
 	return found
 }
 
+// scalarSite finds where a property declares one scalar key — format,
+// pattern — following $refs and allOf branches, and answers the value node
+// with the pointer of the key itself.
+func (l *locator) scalarSite(node *yaml.Node, pointer, key string) (*yaml.Node, string, bool) {
+	var found *yaml.Node
+	var foundPtr string
+	l.walkSchemaWithPtr(node, pointer, map[string]bool{}, func(n *yaml.Node, p string) bool {
+		if v := mapValue(n, key); v != nil && v.Kind == yaml.ScalarNode {
+			found, foundPtr = v, p+"/"+key
+			return true
+		}
+		return false
+	})
+	return found, foundPtr, found != nil
+}
+
 // enumSite finds where a property's enum is declared, following $refs and
 // allOf branches, returning the schema node holding the enum key.
 func (l *locator) enumSite(node *yaml.Node, pointer string) (*yaml.Node, string, bool) {

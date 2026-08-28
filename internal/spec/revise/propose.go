@@ -168,6 +168,11 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 		return p, err
 	}
 	comp := &compiler{entities: entities, state: state, vetoes: vetoSet(obs), variants: variantSets(obs), restated: restated}
+	added, err := acceptedEnumAdditions(correctionsDir)
+	if err != nil {
+		return p, err
+	}
+	comp.enumAccepted = comp.acceptedValueSites(obs, added)
 
 	type candidate struct {
 		written Written
@@ -563,6 +568,31 @@ func evidenceReference(o observe.Observation) string {
 // acceptedEvidence indexes every document pointer an accepted correction
 // wrote by the evidence that wrote it, so a recompiled observation is
 // recognised as revisiting its own correction rather than another's.
+// acceptedEnumAdditions reads every value an accepted correction added to
+// an enum, keyed by the enum's site: an "add" at <site>/enum/- is another
+// entity's proof the value is taken, and a rejection compiled later must
+// not remove it.
+func acceptedEnumAdditions(correctionsDir string) (map[string]map[string]bool, error) {
+	accepted, err := correction.Load(correctionsDir)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]map[string]bool{}
+	for _, corr := range accepted {
+		for _, operation := range corr.Operations {
+			site, isAppend := strings.CutSuffix(operation.Path, "/enum/-")
+			if operation.Op != "add" || !isAppend {
+				continue
+			}
+			if out[site] == nil {
+				out[site] = map[string]bool{}
+			}
+			out[site][fmt.Sprint(operation.Value)] = true
+		}
+	}
+	return out, nil
+}
+
 func acceptedEvidence(correctionsDir string) (map[string]string, error) {
 	accepted, err := correction.Load(correctionsDir)
 	if err != nil {
