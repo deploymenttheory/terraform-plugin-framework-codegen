@@ -162,6 +162,7 @@ func (p *pruner) resource(rb *ResourceBinding) bool {
 	}
 
 	rb.Fields = p.fields(kind, rb.Key, "", rb.Fields, read, write)
+	liftKeptFromPlan(rb.Fields)
 
 	if why := unbuildableReason(rb.Fields, writeSource != nil); why != "" {
 		p.remove(kind, rb.Key, "", why)

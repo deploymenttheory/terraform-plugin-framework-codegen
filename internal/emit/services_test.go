@@ -203,6 +203,35 @@ func TestUnit_RenderServices_TheRenderedCodeCarriesTheDecisions(t *testing.T) {
 		}
 	}
 
+	// An attribute whose state keeps the planned value: written, never
+	// read, plain Optional, and left out of the import verification.
+	resourceSchema := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/resource.go").Content)
+	ownerStart := strings.Index(resourceSchema, `"owner_id": schema.StringAttribute{`)
+	if ownerStart < 0 {
+		t.Fatalf("resource.go lacks the owner_id attribute:\n%s", resourceSchema)
+	}
+	ownerDeclaration := resourceSchema[ownerStart:]
+	ownerDeclaration = ownerDeclaration[:strings.Index(ownerDeclaration, "\n\t\t\t},")]
+	if !strings.Contains(ownerDeclaration, "Optional:") || strings.Contains(ownerDeclaration, "Computed:") ||
+		strings.Contains(ownerDeclaration, "UseStateForUnknown") {
+		t.Fatalf("owner_id must be plain Optional:\n%s", ownerDeclaration)
+	}
+	if !strings.Contains(ownerDeclaration, "state keeps the configured value") {
+		t.Fatalf("owner_id must say that state keeps the configured value:\n%s", ownerDeclaration)
+	}
+	if !strings.Contains(construct, "convert.FrameworkToAPIString(data.OwnerID, body.SetOwnerId)") {
+		t.Fatalf("construct.go must still send owner_id:\n%s", construct)
+	}
+	if strings.Contains(state, "OwnerID") {
+		t.Fatalf("state.go must not read owner_id back:\n%s", state)
+	}
+	for _, testFile := range []string{"resource_acceptance_test.go", "resource_test.go"} {
+		content := string(fileByPath(t, out, "internal/services/resources/servers/v7/http_server/"+testFile).Content)
+		if !strings.Contains(content, `ImportStateVerifyIgnore: []string{"timeouts", "owner_id"},`) {
+			t.Fatalf("%s must leave owner_id out of the import verification:\n%s", testFile, content)
+		}
+	}
+
 	alertCrud := string(fileByPath(t, out, "internal/services/resources/alerts/v7/alert_rule/crud.go").Content)
 	if !strings.Contains(alertCrud, "Update is not supported") {
 		t.Fatalf("a missing-update resource must refuse Update:\n%s", alertCrud)

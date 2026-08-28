@@ -650,7 +650,7 @@ func TestUnit_AttributeDescription_LeadsWithTheDocumentsOwnProse(t *testing.T) {
 		AdvisoryValues:  []string{"to-target", "from-target"},
 		RequiresReplace: true,
 	}
-	got := attributeDescription(a)
+	got := attributeDescription(a, false)
 	if !strings.HasPrefix(got, "Direction for applicable alert types.") {
 		t.Fatalf("the document's sentence must lead, and be terminated: %q", got)
 	}
@@ -663,7 +663,7 @@ func TestUnit_AttributeDescription_LeadsWithTheDocumentsOwnProse(t *testing.T) {
 
 func TestUnit_AttributeDescription_FallsBackToTheWireName(t *testing.T) {
 	// Real documents leave most properties bare.
-	got := attributeDescription(ir.Attribute{Name: "path", WireName: "path"})
+	got := attributeDescription(ir.Attribute{Name: "path", WireName: "path"}, false)
 	if got != "The path property." {
 		t.Fatalf("an undescribed attribute keeps the derived sentence, got %q", got)
 	}

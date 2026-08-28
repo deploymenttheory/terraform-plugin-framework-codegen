@@ -107,6 +107,7 @@ type HttpServer struct {
 	settings    HttpServerSettingsable
 	rules       []HttpServerRuleable
 	description *string
+	ownerId     *string
 }
 
 // NewHttpServer constructs an empty model.
@@ -136,6 +137,9 @@ func (m *HttpServer) GetRules() []HttpServerRuleable       { return m.rules }
 func (m *HttpServer) SetRules(v []HttpServerRuleable)      { m.rules = v }
 func (m *HttpServer) GetDescription() *string              { return m.description }
 func (m *HttpServer) SetDescription(v *string)             { m.description = v }
+
+// SetOwnerId writes a property the request carries and no response answers.
+func (m *HttpServer) SetOwnerId(v *string) { m.ownerId = v }
 
 // HttpServerSettingsable is the nested object's read interface.
 type HttpServerSettingsable interface {

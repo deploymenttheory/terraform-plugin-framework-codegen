@@ -51,15 +51,21 @@ func hclBlock(source, blockHeader, preamble, body string, skips []fixtures.Omiss
 	return b.Bytes(), nil
 }
 
-// requiredWireNames is the wire names the document marks required, which stay
-// in a replayed configuration even where the API does not echo them: a create
-// omitting one is refused, so the risk of holding it belongs to the API rather
-// than to the generator.
-func requiredWireNames(spec fixtures.Fixture) map[string]bool {
+// retainedWireNames is the wire names a replayed configuration keeps whether
+// or not the API echoed them: the ones the document marks required — a
+// create omitting one is refused, so the risk of holding it belongs to the
+// API rather than to the generator — and the ones whose state keeps the
+// planned value, which no response was ever going to echo.
+func retainedWireNames(spec fixtures.Fixture, nodes []node) map[string]bool {
 	out := map[string]bool{}
 	for _, e := range spec.Entries {
 		if e.ComputedOptionalRequired == ir.Required && e.Wire != "" {
 			out[e.Wire] = true
+		}
+	}
+	for _, n := range nodes {
+		if n.fb != nil && n.fb.KeptFromPlan && n.attribute.WireName != "" {
+			out[n.attribute.WireName] = true
 		}
 	}
 	return out
@@ -67,7 +73,7 @@ func requiredWireNames(spec fixtures.Fixture) map[string]bool {
 
 // resourceFixtures emits a resource's terraform fixtures, response
 // fixtures and examples.
-func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture, dir string) ([]File, error) {
+func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture, nodes []node, dir string) ([]File, error) {
 	key := r.Names.Key
 	source := key
 	blockHeader := fmt.Sprintf("resource %q %q", r.Names.TerraformType, "test")
@@ -82,7 +88,7 @@ func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture
 	accMinimal, accMaximal := spec, spec
 	replayed := false
 	if rec, ok := e.pc.AcceptedRequestBodies[r.Names.Key]; ok {
-		required := requiredWireNames(spec)
+		required := retainedWireNames(spec, nodes)
 		if rec.Minimal != nil {
 			accMinimal = spec.FromAcceptedRequestBody(rec.Minimal.Request, rec.Minimal.Response, required)
 			replayed = true

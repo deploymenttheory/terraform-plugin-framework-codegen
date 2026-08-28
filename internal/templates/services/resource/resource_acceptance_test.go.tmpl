@@ -35,7 +35,7 @@ func TestAcc{{ .Pascal }}Resource_Lifecycle(t *testing.T) {
 				ResourceName:            "{{ .TerraformType }}.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"timeouts"},
+				ImportStateVerifyIgnore: []string{"timeouts"{{ .ImportStateVerifyIgnore }}},
 			},
 {{- end }}
 			{

@@ -95,6 +95,27 @@ func TestPruneKiota(t *testing.T) {
 		}
 	})
 
+	t.Run("a field the response never answers is kept from the plan", func(t *testing.T) {
+		// Read as objects and written as identifiers: the write side stays.
+		owners := findField(t, rb.Fields, "owners")
+		if !owners.KeptFromPlan || owners.Access.Get != "" || owners.Access.Set != "SetOwners" {
+			t.Errorf("owners = %+v, want kept from the plan with its setter alone", owners)
+		}
+		if owners.Access.SDKType != "[]string" || owners.Access.ConvertSet != "ToStringSlice" || owners.Access.ConvertGet != "" {
+			t.Errorf("owners settles = %+v, want the setter's shape", owners.Access)
+		}
+		// Declared by the request model and absent from the read interface.
+		owner := findField(t, rb.Fields, "owner_id")
+		if !owner.KeptFromPlan || owner.Access.Get != "" || owner.Access.Set != "SetOwnerId" || owner.Access.ConvertSet != "ToPtrString" {
+			t.Errorf("owner_id = %+v, want kept from the plan with a settled setter", owner)
+		}
+		for _, r := range removed {
+			if r.Key == "tags" && (r.Attribute == "owners" || r.Attribute == "owner_id") {
+				t.Errorf("a kept field was also recorded as removed: %v", r)
+			}
+		}
+	})
+
 	t.Run("what the SDK cannot carry goes with a reason", func(t *testing.T) {
 		if fieldNamed(rb.Fields, "legacy") {
 			t.Error("legacy survived against an SDK that does not carry it")

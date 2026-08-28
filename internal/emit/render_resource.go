@@ -42,6 +42,11 @@ type resourceData struct {
 
 	HasImport  bool
 	ImportAttr string
+	// ImportStateVerifyIgnore is the rendered tail of the attribute list an
+	// import verification leaves out — a leading comma and each name
+	// quoted — for the attributes an import cannot know: the ones whose
+	// state keeps the planned value. Empty when there are none.
+	ImportStateVerifyIgnore string
 	// IdentityAttributes is the identity schema's attribute declarations,
 	// empty for a resource nothing lists.
 	IdentityAttributes string
@@ -218,7 +223,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		}
 	}
 
-	fixtures, err := e.resourceFixtures(r, spec, dir)
+	fixtures, err := e.resourceFixtures(r, spec, nodes, dir)
 	if err != nil {
 		return nil, err
 	}
@@ -273,6 +278,7 @@ func (e *serviceRenderer) resourceCode(d *resourceData, r *ir.Resource, rb *sdkb
 
 	if d.HasImport = importAttr(r, nodes) != ""; d.HasImport {
 		d.ImportAttr = importAttr(r, nodes)
+		d.ImportStateVerifyIgnore = importVerifyIgnores(nodes)
 		imports.add("", "github.com/hashicorp/terraform-plugin-framework/path")
 	}
 	d.Imports = imports.render()
@@ -701,4 +707,18 @@ func checkValue(scalar any) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
+
+// importVerifyIgnores renders the attributes an import verification cannot
+// compare: the root attributes whose state keeps the planned value, which an
+// imported state has no value for. Rendered as the tail of a Go string
+// slice literal, so a template appends it to the names it always ignores.
+func importVerifyIgnores(nodes []node) string {
+	var b strings.Builder
+	for _, n := range nodes {
+		if n.fb != nil && n.fb.KeptFromPlan {
+			fmt.Fprintf(&b, ", %q", n.attribute.Name)
+		}
+	}
+	return b.String()
 }

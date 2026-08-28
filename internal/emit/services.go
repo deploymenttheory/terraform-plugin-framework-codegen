@@ -359,6 +359,10 @@ type node struct {
 	attribute ir.Attribute
 	fb        *sdkbind.FieldBinding
 	children  []node
+	// held marks an attribute whose state keeps the planned value because
+	// no response answers it: the binding at its root is kept from the
+	// plan, and every attribute beneath that root is held with it.
+	held bool
 }
 
 // joinTree joins an attribute tree with its field bindings, in tree order.
@@ -384,14 +388,14 @@ func joinTreeKeeping(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, address
 		}
 	}
 	var kept []string
-	return joinAttributes(tree, fbs, names, true, &kept), kept
+	return joinAttributes(tree, fbs, names, true, false, &kept), kept
 }
 
 // joinAttributes is joinTree's recursion, tracking whether it is at the root
 // so addressing attributes are kept at the top level only. A nested attribute
 // that happens to share one of their names is an ordinary API field: unbound,
 // it travels nowhere and is dropped like any other.
-func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing map[string]bool, root bool, kept *[]string) []node {
+func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressing map[string]bool, root, held bool, kept *[]string) []node {
 	if tree == nil {
 		return nil
 	}
@@ -410,9 +414,9 @@ func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressi
 			*kept = append(*kept, a.Name)
 			continue
 		}
-		n := node{attribute: a, fb: fb}
+		n := node{attribute: a, fb: fb, held: held || fb.KeptFromPlan}
 		if a.Nested != nil {
-			n.children = joinAttributes(a.Nested, fb.Nested, addressing, false, kept)
+			n.children = joinAttributes(a.Nested, fb.Nested, addressing, false, n.held, kept)
 		}
 		out = append(out, n)
 	}

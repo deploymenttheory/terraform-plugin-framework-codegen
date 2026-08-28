@@ -77,6 +77,9 @@ func tagSchema() *ir.AttributeTree {
 	labels := attribute("labels", "labels", ir.TypeList, ir.Optional)
 	labels.ElementType = ir.TypeString
 
+	owners := attribute("owners", "owners", ir.TypeList, ir.Optional)
+	owners.ElementType = ir.TypeString
+
 	kindAttr := attribute("kind", "kind", ir.TypeString, ir.Optional)
 	kindAttr.OneOf = []string{"SIMPLE"}
 
@@ -99,6 +102,8 @@ func tagSchema() *ir.AttributeTree {
 		kinds,
 		attribute("slug", "slug", ir.TypeString, ir.Optional),
 		attribute("alias", "alias", ir.TypeString, ir.Optional),
+		attribute("owner_id", "ownerId", ir.TypeString, ir.Optional),
+		owners,
 		labels,
 		nested,
 		attribute("weird", "weird", ir.TypeString, ir.Optional),
@@ -194,7 +199,7 @@ func openAPIGeneratorModel() *ir.Model {
 	kept := schema.Attributes[:0]
 	for _, a := range schema.Attributes {
 		switch a.Name {
-		case "error", "vendor", "weird", "legacy", "enabled", "created_at", "kinds", "slug", "alias":
+		case "error", "vendor", "weird", "legacy", "enabled", "created_at", "kinds", "slug", "alias", "owner_id", "owners":
 			continue
 		}
 		kept = append(kept, a)

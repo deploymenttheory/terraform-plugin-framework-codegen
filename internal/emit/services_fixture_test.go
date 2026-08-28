@@ -54,6 +54,7 @@ func fictionalModel() *ir.Model {
 			{Name: "blob", WireName: "blob", ComputedOptionalRequired: ir.Optional,
 				Unsupported: true, UnsupportedReason: "free-form object declares no properties"},
 			{Name: "description", WireName: "description", Kind: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional},
+			{Name: "owner_id", WireName: "ownerId", Kind: ir.TypeString, ComputedOptionalRequired: ir.ComputedOptional},
 		},
 		ConditionalRequirements: []ir.ConditionalRequirement{
 			{Property: "kind", Equals: "advanced", Required: []string{"settings"}},
@@ -241,6 +242,10 @@ func httpServerFields() []sdkbind.FieldBinding {
 			}},
 		{Attr: "description", Wire: "description", Kind: ir.TypeString,
 			Access: kiotaAccess("Description", "*string", "FromPtrString", "ToPtrString", "")},
+		// Carried by the request and answered by no response: state keeps
+		// the planned value.
+		{Attr: "owner_id", Wire: "ownerId", Kind: ir.TypeString, KeptFromPlan: true,
+			Access: sdkbind.FieldAccess{Set: "SetOwnerId", SDKType: "*string", ConvertSet: "ToPtrString"}},
 	}
 }
 

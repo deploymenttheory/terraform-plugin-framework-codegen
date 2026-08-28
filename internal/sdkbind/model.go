@@ -297,6 +297,13 @@ type FieldBinding struct {
 	// Nested are the child field bindings of an object attribute or a
 	// list of objects.
 	Nested []FieldBinding `json:"nested,omitempty"`
+	// KeptFromPlan marks a field the request carries and no response
+	// answers, so state keeps the planned value: the read model has no
+	// accessor for it, or reads it in a shape the write's cannot be bridged
+	// to, or the document declares it write-only. Set on the root attribute,
+	// whose whole subtree is then never read back — a member that cannot be
+	// read makes the object it sits in one the response cannot rebuild.
+	KeptFromPlan bool `json:"kept_from_plan,omitempty"`
 }
 
 // FieldAccess is how generated code reads and writes one field. Every
