@@ -218,7 +218,7 @@ func indexOperations(document *specmodel.Document) map[string]*specmodel.Operati
 
 // full resolves a classification operation reference to the document's
 // operation, nil for a nil reference.
-func (derivation *deriver) full(reference *specmodel.Op) *specmodel.Operation {
+func (derivation *deriver) full(reference *specmodel.OperationReference) *specmodel.Operation {
 	if reference == nil {
 		return nil
 	}
@@ -227,7 +227,7 @@ func (derivation *deriver) full(reference *specmodel.Op) *specmodel.Operation {
 
 // operation renders one operation reference into the dialect-neutral form binders
 // key on, nil for a nil reference.
-func (derivation *deriver) operation(reference *specmodel.Op, kind OperationKind) *Operation {
+func (derivation *deriver) operation(reference *specmodel.OperationReference, kind OperationKind) *Operation {
 	if reference == nil {
 		return nil
 	}
@@ -237,7 +237,7 @@ func (derivation *deriver) operation(reference *specmodel.Op, kind OperationKind
 		Method:         reference.Method,
 		PathTemplate:   reference.Path,
 		OperationID:    reference.OperationID,
-		PathParameters: pathParams(reference.Path, full),
+		PathParameters: pathParameters(reference.Path, full),
 		SuccessCode:    successCode(full),
 	}
 }
@@ -267,7 +267,7 @@ func (derivation *deriver) resource(classification specmodel.Classification, nam
 		createBody = updateFull.RequestBody
 	}
 	tree := buildTree(createBody, readBody, updateBody, classification.MissingUpdate)
-	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
+	keyParam, keyType := itemKeyParameter(classification.ItemPath, readFull)
 	// The audit may have found that the response spells this identifier
 	// differently from the path parameter that addresses it. Where it has,
 	// that name is the one the response can actually be read through.
@@ -410,7 +410,7 @@ func (derivation *deriver) datasource(classification specmodel.Classification, n
 		readBody = listElementSchema(derivation.full(classification.List))
 	}
 	itemTree := buildTree(nil, readBody, nil, false)
-	keyParam, keyType := itemKeyParam(classification.ItemPath, readFull)
+	keyParam, keyType := itemKeyParameter(classification.ItemPath, readFull)
 	ensureID(itemTree, keyParam, keyType)
 
 	if classification.LookupByKey {
@@ -477,7 +477,7 @@ func (derivation *deriver) listResource(classification specmodel.Classification,
 	// API that does not happen to call its key "id" published no identity at
 	// all — which refused the entity outright, for a difference in wording.
 	tree := buildTree(nil, element, nil, false)
-	keyParam, keyType := itemKeyParam(classification.ItemPath, derivation.full(classification.Read))
+	keyParam, keyType := itemKeyParameter(classification.ItemPath, derivation.full(classification.Read))
 	ensureID(tree, keyParam, keyType)
 
 	return ListResource{
@@ -520,14 +520,14 @@ func enclosingEntity(collectionPath string, parentKey map[string]string) string 
 	}
 }
 
-// templateParam matches one {name} segment of a path template.
-var templateParam = regexp.MustCompile(`\{([^}]+)\}`)
+// templateParameterPattern matches one {name} segment of a path template.
+var templateParameterPattern = regexp.MustCompile(`\{([^}]+)\}`)
 
-// pathParams lists an operation's path parameters in path-template order —
+// pathParameters lists an operation's path parameters in path-template order —
 // the order any call expression will take them — typed from the declared
 // parameter schema, string when the document does not say.
-func pathParams(pathTemplate string, operation *specmodel.Operation) []Parameter {
-	matches := templateParam.FindAllStringSubmatch(pathTemplate, -1)
+func pathParameters(pathTemplate string, operation *specmodel.Operation) []Parameter {
+	matches := templateParameterPattern.FindAllStringSubmatch(pathTemplate, -1)
 	if len(matches) == 0 {
 		return nil
 	}
@@ -548,10 +548,10 @@ func pathParams(pathTemplate string, operation *specmodel.Operation) []Parameter
 	return out
 }
 
-// itemKeyParam names the item path's trailing parameter and its type,
+// itemKeyParameter names the item path's trailing parameter and its type,
 // which is what the id attribute and a lookup key derive from.
-func itemKeyParam(itemPath string, read *specmodel.Operation) (string, AttributeType) {
-	matches := templateParam.FindAllStringSubmatch(itemPath, -1)
+func itemKeyParameter(itemPath string, read *specmodel.Operation) (string, AttributeType) {
+	matches := templateParameterPattern.FindAllStringSubmatch(itemPath, -1)
 	if len(matches) == 0 {
 		return "", ""
 	}

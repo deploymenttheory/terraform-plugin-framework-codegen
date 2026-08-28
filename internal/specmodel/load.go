@@ -115,8 +115,8 @@ func (l *loader) components(node *yaml.Node) error {
 			l.doc.Schemas[name] = s
 		}
 	}
-	if params := lookup(node, "parameters"); params != nil {
-		for name, pn := range pairs(params) {
+	if parameters := lookup(node, "parameters"); parameters != nil {
+		for name, pn := range pairs(parameters) {
 			at := "components.parameters." + name
 			if lookup(deref(pn), "$ref") != nil {
 				return fmt.Errorf("%s: a component parameter must be declared inline, not by reference", at)

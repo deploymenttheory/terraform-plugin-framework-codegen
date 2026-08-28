@@ -28,7 +28,7 @@ func TestLocalFor(t *testing.T) {
 		"tagId":  "tagId",
 		"tag_id": "tagId",
 		"type":   "type_",
-		"":       "param_",
+		"":       "parameter_",
 	}
 	for in, want := range cases {
 		if got := localFor(in); got != want {

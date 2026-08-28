@@ -206,10 +206,10 @@ func exportedName(name string) string {
 // localFor renders a path parameter's wire name as the Go local the call
 // expression references: lower-first camel, with a trailing underscore
 // when the result would collide with a keyword or predeclared name.
-func localFor(paramName string) string {
-	name := exportedName(paramName)
+func localFor(parameterName string) string {
+	name := exportedName(parameterName)
 	if name == "" {
-		return "param_"
+		return "parameter_"
 	}
 	local := strings.ToLower(name[:1]) + name[1:]
 	if goReservedWords[local] {
@@ -232,15 +232,15 @@ func goTypeOf(k ir.AttributeType) string {
 	}
 }
 
-// callParams renders an operation's path parameters as call locals, in
+// callParameters renders an operation's path parameters as call locals, in
 // path-template order — the order every expression takes them.
-func callParams(op *ir.Operation) []CallParam {
+func callParameters(op *ir.Operation) []CallParameter {
 	if len(op.PathParameters) == 0 {
 		return nil
 	}
-	out := make([]CallParam, 0, len(op.PathParameters))
+	out := make([]CallParameter, 0, len(op.PathParameters))
 	for _, p := range op.PathParameters {
-		out = append(out, CallParam{Local: localFor(p.Name), GoType: goTypeOf(p.Type), Wire: p.Name})
+		out = append(out, CallParameter{Local: localFor(p.Name), GoType: goTypeOf(p.Type), Wire: p.Name})
 	}
 	return out
 }

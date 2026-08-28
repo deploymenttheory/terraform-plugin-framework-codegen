@@ -151,7 +151,7 @@ func (e *serviceRenderer) listResource(lr *ir.ListResource, lb *sdkbind.ListReso
 
 	spec := deriveFixtures(lr.Schema, nodes)
 	configSpec := deriveFixtures(lr.AddressingSchema, configNodes)
-	configSpec.PinNumeric(integerParsedParams(lb.List, configNodes))
+	configSpec.PinNumeric(integerParsedParameters(lb.List, configNodes))
 	// A parameterised collection path is requested with the addressing
 	// substituted in, so the mock matches the shape rather than the template,
 	// and the unit test stands a configuration up to be read from. The

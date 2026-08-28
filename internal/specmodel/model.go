@@ -285,11 +285,11 @@ func (o *Operation) SuccessSchema() *Schema {
 
 // sortParameters orders parameters by location then name, so two loads of
 // the same document present them identically.
-func sortParameters(params []Parameter) {
-	sort.SliceStable(params, func(i, j int) bool {
-		if params[i].In != params[j].In {
-			return params[i].In < params[j].In
+func sortParameters(parameters []Parameter) {
+	sort.SliceStable(parameters, func(i, j int) bool {
+		if parameters[i].In != parameters[j].In {
+			return parameters[i].In < parameters[j].In
 		}
-		return params[i].Name < params[j].Name
+		return parameters[i].Name < parameters[j].Name
 	})
 }

@@ -445,7 +445,7 @@ func (c *compiler) undocumentedField(loc *locator, cls specmodel.Classification,
 // propertiesSite finds the pointer of the first schema node carrying a
 // properties mapping: the read operation's response schema first, the
 // create operation's request schema as the fallback.
-func propertiesSite(loc *locator, read, create *specmodel.Op) (string, bool) {
+func propertiesSite(loc *locator, read, create *specmodel.OperationReference) (string, bool) {
 	find := func(node *yaml.Node, ptr string) (string, bool) {
 		var sitePtr string
 		loc.walkSchemaWithPtr(node, ptr, map[string]bool{}, func(n *yaml.Node, p string) bool {
@@ -532,7 +532,7 @@ func (c *compiler) readAfterWrite(loc *locator, cls specmodel.Classification, o 
 		return stated(fmt.Sprintf(
 			"the measured read-after-write lag is %s: reads never lagged a write, so there is nothing to declare", lag))
 	}
-	for _, op := range []*specmodel.Op{cls.Create, cls.Read, cls.Update, cls.Delete} {
+	for _, op := range []*specmodel.OperationReference{cls.Create, cls.Read, cls.Update, cls.Delete} {
 		if op == nil {
 			continue
 		}

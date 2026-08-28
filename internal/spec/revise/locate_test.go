@@ -72,7 +72,7 @@ paths:
               schema:
                 type: object
 `)
-	op := &specmodel.Op{Method: "GET", Path: "/items/{id}"}
+	op := &specmodel.OperationReference{Method: "GET", Path: "/items/{id}"}
 	node, ptr, ok := loc.responseSchema(op)
 	if !ok || node == nil {
 		t.Fatal("the default response's schema must be found")
@@ -93,10 +93,10 @@ paths:
           description: no body
     delete: {}
 `)
-	if _, _, ok := loc.responseSchema(&specmodel.Op{Method: "GET", Path: "/items/{id}"}); ok {
+	if _, _, ok := loc.responseSchema(&specmodel.OperationReference{Method: "GET", Path: "/items/{id}"}); ok {
 		t.Error("no response declares a schema; nothing must be found")
 	}
-	if _, _, ok := loc.responseSchema(&specmodel.Op{Method: "DELETE", Path: "/items/{id}"}); ok {
+	if _, _, ok := loc.responseSchema(&specmodel.OperationReference{Method: "DELETE", Path: "/items/{id}"}); ok {
 		t.Error("an operation with no responses must find nothing")
 	}
 	if _, _, ok := loc.responseSchema(nil); ok {
@@ -117,7 +117,7 @@ paths:
         "200":
           $ref: 'other.yaml#/responses/X'
 `)
-	if _, _, ok := loc.responseSchema(&specmodel.Op{Method: "GET", Path: "/items/{id}"}); ok {
+	if _, _, ok := loc.responseSchema(&specmodel.OperationReference{Method: "GET", Path: "/items/{id}"}); ok {
 		t.Error("a response reference outside the document must not resolve")
 	}
 }
@@ -131,7 +131,7 @@ paths:
       requestBody:
         $ref: 'other.yaml#/requestBodies/X'
 `)
-	if _, _, ok := loc.requestSchema(&specmodel.Op{Method: "POST", Path: "/items"}); ok {
+	if _, _, ok := loc.requestSchema(&specmodel.OperationReference{Method: "POST", Path: "/items"}); ok {
 		t.Error("a request-body reference outside the document must not resolve")
 	}
 }

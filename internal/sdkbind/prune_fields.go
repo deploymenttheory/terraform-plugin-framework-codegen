@@ -33,7 +33,7 @@ func (p *pruner) fields(kind, key, prefix string, fbs []FieldBinding, read, writ
 // resolveField settles one field's accessors, carried type and
 // conversions; the returned reason is empty when the field survives.
 func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, key, at string) string {
-	var result, param types.Type
+	var result, parameter types.Type
 
 	if fb.Access.Get != "" && read != nil {
 		sig, ok := methodOn(read, fb.Access.Get)
@@ -66,16 +66,16 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 		if sig.Params().Len() != 1 {
 			return fmt.Sprintf("%s.%s is not a setter: %s", shortType(write), fb.Access.Set, shortSignature(sig))
 		}
-		param = sig.Params().At(0).Type()
+		parameter = sig.Params().At(0).Type()
 	}
 
-	if result != nil && param != nil && !types.Identical(result, param) {
-		return p.settleEachDirection(fb, result, param, kind, key, at)
+	if result != nil && parameter != nil && !types.Identical(result, parameter) {
+		return p.settleEachDirection(fb, result, parameter, kind, key, at)
 	}
 
 	basis := result
 	if basis == nil {
-		basis = param
+		basis = parameter
 	}
 	if basis == nil {
 		// Neither direction is live — nothing to settle and nothing to
@@ -101,12 +101,12 @@ func (p *pruner) resolveField(fb *FieldBinding, read, write types.Type, kind, ke
 //
 // Nested objects are excluded: their fields would have to pair recursively
 // against two model trees, which is a larger question than one accessor.
-func (p *pruner) settleEachDirection(fb *FieldBinding, result, param types.Type, kind, key, at string) string {
+func (p *pruner) settleEachDirection(fb *FieldBinding, result, parameter types.Type, kind, key, at string) string {
 	mismatch := fmt.Sprintf("it is read as %s but written as %s; no conversion carries both",
-		shortType(result), shortType(param))
+		shortType(result), shortType(parameter))
 
 	if len(fb.Nested) > 0 {
-		return p.resolveNestedPair(fb, result, param, kind, key, at, mismatch)
+		return p.resolveNestedPair(fb, result, parameter, kind, key, at, mismatch)
 	}
 
 	readSide := *fb
@@ -117,7 +117,7 @@ func (p *pruner) settleEachDirection(fb *FieldBinding, result, param types.Type,
 
 	writeSide := *fb
 	writeSide.Access.Get = ""
-	if why := p.settleScalar(&writeSide, param); why != "" {
+	if why := p.settleScalar(&writeSide, parameter); why != "" {
 		return mismatch
 	}
 
@@ -149,12 +149,12 @@ func (p *pruner) settleEachDirection(fb *FieldBinding, result, param types.Type,
 // then the pair has to be resolved from both accessors. The per-field walk
 // is the same one either way: it already takes a read model and a write
 // model, and every child settles against its own two types.
-func (p *pruner) resolveNestedPair(fb *FieldBinding, result, param types.Type, kind, key, at, mismatch string) string {
+func (p *pruner) resolveNestedPair(fb *FieldBinding, result, parameter types.Type, kind, key, at, mismatch string) string {
 	readNamed, why := nestedModelOf(result)
 	if why != "" {
 		return mismatch
 	}
-	writeNamed, why := nestedModelOf(param)
+	writeNamed, why := nestedModelOf(parameter)
 	if why != "" {
 		return mismatch
 	}
@@ -169,7 +169,7 @@ func (p *pruner) resolveNestedPair(fb *FieldBinding, result, param types.Type, k
 	}
 
 	fb.Access.SDKType = shortType(result)
-	fb.Access.SDKWriteType = shortType(param)
+	fb.Access.SDKWriteType = shortType(parameter)
 	fb.NestedModel = qualifiedName(readNamed)
 	fb.NestedWriteModel, fb.NestedConstructor = model, constructor
 	fb.Access.NestedNilable = nilableType(result)

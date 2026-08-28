@@ -29,13 +29,13 @@ func (b kiotaBinder) Bind(m *ir.Model, info SDKInfo) (*Bindings, error) {
 // provider code never customises.
 func (kiotaBinder) call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call {
 	var segs []Segment
-	params := callParams(op)
+	parameters := callParameters(op)
 	next := 0
 	for _, seg := range pathSegments(op.PathTemplate) {
 		if strings.HasPrefix(seg, "{") && strings.HasSuffix(seg, "}") {
 			local := "param_"
-			if next < len(params) {
-				local = params[next].Local
+			if next < len(parameters) {
+				local = parameters[next].Local
 			}
 			next++
 			segs = append(segs, Segment{
@@ -57,9 +57,9 @@ func (kiotaBinder) call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo
 	segs = append(segs, Segment{Name: verb, Call: true, Args: args})
 
 	c := &Call{
-		Segments: segs,
-		Imports:  []string{info.ImportPath},
-		Params:   params,
+		Segments:   segs,
+		Imports:    []string{info.ImportPath},
+		Parameters: parameters,
 	}
 
 	// Drafted payload types, spelled from the entity name the way kiota

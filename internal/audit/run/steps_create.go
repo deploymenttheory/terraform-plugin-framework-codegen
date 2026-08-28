@@ -12,7 +12,7 @@ import (
 )
 
 // runCreateMinimal creates the object everything later reads, mutates and
-// deletes, refining the body against any 4xx the API answers — a
+// deletes, correcting the body against any 4xx the API answers — a
 // spec-optional-but-really-required field named in a 400 is added and the
 // create retried, yielding a requiredByAPI observation rather than a blocked
 // entity. A refusal the loop cannot heal blocks the entity only when no prior
@@ -107,7 +107,7 @@ func minimalRefusedReason(status int, tried []string) string {
 		status, strings.Join(tried, ", "))
 }
 
-// runCreateMaximal creates with every writable field populated, refining the
+// runCreateMaximal creates with every writable field populated, correcting the
 // body against a 4xx: a field the API says is not valid for this variant is
 // removed and the create retried, feeding the validWhen evidence. Accepted, it
 // extends the per-field evidence to the optional fields; refused without a

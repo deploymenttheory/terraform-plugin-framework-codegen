@@ -125,7 +125,7 @@ func TestUnit_DeriveMapType_TypesEveryValueShape(t *testing.T) {
 	}
 }
 
-func TestAttributes_Presence(t *testing.T) {
+func TestAttributes_ComputedOptionalRequired(t *testing.T) {
 	tree := thingTree(t)
 	for _, testCase := range []struct {
 		name string
@@ -594,12 +594,12 @@ func TestUnit_EnsureParentParameters_LeavesWhatTheBodyAlreadyDeclares(t *testing
 }
 
 func TestUnit_ParentParameters_DropsTheItemKey(t *testing.T) {
-	params := []Parameter{{Name: "owner"}, {Name: "repo"}, {Name: "ruleset_id"}}
-	got := parentParameters(params)
+	parameters := []Parameter{{Name: "owner"}, {Name: "repo"}, {Name: "ruleset_id"}}
+	got := parentParameters(parameters)
 	if len(got) != 2 || got[0].Name != "owner" || got[1].Name != "repo" {
 		t.Fatalf("want owner and repo, got %+v", got)
 	}
-	if parentParameters(params[2:]) != nil {
+	if parentParameters(parameters[2:]) != nil {
 		t.Fatal("a lone path parameter is the item key, not a parent")
 	}
 	if parentParameters(nil) != nil {

@@ -146,10 +146,10 @@ func Apply(specYAML []byte, corrections []Correction) ([]byte, error) {
 	return out, nil
 }
 
-// flatOp is one operation lifted out of its correction, keeping enough of its
+// flatOperation is one operation lifted out of its correction, keeping enough of its
 // origin — the file it came from and its 1-based index within that file — to
 // name it in an error exactly as before once ordering has moved it.
-type flatOp struct {
+type flatOperation struct {
 	file    string
 	opIndex int
 	op      Operation
@@ -157,11 +157,11 @@ type flatOp struct {
 
 // flatten lists every correction's operations in file order, the order that
 // is preserved among operations no dependency reorders.
-func flatten(corrections []Correction) []flatOp {
-	var flat []flatOp
+func flatten(corrections []Correction) []flatOperation {
+	var flat []flatOperation
 	for _, c := range corrections {
 		for i, op := range c.Operations {
-			flat = append(flat, flatOp{file: c.File, opIndex: i + 1, op: op})
+			flat = append(flat, flatOperation{file: c.File, opIndex: i + 1, op: op})
 		}
 	}
 	return flat
@@ -173,7 +173,7 @@ func flatten(corrections []Correction) []flatOp {
 // is a strict partial order (a proper prefix is strictly shorter), so it can
 // never cycle; the guarded fallback exists only so a future non-prefix rule
 // cannot deadlock silently.
-func dependencyOrder(flat []flatOp) []flatOp {
+func dependencyOrder(flat []flatOperation) []flatOperation {
 	n := len(flat)
 	tokens := make([][]string, n)
 	for i := range flat {
@@ -199,7 +199,7 @@ func dependencyOrder(flat []flatOp) []flatOp {
 		}
 	}
 
-	ordered := make([]flatOp, 0, n)
+	ordered := make([]flatOperation, 0, n)
 	done := make([]bool, n)
 	for len(ordered) < n {
 		next := -1

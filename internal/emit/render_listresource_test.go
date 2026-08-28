@@ -19,7 +19,7 @@ func scopedListResource(t *testing.T) *ServiceFiles {
 	m.ListResources[0].AddressingSchema = &ir.AttributeTree{Attributes: []ir.Attribute{
 		{Name: "tenant_id", WireName: "tenantId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
 	}}
-	b.ListResources["http_server"].List.Params = []sdkbind.CallParam{
+	b.ListResources["http_server"].List.Parameters = []sdkbind.CallParameter{
 		{Local: "tenantId", GoType: "string", Wire: "tenantId"}}
 
 	out, err := RenderServices(fictionalProviderCore(), m, b)

@@ -48,12 +48,12 @@ func names(key, service string) ir.Names {
 	}
 }
 
-func op(kind ir.OperationKind, method, path, opID string, params ...ir.Parameter) *ir.Operation {
-	return &ir.Operation{Kind: kind, Method: method, PathTemplate: path, OperationID: opID, PathParameters: params}
+func op(kind ir.OperationKind, method, path, opID string, parameters ...ir.Parameter) *ir.Operation {
+	return &ir.Operation{Kind: kind, Method: method, PathTemplate: path, OperationID: opID, PathParameters: parameters}
 }
 
-func attr(name, wire string, kind ir.AttributeType, presence ir.ComputedOptionalRequired) ir.Attribute {
-	return ir.Attribute{Name: name, WireName: wire, Kind: kind, ComputedOptionalRequired: presence}
+func attr(name, wire string, kind ir.AttributeType, participation ir.ComputedOptionalRequired) ir.Attribute {
+	return ir.Attribute{Name: name, WireName: wire, Kind: kind, ComputedOptionalRequired: participation}
 }
 
 // filterAttr is one companion datasource filter: toolkit vocabulary with no

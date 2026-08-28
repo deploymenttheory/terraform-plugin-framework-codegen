@@ -30,7 +30,7 @@ func scopedCompanion(t *testing.T) *ServiceFiles {
 		Name: "tenant_id", WireName: "tenantId", Kind: ir.TypeString,
 		ComputedOptionalRequired: ir.Required,
 	}}, ds.Schema.Attributes...)
-	b.Datasources["http_server"].List.Params = []sdkbind.CallParam{
+	b.Datasources["http_server"].List.Parameters = []sdkbind.CallParameter{
 		{Local: "tenantId", GoType: "string", Wire: "tenantId"}}
 
 	out, err := RenderServices(fictionalProviderCore(), m, b)

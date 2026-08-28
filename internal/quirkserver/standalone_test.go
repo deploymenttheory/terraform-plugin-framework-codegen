@@ -136,7 +136,7 @@ func TestUnit_Spec_ClassifiesTheDocumentedSurface(t *testing.T) {
 			t.Errorf("the document declares no entity at %q", path)
 			continue
 		}
-		for role, op := range map[string]*specmodel.Op{
+		for role, op := range map[string]*specmodel.OperationReference{
 			"create": e.Create, "read": e.Read, "update": e.Update, "delete": e.Delete, "list": e.List,
 		} {
 			if op == nil {

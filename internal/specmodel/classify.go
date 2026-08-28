@@ -31,9 +31,9 @@ const (
 // classification is byte-stable.
 var kindOrder = []Kind{KindResource, KindDatasource, KindListResource, KindAction}
 
-// Op identifies one operation for a classification consumer, which needs
+// OperationReference identifies one operation for a classification consumer, which needs
 // exactly enough to find it again in the document or in the generated SDK.
-type Op struct {
+type OperationReference struct {
 	Method      string
 	Path        string
 	OperationID string
@@ -56,11 +56,11 @@ type Classification struct {
 	// The operations by role. An action's POST sits in Create: the role
 	// slots describe HTTP position, and kind says what the position
 	// amounts to.
-	Create *Op
-	Read   *Op
-	Update *Op
-	Delete *Op
-	List   *Op
+	Create *OperationReference
+	Read   *OperationReference
+	Update *OperationReference
+	Delete *OperationReference
+	List   *OperationReference
 	// Singleton marks an entity that is one object at a fixed path rather
 	// than a collection: its read is the collection-path GET and its update
 	// the collection-path write, and it has neither create nor delete.
@@ -68,7 +68,7 @@ type Classification struct {
 	// Extra holds operations on the entity's paths that fit no role: a
 	// second POST, a PATCH on the collection. Recorded so the audit
 	// planner sees the whole surface, never silently dropped.
-	Extra []Op
+	Extra []OperationReference
 	// MissingUpdate is true on a resource with no update operation, which
 	// downstream turns into RequiresReplace on every attribute.
 	MissingUpdate bool
@@ -289,13 +289,13 @@ func (e *entity) decide() (Classification, *Exclusion) {
 		CollectionPath: e.collection,
 		ItemPath:       e.item,
 		Kinds:          kinds,
-		Create:         opRef(create),
-		Read:           opRef(read),
-		Update:         opRef(update),
-		Delete:         opRef(e.del),
-		List:           opRef(list),
+		Create:         operationReferenceOf(create),
+		Read:           operationReferenceOf(read),
+		Update:         operationReferenceOf(update),
+		Delete:         operationReferenceOf(e.del),
+		List:           operationReferenceOf(list),
 		Singleton:      singletonOK,
-		Extra:          extraRefs(extra),
+		Extra:          extraOperationReferences(extra),
 		MissingUpdate:  resourceOK && e.update == nil,
 		// A resource's by-id datasource is its normal companion, not a
 		// key lookup; the flag marks the datasources that exist only
@@ -360,20 +360,20 @@ func firstOf(ops ...*Operation) *Operation {
 	return nil
 }
 
-func opRef(op *Operation) *Op {
+func operationReferenceOf(op *Operation) *OperationReference {
 	if op == nil {
 		return nil
 	}
-	return &Op{Method: op.Method, Path: op.Path, OperationID: op.OperationID}
+	return &OperationReference{Method: op.Method, Path: op.Path, OperationID: op.OperationID}
 }
 
-func extraRefs(ops []*Operation) []Op {
+func extraOperationReferences(ops []*Operation) []OperationReference {
 	if len(ops) == 0 {
 		return nil
 	}
-	out := make([]Op, 0, len(ops))
+	out := make([]OperationReference, 0, len(ops))
 	for _, op := range ops {
-		out = append(out, *opRef(op))
+		out = append(out, *operationReferenceOf(op))
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Path != out[j].Path {
@@ -384,16 +384,16 @@ func extraRefs(ops []*Operation) []Op {
 	return out
 }
 
-// trailingParam matches a trailing path parameter, which is what makes a
+// trailingParameter matches a trailing path parameter, which is what makes a
 // path an item path rather than a collection.
-var trailingParam = regexp.MustCompile(`\{[^}]+\}$`)
+var trailingParameter = regexp.MustCompile(`\{[^}]+\}$`)
 
 // splitPath reduces an item path to its collection, reporting which it was.
 func splitPath(path string) (collection string, isItem bool) {
-	if !trailingParam.MatchString(path) {
+	if !trailingParameter.MatchString(path) {
 		return path, false
 	}
-	trimmed := strings.TrimRight(trailingParam.ReplaceAllString(path, ""), "/")
+	trimmed := strings.TrimRight(trailingParameter.ReplaceAllString(path, ""), "/")
 	if trimmed == "" {
 		return path, false
 	}

@@ -10,12 +10,12 @@ import (
 
 func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 	if !s.quirks.IgnoresUnknownQueryParams {
-		if bad := s.badQueryParam(r); bad != "" {
+		if bad := s.badQueryParameter(r); bad != "" {
 			s.fail(w, http.StatusBadRequest, "unknown query parameter", bad)
 			return
 		}
 	}
-	if bad := s.badTypedParam(r); bad != "" {
+	if bad := s.badTypedParameter(r); bad != "" {
 		s.fail(w, http.StatusBadRequest, "invalid value for query parameter", bad)
 		return
 	}

@@ -244,17 +244,17 @@ func httpServerFields() []sdkbind.FieldBinding {
 	}
 }
 
-func call(expr string, params []sdkbind.CallParam, responseType string, results ...string) *sdkbind.Call {
+func call(expr string, parameters []sdkbind.CallParameter, responseType string, results ...string) *sdkbind.Call {
 	return &sdkbind.Call{
 		Expr:         expr,
-		Params:       params,
+		Parameters:   parameters,
 		ResponseType: responseType,
 		Results:      results,
 	}
 }
 
-func serverParam() []sdkbind.CallParam {
-	return []sdkbind.CallParam{{Local: "httpServerId", GoType: "string", Wire: "httpServerId"}}
+func serverParam() []sdkbind.CallParameter {
+	return []sdkbind.CallParameter{{Local: "httpServerId", GoType: "string", Wire: "httpServerId"}}
 }
 
 func fictionalBindings() *sdkbind.Bindings {
@@ -283,10 +283,10 @@ func fictionalBindings() *sdkbind.Bindings {
 				Key:    "alert_rule",
 				Create: call("client.AlertRules().Post(ctx, body, nil)", nil, "models.AlertRuleable", "models.AlertRuleable", "error"),
 				Read: call("client.AlertRules().ByAlertRuleId(alertRuleId).Get(ctx, nil)",
-					[]sdkbind.CallParam{{Local: "alertRuleId", GoType: "string", Wire: "alertRuleId"}},
+					[]sdkbind.CallParameter{{Local: "alertRuleId", GoType: "string", Wire: "alertRuleId"}},
 					"models.AlertRuleable", "models.AlertRuleable", "error"),
 				Delete: call("client.AlertRules().ByAlertRuleId(alertRuleId).Delete(ctx, nil)",
-					[]sdkbind.CallParam{{Local: "alertRuleId", GoType: "string", Wire: "alertRuleId"}},
+					[]sdkbind.CallParameter{{Local: "alertRuleId", GoType: "string", Wire: "alertRuleId"}},
 					"", "error"),
 				ReadModel:        "models.AlertRuleable",
 				WriteModel:       "models.AlertRule",
@@ -322,7 +322,7 @@ func fictionalBindings() *sdkbind.Bindings {
 			"license": {
 				Key: "license",
 				Read: call("client.Licenses().ByLicenseKey(licenseKey).Get(ctx, nil)",
-					[]sdkbind.CallParam{{Local: "licenseKey", GoType: "string", Wire: "licenseKey"}},
+					[]sdkbind.CallParameter{{Local: "licenseKey", GoType: "string", Wire: "licenseKey"}},
 					"models.Licenseable", "models.Licenseable", "error"),
 				ReadModel: "models.Licenseable",
 				Fields: []sdkbind.FieldBinding{

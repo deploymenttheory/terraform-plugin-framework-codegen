@@ -298,7 +298,7 @@ func TestUnit_Specmodel_ClassificationCarriesTheOperations(t *testing.T) {
 	if c.CollectionPath != "/tags" || c.ItemPath != "/tags/{tagId}" {
 		t.Errorf("paths = %q, %q", c.CollectionPath, c.ItemPath)
 	}
-	want := map[string]*Op{
+	want := map[string]*OperationReference{
 		"create": {Method: "POST", Path: "/tags", OperationID: "post_tags"},
 		"read":   {Method: "GET", Path: "/tags/{tagId}", OperationID: "get_tags_tagId"},
 		"update": {Method: "PATCH", Path: "/tags/{tagId}", OperationID: "patch_tags_tagId"},
@@ -306,7 +306,7 @@ func TestUnit_Specmodel_ClassificationCarriesTheOperations(t *testing.T) {
 		"list":   {Method: "GET", Path: "/tags", OperationID: "get_tags"},
 	}
 	for role, wantOp := range want {
-		var gotOp *Op
+		var gotOp *OperationReference
 		switch role {
 		case "create":
 			gotOp = c.Create

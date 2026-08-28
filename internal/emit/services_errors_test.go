@@ -183,7 +183,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 
 	// A path parameter no attribute can feed.
 	m, b = fictionalModel(), fictionalBindings()
-	b.Resources["http_server"].Read.Params = []sdkbind.CallParam{
+	b.Resources["http_server"].Read.Parameters = []sdkbind.CallParameter{
 		{Local: "a", GoType: "string", Wire: "aId"}, {Local: "b", GoType: "string", Wire: "bId"}}
 	expectRenderExclusion(t, pc, m, b, "http_server", "aId")
 
@@ -229,7 +229,7 @@ func TestUnit_RenderServices_NamesTheEntityAndAttributeAtFault(t *testing.T) {
 	// A list resource whose call demands a path parameter no addressing
 	// attribute answers.
 	m, b = fictionalModel(), fictionalBindings()
-	b.ListResources["http_server"].List.Params = []sdkbind.CallParam{
+	b.ListResources["http_server"].List.Parameters = []sdkbind.CallParameter{
 		{Local: "parentId", GoType: "string", Wire: "parentId"}}
 	expectRenderExclusion(t, pc, m, b, "http_server", "parentId")
 
@@ -332,7 +332,7 @@ func TestUnit_Emit_HelperSpellings(t *testing.T) {
 	if got := successStatus(nil, 204); got != 204 {
 		t.Fatalf("successStatus(nil) = %d", got)
 	}
-	if got := paramSegmentIndex("/plain/path"); got != -1 {
+	if got := parameterSegmentIndex("/plain/path"); got != -1 {
 		t.Fatalf("paramSegmentIndex = %d", got)
 	}
 	if got := idWire(nil); got != "id" {
@@ -469,7 +469,7 @@ func TestUnit_ParamNode_RefusesAnObjectOfTheSameName(t *testing.T) {
 		{attr: ir.Attribute{Name: "owner", WireName: "owner", Kind: ir.TypeObject,
 			Nested: &ir.AttributeTree{}}},
 	}
-	if _, err := paramNode(sdkbind.CallParam{Local: "owner", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
+	if _, err := parameterNode(sdkbind.CallParameter{Local: "owner", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
 		t.Fatal("an object must not answer a path parameter")
 	}
 }
@@ -480,14 +480,14 @@ func TestUnit_ParamNode_TakesTheLastParameterAsTheID(t *testing.T) {
 	nodes := []node{
 		{attr: ir.Attribute{Name: "id", WireName: "id", Kind: ir.TypeString}},
 	}
-	got, err := paramNode(sdkbind.CallParam{Local: "cfg", Wire: "configuration_id", GoType: "string"}, nodes, true)
+	got, err := parameterNode(sdkbind.CallParameter{Local: "cfg", Wire: "configuration_id", GoType: "string"}, nodes, true)
 	if err != nil {
 		t.Fatalf("the last path parameter must fall back to the id: %v", err)
 	}
 	if got.attr.Name != "id" {
 		t.Fatalf("want the id attribute, got %q", got.attr.Name)
 	}
-	if _, err := paramNode(sdkbind.CallParam{Local: "o", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
+	if _, err := parameterNode(sdkbind.CallParameter{Local: "o", Wire: "owner", GoType: "string"}, nodes, false); err == nil {
 		t.Fatal("a parent parameter must not fall back to the id")
 	}
 }
@@ -513,12 +513,12 @@ func TestUnit_Invocable_DropsWhatAnActionCannotTake(t *testing.T) {
 	}
 }
 
-func TestUnit_PresenceLines_NeverRendersComputedInAnActionSchema(t *testing.T) {
-	for _, presence := range []ir.ComputedOptionalRequired{ir.Computed, ir.ComputedOptional} {
+func TestUnit_ComputedOptionalRequiredLines_NeverRendersComputedInAnActionSchema(t *testing.T) {
+	for _, participation := range []ir.ComputedOptionalRequired{ir.Computed, ir.ComputedOptional} {
 		sb := &schemaBuilder{kind: schemaAction, imports: newImportSet("example.com/mod")}
-		got := sb.computedOptionalRequiredLines(node{attr: ir.Attribute{Name: "x", ComputedOptionalRequired: presence}}, "")
+		got := sb.computedOptionalRequiredLines(node{attr: ir.Attribute{Name: "x", ComputedOptionalRequired: participation}}, "")
 		if strings.Contains(got, "Computed") {
-			t.Fatalf("presence %s rendered %q in an action schema", presence, got)
+			t.Fatalf("%s rendered %q in an action schema", participation, got)
 		}
 	}
 	// A datasource still computes.

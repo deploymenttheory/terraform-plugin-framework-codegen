@@ -74,7 +74,7 @@ func mapValue(n *yaml.Node, key string) *yaml.Node {
 }
 
 // opPointer addresses one operation object inside paths.
-func opPointer(op *specmodel.Op) string {
+func opPointer(op *specmodel.OperationReference) string {
 	return "/paths/" + escapeToken(op.Path) + "/" + strings.ToLower(op.Method)
 }
 
@@ -101,7 +101,7 @@ func (l *locator) followSchemaRefs(node *yaml.Node, ptr string) (*yaml.Node, str
 // requestSchema finds an operation's request body schema, following a
 // component request-body reference and the schema's own $ref chain, choosing
 // a media type by the same fixed rule the document model uses.
-func (l *locator) requestSchema(op *specmodel.Op) (*yaml.Node, string, bool) {
+func (l *locator) requestSchema(op *specmodel.OperationReference) (*yaml.Node, string, bool) {
 	if op == nil {
 		return nil, "", false
 	}
@@ -121,7 +121,7 @@ func (l *locator) requestSchema(op *specmodel.Op) (*yaml.Node, string, bool) {
 // responseSchema finds an operation's success response schema: the first 2xx
 // declaring one, falling back to "default" — mirroring the document model's
 // SuccessSchema so a correction lands where classification read.
-func (l *locator) responseSchema(op *specmodel.Op) (*yaml.Node, string, bool) {
+func (l *locator) responseSchema(op *specmodel.OperationReference) (*yaml.Node, string, bool) {
 	if op == nil {
 		return nil, "", false
 	}

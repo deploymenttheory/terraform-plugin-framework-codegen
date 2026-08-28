@@ -122,12 +122,12 @@ func TestUnit_Fixturespec_SkipsCarryTheirReason(t *testing.T) {
 	}
 }
 
-func TestUnit_Fixturespec_AudiencesSelectByPresence(t *testing.T) {
+func TestUnit_Fixtures_FormsSelectTheirEntries(t *testing.T) {
 	s := Derive(testTree())
 
-	names := func(a Form) []string {
+	names := func(form Form) []string {
 		var out []string
-		for _, v := range selected(s.Entries, a) {
+		for _, v := range selected(s.Entries, form) {
 			out = append(out, v.Name)
 		}
 		return out

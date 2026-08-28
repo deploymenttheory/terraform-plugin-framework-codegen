@@ -167,7 +167,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, err
 	}
 	spec := deriveFixtures(r.Schema, nodes)
-	spec.PinNumeric(integerParsedParams(rb.Read, nodes))
+	spec.PinNumeric(integerParsedParameters(rb.Read, nodes))
 	if !d.Singleton {
 		if err := e.resourceMocks(d, r, rb, spec); err != nil {
 			return nil, err
@@ -433,8 +433,8 @@ func (e *serviceRenderer) resourceCRUD(d *resourceData, rb *sdkbind.ResourceBind
 			return fmt.Errorf("update: %w", err)
 		}
 		var copies []string
-		for position, p := range rb.Update.Params {
-			field, ferr := paramField(p, nodes, position == len(rb.Update.Params)-1)
+		for position, p := range rb.Update.Parameters {
+			field, ferr := parameterField(p, nodes, position == len(rb.Update.Parameters)-1)
 			if ferr != nil {
 				return fmt.Errorf("update: %w", ferr)
 			}
@@ -525,7 +525,7 @@ func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdk
 	d.RegistryName = r.Names.TerraformType
 	d.CollectionURL = mockURL(r.Operations.Create.PathTemplate)
 	d.ItemPattern = mockPattern(r.Operations.Read.PathTemplate)
-	d.IDSegmentIndex = paramSegmentIndex(r.Operations.Read.PathTemplate)
+	d.IDSegmentIndex = parameterSegmentIndex(r.Operations.Read.PathTemplate)
 	if d.IDSegmentIndex < 0 {
 		return unrenderable("the read path %s declares no parameter segment for the mock to key on", r.Operations.Read.PathTemplate)
 	}
@@ -605,9 +605,9 @@ func mockPattern(pathTemplate string) string {
 	return "=~^" + regexp.QuoteMeta(unitEndpoint) + "/" + strings.Join(out, "/") + "$"
 }
 
-// paramSegmentIndex is the position of the first parameter segment in a
+// parameterSegmentIndex is the position of the first parameter segment in a
 // path template, for id extraction from a request URL.
-func paramSegmentIndex(pathTemplate string) int {
+func parameterSegmentIndex(pathTemplate string) int {
 	for i, seg := range strings.Split(strings.Trim(pathTemplate, "/"), "/") {
 		if strings.HasPrefix(seg, "{") && strings.HasSuffix(seg, "}") {
 			return i
@@ -664,7 +664,7 @@ func (e *serviceRenderer) resourceChecks(d *resourceData, spec fixtures.Fixture)
 	d.AccImports = accImports.render()
 }
 
-// checkLines renders value checks for the audience's top-level scalars.
+// checkLines renders value checks for the form's top-level scalars.
 func checkLines(address string, spec fixtures.Fixture, a fixtures.Form) string {
 	var b strings.Builder
 	for _, v := range spec.Entries {
@@ -677,7 +677,7 @@ func checkLines(address string, spec fixtures.Fixture, a fixtures.Form) string {
 	return b.String()
 }
 
-// valueWanted mirrors the fixture audience selection for check building.
+// valueWanted mirrors the fixture form selection for check building.
 func valueWanted(v fixtures.Entry, a fixtures.Form) bool {
 	switch a {
 	case fixtures.ConfigMinimal:

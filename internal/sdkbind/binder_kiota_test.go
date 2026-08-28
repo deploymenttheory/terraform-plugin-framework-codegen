@@ -68,7 +68,7 @@ func TestKiotaChainSpelling(t *testing.T) {
 	}
 }
 
-// TestKiotaCallDrafts checks the payload drafts and params the chain
+// TestKiotaCallDrafts checks the payload drafts and parameters the chain
 // carries beside its spelling.
 func TestKiotaCallDrafts(t *testing.T) {
 	n := names("tags", "tags")
@@ -79,9 +79,9 @@ func TestKiotaCallDrafts(t *testing.T) {
 	if read.ResponseType != "models.Tagsable" {
 		t.Errorf("drafted ResponseType = %q, want models.Tagsable", read.ResponseType)
 	}
-	wantParams := []CallParam{{Local: "tagId", GoType: "string", Wire: "tagId"}}
-	if !reflect.DeepEqual(read.Params, wantParams) {
-		t.Errorf("Params = %+v, want %+v", read.Params, wantParams)
+	wantParams := []CallParameter{{Local: "tagId", GoType: "string", Wire: "tagId"}}
+	if !reflect.DeepEqual(read.Parameters, wantParams) {
+		t.Errorf("Params = %+v, want %+v", read.Parameters, wantParams)
 	}
 	wantImports := []string{"example.com/kiotasdk", "example.com/kiotasdk/models"}
 	if !reflect.DeepEqual(read.Imports, wantImports) {
