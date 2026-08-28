@@ -799,6 +799,11 @@ func TestUnit_Adjust_AnAddedCompositeTakesItsAttestedFormWhenTheMinimalIsEmpty(t
 	if len(minimal) != 1 || minimal["type"] != "day" {
 		t.Errorf("a composite with a minimal form was widened: %#v", minimal)
 	}
+	// The same rule serves a body built from the plan.
+	body := r.syntheses["window"].requestBody(strategy.RequestFields{Fields: []string{"endRepeat", "repeat"}, Rules: []strategy.SyntheticValueRules{{Field: "endRepeat"}, {Field: "repeat"}}}, "", "")
+	if added, _ := body["endRepeat"].(map[string]any); added["type"] != "never" {
+		t.Errorf("a planned empty composite = %#v, want its attested form", body["endRepeat"])
+	}
 }
 
 func TestUnit_Adjust_ATimestampTheAPIWantsAheadMovesAheadOfNow(t *testing.T) {

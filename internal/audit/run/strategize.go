@@ -408,8 +408,17 @@ func (b bodySynthesis) requestBody(sk strategy.RequestFields, gateField, gateVal
 
 // fieldValue synthesises one field: the document-derived composite where the
 // field is an array or object, the scalar synthesis otherwise.
+//
+// A composite whose smallest form is empty takes the form the document
+// attests: an object with nothing in it is not a value an API reads, and
+// one API answers it with a failure of its own rather than a refusal.
 func (b bodySynthesis) fieldValue(h strategy.SyntheticValueRules) any {
 	if composite, ok := b.composites[h.Field]; ok {
+		if object, isObject := composite.(map[string]any); isObject && len(object) == 0 {
+			if wider, has := b.attestedComposites[h.Field]; has {
+				return cloneAny(wider)
+			}
+		}
 		return cloneAny(composite)
 	}
 	return synthesiseValue(h, b.entity, b.prefix)
@@ -463,17 +472,7 @@ func (r *runner) synthesiseField(entity *entityState, field string) any {
 	synthesis := r.syntheses[entity.plan.Entity]
 	if hints := r.hints[entity.plan.Entity]; hints != nil {
 		if h, ok := hints[field]; ok {
-			value := synthesis.fieldValue(h)
-			// A composite the API asked for by name is added in the form
-			// the document attests when its smallest form is empty: an
-			// object with nothing in it is what the refusal was about, or
-			// what the next one will be.
-			if object, isObject := value.(map[string]any); isObject && len(object) == 0 {
-				if wider, has := synthesis.attestedValue(field); has {
-					value = wider
-				}
-			}
-			return bindReferences(value, field, synthesis.references, nil)
+			return bindReferences(synthesis.fieldValue(h), field, synthesis.references, nil)
 		}
 	}
 	if plan.NameBearing(field) {
