@@ -16,7 +16,7 @@ import (
 // accumulated evidence, and how far it got.
 type entityState struct {
 	plan   *plan.EntityPlan
-	recipe *entityRecipe
+	recipe *entityLifecycle
 	ev     *evidence
 
 	requests int
@@ -49,7 +49,7 @@ type entityState struct {
 // steps' claims under that outcome.
 func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
 	entity := &entityState{plan: ep, ev: newEvidence(), status: StatusAudited}
-	entity.recipe = recipeOf(ep)
+	entity.recipe = lifecycleOf(ep)
 	r.recipes[ep.Entity] = entity.recipe
 
 	for i := range ep.Steps {
@@ -58,7 +58,7 @@ func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
 			r.halt(entity, err)
 		}
 		if entity.status != StatusAudited {
-			r.emitHaltedClaims(entity, ep.Steps[i:])
+			r.emitStoppedObservations(entity, ep.Steps[i:])
 			break
 		}
 	}
@@ -201,9 +201,9 @@ func (r *runner) preflight(ctx context.Context, entity *entityState, step *plan.
 	return nil
 }
 
-// recipeOf distils an entity plan into what re-creation and deletion need.
-func recipeOf(ep *plan.EntityPlan) *entityRecipe {
-	rec := &entityRecipe{entity: ep.Entity}
+// lifecycleOf distils an entity plan into what re-creation and deletion need.
+func lifecycleOf(ep *plan.EntityPlan) *entityLifecycle {
+	rec := &entityLifecycle{entity: ep.Entity}
 	for i := range ep.Steps {
 		s := &ep.Steps[i]
 		switch s.Kind {
@@ -247,7 +247,7 @@ func selfParameter(itemPath string) string {
 
 // itemValuesFor is the item path values with the object's own parameter
 // pinned to a concrete id.
-func itemValuesFor(rec *entityRecipe, id string) map[string]string {
+func itemValuesFor(rec *entityLifecycle, id string) map[string]string {
 	out := make(map[string]string, len(rec.itemValues)+1)
 	for k, v := range rec.itemValues {
 		out[k] = v
@@ -273,7 +273,7 @@ func (r *runner) resolveCreated(ctx context.Context, entity *entityState, entity
 	// Healed like any other create: a parent the document understates is
 	// refused the same way its own create was, and without the loop every
 	// child of it blocks on a refusal the loop can read.
-	rr, err := r.adjustCreateRecording(ctx, entity, rec, cloneAnyMap(rec.minimalBody), "", false)
+	rr, err := r.correctCreateBodyRecording(ctx, entity, rec, cloneAnyMap(rec.minimalBody), "", false)
 	if err != nil {
 		return "", err
 	}
@@ -289,7 +289,7 @@ func (r *runner) resolveCreated(ctx context.Context, entity *entityState, entity
 // collection. It returns the created object (nil when the API refused)
 // and the response. The ledger intent is written and fsynced before the
 // request is sent — the whole point of having a ledger.
-func (r *runner) createObject(ctx context.Context, entity *entityState, rec *entityRecipe, body map[string]any) (*createdObject, *httpResult, error) {
+func (r *runner) createObject(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any) (*createdObject, *httpResult, error) {
 	if !r.inCleanup && len(r.ledger.unresolved()) >= r.budget.Objects {
 		return nil, nil, budgetError{reason: fmt.Sprintf("the run's live-object budget (%d) is exhausted", r.budget.Objects)}
 	}
@@ -320,7 +320,7 @@ func (r *runner) createObject(ctx context.Context, entity *entityState, rec *ent
 
 	switch {
 	case res.ok():
-		id := learnID(rec.entity, res)
+		id := extractID(rec.entity, res)
 		r.ledger.resolve(seq, activityCreated, id, res.status)
 		r.summary.ObjectsCreated++
 		r.observeOmittedSamples(entity, resolved, res.object(), id)
@@ -348,7 +348,7 @@ func (r *runner) createObject(ctx context.Context, entity *entityState, rec *ent
 // partialItemPath resolves an entity's item path down to the object's own
 // parameter: parents substituted, self still templated. This is what the
 // ledger stores, so a crashed run's objects remain addressable.
-func (r *runner) partialItemPath(ctx context.Context, entity *entityState, rec *entityRecipe) (string, error) {
+func (r *runner) partialItemPath(ctx context.Context, entity *entityState, rec *entityLifecycle) (string, error) {
 	if rec.itemPath == "" {
 		return "", nil
 	}
@@ -369,7 +369,7 @@ func (r *runner) partialItemPath(ctx context.Context, entity *entityState, rec *
 
 // deleteObject deletes one created object and resolves its ledger intent
 // when the API confirms it gone.
-func (r *runner) deleteObject(ctx context.Context, entity *entityState, rec *entityRecipe, obj *createdObject) (*httpResult, error) {
+func (r *runner) deleteObject(ctx context.Context, entity *entityState, rec *entityLifecycle, obj *createdObject) (*httpResult, error) {
 	if obj.id == "" {
 		return nil, nil
 	}
@@ -388,41 +388,41 @@ func (r *runner) deleteObject(ctx context.Context, entity *entityState, rec *ent
 	return res, nil
 }
 
-// claim is one observation a halted step would have earned.
-type claim struct {
+// pendingObservation is one observation a halted step would have earned.
+type pendingObservation struct {
 	attribute string
 	kind      observe.Kind
 	cond      *observe.Condition
 }
 
-// stepClaims maps a pending step to the primary claims it would have
+// stepPendingObservations maps a pending step to the primary claims it would have
 // produced — what a blocked or exhausted entity records instead of
 // silence.
-func stepClaims(s *plan.Step) []claim {
+func stepPendingObservations(s *plan.Step) []pendingObservation {
 	switch s.Kind {
 	case plan.StepReadWithRetry:
-		return []claim{{kind: observe.KindReadAfterWrite}}
+		return []pendingObservation{{kind: observe.KindReadAfterWrite}}
 	case plan.StepUpdateField:
-		return []claim{{attribute: s.Attribute, kind: observe.KindImmutable}}
+		return []pendingObservation{{attribute: s.Attribute, kind: observe.KindImmutable}}
 	case plan.StepDeleteWithConfirmation:
-		return []claim{{kind: observe.KindDeleteNotFoundOK}}
+		return []pendingObservation{{kind: observe.KindDeleteNotFoundOK}}
 	case plan.StepOmitRequired:
-		return []claim{{attribute: s.Attribute, kind: observe.KindRequiredByAPI}}
+		return []pendingObservation{{attribute: s.Attribute, kind: observe.KindRequiredByAPI}}
 	case plan.StepUndocumentedEnumValue:
-		return []claim{{attribute: s.Attribute, kind: observe.KindValues}}
+		return []pendingObservation{{attribute: s.Attribute, kind: observe.KindValues}}
 	case plan.StepCreatePerEnumValue:
 		if s.Condition != nil && s.Condition.Attribute != s.Attribute {
-			return []claim{{attribute: s.Attribute, kind: observe.KindRequiredWhen, cond: s.Condition}}
+			return []pendingObservation{{attribute: s.Attribute, kind: observe.KindRequiredWhen, cond: s.Condition}}
 		}
-		return []claim{{attribute: s.Attribute, kind: observe.KindValues}}
+		return []pendingObservation{{attribute: s.Attribute, kind: observe.KindValues}}
 	default:
 		return nil
 	}
 }
 
-// emitHaltedClaims records every remaining step's claims under the
+// emitStoppedObservations records every remaining step's claims under the
 // entity's halt outcome, with the halting excerpt as proof of why.
-func (r *runner) emitHaltedClaims(entity *entityState, remaining []plan.Step) {
+func (r *runner) emitStoppedObservations(entity *entityState, remaining []plan.Step) {
 	outcome := observe.OutcomeBlocked
 	if entity.status == StatusTimeoutExhausted {
 		outcome = observe.OutcomeTimeoutExhausted
@@ -438,7 +438,7 @@ func (r *runner) emitHaltedClaims(entity *entityState, remaining []plan.Step) {
 		if s.Kind == plan.StepUpdateField {
 			sawUpdate = true
 		}
-		for _, c := range stepClaims(s) {
+		for _, c := range stepPendingObservations(s) {
 			id := observe.ComputeID(entity.plan.Entity, c.attribute, c.kind, c.cond)
 			if seen[id] {
 				continue

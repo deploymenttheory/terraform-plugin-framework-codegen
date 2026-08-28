@@ -204,7 +204,7 @@ var writeExhibits = map[string]func(*testing.T){
 
 		// The same missing field, said two ways. Only the sentence is one an
 		// adjustment loop can act on; the bare name beside a generic title
-		// could be about anything, which is why it stays unhealable.
+		// could be about anything, which is why it stays uncorrectable.
 		bare := New(t, Quirks{RequiredButUndeclared: []string{"key"}})
 		_, body := post(t, bare.CollectionURL(), map[string]any{"value": "v"})
 		if detail, _ := body["detail"].(string); detail != "key" {

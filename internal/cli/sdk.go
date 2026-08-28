@@ -21,7 +21,7 @@ func newSDKCommand() *cobra.Command {
 
 // newSDKGenerateCommand generates the SDK tree from the revised spec with
 // the configured backend at its exact version pin: gate the tool on PATH,
-// pre-normalize a copy of the revised document, generate into a staging
+// pre-normalise a copy of the revised document, generate into a staging
 // directory, scrub nondeterminism, swap the tree into --out, and record
 // every file in the manifest under the sdk origin.
 func newSDKGenerateCommand() *cobra.Command {

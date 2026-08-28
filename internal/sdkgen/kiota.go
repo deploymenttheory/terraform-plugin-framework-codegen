@@ -100,7 +100,7 @@ func (kiotaBackend) Generate(ctx context.Context, revisedSpecPath string, config
 
 // Normalize scrubs kiota-lock.json. The lock's kiotaVersion and
 // descriptionHash stay — they are the evidence that makes a regeneration
-// provable — but its descriptionLocation names the temp pre-normalized copy
+// provable — but its descriptionLocation names the temp pre-normalised copy
 // kiota actually read, a path that differs every run and exists on nobody
 // else's machine, so it is rewritten to the durable revised document.
 // Timestamp-valued fields go entirely, and generated file headers lose any

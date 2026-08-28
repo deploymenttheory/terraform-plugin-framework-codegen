@@ -354,12 +354,12 @@ func TestUnit_Report_IsNotMistakenForACorrection(t *testing.T) {
 		t.Fatalf("Propose: %v", err)
 	}
 	acceptAll(t, specDir)
-	// The report is still there; Materialize must not read it as a pending
+	// The report is still there; WriteRevision must not read it as a pending
 	// decision, and correction.Load must not read it as a correction.
 	if _, err := os.Stat(filepath.Join(specDir, correction.DirName, ProposedDirName, ReportName)); err != nil {
 		t.Fatalf("the report vanished: %v", err)
 	}
-	if _, err := Materialize(specDir); err != nil {
-		t.Fatalf("the report blocked materialization: %v", err)
+	if _, err := WriteRevision(specDir); err != nil {
+		t.Fatalf("the report blocked the write: %v", err)
 	}
 }

@@ -16,8 +16,8 @@ import (
 // newSpecReviseCommand runs both halves of revision. First Propose: the
 // committed audit observations compile into proposed corrections — or, for
 // kinds the config auto-accepts, straight into accepted ones. Then
-// Materialize: the pinned upstream document plus every accepted correction
-// becomes <dir>/revised.yaml, what both generators read. Materialize refuses
+// WriteRevision: the pinned upstream document plus every accepted correction
+// becomes <dir>/revised.yaml, what both generators read. WriteRevision refuses
 // while <dir>/corrections/proposed/ holds any correction awaiting a human
 // decision — no flag exists to look away — so one invocation with fresh
 // observations shows the operator exactly what needs deciding.
@@ -26,7 +26,7 @@ func newSpecReviseCommand() *cobra.Command {
 	var proposeOnly bool
 	cmd := &cobra.Command{
 		Use:   "revise",
-		Short: "compile observations into proposed corrections, then materialize the revised spec",
+		Short: "compile observations into proposed corrections, then write the revised spec",
 		Args:  exactArgs("tfpfgen spec revise [--dir spec] [--config tfpfgen.yaml] [--propose-only]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			autoAccept, err := autoAcceptKinds(cfgFile, cmd.Flags().Changed("config"))
@@ -46,7 +46,7 @@ func newSpecReviseCommand() *cobra.Command {
 				return nil
 			}
 
-			res, err := revise.Materialize(dir)
+			res, err := revise.WriteRevision(dir)
 			if err != nil {
 				return err
 			}
@@ -71,7 +71,7 @@ func newSpecReviseCommand() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&dir, "dir", "spec", "directory holding the pinned document, its corrections, and the revised output")
 	cmd.Flags().StringVar(&cfgFile, "config", "tfpfgen.yaml", "config file naming the audit.auto_accept kinds")
-	cmd.Flags().BoolVar(&proposeOnly, "propose-only", false, "compile observations into proposals and stop before materializing")
+	cmd.Flags().BoolVar(&proposeOnly, "propose-only", false, "compile observations into proposals and stop before writing")
 	return cmd
 }
 

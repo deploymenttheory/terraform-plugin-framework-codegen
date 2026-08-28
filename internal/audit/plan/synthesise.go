@@ -14,11 +14,11 @@ import (
 // which surfaces as the entity being skipped with a reason.
 const maxDepth = 8
 
-// synth derives the values a step's body will send. Every value is a
+// valueSynthesiser derives the values a step's body will send. Every value is a
 // deterministic function of the inputs, the schema and the attribute name
 // — never the clock, never randomness — which is what keeps Derive a pure
 // function.
-type synth struct {
+type valueSynthesiser struct {
 	entity string
 	// prefix is audit.name_prefix: every synthesized name-bearing string
 	// carries it, so live objects the audit creates are recognisable as
@@ -30,7 +30,7 @@ type synth struct {
 // minimalBody synthesizes the smallest valid create body: required,
 // writable fields only. A required field no value can be derived for is a
 // reason to skip the entity, returned as prose.
-func (sy synth) minimalBody(s *specmodel.Schema) (map[string]any, string) {
+func (sy valueSynthesiser) minimalBody(s *specmodel.Schema) (map[string]any, string) {
 	properties, required := flatProps(s)
 	body := map[string]any{}
 	for _, p := range properties {
@@ -50,7 +50,7 @@ func (sy synth) minimalBody(s *specmodel.Schema) (map[string]any, string) {
 // populated, and reports how many of them were optional — the createMaximal
 // bisection allowance is sized from that. An optional field no value can
 // be derived for is left out: maximal covers what it can.
-func (sy synth) maximalBody(s *specmodel.Schema) (map[string]any, int) {
+func (sy valueSynthesiser) maximalBody(s *specmodel.Schema) (map[string]any, int) {
 	properties, required := flatProps(s)
 	body := map[string]any{}
 	optional := 0
@@ -70,10 +70,10 @@ func (sy synth) maximalBody(s *specmodel.Schema) (map[string]any, int) {
 	return body, optional
 }
 
-// bisectionAllowance is the extra createMaximal attempts worth reserving:
+// fieldNarrowingAttemptLimit is the extra createMaximal attempts worth reserving:
 // enough to halve the optional set down to one field, plus the retry that
 // confirms it — ceil(log2(n)) + 1.
-func bisectionAllowance(optional int) int {
+func fieldNarrowingAttemptLimit(optional int) int {
 	if optional == 0 {
 		return 0
 	}
@@ -85,7 +85,7 @@ func bisectionAllowance(optional int) int {
 // first enum value, then a format-driven value, then a type-driven one.
 // topLevel scopes the inputs override to the body's own fields — nested
 // values always come from the document.
-func (sy synth) value(field string, s *specmodel.Schema, depth int, topLevel bool) (any, bool) {
+func (sy valueSynthesiser) value(field string, s *specmodel.Schema, depth int, topLevel bool) (any, bool) {
 	if topLevel {
 		if v, ok := sy.inputs.Values[field]; ok {
 			return v, true
@@ -124,7 +124,7 @@ func (sy synth) value(field string, s *specmodel.Schema, depth int, topLevel boo
 // formatValue derives a value from a declared string format. Constants
 // throughout: date-time is a fixed instant, not the clock, because a plan
 // derived twice must be identical.
-func (sy synth) formatValue(format string) (any, bool) {
+func (sy valueSynthesiser) formatValue(format string) (any, bool) {
 	switch format {
 	case "email":
 		return sy.prefix + "-" + RunIDToken + "@example.invalid", true
@@ -147,7 +147,7 @@ func (sy synth) formatValue(format string) (any, bool) {
 
 // typeValue derives a value from the declared type alone — the last
 // resort.
-func (sy synth) typeValue(field string, r *specmodel.Schema, depth int) (any, bool) {
+func (sy valueSynthesiser) typeValue(field string, r *specmodel.Schema, depth int) (any, bool) {
 	switch {
 	case r.Type == "string":
 		if NameBearing(field) {
@@ -184,7 +184,7 @@ func (sy synth) typeValue(field string, r *specmodel.Schema, depth int) (any, bo
 // recursively. Optional nested fields are left out even for a maximal
 // body — depth is bounded, and the maximal claim is about the entity's own
 // attributes, not the transitive closure.
-func (sy synth) objectValue(r *specmodel.Schema, depth int) (any, bool) {
+func (sy valueSynthesiser) objectValue(r *specmodel.Schema, depth int) (any, bool) {
 	properties, required := flatProps(r)
 	out := map[string]any{}
 	for _, p := range properties {
@@ -205,7 +205,7 @@ func (sy synth) objectValue(r *specmodel.Schema, depth int) (any, bool) {
 // element of a nested object is a claim about the nested field, not the
 // attribute — and an enum with a single documented value has no alternateValue,
 // so the field yields no update step.
-func (sy synth) alternateValue(field string, s *specmodel.Schema, base any) (any, bool) {
+func (sy valueSynthesiser) alternateValue(field string, s *specmodel.Schema, base any) (any, bool) {
 	r := s.Resolved()
 	if len(r.Enum) > 0 {
 		for _, v := range r.Enum {
@@ -250,7 +250,7 @@ func (sy synth) alternateValue(field string, s *specmodel.Schema, base any) (any
 }
 
 // formatVariant is the second value for a formatted string.
-func (sy synth) formatVariant(format string) (any, bool) {
+func (sy valueSynthesiser) formatVariant(format string) (any, bool) {
 	switch format {
 	case "email":
 		return sy.prefix + "-" + RunIDToken + "-2@example.invalid", true
@@ -275,7 +275,7 @@ func (sy synth) formatVariant(format string) (any, bool) {
 // configured prefix, the run-id placeholder, and the attribute's address —
 // recognisable as audit debris, unique per attribute, substituted at
 // execution time.
-func (sy synth) nameToken(field string) string {
+func (sy valueSynthesiser) nameToken(field string) string {
 	return sy.prefix + "-" + RunIDToken + "-" + sy.entity + "-" + field
 }
 

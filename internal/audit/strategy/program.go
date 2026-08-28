@@ -122,9 +122,9 @@ func stepRequests(kind plan.StepKind) int {
 }
 
 // buildProgram composes the ordered steps for a resource, shaped by its
-// variants, gates and hypotheses. The order is fixed and every rule iterates a
+// variants, gates and claims. The order is fixed and every rule iterates a
 // sorted set, so the program is byte-stable.
-func buildProgram(createBody *specmodel.Schema, gates []Gate, variants []Variant, hyps []Hypothesis) []Step {
+func buildProgram(createBody *specmodel.Schema, gates []Gate, variants []Variant, claims []Claim) []Step {
 	fields := flatFields(createBody)
 	var prog []Step
 
@@ -160,8 +160,8 @@ func buildProgram(createBody *specmodel.Schema, gates []Gate, variants []Variant
 	prog = append(prog, Step{Kind: stepUndeclaredSpecField})
 
 	// Value-conditional creates: every gate value, then the value-gated
-	// prose hypotheses the gate loop did not already cover.
-	prog = append(prog, perValueSteps(gates, hyps)...)
+	// prose claims the gate loop did not already cover.
+	prog = append(prog, perValueSteps(gates, claims)...)
 
 	// Teardown, and the widest valid body inside it.
 	//
@@ -179,9 +179,9 @@ func buildProgram(createBody *specmodel.Schema, gates []Gate, variants []Variant
 }
 
 // perValueSteps builds the createPerEnumValue steps: one per gate value
-// (capped per gate), plus one per value-gated prose hypothesis whose gate
+// (capped per gate), plus one per value-gated prose claim whose gate
 // value the gate loop did not already pin.
-func perValueSteps(gates []Gate, hyps []Hypothesis) []Step {
+func perValueSteps(gates []Gate, claims []Claim) []Step {
 	var steps []Step
 	covered := map[string]bool{}
 	for _, g := range gates {
@@ -196,11 +196,11 @@ func perValueSteps(gates []Gate, hyps []Hypothesis) []Step {
 			covered[g.Field+"\x00"+label] = true
 		}
 	}
-	for _, h := range hyps {
+	for _, h := range claims {
 		if h.GateField == "" || h.GateValue == "" {
 			continue
 		}
-		if h.Kind != HypothesisRequiredWhen && h.Kind != HypothesisValidWhen {
+		if h.Kind != ClaimRequiredWhen && h.Kind != ClaimValidWhen {
 			continue
 		}
 		key := h.GateField + "\x00" + h.GateValue

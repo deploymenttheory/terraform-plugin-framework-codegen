@@ -12,15 +12,15 @@ import (
 // conditional-language patterns any REST document uses. The repo's
 // pilot-leakage lint guards that nothing here names a pilot vendor.
 //
-// A phrase yields a hypothesis only when it also NAMES a sibling property (and,
+// A phrase yields a claim only when it also NAMES a sibling property (and,
 // where the category needs one, a value of that sibling). A phrase that names
 // nothing is discarded — prose is the weakest signal, and an unanchored one is
 // no signal at all.
-type proseCategory int
+type descriptionRuleCategory int
 
 const (
 	// catRequired: the field is required when the named condition holds.
-	catRequired proseCategory = iota
+	catRequired descriptionRuleCategory = iota
 	// catValid: the field is valid, applies, or is ignored only when the
 	// named condition holds — a value-gated validity edge either way.
 	catValid
@@ -28,16 +28,16 @@ const (
 	catExclusive
 )
 
-// prosePhrase is one recognised phrase and the edge category it signals.
-type prosePhrase struct {
+// descriptionPhrase is one recognised phrase and the edge category it signals.
+type descriptionPhrase struct {
 	text     string
-	category proseCategory
+	category descriptionRuleCategory
 }
 
-// prosePhrases is the closed, ordered phrase set. Order is fixed so extraction
+// descriptionPhrases is the closed, ordered phrase set. Order is fixed so extraction
 // is deterministic; longer, more specific phrases precede the shorter phrases
 // they contain so the specific reading wins.
-var prosePhrases = []prosePhrase{
+var descriptionPhrases = []descriptionPhrase{
 	{"required only when", catRequired},
 	{"required when", catRequired},
 	{"required if", catRequired},
@@ -55,10 +55,10 @@ var prosePhrases = []prosePhrase{
 	{"cannot be used with", catExclusive},
 }
 
-// proseHypotheses mines every writable field's description for conditional
-// language, emitting prose-provenance hypotheses. Fields are walked in name
+// descriptionClaims mines every writable field's description for conditional
+// language, emitting prose-provenance claims. Fields are walked in name
 // order and phrases in their fixed order, so the output is deterministic.
-func proseHypotheses(createBody *specmodel.Schema) []Hypothesis {
+func descriptionClaims(createBody *specmodel.Schema) []Claim {
 	fields := flatFields(createBody)
 	sort.Slice(fields, func(i, j int) bool { return fields[i].name < fields[j].name })
 
@@ -71,25 +71,25 @@ func proseHypotheses(createBody *specmodel.Schema) []Hypothesis {
 		}
 	}
 
-	var out []Hypothesis
+	var out []Claim
 	for _, f := range fields {
 		description := f.schema.Resolved().Description
 		if description == "" {
 			continue
 		}
-		out = append(out, extractProse(f.name, description, siblingNames, siblingEnum)...)
+		out = append(out, extractDescriptionClaims(f.name, description, siblingNames, siblingEnum)...)
 	}
 	return out
 }
 
-// extractProse runs the phrase set over one field's description. For each
+// extractDescriptionClaims runs the phrase set over one field's description. For each
 // phrase found, it looks — in the text after the phrase — for a sibling name,
 // and for a value of that sibling. What it finds decides the edge; what it
 // cannot anchor it discards.
-func extractProse(field, description string, siblingNames []string, siblingEnum map[string][]string) []Hypothesis {
+func extractDescriptionClaims(field, description string, siblingNames []string, siblingEnum map[string][]string) []Claim {
 	lower := strings.ToLower(description)
-	var out []Hypothesis
-	for _, ph := range prosePhrases {
+	var out []Claim
+	for _, ph := range descriptionPhrases {
 		index := strings.Index(lower, ph.text)
 		if index < 0 {
 			continue
@@ -102,7 +102,7 @@ func extractProse(field, description string, siblingNames []string, siblingEnum 
 		}
 
 		if ph.category == catExclusive {
-			out = append(out, mutuallyExclusiveHypothesis(field, sibling))
+			out = append(out, mutuallyExclusiveClaim(field, sibling))
 			continue
 		}
 
@@ -111,56 +111,56 @@ func extractProse(field, description string, siblingNames []string, siblingEnum 
 			// A conditional phrase that names a sibling but no value is a
 			// weaker co-requirement: the field relates to the sibling's
 			// presence.
-			out = append(out, proseRequiresField(field, sibling))
+			out = append(out, descriptionDependsOn(field, sibling))
 			continue
 		}
-		out = append(out, conditionalHypothesis(ph.category, field, sibling, value))
+		out = append(out, conditionalClaim(ph.category, field, sibling, value))
 	}
 	return out
 }
 
-// conditionalHypothesis builds a value-gated prose edge: requiredWhen for the
+// conditionalClaim builds a value-gated prose edge: requiredWhen for the
 // required category, validWhen for the validity category.
-func conditionalHypothesis(cat proseCategory, field, sibling, value string) Hypothesis {
-	kind := HypothesisValidWhen
+func conditionalClaim(cat descriptionRuleCategory, field, sibling, value string) Claim {
+	kind := ClaimValidWhen
 	if cat == catRequired {
-		kind = HypothesisRequiredWhen
+		kind = ClaimRequiredWhen
 	}
-	return Hypothesis{
+	return Claim{
 		Kind:       kind,
 		Subjects:   []string{field},
 		GateField:  sibling,
 		GateValue:  value,
 		Provenance: ProvenanceProse,
-		Check: Check{
+		Check: Probe{
 			Step: stepCreatePerEnumValue, Field: field,
-			GateField: sibling, GateValue: value, Expect: "conditional",
+			GateField: sibling, GateValue: value, ExpectedAnswer: "conditional",
 		},
 	}
 }
 
-// proseRequiresField builds a prose co-requirement edge naming a sibling but no
+// descriptionDependsOn builds a prose co-requirement edge naming a sibling but no
 // value.
-func proseRequiresField(field, sibling string) Hypothesis {
+func descriptionDependsOn(field, sibling string) Claim {
 	subjects := []string{field, sibling}
 	sort.Strings(subjects)
-	return Hypothesis{
-		Kind:       HypothesisRequiresField,
+	return Claim{
+		Kind:       ClaimDependsOn,
 		Subjects:   subjects,
 		Provenance: ProvenanceProse,
-		Check:      Check{Step: stepCreateMaximal, Field: field, Expect: "conditional"},
+		Check:      Probe{Step: stepCreateMaximal, Field: field, ExpectedAnswer: "conditional"},
 	}
 }
 
-// mutuallyExclusiveHypothesis builds a prose exclusion edge between two fields.
-func mutuallyExclusiveHypothesis(field, sibling string) Hypothesis {
+// mutuallyExclusiveClaim builds a prose exclusion edge between two fields.
+func mutuallyExclusiveClaim(field, sibling string) Claim {
 	subjects := []string{field, sibling}
 	sort.Strings(subjects)
-	return Hypothesis{
-		Kind:       HypothesisMutuallyExclusive,
+	return Claim{
+		Kind:       ClaimMutuallyExclusive,
 		Subjects:   subjects,
 		Provenance: ProvenanceProse,
-		Check:      Check{Step: stepCreateMaximal, Expect: "reject"},
+		Check:      Probe{Step: stepCreateMaximal, ExpectedAnswer: "reject"},
 	}
 }
 

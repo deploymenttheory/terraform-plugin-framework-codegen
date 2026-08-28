@@ -76,7 +76,7 @@ func Verify(_ context.Context, opts Options) (Report, error) {
 		want[e.Path] = e.SHA256
 	}
 	finalized := map[string]bool{}
-	for _, p := range postcheckOwned {
+	for _, p := range toolchainWritten {
 		finalized[p] = true
 	}
 	for path, summary := range want {
@@ -87,7 +87,7 @@ func Verify(_ context.Context, opts Options) (Report, error) {
 			rep.Drifts = append(rep.Drifts, sdkgen.Drift{Kind: sdkgen.DriftMissing, Path: path})
 		case haveSum != summary:
 			// The toolchain-finalised files legitimately differ from a bare
-			// regeneration — postcheck's `go mod tidy` rewrote them after
+			// regeneration — tree verification's `go mod tidy` rewrote them after
 			// install. They are held to the digests the manifest re-recorded
 			// then (the hand-edited check below), not to the emitted bytes.
 			if finalized[path] {

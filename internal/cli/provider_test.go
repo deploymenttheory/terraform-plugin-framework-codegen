@@ -32,7 +32,7 @@ func providerRepo(t *testing.T) string {
 	if _, err := store.Import(filepath.Join(root, "spec"), document, "testdata/curated/openapi.yaml"); err != nil {
 		t.Fatalf("spec import: %v", err)
 	}
-	if _, err := revise.Materialize(filepath.Join(root, "spec")); err != nil {
+	if _, err := revise.WriteRevision(filepath.Join(root, "spec")); err != nil {
 		t.Fatalf("spec revise: %v", err)
 	}
 
@@ -78,14 +78,14 @@ func TestUnit_ProviderGenerateThenVerify_RoundTripsClean(t *testing.T) {
 	root := providerRepo(t)
 
 	var stdout, stderr bytes.Buffer
-	if code := Run([]string{"provider", "generate", "--postcheck=false"}, &stdout, &stderr); code != ExitOK {
+	if code := Run([]string{"provider", "generate", "--verify-tree=false"}, &stdout, &stderr); code != ExitOK {
 		t.Fatalf("generate exit = %d, stderr:\n%s", code, stderr.String())
 	}
 	if !strings.Contains(stdout.String(), "3 resources, 5 datasources, 3 list resources, 1 actions") {
 		t.Errorf("generate output does not report the fixture's entity counts:\n%s", stdout.String())
 	}
-	if !strings.Contains(stdout.String(), "postcheck skipped: postcheck disabled") {
-		t.Errorf("generate output does not report the postcheck decision:\n%s", stdout.String())
+	if !strings.Contains(stdout.String(), "tree verification skipped: tree verification disabled") {
+		t.Errorf("generate output does not report the tree-verification decision:\n%s", stdout.String())
 	}
 	if _, err := os.Stat(filepath.Join(root, "manifest.json")); err != nil {
 		t.Errorf("generate left no manifest: %v", err)
@@ -105,7 +105,7 @@ func TestUnit_ProviderVerify_DriftListsPathsAndFails(t *testing.T) {
 	root := providerRepo(t)
 
 	var stdout, stderr bytes.Buffer
-	if code := Run([]string{"provider", "generate", "--postcheck=false"}, &stdout, &stderr); code != ExitOK {
+	if code := Run([]string{"provider", "generate", "--verify-tree=false"}, &stdout, &stderr); code != ExitOK {
 		t.Fatalf("generate exit = %d, stderr:\n%s", code, stderr.String())
 	}
 	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\n"), 0o600); err != nil {
@@ -156,7 +156,7 @@ func TestUnit_ProviderGenerate_MissingRevisedFails(t *testing.T) {
 	}
 
 	var stdout, stderr bytes.Buffer
-	if code := Run([]string{"provider", "generate", "--postcheck=false"}, &stdout, &stderr); code != ExitFailure {
+	if code := Run([]string{"provider", "generate", "--verify-tree=false"}, &stdout, &stderr); code != ExitFailure {
 		t.Fatalf("exit = %d; a missing revised document is a failure", code)
 	}
 	if !strings.Contains(stderr.String(), "tfpfgen spec revise") {

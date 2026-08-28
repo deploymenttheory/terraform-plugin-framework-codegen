@@ -15,16 +15,16 @@ import (
 // deletes, correcting the body against any 4xx the API answers — a
 // spec-optional-but-really-required field named in a 400 is added and the
 // create retried, yielding a requiredByAPI observation rather than a blocked
-// entity. A refusal the loop cannot heal blocks the entity only when no prior
+// entity. A refusal the loop cannot correct blocks the entity only when no prior
 // variant has already established the object; a later variant that cannot be
 // built is recorded and skipped.
 func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.adjustCreate(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
+	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
 	if err != nil {
 		return err
 	}
-	// The grammar heals a refusal that names its field. A refusal that says
+	// The grammar corrects a refusal that names its field. A refusal that says
 	// only that the request was bad names nothing to act on, and the document
 	// that produced this body is the same document that understated it — so
 	// ask the API instead, one field at a time.
@@ -32,9 +32,9 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 	// wider body than the one that started it, and the fields it added name
 	// what it asked for. Both are carried for the block reason alone — the
 	// grammar's own result still decides what happens next.
-	var searched adjustResult
+	var searched bodyCorrection
 	if rr.obj == nil && rr.res != nil && rr.res.refused() {
-		found, serr := r.searchMinimal(ctx, entity, entity.recipe, rr.body, rr.res)
+		found, serr := r.addFieldsUntilAccepted(ctx, entity, entity.recipe, rr.body, rr.res)
 		if serr != nil {
 			return serr
 		}
@@ -52,7 +52,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 		// The recipe learns the body that worked. Everything downstream
 		// replays it — re-creating this entity as another's parent, narrowing
 		// a refused maximal, cleaning up at the end — and the body the plan
-		// started from is the document's guess, which is what needed healing
+		// started from is the document's guess, which is what needed correcting
 		// in the first place.
 		entity.recipe.minimalBody = cloneAnyMap(rr.body)
 		r.createdObjects[entity.plan.Entity] = rr.obj
@@ -69,8 +69,8 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 		// abandon the entity.
 		return nil
 	}
-	if rr.conditional {
-		// A free-form conditional refusal the loop could not heal within the
+	if rr.freeFormConditional {
+		// A free-form conditional refusal the loop could not correct within the
 		// cap. Value-cycling has already captured what evidence it could and
 		// recorded an inconclusive edge; blocking the whole entity would lose
 		// the other variants and probes it can still run, so continue instead.
@@ -78,14 +78,14 @@ func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step
 	}
 	if refused := lastRefusal(rr, searched); refused != nil {
 		entity.cause = &refused.excerpt
-		return blockedError{reason: minimalRefusedReason(refused.status, searched.tried)}
+		return blockedError{reason: minimalRefusedReason(refused.status, searched.addedFields)}
 	}
 	return blockedError{reason: "the minimal create produced no object"}
 }
 
 // lastRefusal answers the later-informed of the two refusals a minimal create
 // can end on: the additive search's, when it ran, and the grammar's otherwise.
-func lastRefusal(grammar, searched adjustResult) *httpResult {
+func lastRefusal(grammar, searched bodyCorrection) *httpResult {
 	if searched.res != nil {
 		return searched.res
 	}
@@ -103,7 +103,7 @@ func minimalRefusedReason(status int, tried []string) string {
 	if len(tried) == 0 {
 		return fmt.Sprintf("the minimal create was refused with status %d", status)
 	}
-	return fmt.Sprintf("the minimal create was refused with status %d, and adding %s did not heal it",
+	return fmt.Sprintf("the minimal create was refused with status %d, and adding %s did not correct it",
 		status, strings.Join(tried, ", "))
 }
 
@@ -111,10 +111,10 @@ func minimalRefusedReason(status int, tried []string) string {
 // body against a 4xx: a field the API says is not valid for this variant is
 // removed and the create retried, feeding the validWhen evidence. Accepted, it
 // extends the per-field evidence to the optional fields; refused without a
-// field the loop can act on, a bounded bisection names the culprit.
+// field the loop can act on, a bounded bisection names the refused field.
 func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.adjustCreate(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
+	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
 	if err != nil {
 		return err
 	}
@@ -133,36 +133,36 @@ func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step
 	if rr.res == nil || !rr.res.refused() {
 		return nil
 	}
-	// Narrow first, so a single culprit is named as rejected evidence, then
+	// Narrow first, so a single refused field is named as rejected evidence, then
 	// drop what the API will not take until it takes the rest.
-	if err := r.bisectMaximal(ctx, entity, step, rr.res); err != nil {
+	if err := r.narrowRefusedField(ctx, entity, step, rr.res); err != nil {
 		return err
 	}
-	return r.reduceMaximal(ctx, entity, rr.body, rr.res)
+	return r.dropFieldsUntilAccepted(ctx, entity, rr.body, rr.res)
 }
 
-// bisectMaximal narrows a refused maximal create to the optional field
+// narrowRefusedField narrows a refused maximal create to the optional field
 // the API objected to, spending at most the plan's bisection allowance in
-// extra creates. Single-culprit narrowing by construction: with several
-// culprits it still converges on one of them, which is one true finding
+// extra creates. Single-refused field narrowing by construction: with several
+// refused fields it still converges on one of them, which is one true finding
 // rather than none.
-func (r *runner) bisectMaximal(ctx context.Context, entity *entityState, step *plan.Step, refusal *httpResult) error {
+func (r *runner) narrowRefusedField(ctx context.Context, entity *entityState, step *plan.Step, refusal *httpResult) error {
 	minimal := entity.recipe.minimalBody
-	var suspects []string
+	var optionalFields []string
 	for k := range step.Body {
 		if _, inMinimal := minimal[k]; !inMinimal {
-			suspects = append(suspects, k)
+			optionalFields = append(optionalFields, k)
 		}
 	}
-	sort.Strings(suspects)
-	if len(suspects) == 0 {
+	sort.Strings(optionalFields)
+	if len(optionalFields) == 0 {
 		return nil
 	}
 
-	// The refusal often names the culprit outright; believe it when it
+	// The refusal often names the refused field outright; believe it when it
 	// names exactly one suspect.
 	var named []string
-	for _, s := range suspects {
+	for _, s := range optionalFields {
 		if refusal.mentions(s) {
 			named = append(named, s)
 		}
@@ -173,8 +173,8 @@ func (r *runner) bisectMaximal(ctx context.Context, entity *entityState, step *p
 	}
 
 	spent := 0
-	for len(suspects) > 1 && spent < step.BisectionAllowance {
-		half := suspects[:len(suspects)/2]
+	for len(optionalFields) > 1 && spent < step.FieldNarrowingAttemptLimit {
+		half := optionalFields[:len(optionalFields)/2]
 		body := map[string]any{}
 		for k, v := range minimal {
 			body[k] = v
@@ -190,15 +190,15 @@ func (r *runner) bisectMaximal(ctx context.Context, entity *entityState, step *p
 		switch {
 		case obj != nil:
 			_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
-			suspects = suspects[len(suspects)/2:]
+			optionalFields = optionalFields[len(optionalFields)/2:]
 		case res != nil && res.refused():
-			suspects = half
+			optionalFields = half
 		default:
 			return nil
 		}
 	}
-	if len(suspects) == 1 {
-		r.recordRejectedValue(entity, suspects[0], step.Body[suspects[0]], refusal)
+	if len(optionalFields) == 1 {
+		r.recordRejectedValue(entity, optionalFields[0], step.Body[optionalFields[0]], refusal)
 	}
 	return nil
 }
@@ -295,7 +295,7 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 	if step.Condition != nil {
 		held = step.Condition.Attribute
 	}
-	rr, err := r.adjustCreate(ctx, entity, entity.recipe, body, held)
+	rr, err := r.correctCreateBody(ctx, entity, entity.recipe, body, held)
 	if err != nil {
 		return err
 	}
@@ -316,7 +316,7 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState,
 		return nil
 	}
 	if cond.Attribute == step.Attribute {
-		if !accepted && rr.adjusted {
+		if !accepted && rr.bodyCorrected {
 			// The create was partly built by the adjustment loop and then
 			// stuck on a sibling requirement it could not satisfy, so the
 			// pinned value itself is not what was refused. Recording it
@@ -359,14 +359,14 @@ func appendProof(proof []observe.Excerpt, e observe.Excerpt) []observe.Excerpt {
 	return append(proof, e)
 }
 
-// searchAllowance bounds the additive minimal search: how many extra create
+// fieldAdditionAttemptLimit bounds the additive minimal search: how many extra create
 // attempts one entity may spend looking for a body the API accepts.
 //
 // Sized from the candidate count the way bisectionAllowance is sized from the
 // optional count, and capped, because a wide entity would otherwise spend the
 // whole run's requests on one search. A refused create makes no object, so the
 // cost is requests and wall clock, never debris.
-func searchAllowance(candidates int) int {
+func fieldAdditionAttemptLimit(candidates int) int {
 	const cap = 24
 	if candidates > cap {
 		return cap
@@ -374,10 +374,10 @@ func searchAllowance(candidates int) int {
 	return candidates
 }
 
-// searchMinimal looks for a create body the API accepts by adding one field at
+// addFieldsUntilAccepted looks for a create body the API accepts by adding one field at
 // a time to a body it refused.
 //
-// The document is only a hypothesis about what a create needs, and an API that
+// The document is only a claim about what a create needs, and an API that
 // declares nothing required leaves the derivation with an empty body that
 // cannot make anything. The refusal grammar handles a refusal that names its
 // field; this handles the rest, which is every API whose 400 says only that
@@ -387,20 +387,20 @@ func searchAllowance(candidates int) int {
 // refusal naming it stays, so a body needing several fields is found in as
 // many attempts rather than exponentially many. What it finds is a viable
 // minimal body, not a proof that every field in it is individually necessary.
-func (r *runner) searchMinimal(ctx context.Context, entity *entityState, rec *entityRecipe, body map[string]any, refusal *httpResult) (adjustResult, error) {
-	candidates := r.searchCandidates(entity, body, refusal)
-	allowance := searchAllowance(len(candidates))
+func (r *runner) addFieldsUntilAccepted(ctx context.Context, entity *entityState, rec *entityLifecycle, body map[string]any, refusal *httpResult) (bodyCorrection, error) {
+	candidates := r.fieldsToTry(entity, body, refusal)
+	allowance := fieldAdditionAttemptLimit(len(candidates))
 	last := refusal
 	var tried []string
 
 	for i := 0; i < allowance; i++ {
 		field := candidates[i]
 		tried = append(tried, field)
-		body[field] = r.synthField(entity, field)
+		body[field] = r.synthesiseField(entity, field)
 
 		obj, res, err := r.createObject(ctx, entity, rec, body)
 		if err != nil {
-			return adjustResult{}, err
+			return bodyCorrection{}, err
 		}
 		if obj != nil {
 			// Every field the search added is part of the smallest body this
@@ -410,10 +410,10 @@ func (r *runner) searchMinimal(ctx context.Context, entity *entityState, rec *en
 					r.recordAdjustAdd(entity, added, "", "", res.excerpt)
 				}
 			}
-			return adjustResult{obj: obj, res: res, body: body, adjusted: true}, nil
+			return bodyCorrection{obj: obj, res: res, body: body, bodyCorrected: true}, nil
 		}
 		if res == nil || !res.refused() {
-			return adjustResult{res: res, body: body, adjusted: true, gaveUp: true, tried: tried}, nil
+			return bodyCorrection{res: res, body: body, bodyCorrected: true, unresolved: true, addedFields: tried}, nil
 		}
 		// The API now objects to the field just added, so it is not one this
 		// create wants; the ones before it stay.
@@ -422,13 +422,13 @@ func (r *runner) searchMinimal(ctx context.Context, entity *entityState, rec *en
 		}
 		last = res
 	}
-	return adjustResult{res: last, body: body, adjusted: true, gaveUp: true, tried: tried}, nil
+	return bodyCorrection{res: last, body: body, bodyCorrected: true, unresolved: true, addedFields: tried}, nil
 }
 
-// searchCandidates orders the fields the search may add, cheapest-signal
+// fieldsToTry orders the fields the search may add, cheapest-signal
 // first, so the common case ends in a handful of attempts and a re-run repeats
 // the same order.
-func (r *runner) searchCandidates(entity *entityState, body map[string]any, refusal *httpResult) []string {
+func (r *runner) fieldsToTry(entity *entityState, body map[string]any, refusal *httpResult) []string {
 	hints := r.hints[entity.plan.Entity]
 	type candidate struct {
 		field string
@@ -465,26 +465,26 @@ func (r *runner) searchCandidates(entity *entityState, body map[string]any, refu
 	return fields
 }
 
-// reduceMaximal drops the fields the API objects to until it accepts the
+// dropFieldsUntilAccepted drops the fields the API objects to until it accepts the
 // create, and records the body it accepted.
 //
 // The counterpart to searchMinimal: that one adds until a create works, this
 // one removes. What survives is the fullest create this run could get taken,
 // which is what a generated maximal configuration has to be — every field in
 // it is one the API demonstrably tolerates alongside the others.
-func (r *runner) reduceMaximal(ctx context.Context, entity *entityState, body map[string]any, refusal *httpResult) error {
+func (r *runner) dropFieldsUntilAccepted(ctx context.Context, entity *entityState, body map[string]any, refusal *httpResult) error {
 	minimal := entity.recipe.minimalBody
-	allowance := searchAllowance(len(body))
+	allowance := fieldAdditionAttemptLimit(len(body))
 	last := refusal
 
 	for i := 0; i < allowance; i++ {
-		culprit := r.maximalCulprit(body, minimal, last)
-		if culprit == "" {
+		refusedField := r.refusedOptionalField(body, minimal, last)
+		if refusedField == "" {
 			return nil
 		}
 		// The evidence for a refusal is bisectMaximal's to record; this only
 		// shapes the body, so a field dropped here is not claimed twice.
-		delete(body, culprit)
+		delete(body, refusedField)
 
 		obj, res, err := r.createObject(ctx, entity, entity.recipe, body)
 		if err != nil {
@@ -510,13 +510,13 @@ func (r *runner) reduceMaximal(ctx context.Context, entity *entityState, body ma
 	return nil
 }
 
-// maximalCulprit names the optional field to drop next: the one the refusal
+// refusedOptionalField names the optional field to drop next: the one the refusal
 // mentions, else the last in document order, which is deterministic and so
 // repeats the same reduction on a re-run.
 //
 // A field the minimal create needs is never a candidate — removing it would
 // trade a refused maximal for a refused minimal.
-func (r *runner) maximalCulprit(body, minimal map[string]any, refusal *httpResult) string {
+func (r *runner) refusedOptionalField(body, minimal map[string]any, refusal *httpResult) string {
 	var optional []string
 	for k := range body {
 		if _, needed := minimal[k]; !needed {

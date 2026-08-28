@@ -40,7 +40,7 @@ type Result struct {
 	OutDir string
 }
 
-// Run generates the SDK tree: gate the pinned tool, pre-normalize the
+// Run generates the SDK tree: gate the pinned tool, pre-normalise the
 // revised document into a temp copy, generate into a staging directory, scrub
 // nondeterminism, swap the staging tree into place, and record every file in
 // the manifest under the sdk origin — carrying every other origin's entries
@@ -110,7 +110,7 @@ func resolveOut(opts Options) (string, error) {
 
 // regenerate runs the pipeline stages `sdk generate` and `sdk verify` share —
 // select the backend, read the revised document, gate the pinned tool,
-// pre-normalize a copy, generate into a fresh temporary directory, scrub
+// pre-normalise a copy, generate into a fresh temporary directory, scrub
 // nondeterminism — and returns that directory. What becomes of the tree is
 // the caller's question: Run swaps it into place, Verify compares and
 // discards it.
@@ -142,12 +142,12 @@ func regenerate(ctx context.Context, opts Options, targetParent, targetPrefix st
 		return Result{}, "", err
 	}
 
-	prenormalized, _, _, err := Prenormalize(revised)
+	prenormalised, _, _, err := Prenormalise(revised)
 	if err != nil {
 		return Result{}, "", err
 	}
 
-	// The pre-normalized copy is an intermediate, not an output: it lives in
+	// The pre-normalised copy is an intermediate, not an output: it lives in
 	// a temp directory the run removes, and only its durable source
 	// (spec/revised.yaml) is ever recorded in generated files.
 	workDir, err := os.MkdirTemp("", "tfpfgen-sdkgen-")
@@ -156,8 +156,8 @@ func regenerate(ctx context.Context, opts Options, targetParent, targetPrefix st
 	}
 	defer os.RemoveAll(workDir) //nolint:errcheck // best-effort temp cleanup
 
-	prePath := filepath.Join(workDir, "revised.prenormalized.yaml")
-	if err := os.WriteFile(prePath, prenormalized, 0o600); err != nil {
+	prePath := filepath.Join(workDir, "revised.prenormalised.yaml")
+	if err := os.WriteFile(prePath, prenormalised, 0o600); err != nil {
 		return Result{}, "", err
 	}
 

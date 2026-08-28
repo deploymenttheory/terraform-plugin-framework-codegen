@@ -1,6 +1,6 @@
 // propose.go is the compiling half of revision: committed audit
 // observations become proposed corrections, closing the evidence loop that
-// Materialize's applying half consumes. Propose is deterministic — the same
+// WriteRevision's applying half consumes. Propose is deterministic — the same
 // observations against the same revised state produce byte-identical files —
 // and convergent: an observation whose fact the revised document already
 // states proposes nothing, so accept-then-reaudit settles instead of
@@ -104,7 +104,7 @@ type Proposals struct {
 
 // Propose compiles the committed audit observations into proposed
 // corrections under dir/corrections/proposed/, with no kinds auto-accepted.
-// dir is the spec directory, as for Materialize; observations are read from
+// dir is the spec directory, as for WriteRevision; observations are read from
 // the conventional audit/observations directory beside it.
 func Propose(dir string) (Proposals, error) {
 	return ProposeWith(dir, Options{})

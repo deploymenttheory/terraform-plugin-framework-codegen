@@ -96,7 +96,7 @@ func TestUnit_SpecRevise_ProposeOnlyCompilesAndStops(t *testing.T) {
 		}
 	}
 	if strings.Contains(stdout, "wrote") {
-		t.Errorf("propose-only must stop before materializing:\n%s", stdout)
+		t.Errorf("propose-only must stop before writing:\n%s", stdout)
 	}
 	if _, err := os.Stat(filepath.Join(specDir, "revised.yaml")); !os.IsNotExist(err) {
 		t.Errorf("revised.yaml exists after --propose-only (stat: %v)", err)
@@ -120,7 +120,7 @@ func TestUnit_SpecRevise_FreshObservationsProposeThenFailTheGate(t *testing.T) {
 	}
 }
 
-func TestUnit_SpecRevise_AutoAcceptedKindsMaterializeInOneRun(t *testing.T) {
+func TestUnit_SpecRevise_AutoAcceptedKindsWriteRevisionInOneRun(t *testing.T) {
 	root, specDir := observedTree(t)
 	configuration := filepath.Join(root, "tfpfgen.yaml")
 	writeUnder(t, configuration, `version: 1

@@ -135,7 +135,7 @@ func TestUnit_Verify_FailsWhenTheChainCannot(t *testing.T) {
 }
 
 // TestUnit_Verify_ToleratesTheToolchainFinalizedFiles simulates what
-// postcheck's `go mod tidy` does after install — rewrites go.mod, writes a
+// tree verification's `go mod tidy` does after install — rewrites go.mod, writes a
 // go.sum no template emits — plus the manifest refresh Run performs, and
 // expects verify to answer clean: those files are held to the re-recorded
 // digests, not to a regeneration that never runs the toolchain.
@@ -152,7 +152,7 @@ func TestUnit_Verify_ToleratesTheToolchainFinalizedFiles(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "go.sum"), []byte("example.com/dep v1.0.0 h1:abc=\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := recordPostcheckOwned(root); err != nil {
+	if err := recordToolchainWritten(root); err != nil {
 		t.Fatalf("recordPostcheckOwned: %v", err)
 	}
 

@@ -11,7 +11,7 @@ import (
 // declares its own Provenance rather than importing observe's, so the compiler
 // that reads documents carries no dependency on the package that writes
 // observations. The two value sets must stay identical, because an observation
-// inherits the provenance of the hypothesis it confirms.
+// inherits the provenance of the claim it confirms.
 func TestUnit_Provenance_MirrorsObserve(t *testing.T) {
 	t.Parallel()
 	pairs := []struct {

@@ -376,11 +376,11 @@ func findVariant(s *strategy.Strategy, gateField, gateValue string) *strategy.Va
 	return nil
 }
 
-func findHypothesis(s *strategy.Strategy, kind strategy.HypothesisKind, subject string) *strategy.Hypothesis {
-	for i := range s.Hypotheses {
-		for _, sub := range s.Hypotheses[i].Subjects {
-			if s.Hypotheses[i].Kind == kind && sub == subject {
-				return &s.Hypotheses[i]
+func findHypothesis(s *strategy.Strategy, kind strategy.ClaimKind, subject string) *strategy.Claim {
+	for i := range s.Claims {
+		for _, sub := range s.Claims[i].Subjects {
+			if s.Claims[i].Kind == kind && sub == subject {
+				return &s.Claims[i]
 			}
 		}
 	}
@@ -411,8 +411,8 @@ func contains(list []string, want string) bool {
 func TestFlatResourceHasSingleBaseline(t *testing.T) {
 	s := compile(t, flatSpec, "widget", defaultCfg())
 
-	if s.Role != "resource" || s.ReadOnly {
-		t.Fatalf("role=%q readOnly=%v, want resource/false", s.Role, s.ReadOnly)
+	if s.AuditShape != "resource" || s.ReadOnly {
+		t.Fatalf("role=%q readOnly=%v, want resource/false", s.AuditShape, s.ReadOnly)
 	}
 	if len(s.Gates) != 0 {
 		t.Fatalf("gates=%v, want none", s.Gates)
@@ -430,8 +430,8 @@ func TestFlatResourceHasSingleBaseline(t *testing.T) {
 	if !reflect.DeepEqual(base.Maximal.Fields, []string{"color", "name"}) {
 		t.Fatalf("maximal=%v, want [color name]", base.Maximal.Fields)
 	}
-	if len(s.Hypotheses) != 0 {
-		t.Fatalf("hypotheses=%v, want none", s.Hypotheses)
+	if len(s.Claims) != 0 {
+		t.Fatalf("claims=%v, want none", s.Claims)
 	}
 	// The program covers the full lifecycle and ends with cleanup.
 	if s.Program[len(s.Program)-1].Kind != "cleanupDelete" {
@@ -466,10 +466,10 @@ func TestOneOfResourceYieldsVariantPerValue(t *testing.T) {
 	if !contains(vy.Maximal.Fields, "yField") || contains(vy.Maximal.Fields, "xField") {
 		t.Fatalf("y maximal=%v, want yField without xField", vy.Maximal.Fields)
 	}
-	// Each branch's extra field is a structural variant hypothesis.
-	h := findHypothesis(s, strategy.HypothesisVariant, "xField")
+	// Each branch's extra field is a structural variant claim.
+	h := findHypothesis(s, strategy.ClaimValidConfiguration, "xField")
 	if h == nil || h.GateValue != "x" || h.Provenance != strategy.ProvenanceStructural {
-		t.Fatalf("missing structural variant hypothesis for xField: %+v", s.Hypotheses)
+		t.Fatalf("missing structural variant claim for xField: %+v", s.Claims)
 	}
 	// A per-value create is scheduled for each gate value.
 	if countSteps(s, "createPerEnumValue") < 2 {
@@ -500,9 +500,9 @@ func TestDependentRequiredYieldsRequiresField(t *testing.T) {
 	s := compile(t, dependentSpec, "alarm", defaultCfg())
 
 	// dependentRequired a:[b] -> requiresField {a,b}, structural.
-	h := findHypothesis(s, strategy.HypothesisRequiresField, "a")
+	h := findHypothesis(s, strategy.ClaimDependsOn, "a")
 	if h == nil {
-		t.Fatalf("no requiresField hypothesis for a: %+v", s.Hypotheses)
+		t.Fatalf("no requiresField claim for a: %+v", s.Claims)
 	}
 	if h.Provenance != strategy.ProvenanceStructural {
 		t.Fatalf("provenance=%q, want structural", h.Provenance)
@@ -511,9 +511,9 @@ func TestDependentRequiredYieldsRequiresField(t *testing.T) {
 		t.Fatalf("subjects=%v, want a and b", h.Subjects)
 	}
 	// dependentSchemas c -> requires d.
-	hc := findHypothesis(s, strategy.HypothesisRequiresField, "c")
+	hc := findHypothesis(s, strategy.ClaimDependsOn, "c")
 	if hc == nil || !contains(hc.Subjects, "d") {
-		t.Fatalf("no requiresField hypothesis for c requiring d: %+v", s.Hypotheses)
+		t.Fatalf("no requiresField claim for c requiring d: %+v", s.Claims)
 	}
 }
 
@@ -521,28 +521,28 @@ func TestProseRequiredWhenAndDiscard(t *testing.T) {
 	s := compile(t, proseSpec, "rule", defaultCfg())
 
 	// "Required when mode is dynamic." -> requiredWhen(query, mode=dynamic), prose.
-	h := findHypothesis(s, strategy.HypothesisRequiredWhen, "query")
+	h := findHypothesis(s, strategy.ClaimRequiredWhen, "query")
 	if h == nil {
-		t.Fatalf("no requiredWhen hypothesis for query: %+v", s.Hypotheses)
+		t.Fatalf("no requiredWhen claim for query: %+v", s.Claims)
 	}
 	if h.Provenance != strategy.ProvenanceProse || h.GateField != "mode" || h.GateValue != "dynamic" {
-		t.Fatalf("query hypothesis=%+v, want prose mode=dynamic", *h)
+		t.Fatalf("query claim=%+v, want prose mode=dynamic", *h)
 	}
 	// "Only applies when mode is static." -> validWhen(region, mode=static), prose.
-	hr := findHypothesis(s, strategy.HypothesisValidWhen, "region")
+	hr := findHypothesis(s, strategy.ClaimValidWhen, "region")
 	if hr == nil || hr.GateValue != "static" || hr.Provenance != strategy.ProvenanceProse {
-		t.Fatalf("region validWhen hypothesis wrong: %+v", s.Hypotheses)
+		t.Fatalf("region validWhen claim wrong: %+v", s.Claims)
 	}
 	// "Cannot be used with secondary." -> mutuallyExclusive{primary,secondary}, prose.
-	he := findHypothesis(s, strategy.HypothesisMutuallyExclusive, "primary")
+	he := findHypothesis(s, strategy.ClaimMutuallyExclusive, "primary")
 	if he == nil || !contains(he.Subjects, "secondary") || he.Provenance != strategy.ProvenanceProse {
-		t.Fatalf("primary mutuallyExclusive hypothesis wrong: %+v", s.Hypotheses)
+		t.Fatalf("primary mutuallyExclusive claim wrong: %+v", s.Claims)
 	}
-	// The notes field names nothing -> discarded, no hypothesis mentions it.
-	if findHypothesis(s, strategy.HypothesisRequiredWhen, "notes") != nil ||
-		findHypothesis(s, strategy.HypothesisValidWhen, "notes") != nil ||
-		findHypothesis(s, strategy.HypothesisRequiresField, "notes") != nil {
-		t.Fatalf("a hint naming nothing was not discarded: %+v", s.Hypotheses)
+	// The notes field names nothing -> discarded, no claim mentions it.
+	if findHypothesis(s, strategy.ClaimRequiredWhen, "notes") != nil ||
+		findHypothesis(s, strategy.ClaimValidWhen, "notes") != nil ||
+		findHypothesis(s, strategy.ClaimDependsOn, "notes") != nil {
+		t.Fatalf("a hint naming nothing was not discarded: %+v", s.Claims)
 	}
 }
 
@@ -572,8 +572,8 @@ func TestBoolGate(t *testing.T) {
 func TestLookupDatasourceIsReadOnly(t *testing.T) {
 	s := compile(t, lookupSpec, "agent", defaultCfg())
 
-	if !s.ReadOnly || s.Role != "lookup" {
-		t.Fatalf("role=%q readOnly=%v, want lookup/true", s.Role, s.ReadOnly)
+	if !s.ReadOnly || s.AuditShape != "lookupByKey" {
+		t.Fatalf("role=%q readOnly=%v, want lookup/true", s.AuditShape, s.ReadOnly)
 	}
 	if len(s.Gates) != 0 || len(s.Variants) != 0 {
 		t.Fatalf("read-only strategy carries gates/variants: %+v", s)
@@ -589,8 +589,8 @@ func TestLookupDatasourceIsReadOnly(t *testing.T) {
 
 func TestListDatasourceIsReadOnly(t *testing.T) {
 	s := compile(t, listDatasourceSpec, "zone", defaultCfg())
-	if !s.ReadOnly || s.Role != "datasource" {
-		t.Fatalf("role=%q readOnly=%v, want datasource/true", s.Role, s.ReadOnly)
+	if !s.ReadOnly || s.AuditShape != "datasource" {
+		t.Fatalf("role=%q readOnly=%v, want datasource/true", s.AuditShape, s.ReadOnly)
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 )
 
 // fakeGo puts an executable named go on an otherwise empty PATH, so the
-// postcheck's toolchain is this script and nothing else.
+// the verification's toolchain is this script and nothing else.
 func fakeGo(t *testing.T, script string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -21,32 +21,32 @@ func fakeGo(t *testing.T, script string) {
 	t.Setenv("PATH", dir)
 }
 
-func TestUnit_Postcheck_DisabledSkips(t *testing.T) {
-	rep, err := postcheck(context.Background(), t.TempDir(), false)
+func TestUnit_VerifyGeneratedTree_DisabledSkips(t *testing.T) {
+	rep, err := verifyGeneratedTree(context.Background(), t.TempDir(), false)
 	if err != nil {
-		t.Fatalf("postcheck: %v", err)
+		t.Fatalf("verifying the generated tree: %v", err)
 	}
-	if rep.Ran || rep.SkippedReason != "postcheck disabled" {
+	if rep.Ran || rep.SkippedReason != "tree verification disabled" {
 		t.Errorf("report = %+v; disabling must skip with the reason", rep)
 	}
 }
 
-func TestUnit_Postcheck_NoToolchainSkips(t *testing.T) {
+func TestUnit_VerifyGeneratedTree_NoToolchainSkips(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
-	rep, err := postcheck(context.Background(), t.TempDir(), true)
+	rep, err := verifyGeneratedTree(context.Background(), t.TempDir(), true)
 	if err != nil {
-		t.Fatalf("postcheck: %v", err)
+		t.Fatalf("verifying the generated tree: %v", err)
 	}
 	if rep.Ran || rep.SkippedReason != "go is not on PATH" {
 		t.Errorf("report = %+v; a missing toolchain must skip cleanly", rep)
 	}
 }
 
-func TestUnit_Postcheck_AllStepsPass(t *testing.T) {
+func TestUnit_VerifyGeneratedTree_AllStepsPass(t *testing.T) {
 	fakeGo(t, "exit 0\n")
-	rep, err := postcheck(context.Background(), t.TempDir(), true)
+	rep, err := verifyGeneratedTree(context.Background(), t.TempDir(), true)
 	if err != nil {
-		t.Fatalf("postcheck: %v", err)
+		t.Fatalf("verifying the generated tree: %v", err)
 	}
 	if !rep.Ran || len(rep.Steps) != 3 {
 		t.Errorf("report = %+v; three passing steps make a run", rep)
@@ -56,20 +56,20 @@ func TestUnit_Postcheck_AllStepsPass(t *testing.T) {
 	}
 }
 
-func TestUnit_Postcheck_FailureIsReportedVerbatim(t *testing.T) {
+func TestUnit_VerifyGeneratedTree_FailureIsReportedVerbatim(t *testing.T) {
 	fakeGo(t, "echo 'the hull is breached'; exit 1\n")
-	_, err := postcheck(context.Background(), t.TempDir(), true)
+	_, err := verifyGeneratedTree(context.Background(), t.TempDir(), true)
 	if err == nil || !strings.Contains(err.Error(), "the hull is breached") ||
 		!strings.Contains(err.Error(), "go mod tidy") {
 		t.Fatalf("err = %v; a failure carries the toolchain's own words and the step", err)
 	}
 }
 
-func TestUnit_Postcheck_OfflineFailureSkips(t *testing.T) {
+func TestUnit_VerifyGeneratedTree_OfflineFailureSkips(t *testing.T) {
 	fakeGo(t, "echo 'dial tcp 203.0.113.1:443: connect: network is unreachable'; exit 1\n")
-	rep, err := postcheck(context.Background(), t.TempDir(), true)
+	rep, err := verifyGeneratedTree(context.Background(), t.TempDir(), true)
 	if err != nil {
-		t.Fatalf("postcheck: %v", err)
+		t.Fatalf("verifying the generated tree: %v", err)
 	}
 	if rep.Ran || !strings.Contains(rep.SkippedReason, "dial tcp") {
 		t.Errorf("report = %+v; an offline signature skips with the output quoted", rep)
@@ -119,30 +119,30 @@ func TestUnit_EnvWithBuildVCSOff(t *testing.T) {
 	}
 }
 
-// TestUnit_Postcheck_PassesBuildVCSOffToToolchain proves the mechanism: a
+// TestUnit_VerifyGeneratedTree_PassesBuildVCSOffToToolchain proves the mechanism: a
 // stub go on PATH refuses unless it sees -buildvcs=false in GOFLAGS, so the
-// run only completes because the postcheck sets it for every step.
-func TestUnit_Postcheck_PassesBuildVCSOffToToolchain(t *testing.T) {
+// run only completes because the verification sets it for every step.
+func TestUnit_VerifyGeneratedTree_PassesBuildVCSOffToToolchain(t *testing.T) {
 	fakeGo(t, `case "$GOFLAGS" in
 *-buildvcs=false*) exit 0 ;;
 *) echo "GOFLAGS=$GOFLAGS lacks -buildvcs=false"; exit 1 ;;
 esac
 `)
-	rep, err := postcheck(context.Background(), t.TempDir(), true)
+	rep, err := verifyGeneratedTree(context.Background(), t.TempDir(), true)
 	if err != nil {
-		t.Fatalf("postcheck: %v", err)
+		t.Fatalf("verifying the generated tree: %v", err)
 	}
 	if !rep.Ran {
 		t.Errorf("report = %+v; the build steps must carry -buildvcs=false in GOFLAGS", rep)
 	}
 }
 
-// TestUnit_Postcheck_SucceedsInNonGitOutputDir reproduces the reported
+// TestUnit_VerifyGeneratedTree_SucceedsInNonGitOutputDir reproduces the reported
 // failure with the real toolchain: a freshly generated output tree that is
 // not itself a git repository but sits under a broken git ancestor makes
 // `go build` fail with "error obtaining VCS status: exit status 128 / Use
 // -buildvcs=false". The postcheck must build it anyway.
-func TestUnit_Postcheck_SucceedsInNonGitOutputDir(t *testing.T) {
+func TestUnit_VerifyGeneratedTree_SucceedsInNonGitOutputDir(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping the real toolchain run in -short mode")
 	}
@@ -178,7 +178,7 @@ func TestUnit_Postcheck_SucceedsInNonGitOutputDir(t *testing.T) {
 		t.Skipf("this environment does not stamp VCS here, nothing to guard: err=%v out=%s", err, out)
 	}
 
-	rep, err := postcheck(context.Background(), root, true)
+	rep, err := verifyGeneratedTree(context.Background(), root, true)
 	if err != nil {
 		t.Fatalf("postcheck failed in a non-git output dir: %v", err)
 	}

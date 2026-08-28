@@ -247,7 +247,7 @@ func TestUnit_AuditCleanup_RemovesThePrefix(t *testing.T) {
 // the undocumentedFieldInSpec loop end to end: the quirk server answers a
 // "serial" field no schema in the fixture spec declares; the audit run
 // observes it from the read-backs; spec revise compiles the observation
-// into a proposed correction; accepting it and materializing produces a
+// into a proposed correction; accepting it and writing produces a
 // revised spec that declares the field with its observed type.
 func TestIntegration_AuditToRevise_UndocumentedFieldLandsInTheRevisedSpec(t *testing.T) {
 	s := quirkserver.New(t, quirkserver.Quirks{

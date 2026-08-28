@@ -1,6 +1,6 @@
 package run
 
-// strategize is the bridge from the per-resource strategy compiler to the
+// applyStrategies is the bridge from the per-resource strategy compiler to the
 // executable plan the runner consumes. For every entity the addressing plan
 // already resolved — paths, path values, parent and self references — it
 // compiles a strategy.Strategy from the document and swaps in a step program
@@ -29,13 +29,13 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 )
 
-// strategize rewrites every entity of p to execute its compiled strategy,
+// applyStrategies rewrites every entity of p to execute its compiled strategy,
 // returning the new plan, the per-entity field synthesis hints the adjustment
 // loop draws on when it has to add a field live, and the compiled strategies
-// themselves, which the triangulating inference reads for the hypotheses each
+// themselves, which the triangulating inference reads for the claims each
 // run was meant to confirm. The input plan is left untouched: a new plan is
 // built so the caller's copy is never mutated.
-func strategize(p *plan.Plan, document *specmodel.Document, configuration *config.Config, prefix string, inputs *plan.Inputs) (*plan.Plan, map[string]map[string]strategy.SynthHint, map[string]*strategy.Strategy) {
+func applyStrategies(p *plan.Plan, document *specmodel.Document, configuration *config.Config, prefix string, inputs *plan.Inputs) (*plan.Plan, map[string]map[string]strategy.SyntheticValueRules, map[string]*strategy.Strategy) {
 	cls := specmodel.Classify(document)
 	byKey := make(map[string]specmodel.Classification, len(cls.Entities))
 	for _, c := range cls.Entities {
@@ -43,7 +43,7 @@ func strategize(p *plan.Plan, document *specmodel.Document, configuration *confi
 	}
 
 	out := &plan.Plan{Skipped: p.Skipped, Budget: p.Budget}
-	hints := map[string]map[string]strategy.SynthHint{}
+	hints := map[string]map[string]strategy.SyntheticValueRules{}
 	strategies := map[string]*strategy.Strategy{}
 	total := 0
 	for i := range p.Entities {
@@ -160,7 +160,7 @@ func entityValues(p *plan.Plan, inputs *plan.Inputs) map[string]map[string]any {
 func translateProgram(compiled *strategy.Strategy, addr addressing, entity, prefix string, values map[string]any) []plan.Step {
 	baseMinimal := map[string]any{}
 	if len(compiled.Variants) > 0 {
-		baseMinimal = synthSkeletonBody(compiled.Variants[0].Minimal, entity, prefix, "", "", values)
+		baseMinimal = synthesiseRequestBody(compiled.Variants[0].Minimal, entity, prefix, "", "", values)
 	}
 	hints := collectHints(compiled)
 
@@ -172,15 +172,15 @@ func translateProgram(compiled *strategy.Strategy, addr addressing, entity, pref
 			steps = append(steps, plan.Step{
 				Kind: s.Kind, Method: addr.createMethod, Path: addr.collectionPath,
 				PathValues: addr.collectionValues,
-				Body:       synthSkeletonBody(v.Minimal, entity, prefix, s.GateField, s.GateValue, values),
+				Body:       synthesiseRequestBody(v.Minimal, entity, prefix, s.GateField, s.GateValue, values),
 			})
 		case plan.StepCreateMaximal:
 			v := findVariant(compiled, s.GateField, s.GateValue)
-			body := synthSkeletonBody(v.Maximal, entity, prefix, s.GateField, s.GateValue, values)
+			body := synthesiseRequestBody(v.Maximal, entity, prefix, s.GateField, s.GateValue, values)
 			steps = append(steps, plan.Step{
 				Kind: s.Kind, Method: addr.createMethod, Path: addr.collectionPath,
 				PathValues: addr.collectionValues, Body: body,
-				BisectionAllowance: bisectionAllowance(countOptional(v, body)),
+				FieldNarrowingAttemptLimit: fieldNarrowingAttemptLimit(countOptional(v, body)),
 			})
 		case plan.StepReadWithRetry:
 			steps = append(steps, plan.Step{
@@ -228,7 +228,7 @@ func collectionStep(kind plan.StepKind, attribute string, addr addressing, body 
 
 // updateStep builds a one-field update to a distinct value, or reports that
 // the field has no second value worth sending (a single-value enum, say).
-func updateStep(field string, addr addressing, entity string, hints map[string]strategy.SynthHint, baseMinimal map[string]any) (plan.Step, bool) {
+func updateStep(field string, addr addressing, entity string, hints map[string]strategy.SyntheticValueRules, baseMinimal map[string]any) (plan.Step, bool) {
 	if addr.updateMethod == "" {
 		// The resource declares no update operation, so there is no method to
 		// send a field update with. Probing one anyway would issue a
@@ -242,7 +242,7 @@ func updateStep(field string, addr addressing, entity string, hints map[string]s
 	}
 	base := baseMinimal[field]
 	if base == nil {
-		base = synthValue(h, entity, "")
+		base = synthesiseValue(h, entity, "")
 	}
 	variant, ok := variantValue(h, base)
 	if !ok {
@@ -259,7 +259,7 @@ func updateStep(field string, addr addressing, entity string, hints map[string]s
 // perValueStep builds a createPerEnumValue: the baseline body with the gate
 // pinned to the value under test, scoped by the condition the observation will
 // carry.
-func perValueStep(s strategy.Step, addr addressing, hints map[string]strategy.SynthHint, baseMinimal map[string]any) plan.Step {
+func perValueStep(s strategy.Step, addr addressing, hints map[string]strategy.SyntheticValueRules, baseMinimal map[string]any) plan.Step {
 	body := cloneAnyMap(baseMinimal)
 	if s.GateField != "" {
 		body[s.GateField] = typedGate(hints[s.GateField], s.GateValue)
@@ -285,15 +285,15 @@ func findVariant(compiled *strategy.Strategy, gateField, gateValue string) strat
 // collectHints indexes every field the strategy knows about by name, drawn
 // from the widest (maximal) skeleton of each variant so a field valid only
 // under one gate is still synthesisable when a refusal demands it.
-func collectHints(compiled *strategy.Strategy) map[string]strategy.SynthHint {
-	out := map[string]strategy.SynthHint{}
+func collectHints(compiled *strategy.Strategy) map[string]strategy.SyntheticValueRules {
+	out := map[string]strategy.SyntheticValueRules{}
 	for _, v := range compiled.Variants {
-		for _, h := range v.Maximal.Hints {
+		for _, h := range v.Maximal.Rules {
 			if _, ok := out[h.Field]; !ok {
 				out[h.Field] = h
 			}
 		}
-		for _, h := range v.Minimal.Hints {
+		for _, h := range v.Minimal.Rules {
 			if _, ok := out[h.Field]; !ok {
 				out[h.Field] = h
 			}
@@ -318,7 +318,7 @@ func countOptional(v strategy.Variant, body map[string]any) int {
 	return n
 }
 
-// synthSkeletonBody synthesises a create body from a skeleton: one value per
+// synthesiseRequestBody synthesises a create body from a skeleton: one value per
 // field, drawn from the operator's inputs where they name it and from that
 // field's hint otherwise, with the gate field pinned to the variant's value
 // where one is given.
@@ -328,9 +328,9 @@ func countOptional(v strategy.Variant, body map[string]any) int {
 // existing agent's id, the discriminator a polymorphic body is keyed on.
 // Scoped to the body's own fields, as the plan's synthesis is, because a
 // wire property name says nothing about which nested object it belongs to.
-func synthSkeletonBody(sk strategy.Skeleton, entity, prefix, gateField, gateValue string, values map[string]any) map[string]any {
-	byField := make(map[string]strategy.SynthHint, len(sk.Hints))
-	for _, h := range sk.Hints {
+func synthesiseRequestBody(sk strategy.RequestFields, entity, prefix, gateField, gateValue string, values map[string]any) map[string]any {
+	byField := make(map[string]strategy.SyntheticValueRules, len(sk.Rules))
+	for _, h := range sk.Rules {
 		byField[h.Field] = h
 	}
 	body := map[string]any{}
@@ -344,21 +344,21 @@ func synthSkeletonBody(sk strategy.Skeleton, entity, prefix, gateField, gateValu
 			continue
 		}
 		if h, ok := byField[f]; ok {
-			body[f] = synthValue(h, entity, prefix)
+			body[f] = synthesiseValue(h, entity, prefix)
 		}
 	}
 	return body
 }
 
-// synthField synthesises one field the adjustment loop must add live, from its
+// synthesiseField synthesises one field the adjustment loop must add live, from its
 // strategy hint when known and from its name and a string default otherwise.
-func (r *runner) synthField(entity *entityState, field string) any {
+func (r *runner) synthesiseField(entity *entityState, field string) any {
 	if v, ok := r.inputValues[entity.plan.Entity][field]; ok {
 		return v
 	}
 	if hints := r.hints[entity.plan.Entity]; hints != nil {
 		if h, ok := hints[field]; ok {
-			return synthValue(h, entity.plan.Entity, r.opts.NamePrefix)
+			return synthesiseValue(h, entity.plan.Entity, r.opts.NamePrefix)
 		}
 	}
 	if plan.NameBearing(field) {
@@ -367,10 +367,10 @@ func (r *runner) synthField(entity *entityState, field string) any {
 	return "sample-" + field
 }
 
-// synthValue derives one field's value from its hint. The priority mirrors the
+// synthesiseValue derives one field's value from its hint. The priority mirrors the
 // plan package's synthesis: example, then default, then the first enum member,
 // then a format-driven value, then a type-driven one.
-func synthValue(h strategy.SynthHint, entity, prefix string) any {
+func synthesiseValue(h strategy.SyntheticValueRules, entity, prefix string) any {
 	// A name must be unique per run and must carry the prefix cleanup matches
 	// on, so the invented token beats a declared example. An example is a
 	// value the API accepted once; an API that requires a name to be unique
@@ -427,7 +427,7 @@ func synthValue(h strategy.SynthHint, entity, prefix string) any {
 // comes back is then read as behaviour: a coerced echo becomes "the server
 // forced its own value", an unchanged field becomes "silently ignored on
 // update". Both are conclusions about the probe.
-func variantValue(h strategy.SynthHint, base any) (any, bool) {
+func variantValue(h strategy.SyntheticValueRules, base any) (any, bool) {
 	if len(h.Enum) > 0 {
 		// Compared as text so a float64 from a decoded body matches an int
 		// from the document; returned as declared so the wire value keeps the
@@ -471,7 +471,7 @@ func variantValue(h strategy.SynthHint, base any) (any, bool) {
 // direction would leave them. It gives up rather than send a value the
 // document forbids: a field pinned to a single legal value has no variant, and
 // probing it anyway only proves the API enforces its own schema.
-func numericVariant(h strategy.SynthHint, base any) (float64, bool) {
+func numericVariant(h strategy.SyntheticValueRules, base any) (float64, bool) {
 	current, ok := asFloat(base)
 	if !ok {
 		// No current value to move away from: start from the low bound, or
@@ -497,7 +497,7 @@ func numericVariant(h strategy.SynthHint, base any) (float64, bool) {
 	return 0, false
 }
 
-func inBounds(h strategy.SynthHint, v float64) bool {
+func inBounds(h strategy.SyntheticValueRules, v float64) bool {
 	if h.Minimum != nil && v < *h.Minimum {
 		return false
 	}
@@ -528,7 +528,7 @@ func asFloat(v any) (float64, bool) {
 // typedGate converts a gate value string to the type the gate field declares,
 // so a boolean gate is pinned with a JSON boolean and an integer gate with a
 // number.
-func typedGate(h strategy.SynthHint, value string) any {
+func typedGate(h strategy.SyntheticValueRules, value string) any {
 	switch h.Type {
 	case "boolean":
 		return value == "true"
@@ -576,9 +576,9 @@ func nameToken(prefix, entity, field string) string {
 	return prefix + "-" + plan.RunIDToken + "-" + entity + "-" + field
 }
 
-// bisectionAllowance is the extra createMaximal attempts worth reserving to
+// fieldNarrowingAttemptLimit is the extra createMaximal attempts worth reserving to
 // halve the optional set down to one field, plus the retry that confirms it.
-func bisectionAllowance(optional int) int {
+func fieldNarrowingAttemptLimit(optional int) int {
 	if optional == 0 {
 		return 0
 	}

@@ -64,7 +64,7 @@ type Report struct {
 func (r Report) Clean() bool { return len(r.Drifts) == 0 }
 
 // Verify is the SDK drift gate: regenerate with the exact pipeline `sdk
-// generate` runs — gate the pinned tool, pre-normalize, generate, normalize —
+// generate` runs — gate the pinned tool, pre-normalise, generate, normalize —
 // into a temporary tree, byte-compare it against the committed tree at
 // opts.Out, and check the committed files against the digests the manifest
 // recorded under the sdk origin. It writes nothing under the repo: the

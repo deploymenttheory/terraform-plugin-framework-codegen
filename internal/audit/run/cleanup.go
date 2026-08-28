@@ -35,7 +35,7 @@ func Cleanup(ctx context.Context, opts Options) (CleanupSummary, error) {
 	}
 	defer r.ledger.close()
 	r.inCleanup = true
-	summary := r.cleanupDebris(ctx)
+	summary := r.cleanupLeftoverObjects(ctx)
 	r.ledger.remove()
 	if len(summary.Orphans) > 0 {
 		return summary, fmt.Errorf("audit cleanup: %d object(s) could not be removed; see the orphan list", len(summary.Orphans))
@@ -43,11 +43,11 @@ func Cleanup(ctx context.Context, opts Options) (CleanupSummary, error) {
 	return summary, nil
 }
 
-// cleanupDebris is the shared removal pass: prior activity ledgers first (delete by id, newest
+// cleanupLeftoverObjects is the shared removal pass: prior activity ledgers first (delete by id, newest
 // first), then the prefix pass over every reachable collection. At the
 // start of a run it must not fail the run — leftovers are reported and
 // the run proceeds on a tenant it has done its best to level.
-func (r *runner) cleanupDebris(ctx context.Context) CleanupSummary {
+func (r *runner) cleanupLeftoverObjects(ctx context.Context) CleanupSummary {
 	wasCleanup := r.inCleanup
 	r.inCleanup = true
 	defer func() { r.inCleanup = wasCleanup }()
@@ -152,7 +152,7 @@ func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, summar
 // the prefix, so it can never touch an object the audit did not make.
 func (r *runner) cleanupByPrefix(ctx context.Context, summary *CleanupSummary) {
 	for _, ep := range r.opts.Plan.Entities {
-		rec := recipeOf(&ep)
+		rec := lifecycleOf(&ep)
 		if rec.minimalBody == nil || rec.collectionPath == "" || rec.itemPath == "" {
 			continue
 		}
@@ -174,7 +174,7 @@ func (r *runner) cleanupByPrefix(ctx context.Context, summary *CleanupSummary) {
 	}
 }
 
-func (r *runner) cleanupCollection(ctx context.Context, rec *entityRecipe, summary *CleanupSummary) {
+func (r *runner) cleanupCollection(ctx context.Context, rec *entityLifecycle, summary *CleanupSummary) {
 	res, err := r.do(ctx, nil, reqSpec{method: "GET", path: rec.collectionPath, pathValues: rec.collectionValues})
 	if err != nil || !res.ok() {
 		return

@@ -6,7 +6,7 @@ import (
 )
 
 // TestUnit_LearnID covers the create-response shapes real APIs use to name a new
-// object, in the order learnID resolves them.
+// object, in the order extractID resolves them.
 func TestUnit_LearnID(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -126,8 +126,8 @@ func TestUnit_LearnID(t *testing.T) {
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			if got := learnID(testCase.entity, testCase.res); got != testCase.want {
-				t.Errorf("learnID(%q) = %q, want %q", testCase.name, got, testCase.want)
+			if got := extractID(testCase.entity, testCase.res); got != testCase.want {
+				t.Errorf("extractID(%q) = %q, want %q", testCase.name, got, testCase.want)
 			}
 		})
 	}
@@ -138,10 +138,10 @@ func TestUnit_LearnID(t *testing.T) {
 func TestUnit_LearnID_Deterministic(t *testing.T) {
 	t.Parallel()
 	body := []byte(`{"widget_id":"w1","gadget_id":"g1"}`)
-	first := learnID("thing", &httpResult{body: body})
+	first := extractID("thing", &httpResult{body: body})
 	for i := 0; i < 20; i++ {
-		if got := learnID("thing", &httpResult{body: body}); got != first {
-			t.Fatalf("learnID not deterministic: %q then %q", first, got)
+		if got := extractID("thing", &httpResult{body: body}); got != first {
+			t.Fatalf("extractID not deterministic: %q then %q", first, got)
 		}
 	}
 }

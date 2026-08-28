@@ -1,12 +1,12 @@
-// Package revise materializes the revised spec: the pinned upstream
+// Package revise writes the revised spec: the pinned upstream
 // document with every accepted correction applied, written deterministically
 // to spec/revised.yaml — the single source of truth for all generation.
 //
-// Revision has two halves. This package holds the materializing half:
-// Materialize verifies the pin, refuses while any proposed correction awaits
+// Revision has two halves. This package holds the writing half:
+// WriteRevision verifies the pin, refuses while any proposed correction awaits
 // a human decision, applies the accepted corrections, and writes the revised
 // document. The other half — compiling audit observations into proposed
-// corrections — lands here later as its own entry point beside Materialize;
+// corrections — lands here later as its own entry point beside WriteRevision;
 // nothing needs renaming when it does.
 //
 // Downstream always reads spec/revised.yaml, even when no corrections exist:
@@ -38,7 +38,7 @@ const (
 	RejectedDirName = "rejected"
 )
 
-// Result reports one materialization.
+// Result reports one the write.
 type Result struct {
 	// Lock is the verified pin the revision was taken from.
 	Lock store.Lock
@@ -49,13 +49,13 @@ type Result struct {
 	OutputPath string
 }
 
-// Materialize writes dir/revised.yaml from the pinned upstream document plus
+// WriteRevision writes dir/revised.yaml from the pinned upstream document plus
 // every accepted correction in dir/corrections.
 //
 // It refuses a tampered pin, and it refuses while dir/corrections/proposed
 // holds any correction awaiting a decision — there is deliberately no flag
 // to look away. Unchanged inputs produce byte-identical output.
-func Materialize(dir string) (Result, error) {
+func WriteRevision(dir string) (Result, error) {
 	lock, err := store.Verify(dir)
 	if err != nil {
 		return Result{}, err

@@ -310,8 +310,8 @@ func TestUnit_Plan_EntityOrderAndRoles(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("entity order = %v, want %v", got, want)
 	}
-	if p.Entities[0].Role != "resource" || p.Entities[1].Role != "resource" || p.Entities[2].Role != "lookup" {
-		t.Errorf("roles = %s %s %s", p.Entities[0].Role, p.Entities[1].Role, p.Entities[2].Role)
+	if p.Entities[0].AuditShape != "resource" || p.Entities[1].AuditShape != "resource" || p.Entities[2].AuditShape != "lookupByKey" {
+		t.Errorf("roles = %s %s %s", p.Entities[0].AuditShape, p.Entities[1].AuditShape, p.Entities[2].AuditShape)
 	}
 	// The action-only entity is not audited and not skipped: it is simply
 	// not a lifecycle.
@@ -394,8 +394,8 @@ func TestUnit_Plan_StepDetails(t *testing.T) {
 	if maximal.Body["owner_email"] != "tfpfgen-"+RunIDToken+"@example.invalid" {
 		t.Errorf("email synthesis = %v", maximal.Body["owner_email"])
 	}
-	if maximal.BisectionAllowance != 4 {
-		t.Errorf("bisection allowance = %d, want 4 for 6 optionals", maximal.BisectionAllowance)
+	if maximal.FieldNarrowingAttemptLimit != 4 {
+		t.Errorf("bisection allowance = %d, want 4 for 6 optionals", maximal.FieldNarrowingAttemptLimit)
 	}
 
 	// omitRequired drops exactly the attribute under test.

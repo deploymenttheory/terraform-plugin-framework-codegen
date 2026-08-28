@@ -11,7 +11,7 @@ import (
 // inferEdges runs the triangulating inference over every entity's gathered
 // evidence and folds the conditional-edge and list-shape observations it
 // asserts into the run's own. It runs only on a strategy-driven run: without a
-// compiled strategy there are no hypotheses to confirm and no variants to
+// compiled strategy there are no claims to confirm and no variants to
 // diff, so the executor's per-probe findings stand alone.
 //
 // The inferred observations carry no excerpts — an edge's proof is the

@@ -21,7 +21,7 @@ func TestUnit_Guard_ReadOnlyPlanNeedsNoRunsDir(t *testing.T) {
 	seeded := s.Seed(map[string]any{"name": "target"})
 
 	p := thingPlan(nil, 10)
-	p.Entities[0].Role = "lookup"
+	p.Entities[0].AuditShape = "lookupByKey"
 	p.Entities[0].Steps = []plan.Step{{
 		Kind: plan.StepRead, Method: "GET", Path: "/things/{thingId}",
 		PathValues: map[string]string{"thingId": seeded},
@@ -97,12 +97,12 @@ func TestUnit_Guard_HostAllowlistRefusesAForeignHost(t *testing.T) {
 		t.Fatal(err)
 	}
 	u, _ := url.Parse("https://somewhere-else.invalid/things")
-	if err := r.guardMutation(u); err == nil || !strings.Contains(err.Error(), "somewhere-else.invalid") {
-		t.Fatalf("guardMutation = %v, want a refusal naming the foreign host", err)
+	if err := r.refuseForeignHostWrite(u); err == nil || !strings.Contains(err.Error(), "somewhere-else.invalid") {
+		t.Fatalf("refuseForeignHostWrite = %v, want a refusal naming the foreign host", err)
 	}
 	own, _ := url.Parse(s.BaseURL() + "/things")
-	if err := r.guardMutation(own); err != nil {
-		t.Fatalf("guardMutation refused the base host: %v", err)
+	if err := r.refuseForeignHostWrite(own); err != nil {
+		t.Fatalf("refuseForeignHostWrite refused the base host: %v", err)
 	}
 }
 

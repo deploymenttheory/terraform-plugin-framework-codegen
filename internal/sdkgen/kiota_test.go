@@ -70,7 +70,7 @@ func TestUnit_KiotaGenerate_PassesTheDocumentedFlagsAndPathGlobs(t *testing.T) {
 	argsFile := installStub(t, "kiota", kiotaStub, "1.2.3")
 	configuration := testConfig(config.BackendKiota, []string{"/widgets/**"}, []string{"/internal/**"})
 	out := filepath.Join(t.TempDir(), "sdk")
-	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
+	spec := filepath.Join(t.TempDir(), "revised.prenormalised.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}

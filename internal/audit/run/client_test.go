@@ -102,7 +102,7 @@ func TestUnit_Client_SelfParamAndPartialPaths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rec := &entityRecipe{
+	rec := &entityLifecycle{
 		entity:   "tag",
 		itemPath: "/projects/{projectId}/tags/{tagId}",
 		itemValues: map[string]string{

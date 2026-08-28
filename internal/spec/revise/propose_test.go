@@ -230,11 +230,11 @@ func TestUnit_Propose_AutoAcceptedKindsSkipProposed(t *testing.T) {
 	}
 
 	// The auto-accepted correction is already accepted: once the proposal is
-	// decided too, Materialize applies both.
+	// decided too, WriteRevision applies both.
 	acceptAll(t, specDir)
-	res, err := Materialize(specDir)
+	res, err := WriteRevision(specDir)
 	if err != nil {
-		t.Fatalf("Materialize: %v", err)
+		t.Fatalf("WriteRevision: %v", err)
 	}
 	if len(res.Applied) != 2 {
 		t.Errorf("Applied = %v, want the accepted and the auto-accepted correction", res.Applied)
@@ -340,7 +340,7 @@ func TestUnit_Propose_RefusesWhenNothingIsPinned(t *testing.T) {
 
 // TestIntegration_Propose_FullLoopConverges walks the whole evidence loop:
 // quirkserver-flavoured observations compile into proposals, a human accepts
-// them, Materialize folds them into the revised spec, and a re-propose
+// them, WriteRevision folds them into the revised spec, and a re-propose
 // against that spec yields nothing — the fixed point re-auditing relies on.
 func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	t.Parallel()
@@ -375,14 +375,14 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	}
 
 	// The gate holds while they await a decision.
-	if _, err := Materialize(specDir); err == nil {
-		t.Fatal("Materialize succeeded with proposals pending")
+	if _, err := WriteRevision(specDir); err == nil {
+		t.Fatal("WriteRevision succeeded with proposals pending")
 	}
 
 	acceptAll(t, specDir)
-	res, err := Materialize(specDir)
+	res, err := WriteRevision(specDir)
 	if err != nil {
-		t.Fatalf("Materialize after accepting: %v", err)
+		t.Fatalf("WriteRevision after accepting: %v", err)
 	}
 	if len(res.Applied) != 9 {
 		t.Errorf("Applied = %d corrections, want 9", len(res.Applied))
@@ -445,11 +445,11 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	if len(p2.AlreadyStated) != 9 {
 		t.Errorf("AlreadyStated = %d, want all 9 facts recognised", len(p2.AlreadyStated))
 	}
-	if _, err := Materialize(specDir); err != nil {
-		t.Errorf("Materialize after convergence: %v", err)
+	if _, err := WriteRevision(specDir); err != nil {
+		t.Errorf("WriteRevision after convergence: %v", err)
 	}
 
-	// And the second materialization is byte-identical to the first.
+	// And the second the write is byte-identical to the first.
 	second, err := os.ReadFile(filepath.Join(specDir, OutputName))
 	if err != nil {
 		t.Fatal(err)

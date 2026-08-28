@@ -10,7 +10,7 @@ import (
 )
 
 // monitorStrategy is a discriminated resource: a kind gate over ping/web/dns,
-// no declared hypotheses (the flat quirk-server monitor), so every edge it
+// no declared claims (the flat quirk-server monitor), so every edge it
 // yields is derived from probing.
 func monitorStrategy() *strategy.Strategy {
 	return &strategy.Strategy{
@@ -159,7 +159,7 @@ func TestUnit_Infer_NoExcerpts(t *testing.T) {
 	}
 }
 
-// TestUnit_Infer_PlantedFalseEdgeIsInconclusive: a prose hypothesis the live
+// TestUnit_Infer_PlantedFalseEdgeIsInconclusive: a prose claim the live
 // evidence contradicts (the field is valid under two gate values, not one)
 // comes out inconclusive, never confirmed.
 func TestUnit_Infer_PlantedFalseEdgeIsInconclusive(t *testing.T) {
@@ -169,8 +169,8 @@ func TestUnit_Infer_PlantedFalseEdgeIsInconclusive(t *testing.T) {
 		Variants: []strategy.Variant{
 			{}, {GateField: "kind", GateValue: "ping"}, {GateField: "kind", GateValue: "dns"},
 		},
-		Hypotheses: []strategy.Hypothesis{{
-			Kind: strategy.HypothesisValidWhen, Subjects: []string{"foo"},
+		Claims: []strategy.Claim{{
+			Kind: strategy.ClaimValidWhen, Subjects: []string{"foo"},
 			GateField: "kind", GateValue: "ping", Provenance: strategy.ProvenanceProse,
 		}},
 	}
@@ -184,18 +184,18 @@ func TestUnit_Infer_PlantedFalseEdgeIsInconclusive(t *testing.T) {
 	obs := Infer(ev, compiled)
 	o := findWhen(obs, "foo", observe.KindValidWhen, "ping")
 	if o == nil {
-		t.Fatal("the unconfirmed hypothesis produced no observation; it must surface as inconclusive")
+		t.Fatal("the unconfirmed claim produced no observation; it must surface as inconclusive")
 	}
 	if o.Outcome != observe.OutcomeInconclusive {
 		t.Fatalf("planted false edge outcome = %s, want inconclusive (never confirmed)", o.Outcome)
 	}
 	if o.Provenance != observe.ProvenanceProse {
-		t.Errorf("provenance = %q, want prose (carried from the hypothesis)", o.Provenance)
+		t.Errorf("provenance = %q, want prose (carried from the claim)", o.Provenance)
 	}
 }
 
 // TestUnit_Infer_LoneAmbiguousRemovalAssertsNothing: a single removal with no
-// matching acceptance and no hypothesis creates no edge at all.
+// matching acceptance and no claim creates no edge at all.
 func TestUnit_Infer_LoneAmbiguousRemovalAssertsNothing(t *testing.T) {
 	t.Parallel()
 	compiled := &strategy.Strategy{
@@ -315,15 +315,15 @@ func TestUnit_Infer_ValidConfigurationNeedsADistinguishingField(t *testing.T) {
 	}
 }
 
-// TestUnit_Infer_HypothesisProvenanceIsCarried: a structural variant hypothesis
+// TestUnit_Infer_HypothesisProvenanceIsCarried: a structural variant claim
 // that the evidence confirms lends its provenance to the validWhen edge.
 func TestUnit_Infer_HypothesisProvenanceIsCarried(t *testing.T) {
 	t.Parallel()
 	compiled := &strategy.Strategy{
 		Entity:   "e",
 		Variants: []strategy.Variant{{}, {GateField: "kind", GateValue: "a"}, {GateField: "kind", GateValue: "b"}},
-		Hypotheses: []strategy.Hypothesis{
-			{Kind: strategy.HypothesisVariant, Subjects: []string{"foo"}, GateField: "kind", GateValue: "a", Provenance: strategy.ProvenanceStructural},
+		Claims: []strategy.Claim{
+			{Kind: strategy.ClaimValidConfiguration, Subjects: []string{"foo"}, GateField: "kind", GateValue: "a", Provenance: strategy.ProvenanceStructural},
 		},
 	}
 	ev := Evidence{
@@ -335,22 +335,22 @@ func TestUnit_Infer_HypothesisProvenanceIsCarried(t *testing.T) {
 	}
 	o := findWhen(Infer(ev, compiled), "foo", observe.KindValidWhen, "a")
 	if o == nil || o.Provenance != observe.ProvenanceStructural {
-		t.Fatalf("validWhen(foo) = %+v, want structural provenance from the hypothesis", o)
+		t.Fatalf("validWhen(foo) = %+v, want structural provenance from the claim", o)
 	}
 	vc := find(Infer(ev, compiled), "kind", observe.KindValidConfiguration)
 	if vc == nil || vc.Provenance != observe.ProvenanceStructural {
-		t.Errorf("validConfiguration provenance = %v, want structural from the variant hypothesis", vc)
+		t.Errorf("validConfiguration provenance = %v, want structural from the variant claim", vc)
 	}
 }
 
-// TestUnit_Infer_DependsOnProvenanceFromHypothesis: a requiresField hypothesis
+// TestUnit_Infer_DependsOnProvenanceFromHypothesis: a requiresField claim
 // covering the pair lends its provenance to the dependsOn edge.
 func TestUnit_Infer_DependsOnProvenanceFromHypothesis(t *testing.T) {
 	t.Parallel()
 	compiled := &strategy.Strategy{
 		Entity: "e",
-		Hypotheses: []strategy.Hypothesis{{
-			Kind: strategy.HypothesisRequiresField, Subjects: []string{"x", "y"},
+		Claims: []strategy.Claim{{
+			Kind: strategy.ClaimDependsOn, Subjects: []string{"x", "y"},
 			Provenance: strategy.ProvenanceStructural,
 		}},
 	}
@@ -365,7 +365,7 @@ func TestUnit_Infer_DependsOnProvenanceFromHypothesis(t *testing.T) {
 }
 
 // TestUnit_Infer_UnconfirmedHypothesesSurfaceInconclusive covers each
-// hypothesis kind's gap mapping: none is confirmed by the empty evidence, so
+// claim kind's gap mapping: none is confirmed by the empty evidence, so
 // each becomes exactly one inconclusive observation of the right kind.
 func TestUnit_Infer_UnconfirmedHypothesesSurfaceInconclusive(t *testing.T) {
 	t.Parallel()
@@ -374,11 +374,11 @@ func TestUnit_Infer_UnconfirmedHypothesesSurfaceInconclusive(t *testing.T) {
 		Variants: []strategy.Variant{
 			{}, {GateField: "g", GateValue: "v"},
 		},
-		Hypotheses: []strategy.Hypothesis{
-			{Kind: strategy.HypothesisRequiredWhen, Subjects: []string{"a"}, GateField: "g", GateValue: "v", Provenance: strategy.ProvenanceProse},
-			{Kind: strategy.HypothesisRequiresField, Subjects: []string{"c", "d"}, Provenance: strategy.ProvenanceStructural, Check: strategy.Check{Field: "c"}},
-			{Kind: strategy.HypothesisMutuallyExclusive, Subjects: []string{"e", "f"}, Provenance: strategy.ProvenanceProse},
-			{Kind: strategy.HypothesisValidWhen, Subjects: []string{"h"}, GateField: "g", GateValue: "v", Provenance: strategy.ProvenanceProse},
+		Claims: []strategy.Claim{
+			{Kind: strategy.ClaimRequiredWhen, Subjects: []string{"a"}, GateField: "g", GateValue: "v", Provenance: strategy.ProvenanceProse},
+			{Kind: strategy.ClaimDependsOn, Subjects: []string{"c", "d"}, Provenance: strategy.ProvenanceStructural, Check: strategy.Probe{Field: "c"}},
+			{Kind: strategy.ClaimMutuallyExclusive, Subjects: []string{"e", "f"}, Provenance: strategy.ProvenanceProse},
+			{Kind: strategy.ClaimValidWhen, Subjects: []string{"h"}, GateField: "g", GateValue: "v", Provenance: strategy.ProvenanceProse},
 		},
 	}
 	obs := Infer(Evidence{Entity: "e"}, compiled)

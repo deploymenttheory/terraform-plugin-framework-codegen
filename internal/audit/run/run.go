@@ -80,7 +80,7 @@ type Options struct {
 	Config *config.Config
 	// Inputs are the operator-supplied values the audit cannot synthesize,
 	// read from audit/inputs.json. The plan resolves parentRefs and skip from
-	// them; the values reach the wire through strategize, which rebuilds every
+	// them; the values reach the wire through applyStrategies, which rebuilds every
 	// body the plan derived and would otherwise not see them.
 	Inputs  *plan.Inputs
 	BaseURL string
@@ -129,10 +129,10 @@ const requiredPrefixToken = "tfpfgen"
 const (
 	defaultRequestTimeout = 15 * time.Second
 	defaultRateLimitRPS   = 2
-	// cleanupAllowance bounds the end-of-run cleanup, which must be able
+	// cleanupTimeLimit bounds the end-of-run cleanup, which must be able
 	// to spend after every run budget is exhausted — that is the state it
 	// is most needed in.
-	cleanupAllowance = 120 * time.Second
+	cleanupTimeLimit = 120 * time.Second
 )
 
 // Entity statuses a Summary reports.
@@ -230,10 +230,10 @@ type Summary struct {
 // the run only at sandbox or non-production tenants — the toolkit does
 // not police this; it is the operator's responsibility.
 func Run(ctx context.Context, opts Options) ([]observe.Observation, Summary, error) {
-	var hints map[string]map[string]strategy.SynthHint
+	var hints map[string]map[string]strategy.SyntheticValueRules
 	var strategies map[string]*strategy.Strategy
 	if opts.Plan != nil && opts.Doc != nil && opts.Config != nil {
-		opts.Plan, hints, strategies = strategize(opts.Plan, opts.Doc, opts.Config, opts.NamePrefix, opts.Inputs)
+		opts.Plan, hints, strategies = applyStrategies(opts.Plan, opts.Doc, opts.Config, opts.NamePrefix, opts.Inputs)
 	}
 	r, err := newRunner(opts)
 	if err != nil {
@@ -247,7 +247,7 @@ func Run(ctx context.Context, opts Options) ([]observe.Observation, Summary, err
 	r.started = time.Now()
 	r.deadline = r.started.Add(r.budget.Duration)
 
-	r.summary.CleanupStart = r.cleanupDebris(ctx)
+	r.summary.CleanupStart = r.cleanupLeftoverObjects(ctx)
 
 	for i := range opts.Plan.Entities {
 		if ctx.Err() != nil {
@@ -264,7 +264,7 @@ func Run(ctx context.Context, opts Options) ([]observe.Observation, Summary, err
 	// End-of-run cleanup is detached from the run's cancellation and its
 	// budgets: the commonest reason to be cleaning up is that one of them
 	// ran out.
-	cleanCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupAllowance)
+	cleanCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeLimit)
 	defer cancel()
 	r.inCleanup = true
 	r.summary.CleanupEnd = r.cleanupOwn(cleanCtx)
@@ -307,17 +307,17 @@ type runner struct {
 	createdObjects map[string]*createdObject
 	// recipes remembers how each executed entity creates and addresses
 	// its objects, for re-creation and end-of-run deletion.
-	recipes map[string]*entityRecipe
+	recipes map[string]*entityLifecycle
 	// hints carries, per entity, the field synthesis material the adjustment
 	// loop draws on when it must add a field a refusal named. Nil on a
 	// non-strategy run.
-	hints map[string]map[string]strategy.SynthHint
+	hints map[string]map[string]strategy.SyntheticValueRules
 	// inputValues carries, per entity, the operator's value overrides, so the
 	// adjustment loop adding a field live uses the same value the plan would
 	// have sent for it.
 	inputValues map[string]map[string]any
 	// strategies carries each entity's compiled strategy, so the inference
-	// can read the hypotheses the run was meant to confirm. Nil on a
+	// can read the claims the run was meant to confirm. Nil on a
 	// non-strategy run, which is what makes such a run skip inference.
 	strategies map[string]*strategy.Strategy
 	// evidence accumulates, per entity, the raw record the inference reads —
@@ -341,9 +341,9 @@ type createdObject struct {
 	seq    int
 }
 
-// entityRecipe is what re-creation and deletion need to know about an
+// entityLifecycle is what re-creation and deletion need to know about an
 // entity after its plan has executed.
-type entityRecipe struct {
+type entityLifecycle struct {
 	entity           string
 	collectionPath   string
 	collectionValues map[string]string
@@ -420,7 +420,7 @@ func newRunner(opts Options) (*runner, error) {
 		runID:          runID,
 		budget:         budget,
 		createdObjects: map[string]*createdObject{},
-		recipes:        map[string]*entityRecipe{},
+		recipes:        map[string]*entityLifecycle{},
 		evidence:       map[string]*infer.Evidence{},
 		borrowed:       map[string]string{},
 		summary: Summary{

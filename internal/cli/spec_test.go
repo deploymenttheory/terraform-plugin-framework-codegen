@@ -186,7 +186,7 @@ func TestUnit_Spec_UsageListsEveryVerb(t *testing.T) {
 	for _, want := range []string{
 		"import", "pin the upstream OpenAPI document",
 		"verify", "check the pinned document",
-		"revise", "materialize the revised spec",
+		"revise", "write the revised spec",
 	} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("spec --help missing %q:\n%s", want, stdout)

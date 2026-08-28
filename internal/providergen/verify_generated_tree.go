@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-// postcheckStepTimeout bounds each toolchain command, so a hung module
+// verificationStepTimeout bounds each toolchain command, so a hung module
 // proxy cannot pin a generate run forever.
-const postcheckStepTimeout = 5 * time.Minute
+const verificationStepTimeout = 5 * time.Minute
 
-// postcheckSteps are the toolchain commands the installed tree is held to,
+// verificationCommands are the toolchain commands the installed tree is held to,
 // in order. `go mod tidy` first, because the freshly rendered go.mod has no
 // go.sum yet on a first run.
-var postcheckSteps = [][]string{
+var verificationCommands = [][]string{
 	{"mod", "tidy"},
 	{"build", "./..."},
 	{"vet", "./..."},
@@ -24,7 +24,7 @@ var postcheckSteps = [][]string{
 
 // offlineToolchainMessages are the toolchain messages that mean "no network",
 // not "broken tree". emit carries the same list for its own template compile:
-// it cannot import this package, because this package imports emit. A postcheck failing with one of these skips rather than
+// it cannot import this package, because this package imports emit. A verification failing with one of these skips rather than
 // fails: a developer offline should not read a red run as a broken
 // generator, while CI, which is online, gets the real answer.
 var offlineToolchainMessages = []string{
@@ -38,33 +38,33 @@ var offlineToolchainMessages = []string{
 	"sum.golang.org",
 }
 
-// PostcheckReport says what the toolchain gate did.
-type PostcheckReport struct {
+// TreeVerificationReport says what the toolchain gate did.
+type TreeVerificationReport struct {
 	// Ran is true when every step ran and passed.
 	Ran bool
 	// Steps lists the commands that passed, e.g. "go mod tidy".
 	Steps []string
 	// SkippedReason is why the gate did not run to completion without
-	// that being a failure: postcheck disabled, no toolchain on PATH, or
+	// that being a failure: verification disabled, no toolchain on PATH, or
 	// an offline failure quoted verbatim.
 	SkippedReason string
 }
 
-// postcheck holds the installed tree to `go mod tidy`, `go build ./...`
+// verifyGeneratedTree holds the installed tree to `go mod tidy`, `go build ./...`
 // and `go vet ./...`. A real failure is returned verbatim — the
 // toolchain's own words, not a summary. A missing toolchain or an offline
 // signature skips cleanly instead.
-func postcheck(ctx context.Context, root string, enabled bool) (PostcheckReport, error) {
+func verifyGeneratedTree(ctx context.Context, root string, enabled bool) (TreeVerificationReport, error) {
 	if !enabled {
-		return PostcheckReport{SkippedReason: "postcheck disabled"}, nil
+		return TreeVerificationReport{SkippedReason: "tree verification disabled"}, nil
 	}
 	goTool, err := exec.LookPath("go")
 	if err != nil {
-		return PostcheckReport{SkippedReason: "go is not on PATH"}, nil
+		return TreeVerificationReport{SkippedReason: "go is not on PATH"}, nil
 	}
 
-	rep := PostcheckReport{}
-	for _, args := range postcheckSteps {
+	rep := TreeVerificationReport{}
+	for _, args := range verificationCommands {
 		name := "go " + strings.Join(args, " ")
 		out, err := runBounded(ctx, goTool, root, args)
 		if err == nil {
@@ -77,7 +77,7 @@ func postcheck(ctx context.Context, root string, enabled bool) (PostcheckReport,
 				return rep, nil
 			}
 		}
-		return rep, fmt.Errorf("postcheck: %s failed in %s:\n%s", name, root, out)
+		return rep, fmt.Errorf("verifying the generated tree: %s failed in %s:\n%s", name, root, out)
 	}
 	rep.Ran = true
 	return rep, nil
@@ -90,11 +90,11 @@ func postcheck(ctx context.Context, root string, enabled bool) (PostcheckReport,
 // `go build`/`go vet` there fail trying to stamp VCS information ("error
 // obtaining VCS status … Use -buildvcs=false"). GOFLAGS carries the opt-out
 // to every build-flag-aware command; `go mod tidy`, which does not take the
-// flag, ignores it. This keeps the toolkit's own postcheck working in a
+// flag, ignores it. This keeps the toolkit's own tree verification working in a
 // fresh directory without touching the generated provider's makefile or CI,
 // which run inside a real repository.
 func runBounded(ctx context.Context, goTool, dir string, args []string) (string, error) {
-	stepCtx, cancel := context.WithTimeout(ctx, postcheckStepTimeout)
+	stepCtx, cancel := context.WithTimeout(ctx, verificationStepTimeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(stepCtx, goTool, args...) //nolint:gosec // the resolved go tool with fixed arguments

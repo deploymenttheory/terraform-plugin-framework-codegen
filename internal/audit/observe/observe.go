@@ -146,10 +146,10 @@ const (
 	// (internal/audit/infer), which builds one model per entity from all
 	// of a run's evidence — the per-variant create outcomes, the request
 	// adjustments the executor was forced to make, and the strategy's
-	// declared hypotheses — and confirms an edge only where those signals
+	// declared claims — and confirms an edge only where those signals
 	// converge in both directions. A lone ambiguous 4xx is by design not
 	// enough to assert one. Each carries a Provenance saying whether a
-	// structural or prose hypothesis grounded it or it was derived from
+	// structural or prose claim grounded it or it was derived from
 	// probing alone.
 
 	// KindValidConfiguration: the entity has several distinct valid
@@ -221,9 +221,9 @@ var knownKinds = map[Kind]bool{
 }
 
 // Provenance records how strongly an inferred edge is grounded: a structural
-// hypothesis (the document's own composition keywords) is strongest, a prose
-// hypothesis (mined description text) weaker, and derived means the edge was
-// concluded from live probing alone with no declared hypothesis behind it. It
+// claim (the document's own composition keywords) is strongest, a prose
+// claim (mined description text) weaker, and derived means the edge was
+// concluded from live probing alone with no declared claim behind it. It
 // mirrors the strategy package's vocabulary and is carried only on the
 // conditional-edge kinds the inference asserts.
 type Provenance string
@@ -334,7 +334,7 @@ type Observation struct {
 	Condition *Condition `json:"condition,omitempty"`
 	// Provenance says how an inferred conditional edge was grounded —
 	// structural, prose or derived. Empty on the scalar kinds an executor
-	// reads from one probe, since those are not grounded in a hypothesis.
+	// reads from one probe, since those are not grounded in a claim.
 	// It does not participate in the ID: the same edge grounded two ways in
 	// two runs keeps one identity.
 	Provenance Provenance `json:"provenance,omitempty"`

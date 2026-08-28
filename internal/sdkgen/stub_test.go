@@ -40,7 +40,7 @@ EOF
 cat > "$out/kiota-lock.json" <<'EOF'
 {
   "descriptionHash": "ABCDEF123456",
-  "descriptionLocation": "/tmp/tfpfgen-sdkgen-9999/revised.prenormalized.yaml",
+  "descriptionLocation": "/tmp/tfpfgen-sdkgen-9999/revised.prenormalised.yaml",
   "generatedAt": "2026-01-02T03:04:05Z",
   "kiotaVersion": "1.2.3",
   "clientClassName": "APIClient"

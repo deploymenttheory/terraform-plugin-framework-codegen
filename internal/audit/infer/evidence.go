@@ -3,13 +3,13 @@
 // could justify. Where the executor (internal/audit/run) records what each
 // request did, inference stands back and reads the whole picture — every
 // create the API accepted, every body change a refusal forced, the collection
-// responses, and the strategy's declared hypotheses — and asserts an edge only
+// responses, and the strategy's declared claims — and asserts an edge only
 // where those signals converge.
 //
 // The discipline is deliberately conservative. An edge is confirmed only when
 // the evidence points the same way from more than one direction: a field
 // accepted under one gate value and refused under another, a co-requirement
-// the API forced and a hypothesis that predicted it. Thin, one-directional or
+// the API forced and a claim that predicted it. Thin, one-directional or
 // conflicting evidence yields an inconclusive observation, never an assertion,
 // and a lone ambiguous 4xx yields nothing at all. That is what stops a planted
 // or accidental false edge from reaching a spec correction: the inference
@@ -79,7 +79,7 @@ type FieldPair struct {
 // refused. It is the value-level analogue of a variant diff — the same sibling
 // value accepted under one discriminator value and refused under another is the
 // both-direction corroboration of a value-conditional edge — recorded when the
-// executor cycles an enum field's value to heal a free-form conditional
+// executor cycles an enum field's value to correct a free-form conditional
 // refusal the refusal grammar could not classify.
 type ConditionalValue struct {
 	GateField string `json:"gateField"`
@@ -107,7 +107,7 @@ type Evidence struct {
 	// executor records one only on the specific refusal grammar.
 	CombinedRefusals []FieldPair
 	// ConditionalValues lists the value-cycling outcomes the executor gathered
-	// healing free-form conditional refusals: each (discriminator value,
+	// correcting free-form conditional refusals: each (discriminator value,
 	// sibling field, sibling value) the API accepted or refused. A sibling
 	// value accepted under one discriminator value and refused under another is
 	// the both-direction signal for a value-conditional validConfiguration.
