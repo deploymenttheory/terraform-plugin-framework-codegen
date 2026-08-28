@@ -28,6 +28,10 @@ func TestUnit_Evidence_NormalisedForm(t *testing.T) {
 		{"unchanged list", []any{"a", "b"}, []any{"a", "b"}, "", false},
 		{"non-string", 1, 2, "", false},
 		{"string became number", "1", float64(1), "", false},
+		{"timestamp respelt without zone", "2026-12-31T00:00:00Z", "2026-12-31 00:00:00", "2026-12-31 00:00:00", true},
+		{"timestamp respelt with fraction", "2026-12-31T10:14:28Z", "2026-12-31T10:14:28.000Z", "2026-12-31T10:14:28.000Z", true},
+		{"different instant", "2026-12-31T00:00:00Z", "2026-12-30 00:00:00", "", false},
+		{"date is not the instant", "2026-12-31T10:00:00Z", "2026-12-31", "", false},
 	}
 	for _, testCase := range cases {
 		got, ok := normalisedForm(testCase.sent, testCase.got)
@@ -278,5 +282,22 @@ func TestUnit_Evidence_ARefusalMentionsAFieldSpeltInWords(t *testing.T) {
 	}
 	if res.mentions("mtuMeasurements") || res.mentions("") {
 		t.Error("a field the refusal does not name was recognised")
+	}
+}
+
+func TestUnit_Evidence_RejectedValueSkipsUnresolvedReference(t *testing.T) {
+	t.Parallel()
+	r := &runner{}
+	entity := &entityState{plan: &plan.EntityPlan{Entity: "group"}, ev: newEvidence()}
+	res := &httpResult{status: 400, body: []byte(`{"message":"agents invalid"}`)}
+	r.recordRejectedValue(entity, "agents", []any{BorrowToken + "/agents"}, res)
+	r.recordRejectedValue(entity, "owner", "$created:user", res)
+	r.recordRejectedValue(entity, "agents", []any{"7"}, res)
+	got := entity.ev.valuesFor("agents").Rejected
+	if !reflect.DeepEqual(got, []string{"[7]"}) {
+		t.Fatalf("rejected = %v, want only the resolved value", got)
+	}
+	if v := entity.ev.valuesFor("owner").Rejected; len(v) != 0 {
+		t.Fatalf("a created token was recorded as rejected: %v", v)
 	}
 }

@@ -271,7 +271,13 @@ func (r *runner) narrowRefusedField(ctx context.Context, entity *entityState, st
 
 // recordRejectedValue accumulates one refused create value into the
 // attribute's values record.
+//
+// A value still carrying a reference token was never a value the API saw
+// refused — the reference had nothing to resolve to — and records nothing.
 func (r *runner) recordRejectedValue(entity *entityState, attribute string, value any, res *httpResult) {
+	if text := fmt.Sprint(value); strings.Contains(text, BorrowToken) || strings.Contains(text, "$created:") {
+		return
+	}
 	v := entity.ev.valuesFor(attribute)
 	v.Rejected = append(v.Rejected, fmt.Sprint(value))
 	entity.ev.valuesProof[attribute] = appendProof(entity.ev.valuesProof[attribute], res.excerpt)
