@@ -132,3 +132,25 @@ func TestUnit_Fixturespec_AReferenceReachesEveryDepth(t *testing.T) {
 		t.Error("a wire name the fixture does not carry took an expression")
 	}
 }
+
+func TestUnit_Fixturespec_AReplayedNumberOutsideTheDeclaredBoundsKeepsTheDerivedValue(t *testing.T) {
+	low, high := 1000.0, 6000.0
+	spec := Fixture{Entries: []Entry{
+		{Name: "name", Wire: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Scalar: "n"},
+		{Name: "target_time", Wire: "targetTime", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional, Scalar: int64(1000), Minimum: &low, Maximum: &high},
+	}}
+	got := spec.FromAcceptedRequestBody(
+		map[string]any{"name": "n", "targetTime": float64(1)},
+		map[string]any{"name": "n", "targetTime": float64(1)},
+		map[string]bool{"name": true})
+	if v := valueByName(t, got, "target_time").Scalar; v != int64(1000) {
+		t.Errorf("target_time = %#v, want the derived value inside the bounds", v)
+	}
+	within := spec.FromAcceptedRequestBody(
+		map[string]any{"name": "n", "targetTime": float64(2000)},
+		map[string]any{"name": "n", "targetTime": float64(2000)},
+		map[string]bool{"name": true})
+	if v := valueByName(t, within, "target_time").Scalar; v != float64(2000) {
+		t.Errorf("target_time = %#v, want the accepted value inside the bounds", v)
+	}
+}

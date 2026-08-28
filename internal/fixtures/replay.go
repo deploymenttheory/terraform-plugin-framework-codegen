@@ -209,6 +209,12 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 				}
 			}
 		}
+		// A number the API took outside the bounds the document declares
+		// is one the generated schema refuses before any request: the
+		// derived value, inside the bounds, stands in for it.
+		if n, ok := numeric(carried); ok && v.Nested == nil && ((v.Minimum != nil && n < *v.Minimum) || (v.Maximum != nil && n > *v.Maximum)) {
+			carried = v.Scalar
+		}
 		overlaid := overlayOne(v, carried, response, requiredWire, at, &dropped, keepWhole)
 		// An object the body carried empty leaves nothing to render: no
 		// scalar, and no field of its own that survived the overlay. Rendered
