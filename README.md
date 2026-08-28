@@ -113,7 +113,7 @@ the GitHub document below.
 | `docs/glossary.md` | The vocabulary; every term in it is deliberate |
 | `docs/mapping.md` | The API behaviour each generated schema shape answers, and the operation set behind each generated resource, datasource, list resource and action |
 | `docs/emittance_tracker.md` | What each pilot document currently emits and refuses — the only place those counts are kept |
-| `docs/rehearsal.md` | The first full local run of the chain against the quirkserver, stage by stage |
+| `docs/rehearsal.md` | The first full local run of the chain against the test API server, stage by stage |
 | `docs/releasing.md` | How a release is cut and how the moving major tag moves |
 | `docs/comment-style.md` | What a comment in this repo may and may not say |
 

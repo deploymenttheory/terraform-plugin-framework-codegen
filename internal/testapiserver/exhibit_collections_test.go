@@ -1,4 +1,4 @@
-package quirkserver
+package testapiserver
 
 import (
 	"net/http"
@@ -18,11 +18,11 @@ func monitorsURL(s *Server) string    { return s.BaseURL() + "/monitors" }
 func assignmentsURL(s *Server) string { return s.BaseURL() + "/assignments" }
 func agentsURL(s *Server) string      { return s.BaseURL() + "/agents" }
 
-// TestUnit_Quirkserver_Monitor_VariantGrammar exercises every refusal the
+// TestUnit_TestAPIServer_Monitor_VariantGrammar exercises every refusal the
 // multi-variant monitor makes, pinning the exact detail each carries: the
 // discriminator, the learn-from-400 requirement, the wrong-kind conflict, the
 // per-kind requirement, and the value-conditional dnssec co-requirement.
-func TestUnit_Quirkserver_Monitor_VariantGrammar(t *testing.T) {
+func TestUnit_TestAPIServer_Monitor_VariantGrammar(t *testing.T) {
 	t.Parallel()
 	s := New(t, Quirks{})
 
@@ -125,10 +125,10 @@ func TestUnit_Quirkserver_Monitor_VariantGrammar(t *testing.T) {
 	}
 }
 
-// TestUnit_Quirkserver_Monitor_Lifecycle walks a monitor through the full
+// TestUnit_TestAPIServer_Monitor_Lifecycle walks a monitor through the full
 // CRUD the document declares, and holds update to the same variant rules as
 // create.
-func TestUnit_Quirkserver_Monitor_Lifecycle(t *testing.T) {
+func TestUnit_TestAPIServer_Monitor_Lifecycle(t *testing.T) {
 	t.Parallel()
 	s := New(t, Quirks{})
 
@@ -175,9 +175,9 @@ func TestUnit_Quirkserver_Monitor_Lifecycle(t *testing.T) {
 	}
 }
 
-// TestUnit_Quirkserver_Assignment_Reference is the reference-borrowing ground
+// TestUnit_TestAPIServer_Assignment_Reference is the reference-borrowing ground
 // truth: a create must name an agent /agents actually serves.
-func TestUnit_Quirkserver_Assignment_Reference(t *testing.T) {
+func TestUnit_TestAPIServer_Assignment_Reference(t *testing.T) {
 	t.Parallel()
 	s := New(t, Quirks{})
 
@@ -214,8 +214,8 @@ func TestUnit_Quirkserver_Assignment_Reference(t *testing.T) {
 	}
 }
 
-// TestUnit_Quirkserver_Assignment_Lifecycle walks the full CRUD.
-func TestUnit_Quirkserver_Assignment_Lifecycle(t *testing.T) {
+// TestUnit_TestAPIServer_Assignment_Lifecycle walks the full CRUD.
+func TestUnit_TestAPIServer_Assignment_Lifecycle(t *testing.T) {
 	t.Parallel()
 	s := New(t, Quirks{})
 
@@ -243,9 +243,9 @@ func TestUnit_Quirkserver_Assignment_Lifecycle(t *testing.T) {
 	}
 }
 
-// TestUnit_Quirkserver_Agents_FixedPool asserts the referenced collection is a
+// TestUnit_TestAPIServer_Agents_FixedPool asserts the referenced collection is a
 // stable, readable set — what the reference borrowing depends on.
-func TestUnit_Quirkserver_Agents_FixedPool(t *testing.T) {
+func TestUnit_TestAPIServer_Agents_FixedPool(t *testing.T) {
 	t.Parallel()
 	s := New(t, Quirks{})
 
@@ -281,10 +281,10 @@ func TestUnit_Quirkserver_Agents_FixedPool(t *testing.T) {
 	}
 }
 
-// TestUnit_Quirkserver_Shapes_ErrorPaths covers the mechanical failures every
+// TestUnit_TestAPIServer_Shapes_ErrorPaths covers the mechanical failures every
 // shape route shares: an absent id reads/updates/deletes as 404, and a
 // malformed body is a 400 the same way the /things routes answer one.
-func TestUnit_Quirkserver_Shapes_ErrorPaths(t *testing.T) {
+func TestUnit_TestAPIServer_Shapes_ErrorPaths(t *testing.T) {
 	t.Parallel()
 	s := New(t, Quirks{})
 

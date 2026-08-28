@@ -1,4 +1,4 @@
-package quirkserver
+package testapiserver
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 )
 
 // writeExhibits holds one exhibit per write-path quirk, keyed by the Quirks
-// field it demonstrates. TestUnit_Quirkserver_EachQuirkIsExhibited drives
+// field it demonstrates. TestUnit_TestAPIServer_EachQuirkIsExhibited drives
 // them and refuses a field without an entry.
 var writeExhibits = map[string]func(*testing.T){
 	"SilentlyDiscards": func(t *testing.T) {

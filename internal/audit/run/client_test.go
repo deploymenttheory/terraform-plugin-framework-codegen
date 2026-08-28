@@ -10,7 +10,7 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 func TestUnit_Client_IdentifierOf(t *testing.T) {
@@ -97,7 +97,7 @@ func TestUnit_Client_SelfParamAndPartialPaths(t *testing.T) {
 		t.Errorf("selfParam of a collection = %q", got)
 	}
 
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	r, err := newRunner(testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err != nil {
 		t.Fatal(err)
@@ -129,7 +129,7 @@ func TestUnit_Client_SelfParamAndPartialPaths(t *testing.T) {
 // reports no error, and cleanup still runs.
 func TestUnit_Client_RunBudgetsExhaustRunWide(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
 	opts.Budgets = Budgets{Requests: 3}
 	_, summary, err := Run(context.Background(), opts)
@@ -160,7 +160,7 @@ func TestUnit_Client_RunBudgetsExhaustRunWide(t *testing.T) {
 // exhaust rather than run.
 func TestUnit_Client_ObjectBudgetStopsCreates(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	item := map[string]string{"thingId": "$created:thing"}
 	steps := []plan.Step{
 		{Kind: plan.StepCreateMinimal, Method: "POST", Path: "/things",

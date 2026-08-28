@@ -9,7 +9,7 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // TestUnit_Guard_ReadOnlyPlanNeedsNoRunsDir: a plan that never mutates —
@@ -17,7 +17,7 @@ import (
 // does needs an activity ledger.
 func TestUnit_Guard_ReadOnlyPlanNeedsNoRunsDir(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	seeded := s.Seed(map[string]any{"name": "target"})
 
 	p := thingPlan(nil, 10)
@@ -41,7 +41,7 @@ func TestUnit_Guard_ReadOnlyPlanNeedsNoRunsDir(t *testing.T) {
 // untouched — unless ForceAPIAudit.
 func TestUnit_Guard_SharedTenantRefusalBlocksMutation(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	for range 3 {
 		s.Seed(map[string]any{"name": "somebody-elses-object"})
 	}
@@ -69,7 +69,7 @@ func TestUnit_Guard_SharedTenantRefusalBlocksMutation(t *testing.T) {
 // TestUnit_Guard_ForceAPIAuditProceeds is the explicit override.
 func TestUnit_Guard_ForceAPIAuditProceeds(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	for range 3 {
 		s.Seed(map[string]any{"name": "somebody-elses-object"})
 	}
@@ -91,7 +91,7 @@ func TestUnit_Guard_ForceAPIAuditProceeds(t *testing.T) {
 // guard admits only the host the base URL names.
 func TestUnit_Guard_HostAllowlistRefusesAForeignHost(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	r, err := newRunner(testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err != nil {
 		t.Fatal(err)
@@ -110,7 +110,7 @@ func TestUnit_Guard_HostAllowlistRefusesAForeignHost(t *testing.T) {
 // toolkit token cannot bound a cleanup pass and is refused up front.
 func TestUnit_Guard_NamePrefixBounds(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 
 	for _, testCase := range []struct{ prefix, want string }{
 		{"tf", "shorter"},
@@ -128,7 +128,7 @@ func TestUnit_Guard_NamePrefixBounds(t *testing.T) {
 // mutating run.
 func TestUnit_Guard_MutatingRunNeedsARunsDir(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
 	opts.RunsDir = ""
 	if _, _, err := Run(context.Background(), opts); err == nil || !strings.Contains(err.Error(), "ledger") {
@@ -139,7 +139,7 @@ func TestUnit_Guard_MutatingRunNeedsARunsDir(t *testing.T) {
 // TestUnit_Guard_OptionValidation exercises the remaining refusals.
 func TestUnit_Guard_OptionValidation(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	base := func() Options { return testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil) }
 
 	opts := base()

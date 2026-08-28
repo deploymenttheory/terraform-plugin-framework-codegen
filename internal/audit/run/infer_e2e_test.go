@@ -6,7 +6,7 @@ import (
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // findWhenObs locates a value-conditional observation by its gate value.
@@ -22,14 +22,14 @@ func findWhenObs(obs []observe.Observation, entity, attribute string, kind obser
 }
 
 // TestUnit_Infer_MonitorEdgesFromAStrategyRun drives the whole chain against
-// the quirk server: the executor probes the multi-variant monitor, the
+// the test API server: the executor probes the multi-variant monitor, the
 // triangulating inference reads all of the evidence at once, and the
 // conditional edges no single probe could justify come out confirmed — the
 // discriminator configuration and the per-kind validWhen edges — while the
 // list shape is read from the live response, not the document.
 func TestUnit_Infer_MonitorEdgesFromAStrategyRun(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	obs, summary := mustRun(t, strategyOptions(t, s, nil))
 
 	vc := findObs(obs, "monitor", "kind", observe.KindValidConfiguration)
@@ -100,7 +100,7 @@ func TestUnit_Infer_MonitorEdgesFromAStrategyRun(t *testing.T) {
 // to borrow a real reference.
 func TestUnit_Infer_AssignmentHasNoSpuriousEdges(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	obs, _ := mustRun(t, strategyOptions(t, s, nil))
 
 	for i := range obs {

@@ -13,10 +13,10 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
-// auditSpec is the smallest lifecycle the quirk server serves.
+// auditSpec is the smallest lifecycle the test API server serves.
 const auditSpec = `openapi: 3.0.3
 info:
   title: Audit CLI fixture
@@ -137,7 +137,7 @@ func auditRepo(t *testing.T) {
 }
 
 func TestUnit_AuditRun_FullRunWritesObservationsAndATable(t *testing.T) {
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		ClosedEnum: map[string][]string{"mode": {"basic", "advanced"}},
 	})
 	auditRepo(t)
@@ -170,7 +170,7 @@ func TestUnit_AuditRun_FullRunWritesObservationsAndATable(t *testing.T) {
 }
 
 func TestUnit_AuditRun_FallsBackToUpstreamWithoutRevised(t *testing.T) {
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	auditRepo(t)
 	// A first run: `spec revise` has not materialised revised.yaml yet, so
 	// the audit interrogates against the pinned upstream document instead.
@@ -221,7 +221,7 @@ func TestUnit_AuditRun_NeedsABaseURLFromSomewhere(t *testing.T) {
 }
 
 func TestUnit_AuditCleanup_RemovesThePrefix(t *testing.T) {
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	s.Seed(map[string]any{"name": "tfpfgen-old1-thing-name"})
 	foreign := s.Seed(map[string]any{"name": "production"})
 	auditRepo(t)
@@ -244,13 +244,13 @@ func TestUnit_AuditCleanup_RemovesThePrefix(t *testing.T) {
 }
 
 // TestIntegration_AuditToRevise_UndocumentedFieldLandsInTheRevisedSpec is
-// the undocumentedFieldInSpec loop end to end: the quirk server answers a
+// the undocumentedFieldInSpec loop end to end: the test API server answers a
 // "serial" field no schema in the fixture spec declares; the audit run
 // observes it from the read-backs; spec revise compiles the observation
 // into a proposed correction; accepting it and writing produces a
 // revised spec that declares the field with its observed type.
 func TestIntegration_AuditToRevise_UndocumentedFieldLandsInTheRevisedSpec(t *testing.T) {
-	s := quirkserver.New(t, quirkserver.Quirks{
+	s := testapiserver.New(t, testapiserver.Quirks{
 		ConstantDefaults: map[string]any{"serial": "sn-100"},
 	})
 	auditRepo(t)

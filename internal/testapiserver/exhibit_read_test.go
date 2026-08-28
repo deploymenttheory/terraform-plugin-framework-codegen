@@ -1,4 +1,4 @@
-package quirkserver
+package testapiserver
 
 import (
 	"net/http"
@@ -7,7 +7,7 @@ import (
 )
 
 // readExhibits holds one exhibit per read-path and lifecycle quirk, keyed by
-// the Quirks field it demonstrates. TestUnit_Quirkserver_EachQuirkIsExhibited
+// the Quirks field it demonstrates. TestUnit_TestAPIServer_EachQuirkIsExhibited
 // drives them and refuses a field without an entry.
 var readExhibits = map[string]func(*testing.T){
 	"ExpansionGated": func(t *testing.T) {

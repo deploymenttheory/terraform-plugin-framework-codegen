@@ -42,7 +42,7 @@ Set by the repository owner; not open to per-PR relitigating:
   reader over `yaml.Node`, because document order is load-bearing for the SDK
   generators and a decoded map loses it. There is no test framework — stdlib
   `testing`. There is no HTTP client — stdlib `net/http`. There is no mocking
-  library: `internal/quirkserver` is a real server that misbehaves on purpose.
+  library: `internal/testapiserver` is a real server that misbehaves on purpose.
 - Any other cross-cutting library choice goes to the repository owner before
   it lands.
 

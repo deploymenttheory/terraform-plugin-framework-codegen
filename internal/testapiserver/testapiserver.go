@@ -1,9 +1,9 @@
-// Package quirkserver is an API that misbehaves on purpose.
+// Package testapiserver is an API that misbehaves on purpose.
 //
 // It exists so that every claim the auditor makes is checked against a server
 // whose behaviour is known by construction. That is a different and much
 // stronger thing than exercising the auditor against a real API: a live tenant
-// tells you what *that* API does, while a quirk server tells you whether the
+// tells you what *that* API does, while a test API server tells you whether the
 // audit would notice if it did something else. It is the only offline target
 // the audit engine is tested against, and it stands in for the live API when
 // the whole pipeline is exercised without credentials.
@@ -16,11 +16,11 @@
 // audit be *validated* rather than merely run.
 //
 // Every quirk is asserted to be exhibited by
-// TestUnit_Quirkserver_EachQuirkIsExhibited. A switch that silently stopped
+// TestUnit_TestAPIServer_EachQuirkIsExhibited. A switch that silently stopped
 // working would make the audit tests that depend on it pass for the wrong
 // reason -- which is the one failure mode a ground-truth fixture must not
 // have.
-package quirkserver
+package testapiserver
 
 import (
 	"net/http"
@@ -30,7 +30,7 @@ import (
 	"sync"
 )
 
-// Server is a running quirk server.
+// Server is a running test API server.
 type Server struct {
 	*httptest.Server
 
@@ -74,7 +74,7 @@ const (
 	listWrapperKey = "things"
 )
 
-// New starts a quirk server. It is closed when the test finishes.
+// New starts a test API server. It is closed when the test finishes.
 func New(t interface {
 	Cleanup(func())
 	Helper()

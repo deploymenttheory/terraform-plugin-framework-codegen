@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // TestUnit_Cleanup_RemovesPrefixedLeftoversOnly: the standalone cleanup pass
@@ -16,7 +16,7 @@ import (
 // and never anything else.
 func TestUnit_Cleanup_RemovesPrefixedLeftoversOnly(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	s.Seed(map[string]any{"name": "tfpfgen-oldrun1-thing-name"})
 	s.Seed(map[string]any{"name": "tfpfgen-oldrun2-thing-name"})
 	foreign := s.Seed(map[string]any{"name": "production-object"})
@@ -42,7 +42,7 @@ func TestUnit_Cleanup_RemovesPrefixedLeftoversOnly(t *testing.T) {
 // reconciled file is removed.
 func TestUnit_Cleanup_ReplaysACrashedRunsLedger(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	orphan := s.Seed(map[string]any{"name": "unprefixed-but-ledgered"})
 
 	opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
@@ -75,7 +75,7 @@ func TestUnit_Cleanup_ReplaysACrashedRunsLedger(t *testing.T) {
 // executes.
 func TestUnit_Cleanup_RunBoundaryCleanupRemovesPriorDebris(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	s.Seed(map[string]any{"name": "tfpfgen-oldrun9-thing-name"})
 
 	_, summary := mustRun(t, testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
@@ -92,7 +92,7 @@ func TestUnit_Cleanup_RunBoundaryCleanupRemovesPriorDebris(t *testing.T) {
 // claiming a clean removal.
 func TestUnit_Cleanup_FailedDeletesReportOrphans(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{DeleteFails: true})
+	s := testapiserver.New(t, testapiserver.Quirks{DeleteFails: true})
 	s.Seed(map[string]any{"name": "tfpfgen-oldrun3-thing-name"})
 
 	summary, err := Cleanup(context.Background(), testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
@@ -113,7 +113,7 @@ func TestUnit_Cleanup_FailedDeletesReportOrphans(t *testing.T) {
 // settle exactly that intent.
 func TestUnit_Cleanup_ResolveByNameSettlesIdlessIntents(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	r, err := newRunner(testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 	if err != nil {
 		t.Fatal(err)

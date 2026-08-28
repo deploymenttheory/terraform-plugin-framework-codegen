@@ -1,4 +1,4 @@
-package quirkserver
+package testapiserver
 
 import (
 	"bytes"
@@ -68,7 +68,7 @@ func do(t *testing.T, method, url string, body map[string]any) (int, map[string]
 	return response.StatusCode, out
 }
 
-// TestUnit_Quirkserver_EachQuirkIsExhibited asserts that every switch actually
+// TestUnit_TestAPIServer_EachQuirkIsExhibited asserts that every switch actually
 // misbehaves. This matters more than it looks: a quirk that silently stopped
 // working would make every audit test depending on it pass for the wrong
 // reason, and a ground-truth fixture that lies is worse than no fixture at
@@ -79,7 +79,7 @@ func do(t *testing.T, method, url string, body map[string]any) (int, map[string]
 // exhibit for a quirk that no longer exists -- fails here rather than rotting
 // quietly. Each exhibit asserts the *observable* consequence rather than an
 // internal flag.
-func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
+func TestUnit_TestAPIServer_EachQuirkIsExhibited(t *testing.T) {
 	t.Parallel()
 
 	exhibits := make(map[string]func(*testing.T), len(writeExhibits)+len(readExhibits))
@@ -110,10 +110,10 @@ func TestUnit_Quirkserver_EachQuirkIsExhibited(t *testing.T) {
 	}
 }
 
-// TestUnit_Quirkserver_ZeroValueIsWellBehaved: a test enables exactly the
+// TestUnit_TestAPIServer_ZeroValueIsWellBehaved: a test enables exactly the
 // quirk it is about, so the default has to be an ordinary API. Otherwise every
 // audit test would be exercising misbehaviour it did not ask for.
-func TestUnit_Quirkserver_ZeroValueIsWellBehaved(t *testing.T) {
+func TestUnit_TestAPIServer_ZeroValueIsWellBehaved(t *testing.T) {
 	t.Parallel()
 
 	s := New(t, Quirks{})
@@ -162,7 +162,7 @@ func TestUnit_Quirkserver_ZeroValueIsWellBehaved(t *testing.T) {
 	}
 }
 
-func TestUnit_Quirkserver_CountsRequests(t *testing.T) {
+func TestUnit_TestAPIServer_CountsRequests(t *testing.T) {
 	t.Parallel()
 
 	// So a test can assert an audit's real cost against the worst case it
@@ -179,7 +179,7 @@ func TestUnit_Quirkserver_CountsRequests(t *testing.T) {
 	}
 }
 
-func TestUnit_Quirkserver_RejectsMalformedAndUnsupported(t *testing.T) {
+func TestUnit_TestAPIServer_RejectsMalformedAndUnsupported(t *testing.T) {
 	t.Parallel()
 
 	s := New(t, Quirks{})

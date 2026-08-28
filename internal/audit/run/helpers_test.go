@@ -11,15 +11,15 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // testToken is the bearer credential every test run authenticates with —
 // distinctive on purpose, so the redaction test can grep for it.
 const testToken = "sekret-bearer-token-value-12345"
 
-// thingSpec matches the quirk server's fixed surface: a /things
+// thingSpec matches the test API server's fixed surface: a /things
 // collection with the full lifecycle. The schema exercises the evidence
 // paths: required fields for the minimal body, optional ones for the
 // maximal, an enum, a conditional requirement, and a field with a
@@ -173,8 +173,8 @@ func shrinkPolls(p *plan.Plan) {
 	}
 }
 
-// testOptions is the baseline options against a quirk server.
-func testOptions(t *testing.T, s *quirkserver.Server, p *plan.Plan, env map[string]string, logs *bytes.Buffer) Options {
+// testOptions is the baseline options against a test API server.
+func testOptions(t *testing.T, s *testapiserver.Server, p *plan.Plan, env map[string]string, logs *bytes.Buffer) Options {
 	t.Helper()
 	if logs == nil {
 		logs = &bytes.Buffer{}
@@ -248,7 +248,7 @@ func entityStatus(t *testing.T, summary Summary, entity string) EntityResult {
 	return EntityResult{}
 }
 
-// thingPlan hand-builds a minimal resource plan for the quirk server,
+// thingPlan hand-builds a minimal resource plan for the test API server,
 // for tests that need exact step control.
 func thingPlan(steps []plan.Step, budget int) *plan.Plan {
 	return &plan.Plan{

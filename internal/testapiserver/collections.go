@@ -1,4 +1,4 @@
-package quirkserver
+package testapiserver
 
 // The v2 shape resources -- monitor, assignment and agent -- are the ground
 // truth the v2 audit's harder machinery is asserted against. They are a

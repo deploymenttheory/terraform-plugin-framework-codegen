@@ -16,19 +16,19 @@ import (
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/config"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/quirkserver"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/testapiserver"
 )
 
 // TestUnit_Run_MonitorAndAssignmentCompleteWithoutExhaustion is the budget
-// regression the live quirkserver rehearsal surfaced: under the program-summed
+// regression the live test API server rehearsal surfaced: under the program-summed
 // budget, both the multi-variant monitor and the flat assignment run their whole
 // generated program to completion — status audited, never timeoutExhausted. The
 // old base+fields×variants budget (38 for the monitor, 12 for the assignment)
 // exhausted mid-program.
 func TestUnit_Run_MonitorAndAssignmentCompleteWithoutExhaustion(t *testing.T) {
 	t.Parallel()
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	_, summary := mustRun(t, strategyOptions(t, s, nil))
 
 	for _, entity := range []string{"monitor", "assignment"} {
@@ -95,7 +95,7 @@ func TestUnit_Run_NoUpdateOperationSkipsUpdateProbing(t *testing.T) {
 		t.Fatalf("Load: %v", err)
 	}
 	configuration := &config.Config{Audit: config.Audit{NamePrefix: "tfpfgen", MaxObjects: 25, RateLimitRPS: 2}}
-	s := quirkserver.New(t, quirkserver.Quirks{})
+	s := testapiserver.New(t, testapiserver.Quirks{})
 	p, err := plan.Derive(document, configuration, nil)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
