@@ -99,7 +99,7 @@ func TestUnit_SpecStore_ReimportingIdenticalContentChangesNothing(t *testing.T) 
 	if _, err := Import(dir, []byte(sampleYAML), "first.yaml"); err != nil {
 		t.Fatal(err)
 	}
-	before, err := os.ReadFile(filepath.Join(dir, LockName))
+	before, err := os.ReadFile(filepath.Join(dir, PinName))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestUnit_SpecStore_ReimportingIdenticalContentChangesNothing(t *testing.T) 
 		t.Errorf("res.Lock.Source = %q, want the original pin's source", res.Lock.Source)
 	}
 
-	after, err := os.ReadFile(filepath.Join(dir, LockName))
+	after, err := os.ReadFile(filepath.Join(dir, PinName))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +204,7 @@ func TestUnit_SpecStore_ImportRefusesUnparseableBytes(t *testing.T) {
 
 func TestUnit_SpecStore_ImportRefusesACorruptLock(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, LockName), []byte("{not json"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, PinName), []byte("{not json"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	_, err := Import(dir, []byte(sampleYAML), "x.yaml")
@@ -243,7 +243,7 @@ func TestUnit_SpecStore_LockJSONIsDeterministic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	raw, err := os.ReadFile(filepath.Join(dir, LockName))
+	raw, err := os.ReadFile(filepath.Join(dir, PinName))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,7 @@ func TestUnit_SpecStore_LockJSONIsDeterministic(t *testing.T) {
 		t.Errorf("the lock does not end with a trailing newline: %q", raw)
 	}
 
-	var decoded Lock
+	var decoded Pin
 	if err := json.Unmarshal(raw, &decoded); err != nil {
 		t.Fatalf("the lock does not round-trip: %v", err)
 	}
@@ -311,7 +311,7 @@ func TestUnit_SpecStore_VerifyFailsOnATamperedDocumentNamingBothHashes(t *testin
 
 func TestUnit_SpecStore_VerifyFailsOnACorruptLock(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, LockName), []byte("{not json"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, PinName), []byte("{not json"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Verify(dir); err == nil {
@@ -320,11 +320,11 @@ func TestUnit_SpecStore_VerifyFailsOnACorruptLock(t *testing.T) {
 }
 
 func TestUnit_SpecStore_ShortSHAKeepsShortStringsWhole(t *testing.T) {
-	if got := (Lock{SHA256: "abc"}).ShortSHA(); got != "abc" {
+	if got := (Pin{SHA256: "abc"}).ShortSHA(); got != "abc" {
 		t.Fatalf("ShortSHA = %q, want abc", got)
 	}
 	long := strings.Repeat("ab", 32)
-	if got := (Lock{SHA256: long}).ShortSHA(); got != long[:12] {
+	if got := (Pin{SHA256: long}).ShortSHA(); got != long[:12] {
 		t.Fatalf("ShortSHA = %q, want the first twelve characters", got)
 	}
 }

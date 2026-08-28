@@ -37,11 +37,11 @@ func TestUnit_SpecImport_PinsADocumentFromAFile(t *testing.T) {
 			t.Errorf("stdout missing %q:\n%s", want, stdout)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(dir, "upstream.yaml")); err != nil {
-		t.Errorf("upstream.yaml was not written: %v", err)
+	if _, err := os.Stat(filepath.Join(dir, "imported.yaml")); err != nil {
+		t.Errorf("imported.yaml was not written: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(dir, "upstream.lock.json")); err != nil {
-		t.Errorf("upstream.lock.json was not written: %v", err)
+	if _, err := os.Stat(filepath.Join(dir, "imported.pin.json")); err != nil {
+		t.Errorf("imported.pin.json was not written: %v", err)
 	}
 }
 
@@ -158,7 +158,7 @@ func TestUnit_SpecVerify_FailsOnATamperedDocument(t *testing.T) {
 	if code, _, stderr := run(t, "spec", "import", source, "--dir", dir); code != ExitOK {
 		t.Fatalf("import failed: %s", stderr)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "upstream.yaml"), []byte("openapi: 3.0.3\nedited: true\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "imported.yaml"), []byte("openapi: 3.0.3\nedited: true\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

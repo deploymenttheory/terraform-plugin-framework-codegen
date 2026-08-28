@@ -258,7 +258,7 @@ func TestUnit_Propose_AnAutoNameCollisionBumpsRatherThanClobbers(t *testing.T) {
 	other := `{
   "justification": "an earlier run's evidence",
   "evidence": "audit/observations/tag.observations.json#ffffffffffffffff",
-  "operations": [{"op": "add", "path": "/paths/~1tags/post/x-tfpfgen-eventual-consistency", "value": "1s"}]
+  "operations": [{"op": "add", "path": "/paths/~1tags/post/x-tfpfgen-read-after-write", "value": "1s"}]
 }`
 	writeFile(t, filepath.Join(specDir, correction.DirName, "auto-001-tag.correction.json"), other)
 	commitObs(t, root, confirmedObs("", observe.KindDeleteNotFoundOK, true, nil, lock.SHA256))
@@ -405,7 +405,7 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	if ro := properties["size"].(map[string]any)["readOnly"]; ro != true {
 		t.Errorf("size.readOnly = %v, want true", ro)
 	}
-	if co := properties["name"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
+	if co := properties["name"].(map[string]any)["x-tfpfgen-immutable"]; co != true {
 		t.Errorf("name create-only = %v, want true", co)
 	}
 	if def := properties["mode"].(map[string]any)["x-tfpfgen-server-default"]; def != "auto" {
@@ -419,7 +419,7 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	if enum, ok := color["enum"].([]any); !ok || len(enum) != 2 || enum[0] != "red" || enum[1] != "green" {
 		t.Errorf("color.enum = %v, want [red green]", color["enum"])
 	}
-	if open := color["x-tfpfgen-values-open"]; open != true {
+	if open := color["x-tfpfgen-values"]; open != true {
 		t.Errorf("color values-open = %v, want true", open)
 	}
 	item := document["paths"].(map[string]any)["/tags/{tagId}"].(map[string]any)
@@ -429,7 +429,7 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	if dnf := item["delete"].(map[string]any)["x-tfpfgen-delete-not-found-ok"]; dnf != true {
 		t.Errorf("delete-not-found-ok = %v, want true", dnf)
 	}
-	if ec := item["get"].(map[string]any)["x-tfpfgen-eventual-consistency"]; ec != "2s" {
+	if ec := item["get"].(map[string]any)["x-tfpfgen-read-after-write"]; ec != "2s" {
 		t.Errorf("eventual-consistency = %v, want 2s", ec)
 	}
 

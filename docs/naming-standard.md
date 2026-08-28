@@ -151,7 +151,7 @@ nothing else.
 | Terraform attribute | `snake_case` |
 
 `readAfterWrite` may therefore only write `x-tfpfgen-read-after-write`. It
-currently writes `x-tfpfgen-eventual-consistency`, which R6 forbids: one fact
+currently writes `x-tfpfgen-read-after-write`, which R6 forbids: one fact
 must not have two names because it crossed a serialisation boundary.
 
 ## R7 — Emitted provider code speaks HashiCorp, and the toolkit follows it
@@ -237,7 +237,7 @@ not a proposal.
 | `orphan` (three senses) | R3, R5 | `UndeletedObjects`, `UnproducedFilesOf`, `widget` |
 | `shape` as an identifier | R1, R5 | `handle*`, `has*Operations`, `listResponseFormat` split in two |
 | `json:"element_kind"` | retired | `json:"element_type"` |
-| `x-tfpfgen-eventual-consistency` | R6 | `x-tfpfgen-read-after-write` — the kind is `readAfterWrite` |
+| `x-tfpfgen-read-after-write` | R6 | `x-tfpfgen-read-after-write` — the kind is `readAfterWrite` |
 | `oag*` | R4 | `openAPIGenerator*` |
 | `MapRemoteStateToTerraform` | asymmetric | `MapRemoteStateToResource`, pairing with `MapRemoteStateToDatasource` |
 | `"strip-schema-defaults"` | R2 | deleted — `prenormalise` already did the same walk on every run |

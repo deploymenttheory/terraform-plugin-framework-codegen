@@ -105,7 +105,7 @@ components:
 
 // pinnedTree imports the fixture into <root>/spec and returns both paths
 // plus the pin, ready for observations to land beside it.
-func pinnedTree(t *testing.T) (root, specDir string, lock store.Lock) {
+func pinnedTree(t *testing.T) (root, specDir string, lock store.Pin) {
 	t.Helper()
 	root = t.TempDir()
 	specDir = filepath.Join(root, "spec")
@@ -204,12 +204,12 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 			name:      "immutable becomes create-only",
 			attribute: "name", kind: observe.KindImmutable, value: true,
 			want: `{
-  "justification": "the audit confirmed an immutable observation on tag.name: the live API refuses to change the value after create (x-tfpfgen-create-only)",
+  "justification": "the audit confirmed an immutable observation on tag.name: the live API refuses to change the value after create (x-tfpfgen-immutable)",
   "evidence": "audit/observations/tag.observations.json#%s",
   "operations": [
     {
       "op": "add",
-      "path": "/components/schemas/Tag/properties/name/x-tfpfgen-create-only",
+      "path": "/components/schemas/Tag/properties/name/x-tfpfgen-immutable",
       "value": true
     }
   ]
@@ -257,7 +257,7 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 			attribute: "color", kind: observe.KindValues,
 			value: observe.Values{Accepted: []string{"red", "green"}, Rejected: []string{"blue"}, Closed: boolPtr(false)},
 			want: `{
-  "justification": "the audit confirmed a values observation on tag.color: the live API rejects the documented value(s) blue; accepts the undocumented value(s) green; accepts values beyond the documented set (x-tfpfgen-values-open)",
+  "justification": "the audit confirmed a values observation on tag.color: the live API rejects the documented value(s) blue; accepts the undocumented value(s) green; accepts values beyond the documented set (x-tfpfgen-values)",
   "evidence": "audit/observations/tag.observations.json#%s",
   "operations": [
     {
@@ -276,7 +276,7 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
     },
     {
       "op": "add",
-      "path": "/components/schemas/Tag/properties/color/x-tfpfgen-values-open",
+      "path": "/components/schemas/Tag/properties/color/x-tfpfgen-values",
       "value": true
     }
   ]
@@ -319,12 +319,12 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 			name: "readAfterWrite annotates the read operation",
 			kind: observe.KindReadAfterWrite, value: "2s",
 			want: `{
-  "justification": "the audit confirmed a readAfterWrite observation on tag: a read may lag a write by up to 2s (x-tfpfgen-eventual-consistency)",
+  "justification": "the audit confirmed a readAfterWrite observation on tag: a read may lag a write by up to 2s (x-tfpfgen-read-after-write)",
   "evidence": "audit/observations/tag.observations.json#%s",
   "operations": [
     {
       "op": "add",
-      "path": "/paths/~1tags~1{tagId}/get/x-tfpfgen-eventual-consistency",
+      "path": "/paths/~1tags~1{tagId}/get/x-tfpfgen-read-after-write",
       "value": "2s"
     }
   ]
@@ -480,22 +480,19 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "listResponseShape annotates the list operation with the observed envelope",
-			kind: observe.KindListResponseShape,
-			value: observe.ListResponseShape{
-				Envelope: "wrapped", Key: "tags", Pagination: "cursor",
-			},
+			name:  "listWrapper annotates the list operation with the observed wrapping",
+			kind:  observe.KindListWrapper,
+			value: observe.ListWrapper{Wrapped: true, Key: "tags"},
 			want: `{
-  "justification": "the audit confirmed a listResponseShape observation on tag: the live list response wraps its item array under \"tags\", pagination cursor (x-tfpfgen-list-response-shape)",
+  "justification": "the audit confirmed a listWrapper observation on tag: the live list response wraps its item array under \"tags\" (x-tfpfgen-list-wrapper)",
   "evidence": "audit/observations/tag.observations.json#%s",
   "operations": [
     {
       "op": "add",
-      "path": "/paths/~1tags/get/x-tfpfgen-list-response-shape",
+      "path": "/paths/~1tags/get/x-tfpfgen-list-wrapper",
       "value": {
-        "envelope": "wrapped",
         "key": "tags",
-        "pagination": "cursor"
+        "wrapped": "true"
       }
     }
   ]
@@ -503,21 +500,18 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name: "a bare list response is marked bare, not left implicit",
-			kind: observe.KindListResponseShape,
-			value: observe.ListResponseShape{
-				Envelope: "bare", Pagination: "none",
-			},
+			name:  "an unwrapped list response is marked so, not left implicit",
+			kind:  observe.KindListWrapper,
+			value: observe.ListWrapper{},
 			want: `{
-  "justification": "the audit confirmed a listResponseShape observation on tag: the live list response is a bare item array, pagination none (x-tfpfgen-list-response-shape)",
+  "justification": "the audit confirmed a listWrapper observation on tag: the live list response is a bare item array (x-tfpfgen-list-wrapper)",
   "evidence": "audit/observations/tag.observations.json#%s",
   "operations": [
     {
       "op": "add",
-      "path": "/paths/~1tags/get/x-tfpfgen-list-response-shape",
+      "path": "/paths/~1tags/get/x-tfpfgen-list-wrapper",
       "value": {
-        "envelope": "bare",
-        "pagination": "none"
+        "wrapped": "false"
       }
     }
   ]
@@ -528,12 +522,12 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 			name:      "ignoredOnUpdate becomes its extension",
 			attribute: "mode", kind: observe.KindIgnoredOnUpdate, value: true,
 			want: `{
-  "justification": "the audit confirmed an ignoredOnUpdate observation on tag.mode: updates accept a new value with a success status and do not apply it (x-tfpfgen-silently-ignored-on-update)",
+  "justification": "the audit confirmed an ignoredOnUpdate observation on tag.mode: updates accept a new value with a success status and do not apply it (x-tfpfgen-ignored-on-update)",
   "evidence": "audit/observations/tag.observations.json#%s",
   "operations": [
     {
       "op": "add",
-      "path": "/components/schemas/Tag/properties/mode/x-tfpfgen-silently-ignored-on-update",
+      "path": "/components/schemas/Tag/properties/mode/x-tfpfgen-ignored-on-update",
       "value": true
     }
   ]

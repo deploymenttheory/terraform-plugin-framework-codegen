@@ -18,9 +18,9 @@ func TestUnit_Run_SummaryKeepsWhyAnEntityProducedNothing(t *testing.T) {
 		RunID:   "abcd1234",
 		Blocked: 1,
 		Entities: []EntityResult{{
-			Entity: "thing",
-			Status: StatusBlocked,
-			Reason: "the minimal create was refused with status 400, and adding name did not correct it",
+			Entity:  "thing",
+			Outcome: observe.OutcomeBlocked,
+			Reason:  "the minimal create was refused with status 400, and adding name did not correct it",
 			Refusal: &observe.Excerpt{
 				Method: "POST", PathTemplate: "/things", Status: 400,
 				ResponseFragment: json.RawMessage(`{"detail":"field serial is required"}`),

@@ -185,7 +185,7 @@ func newAuditCleanupCommand() *cobra.Command {
 			w := cmd.OutOrStdout()
 			fmt.Fprintf(w, "cleanup: %d deleted from ledgers, %d deleted by prefix %q\n",
 				summary.LedgerDeletes, summary.PrefixDeletes, prefix)
-			for _, o := range summary.Orphans {
+			for _, o := range summary.UndeletedObjects {
 				fmt.Fprintf(w, "  orphan: %s\n", o)
 			}
 			return err
@@ -205,41 +205,41 @@ func newAuditCleanupCommand() *cobra.Command {
 // The inputs are answered as well as applied. Derive resolves parentRefs and
 // skip from them, and their values reach the wire only through the run, which
 // rebuilds every body the plan derived.
-func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Document, *plan.Inputs, store.Lock, error) {
+func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Document, *plan.Inputs, store.Pin, error) {
 	configuration, err := config.Load(cfgFile)
 	if err != nil {
-		return nil, nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Pin{}, err
 	}
 	if !configuration.Audit.Enabled {
-		return nil, nil, nil, nil, store.Lock{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
+		return nil, nil, nil, nil, store.Pin{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
 	}
 
 	data, srcPath, err := auditSpecBytes(dir)
 	if err != nil {
-		return nil, nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Pin{}, err
 	}
 	document, err := specmodel.Load(data)
 	if err != nil {
-		return nil, nil, nil, nil, store.Lock{}, fmt.Errorf("%s: %w", srcPath, err)
+		return nil, nil, nil, nil, store.Pin{}, fmt.Errorf("%s: %w", srcPath, err)
 	}
 
 	lock, err := store.Verify(dir)
 	if err != nil {
-		return nil, nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Pin{}, err
 	}
 
 	rawInputs, err := os.ReadFile(plan.InputsPath)
 	if err != nil && !os.IsNotExist(err) {
-		return nil, nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Pin{}, err
 	}
 	inputs, err := plan.ParseInputs(rawInputs)
 	if err != nil {
-		return nil, nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Pin{}, err
 	}
 
 	p, err := plan.Derive(document, configuration, inputs)
 	if err != nil {
-		return nil, nil, nil, nil, store.Lock{}, err
+		return nil, nil, nil, nil, store.Pin{}, err
 	}
 	return configuration, p, document, inputs, lock, nil
 }
@@ -349,11 +349,11 @@ func printSummary(w io.Writer, out string, obsCount int, summary auditrun.Summar
 	fmt.Fprintf(w, "audit run %s: %d audited, %d blocked, %d exhausted, %d skipped by the plan\n",
 		summary.RunID, summary.Audited, summary.Blocked, summary.TimedOut, summary.Skipped)
 	for _, e := range summary.Entities {
-		if e.Status == auditrun.StatusAudited {
-			fmt.Fprintf(w, "  %-12s %s\n", e.Status, e.Entity)
+		if e.Outcome == observe.OutcomeConfirmed {
+			fmt.Fprintf(w, "  %-12s %s\n", e.Outcome, e.Entity)
 			continue
 		}
-		fmt.Fprintf(w, "  %-12s %s: %s\n", e.Status, e.Entity, e.Reason)
+		fmt.Fprintf(w, "  %-12s %s: %s\n", e.Outcome, e.Entity, e.Reason)
 	}
 	printSkipped(w, summary.SkippedEntities)
 
@@ -380,7 +380,7 @@ func printSummary(w io.Writer, out string, obsCount int, summary auditrun.Summar
 	fmt.Fprintf(w, "cleanup: %d+%d removed at start, %d+%d at end (ledger+prefix)\n",
 		summary.CleanupStart.LedgerDeletes, summary.CleanupStart.PrefixDeletes,
 		summary.CleanupEnd.LedgerDeletes, summary.CleanupEnd.PrefixDeletes)
-	for _, o := range append(append([]string{}, summary.CleanupStart.Orphans...), summary.CleanupEnd.Orphans...) {
+	for _, o := range append(append([]string{}, summary.CleanupStart.UndeletedObjects...), summary.CleanupEnd.UndeletedObjects...) {
 		fmt.Fprintf(w, "  orphan: %s\n", o)
 	}
 

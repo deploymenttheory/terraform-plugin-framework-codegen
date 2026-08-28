@@ -33,10 +33,10 @@ func TestUnit_Run_MonitorAndAssignmentCompleteWithoutExhaustion(t *testing.T) {
 
 	for _, entity := range []string{"monitor", "assignment"} {
 		got := entityStatus(t, summary, entity)
-		if got.Status == StatusTimeoutExhausted {
+		if got.Outcome == observe.OutcomeTimeoutExhausted {
 			t.Errorf("%s = %+v, want audited (budget exhausted mid-program)", entity, got)
 		}
-		if got.Status != StatusAudited {
+		if got.Outcome != observe.OutcomeConfirmed {
 			t.Errorf("%s = %+v, want audited", entity, got)
 		}
 	}
@@ -106,7 +106,7 @@ func TestUnit_Run_NoUpdateOperationSkipsUpdateProbing(t *testing.T) {
 	opts.Config = configuration
 	obs, summary := mustRun(t, opts)
 
-	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("thing = %+v, want audited", got)
 	}
 	for i := range obs {
@@ -173,7 +173,7 @@ func TestUnit_Run_IdUnknownRecordsInconclusiveAndCleansByPrefix(t *testing.T) {
 	}
 
 	got := entityStatus(t, summary, "widget")
-	if got.Status != StatusAudited {
+	if got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("widget = %+v, want audited despite the unlearnable id", got)
 	}
 

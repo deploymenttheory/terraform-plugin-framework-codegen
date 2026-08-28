@@ -14,7 +14,7 @@ paths:
   /modules:
     post:
       operationId: CreateModule
-      x-tfpfgen-eventual-consistency: 45s
+      x-tfpfgen-read-after-write: 45s
       requestBody:
         required: true
         content:
@@ -113,13 +113,13 @@ paths:
     get:
       operationId: ListBeacons
       # The document below declares a bare array; the live API wraps its
-      # items under "beacons". The audit's listResponseShape observation is
+      # items under "beacons". The audit's listWrapper observation is
       # what this key records, and generation reads it in preference to the
       # schema — the fixture's one deliberately-lying response.
-      x-tfpfgen-list-response-shape:
-        envelope: wrapped
+      x-tfpfgen-list-wrapper:
+        wrapped: true
         key: beacons
-        pagination: none
+      x-tfpfgen-list-pagination: none
       responses:
         "200":
           description: Every beacon.
@@ -260,7 +260,7 @@ components:
           description: What the module is for.
         serial:
           type: string
-          x-tfpfgen-create-only: true
+          x-tfpfgen-immutable: true
           description: The hull serial, fixed at commissioning.
         occupied:
           type: boolean

@@ -2,6 +2,7 @@ package sdkbind
 
 import (
 	"fmt"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 	"go/types"
 	"sort"
 	"strings"
@@ -116,7 +117,7 @@ func (v *verifier) problem(kind, key, path, format string, args ...any) {
 }
 
 func (v *verifier) resource(rb *ResourceBinding) {
-	const kind = "resource"
+	const kind = string(specmodel.KindResource)
 	for name, call := range map[string]*Call{
 		"create": rb.Create, "read": rb.Read, "update": rb.Update, "delete": rb.Delete,
 	} {
@@ -129,7 +130,7 @@ func (v *verifier) resource(rb *ResourceBinding) {
 }
 
 func (v *verifier) datasource(db *DatasourceBinding) {
-	const kind = "datasource"
+	const kind = string(specmodel.KindDatasource)
 	if db.Read != nil {
 		v.call(kind, db.Key, "read", db.Read)
 	}
@@ -146,7 +147,7 @@ func (v *verifier) datasource(db *DatasourceBinding) {
 }
 
 func (v *verifier) listResource(lb *ListResourceBinding) {
-	const kind = "list_resource"
+	const kind = string(specmodel.KindListResource)
 	if lb.List != nil {
 		v.call(kind, lb.Key, "list", lb.List)
 		v.collection(kind, lb.Key, lb.List, lb.ElementType, lb.CollectionAccess)
@@ -156,7 +157,7 @@ func (v *verifier) listResource(lb *ListResourceBinding) {
 }
 
 func (v *verifier) action(ab *ActionBinding) {
-	const kind = "action"
+	const kind = string(specmodel.KindAction)
 	if ab.Invoke != nil {
 		v.call(kind, ab.Key, "invoke", ab.Invoke)
 	}

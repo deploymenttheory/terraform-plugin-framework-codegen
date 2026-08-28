@@ -21,7 +21,7 @@ const (
 	// terraform type, streaming the identities of the objects that exist
 	// now. Terraform matches the two by type name, so it exists only where
 	// a resource does.
-	KindListResource Kind = "list-resource"
+	KindListResource Kind = "list_resource"
 	// KindAction is a lone write with no CRUD complement — an invocation,
 	// not a thing with a lifecycle.
 	KindAction Kind = "action"
@@ -51,7 +51,7 @@ type Classification struct {
 	// empty when the document declares none.
 	ItemPath string
 	// Kinds lists what the entity yields, in the fixed order resource,
-	// datasource, list-resource, action.
+	// datasource, list_resource, action.
 	Kinds []Kind
 	// The operations by role. An action's POST sits in Create: the role
 	// slots describe HTTP position, and kind says what the position

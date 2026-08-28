@@ -142,7 +142,7 @@ func fictionalModel() *ir.Model {
 					{Name: "items", WireName: "items", Kind: ir.TypeList, ElementType: ir.TypeObject,
 						ComputedOptionalRequired: ir.Computed, Nested: itemTree},
 				}},
-				ListEnvelopeKey: "http_servers",
+				ListWrapperKey: "http_servers",
 			},
 			{
 				Names: names("license", "License", "licenses"),
@@ -167,7 +167,7 @@ func fictionalModel() *ir.Model {
 					{Name: "id", WireName: "id", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 					{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
 				}},
-				ListEnvelopeKey: "value",
+				ListWrapperKey: "value",
 			},
 		},
 		Actions: []ir.Action{

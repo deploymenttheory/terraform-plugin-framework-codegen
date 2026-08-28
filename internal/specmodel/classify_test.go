@@ -124,7 +124,7 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 		{
 			name:          "a full lifecycle the api can enumerate is a resource, a datasource and a list resource",
 			paths:         crud("/tags", "get!", "post!") + crud("/tags/{tagId}", "get!", "patch!", "delete"),
-			wantKinds:     map[string]string{"tag": "resource,datasource,list-resource"},
+			wantKinds:     map[string]string{"tag": "resource,datasource,list_resource"},
 			missingUpdate: map[string]bool{"tag": false},
 		},
 		{

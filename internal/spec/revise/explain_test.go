@@ -97,7 +97,7 @@ func TestUnit_Revise_ExplanationsAreProseNotJargon(t *testing.T) {
 var entityLevelKinds = []observe.Kind{
 	observe.KindUpdateStyle, observe.KindDeleteNotFoundOK,
 	observe.KindReadAfterWrite, observe.KindMutuallyExclusive,
-	observe.KindListResponseShape,
+	observe.KindListWrapper,
 }
 
 func TestUnit_Revise_EntityLevelExplanationsNameNoAttribute(t *testing.T) {

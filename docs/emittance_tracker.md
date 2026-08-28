@@ -69,7 +69,7 @@ data before they can publish an identity.
 
 ## The documents
 
-Each is pinned by SHA-256 in its own provider repo's `spec/upstream.lock.json`.
+Each is pinned by SHA-256 in its own provider repo's `spec/imported.pin.json`.
 The pin, not the URL, is what a measurement is against — the sources below all
 track a moving branch upstream.
 

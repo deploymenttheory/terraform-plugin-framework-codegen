@@ -18,8 +18,8 @@ func newSpecCommand() *cobra.Command {
 }
 
 // newSpecImportCommand pins the upstream document by hash: the bytes go to
-// <dir>/upstream.yaml exactly as published, the provenance to
-// <dir>/upstream.lock.json. Importing identical content changes nothing;
+// <dir>/imported.yaml exactly as published, the provenance to
+// <dir>/imported.pin.json. Importing identical content changes nothing;
 // different content moves the pin and says what it replaced.
 func newSpecImportCommand() *cobra.Command {
 	var dir string
@@ -86,7 +86,7 @@ func newSpecVerifyCommand() *cobra.Command {
 // describeVersions renders a lock's versions for a message: always the
 // OpenAPI dialect, plus the vendor's own version when the document declares
 // one.
-func describeVersions(l store.Lock) string {
+func describeVersions(l store.Pin) string {
 	if l.DocumentVersion == "" {
 		return fmt.Sprintf("openapi %s", l.OpenAPI)
 	}

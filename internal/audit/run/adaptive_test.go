@@ -309,7 +309,7 @@ func TestUnit_Adaptive_MonitorSelfHealsTheIntervalRequirement(t *testing.T) {
 	obs, summary := mustRun(t, strategyOptions(t, s, nil))
 
 	got := entityStatus(t, summary, "monitor")
-	if got.Status == StatusBlocked {
+	if got.Outcome == observe.OutcomeBlocked {
 		t.Fatalf("monitor blocked despite the self-correct: %+v", got)
 	}
 	o := findObs(obs, "monitor", "interval", observe.KindRequiredByAPI)
@@ -334,7 +334,7 @@ func TestUnit_Adaptive_AssignmentBorrowsARealAgentID(t *testing.T) {
 	_, summary := mustRun(t, strategyOptions(t, s, nil))
 
 	got := entityStatus(t, summary, "assignment")
-	if got.Status == StatusBlocked {
+	if got.Outcome == observe.OutcomeBlocked {
 		t.Fatalf("assignment blocked; the borrow did not satisfy agent_id: %+v", got)
 	}
 	if !hasAdjustment(summary, "assignment", infer.AdjustBorrow, "agent_id") {
@@ -394,7 +394,7 @@ func TestUnit_Adaptive_RequiresFieldIsAdded(t *testing.T) {
 
 	_, summary := mustRun(t, opts)
 
-	if got := entityStatus(t, summary, "monitor"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "monitor"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("monitor = %+v, want audited via the added domain", got)
 	}
 	if !hasAdjustment(summary, "monitor", infer.AdjustRequires, "domain") {
@@ -443,10 +443,10 @@ func TestUnit_Adaptive_UnintelligibleRefusalIsBoundedAndContinues(t *testing.T) 
 	if err != nil {
 		t.Fatalf("an uncorrectable refusal blocks the entity, not the run: %v", err)
 	}
-	if got := entityStatus(t, summary, "thing"); got.Status != StatusBlocked {
+	if got := entityStatus(t, summary, "thing"); got.Outcome != observe.OutcomeBlocked {
 		t.Fatalf("thing = %+v, want blocked on the unintelligible refusal", got)
 	}
-	if got := entityStatus(t, summary, "gadget"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "gadget"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("gadget = %+v, want audited after the blocked entity", got)
 	}
 	// The block carries the API's own words and names what the search asked

@@ -15,9 +15,9 @@ type CleanupSummary struct {
 	// LedgerDeletes removed objects a ledger knew the id of; a
 	// PrefixDelete means something got past a ledger, which is worth
 	// distinguishing.
-	LedgerDeletes int      `json:"ledgerDeletes"`
-	PrefixDeletes int      `json:"prefixDeletes"`
-	Orphans       []string `json:"orphans,omitempty"`
+	LedgerDeletes    int      `json:"ledgerDeletes"`
+	PrefixDeletes    int      `json:"prefixDeletes"`
+	UndeletedObjects []string `json:"undeletedObjects,omitempty"`
 }
 
 // Cleanup clears the tenant of audit debris: every unresolved entry of
@@ -37,8 +37,8 @@ func Cleanup(ctx context.Context, opts Options) (CleanupSummary, error) {
 	r.inCleanup = true
 	summary := r.cleanupLeftoverObjects(ctx)
 	r.ledger.remove()
-	if len(summary.Orphans) > 0 {
-		return summary, fmt.Errorf("audit cleanup: %d object(s) could not be removed; see the orphan list", len(summary.Orphans))
+	if len(summary.UndeletedObjects) > 0 {
+		return summary, fmt.Errorf("audit cleanup: %d object(s) could not be removed; see the orphan list", len(summary.UndeletedObjects))
 	}
 	return summary, nil
 }
@@ -68,7 +68,7 @@ func (r *runner) cleanupOwn(ctx context.Context) CleanupSummary {
 	}
 	r.cleanupByPrefix(ctx, &summary)
 	for _, e := range r.ledger.unresolved() {
-		summary.Orphans = append(summary.Orphans, orphanLine(e))
+		summary.UndeletedObjects = append(summary.UndeletedObjects, orphanLine(e))
 	}
 	r.ledger.remove()
 	return summary
@@ -100,7 +100,7 @@ func (r *runner) cleanupLedgers(ctx context.Context, summary *CleanupSummary) {
 		}
 		recorded, err := readActivityFile(path)
 		if err != nil {
-			summary.Orphans = append(summary.Orphans, fmt.Sprintf("ledger %s could not be read: %v", path, err))
+			summary.UndeletedObjects = append(summary.UndeletedObjects, fmt.Sprintf("ledger %s could not be read: %v", path, err))
 			continue
 		}
 		clean := true
@@ -112,7 +112,7 @@ func (r *runner) cleanupLedgers(ctx context.Context, summary *CleanupSummary) {
 		if clean {
 			_ = os.Remove(path)
 		} else {
-			summary.Orphans = append(summary.Orphans, fmt.Sprintf("ledger %s still names objects that may exist", path))
+			summary.UndeletedObjects = append(summary.UndeletedObjects, fmt.Sprintf("ledger %s still names objects that may exist", path))
 		}
 	}
 }
@@ -132,7 +132,7 @@ func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, summar
 	}
 	res, err := r.do(ctx, nil, reqSpec{method: "DELETE", path: path})
 	if err != nil {
-		summary.Orphans = append(summary.Orphans, orphanLine(e)+": "+err.Error())
+		summary.UndeletedObjects = append(summary.UndeletedObjects, orphanLine(e)+": "+err.Error())
 		return false
 	}
 	if res.ok() || res.status == 404 {
@@ -142,7 +142,7 @@ func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, summar
 		}
 		return true
 	}
-	summary.Orphans = append(summary.Orphans, fmt.Sprintf("%s: the delete answered %d", orphanLine(e), res.status))
+	summary.UndeletedObjects = append(summary.UndeletedObjects, fmt.Sprintf("%s: the delete answered %d", orphanLine(e), res.status))
 	return false
 }
 
@@ -193,7 +193,7 @@ func (r *runner) cleanupCollection(ctx context.Context, rec *entityLifecycle, su
 		if id := identifierOf(obj); id != "" {
 			matches = append(matches, found{id: id, name: name})
 		} else {
-			summary.Orphans = append(summary.Orphans, fmt.Sprintf("%s %q carries the prefix but no recognisable id", rec.entity, name))
+			summary.UndeletedObjects = append(summary.UndeletedObjects, fmt.Sprintf("%s %q carries the prefix but no recognisable id", rec.entity, name))
 		}
 	}
 	sort.Slice(matches, func(i, j int) bool { return matches[i].id < matches[j].id })
@@ -202,7 +202,7 @@ func (r *runner) cleanupCollection(ctx context.Context, rec *entityLifecycle, su
 			method: rec.deleteMethod, path: rec.itemPath, pathValues: itemValuesFor(rec, m.id),
 		})
 		if err != nil {
-			summary.Orphans = append(summary.Orphans, fmt.Sprintf("%s %s (%s): %v", rec.entity, m.id, m.name, err))
+			summary.UndeletedObjects = append(summary.UndeletedObjects, fmt.Sprintf("%s %s (%s): %v", rec.entity, m.id, m.name, err))
 			continue
 		}
 		if del.ok() || del.status == 404 {
@@ -212,7 +212,7 @@ func (r *runner) cleanupCollection(ctx context.Context, rec *entityLifecycle, su
 			r.resolveByName(m.name, m.id, del.status)
 			continue
 		}
-		summary.Orphans = append(summary.Orphans, fmt.Sprintf("%s %s (%s): the delete answered %d", rec.entity, m.id, m.name, del.status))
+		summary.UndeletedObjects = append(summary.UndeletedObjects, fmt.Sprintf("%s %s (%s): the delete answered %d", rec.entity, m.id, m.name, del.status))
 	}
 }
 

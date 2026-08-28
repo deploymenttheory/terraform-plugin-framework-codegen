@@ -92,7 +92,7 @@ func TestUnit_Config_GoldenTable(t *testing.T) {
 		{"an absent auto-accept list parses", valid, ""},
 		{"an empty auto-accept list parses", valid + "audit:\n  auto_accept: []\n", ""},
 		{"known auto-accept kinds parse",
-			valid + "audit:\n  auto_accept: [listResponseShape, deleteNotFoundOK, updateStyle]\n", ""},
+			valid + "audit:\n  auto_accept: [listWrapper, listPagination, deleteNotFoundOK]\n", ""},
 		{"a kind with no correction form yet still parses",
 			// normalisation compiles to a NoForm note rather than a
 			// correction; naming it is inert, not an error, because the
@@ -134,8 +134,8 @@ func TestUnit_Config_GoldenTable(t *testing.T) {
 // the whole set out, since a human choosing kinds needs to see the choices.
 func TestUnit_Config_AutoAcceptVocabularyComesFromTheRevisionStage(t *testing.T) {
 	kinds := revise.CompilableKinds()
-	if !slices.Contains(kinds, "listResponseShape") {
-		t.Errorf("the vocabulary %v omits listResponseShape", kinds)
+	if !slices.Contains(kinds, "listWrapper") {
+		t.Errorf("the vocabulary %v omits listWrapper", kinds)
 	}
 	if !slices.Equal(autoAcceptKinds(), kinds) {
 		t.Errorf("autoAcceptKinds() = %v, want the revision stage's %v", autoAcceptKinds(), kinds)

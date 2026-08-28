@@ -17,7 +17,7 @@ import (
 
 // pinnedCustom imports an arbitrary spec into <root>/spec, for tests that
 // need a document tagSpec cannot express (a 3.1 dialect, say).
-func pinnedCustom(t *testing.T, spec string) (root, specDir string, lock store.Lock) {
+func pinnedCustom(t *testing.T, spec string) (root, specDir string, lock store.Pin) {
 	t.Helper()
 	root = t.TempDir()
 	specDir = filepath.Join(root, "spec")

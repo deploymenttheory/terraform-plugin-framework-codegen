@@ -159,7 +159,7 @@ func TestAttributes_ComputedOptionalRequired(t *testing.T) {
 func TestAttributes_CreateOnlyRequiresReplace(t *testing.T) {
 	tree := thingTree(t)
 	if a := attribute(t, tree, "region"); !a.RequiresReplace {
-		t.Errorf("x-tfpfgen-create-only did not set RequiresReplace")
+		t.Errorf("x-tfpfgen-immutable did not set RequiresReplace")
 	}
 	if a := attribute(t, tree, "name"); a.RequiresReplace {
 		t.Errorf("RequiresReplace leaked onto %+v", a)
@@ -179,7 +179,7 @@ func TestAttributes_Enums(t *testing.T) {
 
 	tier := attribute(t, tree, "tier")
 	if tier.OneOf != nil {
-		t.Errorf("x-tfpfgen-values-open still produced a validator: %v", tier.OneOf)
+		t.Errorf("x-tfpfgen-values still produced a validator: %v", tier.OneOf)
 	}
 	if want := []string{"gold", "silver"}; !reflect.DeepEqual(tier.AdvisoryValues, want) {
 		t.Errorf("tier.AdvisoryValues = %v, want %v", tier.AdvisoryValues, want)
@@ -194,19 +194,19 @@ func TestAttributes_ConditionalRequirement(t *testing.T) {
 	}
 }
 
-// TestDerive_ListEnvelopeKey_BareArray: the main fixture's list is a bare
+// TestDerive_ListWrapperKey_BareArray: the main fixture's list is a bare
 // array, so the derived envelope key is empty — the mock emits a bare array,
 // not a wrapper.
-func TestDerive_ListEnvelopeKey_BareArray(t *testing.T) {
+func TestDerive_ListWrapperKey_BareArray(t *testing.T) {
 	r := resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing")
 	if r.ListWrapperKey != "" {
 		t.Errorf("bare-array list derived envelope key %q, want empty", r.ListWrapperKey)
 	}
 }
 
-// TestDerive_ListEnvelopeKey_Wrapped: a list response wrapping its items
+// TestDerive_ListWrapperKey_Wrapped: a list response wrapping its items
 // under a vendor key is read from the schema, not assumed to be "value".
-func TestDerive_ListEnvelopeKey_Wrapped(t *testing.T) {
+func TestDerive_ListWrapperKey_Wrapped(t *testing.T) {
 	const spec = `openapi: 3.0.3
 info: {title: T, version: "1"}
 paths:
@@ -248,11 +248,11 @@ components:
 	}
 }
 
-// TestDerive_ListEnvelopeKey_ExtensionBeatsTheSchema: where a list operation
-// carries x-tfpfgen-list-response-shape, the audit's observed envelope is the
+// TestDerive_ListWrapperKey_ExtensionBeatsTheSchema: where a list operation
+// carries x-tfpfgen-list-wrapper, the audit's observed wrapping is the
 // answer and the response schema is not consulted — the document's own list
 // schema being wrong is the whole reason the key exists.
-func TestDerive_ListEnvelopeKey_ExtensionBeatsTheSchema(t *testing.T) {
+func TestDerive_ListWrapperKey_ExtensionBeatsTheSchema(t *testing.T) {
 	// The document declares a wrapper keyed "items"; the live API was
 	// observed wrapping under "records".
 	const wrappedDoc = `openapi: 3.0.3
@@ -265,7 +265,7 @@ paths:
       responses:
         "201": {content: {application/json: {schema: {$ref: '#/components/schemas/Gizmo'}}}}
     get:
-      x-tfpfgen-list-response-shape: {envelope: %s}
+      x-tfpfgen-list-wrapper: {%s}
       responses:
         "200":
           content:
@@ -291,24 +291,25 @@ components:
         label: {type: string}
 `
 	cases := []struct {
-		name     string
-		envelope string
-		want     string
+		name    string
+		wrapper string
+		want    string
 	}{
-		{"a wrapped shape names the real key, not the declared one",
-			"wrapped, key: records, pagination: cursor", "records"},
-		{"a bare shape unwraps a response the document wraps", "bare", ""},
+		{"a wrapped response names the real key, not the declared one",
+			"wrapped: true, key: records", "records"},
+		{"an unwrapped response is unwrapped, whatever the document wraps",
+			"wrapped: false", ""},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			document := fmt.Sprintf(wrappedDoc, testCase.envelope)
+			document := fmt.Sprintf(wrappedDoc, testCase.wrapper)
 			r := resourceByKey(t, mustDerive(t, document, testConfig()), "gizmo")
 			if r.ListWrapperKey != testCase.want {
-				t.Errorf("resource envelope key = %q, want %q", r.ListWrapperKey, testCase.want)
+				t.Errorf("resource wrapper key = %q, want %q", r.ListWrapperKey, testCase.want)
 			}
 			d := datasourceByKey(t, mustDerive(t, document, testConfig()), "gizmo")
-			if d.ListEnvelopeKey != testCase.want {
-				t.Errorf("datasource envelope key = %q, want %q", d.ListEnvelopeKey, testCase.want)
+			if d.ListWrapperKey != testCase.want {
+				t.Errorf("datasource wrapper key = %q, want %q", d.ListWrapperKey, testCase.want)
 			}
 		})
 	}
@@ -354,7 +355,7 @@ func TestAttributes_ValidConfigurations(t *testing.T) {
 
 func TestAttributes_SilentlyIgnoredOnUpdate(t *testing.T) {
 	if a := attribute(t, thingTree(t), "notes"); !a.SilentlyIgnoredOnUpdate {
-		t.Errorf("x-tfpfgen-silently-ignored-on-update not carried: %+v", a)
+		t.Errorf("x-tfpfgen-ignored-on-update not carried: %+v", a)
 	}
 }
 

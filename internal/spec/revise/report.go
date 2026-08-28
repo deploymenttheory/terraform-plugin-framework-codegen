@@ -290,8 +290,13 @@ func describeValue(o observe.Observation) string {
 	switch o.Kind {
 	case observe.KindValues:
 		return describeValues(o.Value)
-	case observe.KindListResponseShape:
-		return describeListShape(o.Value)
+	case observe.KindListWrapper:
+		return describeListWrapper(o.Value)
+	case observe.KindListPagination:
+		if style, _ := o.Value.(string); style != "" {
+			return "paginated by " + style
+		}
+		return "with no pagination"
 	case observe.KindValidConfiguration, observe.KindMutuallyExclusive:
 		if list := stringList(o.Value); len(list) > 0 {
 			sort.Strings(list)
@@ -341,28 +346,20 @@ func describeValues(v any) string {
 	return strings.Join(parts, ", ")
 }
 
-// describeListShape renders a list-response-shape record as a sentence.
-func describeListShape(v any) string {
-	var shape observe.ListResponseShape
+// describeListWrapper renders a list-wrapper record as a sentence.
+func describeListWrapper(v any) string {
+	var wrapper observe.ListWrapper
 	raw, err := json.Marshal(v)
 	if err == nil {
-		err = json.Unmarshal(raw, &shape)
+		err = json.Unmarshal(raw, &wrapper)
 	}
 	if err != nil {
 		return ""
 	}
-	pagination := shape.Pagination
-	if pagination == "" {
-		pagination = "none"
+	if wrapper.Wrapped {
+		return fmt.Sprintf("wrapped under `%s`", wrapper.Key)
 	}
-	paged := "paginated by " + pagination
-	if pagination == "none" {
-		paged = "with no pagination"
-	}
-	if shape.Envelope == "wrapped" {
-		return fmt.Sprintf("the items arrived wrapped under `%s`, %s", shape.Key, paged)
-	}
-	return "the items arrived as a bare array, " + paged
+	return "a bare item array"
 }
 
 // codeList renders names as code spans in an English list.

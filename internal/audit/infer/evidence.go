@@ -113,7 +113,7 @@ type Evidence struct {
 	// the both-direction signal for a value-conditional validConfiguration.
 	ConditionalValues []ConditionalValue
 	// ListBodies is the raw collection responses the executor captured, for
-	// the list-response-shape finding. Only the structure is read; no value
+	// the list-wrapper and list-pagination findings. Only the structure is read; no value
 	// is stored on the observation.
 	ListBodies [][]byte
 	// IdentifierProperty is the response property the run found carrying the
@@ -204,17 +204,18 @@ func removedUnder(adjustments []RequestAdjustment, gateField string) map[string]
 	return out
 }
 
-// listShapeOf reads a collection response's structure: wrapped in an envelope
-// object under a single array-valued key, or a bare array, plus any pagination
-// style the body advertises. It returns nil when nothing decodes as a list.
-func listShapeOf(bodies [][]byte) *observe.ListResponseShape {
+// listResponseOf reads a collection response's wrapping and pagination:
+// wrapped under a single array-valued key, or a bare array, plus any
+// pagination style the body advertises. It returns nil, "" when nothing
+// decodes as a list.
+func listResponseOf(bodies [][]byte) (*observe.ListWrapper, string) {
 	for _, raw := range bodies {
 		if len(raw) == 0 {
 			continue
 		}
 		var arr []any
 		if err := json.Unmarshal(raw, &arr); err == nil {
-			return &observe.ListResponseShape{Envelope: "bare", Pagination: "none"}
+			return &observe.ListWrapper{}, "none"
 		}
 		var env map[string]any
 		if err := json.Unmarshal(raw, &env); err != nil {
@@ -224,13 +225,9 @@ func listShapeOf(bodies [][]byte) *observe.ListResponseShape {
 		if key == "" {
 			continue
 		}
-		return &observe.ListResponseShape{
-			Envelope:   "wrapped",
-			Key:        key,
-			Pagination: paginationOf(env),
-		}
+		return &observe.ListWrapper{Wrapped: true, Key: key}, paginationOf(env)
 	}
-	return nil
+	return nil, ""
 }
 
 // soleArrayKey returns the envelope's array-valued key: the preferred names

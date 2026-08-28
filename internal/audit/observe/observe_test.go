@@ -154,9 +154,10 @@ func TestUnit_Observe_ValidateAcceptsEveryKindsValueShape(t *testing.T) {
 		{KindValidConfiguration, "kind", []any{"a", "b"}, nil},
 		{KindDependsOn, "dnssec", "domain", nil},
 		{KindMutuallyExclusive, "", []string{"a", "b"}, nil},
-		{KindListResponseShape, "", ListResponseShape{Envelope: "wrapped", Key: "items", Pagination: "cursor"}, nil},
-		{KindListResponseShape, "", &ListResponseShape{Envelope: "bare", Pagination: "none"}, nil},
-		{KindListResponseShape, "", map[string]any{"envelope": "wrapped", "key": "data", "pagination": "offset"}, nil},
+		{KindListWrapper, "", ListWrapper{Wrapped: true, Key: "items"}, nil},
+		{KindListWrapper, "", &ListWrapper{}, nil},
+		{KindListWrapper, "", map[string]any{"wrapped": true, "key": "data"}, nil},
+		{KindListPagination, "", "offset", nil},
 	}
 	for _, testCase := range cases {
 		t.Run(string(testCase.kind), func(t *testing.T) {

@@ -41,7 +41,7 @@ const (
 // Result reports one the write.
 type Result struct {
 	// Lock is the verified pin the revision was taken from.
-	Lock store.Lock
+	Lock store.Pin
 	// Applied lists the accepted correction files in application order;
 	// empty when the revised spec is the upstream document unchanged.
 	Applied []string

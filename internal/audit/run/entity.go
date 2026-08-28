@@ -20,7 +20,7 @@ type entityState struct {
 	ev     *evidence
 
 	requests int
-	status   string
+	outcome  observe.Outcome
 	reason   string
 	// cause is the excerpt behind a blocked status, attached to the
 	// blocked claims as proof of why they never ran.
@@ -48,7 +48,7 @@ type entityState struct {
 // blocked precondition or exhausted budget and recording the remaining
 // steps' claims under that outcome.
 func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
-	entity := &entityState{plan: ep, ev: newEvidence(), status: StatusAudited}
+	entity := &entityState{plan: ep, ev: newEvidence(), outcome: observe.OutcomeConfirmed}
 	entity.recipe = lifecycleOf(ep)
 	r.recipes[ep.Entity] = entity.recipe
 
@@ -57,7 +57,7 @@ func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
 		if err := r.runStep(ctx, entity, step); err != nil {
 			r.halt(entity, err)
 		}
-		if entity.status != StatusAudited {
+		if entity.outcome != observe.OutcomeConfirmed {
 			r.emitStoppedObservations(entity, ep.Steps[i:])
 			break
 		}
@@ -74,9 +74,9 @@ func (r *runner) runEntity(ctx context.Context, ep *plan.EntityPlan) {
 	}
 	r.summary.RequestBodies = append(r.summary.RequestBodies, recordedRequestBodies(ep.Entity, entity))
 	r.summary.Entities = append(r.summary.Entities, EntityResult{
-		Entity: ep.Entity, Status: entity.status, Reason: entity.reason, Refusal: entity.cause,
+		Entity: ep.Entity, Outcome: entity.outcome, Reason: entity.reason, Refusal: entity.cause,
 	})
-	r.log.Info().Str("entity", ep.Entity).Str("status", entity.status).Str("reason", entity.reason).Int("requests", entity.requests).Msg("entity finished")
+	r.log.Info().Str("entity", ep.Entity).Str("outcome", string(entity.outcome)).Str("reason", entity.reason).Int("requests", entity.requests).Msg("entity finished")
 }
 
 // recordedRequestBodies is what this entity's accepted creates looked like,
@@ -106,15 +106,15 @@ func (r *runner) halt(entity *entityState, err error) {
 	var budget budgetError
 	switch {
 	case errors.As(err, &budget):
-		entity.status = StatusTimeoutExhausted
+		entity.outcome = observe.OutcomeTimeoutExhausted
 		entity.reason = budget.reason
 	case errors.As(err, &blocked):
-		entity.status = StatusBlocked
+		entity.outcome = observe.OutcomeBlocked
 		entity.reason = blocked.reason
 	default:
 		// A network failure or a context death: the steps cannot
 		// discriminate anything further, which is a blocked entity.
-		entity.status = StatusBlocked
+		entity.outcome = observe.OutcomeBlocked
 		entity.reason = err.Error()
 	}
 }
@@ -177,7 +177,7 @@ func (r *runner) preflight(ctx context.Context, entity *entityState, step *plan.
 	if !res.ok() {
 		return blockedError{reason: fmt.Sprintf("the pre-flight read of %s answered %d, so the tenant's size is unknown", entity.recipe.collectionPath, res.status)}
 	}
-	// The collection response is the evidence the list-response-shape finding
+	// The collection response is the evidence the list-wrapper finding
 	// is read from — its structure only, never a value from it.
 	if len(res.body) > 0 && len(entity.ev.listBodies) == 0 {
 		entity.ev.listBodies = append(entity.ev.listBodies, append([]byte(nil), res.body...))
@@ -424,7 +424,7 @@ func stepPendingObservations(s *plan.Step) []pendingObservation {
 // entity's halt outcome, with the halting excerpt as proof of why.
 func (r *runner) emitStoppedObservations(entity *entityState, remaining []plan.Step) {
 	outcome := observe.OutcomeBlocked
-	if entity.status == StatusTimeoutExhausted {
+	if entity.outcome == observe.OutcomeTimeoutExhausted {
 		outcome = observe.OutcomeTimeoutExhausted
 	}
 	var proof []observe.Excerpt

@@ -16,7 +16,7 @@ paths:
   /things:
     post:
       operationId: createThing
-      x-tfpfgen-eventual-consistency: 90s
+      x-tfpfgen-read-after-write: 90s
       requestBody:
         content:
           application/json:
@@ -30,10 +30,10 @@ paths:
                 $ref: '#/components/schemas/Thing'
     get:
       operationId: listThings
-      x-tfpfgen-list-response-shape:
-        envelope: wrapped
+      x-tfpfgen-list-wrapper:
+        wrapped: true
         key: things
-        pagination: cursor
+      x-tfpfgen-list-pagination: cursor
       responses: {}
   /things/{thingId}:
     patch:
@@ -51,11 +51,11 @@ components:
       properties:
         name:
           type: string
-          x-tfpfgen-create-only: true
+          x-tfpfgen-immutable: true
         tier:
           type: string
           enum: [basic, pro]
-          x-tfpfgen-values-open: true
+          x-tfpfgen-values: true
         lastSeen:
           type: string
           x-tfpfgen-volatile: true
@@ -64,7 +64,7 @@ components:
           x-tfpfgen-server-forced: true
         notes:
           type: string
-          x-tfpfgen-silently-ignored-on-update: true
+          x-tfpfgen-ignored-on-update: true
         matchValue:
           type: string
           x-tfpfgen-required-when:
@@ -108,10 +108,10 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 		return s.Extensions
 	}
 
-	if v, ok := property("name").CreateOnly(); !ok || !v {
+	if v, ok := property("name").Immutable(); !ok || !v {
 		t.Errorf("CreateOnly = %v, %v", v, ok)
 	}
-	if v, ok := property("tier").ValuesOpen(); !ok || !v {
+	if v, ok := property("tier").Values(); !ok || !v {
 		t.Errorf("ValuesOpen = %v, %v", v, ok)
 	}
 	if v, ok := property("lastSeen").Volatile(); !ok || !v {
@@ -120,7 +120,7 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	if v, ok := property("etag").ServerForced(); !ok || !v {
 		t.Errorf("ServerForced = %v, %v", v, ok)
 	}
-	if v, ok := property("notes").SilentlyIgnoredOnUpdate(); !ok || !v {
+	if v, ok := property("notes").IgnoredOnUpdate(); !ok || !v {
 		t.Errorf("SilentlyIgnoredOnUpdate = %v, %v", v, ok)
 	}
 	if rw, ok := property("matchValue").RequiredWhen(); !ok || rw.Property != "matchType" || rw.Equals != "custom" {
@@ -147,7 +147,7 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	for _, operation := range document.Operations() {
 		byID[operation.OperationID] = operation
 	}
-	if d, ok := byID["createThing"].Extensions.EventualConsistency(); !ok || d != 90*time.Second {
+	if d, ok := byID["createThing"].Extensions.ReadAfterWrite(); !ok || d != 90*time.Second {
 		t.Errorf("EventualConsistency = %v, %v", d, ok)
 	}
 	if s, ok := byID["updateThing"].Extensions.UpdateStyle(); !ok || s != "patch-merge" {
@@ -156,21 +156,21 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	if v, ok := byID["deleteThing"].Extensions.DeleteNotFoundOK(); !ok || !v {
 		t.Errorf("DeleteNotFoundOK = %v, %v", v, ok)
 	}
-	if s, ok := byID["listThings"].Extensions.ListResponseShape(); !ok || !s.Wrapped() ||
-		s.Key != "things" || s.Pagination != "cursor" {
-		t.Errorf("ListResponseShape = %+v, %v", s, ok)
+	if s, ok := byID["listThings"].Extensions.ListWrapper(); !ok || !s.Wrapped ||
+		s.Key != "things" || false {
+		t.Errorf("ListWrapper = %+v, %v", s, ok)
 	}
 
 	// Absence is distinguishable from an explicit false everywhere.
 	unannotated, _ := thing.Property("matchType")
 	e := unannotated.Extensions
-	if _, ok := e.CreateOnly(); ok {
+	if _, ok := e.Immutable(); ok {
 		t.Errorf("CreateOnly should be absent")
 	}
 	if _, ok := e.RequiredWhen(); ok {
 		t.Errorf("RequiredWhen should be absent")
 	}
-	if _, ok := e.EventualConsistency(); ok {
+	if _, ok := e.ReadAfterWrite(); ok {
 		t.Errorf("EventualConsistency should be absent")
 	}
 	if _, ok := e.UpdateStyle(); ok {
@@ -179,7 +179,7 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	if _, ok := e.DeleteNotFoundOK(); ok {
 		t.Errorf("DeleteNotFoundOK should be absent")
 	}
-	if _, ok := e.ValuesOpen(); ok {
+	if _, ok := e.Values(); ok {
 		t.Errorf("ValuesOpen should be absent")
 	}
 	if _, ok := e.Volatile(); ok {
@@ -188,7 +188,7 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	if _, ok := e.ServerForced(); ok {
 		t.Errorf("ServerForced should be absent")
 	}
-	if _, ok := e.SilentlyIgnoredOnUpdate(); ok {
+	if _, ok := e.IgnoredOnUpdate(); ok {
 		t.Errorf("SilentlyIgnoredOnUpdate should be absent")
 	}
 	if _, ok := e.ValidWhen(); ok {
@@ -203,8 +203,11 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	if _, ok := e.ValidConfiguration(); ok {
 		t.Errorf("ValidConfiguration should be absent")
 	}
-	if _, ok := e.ListResponseShape(); ok {
-		t.Errorf("ListResponseShape should be absent")
+	if _, ok := e.ListWrapper(); ok {
+		t.Errorf("ListWrapper should be absent")
+	}
+	if _, ok := e.ListPagination(); ok {
+		t.Errorf("ListPagination should be absent")
 	}
 }
 
@@ -213,24 +216,28 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 // style omitted — which reads as "none", the same spelling the compiled
 // correction writes, so a hand-authored document and a generated one settle
 // on one value.
-func TestUnit_Specmodel_ListResponseShapeForms(t *testing.T) {
+// x-tfpfgen-list-wrapper and x-tfpfgen-list-pagination round-trip through the
+// loader in each of their legal forms. They are separate keys because
+// wrapping and pagination are unrelated facts about one response: an API can
+// change how it pages without changing how it wraps.
+func TestUnit_Specmodel_ListWrapperForms(t *testing.T) {
 	listOp := func(body string) string {
-		return minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-list-response-shape:\n" +
-			indent(body, "        ") + "      responses: {}\n")
+		return minimal("paths:\n  /a:\n    get:\n" + indent(body, "      ") + "      responses: {}\n")
 	}
 	cases := []struct {
-		name string
-		body string
-		want ListResponseShape
+		name       string
+		body       string
+		want       ListWrapper
+		pagination string
 	}{
-		{"wrapped", "envelope: wrapped\nkey: items\npagination: cursor",
-			ListResponseShape{Envelope: ListEnvelopeWrapped, Key: "items", Pagination: "cursor"}},
-		{"wrapped without pagination", "envelope: wrapped\nkey: value",
-			ListResponseShape{Envelope: ListEnvelopeWrapped, Key: "value", Pagination: "none"}},
-		{"bare", "envelope: bare\npagination: none",
-			ListResponseShape{Envelope: ListEnvelopeBare, Pagination: "none"}},
-		{"bare without pagination", "envelope: bare",
-			ListResponseShape{Envelope: ListEnvelopeBare, Pagination: "none"}},
+		{"wrapped", "x-tfpfgen-list-wrapper:\n  wrapped: true\n  key: items\nx-tfpfgen-list-pagination: cursor",
+			ListWrapper{Wrapped: true, Key: "items"}, "cursor"},
+		{"wrapped without pagination", "x-tfpfgen-list-wrapper:\n  wrapped: true\n  key: value",
+			ListWrapper{Wrapped: true, Key: "value"}, ""},
+		{"unwrapped", "x-tfpfgen-list-wrapper:\n  wrapped: false\nx-tfpfgen-list-pagination: none",
+			ListWrapper{}, "none"},
+		{"unwrapped without pagination", "x-tfpfgen-list-wrapper:\n  wrapped: false",
+			ListWrapper{}, ""},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -240,14 +247,21 @@ func TestUnit_Specmodel_ListResponseShapeForms(t *testing.T) {
 			}
 			operations := document.Operations()
 			if len(operations) != 1 {
-				t.Fatalf("operations = %+v", operations)
+				t.Fatalf("operations = %d, want 1", len(operations))
 			}
-			got, ok := operations[0].Extensions.ListResponseShape()
+			got, ok := operations[0].Extensions.ListWrapper()
 			if !ok || got != testCase.want {
-				t.Errorf("ListResponseShape = %+v, %v; want %+v", got, ok, testCase.want)
+				t.Errorf("ListWrapper = %+v, %v; want %+v", got, ok, testCase.want)
 			}
-			if got.Wrapped() != (testCase.want.Envelope == ListEnvelopeWrapped) {
-				t.Errorf("Wrapped() = %v for %+v", got.Wrapped(), got)
+			style, ok := operations[0].Extensions.ListPagination()
+			if testCase.pagination == "" {
+				if ok {
+					t.Errorf("ListPagination = %q, want absent", style)
+				}
+				return
+			}
+			if !ok || style != testCase.pagination {
+				t.Errorf("ListPagination = %q, %v; want %q", style, ok, testCase.pagination)
 			}
 		})
 	}
@@ -270,10 +284,10 @@ func TestUnit_Specmodel_ForeignExtensionsPassBy(t *testing.T) {
 	}
 }
 
-// listShapeWith puts one inline x-tfpfgen-list-response-shape value on a
+// listWrapperWith puts one inline x-tfpfgen-list-wrapper value on a
 // list operation, for the refusal table.
-func listShapeWith(value string) string {
-	return minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-list-response-shape: " + value + "\n      responses: {}\n")
+func listWrapperWith(value string) string {
+	return minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-list-wrapper: " + value + "\n      responses: {}\n")
 }
 
 func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
@@ -287,15 +301,15 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
 		want     string
 	}{
 		{"unknown key near a real one suggests it",
-			schemaWith("x-tfpfgen-create-onl: true"),
-			`unknown extension "x-tfpfgen-create-onl" (did you mean "x-tfpfgen-create-only"?)`},
+			schemaWith("x-tfpfgen-volatil: true"),
+			`unknown extension "x-tfpfgen-volatil" (did you mean "x-tfpfgen-volatile"?)`},
 		{"unknown key near nothing gets no suggestion",
 			schemaWith("x-tfpfgen-fully-imagined-behaviour-nobody-defined: true"),
 			`unknown extension "x-tfpfgen-fully-imagined-behaviour-nobody-defined"`},
 		{"unknown key on an operation is refused too", minimal(`paths:
   /a:
     get:
-      x-tfpfgen-values-openn: true
+      x-tfpfgen-valuesn: true
       responses: {}
 `), "unknown extension"},
 		{"unknown key at the document root is refused",
@@ -311,16 +325,16 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
       responses: {}
 `), "unknown extension"},
 
-		{"create-only must be a bool", schemaWith("x-tfpfgen-create-only: definitely"), "must be true or false"},
-		{"create-only must not be a mapping", schemaWith("x-tfpfgen-create-only: {on: create}"), "must be true or false"},
+		{"create-only must be a bool", schemaWith("x-tfpfgen-immutable: definitely"), "must be true or false"},
+		{"create-only must not be a mapping", schemaWith("x-tfpfgen-immutable: {on: create}"), "must be true or false"},
 		{"eventual-consistency must parse as a duration",
-			minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-eventual-consistency: banana\n      responses: {}\n"),
+			minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-read-after-write: banana\n      responses: {}\n"),
 			`"banana" is not a non-negative duration`},
 		{"eventual-consistency must not be negative",
-			minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-eventual-consistency: -5s\n      responses: {}\n"),
+			minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-read-after-write: -5s\n      responses: {}\n"),
 			"is not a non-negative duration"},
 		{"eventual-consistency must be a scalar",
-			minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-eventual-consistency: [30s]\n      responses: {}\n"),
+			minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-read-after-write: [30s]\n      responses: {}\n"),
 			"must be a duration string"},
 		{"update-style refuses a value outside the closed set",
 			minimal("paths:\n  /a:\n    patch:\n      x-tfpfgen-update-style: merge\n      responses: {}\n"),
@@ -384,23 +398,21 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
 			schemaWith("x-tfpfgen-valid-configuration: {discriminator: mode, variants: {a: [[x]]}}"),
 			"each entry must be a non-empty property name"},
 
-		{"list-response-shape must be a mapping", listShapeWith("wrapped"),
-			`must be a mapping with "envelope"`},
-		{"list-response-shape refuses unknown keys", listShapeWith("{envelope: bare, cursorParam: after}"),
+		{"list-wrapper must be a mapping", listWrapperWith("wrapped"),
+			`must be a mapping with "wrapped"`},
+		{"list-wrapper refuses unknown keys", listWrapperWith("{wrapped: false, cursorParam: after}"),
 			`unknown key "cursorParam"`},
-		{"list-response-shape refuses an unknown envelope", listShapeWith("{envelope: nested, key: items}"),
-			`must be "wrapped" or "bare", got "nested"`},
-		{"list-response-shape needs an envelope", listShapeWith("{key: items}"),
-			`must be "wrapped" or "bare", got ""`},
-		{"a wrapped envelope needs its key", listShapeWith("{envelope: wrapped, pagination: page}"),
-			`a wrapped envelope needs the "key"`},
-		{"a bare envelope refuses a key", listShapeWith("{envelope: bare, key: items}"),
-			`"key" is meaningless`},
-		{"list-response-shape refuses an unknown pagination style",
-			listShapeWith("{envelope: bare, pagination: spiral}"),
-			`must be one of "cursor", "offset", "page" or "none", got "spiral"`},
-		{"list-response-shape values must be scalars", listShapeWith("{envelope: [bare]}"),
+		{"list-wrapper refuses a non-boolean wrapped", listWrapperWith("{wrapped: nested, key: items}"),
+			`must be true or false, got "nested"`},
+		{"a wrapped response needs its key", listWrapperWith("{wrapped: true}"),
+			`needs the "key" its items sit under`},
+		{"an unwrapped response refuses a key", listWrapperWith("{wrapped: false, key: items}"),
+			`wraps nothing, so "key" is meaningless`},
+		{"list-wrapper values must be scalars", listWrapperWith("{wrapped: [false]}"),
 			"must be a non-empty scalar"},
+		{"list-pagination refuses an unknown style",
+			minimal("paths:\n  /a:\n    get:\n      x-tfpfgen-list-pagination: spiral\n      responses: {}\n"),
+			`must be one of "cursor", "offset", "page" or "none"`},
 	}
 
 	for _, testCase := range cases {

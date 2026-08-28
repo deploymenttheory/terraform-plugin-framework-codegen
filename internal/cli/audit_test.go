@@ -117,7 +117,7 @@ func auditRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 	document := []byte(auditSpec)
-	if err := os.WriteFile(filepath.Join("spec", "upstream.yaml"), document, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join("spec", "imported.yaml"), document, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	digest := sha256.Sum256(document)
@@ -127,7 +127,7 @@ func auditRepo(t *testing.T) {
 		"format":  "yaml",
 		"openapi": "3.0.3",
 	})
-	if err := os.WriteFile(filepath.Join("spec", "upstream.lock.json"), lock, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join("spec", "imported.pin.json"), lock, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	// The revised spec is the upstream document verbatim: no corrections.
@@ -191,7 +191,7 @@ func TestUnit_AuditRun_FallsBackToUpstreamWithoutRevised(t *testing.T) {
 func TestUnit_AuditRun_RefusesWithoutAnySpec(t *testing.T) {
 	auditRepo(t)
 	t.Setenv("TFPFGEN_AUTH_TOKEN", "cli-test-token-123456")
-	for _, f := range []string{"revised.yaml", "upstream.yaml"} {
+	for _, f := range []string{"revised.yaml", "imported.yaml"} {
 		if err := os.Remove(filepath.Join("spec", f)); err != nil {
 			t.Fatal(err)
 		}

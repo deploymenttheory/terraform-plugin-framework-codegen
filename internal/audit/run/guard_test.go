@@ -30,7 +30,7 @@ func TestUnit_Guard_ReadOnlyPlanNeedsNoRunsDir(t *testing.T) {
 	opts := testOptions(t, s, p, testEnv(), nil)
 	opts.RunsDir = ""
 	_, summary := mustRun(t, opts)
-	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("lookup entity = %+v, want audited without a runs directory", got)
 	}
 }
@@ -55,7 +55,7 @@ func TestUnit_Guard_SharedTenantRefusalBlocksMutation(t *testing.T) {
 		t.Fatalf("a shared-tenant refusal blocks the entity, not the run: %v", err)
 	}
 	blocked := entityStatus(t, summary, "thing")
-	if blocked.Status != StatusBlocked || !strings.Contains(blocked.Reason, "--force-api-audit") {
+	if blocked.Outcome != observe.OutcomeBlocked || !strings.Contains(blocked.Reason, "--force-api-audit") {
 		t.Fatalf("thing = %+v, want blocked pointing at the flag", blocked)
 	}
 	if o := findObs(obs, "thing", "", observe.KindDeleteNotFoundOK); o == nil || o.Outcome != observe.OutcomeBlocked {
@@ -79,7 +79,7 @@ func TestUnit_Guard_ForceAPIAuditProceeds(t *testing.T) {
 	opts.ForceAPIAudit = true
 
 	_, summary := mustRun(t, opts)
-	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("thing = %+v, want audited under --force-api-audit", got)
 	}
 	if len(s.Objects()) != 3 {

@@ -126,9 +126,9 @@ func TestUnit_Infer_MonitorConvergentEdges(t *testing.T) {
 		t.Errorf("requiredWhen(target_host, kind=ping) = %+v, want true", rw)
 	}
 
-	ls := find(obs, "", observe.KindListResponseShape)
+	ls := find(obs, "", observe.KindListWrapper)
 	if ls == nil || ls.Outcome != observe.OutcomeConfirmed {
-		t.Fatalf("listResponseShape = %+v, want confirmed", ls)
+		t.Fatalf("listWrapper = %+v, want confirmed", ls)
 	}
 }
 
@@ -289,7 +289,7 @@ func TestUnit_Infer_FlatResourceHasNoVariantEdges(t *testing.T) {
 			t.Errorf("flat resource produced a spurious edge: %s.%s", o.Attribute, o.Kind)
 		}
 	}
-	if find(obs, "", observe.KindListResponseShape) == nil {
+	if find(obs, "", observe.KindListWrapper) == nil {
 		t.Error("the list shape should still be inferred for a flat resource")
 	}
 }
@@ -406,22 +406,22 @@ func TestUnit_Infer_ListShapeVariants(t *testing.T) {
 	cases := []struct {
 		name string
 		body string
-		want *observe.ListResponseShape
+		want *observe.ListWrapper
 	}{
-		{"bare", `[{"id":"1"}]`, &observe.ListResponseShape{Envelope: "bare", Pagination: "none"}},
-		{"wrapped-preferred", `{"data":[],"total":3}`, &observe.ListResponseShape{Envelope: "wrapped", Key: "data", Pagination: "none"}},
-		{"cursor", `{"items":[],"next_cursor":"z"}`, &observe.ListResponseShape{Envelope: "wrapped", Key: "items", Pagination: "cursor"}},
-		{"offset", `{"results":[],"offset":10}`, &observe.ListResponseShape{Envelope: "wrapped", Key: "results", Pagination: "offset"}},
-		{"page", `{"monitors":[],"page":2}`, &observe.ListResponseShape{Envelope: "wrapped", Key: "monitors", Pagination: "page"}},
-		{"sole-key", `{"widgets":[{"id":"1"}]}`, &observe.ListResponseShape{Envelope: "wrapped", Key: "widgets", Pagination: "none"}},
+		{"bare", `[{"id":"1"}]`, &observe.ListWrapper{}},
+		{"wrapped-preferred", `{"data":[],"total":3}`, &observe.ListWrapper{Wrapped: true, Key: "data"}},
+		{"cursor", `{"items":[],"next_cursor":"z"}`, &observe.ListWrapper{Wrapped: true, Key: "items"}},
+		{"offset", `{"results":[],"offset":10}`, &observe.ListWrapper{Wrapped: true, Key: "results"}},
+		{"page", `{"monitors":[],"page":2}`, &observe.ListWrapper{Wrapped: true, Key: "monitors"}},
+		{"sole-key", `{"widgets":[{"id":"1"}]}`, &observe.ListWrapper{Wrapped: true, Key: "widgets"}},
 		{"ambiguous", `{"a":[],"b":[]}`, nil},
 		{"not-a-list", `{"id":"1"}`, nil},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			got := listShapeOf([][]byte{[]byte(testCase.body)})
+			got, _ := listResponseOf([][]byte{[]byte(testCase.body)})
 			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("listShapeOf(%s) = %+v, want %+v", testCase.body, got, testCase.want)
+				t.Errorf("listResponseOf(%s) = %+v, want %+v", testCase.body, got, testCase.want)
 			}
 		})
 	}

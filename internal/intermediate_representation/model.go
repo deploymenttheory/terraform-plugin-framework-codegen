@@ -87,7 +87,7 @@ type Resource struct {
 	// default whenever an update operation exists; empty when none does.
 	UpdateStyle string `json:"update_style,omitempty"`
 	// EventualConsistency is how long a read may lag a write, the largest
-	// x-tfpfgen-eventual-consistency declared on any lifecycle operation.
+	// x-tfpfgen-read-after-write declared on any lifecycle operation.
 	EventualConsistency time.Duration `json:"eventual_consistency,omitempty"`
 	// DeleteNotFoundOK means a 404 on delete reads as "already gone".
 	DeleteNotFoundOK bool `json:"delete_not_found_ok,omitempty"`
@@ -125,9 +125,9 @@ type Datasource struct {
 	KeyParameter string `json:"key_parameter,omitempty"`
 	// CoManagementNote is the sibling-entity prose; see Resource.
 	CoManagementNote string `json:"co_management_note,omitempty"`
-	// ListEnvelopeKey is the list response's item-array wrapper key; see
+	// ListWrapperKey is the list response's item-array wrapper key; see
 	// Resource. Empty for a bare array or a lookup-by-key datasource.
-	ListEnvelopeKey string `json:"list_wrapper_key,omitempty"`
+	ListWrapperKey string `json:"list_wrapper_key,omitempty"`
 }
 
 // ListResource is a list-only entity: enumerable but not addressable.
@@ -142,9 +142,9 @@ type ListResource struct {
 	AddressingSchema *AttributeTree `json:"addressing_schema,omitempty"`
 	// CoManagementNote is the sibling-entity prose; see Resource.
 	CoManagementNote string `json:"co_management_note,omitempty"`
-	// ListEnvelopeKey is the list response's item-array wrapper key; see
+	// ListWrapperKey is the list response's item-array wrapper key; see
 	// Resource. Empty for a bare array.
-	ListEnvelopeKey string `json:"list_wrapper_key,omitempty"`
+	ListWrapperKey string `json:"list_wrapper_key,omitempty"`
 }
 
 // Action is a POST with no lifecycle complement — an invocation.
@@ -318,7 +318,7 @@ type Attribute struct {
 	Nested                   *AttributeTree           `json:"nested,omitempty"`
 	ComputedOptionalRequired ComputedOptionalRequired `json:"computed_optional_required"`
 	// RequiresReplace marks an attribute a change to which forces
-	// re-creation: x-tfpfgen-create-only, or every writable attribute of
+	// re-creation: x-tfpfgen-immutable, or every writable attribute of
 	// a resource with no update operation.
 	RequiresReplace bool `json:"requires_replace,omitempty"`
 	// Format is the document's declared format, which says what a string
@@ -363,7 +363,7 @@ type Attribute struct {
 	// OneOf lists a closed enum's values for a validator.
 	OneOf []string `json:"one_of,omitempty"`
 	// AdvisoryValues lists an open enum's known values
-	// (x-tfpfgen-values-open): documentation only, never validated.
+	// (x-tfpfgen-values): documentation only, never validated.
 	AdvisoryValues []string `json:"advisory_values,omitempty"`
 	// SilentlyIgnoredOnUpdate marks a property updates accept and
 	// discard; construct skips it on update.

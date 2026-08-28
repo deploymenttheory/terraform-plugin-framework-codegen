@@ -296,12 +296,12 @@ func TestUnit_Report_ValueSpellings(t *testing.T) {
 		{"values record", observe.Observation{Kind: observe.KindValues,
 			Value: observe.Values{Accepted: []string{"red"}, Rejected: []string{"blue"}, Closed: &closed}},
 			"it refused the documented value `blue`, it took `red`, and it took a value outside the documented set entirely"},
-		{"wrapped list", observe.Observation{Kind: observe.KindListResponseShape,
-			Value: observe.ListResponseShape{Envelope: "wrapped", Key: "data", Pagination: "cursor"}},
-			"the items arrived wrapped under `data`, paginated by cursor"},
-		{"bare list", observe.Observation{Kind: observe.KindListResponseShape,
-			Value: observe.ListResponseShape{Envelope: "bare", Pagination: "none"}},
-			"the items arrived as a bare array, with no pagination"},
+		{"wrapped list", observe.Observation{Kind: observe.KindListWrapper,
+			Value: observe.ListWrapper{Wrapped: true, Key: "data"}},
+			"wrapped under `data`"},
+		{"bare list", observe.Observation{Kind: observe.KindListWrapper,
+			Value: observe.ListWrapper{}},
+			"a bare item array"},
 	} {
 		if got := describeValue(testCase.obs); got != testCase.want {
 			t.Errorf("%s: describeValue = %q, want %q", testCase.name, got, testCase.want)
@@ -313,7 +313,7 @@ func TestUnit_Report_UnreadableCompoundValuesSpellAsNothing(t *testing.T) {
 	t.Parallel()
 	// A value that cannot be marshalled into the record its kind claims
 	// leaves the sentence without a detail rather than crashing the run.
-	for _, kind := range []observe.Kind{observe.KindValues, observe.KindListResponseShape} {
+	for _, kind := range []observe.Kind{observe.KindValues, observe.KindListWrapper} {
 		if got := describeValue(observe.Observation{Kind: kind, Value: func() {}}); got != "" {
 			t.Errorf("%s: describeValue = %q, want empty", kind, got)
 		}

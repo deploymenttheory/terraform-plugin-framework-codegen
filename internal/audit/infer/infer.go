@@ -38,7 +38,7 @@ var EdgeKinds = map[observe.Kind]bool{
 //	an add the API forced under one gate value
 //	    -> requiredWhen          (the same, value-conditioned)
 //	a collection response's structure
-//	    -> listResponseShape     (read from the body, not the document)
+//	    -> listWrapper, listPagination  (read from the body, not the document)
 //
 // A strategy claim the evidence does not confirm becomes an inconclusive
 // observation, never an assertion — so a planted or mistaken edge is reported
@@ -345,12 +345,16 @@ func (m *model) requiredEdges() []observe.Observation {
 // captured — wrapped versus bare, the key, the pagination style — read from
 // the body, never from the document.
 func (m *model) listShape() []observe.Observation {
-	shape := listShapeOf(m.ev.ListBodies)
-	if shape == nil {
+	wrapper, pagination := listResponseOf(m.ev.ListBodies)
+	if wrapper == nil {
 		return nil
 	}
+	// Two observations, because wrapping and pagination are unrelated facts
+	// about one response: an API can change how it pages without changing
+	// how it wraps, and a correction to one should not restate the other.
 	return []observe.Observation{
-		m.edgeAttr("", observe.KindListResponseShape, *shape, nil, observe.ProvenanceDerived, observe.OutcomeConfirmed),
+		m.edgeAttr("", observe.KindListWrapper, *wrapper, nil, observe.ProvenanceDerived, observe.OutcomeConfirmed),
+		m.edgeAttr("", observe.KindListPagination, pagination, nil, observe.ProvenanceDerived, observe.OutcomeConfirmed),
 	}
 }
 

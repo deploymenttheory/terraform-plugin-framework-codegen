@@ -42,7 +42,7 @@ const (
 	// KindImmutable: the API refuses to change this attribute after
 	// create. Learned when an update naming only this attribute is
 	// rejected while the same value was accepted at create. Becomes an
-	// x-tfpfgen-create-only correction, which downstream turns into a
+	// x-tfpfgen-immutable correction, which downstream turns into a
 	// RequiresReplace recommendation.
 	KindImmutable Kind = "immutable"
 
@@ -85,7 +85,7 @@ const (
 	// KindIgnoredOnUpdate: an update accepted a new value with a success
 	// status and did not apply it. Distinct from immutability — nothing
 	// was refused. Learned when the post-update read still shows the old
-	// value. Becomes an x-tfpfgen-silently-ignored-on-update correction.
+	// value. Becomes an x-tfpfgen-ignored-on-update correction.
 	KindIgnoredOnUpdate Kind = "ignoredOnUpdate"
 
 	// KindServerForced: the server substituted its own value for the one
@@ -106,7 +106,7 @@ const (
 	// meaning an undocumented value was accepted. Learned from conditional
 	// creates across the documented values plus one undocumented value.
 	// Rejected values become enum-removal corrections; closed=false
-	// becomes an x-tfpfgen-values-open correction.
+	// becomes an x-tfpfgen-values correction.
 	KindValues Kind = "values"
 
 	// KindUpdateStyle: how the update operation treats omitted fields. The
@@ -127,7 +127,7 @@ const (
 	// KindReadAfterWrite: how long a read lagged a write before showing
 	// it. The Value is a duration string such as "2s" — the longest lag
 	// the read-back polling measured. Becomes an
-	// x-tfpfgen-eventual-consistency correction.
+	// x-tfpfgen-read-after-write correction.
 	KindReadAfterWrite Kind = "readAfterWrite"
 
 	// KindUndocumentedFieldInSpec: the API returned or accepted a field
@@ -189,14 +189,19 @@ const (
 	// x-tfpfgen-mutually-exclusive.
 	KindMutuallyExclusive Kind = "mutuallyExclusive"
 
-	// KindListResponseShape: the structural shape of a list (collection)
-	// response — whether the items come wrapped in an envelope object or as
-	// a bare array, the wrapping key when wrapped, and any pagination style
-	// the response advertises. Entity-level (empty Attribute); the Value is
-	// a ListResponseShape record. Learned from the collection reads the
-	// executor captured, not from the document, because every API spells
-	// its envelope differently and the document often lies about it.
-	KindListResponseShape Kind = "listResponseShape"
+	// KindListWrapper: whether a list (collection) response wraps its items
+	// under a key of an object, and which key. Entity-level (empty
+	// Attribute); the Value is a ListWrapper record. Learned from the
+	// collection reads the executor captured, not from the document,
+	// because every API wraps differently and the document often lies.
+	KindListWrapper Kind = "listWrapper"
+
+	// KindListPagination: the pagination style a list response advertises.
+	// Entity-level (empty Attribute); the Value is one of "cursor",
+	// "offset", "page" or "none". Read from the wire, like the wrapping,
+	// and recorded separately because the two are unrelated facts about
+	// one response.
+	KindListPagination Kind = "listPagination"
 
 	// KindIdentifierProperty: the response property that carries the value
 	// the item path addresses the object by. Entity-level (empty Attribute);
@@ -217,7 +222,7 @@ var knownKinds = map[Kind]bool{
 	KindUndocumentedFieldInSpec: true,
 	KindValidConfiguration:      true, KindValidWhen: true,
 	KindDependsOn: true, KindMutuallyExclusive: true,
-	KindListResponseShape: true, KindIdentifierProperty: true,
+	KindListWrapper: true, KindListPagination: true, KindIdentifierProperty: true,
 }
 
 // Provenance records how strongly an inferred edge is grounded: a structural
@@ -238,20 +243,16 @@ var knownProvenances = map[Provenance]bool{
 	ProvenanceStructural: true, ProvenanceProse: true, ProvenanceDerived: true,
 }
 
-// ListResponseShape is the Value shape of a KindListResponseShape
-// observation: how a collection response is structured.
-type ListResponseShape struct {
-	// Envelope is "wrapped" when the items sit under a key of an object,
-	// "bare" when the response is the array itself.
-	Envelope string `json:"envelope"`
-	// Key is the wrapping key when Envelope is "wrapped", empty for bare.
+// ListWrapper is the Value of a KindListWrapper observation: whether a
+// collection response wraps its items, and under which key.
+type ListWrapper struct {
+	// Wrapped is true when the items sit under a key of an object, false
+	// when the response is the item array itself.
+	Wrapped bool `json:"wrapped"`
+	// Key is the wrapping key when Wrapped, empty otherwise.
 	Key string `json:"key,omitempty"`
-	// Pagination names the pagination style the response advertises:
-	// "cursor", "offset", "page" or "none".
-	Pagination string `json:"pagination"`
 }
 
-var listEnvelopes = map[string]bool{"wrapped": true, "bare": true}
 var listPaginations = map[string]bool{"cursor": true, "offset": true, "page": true, "none": true}
 
 // Outcome says how far the audit got with this claim.
@@ -483,8 +484,13 @@ func validateValueForKind(kind Kind, v any) error {
 		if !isStringList(v) {
 			return fmt.Errorf("value must be a list of field or gate-value names, got %T", v)
 		}
-	case KindListResponseShape:
-		return listShape(v)
+	case KindListWrapper:
+		return listWrapperValue(v)
+	case KindListPagination:
+		style, ok := v.(string)
+		if !ok || !listPaginations[style] {
+			return fmt.Errorf("value must be one of cursor, offset, page, none, got %v", v)
+		}
 	case KindIdentifierProperty:
 		s, ok := v.(string)
 		if !ok || s == "" {
@@ -515,36 +521,37 @@ func isStringList(v any) bool {
 	}
 }
 
-// listShape accepts a ListResponseShape in typed or decoded form, checking
-// the envelope and pagination vocabularies.
-func listShape(v any) error {
-	var s ListResponseShape
+// listWrapperValue accepts a ListWrapper in typed or decoded form. A wrapped
+// response must name the key its items sit under: read as unwrapped it would
+// quietly unwrap a response that is not an array.
+func listWrapperValue(v any) error {
+	var w ListWrapper
 	switch t := v.(type) {
-	case ListResponseShape:
-		s = t
-	case *ListResponseShape:
+	case ListWrapper:
+		w = t
+	case *ListWrapper:
 		if t == nil {
-			return fmt.Errorf("value must be a list-response-shape record, got a nil one")
+			return fmt.Errorf("value must be a list-wrapper record, got a nil one")
 		}
-		s = *t
+		w = *t
 	case map[string]any:
 		for k := range t {
 			switch k {
-			case "envelope", "key", "pagination":
+			case "wrapped", "key":
 			default:
-				return fmt.Errorf("list-response-shape has unknown key %q", k)
+				return fmt.Errorf("list-wrapper has unknown key %q", k)
 			}
 		}
-		s.Envelope, _ = t["envelope"].(string)
-		s.Pagination, _ = t["pagination"].(string)
+		w.Wrapped, _ = t["wrapped"].(bool)
+		w.Key, _ = t["key"].(string)
 	default:
-		return fmt.Errorf("value must be a list-response-shape record, got %T", v)
+		return fmt.Errorf("value must be a list-wrapper record, got %T", v)
 	}
-	if !listEnvelopes[s.Envelope] {
-		return fmt.Errorf("list-response-shape envelope must be \"wrapped\" or \"bare\", got %q", s.Envelope)
-	}
-	if !listPaginations[s.Pagination] {
-		return fmt.Errorf("list-response-shape pagination must be one of cursor, offset, page, none, got %q", s.Pagination)
+	switch {
+	case w.Wrapped && w.Key == "":
+		return fmt.Errorf("a wrapped list response must name the key its items sit under")
+	case !w.Wrapped && w.Key != "":
+		return fmt.Errorf("an unwrapped list response wraps nothing, so a key is meaningless")
 	}
 	return nil
 }

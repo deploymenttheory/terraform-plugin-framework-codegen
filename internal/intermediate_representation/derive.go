@@ -324,7 +324,7 @@ func (derivation *operationIndexer) resource(classification specmodel.Classifica
 // assuming every API wraps under "value" — the SDK's collection accessor is
 // derived from the same answer, so the two agree.
 //
-// x-tfpfgen-list-response-shape wins where it is present: it carries what a
+// x-tfpfgen-list-wrapper wins where it is present: it carries what a
 // live collection response actually contained, and it is written onto the
 // operation precisely when the document's own list schema was found to be
 // wrong. Absent it, the schema is read as before — the first array-typed
@@ -334,9 +334,9 @@ func listWrapperKey(list *specmodel.Operation) string {
 	if list == nil {
 		return ""
 	}
-	if shape, ok := list.Extensions.ListResponseShape(); ok {
-		if shape.Wrapped() {
-			return shape.Key
+	if wrapper, ok := list.Extensions.ListWrapper(); ok {
+		if wrapper.Wrapped {
+			return wrapper.Key
 		}
 		return ""
 	}
@@ -358,7 +358,7 @@ func listWrapperKey(list *specmodel.Operation) string {
 // A bare array yields its items. A wrapping envelope — an object whose
 // payload is an array under a key, beside a count or a pagination cursor —
 // yields that array's items, the key taken from the observed
-// x-tfpfgen-list-response-shape where the audit recorded one and from the
+// x-tfpfgen-list-wrapper where the audit recorded one and from the
 // document's own single array property otherwise.
 //
 // Taking the envelope as-is would make the element tree the envelope's own
@@ -450,10 +450,10 @@ func (derivation *operationIndexer) datasource(classification specmodel.Classifi
 	refuseReservedRootNames(companionTree)
 
 	return Datasource{
-		Names:           names,
-		Operations:      Operations{Read: derivation.operation(classification.Read, OperationRead), List: listOperation},
-		Schema:          companionTree,
-		ListEnvelopeKey: listWrapperKey(derivation.full(classification.List)),
+		Names:          names,
+		Operations:     Operations{Read: derivation.operation(classification.Read, OperationRead), List: listOperation},
+		Schema:         companionTree,
+		ListWrapperKey: listWrapperKey(derivation.full(classification.List)),
 	}
 }
 
@@ -485,7 +485,7 @@ func (derivation *operationIndexer) listResource(classification specmodel.Classi
 		ListOperation:    listOperation,
 		Schema:           tree,
 		AddressingSchema: addressing,
-		ListEnvelopeKey:  listWrapperKey(listFull),
+		ListWrapperKey:   listWrapperKey(listFull),
 	}
 }
 
@@ -610,7 +610,7 @@ func maxEventualConsistency(operations ...*specmodel.Operation) time.Duration {
 		if operation == nil {
 			continue
 		}
-		if derivation, ok := operation.Extensions.EventualConsistency(); ok && derivation > max {
+		if derivation, ok := operation.Extensions.ReadAfterWrite(); ok && derivation > max {
 			max = derivation
 		}
 	}

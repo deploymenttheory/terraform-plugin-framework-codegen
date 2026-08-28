@@ -25,7 +25,7 @@ func TestUnit_Steps_RefusedMinimalCreateBlocksTheEntity(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 	got := entityStatus(t, summary, "thing")
-	if got.Status != StatusBlocked || !strings.Contains(got.Reason, "refused with status 400") {
+	if got.Outcome != observe.OutcomeBlocked || !strings.Contains(got.Reason, "refused with status 400") {
 		t.Fatalf("thing = %+v, want blocked on the refused create", got)
 	}
 	blocked := findObs(obs, "thing", "", observe.KindDeleteNotFoundOK)
@@ -52,7 +52,7 @@ func TestUnit_Steps_UnreadableObjectBlocksDownstream(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 	got := entityStatus(t, summary, "thing")
-	if got.Status != StatusBlocked || !strings.Contains(got.Reason, "never became readable") {
+	if got.Outcome != observe.OutcomeBlocked || !strings.Contains(got.Reason, "never became readable") {
 		t.Fatalf("thing = %+v", got)
 	}
 	ra := findObs(obs, "thing", "", observe.KindReadAfterWrite)
@@ -78,7 +78,7 @@ func TestUnit_Steps_CleanupDeleteEndsTheEntityAtZero(t *testing.T) {
 		{Kind: plan.StepCleanupDelete, Method: "DELETE", Path: "/things/{thingId}", PathValues: item},
 	}
 	_, summary := mustRun(t, testOptions(t, s, thingPlan(steps, 60), testEnv(), nil))
-	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("thing = %+v", got)
 	}
 	if len(s.Objects()) != 0 {
@@ -100,7 +100,7 @@ func TestUnit_Steps_FailingDeletesLeaveOrphansReported(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if len(summary.CleanupEnd.Orphans) == 0 {
+	if len(summary.CleanupEnd.UndeletedObjects) == 0 {
 		t.Fatal("failing deletes must surface as orphans")
 	}
 	if len(s.Objects()) == 0 {
@@ -132,7 +132,7 @@ func TestUnit_Steps_LookupReadOfAMissingKeyBlocks(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 	got := entityStatus(t, summary, "thing")
-	if got.Status != StatusBlocked || !strings.Contains(got.Reason, "404") {
+	if got.Outcome != observe.OutcomeBlocked || !strings.Contains(got.Reason, "404") {
 		t.Fatalf("thing = %+v, want blocked with the status", got)
 	}
 }
@@ -150,7 +150,7 @@ func TestUnit_Steps_UnknownStepKindBlocks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if got := entityStatus(t, summary, "thing"); got.Status != StatusBlocked || !strings.Contains(got.Reason, "teleport") {
+	if got := entityStatus(t, summary, "thing"); got.Outcome != observe.OutcomeBlocked || !strings.Contains(got.Reason, "teleport") {
 		t.Fatalf("thing = %+v", got)
 	}
 }
