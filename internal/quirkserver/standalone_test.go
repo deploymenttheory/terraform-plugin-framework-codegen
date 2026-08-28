@@ -37,21 +37,21 @@ func call(t *testing.T, c *http.Client, method, url string, body map[string]any)
 		r = bytes.NewReader(encoded)
 	}
 
-	req, err := http.NewRequest(method, url, r) //nolint:noctx // a test fixture
+	request, err := http.NewRequest(method, url, r) //nolint:noctx // a test fixture
 	if err != nil {
 		t.Fatalf("NewRequest: %v", err)
 	}
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := c.Do(req)
+	response, err := c.Do(request)
 	if err != nil {
 		t.Fatalf("%s %s: %v", method, url, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = response.Body.Close() }()
 
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatalf("reading the body: %v", err)
 	}
@@ -60,7 +60,7 @@ func call(t *testing.T, c *http.Client, method, url string, body map[string]any)
 	if len(bytes.TrimSpace(raw)) > 0 {
 		_ = json.Unmarshal(raw, &out)
 	}
-	return resp.StatusCode, out
+	return response.StatusCode, out
 }
 
 // TestUnit_Standalone_ServesTheDocumentedLifecycle boots the standalone

@@ -25,8 +25,8 @@ func oagModel() *ir.Model {
 	opt := func(name string, kind ir.AttributeType) ir.Attribute {
 		return ir.Attribute{Name: name, WireName: name, Kind: kind, ComputedOptionalRequired: ir.Optional}
 	}
-	list := func(name string, elem ir.AttributeType) ir.Attribute {
-		return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeList, ElementType: elem, ComputedOptionalRequired: ir.Optional}
+	list := func(name string, element ir.AttributeType) ir.Attribute {
+		return ir.Attribute{Name: name, WireName: name, Kind: ir.TypeList, ElementType: element, ComputedOptionalRequired: ir.Optional}
 	}
 
 	return &ir.Model{

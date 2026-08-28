@@ -166,12 +166,12 @@ func writeFictionalKiotaModule(t *testing.T, pc ProviderCore) string {
 // paths the SDK import expects.
 func installEntityStubSDK(t *testing.T, root string, files map[string]string) {
 	t.Helper()
-	for src, dst := range files {
-		data, err := os.ReadFile(src)
+	for source, destination := range files {
+		data, err := os.ReadFile(source)
 		if err != nil {
-			t.Fatalf("reading %s: %v", src, err)
+			t.Fatalf("reading %s: %v", source, err)
 		}
-		target := filepath.Join(root, filepath.FromSlash(dst))
+		target := filepath.Join(root, filepath.FromSlash(destination))
 		if err := os.MkdirAll(filepath.Dir(target), 0o750); err != nil {
 			t.Fatal(err)
 		}

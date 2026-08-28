@@ -20,14 +20,14 @@ import (
 // matching the observations beside it: sorted map keys, no HTML escaping,
 // two-space indent.
 func encodeRequestBodies(b RequestBodies) ([]byte, error) {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(b); err != nil {
 		return nil, fmt.Errorf("encoding request bodies for %s: %w", b.Entity, err)
 	}
-	return buf.Bytes(), nil
+	return buffer.Bytes(), nil
 }
 
 // RequestBodiesSuffix is the committed file naming, one file per entity,

@@ -71,8 +71,8 @@ func TestUnit_RenderProviderCore_TheRenderedTreeCompiles(t *testing.T) {
 func installStubSDK(t *testing.T, name, root string) {
 	t.Helper()
 
-	src := filepath.Join("testdata", "sdkstub", name, "client.go")
-	data, err := os.ReadFile(src)
+	source := filepath.Join("testdata", "sdkstub", name, "client.go")
+	data, err := os.ReadFile(source)
 	if err != nil {
 		t.Fatalf("reading the %s stub: %v", name, err)
 	}

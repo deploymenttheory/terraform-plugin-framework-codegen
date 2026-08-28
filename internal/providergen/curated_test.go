@@ -60,13 +60,13 @@ func curatedRepo(t *testing.T, dialect string) (string, Options) {
 		t.Fatalf("standing the stub SDK: %v", err)
 	}
 
-	cfg, err := config.Load(filepath.Join(fixture, dialect, "tfpfgen.yaml"))
+	configuration, err := config.Load(filepath.Join(fixture, dialect, "tfpfgen.yaml"))
 	if err != nil {
 		t.Fatalf("loading the fixture config: %v", err)
 	}
 
 	return root, Options{
-		Config:  cfg,
+		Config:  configuration,
 		SpecDir: specDir,
 		SDKDir:  "internal/sdk",
 		Root:    root,

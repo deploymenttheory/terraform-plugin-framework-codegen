@@ -18,9 +18,9 @@ import (
 // entity. A refusal the loop cannot heal blocks the entity only when no prior
 // variant has already established the object; a later variant that cannot be
 // built is recorded and skipped.
-func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *plan.Step) error {
+func (r *runner) runCreateMinimal(ctx context.Context, entity *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, r.gateFieldFor(ent))
+	rr, err := r.adjustCreate(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 	// grammar's own result still decides what happens next.
 	var searched adjustResult
 	if rr.obj == nil && rr.res != nil && rr.res.refused() {
-		found, serr := r.searchMinimal(ctx, ent, ent.recipe, rr.body, rr.res)
+		found, serr := r.searchMinimal(ctx, entity, entity.recipe, rr.body, rr.res)
 		if serr != nil {
 			return serr
 		}
@@ -45,7 +45,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		}
 	}
 	if rr.obj != nil {
-		sent, err := r.resolveBody(ctx, ent, rr.body)
+		sent, err := r.resolveBody(ctx, entity, rr.body)
 		if err != nil {
 			return err
 		}
@@ -54,16 +54,16 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		// a refused maximal, cleaning up at the end — and the body the plan
 		// started from is the document's guess, which is what needed healing
 		// in the first place.
-		ent.recipe.minimalBody = cloneAnyMap(rr.body)
-		r.createdObjects[ent.plan.Entity] = rr.obj
-		ent.createdAt = time.Now()
-		ent.ev.sent = sent
-		ent.ev.sentStatus = rr.res.status
-		ent.ev.createProof = &rr.res.excerpt
-		ent.ev.acceptedRequestBodies = append(ent.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
+		entity.recipe.minimalBody = cloneAnyMap(rr.body)
+		r.createdObjects[entity.plan.Entity] = rr.obj
+		entity.createdAt = time.Now()
+		entity.ev.sent = sent
+		entity.ev.sentStatus = rr.res.status
+		entity.ev.createProof = &rr.res.excerpt
+		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
 		return nil
 	}
-	if _, exists := r.createdObjects[ent.plan.Entity]; exists {
+	if _, exists := r.createdObjects[entity.plan.Entity]; exists {
 		// A prior variant already made the object everything reads; this
 		// variant's create could not be built, which is not a reason to
 		// abandon the entity.
@@ -77,7 +77,7 @@ func (r *runner) runCreateMinimal(ctx context.Context, ent *entityState, step *p
 		return nil
 	}
 	if refused := lastRefusal(rr, searched); refused != nil {
-		ent.cause = &refused.excerpt
+		entity.cause = &refused.excerpt
 		return blockedError{reason: minimalRefusedReason(refused.status, searched.tried)}
 	}
 	return blockedError{reason: "the minimal create produced no object"}
@@ -112,22 +112,22 @@ func minimalRefusedReason(status int, tried []string) string {
 // removed and the create retried, feeding the validWhen evidence. Accepted, it
 // extends the per-field evidence to the optional fields; refused without a
 // field the loop can act on, a bounded bisection names the culprit.
-func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *plan.Step) error {
+func (r *runner) runCreateMaximal(ctx context.Context, entity *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
-	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, r.gateFieldFor(ent))
+	rr, err := r.adjustCreate(ctx, entity, entity.recipe, body, r.gateFieldFor(entity))
 	if err != nil {
 		return err
 	}
 	if rr.obj != nil {
-		sent, err := r.resolveBody(ctx, ent, rr.body)
+		sent, err := r.resolveBody(ctx, entity, rr.body)
 		if err != nil {
 			return err
 		}
-		ent.ev.maximalSent = sent
-		ent.ev.maximalGot = rr.res.object()
-		ent.ev.maximalStatus = rr.res.status
-		ent.ev.acceptedRequestBodies = append(ent.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
-		_, _ = r.deleteObject(ctx, ent, ent.recipe, rr.obj)
+		entity.ev.maximalSent = sent
+		entity.ev.maximalGot = rr.res.object()
+		entity.ev.maximalStatus = rr.res.status
+		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
+		_, _ = r.deleteObject(ctx, entity, entity.recipe, rr.obj)
 		return nil
 	}
 	if rr.res == nil || !rr.res.refused() {
@@ -135,10 +135,10 @@ func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *p
 	}
 	// Narrow first, so a single culprit is named as rejected evidence, then
 	// drop what the API will not take until it takes the rest.
-	if err := r.bisectMaximal(ctx, ent, step, rr.res); err != nil {
+	if err := r.bisectMaximal(ctx, entity, step, rr.res); err != nil {
 		return err
 	}
-	return r.reduceMaximal(ctx, ent, rr.body, rr.res)
+	return r.reduceMaximal(ctx, entity, rr.body, rr.res)
 }
 
 // bisectMaximal narrows a refused maximal create to the optional field
@@ -146,8 +146,8 @@ func (r *runner) runCreateMaximal(ctx context.Context, ent *entityState, step *p
 // extra creates. Single-culprit narrowing by construction: with several
 // culprits it still converges on one of them, which is one true finding
 // rather than none.
-func (r *runner) bisectMaximal(ctx context.Context, ent *entityState, step *plan.Step, refusal *httpResult) error {
-	minimal := ent.recipe.minimalBody
+func (r *runner) bisectMaximal(ctx context.Context, entity *entityState, step *plan.Step, refusal *httpResult) error {
+	minimal := entity.recipe.minimalBody
 	var suspects []string
 	for k := range step.Body {
 		if _, inMinimal := minimal[k]; !inMinimal {
@@ -168,7 +168,7 @@ func (r *runner) bisectMaximal(ctx context.Context, ent *entityState, step *plan
 		}
 	}
 	if len(named) == 1 {
-		r.recordRejectedValue(ent, named[0], step.Body[named[0]], refusal)
+		r.recordRejectedValue(entity, named[0], step.Body[named[0]], refusal)
 		return nil
 	}
 
@@ -182,14 +182,14 @@ func (r *runner) bisectMaximal(ctx context.Context, ent *entityState, step *plan
 		for _, k := range half {
 			body[k] = step.Body[k]
 		}
-		obj, res, err := r.createObject(ctx, ent, ent.recipe, body)
+		obj, res, err := r.createObject(ctx, entity, entity.recipe, body)
 		if err != nil {
 			return err
 		}
 		spent++
 		switch {
 		case obj != nil:
-			_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
+			_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
 			suspects = suspects[len(suspects)/2:]
 		case res != nil && res.refused():
 			suspects = half
@@ -198,24 +198,24 @@ func (r *runner) bisectMaximal(ctx context.Context, ent *entityState, step *plan
 		}
 	}
 	if len(suspects) == 1 {
-		r.recordRejectedValue(ent, suspects[0], step.Body[suspects[0]], refusal)
+		r.recordRejectedValue(entity, suspects[0], step.Body[suspects[0]], refusal)
 	}
 	return nil
 }
 
 // recordRejectedValue accumulates one refused create value into the
 // attribute's values record.
-func (r *runner) recordRejectedValue(ent *entityState, attr string, value any, res *httpResult) {
-	v := ent.ev.valuesFor(attr)
+func (r *runner) recordRejectedValue(entity *entityState, attribute string, value any, res *httpResult) {
+	v := entity.ev.valuesFor(attribute)
 	v.Rejected = append(v.Rejected, fmt.Sprint(value))
-	ent.ev.valuesProof[attr] = appendProof(ent.ev.valuesProof[attr], res.excerpt)
+	entity.ev.valuesProof[attribute] = appendProof(entity.ev.valuesProof[attribute], res.excerpt)
 }
 
 // runOmitRequired sends the minimal body minus one required field. A
 // refusal that names the field is the requirement observed; acceptance is
 // its absence — and an object to delete.
-func (r *runner) runOmitRequired(ctx context.Context, ent *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, ent, ent.recipe, step.Body)
+func (r *runner) runOmitRequired(ctx context.Context, entity *entityState, step *plan.Step) error {
+	obj, res, err := r.createObject(ctx, entity, entity.recipe, step.Body)
 	if err != nil {
 		return err
 	}
@@ -224,22 +224,22 @@ func (r *runner) runOmitRequired(ctx context.Context, ent *entityState, step *pl
 	}
 	switch {
 	case obj != nil:
-		r.record(ent.plan.Entity, step.Attribute, observe.KindRequiredByAPI, false, nil, observe.OutcomeConfirmed, res.excerpt)
-		_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
+		r.record(entity.plan.Entity, step.Attribute, observe.KindRequiredByAPI, false, nil, observe.OutcomeConfirmed, res.excerpt)
+		_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
 	case res.refused() && res.mentions(step.Attribute):
-		r.record(ent.plan.Entity, step.Attribute, observe.KindRequiredByAPI, true, nil, observe.OutcomeConfirmed, res.excerpt)
+		r.record(entity.plan.Entity, step.Attribute, observe.KindRequiredByAPI, true, nil, observe.OutcomeConfirmed, res.excerpt)
 	default:
 		// Refused without naming the field: the refusal could have been
 		// about anything, and claiming the requirement would be guessing.
-		r.record(ent.plan.Entity, step.Attribute, observe.KindRequiredByAPI, nil, nil, observe.OutcomeInconclusive, res.excerpt)
+		r.record(entity.plan.Entity, step.Attribute, observe.KindRequiredByAPI, nil, nil, observe.OutcomeInconclusive, res.excerpt)
 	}
 	return nil
 }
 
 // runUndocumentedEnumValue sends a value the document does not list.
 // Refusal closes the documented set; acceptance opens it.
-func (r *runner) runUndocumentedEnumValue(ctx context.Context, ent *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, ent, ent.recipe, step.Body)
+func (r *runner) runUndocumentedEnumValue(ctx context.Context, entity *entityState, step *plan.Step) error {
+	obj, res, err := r.createObject(ctx, entity, entity.recipe, step.Body)
 	if err != nil {
 		return err
 	}
@@ -250,14 +250,14 @@ func (r *runner) runUndocumentedEnumValue(ctx context.Context, ent *entityState,
 	switch {
 	case obj != nil:
 		*closed = false
-		_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
+		_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
 	case res.refused():
 		*closed = true
 	default:
 		return nil
 	}
-	ent.ev.valuesFor(step.Attribute).Closed = closed
-	ent.ev.valuesProof[step.Attribute] = appendProof(ent.ev.valuesProof[step.Attribute], res.excerpt)
+	entity.ev.valuesFor(step.Attribute).Closed = closed
+	entity.ev.valuesProof[step.Attribute] = appendProof(entity.ev.valuesProof[step.Attribute], res.excerpt)
 	return nil
 }
 
@@ -266,8 +266,8 @@ func (r *runner) runUndocumentedEnumValue(ctx context.Context, ent *entityState,
 // summary as rejectsUnknownFields rather than as an observation because it
 // is about how to read the other findings — when true, this entity's
 // refusal-based findings need caution — not a finding in its own right.
-func (r *runner) runUndeclaredSpecField(ctx context.Context, ent *entityState, step *plan.Step) error {
-	obj, res, err := r.createObject(ctx, ent, ent.recipe, step.Body)
+func (r *runner) runUndeclaredSpecField(ctx context.Context, entity *entityState, step *plan.Step) error {
+	obj, res, err := r.createObject(ctx, entity, entity.recipe, step.Body)
 	if err != nil {
 		return err
 	}
@@ -276,10 +276,10 @@ func (r *runner) runUndeclaredSpecField(ctx context.Context, ent *entityState, s
 	}
 	switch {
 	case obj != nil:
-		r.summary.RejectsUnknownFields[ent.plan.Entity] = false
-		_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
+		r.summary.RejectsUnknownFields[entity.plan.Entity] = false
+		_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
 	case res.refused():
-		r.summary.RejectsUnknownFields[ent.plan.Entity] = true
+		r.summary.RejectsUnknownFields[entity.plan.Entity] = true
 	}
 	return nil
 }
@@ -289,13 +289,13 @@ func (r *runner) runUndeclaredSpecField(ctx context.Context, ent *entityState, s
 // records acceptance or rejection; with the condition on a sibling it is
 // one half of a required-when pair — created with the attribute present
 // or omitted under the pinned sibling value.
-func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, step *plan.Step) error {
+func (r *runner) runCreatePerEnumValue(ctx context.Context, entity *entityState, step *plan.Step) error {
 	body := cloneAnyMap(step.Body)
 	held := ""
 	if step.Condition != nil {
 		held = step.Condition.Attribute
 	}
-	rr, err := r.adjustCreate(ctx, ent, ent.recipe, body, held)
+	rr, err := r.adjustCreate(ctx, entity, entity.recipe, body, held)
 	if err != nil {
 		return err
 	}
@@ -305,8 +305,8 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, st
 	}
 	accepted := obj != nil
 	if accepted {
-		ent.ev.acceptedRequestBodies = append(ent.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
-		_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
+		entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(rr.body))
+		_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
 	} else if !res.refused() {
 		return nil
 	}
@@ -325,21 +325,21 @@ func (r *runner) runCreatePerEnumValue(ctx context.Context, ent *entityState, st
 			// falls through to be recorded.
 			return nil
 		}
-		v := ent.ev.valuesFor(step.Attribute)
+		v := entity.ev.valuesFor(step.Attribute)
 		if accepted {
 			v.Accepted = append(v.Accepted, fmt.Sprint(cond.Equals))
 		} else {
 			v.Rejected = append(v.Rejected, fmt.Sprint(cond.Equals))
 		}
-		ent.ev.valuesProof[step.Attribute] = appendProof(ent.ev.valuesProof[step.Attribute], res.excerpt)
+		entity.ev.valuesProof[step.Attribute] = appendProof(entity.ev.valuesProof[step.Attribute], res.excerpt)
 		return nil
 	}
 
-	key := ent.plan.Entity + "\x00" + step.Attribute + "\x00" + fmt.Sprint(cond.Attribute, "=", cond.Equals)
-	pair, ok := ent.ev.requiredWhens[key]
+	key := entity.plan.Entity + "\x00" + step.Attribute + "\x00" + fmt.Sprint(cond.Attribute, "=", cond.Equals)
+	pair, ok := entity.ev.requiredWhens[key]
 	if !ok {
-		pair = &requiredWhenPair{attr: step.Attribute, cond: *cond}
-		ent.ev.requiredWhens[key] = pair
+		pair = &requiredWhenPair{attribute: step.Attribute, cond: *cond}
+		entity.ev.requiredWhens[key] = pair
 	}
 	if _, withAttr := step.Body[step.Attribute]; withAttr {
 		pair.with = &accepted
@@ -387,8 +387,8 @@ func searchAllowance(candidates int) int {
 // refusal naming it stays, so a body needing several fields is found in as
 // many attempts rather than exponentially many. What it finds is a viable
 // minimal body, not a proof that every field in it is individually necessary.
-func (r *runner) searchMinimal(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any, refusal *httpResult) (adjustResult, error) {
-	candidates := r.searchCandidates(ent, body, refusal)
+func (r *runner) searchMinimal(ctx context.Context, entity *entityState, rec *entityRecipe, body map[string]any, refusal *httpResult) (adjustResult, error) {
+	candidates := r.searchCandidates(entity, body, refusal)
 	allowance := searchAllowance(len(candidates))
 	last := refusal
 	var tried []string
@@ -396,9 +396,9 @@ func (r *runner) searchMinimal(ctx context.Context, ent *entityState, rec *entit
 	for i := 0; i < allowance; i++ {
 		field := candidates[i]
 		tried = append(tried, field)
-		body[field] = r.synthField(ent, field)
+		body[field] = r.synthField(entity, field)
 
-		obj, res, err := r.createObject(ctx, ent, rec, body)
+		obj, res, err := r.createObject(ctx, entity, rec, body)
 		if err != nil {
 			return adjustResult{}, err
 		}
@@ -407,7 +407,7 @@ func (r *runner) searchMinimal(ctx context.Context, ent *entityState, rec *entit
 			// run could get accepted, which is what the fixture must carry.
 			for _, added := range candidates[:i+1] {
 				if _, kept := body[added]; kept {
-					r.recordAdjustAdd(ent, added, "", "", res.excerpt)
+					r.recordAdjustAdd(entity, added, "", "", res.excerpt)
 				}
 			}
 			return adjustResult{obj: obj, res: res, body: body, adjusted: true}, nil
@@ -428,8 +428,8 @@ func (r *runner) searchMinimal(ctx context.Context, ent *entityState, rec *entit
 // searchCandidates orders the fields the search may add, cheapest-signal
 // first, so the common case ends in a handful of attempts and a re-run repeats
 // the same order.
-func (r *runner) searchCandidates(ent *entityState, body map[string]any, refusal *httpResult) []string {
-	hints := r.hints[ent.plan.Entity]
+func (r *runner) searchCandidates(entity *entityState, body map[string]any, refusal *httpResult) []string {
+	hints := r.hints[entity.plan.Entity]
 	type candidate struct {
 		field string
 		rank  int
@@ -472,8 +472,8 @@ func (r *runner) searchCandidates(ent *entityState, body map[string]any, refusal
 // one removes. What survives is the fullest create this run could get taken,
 // which is what a generated maximal configuration has to be — every field in
 // it is one the API demonstrably tolerates alongside the others.
-func (r *runner) reduceMaximal(ctx context.Context, ent *entityState, body map[string]any, refusal *httpResult) error {
-	minimal := ent.recipe.minimalBody
+func (r *runner) reduceMaximal(ctx context.Context, entity *entityState, body map[string]any, refusal *httpResult) error {
+	minimal := entity.recipe.minimalBody
 	allowance := searchAllowance(len(body))
 	last := refusal
 
@@ -486,20 +486,20 @@ func (r *runner) reduceMaximal(ctx context.Context, ent *entityState, body map[s
 		// shapes the body, so a field dropped here is not claimed twice.
 		delete(body, culprit)
 
-		obj, res, err := r.createObject(ctx, ent, ent.recipe, body)
+		obj, res, err := r.createObject(ctx, entity, entity.recipe, body)
 		if err != nil {
 			return err
 		}
 		if obj != nil {
-			sent, err := r.resolveBody(ctx, ent, body)
+			sent, err := r.resolveBody(ctx, entity, body)
 			if err != nil {
 				return err
 			}
-			ent.ev.maximalSent = sent
-			ent.ev.maximalGot = res.object()
-			ent.ev.maximalStatus = res.status
-			ent.ev.acceptedRequestBodies = append(ent.ev.acceptedRequestBodies, cloneAnyMap(body))
-			_, _ = r.deleteObject(ctx, ent, ent.recipe, obj)
+			entity.ev.maximalSent = sent
+			entity.ev.maximalGot = res.object()
+			entity.ev.maximalStatus = res.status
+			entity.ev.acceptedRequestBodies = append(entity.ev.acceptedRequestBodies, cloneAnyMap(body))
+			_, _ = r.deleteObject(ctx, entity, entity.recipe, obj)
 			return nil
 		}
 		if res == nil || !res.refused() {

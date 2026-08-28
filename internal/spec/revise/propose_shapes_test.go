@@ -96,8 +96,8 @@ func pinnedComposite(t *testing.T) (root, specDir string, lock store.Lock) {
 func TestUnit_Propose_PlacesCorrectionsThroughComposedSchemas(t *testing.T) {
 	t.Parallel()
 	root, specDir, lock := pinnedComposite(t)
-	widget := func(attr string, kind observe.Kind, value any) observe.Observation {
-		o := confirmedObs(attr, kind, value, nil, lock.SHA256)
+	widget := func(attribute string, kind observe.Kind, value any) observe.Observation {
+		o := confirmedObs(attribute, kind, value, nil, lock.SHA256)
 		o.Entity = "widget"
 		return o
 	}

@@ -22,7 +22,7 @@ const UndeclaredSpecFieldName = "tfpfgen_unknown_field"
 // derive.go bound each rule.
 func (d *planBuilder) resourcePlan(c specmodel.Classification) (EntityPlan, *Skipped) {
 	ei := d.inputs.forEntity(c.Key)
-	sy := synth{entity: c.Key, prefix: d.cfg.Audit.NamePrefix, inputs: ei}
+	sy := synth{entity: c.Key, prefix: d.configuration.Audit.NamePrefix, inputs: ei}
 
 	createOp := d.operation(c.Create)
 	readOp := d.operation(c.Read)
@@ -134,8 +134,8 @@ func declaredProperties(schemas ...*specmodel.Schema) []string {
 		if s == nil {
 			continue
 		}
-		props, _ := flatProps(s)
-		for _, p := range props {
+		properties, _ := flatProps(s)
+		for _, p := range properties {
 			seen[p.Name] = true
 		}
 	}
@@ -154,9 +154,9 @@ func declaredProperties(schemas ...*specmodel.Schema) []string {
 // body is the minimal body with that one field moved to a variant value,
 // so a refusal names the field and nothing else.
 func (d *planBuilder) updateSteps(c specmodel.Classification, sy synth, schema *specmodel.Schema, minimal map[string]any, itemValues map[string]string) []Step {
-	props, _ := flatProps(schema)
+	properties, _ := flatProps(schema)
 	var steps []Step
-	for _, p := range props {
+	for _, p := range properties {
 		if len(steps) == maxUpdateFields {
 			break
 		}
@@ -187,11 +187,11 @@ func (d *planBuilder) updateSteps(c specmodel.Classification, sy synth, schema *
 // required field (capped), send an undocumented enum value, send an
 // unknown field.
 func negativeSteps(schema *specmodel.Schema, minimal map[string]any, post func(StepKind, string, map[string]any) Step) []Step {
-	props, required := flatProps(schema)
+	properties, required := flatProps(schema)
 	var steps []Step
 
 	omitted := 0
-	for _, p := range props {
+	for _, p := range properties {
 		if omitted == maxOmitRequired {
 			break
 		}
@@ -204,7 +204,7 @@ func negativeSteps(schema *specmodel.Schema, minimal map[string]any, post func(S
 		omitted++
 	}
 
-	for _, p := range props {
+	for _, p := range properties {
 		r := p.Schema.Resolved()
 		if r.ReadOnly || len(r.Enum) == 0 {
 			continue
@@ -229,11 +229,11 @@ func negativeSteps(schema *specmodel.Schema, minimal map[string]any, post func(S
 // annotation, or an enum-typed field with siblings whose behaviour could
 // depend on it. Enum values are capped across the entity.
 func conditionalSteps(sy synth, schema *specmodel.Schema, minimal map[string]any, post func(StepKind, string, map[string]any) Step) []Step {
-	props, _ := flatProps(schema)
+	properties, _ := flatProps(schema)
 	var steps []Step
 
 	writable := 0
-	for _, p := range props {
+	for _, p := range properties {
 		if !p.Schema.Resolved().ReadOnly {
 			writable++
 		}
@@ -243,7 +243,7 @@ func conditionalSteps(sy synth, schema *specmodel.Schema, minimal map[string]any
 	// the gate pinned and the property present, then with the gate pinned
 	// and the property omitted — acceptance of one and refusal of the
 	// other is the observation.
-	for _, p := range props {
+	for _, p := range properties {
 		rw, ok := requiredWhenHint(p.Schema)
 		if !ok {
 			continue
@@ -269,7 +269,7 @@ func conditionalSteps(sy synth, schema *specmodel.Schema, minimal map[string]any
 	// with no siblings conditions nothing.
 	if writable > 1 {
 		pinned := 0
-		for _, p := range props {
+		for _, p := range properties {
 			r := p.Schema.Resolved()
 			if r.ReadOnly || len(r.Enum) == 0 {
 				continue

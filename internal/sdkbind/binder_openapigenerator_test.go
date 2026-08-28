@@ -104,7 +104,7 @@ func TestOAGCallDrafts(t *testing.T) {
 // TestOAGAccessSpelling holds drafted accessors to the generator's
 // deref-on-the-way-out helper shape: value-typed, no mangling.
 func TestOAGAccessSpelling(t *testing.T) {
-	fa := openAPIGeneratorBinder{}.access(attr("name", "name", ir.TypeString, ir.Required), accessReadWrite)
+	fa := openAPIGeneratorBinder{}.access(attribute("name", "name", ir.TypeString, ir.Required), accessReadWrite)
 	if fa.Get != "GetName" || fa.Set != "SetName" || fa.SDKType != "string" {
 		t.Errorf("access = %+v, want value-typed GetName/SetName", fa)
 	}
@@ -112,7 +112,7 @@ func TestOAGAccessSpelling(t *testing.T) {
 		t.Errorf("converts = %q/%q, want FromString/ToString", fa.ConvertGet, fa.ConvertSet)
 	}
 
-	labels := attr("labels", "labels", ir.TypeList, ir.Optional)
+	labels := attribute("labels", "labels", ir.TypeList, ir.Optional)
 	labels.ElementType = ir.TypeString
 	fa = openAPIGeneratorBinder{}.access(labels, accessReadWrite)
 	if fa.SDKType != "[]string" || fa.ConvertGet != "FromStringSlice" {
@@ -120,7 +120,7 @@ func TestOAGAccessSpelling(t *testing.T) {
 	}
 
 	// The generator does not mangle reserved words the way kiota does.
-	fa = openAPIGeneratorBinder{}.access(attr("error", "error", ir.TypeString, ir.Optional), accessReadWrite)
+	fa = openAPIGeneratorBinder{}.access(attribute("error", "error", ir.TypeString, ir.Optional), accessReadWrite)
 	if fa.Get != "GetError" {
 		t.Errorf("reserved wire name drafted %q, want GetError", fa.Get)
 	}
@@ -138,8 +138,8 @@ func TestBinderFor(t *testing.T) {
 		{"resty", "", true},
 	}
 	for _, tc := range cases {
-		cfg := minimalConfig(tc.backend)
-		b, err := For(cfg)
+		configuration := minimalConfig(tc.backend)
+		b, err := For(configuration)
 		if tc.wantErr {
 			if err == nil {
 				t.Errorf("For(%q) accepted an unsupported backend", tc.backend)

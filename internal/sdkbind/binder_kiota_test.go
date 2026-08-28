@@ -108,35 +108,35 @@ func TestKiotaAccessSpelling(t *testing.T) {
 		wantType string
 	}{
 		{
-			name: "plain scalar", a: attr("name", "name", ir.TypeString, ir.Required),
+			name: "plain scalar", a: attribute("name", "name", ir.TypeString, ir.Required),
 			mode: accessReadWrite, wantGet: "GetName", wantSet: "SetName", wantType: "*string",
 		},
 		{
-			name: "reserved word is escaped", a: attr("error", "error", ir.TypeString, ir.Optional),
+			name: "reserved word is escaped", a: attribute("error", "error", ir.TypeString, ir.Optional),
 			mode: accessReadWrite, wantGet: "GetErrorEscaped", wantSet: "SetErrorEscaped", wantType: "*string",
 		},
 		{
-			name: "computed never writes", a: attr("id", "id", ir.TypeString, ir.Computed),
+			name: "computed never writes", a: attribute("id", "id", ir.TypeString, ir.Computed),
 			mode: accessReadWrite, wantGet: "GetId", wantSet: "", wantType: "*string",
 		},
 		{
-			name: "read-only mode never writes", a: attr("name", "name", ir.TypeString, ir.Required),
+			name: "read-only mode never writes", a: attribute("name", "name", ir.TypeString, ir.Required),
 			mode: accessReadOnly, wantGet: "GetName", wantSet: "", wantType: "*string",
 		},
 		{
-			name: "write-only mode never reads", a: attr("name", "name", ir.TypeString, ir.Required),
+			name: "write-only mode never reads", a: attribute("name", "name", ir.TypeString, ir.Required),
 			mode: accessWriteOnly, wantGet: "", wantSet: "SetName", wantType: "*string",
 		},
 		{
-			name: "camel wire name keeps its humps", a: attr("account_group_id", "accountGroupId", ir.TypeInt64, ir.Optional),
+			name: "camel wire name keeps its humps", a: attribute("account_group_id", "accountGroupId", ir.TypeInt64, ir.Optional),
 			mode: accessReadWrite, wantGet: "GetAccountGroupId", wantSet: "SetAccountGroupId", wantType: "*int64",
 		},
 		{
-			name: "bool scalar", a: attr("enabled", "enabled", ir.TypeBool, ir.Optional),
+			name: "bool scalar", a: attribute("enabled", "enabled", ir.TypeBool, ir.Optional),
 			mode: accessReadWrite, wantGet: "GetEnabled", wantSet: "SetEnabled", wantType: "*bool",
 		},
 		{
-			name: "float scalar", a: attr("weight", "weight", ir.TypeFloat64, ir.Optional),
+			name: "float scalar", a: attribute("weight", "weight", ir.TypeFloat64, ir.Optional),
 			mode: accessReadWrite, wantGet: "GetWeight", wantSet: "SetWeight", wantType: "*float64",
 		},
 	}

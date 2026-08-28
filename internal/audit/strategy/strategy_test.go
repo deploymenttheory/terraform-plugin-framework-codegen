@@ -16,7 +16,7 @@ func defaultCfg() *config.Config {
 }
 
 // compile loads a spec, classifies it, and compiles the named entity.
-func compile(t *testing.T, spec, key string, cfg *config.Config) *strategy.Strategy {
+func compile(t *testing.T, spec, key string, configuration *config.Config) *strategy.Strategy {
 	t.Helper()
 	doc, err := specmodel.Load([]byte(spec))
 	if err != nil {
@@ -25,7 +25,7 @@ func compile(t *testing.T, spec, key string, cfg *config.Config) *strategy.Strat
 	cls := specmodel.Classify(doc)
 	for _, c := range cls.Entities {
 		if c.Key == key {
-			s, err := strategy.Compile(doc, c, cfg)
+			s, err := strategy.Compile(doc, c, configuration)
 			if err != nil {
 				t.Fatalf("compile %q: %v", key, err)
 			}
@@ -596,13 +596,13 @@ func TestListDatasourceIsReadOnly(t *testing.T) {
 
 func TestBudgetScalesWithComplexity(t *testing.T) {
 	flat := compile(t, flatSpec, "widget", defaultCfg())
-	disc := compile(t, discriminatorSpec, "test", defaultCfg())
+	discriminator := compile(t, discriminatorSpec, "test", defaultCfg())
 
-	if disc.Budget.Requests <= flat.Budget.Requests {
-		t.Fatalf("discriminated budget %d not greater than flat %d", disc.Budget.Requests, flat.Budget.Requests)
+	if discriminator.Budget.Requests <= flat.Budget.Requests {
+		t.Fatalf("discriminated budget %d not greater than flat %d", discriminator.Budget.Requests, flat.Budget.Requests)
 	}
-	if flat.Budget.Formula == "" || disc.Budget.Formula == "" {
-		t.Fatalf("budget formula missing: flat=%q disc=%q", flat.Budget.Formula, disc.Budget.Formula)
+	if flat.Budget.Formula == "" || discriminator.Budget.Formula == "" {
+		t.Fatalf("budget formula missing: flat=%q disc=%q", flat.Budget.Formula, discriminator.Budget.Formula)
 	}
 	// The read-only budget is small and fixed.
 	ro := compile(t, lookupSpec, "agent", defaultCfg())
@@ -613,8 +613,8 @@ func TestBudgetScalesWithComplexity(t *testing.T) {
 
 func TestBudgetCeilingCaps(t *testing.T) {
 	// A tiny object budget forces the ceiling to bind.
-	cfg := &config.Config{Audit: config.Audit{MaxObjects: 1}}
-	s := compile(t, discriminatorSpec, "test", cfg)
+	configuration := &config.Config{Audit: config.Audit{MaxObjects: 1}}
+	s := compile(t, discriminatorSpec, "test", configuration)
 	if s.Budget.Requests != 12 { // maxObjects(1) × perObjectCost(12)
 		t.Fatalf("capped budget=%d, want 12", s.Budget.Requests)
 	}
@@ -625,8 +625,8 @@ func TestBudgetCeilingCaps(t *testing.T) {
 
 func TestBudgetDefaultsMaxObjects(t *testing.T) {
 	// MaxObjects unset (0) falls back to 25, so the ceiling does not bind.
-	cfg := &config.Config{}
-	s := compile(t, flatSpec, "widget", cfg)
+	configuration := &config.Config{}
+	s := compile(t, flatSpec, "widget", configuration)
 	if s.Budget.Requests == 0 {
 		t.Fatalf("budget should be non-zero with defaulted maxObjects")
 	}

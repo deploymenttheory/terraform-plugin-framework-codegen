@@ -245,9 +245,9 @@ func widgetInputs(t *testing.T) *Inputs {
 	return in
 }
 
-func mustDerive(t *testing.T, doc *specmodel.Document, cfg *config.Config, in *Inputs) *Plan {
+func mustDerive(t *testing.T, doc *specmodel.Document, configuration *config.Config, in *Inputs) *Plan {
 	t.Helper()
-	p, err := Derive(doc, cfg, in)
+	p, err := Derive(doc, configuration, in)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
@@ -282,9 +282,9 @@ func kinds(steps []Step) []StepKind {
 }
 
 func TestUnit_Plan_DeriveIsDeterministic(t *testing.T) {
-	cfg := testConfig()
-	p1 := mustDerive(t, loadDoc(t, fixtureSpec), cfg, widgetInputs(t))
-	p2 := mustDerive(t, loadDoc(t, fixtureSpec), cfg, widgetInputs(t))
+	configuration := testConfig()
+	p1 := mustDerive(t, loadDoc(t, fixtureSpec), configuration, widgetInputs(t))
+	p2 := mustDerive(t, loadDoc(t, fixtureSpec), configuration, widgetInputs(t))
 
 	if !reflect.DeepEqual(p1, p2) {
 		t.Fatal("two derivations of the same inputs are not DeepEqual")
@@ -525,9 +525,9 @@ func TestUnit_Plan_SkipHandling(t *testing.T) {
 	}
 
 	// services.exclude does the same from config.
-	cfg := testConfig()
-	cfg.Services.Exclude = []string{"project"}
-	p = mustDerive(t, loadDoc(t, fixtureSpec), cfg, nil)
+	configuration := testConfig()
+	configuration.Services.Exclude = []string{"project"}
+	p = mustDerive(t, loadDoc(t, fixtureSpec), configuration, nil)
 	found := false
 	for _, s := range p.Skipped {
 		found = found || (s.Entity == "project" && strings.Contains(s.Reason, "services.exclude"))

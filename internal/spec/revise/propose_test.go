@@ -398,24 +398,24 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	}
 
 	tag := doc["components"].(map[string]any)["schemas"].(map[string]any)["Tag"].(map[string]any)
-	props := tag["properties"].(map[string]any)
-	if req, ok := tag["required"].([]any); !ok || len(req) != 1 || req[0] != "name" {
+	properties := tag["properties"].(map[string]any)
+	if request, ok := tag["required"].([]any); !ok || len(request) != 1 || request[0] != "name" {
 		t.Errorf("required = %v, want [name]", tag["required"])
 	}
-	if ro := props["size"].(map[string]any)["readOnly"]; ro != true {
+	if ro := properties["size"].(map[string]any)["readOnly"]; ro != true {
 		t.Errorf("size.readOnly = %v, want true", ro)
 	}
-	if co := props["name"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
+	if co := properties["name"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
 		t.Errorf("name create-only = %v, want true", co)
 	}
-	if def := props["mode"].(map[string]any)["x-tfpfgen-server-default"]; def != "auto" {
+	if def := properties["mode"].(map[string]any)["x-tfpfgen-server-default"]; def != "auto" {
 		t.Errorf("mode server-default = %v, want auto", def)
 	}
-	rw, ok := props["port"].(map[string]any)["x-tfpfgen-required-when"].(map[string]any)
+	rw, ok := properties["port"].(map[string]any)["x-tfpfgen-required-when"].(map[string]any)
 	if !ok || rw["property"] != "protocol" || rw["equals"] != "tcp" {
-		t.Errorf("port required-when = %v, want protocol=tcp", props["port"])
+		t.Errorf("port required-when = %v, want protocol=tcp", properties["port"])
 	}
-	color := props["color"].(map[string]any)
+	color := properties["color"].(map[string]any)
 	if enum, ok := color["enum"].([]any); !ok || len(enum) != 2 || enum[0] != "red" || enum[1] != "green" {
 		t.Errorf("color.enum = %v, want [red green]", color["enum"])
 	}

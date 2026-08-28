@@ -14,23 +14,23 @@ import (
 
 func TestUnit_KiotaCheckTool_AcceptsTheMatchingPin(t *testing.T) {
 	installStub(t, "kiota", kiotaStub, "1.2.3")
-	cfg := testConfig(config.BackendKiota, nil, nil)
+	configuration := testConfig(config.BackendKiota, nil, nil)
 
-	backend, err := For(cfg)
+	backend, err := For(configuration)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := backend.CheckTool(context.Background(), cfg); err != nil {
+	if err := backend.CheckTool(context.Background(), configuration); err != nil {
 		t.Fatalf("a matching version should pass the gate: %v", err)
 	}
 }
 
 func TestUnit_KiotaCheckTool_RefusesAMismatchNamingBothVersions(t *testing.T) {
 	installStub(t, "kiota", kiotaStub, "9.9.9")
-	cfg := testConfig(config.BackendKiota, nil, nil)
+	configuration := testConfig(config.BackendKiota, nil, nil)
 
-	backend, _ := For(cfg)
-	err := backend.CheckTool(context.Background(), cfg)
+	backend, _ := For(configuration)
+	err := backend.CheckTool(context.Background(), configuration)
 	if err == nil {
 		t.Fatal("a mismatched version must refuse")
 	}
@@ -43,10 +43,10 @@ func TestUnit_KiotaCheckTool_RefusesAMismatchNamingBothVersions(t *testing.T) {
 
 func TestUnit_KiotaCheckTool_RefusesWhenTheToolIsMissing(t *testing.T) {
 	emptyPath(t)
-	cfg := testConfig(config.BackendKiota, nil, nil)
+	configuration := testConfig(config.BackendKiota, nil, nil)
 
-	backend, _ := For(cfg)
-	err := backend.CheckTool(context.Background(), cfg)
+	backend, _ := For(configuration)
+	err := backend.CheckTool(context.Background(), configuration)
 	if err == nil || !strings.Contains(err.Error(), "not on PATH") {
 		t.Fatalf("a missing tool should refuse naming PATH, got %v", err)
 	}
@@ -57,10 +57,10 @@ func TestUnit_KiotaCheckTool_RefusesWhenTheToolIsMissing(t *testing.T) {
 
 func TestUnit_KiotaCheckTool_RefusesUnreadableVersionOutput(t *testing.T) {
 	installStub(t, "kiota", "#!/bin/sh\necho who knows\n", "")
-	cfg := testConfig(config.BackendKiota, nil, nil)
+	configuration := testConfig(config.BackendKiota, nil, nil)
 
-	backend, _ := For(cfg)
-	err := backend.CheckTool(context.Background(), cfg)
+	backend, _ := For(configuration)
+	err := backend.CheckTool(context.Background(), configuration)
 	if err == nil || !strings.Contains(err.Error(), "could not read a version") {
 		t.Fatalf("unparseable version output should refuse, got %v", err)
 	}
@@ -68,15 +68,15 @@ func TestUnit_KiotaCheckTool_RefusesUnreadableVersionOutput(t *testing.T) {
 
 func TestUnit_KiotaGenerate_PassesTheDocumentedFlagsAndPathGlobs(t *testing.T) {
 	argsFile := installStub(t, "kiota", kiotaStub, "1.2.3")
-	cfg := testConfig(config.BackendKiota, []string{"/widgets/**"}, []string{"/internal/**"})
+	configuration := testConfig(config.BackendKiota, []string{"/widgets/**"}, []string{"/internal/**"})
 	out := filepath.Join(t.TempDir(), "sdk")
 	spec := filepath.Join(t.TempDir(), "revised.prenormalized.yaml")
 	if err := os.WriteFile(spec, []byte(sampleRevised), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
-	backend, _ := For(cfg)
-	if err := backend.Generate(context.Background(), spec, cfg, out); err != nil {
+	backend, _ := For(configuration)
+	if err := backend.Generate(context.Background(), spec, configuration, out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -108,10 +108,10 @@ func TestUnit_KiotaGenerate_PassesTheDocumentedFlagsAndPathGlobs(t *testing.T) {
 func TestUnit_KiotaGenerate_SurfacesTheToolsOwnFailure(t *testing.T) {
 	installStub(t, "kiota", kiotaStub, "1.2.3")
 	t.Setenv("STUB_FAIL", "yes")
-	cfg := testConfig(config.BackendKiota, nil, nil)
+	configuration := testConfig(config.BackendKiota, nil, nil)
 
-	backend, _ := For(cfg)
-	err := backend.Generate(context.Background(), "in.yaml", cfg, t.TempDir())
+	backend, _ := For(configuration)
+	err := backend.Generate(context.Background(), "in.yaml", configuration, t.TempDir())
 	if err == nil || !strings.Contains(err.Error(), "stub exploded") {
 		t.Fatalf("the tool's own stderr should be in the error, got %v", err)
 	}
@@ -119,10 +119,10 @@ func TestUnit_KiotaGenerate_SurfacesTheToolsOwnFailure(t *testing.T) {
 
 func TestUnit_KiotaNormalize_ScrubsTheLockAndDatedHeaders(t *testing.T) {
 	installStub(t, "kiota", kiotaStub, "1.2.3")
-	cfg := testConfig(config.BackendKiota, nil, nil)
+	configuration := testConfig(config.BackendKiota, nil, nil)
 	out := filepath.Join(t.TempDir(), "sdk")
-	backend, _ := For(cfg)
-	if err := backend.Generate(context.Background(), "in.yaml", cfg, out); err != nil {
+	backend, _ := For(configuration)
+	if err := backend.Generate(context.Background(), "in.yaml", configuration, out); err != nil {
 		t.Fatal(err)
 	}
 
@@ -148,15 +148,15 @@ func TestUnit_KiotaNormalize_ScrubsTheLockAndDatedHeaders(t *testing.T) {
 		t.Errorf("the provable evidence fields must survive: %v", lock)
 	}
 
-	src, err := os.ReadFile(filepath.Join(out, "client.go"))
+	source, err := os.ReadFile(filepath.Join(out, "client.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(src), "Generated on") {
-		t.Errorf("the dated header line should be scrubbed:\n%s", src)
+	if strings.Contains(string(source), "Generated on") {
+		t.Errorf("the dated header line should be scrubbed:\n%s", source)
 	}
-	if !strings.Contains(string(src), "DO NOT EDIT") {
-		t.Errorf("the undated header line must survive:\n%s", src)
+	if !strings.Contains(string(source), "DO NOT EDIT") {
+		t.Errorf("the undated header line must survive:\n%s", source)
 	}
 }
 
@@ -182,11 +182,11 @@ func TestUnit_KiotaNormalize_RefusesWhenTheLockIsMissingOrBroken(t *testing.T) {
 // from the derivation rather than from a half-run tool.
 func TestUnit_KiotaGenerate_RefusesAConfigTheNamespaceCannotDeriveFrom(t *testing.T) {
 	installStub(t, "kiota", kiotaStub, "1.2.3")
-	cfg := testConfig(config.BackendKiota, nil, nil)
-	cfg.Provider.Name = ""
+	configuration := testConfig(config.BackendKiota, nil, nil)
+	configuration.Provider.Name = ""
 
-	backend, _ := For(cfg)
-	err := backend.Generate(context.Background(), "in.yaml", cfg, t.TempDir())
+	backend, _ := For(configuration)
+	err := backend.Generate(context.Background(), "in.yaml", configuration, t.TempDir())
 	if err == nil || !strings.Contains(err.Error(), "provider.name") {
 		t.Fatalf("err = %v, want a provider.name refusal", err)
 	}

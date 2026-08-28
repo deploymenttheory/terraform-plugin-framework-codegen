@@ -10,9 +10,9 @@ import (
 // TestUnit_FromConfig_DerivesEveryFinishedValue proves the one derivation
 // site produces the strings the templates interpolate.
 func TestUnit_FromConfig_DerivesEveryFinishedValue(t *testing.T) {
-	cfg := testConfig(config.BackendKiota, config.AuthOAuth2ClientCredentials)
+	configuration := testConfig(config.BackendKiota, config.AuthOAuth2ClientCredentials)
 
-	pc, err := FromConfig(cfg, "https://api.example.test/v1")
+	pc, err := FromConfig(configuration, "https://api.example.test/v1")
 	if err != nil {
 		t.Fatalf("FromConfig: %v", err)
 	}
@@ -91,9 +91,9 @@ func TestUnit_FromConfig_RefusesWhatItCannotDerive(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cfg := testConfig(config.BackendKiota, config.AuthBearerToken)
-			tc.mutate(cfg)
-			_, err := FromConfig(cfg, "")
+			configuration := testConfig(config.BackendKiota, config.AuthBearerToken)
+			tc.mutate(configuration)
+			_, err := FromConfig(configuration, "")
 			if err == nil {
 				t.Fatal("FromConfig accepted the broken config")
 			}
@@ -104,9 +104,9 @@ func TestUnit_FromConfig_RefusesWhatItCannotDerive(t *testing.T) {
 	}
 
 	t.Run("api_key_header without a header name", func(t *testing.T) {
-		cfg := testConfig(config.BackendKiota, config.AuthAPIKeyHeader)
-		cfg.Auth.APIKeyHeader = ""
-		if _, err := FromConfig(cfg, ""); err == nil {
+		configuration := testConfig(config.BackendKiota, config.AuthAPIKeyHeader)
+		configuration.Auth.APIKeyHeader = ""
+		if _, err := FromConfig(configuration, ""); err == nil {
 			t.Fatal("FromConfig accepted the api_key_header method without a header name")
 		}
 	})

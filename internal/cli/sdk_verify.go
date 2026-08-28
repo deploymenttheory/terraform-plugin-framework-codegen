@@ -26,13 +26,13 @@ func newSDKVerifyCommand() *cobra.Command {
 		Short: "regenerate into a temporary tree and fail if the committed SDK differs",
 		Args:  exactArgs("tfpfgen sdk verify [--dir spec] [--out internal/sdk] [--config tfpfgen.yaml]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.Load(cfgFile)
+			configuration, err := config.Load(cfgFile)
 			if err != nil {
 				return err
 			}
 
 			rep, err := sdkgen.Verify(cmd.Context(), sdkgen.Options{
-				Config:  cfg,
+				Config:  configuration,
 				SpecDir: dir,
 				Out:     out,
 				Root:    ".",

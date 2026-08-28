@@ -12,18 +12,18 @@ import (
 
 // testConfig builds a valid config for one backend and auth method.
 func testConfig(backend, method string) *config.Config {
-	cfg := &config.Config{
+	configuration := &config.Config{
 		Provider: config.Provider{Name: "petstore", RegistryNamespace: "exampleco"},
 		SDK:      config.SDK{Backend: backend, ClientTypeName: "APIClient"},
 		Auth:     config.Auth{Method: method},
 	}
 	if method == config.AuthAPIKeyHeader {
-		cfg.Auth.APIKeyHeader = "X-Api-Key"
+		configuration.Auth.APIKeyHeader = "X-Api-Key"
 	}
 	if method == config.AuthOAuth2ClientCredentials {
-		cfg.Auth.TokenURL = "https://login.example.test/oauth2/token"
+		configuration.Auth.TokenURL = "https://login.example.test/oauth2/token"
 	}
-	return cfg
+	return configuration
 }
 
 // backends and methods enumerate the closed sets the provider core

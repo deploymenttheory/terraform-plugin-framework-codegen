@@ -55,19 +55,19 @@ func monitorEvidence() Evidence {
 	}
 }
 
-func find(obs []observe.Observation, attr string, kind observe.Kind) *observe.Observation {
+func find(obs []observe.Observation, attribute string, kind observe.Kind) *observe.Observation {
 	for i := range obs {
-		if obs[i].Attribute == attr && obs[i].Kind == kind {
+		if obs[i].Attribute == attribute && obs[i].Kind == kind {
 			return &obs[i]
 		}
 	}
 	return nil
 }
 
-func findWhen(obs []observe.Observation, attr string, kind observe.Kind, gateVal string) *observe.Observation {
+func findWhen(obs []observe.Observation, attribute string, kind observe.Kind, gateVal string) *observe.Observation {
 	for i := range obs {
 		o := &obs[i]
-		if o.Attribute == attr && o.Kind == kind && o.Condition != nil && o.Condition.Equals == gateVal {
+		if o.Attribute == attribute && o.Kind == kind && o.Condition != nil && o.Condition.Equals == gateVal {
 			return o
 		}
 	}
@@ -117,9 +117,9 @@ func TestUnit_Infer_MonitorConvergentEdges(t *testing.T) {
 		t.Fatalf("dependsOn(dnssec) = %+v, want confirmed value domain", dep)
 	}
 
-	req := find(obs, "interval", observe.KindRequiredByAPI)
-	if req == nil || req.Value != true {
-		t.Errorf("requiredByAPI(interval) = %+v, want true", req)
+	request := find(obs, "interval", observe.KindRequiredByAPI)
+	if request == nil || request.Value != true {
+		t.Errorf("requiredByAPI(interval) = %+v, want true", request)
 	}
 	rw := findWhen(obs, "target_host", observe.KindRequiredWhen, "ping")
 	if rw == nil || rw.Value != true {
@@ -383,8 +383,8 @@ func TestUnit_Infer_UnconfirmedHypothesesSurfaceInconclusive(t *testing.T) {
 	}
 	obs := Infer(Evidence{Entity: "e"}, compiled)
 	want := []struct {
-		attr string
-		kind observe.Kind
+		attribute string
+		kind      observe.Kind
 	}{
 		{"a", observe.KindRequiredWhen},
 		{"c", observe.KindDependsOn},
@@ -392,9 +392,9 @@ func TestUnit_Infer_UnconfirmedHypothesesSurfaceInconclusive(t *testing.T) {
 		{"h", observe.KindValidWhen},
 	}
 	for _, w := range want {
-		o := find(obs, w.attr, w.kind)
+		o := find(obs, w.attribute, w.kind)
 		if o == nil || o.Outcome != observe.OutcomeInconclusive {
-			t.Errorf("%s.%s = %+v, want inconclusive", w.attr, w.kind, o)
+			t.Errorf("%s.%s = %+v, want inconclusive", w.attribute, w.kind, o)
 		}
 	}
 }

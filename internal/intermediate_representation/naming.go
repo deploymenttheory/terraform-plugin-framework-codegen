@@ -246,9 +246,9 @@ func leadWithALetter(name string) string {
 // rune at i: after a lower-case rune or digit, or where an acronym run ends
 // because a lower-case rune follows.
 func boundaryBefore(runes []rune, i int) bool {
-	prev := runes[i-1]
-	if unicode.IsLower(prev) || unicode.IsDigit(prev) {
+	previous := runes[i-1]
+	if unicode.IsLower(previous) || unicode.IsDigit(previous) {
 		return true
 	}
-	return unicode.IsUpper(prev) && i+1 < len(runes) && unicode.IsLower(runes[i+1])
+	return unicode.IsUpper(previous) && i+1 < len(runes) && unicode.IsLower(runes[i+1])
 }

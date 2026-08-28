@@ -196,7 +196,7 @@ func actionParameterNodes(op *ir.Operation) []node {
 		if kind == "" {
 			kind = ir.TypeString
 		}
-		out = append(out, node{attr: ir.Attribute{
+		out = append(out, node{attribute: ir.Attribute{
 			Name:                     ir.TerraformName(p.Name),
 			WireName:                 p.Name,
 			Kind:                     kind,
@@ -211,7 +211,7 @@ func actionParameterNodes(op *ir.Operation) []node {
 func actionTree(paramNodes []node, request *ir.AttributeTree) *ir.AttributeTree {
 	tree := &ir.AttributeTree{}
 	for _, n := range paramNodes {
-		tree.Attributes = append(tree.Attributes, n.attr)
+		tree.Attributes = append(tree.Attributes, n.attribute)
 	}
 	if request != nil {
 		tree.Attributes = append(tree.Attributes, request.Attributes...)
@@ -222,15 +222,15 @@ func actionTree(paramNodes []node, request *ir.AttributeTree) *ir.AttributeTree 
 // tftypesValue renders the finished tftypes.NewValue expression carrying
 // the fixture values — how the unit test hands Invoke a configuration
 // without running terraform.
-func tftypesValue(values []fixtures.Entry, depth int) string {
+func tftypesValue(entries []fixtures.Entry, depth int) string {
 	indent := strings.Repeat("\t", depth)
-	var types_, vals strings.Builder
-	for _, v := range values {
-		fmt.Fprintf(&types_, "%s\t\t%q: %s,\n", indent, v.Name, tftype(v))
-		fmt.Fprintf(&vals, "%s\t\t%q: %s,\n", indent, v.Name, tftypeNewValue(v))
+	var typeLines, valueLines strings.Builder
+	for _, v := range entries {
+		fmt.Fprintf(&typeLines, "%s\t\t%q: %s,\n", indent, v.Name, tftype(v))
+		fmt.Fprintf(&valueLines, "%s\t\t%q: %s,\n", indent, v.Name, tftypeNewValue(v))
 	}
 	return fmt.Sprintf("tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{\n%s%s}}, map[string]tftypes.Value{\n%s%s})",
-		types_.String(), indent, vals.String(), indent)
+		typeLines.String(), indent, valueLines.String(), indent)
 }
 
 // tftype is the tftypes type expression of one fixture value.
@@ -333,10 +333,10 @@ func tftypeScalarLiteral(k ir.AttributeType, scalar any) string {
 func invocable(nodes []node) []node {
 	kept := make([]node, 0, len(nodes))
 	for _, n := range nodes {
-		if n.attr.ComputedOptionalRequired == ir.Computed {
+		if n.attribute.ComputedOptionalRequired == ir.Computed {
 			continue
 		}
-		if n.attr.Nested != nil {
+		if n.attribute.Nested != nil {
 			n.children = invocable(n.children)
 		}
 		kept = append(kept, n)

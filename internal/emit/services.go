@@ -318,12 +318,12 @@ func (e *serviceRenderer) renderServiceFile(templatePath, outPath, source string
 		return File{}, fmt.Errorf("parsing %s: %w", templatePath, err)
 	}
 
-	var buf bytes.Buffer
-	if err := t.Execute(&buf, view); err != nil {
+	var buffer bytes.Buffer
+	if err := t.Execute(&buffer, view); err != nil {
 		return File{}, fmt.Errorf("rendering %s: %w", templatePath, err)
 	}
 
-	content := squeezeBlankLines(buf.Bytes())
+	content := squeezeBlankLines(buffer.Bytes())
 	if strings.HasSuffix(outPath, ".go") {
 		formatted, err := format.Source(content)
 		if err != nil {
@@ -355,9 +355,9 @@ func rawFile(outPath, source string, content []byte) File {
 // whole provider. Its value comes from the path parameter and from whatever
 // the create response carries, neither of which needs a read binding.
 type node struct {
-	attr     ir.Attribute
-	fb       *sdkbind.FieldBinding
-	children []node
+	attribute ir.Attribute
+	fb        *sdkbind.FieldBinding
+	children  []node
 }
 
 // joinTree joins an attribute tree with its field bindings, in tree order.
@@ -405,11 +405,11 @@ func joinAttributes(tree *ir.AttributeTree, fbs []sdkbind.FieldBinding, addressi
 			if !root || !addressing[a.Name] || a.Nested != nil {
 				continue
 			}
-			out = append(out, node{attr: a})
+			out = append(out, node{attribute: a})
 			*kept = append(*kept, a.Name)
 			continue
 		}
-		n := node{attr: a, fb: fb}
+		n := node{attribute: a, fb: fb}
 		if a.Nested != nil {
 			n.children = joinAttributes(a.Nested, fb.Nested, addressing, false, kept)
 		}
@@ -453,7 +453,7 @@ func supportedTree(tree *ir.AttributeTree, nodes []node) *ir.AttributeTree {
 	}
 	kept := make(map[string]*node, len(nodes))
 	for i := range nodes {
-		kept[nodes[i].attr.Name] = &nodes[i]
+		kept[nodes[i].attribute.Name] = &nodes[i]
 	}
 	// The tree-level conditional-edge facts travel with the pruned tree: the
 	// fixture derivation reads them to pick one discriminator variant and keep
@@ -500,7 +500,7 @@ func deriveFixtures(tree *ir.AttributeTree, nodes []node) fixtures.Fixture {
 func pinBySDKType(entries []fixtures.Entry, nodes []node) {
 	byName := make(map[string]node, len(nodes))
 	for _, n := range nodes {
-		byName[n.attr.Name] = n
+		byName[n.attribute.Name] = n
 	}
 	for i := range entries {
 		n, ok := byName[entries[i].Name]
@@ -559,7 +559,7 @@ func (s *importSet) addImports(imports []code.Import) {
 // render builds the finished import declaration: three sorted groups
 // separated by blank lines, in the shape gofmt keeps.
 func (s *importSet) render() string {
-	var std, ext, local []string
+	var std, extension, local []string
 	for line := range s.lines {
 		importPath := line[strings.Index(line, `"`)+1 : len(line)-1]
 		switch {
@@ -568,15 +568,15 @@ func (s *importSet) render() string {
 		case !strings.Contains(strings.SplitN(importPath, "/", 2)[0], "."):
 			std = append(std, line)
 		default:
-			ext = append(ext, line)
+			extension = append(extension, line)
 		}
 	}
 	sort.Strings(std)
-	sort.Strings(ext)
+	sort.Strings(extension)
 	sort.Strings(local)
 
 	var groups []string
-	for _, g := range [][]string{std, ext, local} {
+	for _, g := range [][]string{std, extension, local} {
 		if len(g) > 0 {
 			groups = append(groups, "\t"+strings.Join(g, "\n\t"))
 		}

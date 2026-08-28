@@ -232,12 +232,12 @@ func (v *verifier) collection(kind, key string, list *Call, elementType, access 
 	}
 	result := sig.Results().At(0).Type()
 
-	elem, err := elementOf(result, access)
+	element, err := elementOf(result, access)
 	if err != nil {
 		v.problem(kind, key, "collection_access", "%s", unwrapDetail(err))
 		return
 	}
-	if got := shortType(elem); got != elementType {
+	if got := shortType(element); got != elementType {
 		v.problem(kind, key, "element_type", "declared %s but the list carries %s", elementType, got)
 		return
 	}

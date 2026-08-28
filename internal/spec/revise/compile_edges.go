@@ -31,8 +31,8 @@ func (c *compiler) validWhen(loc *locator, cls specmodel.Classification, o obser
 		return why
 	}
 	equals := literalSpelling(o.Condition.Equals)
-	if ext := loc.extensionNode(site.prop, site.propPtr, specmodel.ExtValidWhen); ext != nil {
-		if p, e := mapValue(ext, "property"), mapValue(ext, "equals"); p != nil && e != nil &&
+	if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtValidWhen); extension != nil {
+		if p, e := mapValue(extension, "property"), mapValue(extension, "equals"); p != nil && e != nil &&
 			p.Value == o.Condition.Attribute && e.Value == equals {
 			return stated("the document already declares this conditional validity")
 		}
@@ -69,8 +69,8 @@ func (c *compiler) dependsOn(loc *locator, cls specmodel.Classification, o obser
 	if supportsDependentRequired(loc) {
 		return c.dependentRequired(site, o, requires)
 	}
-	if ext := loc.extensionNode(site.prop, site.propPtr, specmodel.ExtDependsOn); ext != nil {
-		if r := mapValue(ext, "requires"); r != nil && r.Value == requires {
+	if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtDependsOn); extension != nil {
+		if r := mapValue(extension, "requires"); r != nil && r.Value == requires {
 			return stated("the document already declares this dependency")
 		}
 	}
@@ -126,17 +126,17 @@ func (c *compiler) mutuallyExclusive(loc *locator, cls specmodel.Classification,
 	if len(fields) < 2 {
 		return unplaceable(fmt.Sprintf("a mutuallyExclusive observation on %s names fewer than two fields", o.Entity))
 	}
-	node, ptr, ok := c.schemaSite(loc, cls)
+	node, pointer, ok := c.schemaSite(loc, cls)
 	if !ok {
 		return unplaceable(fmt.Sprintf("no create or read schema of %s can carry a mutually-exclusive set", o.Entity))
 	}
 	sort.Strings(fields)
-	if ext := mapValue(node, specmodel.ExtMutuallyExclusive); ext != nil && sameStringSeq(ext, fields) {
+	if extension := mapValue(node, specmodel.ExtMutuallyExclusive); extension != nil && sameStringSeq(extension, fields) {
 		return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtMutuallyExclusive))
 	}
 	return compiled{
 		ops: []correction.Operation{{
-			Op: "add", Path: ptr + "/" + specmodel.ExtMutuallyExclusive, Value: toAnyList(fields),
+			Op: "add", Path: pointer + "/" + specmodel.ExtMutuallyExclusive, Value: toAnyList(fields),
 		}},
 		justification: fmt.Sprintf("the audit confirmed a mutuallyExclusive observation on %s: "+
 			"at most one of %s may be set (%s)", o.Entity, strings.Join(fields, ", "), specmodel.ExtMutuallyExclusive),
@@ -165,9 +165,9 @@ func (c *compiler) validConfiguration(loc *locator, cls specmodel.Classification
 		variantMap[v] = toAnyList(uniqueStrings(fields))
 	}
 	value := map[string]any{"discriminator": o.Attribute, "variants": variantMap}
-	if ext := mapValue(site.declaration, specmodel.ExtValidConfiguration); ext != nil {
-		var cur any
-		if ext.Decode(&cur) == nil && jsonEqual(cur, value) {
+	if extension := mapValue(site.declaration, specmodel.ExtValidConfiguration); extension != nil {
+		var current any
+		if extension.Decode(&current) == nil && jsonEqual(current, value) {
 			return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtValidConfiguration))
 		}
 	}
@@ -185,8 +185,8 @@ func (c *compiler) validConfiguration(loc *locator, cls specmodel.Classification
 // the create request schema first, the read response schema second, the same
 // order property lookup folds the two views in.
 func (c *compiler) schemaSite(loc *locator, cls specmodel.Classification) (*yaml.Node, string, bool) {
-	if node, ptr, ok := loc.requestSchema(cls.Create); ok {
-		return node, ptr, true
+	if node, pointer, ok := loc.requestSchema(cls.Create); ok {
+		return node, pointer, true
 	}
 	return loc.responseSchema(cls.Read)
 }

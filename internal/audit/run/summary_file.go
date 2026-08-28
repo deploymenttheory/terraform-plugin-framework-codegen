@@ -28,8 +28,8 @@ const SummaryFile = "summary.json"
 // The encoding matches the observations beside it: sorted map keys, no HTML
 // escaping, two-space indent.
 func WriteSummary(path string, sum Summary) error {
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(sum); err != nil {
@@ -40,7 +40,7 @@ func WriteSummary(path string, sum Summary) error {
 			return fmt.Errorf("creating %s: %w", dir, err)
 		}
 	}
-	if err := os.WriteFile(path, buf.Bytes(), 0o644); err != nil {
+	if err := os.WriteFile(path, buffer.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("writing %s: %w", path, err)
 	}
 	return nil

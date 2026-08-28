@@ -12,12 +12,12 @@ func TestUnit_Config_LoadReadsAndValidatesAFile(t *testing.T) {
 	if err := os.WriteFile(path, []byte(valid), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := Load(path)
+	configuration, err := Load(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Provider.Name != "example" {
-		t.Fatalf("provider.name = %q, want example", cfg.Provider.Name)
+	if configuration.Provider.Name != "example" {
+		t.Fatalf("provider.name = %q, want example", configuration.Provider.Name)
 	}
 }
 

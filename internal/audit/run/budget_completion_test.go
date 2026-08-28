@@ -94,16 +94,16 @@ func TestUnit_Run_NoUpdateOperationSkipsUpdateProbing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	cfg := &config.Config{Audit: config.Audit{NamePrefix: "tfpfgen", MaxObjects: 25, RateLimitRPS: 2}}
+	configuration := &config.Config{Audit: config.Audit{NamePrefix: "tfpfgen", MaxObjects: 25, RateLimitRPS: 2}}
 	s := quirkserver.New(t, quirkserver.Quirks{})
-	p, err := plan.Derive(doc, cfg, nil)
+	p, err := plan.Derive(doc, configuration, nil)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
 	shrinkPolls(p)
 	opts := testOptions(t, s, p, testEnv(), nil)
 	opts.Doc = doc
-	opts.Config = cfg
+	opts.Config = configuration
 	obs, sum := mustRun(t, opts)
 
 	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {

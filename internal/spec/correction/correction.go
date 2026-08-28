@@ -338,8 +338,8 @@ func applyToSequence(node *yaml.Node, token string, op Operation) error {
 		return nil
 	}
 
-	idx, err := strconv.Atoi(token)
-	if err != nil || idx < 0 || idx >= len(node.Content) {
+	index, err := strconv.Atoi(token)
+	if err != nil || index < 0 || index >= len(node.Content) {
 		return fmt.Errorf("%q is not an index inside an array of %d", token, len(node.Content))
 	}
 	switch op.Op {
@@ -349,17 +349,17 @@ func applyToSequence(node *yaml.Node, token string, op Operation) error {
 			return encErr
 		}
 		if op.Op == "replace" {
-			node.Content[idx] = value
+			node.Content[index] = value
 			return nil
 		}
 		node.Content = append(node.Content, nil)
-		copy(node.Content[idx+1:], node.Content[idx:])
-		node.Content[idx] = value
+		copy(node.Content[index+1:], node.Content[index:])
+		node.Content[index] = value
 	case "remove":
-		node.Content = append(node.Content[:idx], node.Content[idx+1:]...)
+		node.Content = append(node.Content[:index], node.Content[index+1:]...)
 	case "test":
-		if !nodeEqual(node.Content[idx], op.Value) {
-			return fmt.Errorf("test failed: index %d does not hold the expected value", idx)
+		if !nodeEqual(node.Content[index], op.Value) {
+			return fmt.Errorf("test failed: index %d does not hold the expected value", index)
 		}
 	}
 	return nil
@@ -393,11 +393,11 @@ func descend(node *yaml.Node, tokens []string) (*yaml.Node, error) {
 				return nil, fmt.Errorf("nothing exists at %q", t)
 			}
 		case yaml.SequenceNode:
-			idx, err := strconv.Atoi(t)
-			if err != nil || idx < 0 || idx >= len(node.Content) {
+			index, err := strconv.Atoi(t)
+			if err != nil || index < 0 || index >= len(node.Content) {
 				return nil, fmt.Errorf("%q is not an index inside an array of %d", t, len(node.Content))
 			}
-			node = node.Content[idx]
+			node = node.Content[index]
 		default:
 			return nil, fmt.Errorf("%q names a child of a scalar, which has none", t)
 		}

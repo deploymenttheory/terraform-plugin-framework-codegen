@@ -100,7 +100,7 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	}
 
 	thing := doc.Schemas["Thing"]
-	prop := func(name string) Extensions {
+	property := func(name string) Extensions {
 		s, ok := thing.Property(name)
 		if !ok {
 			t.Fatalf("no property %q", name)
@@ -108,28 +108,28 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 		return s.Extensions
 	}
 
-	if v, ok := prop("name").CreateOnly(); !ok || !v {
+	if v, ok := property("name").CreateOnly(); !ok || !v {
 		t.Errorf("CreateOnly = %v, %v", v, ok)
 	}
-	if v, ok := prop("tier").ValuesOpen(); !ok || !v {
+	if v, ok := property("tier").ValuesOpen(); !ok || !v {
 		t.Errorf("ValuesOpen = %v, %v", v, ok)
 	}
-	if v, ok := prop("lastSeen").Volatile(); !ok || !v {
+	if v, ok := property("lastSeen").Volatile(); !ok || !v {
 		t.Errorf("Volatile = %v, %v", v, ok)
 	}
-	if v, ok := prop("etag").ServerForced(); !ok || !v {
+	if v, ok := property("etag").ServerForced(); !ok || !v {
 		t.Errorf("ServerForced = %v, %v", v, ok)
 	}
-	if v, ok := prop("notes").SilentlyIgnoredOnUpdate(); !ok || !v {
+	if v, ok := property("notes").SilentlyIgnoredOnUpdate(); !ok || !v {
 		t.Errorf("SilentlyIgnoredOnUpdate = %v, %v", v, ok)
 	}
-	if rw, ok := prop("matchValue").RequiredWhen(); !ok || rw.Property != "matchType" || rw.Equals != "custom" {
+	if rw, ok := property("matchValue").RequiredWhen(); !ok || rw.Property != "matchType" || rw.Equals != "custom" {
 		t.Errorf("RequiredWhen = %+v, %v", rw, ok)
 	}
-	if vw, ok := prop("proxyHost").ValidWhen(); !ok || vw.Property != "mode" || vw.Equals != "custom" {
+	if vw, ok := property("proxyHost").ValidWhen(); !ok || vw.Property != "mode" || vw.Equals != "custom" {
 		t.Errorf("ValidWhen = %+v, %v", vw, ok)
 	}
-	if do, ok := prop("clientSecret").DependsOn(); !ok || do.Requires != "clientId" {
+	if do, ok := property("clientSecret").DependsOn(); !ok || do.Requires != "clientId" {
 		t.Errorf("DependsOn = %+v, %v", do, ok)
 	}
 	if names, ok := thing.Extensions.MutuallyExclusive(); !ok || !reflect.DeepEqual(names, []string{"alpha", "beta"}) {

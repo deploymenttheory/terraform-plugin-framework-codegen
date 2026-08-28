@@ -23,8 +23,8 @@ func TestUnit_Ledger_IntentIsDurableBeforeTheRequestIsSent(t *testing.T) {
 	ledgerPath := filepath.Join(opts.RunsDir, "testrun1"+activityFileSuffix)
 
 	creates := 0
-	opts.beforeSend = func(req *http.Request) {
-		if req.Method != http.MethodPost {
+	opts.beforeSend = func(request *http.Request) {
+		if request.Method != http.MethodPost {
 			return
 		}
 		creates++

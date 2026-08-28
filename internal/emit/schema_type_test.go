@@ -9,15 +9,15 @@ import (
 // listNode and scalarNode build the two shapes schemaTypeOf branches on
 // without dragging a whole entity in.
 func scalarNode(kind ir.AttributeType) node {
-	return node{attr: ir.Attribute{Name: "x", WireName: "x", Kind: kind}}
+	return node{attribute: ir.Attribute{Name: "x", WireName: "x", Kind: kind}}
 }
 
 func listNode(element ir.AttributeType) node {
-	return node{attr: ir.Attribute{Name: "x", WireName: "x", Kind: ir.TypeList, ElementType: element}}
+	return node{attribute: ir.Attribute{Name: "x", WireName: "x", Kind: ir.TypeList, ElementType: element}}
 }
 
 func nestedNode(kind ir.AttributeType) node {
-	return node{attr: ir.Attribute{Name: "x", WireName: "x", Kind: kind, Nested: &ir.AttributeTree{}}}
+	return node{attribute: ir.Attribute{Name: "x", WireName: "x", Kind: kind, Nested: &ir.AttributeTree{}}}
 }
 
 // TestUnit_SchemaTypeOf_EverySpelling pins the whole table. Generated code
@@ -127,7 +127,7 @@ func TestUnit_SchemaType_ImportPathsAreWellFormed(t *testing.T) {
 // MapAttribute with its element type, and picks up the map plan-modifier
 // and validator packages from the same base word as every other type.
 func TestUnit_SchemaTypeOf_Map(t *testing.T) {
-	n := node{attr: ir.Attribute{Name: "x", WireName: "x", Kind: ir.TypeMap, ElementType: ir.TypeString}}
+	n := node{attribute: ir.Attribute{Name: "x", WireName: "x", Kind: ir.TypeMap, ElementType: ir.TypeString}}
 	resolved := schemaTypeOf(n)
 
 	for _, check := range []struct{ got, want, what string }{

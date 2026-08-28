@@ -94,8 +94,8 @@ func TestPruneLookupDatasource(t *testing.T) {
 				Read: op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				attr("id", "id", ir.TypeString, ir.Required),
-				attr("name", "name", ir.TypeString, ir.Computed),
+				attribute("id", "id", ir.TypeString, ir.Required),
+				attribute("name", "name", ir.TypeString, ir.Computed),
 			}},
 			LookupByKey:  true,
 			KeyParameter: "tagId",
@@ -124,14 +124,14 @@ func TestPruneKiotaListResource(t *testing.T) {
 				Names:         names("tags", "tags"),
 				ListOperation: *op(ir.OperationList, "GET", "/tags", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("name", "name", ir.TypeString, ir.Computed),
+					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
 			},
 			{
 				Names:         names("widgets", "widgets"),
 				ListOperation: *op(ir.OperationList, "GET", "/widgets", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("name", "name", ir.TypeString, ir.Computed),
+					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
 			},
 		},
@@ -162,7 +162,7 @@ func TestPruneDatasourceRemovals(t *testing.T) {
 				Read: op(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				attr("id", "id", ir.TypeString, ir.Required),
+				attribute("id", "id", ir.TypeString, ir.Required),
 			}},
 			LookupByKey:  true,
 			KeyParameter: "widgetId",
@@ -185,10 +185,10 @@ func TestPruneDatasourceRemovals(t *testing.T) {
 // collection being refused for carrying no single way to reach its elements.
 func TestPruneKiotaWrappedList(t *testing.T) {
 	itemTree := &ir.AttributeTree{Attributes: []ir.Attribute{
-		attr("id", "id", ir.TypeString, ir.Computed),
-		attr("name", "name", ir.TypeString, ir.Computed),
+		attribute("id", "id", ir.TypeString, ir.Computed),
+		attribute("name", "name", ir.TypeString, ir.Computed),
 	}}
-	items := attr("items", "items", ir.TypeList, ir.Computed)
+	items := attribute("items", "items", ir.TypeList, ir.Computed)
 	items.ElementType = ir.TypeObject
 	items.Nested = itemTree
 
@@ -199,8 +199,8 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 				Names:      names("gizmos", "gizmos"),
 				Operations: ir.Operations{List: op(ir.OperationList, "GET", "/gizmos", "")},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("filter_type", "filter_type", ir.TypeString, ir.Required),
-					attr("filter_value", "filter_value", ir.TypeString, ir.Optional),
+					attribute("filter_type", "filter_type", ir.TypeString, ir.Required),
+					attribute("filter_value", "filter_value", ir.TypeString, ir.Optional),
 					items,
 				}},
 				ListEnvelopeKey: "gizmos",
@@ -228,7 +228,7 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 				Names:         names("gizmos", "gizmos"),
 				ListOperation: *op(ir.OperationList, "GET", "/gizmos", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("name", "name", ir.TypeString, ir.Computed),
+					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
 			}},
 		}
@@ -254,7 +254,7 @@ func TestPruneKiotaAmbiguousWrapper(t *testing.T) {
 			Names:         names("blobs", "blobs"),
 			ListOperation: *op(ir.OperationList, "GET", "/blobs", ""),
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				attr("name", "name", ir.TypeString, ir.Computed),
+				attribute("name", "name", ir.TypeString, ir.Computed),
 			}},
 			// No envelope key, and the envelope carries two slice getters.
 		}},
@@ -303,7 +303,7 @@ func TestPruneUnconstructibleBody(t *testing.T) {
 				Read:   op(ir.OperationRead, "GET", "/orphans/{orphanId}", "", ir.Parameter{Name: "orphanId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-				attr("name", "name", ir.TypeString, ir.Required),
+				attribute("name", "name", ir.TypeString, ir.Required),
 			}},
 		}},
 	}
@@ -330,7 +330,7 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("legacy", "legacy", ir.TypeString, ir.Optional),
+					attribute("legacy", "legacy", ir.TypeString, ir.Optional),
 				}},
 			}},
 		}
@@ -354,7 +354,7 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
-					attr("id", "id", ir.TypeString, ir.Computed),
+					attribute("id", "id", ir.TypeString, ir.Computed),
 				}},
 			}},
 		}
@@ -372,8 +372,8 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 // structNamed builds a named struct type in a package, which is the shape
 // kiota's DateOnly and the standard library's time.Time both have.
 func structNamed(path, pkgName, typeName string) *types.Named {
-	pkg := types.NewPackage(path, pkgName)
-	obj := types.NewTypeName(0, pkg, typeName, nil)
+	goPackage := types.NewPackage(path, pkgName)
+	obj := types.NewTypeName(0, goPackage, typeName, nil)
 	return types.NewNamed(obj, types.NewStruct(nil, nil), nil)
 }
 
@@ -470,14 +470,14 @@ func TestUnit_IsGoogleUUID_MatchesOnThePackagePath(t *testing.T) {
 // bridge rather than being refused. kiota emits no typed accessor for
 // additionalProperties, so the bag is the only route to the values.
 func TestUnit_SettleScalar_MapThroughAdditionalData(t *testing.T) {
-	pkg := types.NewPackage("example.com/sdk/models", "models")
-	obj := types.NewTypeName(0, pkg, "Headers", nil)
+	goPackage := types.NewPackage("example.com/sdk/models", "models")
+	obj := types.NewTypeName(0, goPackage, "Headers", nil)
 	named := types.NewNamed(obj, types.NewStruct(nil, nil), nil)
 
 	// The bag accessor is what the pruner recognises.
 	sig := types.NewSignatureType(types.NewVar(0, nil, "m", named), nil, nil, nil,
 		types.NewTuple(types.NewVar(0, nil, "", types.NewMap(types.Typ[types.String], types.NewInterfaceType(nil, nil)))), false)
-	named.AddMethod(types.NewFunc(0, pkg, "GetAdditionalData", sig))
+	named.AddMethod(types.NewFunc(0, goPackage, "GetAdditionalData", sig))
 
 	fb := FieldBinding{Attr: "headers", Wire: "headers", Kind: ir.TypeMap, ElementType: ir.TypeString,
 		Access: FieldAccess{Get: "GetHeaders"}}
@@ -560,12 +560,12 @@ func TestUnit_SettleEachDirection_RefusesWhatTheCatalogCannotCarry(t *testing.T)
 // of it and the rendered Go does not parse.
 func TestUnit_SettleEachDirection_CarriesTheWriteConstructor(t *testing.T) {
 	bag := func(name string) *types.Named {
-		pkg := types.NewPackage("example.com/sdk/models", "models")
-		obj := types.NewTypeName(0, pkg, name, nil)
+		goPackage := types.NewPackage("example.com/sdk/models", "models")
+		obj := types.NewTypeName(0, goPackage, name, nil)
 		named := types.NewNamed(obj, types.NewStruct(nil, nil), nil)
 		sig := types.NewSignatureType(types.NewVar(0, nil, "m", named), nil, nil, nil,
 			types.NewTuple(types.NewVar(0, nil, "", types.NewMap(types.Typ[types.String], types.NewInterfaceType(nil, nil)))), false)
-		named.AddMethod(types.NewFunc(0, pkg, "GetAdditionalData", sig))
+		named.AddMethod(types.NewFunc(0, goPackage, "GetAdditionalData", sig))
 		return named
 	}
 
@@ -574,7 +574,7 @@ func TestUnit_SettleEachDirection_CarriesTheWriteConstructor(t *testing.T) {
 
 	// An empty loader is enough: writeModelFromNamed falls through to the
 	// struct literal when it finds no constructor.
-	p := &pruner{l: &loader{pkgs: map[string]*packages.Package{}}}
+	p := &pruner{l: &loader{goPackages: map[string]*packages.Package{}}}
 	if why := p.settleEachDirection(&fb, bag("HeadersRead"), bag("HeadersWrite"),
 		"resource", "thing", "headers"); why != "" {
 		t.Fatalf("a bag pair was refused: %s", why)

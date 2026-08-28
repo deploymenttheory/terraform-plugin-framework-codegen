@@ -41,12 +41,12 @@ func (f *providerFlags) register(cmd *cobra.Command) {
 
 // options loads the config and folds the flags into providergen options.
 func (f *providerFlags) options() (providergen.Options, error) {
-	cfg, err := config.Load(f.cfgFile)
+	configuration, err := config.Load(f.cfgFile)
 	if err != nil {
 		return providergen.Options{}, err
 	}
 	return providergen.Options{
-		Config:  cfg,
+		Config:  configuration,
 		SpecDir: f.dir,
 		SDKDir:  f.sdk,
 		Root:    f.out,

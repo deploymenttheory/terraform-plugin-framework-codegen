@@ -10,10 +10,10 @@ import (
 )
 
 // findWhenObs locates a value-conditional observation by its gate value.
-func findWhenObs(obs []observe.Observation, entity, attr string, kind observe.Kind, gateVal string) *observe.Observation {
+func findWhenObs(obs []observe.Observation, entity, attribute string, kind observe.Kind, gateVal string) *observe.Observation {
 	for i := range obs {
 		o := &obs[i]
-		if o.Entity == entity && o.Attribute == attr && o.Kind == kind &&
+		if o.Entity == entity && o.Attribute == attribute && o.Kind == kind &&
 			o.Condition != nil && o.Condition.Equals == gateVal {
 			return o
 		}

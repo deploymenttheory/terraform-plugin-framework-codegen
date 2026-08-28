@@ -301,18 +301,18 @@ func TestUnit_Quirkserver_Shapes_ErrorPaths(t *testing.T) {
 
 	// A malformed body on create and on update.
 	for _, url := range []string{monitorsURL(s), assignmentsURL(s)} {
-		req, err := http.NewRequest(http.MethodPost, url, strings.NewReader("{not json")) //nolint:noctx // a test fixture
+		request, err := http.NewRequest(http.MethodPost, url, strings.NewReader("{not json")) //nolint:noctx // a test fixture
 		if err != nil {
 			t.Fatalf("NewRequest: %v", err)
 		}
-		req.Header.Set("Content-Type", "application/json")
-		resp, err := http.DefaultClient.Do(req)
+		request.Header.Set("Content-Type", "application/json")
+		response, err := http.DefaultClient.Do(request)
 		if err != nil {
 			t.Fatalf("Do: %v", err)
 		}
-		_ = resp.Body.Close()
-		if resp.StatusCode != http.StatusBadRequest {
-			t.Errorf("a malformed create at %s = %d, want 400", url, resp.StatusCode)
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusBadRequest {
+			t.Errorf("a malformed create at %s = %d, want 400", url, response.StatusCode)
 		}
 	}
 

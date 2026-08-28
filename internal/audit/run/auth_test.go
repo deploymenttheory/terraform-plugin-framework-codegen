@@ -16,11 +16,11 @@ import (
 
 func testRequest(t *testing.T) *http.Request {
 	t.Helper()
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://api.example.invalid/things", nil)
+	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://api.example.invalid/things", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return req
+	return request
 }
 
 func TestUnit_Auth_BearerTokenHeader(t *testing.T) {
@@ -30,11 +30,11 @@ func TestUnit_Auth_BearerTokenHeader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req := testRequest(t)
-	if err := a.apply(context.Background(), req); err != nil {
+	request := testRequest(t)
+	if err := a.apply(context.Background(), request); err != nil {
 		t.Fatal(err)
 	}
-	if got := req.Header.Get("Authorization"); got != "Bearer tok123456" {
+	if got := request.Header.Get("Authorization"); got != "Bearer tok123456" {
 		t.Fatalf("Authorization = %q", got)
 	}
 	if secrets := a.secretValues(); len(secrets) != 1 || secrets[0] != "tok123456" {
@@ -49,9 +49,9 @@ func TestUnit_Auth_APIKeyHeader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req := testRequest(t)
-	_ = a.apply(context.Background(), req)
-	if got := req.Header.Get("X-Api-Key"); got != "key123456" {
+	request := testRequest(t)
+	_ = a.apply(context.Background(), request)
+	if got := request.Header.Get("X-Api-Key"); got != "key123456" {
 		t.Fatalf("X-Api-Key = %q", got)
 	}
 
@@ -71,9 +71,9 @@ func TestUnit_Auth_Basic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req := testRequest(t)
-	_ = a.apply(context.Background(), req)
-	user, pass, ok := req.BasicAuth()
+	request := testRequest(t)
+	_ = a.apply(context.Background(), request)
+	user, pass, ok := request.BasicAuth()
 	if !ok || user != "alice" || pass != "s3cretpw" {
 		t.Fatalf("basic auth = %q %q %v", user, pass, ok)
 	}
@@ -114,11 +114,11 @@ func TestUnit_Auth_OAuth2FetchesAndRefreshes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req := testRequest(t)
-	if err := a.apply(context.Background(), req); err != nil {
+	request := testRequest(t)
+	if err := a.apply(context.Background(), request); err != nil {
 		t.Fatal(err)
 	}
-	if got := req.Header.Get("Authorization"); got != "Bearer fetched-token-1" {
+	if got := request.Header.Get("Authorization"); got != "Bearer fetched-token-1" {
 		t.Fatalf("Authorization = %q", got)
 	}
 	req2 := testRequest(t)

@@ -148,7 +148,7 @@ func (e *serviceRenderer) lookupDatasource(d *datasourceData, ds *ir.Datasource,
 	if !hasNode(nodes, key) {
 		// The SDK model does not carry the key parameter as a field; the
 		// schema still must, so the caller has somewhere to put it.
-		nodes = append([]node{{attr: ir.Attribute{
+		nodes = append([]node{{attribute: ir.Attribute{
 			Name: key, WireName: ds.KeyParameter,
 			Kind: ir.TypeString, ComputedOptionalRequired: ir.Required,
 		}}}, nodes...)
@@ -288,12 +288,12 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 	// fewer attributes than the struct has fields.
 	addressingNodes := make([]node, 0, len(companionAddressing(ds)))
 	for _, a := range companionAddressing(ds) {
-		addressingNodes = append(addressingNodes, node{attr: a})
+		addressingNodes = append(addressingNodes, node{attribute: a})
 	}
 	b.WriteString(sb.attributeDeclarations(addressingNodes, 3))
 	filterNodes := make([]node, 0, len(filters))
 	for _, a := range filters {
-		filterNodes = append(filterNodes, node{attr: a})
+		filterNodes = append(filterNodes, node{attribute: a})
 	}
 	b.WriteString(sb.attributeDeclarations(filterNodes, 3))
 	b.WriteString("\t\t\t\"items\": schema.ListNestedAttribute{\n")
@@ -358,7 +358,7 @@ func (e *serviceRenderer) companionDatasource(d *datasourceData, ds *ir.Datasour
 		// whatever the document declares — an integer key is as common as a
 		// string one. Building the parameter through the shared plan is what
 		// converts it, rather than assuming the attribute is a string.
-		readPlan, rerr := buildCallPlan(db.Read, "remote", []node{{attr: idFilter}}, "data", respDiagnostics())
+		readPlan, rerr := buildCallPlan(db.Read, "remote", []node{{attribute: idFilter}}, "data", respDiagnostics())
 		if rerr != nil {
 			return fixtures.Fixture{}, fmt.Errorf("read: %w", rerr)
 		}
@@ -436,7 +436,7 @@ func companionItemTree(ds *ir.Datasource) *ir.AttributeTree {
 // hasNode reports whether a node level carries the named attribute.
 func hasNode(nodes []node, name string) bool {
 	for _, n := range nodes {
-		if n.attr.Name == name {
+		if n.attribute.Name == name {
 			return true
 		}
 	}

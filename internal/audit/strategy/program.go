@@ -239,13 +239,13 @@ func gatedStep(kind plan.StepKind, v Variant) Step {
 //
 //	requests = preflight + Σ step-request allocation over the program
 //	           (capped at maxObjects × perObjectCost)
-func deriveBudget(program []Step, cfg *config.Config) Budget {
+func deriveBudget(program []Step, configuration *config.Config) Budget {
 	requests := preflightRequests
 	for i := range program {
 		requests += stepRequests(program[i].Kind)
 	}
 
-	maxObjects := cfg.Audit.MaxObjects
+	maxObjects := configuration.Audit.MaxObjects
 	if maxObjects < 1 {
 		maxObjects = 25
 	}

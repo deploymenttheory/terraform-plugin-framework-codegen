@@ -191,8 +191,8 @@ func TestUnit_Observe_SortIsByIdentityNotDiscoveryOrder(t *testing.T) {
 	Sort(obs)
 
 	type ident struct {
-		entity, attr string
-		kind         Kind
+		entity, attribute string
+		kind              Kind
 	}
 	got := make([]ident, len(obs))
 	for i, o := range obs {

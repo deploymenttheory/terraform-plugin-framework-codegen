@@ -91,13 +91,13 @@ type ProviderCore struct {
 // module path and registry address from the provider block, the
 // environment prefix from the provider name, the SDK surface names from
 // sdk.client_type_name.
-func FromConfig(cfg *config.Config, defaultEndpoint string) (ProviderCore, error) {
-	name := cfg.Provider.Name
-	namespace := cfg.Provider.RegistryNamespace
+func FromConfig(configuration *config.Config, defaultEndpoint string) (ProviderCore, error) {
+	name := configuration.Provider.Name
+	namespace := configuration.Provider.RegistryNamespace
 	if name == "" || namespace == "" {
 		return ProviderCore{}, fmt.Errorf("provider.name and provider.registry_namespace must both be set to render the provider core")
 	}
-	if cfg.SDK.ClientTypeName == "" {
+	if configuration.SDK.ClientTypeName == "" {
 		return ProviderCore{}, fmt.Errorf("sdk.client_type_name must be set to render the provider core")
 	}
 
@@ -106,26 +106,26 @@ func FromConfig(cfg *config.Config, defaultEndpoint string) (ProviderCore, error
 		ProviderName:      name,
 		RegistryAddress:   fmt.Sprintf("registry.terraform.io/%s/%s", namespace, name),
 		EnvPrefix:         envPrefix(name),
-		ClientType:        cfg.SDK.ClientTypeName,
-		ClientConstructor: "New" + cfg.SDK.ClientTypeName,
+		ClientType:        configuration.SDK.ClientTypeName,
+		ClientConstructor: "New" + configuration.SDK.ClientTypeName,
 		GoVersion:         DefaultGoVersion,
 		DefaultEndpoint:   defaultEndpoint,
-		DefaultTokenURL:   cfg.Auth.TokenURL,
-		APIKeyHeader:      cfg.Auth.APIKeyHeader,
+		DefaultTokenURL:   configuration.Auth.TokenURL,
+		APIKeyHeader:      configuration.Auth.APIKeyHeader,
 	}
 	pc.SDKImport = pc.Module + "/internal/sdk"
 
-	switch cfg.SDK.Backend {
+	switch configuration.SDK.Backend {
 	case config.BackendKiota:
 		pc.BackendKiota = true
 	case config.BackendOpenAPIGenerator:
 		pc.BackendOpenAPIGenerator = true
 	default:
 		return ProviderCore{}, fmt.Errorf("sdk.backend %q is not a supported backend (%s | %s)",
-			cfg.SDK.Backend, config.BackendKiota, config.BackendOpenAPIGenerator)
+			configuration.SDK.Backend, config.BackendKiota, config.BackendOpenAPIGenerator)
 	}
 
-	switch cfg.Auth.Method {
+	switch configuration.Auth.Method {
 	case config.AuthBearerToken:
 		pc.AuthBearerToken = true
 	case config.AuthAPIKeyHeader:
@@ -137,7 +137,7 @@ func FromConfig(cfg *config.Config, defaultEndpoint string) (ProviderCore, error
 	case config.AuthGitHubApp:
 		pc.AuthGitHubApp = true
 	default:
-		return ProviderCore{}, fmt.Errorf("auth.method %q is not a supported method", cfg.Auth.Method)
+		return ProviderCore{}, fmt.Errorf("auth.method %q is not a supported method", configuration.Auth.Method)
 	}
 
 	if pc.AuthAPIKeyHeader && pc.APIKeyHeader == "" {

@@ -13,14 +13,14 @@ import (
 // a serialisation primitive — resolves to no package and every call taking
 // one is refused.
 func TestUnit_RegisterDependencies_IndexesTheWholeImportGraph(t *testing.T) {
-	pkg := func(path, name string) *packages.Package {
+	goPackage := func(path, name string) *packages.Package {
 		return &packages.Package{PkgPath: path, Types: types.NewPackage(path, name)}
 	}
 
-	deep := pkg("example.com/deep", "deep")
-	runtime := pkg("example.com/runtime", "runtime")
+	deep := goPackage("example.com/deep", "deep")
+	runtime := goPackage("example.com/runtime", "runtime")
 	runtime.Imports = map[string]*packages.Package{deep.PkgPath: deep}
-	root := pkg("example.com/sdk", "sdk")
+	root := goPackage("example.com/sdk", "sdk")
 	root.Imports = map[string]*packages.Package{runtime.PkgPath: runtime}
 
 	index := map[string]*packages.Package{root.PkgPath: root}

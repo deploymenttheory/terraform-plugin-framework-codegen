@@ -14,12 +14,12 @@ import (
 // anyway declares an index nothing reads, which does not compile.
 func TestUnit_ConstructNested_SkipsAnUnwritableBlock(t *testing.T) {
 	readOnlyChild := node{
-		attr: ir.Attribute{Name: "label", WireName: "label", Kind: ir.TypeString},
-		fb:   &sdkbind.FieldBinding{Attr: "label", Wire: "label", Access: sdkbind.FieldAccess{Get: "GetLabel"}},
+		attribute: ir.Attribute{Name: "label", WireName: "label", Kind: ir.TypeString},
+		fb:        &sdkbind.FieldBinding{Attr: "label", Wire: "label", Access: sdkbind.FieldAccess{Get: "GetLabel"}},
 	}
 	for _, kind := range []ir.AttributeType{ir.TypeList, ir.TypeObject} {
 		n := node{
-			attr: ir.Attribute{Name: "roles", WireName: "roles", Kind: kind, Nested: &ir.AttributeTree{}},
+			attribute: ir.Attribute{Name: "roles", WireName: "roles", Kind: kind, Nested: &ir.AttributeTree{}},
 			fb: &sdkbind.FieldBinding{Attr: "roles", Wire: "roles",
 				NestedWriteModel: "models.Role", NestedConstructor: "models.NewRole()",
 				Access: sdkbind.FieldAccess{Get: "GetRoles", Set: "SetRoles", SDKType: "[]models.Roleable"}},
@@ -40,12 +40,12 @@ func TestUnit_ConstructNested_SkipsAnUnwritableBlock(t *testing.T) {
 // type the getter answers.
 func TestUnit_ConstructNested_BuildsTheWriteType(t *testing.T) {
 	child := node{
-		attr: ir.Attribute{Name: "name", WireName: "name", Kind: ir.TypeString},
+		attribute: ir.Attribute{Name: "name", WireName: "name", Kind: ir.TypeString},
 		fb: &sdkbind.FieldBinding{Attr: "name", Wire: "name",
 			Access: sdkbind.FieldAccess{Get: "GetName", Set: "SetName", ConvertSet: "ToPtrString"}},
 	}
 	n := node{
-		attr: ir.Attribute{Name: "services", WireName: "services", Kind: ir.TypeList, Nested: &ir.AttributeTree{}},
+		attribute: ir.Attribute{Name: "services", WireName: "services", Kind: ir.TypeList, Nested: &ir.AttributeTree{}},
 		fb: &sdkbind.FieldBinding{Attr: "services", Wire: "services",
 			NestedWriteModel: "models.ServiceCreate", NestedConstructor: "models.NewServiceCreate()",
 			Access: sdkbind.FieldAccess{Get: "GetServices", Set: "SetServices",
@@ -71,8 +71,8 @@ func TestUnit_ConstructNested_BuildsTheWriteType(t *testing.T) {
 // lose every other attribute too.
 func TestUnit_ConflictingExpr_DropsPrunedAttributes(t *testing.T) {
 	byName := map[string]node{
-		"alpha": {attr: ir.Attribute{Name: "alpha"}},
-		"beta":  {attr: ir.Attribute{Name: "beta"}},
+		"alpha": {attribute: ir.Attribute{Name: "alpha"}},
+		"beta":  {attribute: ir.Attribute{Name: "beta"}},
 	}
 
 	expr := conflictingExpr(byName, []string{"alpha", "gone", "beta"})

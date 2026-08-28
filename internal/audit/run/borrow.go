@@ -22,12 +22,12 @@ import (
 // is false when the collection is empty or unreadable — in which case the
 // field it would have filled stays unsatisfiable and the caller records the
 // attempt as inconclusive rather than guessing.
-func (r *runner) borrow(ctx context.Context, ent *entityState, collection string) (string, bool) {
+func (r *runner) borrow(ctx context.Context, entity *entityState, collection string) (string, bool) {
 	if id, ok := r.borrowed[collection]; ok {
 		return id, true
 	}
 	for _, path := range collectionPaths(collection) {
-		res, err := r.do(ctx, ent, reqSpec{method: "GET", path: path})
+		res, err := r.do(ctx, entity, reqSpec{method: "GET", path: path})
 		if err != nil || !res.ok() {
 			continue
 		}

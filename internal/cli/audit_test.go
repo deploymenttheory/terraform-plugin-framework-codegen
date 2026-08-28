@@ -313,10 +313,10 @@ func TestIntegration_AuditToRevise_UndocumentedFieldLandsInTheRevisedSpec(t *tes
 		t.Fatalf("revised.yaml is not usable YAML: %v", err)
 	}
 	schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
-	props := schemas["ThingCreate"].(map[string]any)["properties"].(map[string]any)
-	serial, ok := props["serial"].(map[string]any)
+	properties := schemas["ThingCreate"].(map[string]any)["properties"].(map[string]any)
+	serial, ok := properties["serial"].(map[string]any)
 	if !ok {
-		t.Fatalf("the revised spec does not declare serial: %v", props)
+		t.Fatalf("the revised spec does not declare serial: %v", properties)
 	}
 	if serial["type"] != "string" {
 		t.Errorf("serial.type = %v, want string", serial["type"])

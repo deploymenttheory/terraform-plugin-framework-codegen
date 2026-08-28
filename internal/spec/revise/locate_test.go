@@ -28,15 +28,15 @@ func TestUnit_Locator_NodeAtWalksMappingsAndSequences(t *testing.T) {
 	if n := loc.nodeAt(""); n == nil {
 		t.Error("the empty pointer must address the document itself")
 	}
-	for _, ptr := range []string{
+	for _, pointer := range []string{
 		"no-leading-slash",
 		"/components/schemas/Missing",
 		"/components/schemas/Tag/properties/color/enum/9",
 		"/components/schemas/Tag/properties/color/enum/x",
 		"/openapi/child-of-a-scalar",
 	} {
-		if n := loc.nodeAt(ptr); n != nil {
-			t.Errorf("nodeAt(%q) = %v, want nil", ptr, n)
+		if n := loc.nodeAt(pointer); n != nil {
+			t.Errorf("nodeAt(%q) = %v, want nil", pointer, n)
 		}
 	}
 }
@@ -73,12 +73,12 @@ paths:
                 type: object
 `)
 	op := &specmodel.OperationReference{Method: "GET", Path: "/items/{id}"}
-	node, ptr, ok := loc.responseSchema(op)
+	node, pointer, ok := loc.responseSchema(op)
 	if !ok || node == nil {
 		t.Fatal("the default response's schema must be found")
 	}
-	if want := "/paths/~1items~1{id}/get/responses/default/content/application~1json/schema"; ptr != want {
-		t.Errorf("ptr = %q, want %q", ptr, want)
+	if want := "/paths/~1items~1{id}/get/responses/default/content/application~1json/schema"; pointer != want {
+		t.Errorf("ptr = %q, want %q", pointer, want)
 	}
 }
 

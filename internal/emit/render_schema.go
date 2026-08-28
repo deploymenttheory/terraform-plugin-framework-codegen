@@ -26,7 +26,7 @@ const (
 // with. Three of the four packages are imported under the framework's own
 // name; list/schema is imported as listschema, because a list resource file
 // also names the resource schema package.
-func (sb *schemaBuilder) pkg() string {
+func (sb *schemaBuilder) goPackage() string {
 	if sb.kind == schemaListResource {
 		return "listschema"
 	}
@@ -90,25 +90,25 @@ func (sb *schemaBuilder) attributeDeclaration(n node, depth int) string {
 	indent := strings.Repeat("\t", depth)
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "%s%q: %s.%s{\n", indent, n.attr.Name, sb.pkg(), schemaTypeOf(n).SchemaAttribute)
+	fmt.Fprintf(&b, "%s%q: %s.%s{\n", indent, n.attribute.Name, sb.goPackage(), schemaTypeOf(n).SchemaAttribute)
 	b.WriteString(sb.computedOptionalRequiredLines(n, indent+"\t"))
 
-	if desc := attributeDescription(n.attr); desc != "" {
-		fmt.Fprintf(&b, "%s\tMarkdownDescription: %s,\n", indent, strconv.Quote(desc))
+	if description := attributeDescription(n.attribute); description != "" {
+		fmt.Fprintf(&b, "%s\tMarkdownDescription: %s,\n", indent, strconv.Quote(description))
 	}
 
 	// Sensitive keeps the value out of plan output and logs. It is a plain
 	// bool on the attribute type, so unlike a validator or a plan modifier
 	// it needs no import to travel with it.
-	if n.attr.Sensitive && sb.rendersSensitive() {
+	if n.attribute.Sensitive && sb.rendersSensitive() {
 		fmt.Fprintf(&b, "%s\tSensitive: true,\n", indent)
 	}
 
-	if n.attr.Deprecated {
+	if n.attribute.Deprecated {
 		fmt.Fprintf(&b, "%s\tDeprecationMessage: %s,\n", indent, strconv.Quote(deprecationMessage))
 	}
 
-	if (n.attr.Kind == ir.TypeList || n.attr.Kind == ir.TypeMap) && n.attr.Nested == nil {
+	if (n.attribute.Kind == ir.TypeList || n.attribute.Kind == ir.TypeMap) && n.attribute.Nested == nil {
 		sb.imports.add("", "github.com/hashicorp/terraform-plugin-framework/types")
 		fmt.Fprintf(&b, "%s\tElementType: %s,\n", indent, schemaTypeOf(n).ElementType)
 	}
@@ -117,14 +117,14 @@ func (sb *schemaBuilder) attributeDeclaration(n node, depth int) string {
 
 	b.WriteString(sb.planModifierLines(n, indent+"\t"))
 
-	if n.attr.Nested != nil {
-		if n.attr.Kind == ir.TypeList {
-			fmt.Fprintf(&b, "%s\tNestedObject: %s.NestedAttributeObject{\n", indent, sb.pkg())
-			fmt.Fprintf(&b, "%s\t\tAttributes: map[string]%s.Attribute{\n", indent, sb.pkg())
+	if n.attribute.Nested != nil {
+		if n.attribute.Kind == ir.TypeList {
+			fmt.Fprintf(&b, "%s\tNestedObject: %s.NestedAttributeObject{\n", indent, sb.goPackage())
+			fmt.Fprintf(&b, "%s\t\tAttributes: map[string]%s.Attribute{\n", indent, sb.goPackage())
 			b.WriteString(sb.attributeDeclarations(n.children, depth+3))
 			fmt.Fprintf(&b, "%s\t\t},\n%s\t},\n", indent, indent)
 		} else {
-			fmt.Fprintf(&b, "%s\tAttributes: map[string]%s.Attribute{\n", indent, sb.pkg())
+			fmt.Fprintf(&b, "%s\tAttributes: map[string]%s.Attribute{\n", indent, sb.goPackage())
 			b.WriteString(sb.attributeDeclarations(n.children, depth+2))
 			fmt.Fprintf(&b, "%s\t},\n", indent)
 		}
@@ -147,9 +147,9 @@ func (sb *schemaBuilder) attributeDeclaration(n node, depth int) string {
 func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
 	var validators []code.CustomValidator
 
-	if len(n.attr.OneOf) > 0 && n.attr.Kind == ir.TypeString && n.attr.Nested == nil {
-		quoted := make([]string, len(n.attr.OneOf))
-		for i, v := range n.attr.OneOf {
+	if len(n.attribute.OneOf) > 0 && n.attribute.Kind == ir.TypeString && n.attribute.Nested == nil {
+		quoted := make([]string, len(n.attribute.OneOf))
+		for i, v := range n.attribute.OneOf {
 			quoted[i] = strconv.Quote(v)
 		}
 		validators = append(validators, code.CustomValidator{
@@ -163,7 +163,7 @@ func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
 	validators = append(validators, constraintValidators(n)...)
 
 	if depth == sb.rootDepth {
-		if reqs, ok := sb.deps[n.attr.Name]; ok {
+		if reqs, ok := sb.deps[n.attribute.Name]; ok {
 			schema := schemaTypeOf(n)
 			paths := make([]string, len(reqs))
 			for i, r := range reqs {
@@ -207,7 +207,7 @@ func (sb *schemaBuilder) validatorLines(n node, indent string, depth int) string
 // well keeps the writable half; one that is only computed is dropped before
 // it reaches here.
 func (sb *schemaBuilder) computedOptionalRequiredLines(n node, indent string) string {
-	switch n.attr.ComputedOptionalRequired {
+	switch n.attribute.ComputedOptionalRequired {
 	case ir.Required:
 		return indent + "Required: true,\n"
 	case ir.Computed:
@@ -236,21 +236,21 @@ func (sb *schemaBuilder) planModifiers(n node) []code.CustomPlanModifier {
 	}
 
 	schema := schemaTypeOf(n)
-	pkg := schema.PlanModifierPackage()
+	goPackage := schema.PlanModifierPackage()
 	imports := []code.Import{
 		{Path: "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"},
 		schema.PlanModifierImport,
 	}
 
 	var modifiers []code.CustomPlanModifier
-	if n.attr.RequiresReplace {
+	if n.attribute.RequiresReplace {
 		modifiers = append(modifiers, code.CustomPlanModifier{
 			Imports:          imports,
-			SchemaDefinition: pkg + ".RequiresReplace()",
+			SchemaDefinition: goPackage + ".RequiresReplace()",
 		})
 	}
-	isID := n.attr.Name == "id" && n.attr.ComputedOptionalRequired == ir.Computed &&
-		n.attr.Kind == ir.TypeString && n.attr.Nested == nil
+	isID := n.attribute.Name == "id" && n.attribute.ComputedOptionalRequired == ir.Computed &&
+		n.attribute.Kind == ir.TypeString && n.attribute.Nested == nil
 	// A computed-optional attribute is one the practitioner may set and the
 	// server fills when they do not. Unpinned it re-plans as unknown on every
 	// run, which is a permanent diff on a resource nothing has changed.
@@ -260,10 +260,10 @@ func (sb *schemaBuilder) planModifiers(n node) []code.CustomPlanModifier {
 	// stable just because it is computed, and pinning it makes terraform
 	// insist on a value the next read contradicts. Which of those are settled
 	// is a fact an audit measures, not one the document states.
-	if isID || n.attr.ComputedOptionalRequired == ir.ComputedOptional {
+	if isID || n.attribute.ComputedOptionalRequired == ir.ComputedOptional {
 		modifiers = append(modifiers, code.CustomPlanModifier{
 			Imports:          imports,
-			SchemaDefinition: pkg + ".UseStateForUnknown()",
+			SchemaDefinition: goPackage + ".UseStateForUnknown()",
 		})
 	}
 	return modifiers
@@ -362,14 +362,14 @@ func newModelNamer(typePrefix string, nodes []node) *modelNamer {
 	var survey func(parent string, nodes []node)
 	survey = func(parent string, nodes []node) {
 		for _, n := range nodes {
-			if n.attr.Nested == nil {
+			if n.attribute.Nested == nil {
 				continue
 			}
-			path := n.attr.Name
+			path := n.attribute.Name
 			if parent != "" {
-				path = parent + "." + n.attr.Name
+				path = parent + "." + n.attribute.Name
 			}
-			short := typePrefix + ir.GoName(n.attr.Name) + "Model"
+			short := typePrefix + ir.GoName(n.attribute.Name) + "Model"
 			shortOf[path] = short
 			claimants[short]++
 			survey(path, n.children)
@@ -408,9 +408,9 @@ func (nm *modelNamer) name(path string) string {
 // childPath extends an attribute path by one segment.
 func childPath(parent string, n node) string {
 	if parent == "" {
-		return n.attr.Name
+		return n.attribute.Name
 	}
-	return parent + "." + n.attr.Name
+	return parent + "." + n.attribute.Name
 }
 
 // buildModels renders the framework model structs for one entity: the
@@ -429,7 +429,7 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 		}
 		for _, n := range nodes {
 			fmt.Fprintf(&b, "\t%s %s `tfsdk:%q`\n",
-				ir.GoName(n.attr.Name), fieldType(n), n.attr.Name)
+				ir.GoName(n.attribute.Name), fieldType(n), n.attribute.Name)
 		}
 		b.WriteString("}")
 		declarations = append(declarations, modelDeclaration{name: name, body: b.String()})
@@ -444,14 +444,14 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 			t.WriteString("\treturn map[string]attr.Type{\n")
 			for _, n := range nodes {
 				fmt.Fprintf(&t, "\t\t%q: %s,\n",
-					n.attr.Name, attrTypeExpr(namer, childPath(path, n), n))
+					n.attribute.Name, attrTypeExpr(namer, childPath(path, n), n))
 			}
 			t.WriteString("\t}\n}")
 			declarations = append(declarations, modelDeclaration{name: attrTypesFuncName(name), body: t.String()})
 		}
 
 		for _, n := range nodes {
-			if n.attr.Nested == nil {
+			if n.attribute.Nested == nil {
 				continue
 			}
 			nested := childPath(path, n)
@@ -472,9 +472,9 @@ func buildModels(rootName, typePrefix string, nodes []node, extraFields []string
 // back into, through the AttrTypes function beside it.
 func fieldType(n node) string {
 	switch {
-	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
+	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeList:
 		return "types.List"
-	case n.attr.Nested != nil:
+	case n.attribute.Nested != nil:
 		return "types.Object"
 	default:
 		return schemaTypeOf(n).ValueType
@@ -485,9 +485,9 @@ func fieldType(n node) string {
 // object or list value must be given to be built or nulled.
 func attrTypeExpr(namer *modelNamer, path string, n node) string {
 	switch {
-	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
+	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeList:
 		return "types.ListType{ElemType: " + nestedObjectType(namer, path) + "}"
-	case n.attr.Nested != nil:
+	case n.attribute.Nested != nil:
 		return nestedObjectType(namer, path)
 	default:
 		resolved := schemaTypeOf(n)

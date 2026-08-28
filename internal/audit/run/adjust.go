@@ -131,32 +131,32 @@ var (
 // removal grammar are checked before the bare "is required", because "requires
 // field Y" and "is required" share a stem.
 func classifyRefusal(res *httpResult) refusalAction {
-	msg := refusalMessage(res.body)
-	if msg == "" {
+	message := refusalMessage(res.body)
+	if message == "" {
 		return refusalAction{kind: actStop}
 	}
-	if m := reRequires.FindStringSubmatch(msg); m != nil {
+	if m := reRequires.FindStringSubmatch(message); m != nil {
 		return refusalAction{kind: actRequires, field: cleanField(m[2]), trigger: cleanField(m[1])}
 	}
-	if m := reNotValid.FindStringSubmatch(msg); m != nil {
+	if m := reNotValid.FindStringSubmatch(message); m != nil {
 		return refusalAction{kind: actRemove, field: cleanField(m[1]), condGate: m[2], condVal: cleanField(m[3])}
 	}
-	if m := reReference.FindStringSubmatch(msg); m != nil {
+	if m := reReference.FindStringSubmatch(message); m != nil {
 		return refusalAction{kind: actBorrow, field: cleanField(m[1]), collection: strings.ToLower(m[2])}
 	}
-	if m := reRequired.FindStringSubmatch(msg); m != nil {
+	if m := reRequired.FindStringSubmatch(message); m != nil {
 		return refusalAction{kind: actAdd, field: cleanField(m[1]), condGate: m[2], condVal: cleanField(m[3])}
 	}
-	if m := reFieldNamed.FindStringSubmatch(msg); m != nil && reAbsent.MatchString(m[2]) {
+	if m := reFieldNamed.FindStringSubmatch(message); m != nil && reAbsent.MatchString(m[2]) {
 		return refusalAction{kind: actAdd, field: leafField(m[1])}
 	}
-	if m := reTheRequired.FindStringSubmatch(msg); m != nil {
+	if m := reTheRequired.FindStringSubmatch(message); m != nil {
 		return refusalAction{kind: actAdd, field: leafField(m[1])}
 	}
 	// Checked last, because it is the loosest: any sentence at all can be read
 	// as "<field>: <complaint>", so it must not pre-empt a grammar that names
 	// two fields or a gate.
-	if m := reFieldSaid.FindStringSubmatch(msg); m != nil && reAbsent.MatchString(m[2]) {
+	if m := reFieldSaid.FindStringSubmatch(message); m != nil && reAbsent.MatchString(m[2]) {
 		return refusalAction{kind: actAdd, field: leafField(m[1])}
 	}
 	return refusalAction{kind: actStop}
@@ -259,8 +259,8 @@ func cleanField(s string) string {
 // variant's discriminator for a minimal or maximal create, the value under test
 // for a per-enum-value create — so cycling searches the other enum fields for a
 // body the API accepts without abandoning what the step is exercising.
-func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any, held string) (adjustResult, error) {
-	return r.adjustCreateRecording(ctx, ent, rec, body, held, true)
+func (r *runner) adjustCreate(ctx context.Context, entity *entityState, rec *entityRecipe, body map[string]any, held string) (adjustResult, error) {
+	return r.adjustCreateRecording(ctx, entity, rec, body, held, true)
 }
 
 // adjustCreateRecording is adjustCreate, and also says whether the healing it
@@ -270,13 +270,13 @@ func (r *runner) adjustCreate(ctx context.Context, ent *entityState, rec *entity
 // end: the fields that create needs are facts about the parent, and the
 // parent's own steps record them against the parent. Recorded here they would
 // be attributed to whichever child happened to need the parent first.
-func (r *runner) adjustCreateRecording(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any, held string, record bool) (adjustResult, error) {
+func (r *runner) adjustCreateRecording(ctx context.Context, entity *entityState, rec *entityRecipe, body map[string]any, held string, record bool) (adjustResult, error) {
 	applied := map[string]bool{}
 	var last *httpResult
 	var healed []pendingAdd
 	adjusted := false
 	for i := 0; i < maxAdjustIters; i++ {
-		obj, res, err := r.createObject(ctx, ent, rec, body)
+		obj, res, err := r.createObject(ctx, entity, rec, body)
 		if err != nil {
 			return adjustResult{}, err
 		}
@@ -287,7 +287,7 @@ func (r *runner) adjustCreateRecording(ctx context.Context, ent *entityState, re
 			// reading of a sentence.
 			if record {
 				for _, add := range healed {
-					r.recordAdjustAdd(ent, add.field, add.condGate, add.condVal, add.excerpt)
+					r.recordAdjustAdd(entity, add.field, add.condGate, add.condVal, add.excerpt)
 				}
 			}
 			return adjustResult{obj: obj, res: res, body: body, adjusted: adjusted}, nil
@@ -295,7 +295,7 @@ func (r *runner) adjustCreateRecording(ctx context.Context, ent *entityState, re
 		if res == nil || !res.refused() {
 			return adjustResult{res: res, body: body, adjusted: adjusted, gaveUp: true}, nil
 		}
-		if added, ok := r.applyAdjustment(ctx, ent, body, res, applied, record); ok {
+		if added, ok := r.applyAdjustment(ctx, entity, body, res, applied, record); ok {
 			healed = append(healed, added...)
 			adjusted = true
 			continue
@@ -304,7 +304,7 @@ func (r *runner) adjustCreateRecording(ctx context.Context, ent *entityState, re
 		// value-cycling: a free-form conditional refusal that names an enum
 		// field the entity declares is often satisfied by another of that
 		// field's values.
-		cobj, cres, healed, err := r.cycleConditional(ctx, ent, rec, body, held, res, applied)
+		cobj, cres, healed, err := r.cycleConditional(ctx, entity, rec, body, held, res, applied)
 		if err != nil {
 			return adjustResult{}, err
 		}
@@ -312,10 +312,10 @@ func (r *runner) adjustCreateRecording(ctx context.Context, ent *entityState, re
 			return adjustResult{obj: cobj, res: cres, body: body, adjusted: true}, nil
 		}
 		return adjustResult{res: res, body: body, adjusted: adjusted, gaveUp: true,
-			conditional: r.isConditionalRefusal(ent, res)}, nil
+			conditional: r.isConditionalRefusal(entity, res)}, nil
 	}
 	return adjustResult{res: last, body: body, adjusted: adjusted, gaveUp: true,
-		conditional: r.isConditionalRefusal(ent, last)}, nil
+		conditional: r.isConditionalRefusal(entity, last)}, nil
 }
 
 // pendingAdd is one field the grammar added to a body, held until the API
@@ -344,14 +344,14 @@ type pendingAdd struct {
 // API went on to take the body carrying it. Removes, requires and borrows are
 // recorded here as before — each is a raw signal for the inference to weigh,
 // not a claim about a property's existence.
-func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map[string]any, res *httpResult, applied map[string]bool, record bool) ([]pendingAdd, bool) {
+func (r *runner) applyAdjustment(ctx context.Context, entity *entityState, body map[string]any, res *httpResult, applied map[string]bool, record bool) ([]pendingAdd, bool) {
 	act := classifyRefusal(res)
 	switch act.kind {
 	case actAdd:
 		if strings.Contains(act.field, ".") || applied["a:"+act.field] || present(body, act.field) {
 			return nil, false
 		}
-		body[act.field] = r.synthField(ent, act.field)
+		body[act.field] = r.synthField(entity, act.field)
 		applied["a:"+act.field] = true
 		return []pendingAdd{{
 			field: act.field, condGate: act.condGate, condVal: act.condVal, excerpt: res.excerpt,
@@ -360,10 +360,10 @@ func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map
 		if strings.Contains(act.field, ".") || applied["a:"+act.field] || present(body, act.field) {
 			return nil, false
 		}
-		body[act.field] = r.synthField(ent, act.field)
+		body[act.field] = r.synthField(entity, act.field)
 		applied["a:"+act.field] = true
 		if record {
-			r.recordAdjustment(ent, infer.AdjustRequires, act.field, act.trigger, "")
+			r.recordAdjustment(entity, infer.AdjustRequires, act.field, act.trigger, "")
 		}
 		return nil, true
 	case actRemove:
@@ -373,18 +373,18 @@ func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map
 		delete(body, act.field)
 		applied["r:"+act.field] = true
 		if record {
-			r.recordAdjustment(ent, infer.AdjustRemove, act.field, act.condGate, act.condVal)
+			r.recordAdjustment(entity, infer.AdjustRemove, act.field, act.condGate, act.condVal)
 		}
 		return nil, true
 	case actBorrow:
-		id, ok := r.borrow(ctx, ent, act.collection)
+		id, ok := r.borrow(ctx, entity, act.collection)
 		if !ok || fmt.Sprint(body[act.field]) == id {
 			return nil, false
 		}
 		body[act.field] = id
 		applied["b:"+act.field] = true
 		if record {
-			r.recordAdjustment(ent, infer.AdjustBorrow, act.field, act.collection, "")
+			r.recordAdjustment(entity, infer.AdjustBorrow, act.field, act.collection, "")
 		}
 		return nil, true
 	default:
@@ -397,20 +397,20 @@ func (r *runner) applyAdjustment(ctx context.Context, ent *entityState, body map
 // value-conditional one is requiredWhen scoped to the gate the refusal named.
 // The triangulating inference also derives these from the raw adjustment; this
 // per-probe emission keeps the excerpt proof of the specific refusal.
-func (r *runner) recordAdjustAdd(ent *entityState, field, condGate, condVal string, ex observe.Excerpt) {
-	r.recordAdjustment(ent, infer.AdjustAdd, field, condGate, condVal)
+func (r *runner) recordAdjustAdd(entity *entityState, field, condGate, condVal string, ex observe.Excerpt) {
+	r.recordAdjustment(entity, infer.AdjustAdd, field, condGate, condVal)
 	if condGate == "" {
-		r.record(ent.plan.Entity, field, observe.KindRequiredByAPI, true, nil, observe.OutcomeConfirmed, ex)
+		r.record(entity.plan.Entity, field, observe.KindRequiredByAPI, true, nil, observe.OutcomeConfirmed, ex)
 		return
 	}
 	cond := &observe.Condition{Attribute: condGate, Equals: condVal}
-	r.record(ent.plan.Entity, field, observe.KindRequiredWhen, true, cond, observe.OutcomeConfirmed, ex)
+	r.record(entity.plan.Entity, field, observe.KindRequiredWhen, true, cond, observe.OutcomeConfirmed, ex)
 }
 
 // recordAdjustment appends one raw adjustment signal for the inference to read.
-func (r *runner) recordAdjustment(ent *entityState, action infer.AdjustAction, field, gateField, gateValue string) {
+func (r *runner) recordAdjustment(entity *entityState, action infer.AdjustAction, field, gateField, gateValue string) {
 	r.adjustments = append(r.adjustments, infer.RequestAdjustment{
-		Entity: ent.plan.Entity, Action: action, Field: field,
+		Entity: entity.plan.Entity, Action: action, Field: field,
 		GateField: gateField, GateValue: gateValue,
 	})
 }

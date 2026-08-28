@@ -321,29 +321,29 @@ func TestIntegration_Revise_TagConvergesAcrossRounds(t *testing.T) {
 		t.Fatalf("revised.yaml is not usable YAML: %v", err)
 	}
 	tagInfo := doc["components"].(map[string]any)["schemas"].(map[string]any)["TagInfo"].(map[string]any)
-	props := tagInfo["properties"].(map[string]any)
+	properties := tagInfo["properties"].(map[string]any)
 
 	// A value the server fills is recorded as x-tfpfgen-server-default on the
 	// property — the fact that makes the generated attribute Optional and
 	// Computed. It does not go into OpenAPI's own `default`, which states what
 	// the document declares and steers nothing downstream.
-	aid, ok := props["aid"].(map[string]any)
+	aid, ok := properties["aid"].(map[string]any)
 	if !ok || aid["type"] != "number" || aid["x-tfpfgen-server-default"] != 4530 {
-		t.Errorf("aid = %v, want an added number field the server fills with 4530", props["aid"])
+		t.Errorf("aid = %v, want an added number field the server fills with 4530", properties["aid"])
 	}
-	builtIn, ok := props["builtIn"].(map[string]any)
+	builtIn, ok := properties["builtIn"].(map[string]any)
 	if !ok || builtIn["type"] != "boolean" || builtIn["x-tfpfgen-server-default"] != false {
-		t.Errorf("builtIn = %v, want an added boolean field the server fills with false", props["builtIn"])
+		t.Errorf("builtIn = %v, want an added boolean field the server fills with false", properties["builtIn"])
 	}
-	if def := props["color"].(map[string]any)["x-tfpfgen-server-default"]; def != "#A7EB10" {
+	if def := properties["color"].(map[string]any)["x-tfpfgen-server-default"]; def != "#A7EB10" {
 		t.Errorf("color server-default = %v, want #A7EB10", def)
 	}
-	if co := props["objectType"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
+	if co := properties["objectType"].(map[string]any)["x-tfpfgen-create-only"]; co != true {
 		t.Errorf("objectType create-only = %v, want true", co)
 	}
-	enum, ok := props["type"].(map[string]any)["enum"].([]any)
+	enum, ok := properties["type"].(map[string]any)["enum"].([]any)
 	if !ok || len(enum) != 1 || enum[0] != "static" {
-		t.Errorf("type.enum = %v, want [static] with dynamic removed", props["type"].(map[string]any)["enum"])
+		t.Errorf("type.enum = %v, want [static] with dynamic removed", properties["type"].(map[string]any)["enum"])
 	}
 	put := doc["paths"].(map[string]any)["/tags/{tagId}"].(map[string]any)["put"].(map[string]any)
 	if style := put["x-tfpfgen-update-style"]; style != "put-full" {

@@ -232,14 +232,14 @@ func nilableType(t types.Type) bool {
 // nestedModelOf reaches the named model under a nested accessor's type:
 // the model itself, a pointer to it, or a slice of either.
 func nestedModelOf(t types.Type) (*types.Named, string) {
-	cur := t
-	if slice, ok := cur.Underlying().(*types.Slice); ok {
-		cur = slice.Elem()
+	current := t
+	if slice, ok := current.Underlying().(*types.Slice); ok {
+		current = slice.Elem()
 	}
-	if ptr, ok := cur.(*types.Pointer); ok {
-		cur = ptr.Elem()
+	if pointer, ok := current.(*types.Pointer); ok {
+		current = pointer.Elem()
 	}
-	n, ok := cur.(*types.Named)
+	n, ok := current.(*types.Named)
 	if !ok || n.Obj().Pkg() == nil {
 		return nil, fmt.Sprintf("the SDK carries it as %s, which names no model to map fields on", shortType(t))
 	}
@@ -254,23 +254,23 @@ func nestedModelOf(t types.Type) (*types.Named, string) {
 // models resolve to the struct their constructor yields, structs
 // construct themselves.
 func (p *pruner) writeModelFromNamed(named *types.Named) (model, constructor, reason string) {
-	pkg := named.Obj().Pkg()
-	qualifier, name := pkg.Name(), named.Obj().Name()
+	goPackage := named.Obj().Pkg()
+	qualifier, name := goPackage.Name(), named.Obj().Name()
 
 	if _, isInterface := named.Underlying().(*types.Interface); isInterface {
 		base, ok := strings.CutSuffix(name, "able")
 		if !ok {
 			return "", "", fmt.Sprintf("%s.%s is an interface with no constructible model behind it", qualifier, name)
 		}
-		if _, err := p.l.lookupType(pkg.Path(), base); err != nil {
+		if _, err := p.l.lookupType(goPackage.Path(), base); err != nil {
 			return "", "", fmt.Sprintf("%s.%s names no concrete %s to construct", qualifier, name, base)
 		}
-		if !p.l.functionExists(pkg.Path(), "New"+base) {
+		if !p.l.functionExists(goPackage.Path(), "New"+base) {
 			return "", "", fmt.Sprintf("the SDK declares no constructor New%s for %s.%s", base, qualifier, base)
 		}
 		return qualifier + "." + base, qualifier + ".New" + base + "()", ""
 	}
-	if p.l.functionExists(pkg.Path(), "New"+name+"WithDefaults") {
+	if p.l.functionExists(goPackage.Path(), "New"+name+"WithDefaults") {
 		return qualifier + "." + name, qualifier + ".New" + name + "WithDefaults()", ""
 	}
 	return qualifier + "." + name, "&" + qualifier + "." + name + "{}", ""
@@ -299,9 +299,9 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 
 	// A slice of scalars or enumerations.
 	if slice, ok := t.Underlying().(*types.Slice); ok && fb.Kind == ir.TypeList {
-		elem := slice.Elem()
-		if basic, ok := elem.Underlying().(*types.Basic); ok {
-			if named, isNamed := elem.(*types.Named); isNamed {
+		element := slice.Elem()
+		if basic, ok := element.Underlying().(*types.Basic); ok {
+			if named, isNamed := element.(*types.Named); isNamed {
 				if parse, isEnum := p.enumParse(named); isEnum && fb.ElementType == ir.TypeString {
 					settle("[]"+qualifiedName(named), "FromEnumSlice", "ToEnumSlice", parse)
 					return ""
@@ -317,11 +317,11 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 		}
 		// time.Time is a struct, not a basic, so a slice of them does not
 		// match the branch above.
-		if named, isNamed := elem.(*types.Named); isNamed && isStdTime(named) && fb.ElementType == ir.TypeString {
+		if named, isNamed := element.(*types.Named); isNamed && isStdTime(named) && fb.ElementType == ir.TypeString {
 			settle("[]time.Time", "FromTimeSlice", "ToTimeSlice", "")
 			return ""
 		}
-		if named, isNamed := elem.(*types.Named); isNamed && isGoogleUUID(named) && fb.ElementType == ir.TypeString {
+		if named, isNamed := element.(*types.Named); isNamed && isGoogleUUID(named) && fb.ElementType == ir.TypeString {
 			settle("[]uuid.UUID", "FromUUIDSlice", "ToUUIDSlice", "")
 			return ""
 		}
@@ -378,26 +378,26 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 		}
 	}
 
-	ptr := false
-	cur := t
-	if pt, ok := cur.(*types.Pointer); ok {
-		ptr = true
-		cur = pt.Elem()
+	pointer := false
+	current := t
+	if pt, ok := current.(*types.Pointer); ok {
+		pointer = true
+		current = pt.Elem()
 	}
 	prefix := func(s string) string {
-		if ptr {
+		if pointer {
 			return "*" + s
 		}
 		return s
 	}
 	convert := func(base string) (string, string) {
-		if ptr {
+		if pointer {
 			return "FromPtr" + base, "ToPtr" + base
 		}
 		return "From" + base, "To" + base
 	}
 
-	if named, ok := cur.(*types.Named); ok {
+	if named, ok := current.(*types.Named); ok {
 		if parse, isEnum := p.enumParse(named); isEnum {
 			if fb.Kind != ir.TypeString {
 				return cannot(shortType(t))
@@ -437,7 +437,7 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 		return cannot(shortType(t))
 	}
 
-	if basic, ok := cur.(*types.Basic); ok {
+	if basic, ok := current.(*types.Basic); ok {
 		if !kindCompatible(fb.Kind, basic) {
 			return cannot(shortType(t))
 		}
@@ -454,8 +454,8 @@ func (p *pruner) settleScalar(fb *FieldBinding, t types.Type) string {
 // (kiota), or a string-backed one with New<Name>FromValue
 // (openapi-generator) — and returns the companion's finished name.
 func (p *pruner) enumParse(named *types.Named) (string, bool) {
-	pkg := named.Obj().Pkg()
-	if pkg == nil {
+	goPackage := named.Obj().Pkg()
+	if goPackage == nil {
 		return "", false
 	}
 	basic, ok := named.Underlying().(*types.Basic)
@@ -464,10 +464,10 @@ func (p *pruner) enumParse(named *types.Named) (string, bool) {
 	}
 	name := named.Obj().Name()
 	switch {
-	case basic.Info()&types.IsInteger != 0 && p.l.functionExists(pkg.Path(), "Parse"+name):
-		return pkg.Name() + ".Parse" + name, true
-	case basic.Info()&types.IsString != 0 && p.l.functionExists(pkg.Path(), "New"+name+"FromValue"):
-		return pkg.Name() + ".New" + name + "FromValue", true
+	case basic.Info()&types.IsInteger != 0 && p.l.functionExists(goPackage.Path(), "Parse"+name):
+		return goPackage.Name() + ".Parse" + name, true
+	case basic.Info()&types.IsString != 0 && p.l.functionExists(goPackage.Path(), "New"+name+"FromValue"):
+		return goPackage.Name() + ".New" + name + "FromValue", true
 	}
 	return "", false
 }
@@ -518,18 +518,18 @@ func qualifiedName(named *types.Named) string {
 // isStdTime reports whether a named type is the standard library's
 // time.Time.
 func isStdTime(named *types.Named) bool {
-	pkg := named.Obj().Pkg()
-	return pkg != nil && pkg.Path() == "time" && named.Obj().Name() == "Time"
+	goPackage := named.Obj().Pkg()
+	return goPackage != nil && goPackage.Path() == "time" && named.Obj().Name() == "Time"
 }
 
 // isGoogleUUID reports whether a named type is github.com/google/uuid's
 // UUID, the type kiota generates for a `format: uuid` field.
 func isGoogleUUID(named *types.Named) bool {
-	pkg := named.Obj().Pkg()
-	if pkg == nil || named.Obj().Name() != "UUID" {
+	goPackage := named.Obj().Pkg()
+	if goPackage == nil || named.Obj().Name() != "UUID" {
 		return false
 	}
-	return pkg.Path() == "github.com/google/uuid"
+	return goPackage.Path() == "github.com/google/uuid"
 }
 
 // isKiotaDateOnly reports whether a named type is kiota's DateOnly — the
@@ -541,9 +541,9 @@ func isGoogleUUID(named *types.Named) bool {
 // and bridging some other SDK's DateOnly through kiota's ParseDateOnly
 // would not compile.
 func isKiotaDateOnly(named *types.Named) bool {
-	pkg := named.Obj().Pkg()
-	if pkg == nil || named.Obj().Name() != "DateOnly" {
+	goPackage := named.Obj().Pkg()
+	if goPackage == nil || named.Obj().Name() != "DateOnly" {
 		return false
 	}
-	return strings.HasSuffix(pkg.Path(), "kiota-abstractions-go/serialization")
+	return strings.HasSuffix(goPackage.Path(), "kiota-abstractions-go/serialization")
 }

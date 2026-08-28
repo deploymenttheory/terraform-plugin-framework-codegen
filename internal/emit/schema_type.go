@@ -140,19 +140,19 @@ func frameworkElementType(kind ir.AttributeType) string {
 // SingleNestedAttribute, whatever their element kind says.
 func schemaTypeOf(n node) schemaType {
 	switch {
-	case n.attr.Nested != nil && n.attr.Kind == ir.TypeList:
+	case n.attribute.Nested != nil && n.attribute.Kind == ir.TypeList:
 		return newSchemaType("ListNestedAttribute", "", "List")
-	case n.attr.Nested != nil:
+	case n.attribute.Nested != nil:
 		return newSchemaType("SingleNestedAttribute", "", "Object")
-	case n.attr.Kind == ir.TypeList:
+	case n.attribute.Kind == ir.TypeList:
 		resolved := newSchemaType("ListAttribute", "types.List", "List")
-		resolved.ElementType = frameworkElementType(n.attr.ElementType)
+		resolved.ElementType = frameworkElementType(n.attribute.ElementType)
 		return resolved
-	case n.attr.Kind == ir.TypeMap:
+	case n.attribute.Kind == ir.TypeMap:
 		resolved := newSchemaType("MapAttribute", "types.Map", "Map")
-		resolved.ElementType = frameworkElementType(n.attr.ElementType)
+		resolved.ElementType = frameworkElementType(n.attribute.ElementType)
 		return resolved
 	default:
-		return scalarSchemaType(n.attr.Kind)
+		return scalarSchemaType(n.attribute.Kind)
 	}
 }

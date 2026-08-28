@@ -190,11 +190,11 @@ func (l *loader) operation(method, path string, node *yaml.Node, shared []Parame
 	at := "paths." + path + "." + method
 	op := Operation{Method: httpMethod(method), Path: path}
 
-	ext, err := parseExtensions(node, at)
+	extension, err := parseExtensions(node, at)
 	if err != nil {
 		return Operation{}, err
 	}
-	op.Extensions = ext
+	op.Extensions = extension
 
 	if id := lookup(node, "operationId"); id != nil {
 		op.OperationID = id.Value
@@ -337,9 +337,9 @@ func (l *loader) parameter(node *yaml.Node, at string) (Parameter, error) {
 	// to say so, but a document that forgot is not thereby describing an
 	// optional path segment.
 	p.Required = p.In == "path"
-	if req := deref(lookup(node, "required")); req != nil {
-		if err := req.Decode(&p.Required); err != nil {
-			return Parameter{}, fmt.Errorf("%s.required: must be true or false, got %q", at, req.Value)
+	if request := deref(lookup(node, "required")); request != nil {
+		if err := request.Decode(&p.Required); err != nil {
+			return Parameter{}, fmt.Errorf("%s.required: must be true or false, got %q", at, request.Value)
 		}
 	}
 
@@ -385,7 +385,7 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 		return nil, fmt.Errorf("%s: a schema must be a mapping", at)
 	}
 
-	ext, err := parseExtensions(node, at)
+	extension, err := parseExtensions(node, at)
 	if err != nil {
 		return nil, err
 	}
@@ -395,12 +395,12 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 		if err != nil {
 			return nil, err
 		}
-		s := &Schema{Ref: name, Extensions: ext}
+		s := &Schema{Ref: name, Extensions: extension}
 		l.refs = append(l.refs, pendingRef{schema: s, at: at})
 		return s, nil
 	}
 
-	s := &Schema{Extensions: ext}
+	s := &Schema{Extensions: extension}
 
 	if t := deref(lookup(node, "type")); t != nil {
 		s.Type = schemaType(t)
@@ -411,15 +411,15 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 	if pat := lookup(node, "pattern"); pat != nil {
 		s.Pattern = pat.Value
 	}
-	if desc := lookup(node, "description"); desc != nil {
-		s.Description = desc.Value
+	if description := lookup(node, "description"); description != nil {
+		s.Description = description.Value
 	}
 	// The declared flags. readOnly and writeOnly decide whether an attribute
 	// is settable at all; deprecated and uniqueItems decide what the emitted
 	// schema says about it.
 	for _, field := range []struct {
-		key string
-		dst *bool
+		key         string
+		destination *bool
 	}{
 		{"readOnly", &s.ReadOnly},
 		{"writeOnly", &s.WriteOnly},
@@ -430,7 +430,7 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 		if n == nil {
 			continue
 		}
-		if err := n.Decode(field.dst); err != nil {
+		if err := n.Decode(field.destination); err != nil {
 			return nil, fmt.Errorf("%s.%s: must be true or false, got %q", at, field.key, n.Value)
 		}
 	}
@@ -447,8 +447,8 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 	// value synthesis prefers what the document demonstrates over what it
 	// would otherwise invent.
 	for _, field := range []struct {
-		key string
-		dst *any
+		key         string
+		destination *any
 	}{
 		{"default", &s.Default},
 		{"example", &s.Example},
@@ -458,7 +458,7 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 			if err := n.Decode(&v); err != nil {
 				return nil, fmt.Errorf("%s.%s: %w", at, field.key, err)
 			}
-			*field.dst = v
+			*field.destination = v
 		}
 	}
 	// Numeric bounds are read because the audit sends values: a probe outside
@@ -467,8 +467,8 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 	// predicted. They also become plan-time validators, so a configuration
 	// the API would silently clamp fails before it is sent.
 	for _, field := range []struct {
-		key string
-		dst **float64
+		key         string
+		destination **float64
 	}{
 		{"minimum", &s.Minimum},
 		{"maximum", &s.Maximum},
@@ -478,13 +478,13 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 			if err := n.Decode(&v); err != nil {
 				return nil, fmt.Errorf("%s.%s: %w", at, field.key, err)
 			}
-			*field.dst = &v
+			*field.destination = &v
 		}
 	}
 	// Length and size bounds, read for the same reason as the numeric ones.
 	for _, field := range []struct {
-		key string
-		dst **int64
+		key         string
+		destination **int64
 	}{
 		{"minLength", &s.MinLength},
 		{"maxLength", &s.MaxLength},
@@ -496,16 +496,16 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 			if err := n.Decode(&v); err != nil {
 				return nil, fmt.Errorf("%s.%s: %w", at, field.key, err)
 			}
-			*field.dst = &v
+			*field.destination = &v
 		}
 	}
-	if req := deref(lookup(node, "required")); req != nil {
-		for _, rn := range req.Content {
+	if request := deref(lookup(node, "required")); request != nil {
+		for _, rn := range request.Content {
 			s.Required = append(s.Required, deref(rn).Value)
 		}
 	}
-	if props := deref(lookup(node, "properties")); props != nil {
-		for name, pn := range pairs(props) {
+	if properties := deref(lookup(node, "properties")); properties != nil {
+		for name, pn := range pairs(properties) {
 			child, err := l.schema(pn, at+".properties."+name)
 			if err != nil {
 				return nil, err
@@ -535,8 +535,8 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 		}
 	}
 	for _, comp := range []struct {
-		key string
-		dst *[]*Schema
+		key         string
+		destination *[]*Schema
 	}{
 		{"allOf", &s.AllOf},
 		{"oneOf", &s.OneOf},
@@ -551,12 +551,12 @@ func (l *loader) schema(node *yaml.Node, at string) (*Schema, error) {
 			if err != nil {
 				return nil, err
 			}
-			*comp.dst = append(*comp.dst, branch)
+			*comp.destination = append(*comp.destination, branch)
 		}
 	}
 
-	if disc := deref(lookup(node, "discriminator")); disc != nil {
-		d, err := discriminator(disc, at+".discriminator")
+	if discriminatorNode := deref(lookup(node, "discriminator")); discriminatorNode != nil {
+		d, err := discriminator(discriminatorNode, at+".discriminator")
 		if err != nil {
 			return nil, err
 		}

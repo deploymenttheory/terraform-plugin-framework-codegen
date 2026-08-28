@@ -432,12 +432,12 @@ func registerServices(core []emit.File, regs emit.Registry) ([]emit.File, error)
 // filesystem's own; a rename within one filesystem cannot half-write a file.
 func install(staging, root string, paths []string) error {
 	for _, p := range paths {
-		src := filepath.Join(staging, filepath.FromSlash(p))
-		dst := filepath.Join(root, filepath.FromSlash(p))
-		if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
+		source := filepath.Join(staging, filepath.FromSlash(p))
+		destination := filepath.Join(root, filepath.FromSlash(p))
+		if err := os.MkdirAll(filepath.Dir(destination), 0o750); err != nil {
 			return fmt.Errorf("creating the directory for %s: %w", p, err)
 		}
-		if err := os.Rename(src, dst); err != nil {
+		if err := os.Rename(source, destination); err != nil {
 			return fmt.Errorf("installing %s: %w", p, err)
 		}
 	}

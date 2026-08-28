@@ -31,9 +31,9 @@ type synth struct {
 // writable fields only. A required field no value can be derived for is a
 // reason to skip the entity, returned as prose.
 func (sy synth) minimalBody(s *specmodel.Schema) (map[string]any, string) {
-	props, required := flatProps(s)
+	properties, required := flatProps(s)
 	body := map[string]any{}
-	for _, p := range props {
+	for _, p := range properties {
 		if !required[p.Name] || p.Schema.Resolved().ReadOnly {
 			continue
 		}
@@ -51,10 +51,10 @@ func (sy synth) minimalBody(s *specmodel.Schema) (map[string]any, string) {
 // bisection allowance is sized from that. An optional field no value can
 // be derived for is left out: maximal covers what it can.
 func (sy synth) maximalBody(s *specmodel.Schema) (map[string]any, int) {
-	props, required := flatProps(s)
+	properties, required := flatProps(s)
 	body := map[string]any{}
 	optional := 0
-	for _, p := range props {
+	for _, p := range properties {
 		if p.Schema.Resolved().ReadOnly {
 			continue
 		}
@@ -185,9 +185,9 @@ func (sy synth) typeValue(field string, r *specmodel.Schema, depth int) (any, bo
 // body — depth is bounded, and the maximal claim is about the entity's own
 // attributes, not the transitive closure.
 func (sy synth) objectValue(r *specmodel.Schema, depth int) (any, bool) {
-	props, required := flatProps(r)
+	properties, required := flatProps(r)
 	out := map[string]any{}
-	for _, p := range props {
+	for _, p := range properties {
 		if !required[p.Name] || p.Schema.Resolved().ReadOnly {
 			continue
 		}
@@ -320,7 +320,7 @@ func toFloat(v any) (float64, bool) {
 // folding allOf branches in order. The first declaration of a property
 // name wins, matching how the SDK backends resolve the same collision.
 func flatProps(s *specmodel.Schema) ([]specmodel.Property, map[string]bool) {
-	var props []specmodel.Property
+	var properties []specmodel.Property
 	required := map[string]bool{}
 	seen := map[string]bool{}
 
@@ -333,7 +333,7 @@ func flatProps(s *specmodel.Schema) ([]specmodel.Property, map[string]bool) {
 		for _, p := range r.Properties {
 			if !seen[p.Name] {
 				seen[p.Name] = true
-				props = append(props, p)
+				properties = append(properties, p)
 			}
 		}
 		for _, name := range r.Required {
@@ -344,5 +344,5 @@ func flatProps(s *specmodel.Schema) ([]specmodel.Property, map[string]bool) {
 		}
 	}
 	walk(s, 0)
-	return props, required
+	return properties, required
 }

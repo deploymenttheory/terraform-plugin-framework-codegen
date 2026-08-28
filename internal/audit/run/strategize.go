@@ -35,7 +35,7 @@ import (
 // themselves, which the triangulating inference reads for the hypotheses each
 // run was meant to confirm. The input plan is left untouched: a new plan is
 // built so the caller's copy is never mutated.
-func strategize(p *plan.Plan, doc *specmodel.Document, cfg *config.Config, prefix string, inputs *plan.Inputs) (*plan.Plan, map[string]map[string]strategy.SynthHint, map[string]*strategy.Strategy) {
+func strategize(p *plan.Plan, doc *specmodel.Document, configuration *config.Config, prefix string, inputs *plan.Inputs) (*plan.Plan, map[string]map[string]strategy.SynthHint, map[string]*strategy.Strategy) {
 	cls := specmodel.Classify(doc)
 	byKey := make(map[string]specmodel.Classification, len(cls.Entities))
 	for _, c := range cls.Entities {
@@ -54,7 +54,7 @@ func strategize(p *plan.Plan, doc *specmodel.Document, cfg *config.Config, prefi
 			total += ep.Budget.Requests
 			continue
 		}
-		compiled, err := strategy.Compile(doc, class, cfg)
+		compiled, err := strategy.Compile(doc, class, configuration)
 		if err != nil {
 			out.Entities = append(out.Entities, ep)
 			total += ep.Budget.Requests
@@ -219,10 +219,10 @@ func translateProgram(compiled *strategy.Strategy, addr addressing, entity, pref
 }
 
 // collectionStep builds a create-family step against the collection path.
-func collectionStep(kind plan.StepKind, attr string, addr addressing, body map[string]any, cond *observe.Condition) plan.Step {
+func collectionStep(kind plan.StepKind, attribute string, addr addressing, body map[string]any, cond *observe.Condition) plan.Step {
 	return plan.Step{
 		Kind: kind, Method: addr.createMethod, Path: addr.collectionPath,
-		PathValues: addr.collectionValues, Attribute: attr, Body: body, Condition: cond,
+		PathValues: addr.collectionValues, Attribute: attribute, Body: body, Condition: cond,
 	}
 }
 
@@ -352,17 +352,17 @@ func synthSkeletonBody(sk strategy.Skeleton, entity, prefix, gateField, gateValu
 
 // synthField synthesises one field the adjustment loop must add live, from its
 // strategy hint when known and from its name and a string default otherwise.
-func (r *runner) synthField(ent *entityState, field string) any {
-	if v, ok := r.inputValues[ent.plan.Entity][field]; ok {
+func (r *runner) synthField(entity *entityState, field string) any {
+	if v, ok := r.inputValues[entity.plan.Entity][field]; ok {
 		return v
 	}
-	if hints := r.hints[ent.plan.Entity]; hints != nil {
+	if hints := r.hints[entity.plan.Entity]; hints != nil {
 		if h, ok := hints[field]; ok {
-			return synthValue(h, ent.plan.Entity, r.opts.NamePrefix)
+			return synthValue(h, entity.plan.Entity, r.opts.NamePrefix)
 		}
 	}
 	if plan.NameBearing(field) {
-		return nameToken(r.opts.NamePrefix, ent.plan.Entity, field)
+		return nameToken(r.opts.NamePrefix, entity.plan.Entity, field)
 	}
 	return "sample-" + field
 }
@@ -472,24 +472,24 @@ func variantValue(h strategy.SynthHint, base any) (any, bool) {
 // document forbids: a field pinned to a single legal value has no variant, and
 // probing it anyway only proves the API enforces its own schema.
 func numericVariant(h strategy.SynthHint, base any) (float64, bool) {
-	cur, ok := asFloat(base)
+	current, ok := asFloat(base)
 	if !ok {
 		// No current value to move away from: start from the low bound, or
 		// from a value no bound excludes.
 		switch {
 		case h.Minimum != nil:
-			cur = *h.Minimum
+			current = *h.Minimum
 		case h.Maximum != nil:
-			cur = *h.Maximum - 1
+			current = *h.Maximum - 1
 		default:
 			return 2, true
 		}
-		if inBounds(h, cur) {
-			return cur, true
+		if inBounds(h, current) {
+			return current, true
 		}
 		return 0, false
 	}
-	for _, cand := range []float64{cur + 1, cur - 1} {
+	for _, cand := range []float64{current + 1, current - 1} {
 		if inBounds(h, cand) {
 			return cand, true
 		}

@@ -166,10 +166,10 @@ func flatten(schema *specmodel.Schema) flat {
 // declaration wins, matching how the description and the enum fold: a later
 // branch that states the same bound states nothing new, and one that states a
 // different bound is describing a different use of the same type.
-func foldBound[T int64 | float64](dst **T, declared *T) {
-	if *dst == nil && declared != nil {
+func foldBound[T int64 | float64](destination **T, declared *T) {
+	if *destination == nil && declared != nil {
 		value := *declared
-		*dst = &value
+		*destination = &value
 	}
 }
 

@@ -39,8 +39,8 @@ const maxCycleAttempts = 8
 // It acts only when the refusal names a field the entity declares (the
 // generalized extraction) and the body carries a cyclable enum sibling; on a
 // non-strategy run, where no synthesis hints exist, it is inert.
-func (r *runner) cycleConditional(ctx context.Context, ent *entityState, rec *entityRecipe, body map[string]any, held string, refusal *httpResult, applied map[string]bool) (*createdObject, *httpResult, bool, error) {
-	hints := r.hints[ent.plan.Entity]
+func (r *runner) cycleConditional(ctx context.Context, entity *entityState, rec *entityRecipe, body map[string]any, held string, refusal *httpResult, applied map[string]bool) (*createdObject, *httpResult, bool, error) {
+	hints := r.hints[entity.plan.Entity]
 	if hints == nil || refusal == nil {
 		return nil, nil, false, nil
 	}
@@ -49,7 +49,7 @@ func (r *runner) cycleConditional(ctx context.Context, ent *entityState, rec *en
 		// conditional constraint. Give up without spending a request.
 		return nil, nil, false, nil
 	}
-	gate := r.gateFieldFor(ent)
+	gate := r.gateFieldFor(entity)
 	if gate == "" {
 		gate = held
 	}
@@ -61,28 +61,28 @@ func (r *runner) cycleConditional(ctx context.Context, ent *entityState, rec *en
 			continue
 		}
 		applied["c:"+tgt.Field] = true
-		cur := fmt.Sprint(body[tgt.Field])
+		current := fmt.Sprint(body[tgt.Field])
 
 		// The current value under the current discriminator value is what was
 		// just refused.
-		disc, cf, cv := condCoords(body, tgt.Field, held, gate)
-		r.recordConditional(ent, gate, disc, cf, cv, false)
+		discriminator, cf, cv := condCoords(body, tgt.Field, held, gate)
+		r.recordConditional(entity, gate, discriminator, cf, cv, false)
 
 		for _, v := range tgt.Enum {
 			// Compared as text because the body holds whatever JSON decoding
 			// produced, but sent as declared: the hint now keeps each enum
 			// member's type, so there is nothing left to convert.
-			if fmt.Sprint(v) == cur || attempts >= maxCycleAttempts {
+			if fmt.Sprint(v) == current || attempts >= maxCycleAttempts {
 				continue
 			}
 			attempts++
 			body[tgt.Field] = v
-			obj, res, err := r.createObject(ctx, ent, rec, body)
+			obj, res, err := r.createObject(ctx, entity, rec, body)
 			if err != nil {
 				return nil, nil, false, err
 			}
 			d2, f2, v2 := condCoords(body, tgt.Field, held, gate)
-			r.recordConditional(ent, gate, d2, f2, v2, obj != nil)
+			r.recordConditional(entity, gate, d2, f2, v2, obj != nil)
 			if obj != nil {
 				return obj, res, true, nil
 			}
@@ -91,15 +91,15 @@ func (r *runner) cycleConditional(ctx context.Context, ent *entityState, rec *en
 				break
 			}
 		}
-		body[tgt.Field] = typedGate(tgt, cur) // restore before the next target
+		body[tgt.Field] = typedGate(tgt, current) // restore before the next target
 	}
 
 	// No combination worked. Record an inconclusive edge per implicated sibling
 	// so the suspicion is visible without being asserted, and let the entity
 	// continue with the variants and probes it can still exercise.
 	for i := range targets {
-		disc, cf, _ := condCoords(body, targets[i].Field, held, gate)
-		r.recordConditionalInconclusive(ent, gate, disc, cf, refusal.excerpt)
+		discriminator, cf, _ := condCoords(body, targets[i].Field, held, gate)
+		r.recordConditionalInconclusive(entity, gate, discriminator, cf, refusal.excerpt)
 	}
 	return nil, nil, false, nil
 }
@@ -109,17 +109,17 @@ func (r *runner) cycleConditional(ctx context.Context, ent *entityState, rec *en
 // field, and its current value. When the field being cycled is the gate itself
 // (a per-enum-value step that pins a non-primary field), the constrained field
 // is the held one instead.
-func condCoords(body map[string]any, cycled, held, gate string) (disc, field, value string) {
-	disc = fmt.Sprint(body[gate])
+func condCoords(body map[string]any, cycled, held, gate string) (discriminator, field, value string) {
+	discriminator = fmt.Sprint(body[gate])
 	field = cycled
 	if cycled == gate {
 		field = held
 	}
 	if field == "" {
-		return disc, "", ""
+		return discriminator, "", ""
 	}
 	value = fmt.Sprint(body[field])
-	return disc, field, value
+	return discriminator, field, value
 }
 
 // cyclableSiblings is the sorted set of enum-typed fields present in the body
@@ -142,11 +142,11 @@ func cyclableSiblings(body map[string]any, hints map[string]strategy.SynthHint, 
 }
 
 // recordConditional appends one value-cycling outcome for the inference to read.
-func (r *runner) recordConditional(ent *entityState, gateField, gateValue, field, value string, accepted bool) {
+func (r *runner) recordConditional(entity *entityState, gateField, gateValue, field, value string, accepted bool) {
 	if gateField == "" || field == "" || value == "" {
 		return
 	}
-	ent.ev.conditionalValues = append(ent.ev.conditionalValues, infer.ConditionalValue{
+	entity.ev.conditionalValues = append(entity.ev.conditionalValues, infer.ConditionalValue{
 		GateField: gateField, GateValue: gateValue, Field: field, Value: value, Accepted: accepted,
 	})
 }
@@ -155,18 +155,18 @@ func (r *runner) recordConditional(ent *entityState, gateField, gateValue, field
 // discriminator value could not be established — value-cycling exhausted every
 // alternative without an accepted body — as an inconclusive validWhen edge. It
 // asserts nothing; it makes the untested edge visible.
-func (r *runner) recordConditionalInconclusive(ent *entityState, gateField, gateValue, subject string, ex observe.Excerpt) {
+func (r *runner) recordConditionalInconclusive(entity *entityState, gateField, gateValue, subject string, ex observe.Excerpt) {
 	if gateField == "" || gateValue == "" || subject == "" {
 		return
 	}
 	cond := &observe.Condition{Attribute: gateField, Equals: gateValue}
-	r.record(ent.plan.Entity, subject, observe.KindValidWhen, nil, cond, observe.OutcomeInconclusive, ex)
+	r.record(entity.plan.Entity, subject, observe.KindValidWhen, nil, cond, observe.OutcomeInconclusive, ex)
 }
 
 // gateFieldFor is the field the entity's strategy ranked as the likeliest
 // discriminator, or "" on a non-strategy run.
-func (r *runner) gateFieldFor(ent *entityState) string {
-	if s := r.strategies[ent.plan.Entity]; s != nil && len(s.Gates) > 0 {
+func (r *runner) gateFieldFor(entity *entityState) string {
+	if s := r.strategies[entity.plan.Entity]; s != nil && len(s.Gates) > 0 {
 		return s.Gates[0].Field
 	}
 	return ""
@@ -176,11 +176,11 @@ func (r *runner) gateFieldFor(ent *entityState) string {
 // nonetheless names a field the entity declares — a free-form conditional
 // constraint the caller should treat as captured edge-evidence rather than a
 // reason to block the whole entity.
-func (r *runner) isConditionalRefusal(ent *entityState, res *httpResult) bool {
+func (r *runner) isConditionalRefusal(entity *entityState, res *httpResult) bool {
 	if res == nil {
 		return false
 	}
-	return len(namedKnownFields(refusalMessage(res.body), r.hints[ent.plan.Entity])) > 0
+	return len(namedKnownFields(refusalMessage(res.body), r.hints[entity.plan.Entity])) > 0
 }
 
 // namedKnownFields is the generalized field extraction: it scans a refusal the
@@ -193,11 +193,11 @@ func (r *runner) isConditionalRefusal(ent *entityState, res *httpResult) bool {
 //
 // Matching is on word boundaries so a field is recognised as a whole token, not
 // as a fragment of an unrelated word.
-func namedKnownFields(msg string, known map[string]strategy.SynthHint) []string {
-	if msg == "" || len(known) == 0 {
+func namedKnownFields(message string, known map[string]strategy.SynthHint) []string {
+	if message == "" || len(known) == 0 {
 		return nil
 	}
-	low := strings.ToLower(msg)
+	low := strings.ToLower(message)
 	var out []string
 	for f := range known {
 		if f != "" && containsWord(low, strings.ToLower(f)) {

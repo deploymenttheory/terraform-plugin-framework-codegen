@@ -525,8 +525,8 @@ func autoFileFor(correctionsDir, evidence string) (string, bool, error) {
 		if err != nil {
 			return "", false, err
 		}
-		var prev correction.Correction
-		if json.Unmarshal(raw, &prev) == nil && prev.Evidence == evidence {
+		var previous correction.Correction
+		if json.Unmarshal(raw, &previous) == nil && previous.Evidence == evidence {
 			return path, true, nil
 		}
 	}
@@ -539,12 +539,12 @@ func writeCorrection(path string, corr correction.Correction) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return err
 	}
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(corr); err != nil {
 		return fmt.Errorf("encoding %s: %w", path, err)
 	}
-	return os.WriteFile(path, buf.Bytes(), 0o600)
+	return os.WriteFile(path, buffer.Bytes(), 0o600)
 }

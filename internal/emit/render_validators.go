@@ -55,20 +55,20 @@ func (vn *validatorNamer) name(base string) string {
 func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (expressions, declarations string, err error) {
 	byName := map[string]node{}
 	for _, n := range nodes {
-		byName[n.attr.Name] = n
+		byName[n.attribute.Name] = n
 	}
 	var declarationLines, expressionLines strings.Builder
 	namer := &validatorNamer{}
 
-	for _, req := range t.ConditionalRequirements {
+	for _, request := range t.ConditionalRequirements {
 		var body strings.Builder
-		if err := emitRequiredWhen(&body, byName, req); err != nil {
+		if err := emitRequiredWhen(&body, byName, request); err != nil {
 			return "", "", err
 		}
-		name := namer.name(lowerFirst(ir.GoName(req.Property)) + "RequiredWhen")
-		desc := fmt.Sprintf("%s must be set when %s is %q.",
-			strings.Join(req.Required, ", "), req.Property, req.Equals)
-		declarationLines.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
+		name := namer.name(lowerFirst(ir.GoName(request.Property)) + "RequiredWhen")
+		description := fmt.Sprintf("%s must be set when %s is %q.",
+			strings.Join(request.Required, ", "), request.Property, request.Equals)
+		declarationLines.WriteString(renderCustomValidator(name, typeName, description, body.String()))
 		fmt.Fprintf(&expressionLines, "\t\t%s{},\n", name)
 	}
 	for _, v := range t.ConditionalValidities {
@@ -77,9 +77,9 @@ func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (expre
 			return "", "", err
 		}
 		name := namer.name(lowerFirst(ir.GoName(v.Property)) + "ValidWhen")
-		desc := fmt.Sprintf("%s may be set only when %s is %q.",
+		description := fmt.Sprintf("%s may be set only when %s is %q.",
 			strings.Join(v.Valid, ", "), v.Property, v.Equals)
-		declarationLines.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
+		declarationLines.WriteString(renderCustomValidator(name, typeName, description, body.String()))
 		fmt.Fprintf(&expressionLines, "\t\t%s{},\n", name)
 	}
 	for _, vc := range t.ValidConfigurations {
@@ -88,8 +88,8 @@ func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (expre
 			return "", "", err
 		}
 		name := namer.name(lowerFirst(ir.GoName(vc.Discriminator)) + "ValidConfiguration")
-		desc := fmt.Sprintf("only the attributes each %s value admits are set.", vc.Discriminator)
-		declarationLines.WriteString(renderCustomValidator(name, typeName, desc, body.String()))
+		description := fmt.Sprintf("only the attributes each %s value admits are set.", vc.Discriminator)
+		declarationLines.WriteString(renderCustomValidator(name, typeName, description, body.String()))
 		fmt.Fprintf(&expressionLines, "\t\t%s{},\n", name)
 	}
 	for _, group := range t.MutuallyExclusiveGroups {
@@ -106,12 +106,12 @@ func configValidators(typeName string, t *ir.AttributeTree, nodes []node) (expre
 // struct implementing resource.ConfigValidator whose ValidateResource fetches
 // the config into the model and runs the edge's checks. body is the finished
 // check block, already indented for a method body.
-func renderCustomValidator(name, typeName, desc, body string) string {
+func renderCustomValidator(name, typeName, description, body string) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "// %s enforces that %s\n", name, desc)
+	fmt.Fprintf(&b, "// %s enforces that %s\n", name, description)
 	fmt.Fprintf(&b, "type %s struct{}\n\n", name)
 	fmt.Fprintf(&b, "func (v %s) Description(_ context.Context) string {\n\treturn %s\n}\n\n",
-		name, strconv.Quote(desc))
+		name, strconv.Quote(description))
 	fmt.Fprintf(&b, "func (v %s) MarkdownDescription(ctx context.Context) string {\n\treturn v.Description(ctx)\n}\n\n",
 		name)
 	fmt.Fprintf(&b, "func (v %s) ValidateResource(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {\n",
@@ -158,9 +158,9 @@ func dependencyMap(t *ir.AttributeTree, byName map[string]node) (map[string][]st
 		if _, ok := byName[dep.Attribute]; !ok {
 			return nil, fmt.Errorf("dependency names %q, which is not an attribute", dep.Attribute)
 		}
-		for _, req := range dep.Requires {
-			if _, ok := byName[req]; !ok {
-				return nil, fmt.Errorf("dependency requires %q, which is not an attribute", req)
+		for _, request := range dep.Requires {
+			if _, ok := byName[request]; !ok {
+				return nil, fmt.Errorf("dependency requires %q, which is not an attribute", request)
 			}
 		}
 		out[dep.Attribute] = append(out[dep.Attribute], dep.Requires...)
@@ -181,19 +181,19 @@ func lowerFirst(s string) string {
 
 // emitRequiredWhen renders x-tfpfgen-required-when: when the gate holds the
 // value, every dependent attribute must be set.
-func emitRequiredWhen(b *strings.Builder, byName map[string]node, req ir.ConditionalRequirement) error {
-	if err := stringGate(byName, req.Property, "conditional requirement"); err != nil {
+func emitRequiredWhen(b *strings.Builder, byName map[string]node, request ir.ConditionalRequirement) error {
+	if err := stringGate(byName, request.Property, "conditional requirement"); err != nil {
 		return err
 	}
-	fmt.Fprintf(b, "\tif data.%s.ValueString() == %s {\n", ir.GoName(req.Property), strconv.Quote(req.Equals))
-	for _, required := range req.Required {
+	fmt.Fprintf(b, "\tif data.%s.ValueString() == %s {\n", ir.GoName(request.Property), strconv.Quote(request.Equals))
+	for _, required := range request.Required {
 		target, ok := byName[required]
 		if !ok {
 			return fmt.Errorf("conditional requirement requires %q, which is not an attribute", required)
 		}
 		fmt.Fprintf(b, "\t\tif %s {\n", nullCheck(target))
 		writeError(b, "\t\t\t", required, "Missing required attribute",
-			fmt.Sprintf("%s must be set when %s is %q.", required, req.Property, req.Equals))
+			fmt.Sprintf("%s must be set when %s is %q.", required, request.Property, request.Equals))
 		b.WriteString("\t\t}\n")
 	}
 	b.WriteString("\t}\n")
@@ -241,7 +241,7 @@ func emitValidConfiguration(b *strings.Builder, byName map[string]node, vc ir.Va
 		}
 	}
 	sort.Strings(fields)
-	disc := ir.GoName(vc.Discriminator)
+	discriminator := ir.GoName(vc.Discriminator)
 	for _, f := range fields {
 		target, ok := byName[f]
 		if !ok {
@@ -249,7 +249,7 @@ func emitValidConfiguration(b *strings.Builder, byName map[string]node, vc ir.Va
 		}
 		conds := make([]string, len(allowed[f]))
 		for i, v := range allowed[f] {
-			conds[i] = fmt.Sprintf("data.%s.ValueString() != %s", disc, strconv.Quote(v))
+			conds[i] = fmt.Sprintf("data.%s.ValueString() != %s", discriminator, strconv.Quote(v))
 		}
 		fmt.Fprintf(b, "\tif %s && %s {\n", notNull(target), strings.Join(conds, " && "))
 		writeError(b, "\t\t", f, "Invalid attribute for configuration",
@@ -266,15 +266,15 @@ func stringGate(byName map[string]node, name, label string) error {
 	if !ok {
 		return fmt.Errorf("%s names %q, which is not an attribute", label, name)
 	}
-	if gate.attr.Kind != ir.TypeString || gate.attr.Nested != nil {
+	if gate.attribute.Kind != ir.TypeString || gate.attribute.Nested != nil {
 		return fmt.Errorf("%s on %q needs a string attribute", label, name)
 	}
 	return nil
 }
 
 // writeError renders one AddAttributeError call at the given indent.
-func writeError(b *strings.Builder, indent, attr, summary, detail string) {
-	fmt.Fprintf(b, "%sresp.Diagnostics.AddAttributeError(path.Root(%q),\n", indent, attr)
+func writeError(b *strings.Builder, indent, attribute, summary, detail string) {
+	fmt.Fprintf(b, "%sresp.Diagnostics.AddAttributeError(path.Root(%q),\n", indent, attribute)
 	fmt.Fprintf(b, "%s\t%s,\n", indent, strconv.Quote(summary))
 	fmt.Fprintf(b, "%s\t%s)\n", indent, strconv.Quote(detail))
 }
@@ -283,12 +283,12 @@ func writeError(b *strings.Builder, indent, attr, summary, detail string) {
 // Every field is a framework value, nested ones included, so one test
 // serves them all.
 func nullCheck(n node) string {
-	return "data." + ir.GoName(n.attr.Name) + ".IsNull()"
+	return "data." + ir.GoName(n.attribute.Name) + ".IsNull()"
 }
 
 // notNull is the present-value test, the negation of nullCheck.
 func notNull(n node) string {
-	return "!data." + ir.GoName(n.attr.Name) + ".IsNull()"
+	return "!data." + ir.GoName(n.attribute.Name) + ".IsNull()"
 }
 
 // orList renders a set of values as human prose: "a", "a or b",

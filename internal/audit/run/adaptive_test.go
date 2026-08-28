@@ -247,8 +247,8 @@ func strategyOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Op
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	cfg := strategyConfig()
-	p, err := plan.Derive(doc, cfg, nil)
+	configuration := strategyConfig()
+	p, err := plan.Derive(doc, configuration, nil)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
@@ -259,7 +259,7 @@ func strategyOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Op
 	return Options{
 		Plan:         p,
 		Doc:          doc,
-		Config:       cfg,
+		Config:       configuration,
 		BaseURL:      s.BaseURL(),
 		Auth:         Auth{Method: config.AuthBearerToken},
 		NamePrefix:   "tfpfgen",
@@ -276,13 +276,13 @@ func strategyOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Op
 // holds, for asserting cleanup.
 func collectionCount(t *testing.T, base, path, key string) int {
 	t.Helper()
-	resp, err := http.Get(base + path) //nolint:gosec,noctx // test-local server
+	response, err := http.Get(base + path) //nolint:gosec,noctx // test-local server
 	if err != nil {
 		t.Fatalf("GET %s: %v", path, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = response.Body.Close() }()
 	var env map[string][]any
-	if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
+	if err := json.NewDecoder(response.Body).Decode(&env); err != nil {
 		t.Fatalf("decode %s: %v", path, err)
 	}
 	return len(env[key])

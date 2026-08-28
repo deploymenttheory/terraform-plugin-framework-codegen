@@ -31,10 +31,10 @@ func readReport(t *testing.T, specDir string) Report {
 
 // withExcerpt attaches one excerpt to an observation, the proof a narratable
 // finding is built from.
-func withExcerpt(o observe.Observation, method, path string, status int, req, resp string) observe.Observation {
+func withExcerpt(o observe.Observation, method, path string, status int, request, response string) observe.Observation {
 	o.Excerpts = append(o.Excerpts, observe.Excerpt{
 		Method: method, PathTemplate: path, Status: status,
-		RequestFragment: json.RawMessage(req), ResponseFragment: json.RawMessage(resp),
+		RequestFragment: json.RawMessage(request), ResponseFragment: json.RawMessage(response),
 	})
 	return o
 }
@@ -72,9 +72,9 @@ func TestUnit_Report_GroupsByEntityAndKind(t *testing.T) {
 		t.Errorf("Branch = %q, want %q", got, want)
 	}
 	// Findings sort by attribute, and every one names its own file and ID.
-	var attrs []string
+	var attributes []string
 	for _, f := range defaults.Findings {
-		attrs = append(attrs, f.Attribute)
+		attributes = append(attributes, f.Attribute)
 		if f.File == "" || f.ObservationID == "" || f.Evidence == "" {
 			t.Errorf("finding %+v is missing its identity", f)
 		}
@@ -82,7 +82,7 @@ func TestUnit_Report_GroupsByEntityAndKind(t *testing.T) {
 			t.Errorf("finding %s carries no operations", f.Attribute)
 		}
 	}
-	if got, want := strings.Join(attrs, ","), "color,mode,size"; got != want {
+	if got, want := strings.Join(attributes, ","), "color,mode,size"; got != want {
 		t.Errorf("finding order = %q, want %q", got, want)
 	}
 	if len(defaults.ObservationIDs) != 3 || len(defaults.Files) != 3 {

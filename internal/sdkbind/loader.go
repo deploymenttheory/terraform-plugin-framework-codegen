@@ -22,7 +22,7 @@ var (
 // dominates the cost, so everything under the SDK directory loads in a
 // single invocation.
 type loader struct {
-	pkgs map[string]*packages.Package
+	goPackages map[string]*packages.Package
 }
 
 // loadSDK type-checks every package under sdkDir. The directory must be
@@ -30,31 +30,31 @@ type loader struct {
 // the provider module — because real type information, not a syntax scan,
 // is what the checks here need.
 func loadSDK(sdkDir string) (*loader, error) {
-	cfg := &packages.Config{
+	configuration := &packages.Config{
 		Mode: packages.NeedName | packages.NeedTypes | packages.NeedTypesInfo |
 			packages.NeedSyntax | packages.NeedImports | packages.NeedDeps,
 		Dir: sdkDir,
 	}
-	pkgs, err := packages.Load(cfg, "./...")
+	goPackages, err := packages.Load(configuration, "./...")
 	if err != nil {
 		return nil, fmt.Errorf("%w from %s: %w", ErrLoad, sdkDir, err)
 	}
-	if len(pkgs) == 0 {
+	if len(goPackages) == 0 {
 		return nil, fmt.Errorf("%w: %s resolved to no packages", ErrLoad, sdkDir)
 	}
 
-	l := &loader{pkgs: map[string]*packages.Package{}}
-	for _, pkg := range pkgs {
-		if len(pkg.Errors) != 0 {
+	l := &loader{goPackages: map[string]*packages.Package{}}
+	for _, goPackage := range goPackages {
+		if len(goPackage.Errors) != 0 {
 			// Reporting only the first is enough: they are nearly always
 			// one cause, and the full list is noise.
-			return nil, fmt.Errorf("%w: %s does not type-check: %v", ErrLoad, pkg.PkgPath, pkg.Errors[0])
+			return nil, fmt.Errorf("%w: %s does not type-check: %v", ErrLoad, goPackage.PkgPath, goPackage.Errors[0])
 		}
-		if pkg.Types == nil || pkg.Types.Scope() == nil {
-			return nil, fmt.Errorf("%w: %s carries no type information", ErrLoad, pkg.PkgPath)
+		if goPackage.Types == nil || goPackage.Types.Scope() == nil {
+			return nil, fmt.Errorf("%w: %s carries no type information", ErrLoad, goPackage.PkgPath)
 		}
-		l.pkgs[pkg.PkgPath] = pkg
-		registerDependencies(l.pkgs, pkg)
+		l.goPackages[goPackage.PkgPath] = goPackage
+		registerDependencies(l.goPackages, goPackage)
 	}
 	return l, nil
 }
@@ -70,8 +70,8 @@ func loadSDK(sdkDir string) (*loader, error) {
 // A dependency that failed to type-check is skipped rather than fatal: only
 // the SDK's own packages are held to that, and one unrelated dependency
 // must not stop the whole binding.
-func registerDependencies(index map[string]*packages.Package, pkg *packages.Package) {
-	for path, imported := range pkg.Imports {
+func registerDependencies(index map[string]*packages.Package, goPackage *packages.Package) {
+	for path, imported := range goPackage.Imports {
 		if _, seen := index[path]; seen {
 			continue
 		}
@@ -84,12 +84,12 @@ func registerDependencies(index map[string]*packages.Package, pkg *packages.Pack
 }
 
 // pkg answers one loaded package by import path.
-func (l *loader) pkg(importPath string) (*packages.Package, error) {
-	if p, ok := l.pkgs[importPath]; ok {
+func (l *loader) goPackage(importPath string) (*packages.Package, error) {
+	if p, ok := l.goPackages[importPath]; ok {
 		return p, nil
 	}
-	have := make([]string, 0, len(l.pkgs))
-	for p := range l.pkgs {
+	have := make([]string, 0, len(l.goPackages))
+	for p := range l.goPackages {
 		have = append(have, p)
 	}
 	sort.Strings(have)
@@ -99,18 +99,18 @@ func (l *loader) pkg(importPath string) (*packages.Package, error) {
 
 // lookupType returns a named type declared in importPath.
 func (l *loader) lookupType(importPath, name string) (*types.Named, error) {
-	pkg, err := l.pkg(importPath)
+	goPackage, err := l.goPackage(importPath)
 	if err != nil {
 		return nil, err
 	}
-	obj := pkg.Types.Scope().Lookup(name)
+	obj := goPackage.Types.Scope().Lookup(name)
 	if obj == nil {
 		return nil, fmt.Errorf("%w: package %s has no type %s%s",
-			ErrBindings, pkg.Name, name, didYouMean(name, typeNames(pkg)))
+			ErrBindings, goPackage.Name, name, didYouMean(name, typeNames(goPackage)))
 	}
 	named, ok := obj.Type().(*types.Named)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s.%s is not a named type", ErrBindings, pkg.Name, name)
+		return nil, fmt.Errorf("%w: %s.%s is not a named type", ErrBindings, goPackage.Name, name)
 	}
 	return named, nil
 }
@@ -119,11 +119,11 @@ func (l *loader) lookupType(importPath, name string) (*types.Named, error) {
 // name — how a minted enum's Parse companion is proven before a converter
 // names it.
 func (l *loader) functionExists(importPath, name string) bool {
-	pkg, err := l.pkg(importPath)
+	goPackage, err := l.goPackage(importPath)
 	if err != nil {
 		return false
 	}
-	obj := pkg.Types.Scope().Lookup(name)
+	obj := goPackage.Types.Scope().Lookup(name)
 	if obj == nil {
 		return false
 	}
@@ -206,10 +206,10 @@ func shortType(t types.Type) string {
 	return types.TypeString(t, func(p *types.Package) string { return p.Name() })
 }
 
-func typeNames(pkg *packages.Package) []string {
+func typeNames(goPackage *packages.Package) []string {
 	var out []string
-	for _, n := range pkg.Types.Scope().Names() {
-		if obj := pkg.Types.Scope().Lookup(n); obj != nil && obj.Exported() {
+	for _, n := range goPackage.Types.Scope().Names() {
+		if obj := goPackage.Types.Scope().Lookup(n); obj != nil && obj.Exported() {
 			if _, ok := obj.Type().(*types.Named); ok {
 				out = append(out, n)
 			}
@@ -300,11 +300,11 @@ func (l *loader) typeAndPackageFromExpr(info SDKInfo, expr string) (*types.Named
 // because more than one match is refused rather than chosen between.
 func (l *loader) packageDeclaring(qualifier, name string) (string, bool) {
 	found := ""
-	for path, pkg := range l.pkgs {
-		if pkg.Types == nil || pkg.Types.Name() != qualifier {
+	for path, goPackage := range l.goPackages {
+		if goPackage.Types == nil || goPackage.Types.Name() != qualifier {
 			continue
 		}
-		if pkg.Types.Scope().Lookup(name) == nil {
+		if goPackage.Types.Scope().Lookup(name) == nil {
 			continue
 		}
 		if found != "" {

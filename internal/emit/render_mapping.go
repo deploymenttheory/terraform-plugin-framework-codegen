@@ -39,11 +39,11 @@ func diagReturn(attrPath string) string {
 // constructLinesFor is constructLines' entry point, resolving the entity's
 // nested model names once so a decoded plan object is spelled the same here
 // as in the model declaration.
-func constructLinesFor(nodes []node, modelPrefix, src, dst, attrPrefix string, depth int, gateUpdates bool) (string, bool, error) {
-	return constructLines(newModelNamer(modelPrefix, nodes), "", nodes, src, dst, attrPrefix, depth, gateUpdates)
+func constructLinesFor(nodes []node, modelPrefix, source, destination, attrPrefix string, depth int, gateUpdates bool) (string, bool, error) {
+	return constructLines(newModelNamer(modelPrefix, nodes), "", nodes, source, destination, attrPrefix, depth, gateUpdates)
 }
 
-func constructLines(namer *modelNamer, path string, nodes []node, src, dst, attrPrefix string, depth int, gateUpdates bool) (string, bool, error) {
+func constructLines(namer *modelNamer, path string, nodes []node, source, destination, attrPrefix string, depth int, gateUpdates bool) (string, bool, error) {
 	var b strings.Builder
 	usesFmt := false
 	indent := strings.Repeat("\t", depth)
@@ -52,29 +52,29 @@ func constructLines(namer *modelNamer, path string, nodes []node, src, dst, attr
 		if n.fb == nil || n.fb.Access.Set == "" {
 			continue
 		}
-		attrPath := n.attr.Name
+		attrPath := n.attribute.Name
 		if attrPrefix != "" {
-			attrPath = attrPrefix + "." + n.attr.Name
+			attrPath = attrPrefix + "." + n.attribute.Name
 		}
 
 		var lines string
 		var err error
 		var nestedUsesFmt bool
-		if n.attr.Nested != nil {
-			lines, nestedUsesFmt, err = constructNested(namer, childPath(path, n), n, src, dst, attrPath, depth)
+		if n.attribute.Nested != nil {
+			lines, nestedUsesFmt, err = constructNested(namer, childPath(path, n), n, source, destination, attrPath, depth)
 			usesFmt = usesFmt || nestedUsesFmt
 		} else if strings.HasSuffix(n.fb.Access.ConvertSet, "MapAdditionalData") {
-			lines, err = constructAdditionalDataMap(n, src, dst, attrPath, indent)
+			lines, err = constructAdditionalDataMap(n, source, destination, attrPath, indent)
 			usesFmt = true
 		} else {
-			lines, nestedUsesFmt, err = constructScalar(n, src, dst, attrPath, indent)
+			lines, nestedUsesFmt, err = constructScalar(n, source, destination, attrPath, indent)
 			usesFmt = usesFmt || nestedUsesFmt
 		}
 		if err != nil {
 			return "", false, err
 		}
 
-		if gateUpdates && n.attr.SilentlyIgnoredOnUpdate {
+		if gateUpdates && n.attribute.SilentlyIgnoredOnUpdate {
 			guarded := indent + "if isCreate {\n" + reindent(lines, "\t") + indent + "}\n"
 			b.WriteString(guarded)
 			continue
@@ -91,13 +91,13 @@ func constructLines(namer *modelNamer, path string, nodes []node, src, dst, attr
 // Three statements rather than one call, because the value the parent setter
 // takes is the model and the value the plan holds is the map, and nothing in
 // the catalog can bridge those in one hop without naming both types.
-func constructAdditionalDataMap(n node, src, dst, attrPath, indent string) (string, error) {
+func constructAdditionalDataMap(n node, source, destination, attrPath, indent string) (string, error) {
 	plan, err := writeConvert(n.fb)
 	if err != nil {
 		return "", err
 	}
-	field := src + "." + ir.GoName(n.attr.Name)
-	local := lowerCamel(n.attr.Name) + "Map"
+	field := source + "." + ir.GoName(n.attribute.Name)
+	local := lowerCamel(n.attribute.Name) + "Map"
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "%sif !%s.IsNull() && !%s.IsUnknown() {\n", indent, field, field)
@@ -105,18 +105,18 @@ func constructAdditionalDataMap(n node, src, dst, attrPath, indent string) (stri
 	fmt.Fprintf(&b, "%s\tif err := convert.%s(ctx, %s, %s.SetAdditionalData); err != nil {\n",
 		indent, plan.fn, field, local)
 	fmt.Fprintf(&b, "%s\t\t%s\n%s\t}\n", indent, errReturn(attrPath), indent)
-	fmt.Fprintf(&b, "%s\t%s.%s(%s)\n", indent, dst, n.fb.Access.Set, local)
+	fmt.Fprintf(&b, "%s\t%s.%s(%s)\n", indent, destination, n.fb.Access.Set, local)
 	fmt.Fprintf(&b, "%s}\n", indent)
 	return b.String(), nil
 }
 
 // constructScalar renders one scalar field's write.
-func constructScalar(n node, src, dst, attrPath, indent string) (string, bool, error) {
+func constructScalar(n node, source, destination, attrPath, indent string) (string, bool, error) {
 	plan, err := writeConvert(n.fb)
 	if err != nil {
 		return "", false, err
 	}
-	call := plan.call(src+"."+ir.GoName(n.attr.Name), dst+"."+n.fb.Access.Set)
+	call := plan.call(source+"."+ir.GoName(n.attribute.Name), destination+"."+n.fb.Access.Set)
 	if plan.returnsErr {
 		return fmt.Sprintf("%sif err := %s; err != nil {\n%s\t%s\n%s}\n",
 			indent, call, indent, errReturn(attrPath), indent), true, nil
@@ -125,9 +125,9 @@ func constructScalar(n node, src, dst, attrPath, indent string) (string, bool, e
 }
 
 // constructNested renders a nested object or list-of-objects write.
-func constructNested(namer *modelNamer, path string, n node, src, dst, attrPath string, depth int) (string, bool, error) {
+func constructNested(namer *modelNamer, path string, n node, source, destination, attrPath string, depth int) (string, bool, error) {
 	indent := strings.Repeat("\t", depth)
-	field := src + "." + ir.GoName(n.attr.Name)
+	field := source + "." + ir.GoName(n.attribute.Name)
 	// Construction builds the type the setter takes. That is usually the
 	// same as the getter's, and is not when the SDK emits one model per
 	// direction.
@@ -143,12 +143,12 @@ func constructNested(namer *modelNamer, path string, n node, src, dst, attrPath 
 		deref = "*"
 	}
 
-	if n.attr.Kind == ir.TypeList {
-		listVar := lowerCamel(n.attr.Name) + "List" + depthSuffix(depth)
+	if n.attribute.Kind == ir.TypeList {
+		listVar := lowerCamel(n.attribute.Name) + "List" + depthSuffix(depth)
 		indexVar := "index" + depthSuffix(depth)
-		elemVar := lowerCamel(n.attr.Name) + "Element" + depthSuffix(depth)
+		elemVar := lowerCamel(n.attribute.Name) + "Element" + depthSuffix(depth)
 
-		modelsVar := lowerCamel(n.attr.Name) + "Models" + depthSuffix(depth)
+		modelsVar := lowerCamel(n.attribute.Name) + "Models" + depthSuffix(depth)
 		inner, _, err := constructLines(namer, path, n.children, modelsVar+"["+indexVar+"]", elemVar, attrPath, depth+2, false)
 		if err != nil {
 			return "", false, err
@@ -174,7 +174,7 @@ func constructNested(namer *modelNamer, path string, n node, src, dst, attrPath 
 		b.WriteString(inner)
 		fmt.Fprintf(&b, "%s\t\t%s = append(%s, %s%s)\n", indent, listVar, listVar, deref, elemVar)
 		fmt.Fprintf(&b, "%s\t}\n", indent)
-		fmt.Fprintf(&b, "%s\t%s.%s(%s)\n", indent, dst, n.fb.Access.Set, listVar)
+		fmt.Fprintf(&b, "%s\t%s.%s(%s)\n", indent, destination, n.fb.Access.Set, listVar)
 		fmt.Fprintf(&b, "%s}\n", indent)
 		return b.String(), true, nil
 	}
@@ -183,8 +183,8 @@ func constructNested(namer *modelNamer, path string, n node, src, dst, attrPath 
 	if writeType == n.fb.NestedWriteModel {
 		singleDeref = "*"
 	}
-	nestedVar := lowerCamel(n.attr.Name) + "Body" + depthSuffix(depth)
-	modelVar := lowerCamel(n.attr.Name) + "Model" + depthSuffix(depth)
+	nestedVar := lowerCamel(n.attribute.Name) + "Body" + depthSuffix(depth)
+	modelVar := lowerCamel(n.attribute.Name) + "Model" + depthSuffix(depth)
 	inner, _, err := constructLines(namer, path, n.children, modelVar, nestedVar, attrPath, depth+1, false)
 	if err != nil {
 		return "", false, err
@@ -203,7 +203,7 @@ func constructNested(namer *modelNamer, path string, n node, src, dst, attrPath 
 	fmt.Fprintf(&b, "%s\t\t%s\n%s\t}\n", indent, diagReturn(attrPath), indent)
 	fmt.Fprintf(&b, "%s\t%s := %s\n", indent, nestedVar, n.fb.NestedConstructor)
 	b.WriteString(inner)
-	fmt.Fprintf(&b, "%s\t%s.%s(%s%s)\n", indent, dst, n.fb.Access.Set, singleDeref, nestedVar)
+	fmt.Fprintf(&b, "%s\t%s.%s(%s%s)\n", indent, destination, n.fb.Access.Set, singleDeref, nestedVar)
 	fmt.Fprintf(&b, "%s}\n", indent)
 	return b.String(), true, nil
 }
@@ -211,8 +211,8 @@ func constructNested(namer *modelNamer, path string, n node, src, dst, attrPath 
 // stateLines renders the body statements mapping one level of SDK fields
 // onto the framework model. src is the readable SDK value ("remote"),
 // dst the model expression ("data", "rulesElement").
-func stateLines(nodes []node, modelPrefix string, src, dst string, depth int) (string, error) {
-	return stateLinesWith(newModelNamer(modelPrefix, nodes), "", nodes, src, dst, depth)
+func stateLines(nodes []node, modelPrefix string, source, destination string, depth int) (string, error) {
+	return stateLinesWith(newModelNamer(modelPrefix, nodes), "", nodes, source, destination, depth)
 }
 
 // stateLinesWith is stateLines' recursion, carrying the entity's resolved
@@ -220,7 +220,7 @@ func stateLines(nodes []node, modelPrefix string, src, dst string, depth int) (s
 // generated code — the struct declarations and these assignments — name a
 // nested model through the one namer, so a collision-qualified struct is
 // spelled identically in each.
-func stateLinesWith(namer *modelNamer, path string, nodes []node, src, dst string, depth int) (string, error) {
+func stateLinesWith(namer *modelNamer, path string, nodes []node, source, destination string, depth int) (string, error) {
 	var b strings.Builder
 	indent := strings.Repeat("\t", depth)
 
@@ -228,8 +228,8 @@ func stateLinesWith(namer *modelNamer, path string, nodes []node, src, dst strin
 		if n.fb == nil || n.fb.Access.Get == "" {
 			continue
 		}
-		if n.attr.Nested != nil {
-			lines, err := stateNested(namer, childPath(path, n), n, src, dst, depth)
+		if n.attribute.Nested != nil {
+			lines, err := stateNested(namer, childPath(path, n), n, source, destination, depth)
 			if err != nil {
 				return "", err
 			}
@@ -241,22 +241,22 @@ func stateLinesWith(namer *modelNamer, path string, nodes []node, src, dst strin
 			return "", err
 		}
 		fmt.Fprintf(&b, "%s%s.%s = convert.%s(%s.%s())\n",
-			indent, dst, ir.GoName(n.attr.Name), fn, src, n.fb.Access.Get)
+			indent, destination, ir.GoName(n.attribute.Name), fn, source, n.fb.Access.Get)
 	}
 	return b.String(), nil
 }
 
 // stateNested renders a nested object or list-of-objects read.
-func stateNested(namer *modelNamer, path string, n node, src, dst string, depth int) (string, error) {
+func stateNested(namer *modelNamer, path string, n node, source, destination string, depth int) (string, error) {
 	indent := strings.Repeat("\t", depth)
-	field := dst + "." + ir.GoName(n.attr.Name)
+	field := destination + "." + ir.GoName(n.attribute.Name)
 	modelType := namer.name(path)
 
-	if n.attr.Kind == ir.TypeList {
+	if n.attribute.Kind == ir.TypeList {
 		elementsVar := "elements" + depthSuffix(depth)
 		indexVar := "index" + depthSuffix(depth)
-		listVar := lowerCamel(n.attr.Name) + "List" + depthSuffix(depth)
-		elemVar := lowerCamel(n.attr.Name) + "Element" + depthSuffix(depth)
+		listVar := lowerCamel(n.attribute.Name) + "List" + depthSuffix(depth)
+		elemVar := lowerCamel(n.attribute.Name) + "Element" + depthSuffix(depth)
 
 		inner, err := stateLinesWith(namer, path, n.children, elementsVar+"["+indexVar+"]", elemVar, depth+2)
 		if err != nil {
@@ -264,15 +264,15 @@ func stateNested(namer *modelNamer, path string, n node, src, dst string, depth 
 		}
 
 		var b strings.Builder
-		fmt.Fprintf(&b, "%sif %s := %s.%s(); %s != nil {\n", indent, elementsVar, src, n.fb.Access.Get, elementsVar)
+		fmt.Fprintf(&b, "%sif %s := %s.%s(); %s != nil {\n", indent, elementsVar, source, n.fb.Access.Get, elementsVar)
 		fmt.Fprintf(&b, "%s\t%s := make([]%s, 0, len(%s))\n", indent, listVar, modelType, elementsVar)
 		fmt.Fprintf(&b, "%s\tfor %s := range %s {\n", indent, indexVar, elementsVar)
 		fmt.Fprintf(&b, "%s\t\t%s := %s{}\n", indent, elemVar, modelType)
 		b.WriteString(inner)
 		fmt.Fprintf(&b, "%s\t\t%s = append(%s, %s)\n", indent, listVar, listVar, elemVar)
 		fmt.Fprintf(&b, "%s\t}\n", indent)
-		valueName := lowerCamel(n.attr.Name) + "Value" + depthSuffix(depth)
-		diagsName := lowerCamel(n.attr.Name) + "Diags" + depthSuffix(depth)
+		valueName := lowerCamel(n.attribute.Name) + "Value" + depthSuffix(depth)
+		diagsName := lowerCamel(n.attribute.Name) + "Diags" + depthSuffix(depth)
 		elemType := nestedObjectType(namer, path)
 		fmt.Fprintf(&b, "%s\t%s, %s := types.ListValueFrom(ctx, %s, %s)\n",
 			indent, valueName, diagsName, elemType, listVar)
@@ -284,7 +284,7 @@ func stateNested(namer *modelNamer, path string, n node, src, dst string, depth 
 	}
 
 	valueVar := "value" + depthSuffix(depth)
-	nestedVar := lowerCamel(n.attr.Name) + "State" + depthSuffix(depth)
+	nestedVar := lowerCamel(n.attribute.Name) + "State" + depthSuffix(depth)
 	inner, err := stateLinesWith(namer, path, n.children, valueVar, nestedVar, depth+1)
 	if err != nil {
 		return "", err
@@ -299,12 +299,12 @@ func stateNested(namer *modelNamer, path string, n node, src, dst string, depth 
 
 	var b strings.Builder
 	if nilable {
-		fmt.Fprintf(&b, "%sif %s := %s.%s(); %s != nil {\n", indent, valueVar, src, n.fb.Access.Get, valueVar)
+		fmt.Fprintf(&b, "%sif %s := %s.%s(); %s != nil {\n", indent, valueVar, source, n.fb.Access.Get, valueVar)
 	} else {
-		fmt.Fprintf(&b, "%s{\n%s\t%s := %s.%s()\n", indent, indent, valueVar, src, n.fb.Access.Get)
+		fmt.Fprintf(&b, "%s{\n%s\t%s := %s.%s()\n", indent, indent, valueVar, source, n.fb.Access.Get)
 	}
-	valueName := lowerCamel(n.attr.Name) + "Value" + depthSuffix(depth)
-	diagsName := lowerCamel(n.attr.Name) + "Diags" + depthSuffix(depth)
+	valueName := lowerCamel(n.attribute.Name) + "Value" + depthSuffix(depth)
+	diagsName := lowerCamel(n.attribute.Name) + "Diags" + depthSuffix(depth)
 	fmt.Fprintf(&b, "%s\t%s := %s{}\n", indent, nestedVar, modelType)
 	b.WriteString(inner)
 	fmt.Fprintf(&b, "%s\t%s, %s := types.ObjectValueFrom(ctx, %s(), %s)\n",
@@ -412,7 +412,7 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 		if err != nil {
 			return finalisedAPIRequest{}, err
 		}
-		declaration, needs, err := parameterDeclaration(p, modelVar, ir.GoName(n.attr.Name), n.attr.Kind, n.attr.Name, fail)
+		declaration, needs, err := parameterDeclaration(p, modelVar, ir.GoName(n.attribute.Name), n.attribute.Kind, n.attribute.Name, fail)
 		if err != nil {
 			return finalisedAPIRequest{}, err
 		}
@@ -464,7 +464,7 @@ func parameterField(p sdkbind.CallParameter, nodes []node, idFallback bool) (str
 	if err != nil {
 		return "", err
 	}
-	return ir.GoName(n.attr.Name), nil
+	return ir.GoName(n.attribute.Name), nil
 }
 
 // parameterNode is paramField's answer before it is reduced to a spelling: the
@@ -475,19 +475,19 @@ func parameterNode(p sdkbind.CallParameter, nodes []node, idFallback bool) (node
 	// the same way — a repository's owner block beside the owner segment of
 	// its path — and reading a value out of it does not compile.
 	for _, n := range nodes {
-		if n.attr.WireName == p.Wire && n.attr.Nested == nil {
+		if n.attribute.WireName == p.Wire && n.attribute.Nested == nil {
 			return n, nil
 		}
 	}
 	snake := ir.TerraformName(p.Wire)
 	for _, n := range nodes {
-		if n.attr.Name == snake && n.attr.Nested == nil {
+		if n.attribute.Name == snake && n.attribute.Nested == nil {
 			return n, nil
 		}
 	}
 	if idFallback {
 		for _, n := range nodes {
-			if n.attr.Name == idAttributeName && n.attr.Nested == nil {
+			if n.attribute.Name == idAttributeName && n.attribute.Nested == nil {
 				return n, nil
 			}
 		}
@@ -505,10 +505,10 @@ func parameterNode(p sdkbind.CallParameter, nodes []node, idFallback bool) (node
 func namesAnAttribute(p sdkbind.CallParameter, nodes []node) bool {
 	snake := ir.TerraformName(p.Wire)
 	for _, n := range nodes {
-		if n.attr.Nested != nil {
+		if n.attribute.Nested != nil {
 			continue
 		}
-		if n.attr.WireName == p.Wire || n.attr.Name == snake {
+		if n.attribute.WireName == p.Wire || n.attribute.Name == snake {
 			return true
 		}
 	}
@@ -677,8 +677,8 @@ func integerParsedParameters(call *sdkbind.Call, nodes []node) map[string]bool {
 		if err != nil {
 			continue
 		}
-		if n.attr.Kind == ir.TypeString && isIntegerType(p.GoType) {
-			out[n.attr.Name] = true
+		if n.attribute.Kind == ir.TypeString && isIntegerType(p.GoType) {
+			out[n.attribute.Name] = true
 		}
 	}
 	return out

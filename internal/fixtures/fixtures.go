@@ -200,8 +200,8 @@ func (s *Fixture) applyVariant(tree *ir.AttributeTree) {
 
 	// The discriminator's own value must name the chosen variant, or the gated
 	// config would set fields the discriminator's value forbids.
-	if disc := s.entry(m.discriminator); disc != nil {
-		disc.Scalar = value
+	if discriminator := s.entry(m.discriminator); discriminator != nil {
+		discriminator.Scalar = value
 	}
 }
 

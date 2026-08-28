@@ -25,13 +25,13 @@ const validatorPackageRoot = "github.com/hashicorp/terraform-plugin-framework-va
 // Nothing here registers an import; each expression carries the packages it
 // references, and validatorLines is the single place those are honoured.
 func constraintValidators(n node) []code.CustomValidator {
-	kind := n.attr.Kind
+	kind := n.attribute.Kind
 	switch {
 	case kind == ir.TypeList || kind == ir.TypeMap:
 		// A size bound applies to the collection whether its elements are
 		// scalars or objects, so this is deliberately not gated on Nested.
 		return sizeValidators(n)
-	case n.attr.Nested != nil:
+	case n.attribute.Nested != nil:
 		// An object declaring a length or a range is declaring it about
 		// something this attribute does not hold.
 		return nil
@@ -51,10 +51,10 @@ func constraintValidators(n node) []code.CustomValidator {
 func stringValidators(n node) []code.CustomValidator {
 	var out []code.CustomValidator
 
-	if call, ok := boundCall("UTF8Length", "", n.attr.MinLength, n.attr.MaxLength); ok {
+	if call, ok := boundCall("UTF8Length", "", n.attribute.MinLength, n.attribute.MaxLength); ok {
 		out = append(out, stockValidator("stringvalidator", call))
 	}
-	if pattern := n.attr.Pattern; pattern != "" {
+	if pattern := n.attribute.Pattern; pattern != "" {
 		if expression, ok := regexLiteral(pattern); ok {
 			out = append(out, code.CustomValidator{
 				Imports: []code.Import{
@@ -72,12 +72,12 @@ func stringValidators(n node) []code.CustomValidator {
 // numericValidators is the declared range, rendered against the attribute's
 // own type so the literal the validator takes is the one it compares with.
 func numericValidators(n node) []code.CustomValidator {
-	pkg := "float64validator"
+	goPackage := "float64validator"
 	format := func(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
-	minimum, maximum := n.attr.Minimum, n.attr.Maximum
+	minimum, maximum := n.attribute.Minimum, n.attribute.Maximum
 
-	if n.attr.Kind == ir.TypeInt64 {
-		pkg = "int64validator"
+	if n.attribute.Kind == ir.TypeInt64 {
+		goPackage = "int64validator"
 		format = func(v float64) string { return strconv.FormatInt(int64(v), 10) }
 		// A fractional bound on an integer attribute describes a value the
 		// attribute cannot hold. Truncating it would silently move the
@@ -87,19 +87,19 @@ func numericValidators(n node) []code.CustomValidator {
 
 	var out []code.CustomValidator
 	if call, ok := boundCall("", "", formatted(minimum, format), formatted(maximum, format)); ok {
-		out = append(out, stockValidator(pkg, call))
+		out = append(out, stockValidator(goPackage, call))
 	}
 	return out
 }
 
 // sizeValidators is the declared member-count range of a list or a map.
 func sizeValidators(n node) []code.CustomValidator {
-	pkg := "listvalidator"
-	if n.attr.Kind == ir.TypeMap {
-		pkg = "mapvalidator"
+	goPackage := "listvalidator"
+	if n.attribute.Kind == ir.TypeMap {
+		goPackage = "mapvalidator"
 	}
-	if call, ok := boundCall("Size", "Size", n.attr.MinItems, n.attr.MaxItems); ok {
-		return []code.CustomValidator{stockValidator(pkg, call)}
+	if call, ok := boundCall("Size", "Size", n.attribute.MinItems, n.attribute.MaxItems); ok {
+		return []code.CustomValidator{stockValidator(goPackage, call)}
 	}
 	return nil
 }
@@ -129,10 +129,10 @@ func boundCall[T int64 | string](prefix, betweenPrefix string, minimum, maximum 
 
 // stockValidator is one validator from a stock package, carrying that
 // package as its only import.
-func stockValidator(pkg, call string) code.CustomValidator {
+func stockValidator(goPackage, call string) code.CustomValidator {
 	return code.CustomValidator{
-		Imports:          []code.Import{{Path: validatorPackageRoot + pkg}},
-		SchemaDefinition: pkg + "." + call,
+		Imports:          []code.Import{{Path: validatorPackageRoot + goPackage}},
+		SchemaDefinition: goPackage + "." + call,
 	}
 }
 

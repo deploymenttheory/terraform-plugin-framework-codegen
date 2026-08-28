@@ -28,9 +28,9 @@ func testConfig(exclude ...string) *config.Config {
 }
 
 // mustDerive derives or ends the test.
-func mustDerive(t *testing.T, doc string, cfg *config.Config) *Model {
+func mustDerive(t *testing.T, doc string, configuration *config.Config) *Model {
 	t.Helper()
-	m, err := Derive(mustLoad(t, doc), cfg)
+	m, err := Derive(mustLoad(t, doc), configuration)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}

@@ -101,16 +101,16 @@ func moduleLine(data []byte) string {
 
 // copyTree copies every regular file under src to the same relative path
 // under dst.
-func copyTree(src, dst string) error {
-	return filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
+func copyTree(source, destination string) error {
+	return filepath.WalkDir(source, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		rel, err := filepath.Rel(src, p)
+		rel, err := filepath.Rel(source, p)
 		if err != nil {
 			return err
 		}
-		target := filepath.Join(dst, rel)
+		target := filepath.Join(destination, rel)
 		if d.IsDir() {
 			return os.MkdirAll(target, 0o750)
 		}

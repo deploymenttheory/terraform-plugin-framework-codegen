@@ -132,12 +132,12 @@ func render(pc ProviderCore, source, partial, body string) ([]byte, error) {
 		return nil, fmt.Errorf("parsing %s: %w", source, err)
 	}
 
-	var buf bytes.Buffer
-	if err := t.Execute(&buf, view{ProviderCore: pc, Source: source}); err != nil {
+	var buffer bytes.Buffer
+	if err := t.Execute(&buffer, view{ProviderCore: pc, Source: source}); err != nil {
 		return nil, fmt.Errorf("rendering %s: %w", source, err)
 	}
 
-	return squeezeBlankLines(buf.Bytes()), nil
+	return squeezeBlankLines(buffer.Bytes()), nil
 }
 
 // squeezeBlankLines is the blank-line bookkeeping RenderProviderCore

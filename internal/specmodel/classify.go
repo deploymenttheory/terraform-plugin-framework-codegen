@@ -157,9 +157,9 @@ type entity struct {
 // on the item read, update and delete. A second claimant for a role, or a
 // method in no role's position, lands in extra rather than being dropped.
 func (e *entity) assign(op *Operation, isItem bool) {
-	slot := func(dst **Operation) {
-		if *dst == nil {
-			*dst = op
+	slot := func(destination **Operation) {
+		if *destination == nil {
+			*destination = op
 			return
 		}
 		e.extra = append(e.extra, op)

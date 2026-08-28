@@ -148,9 +148,9 @@ func (m Manifest) EntriesNotOf(origin string) []Entry {
 
 // Marshal renders the manifest as canonical JSON with a trailing newline.
 func Marshal(m Manifest) ([]byte, error) {
-	var buf bytes.Buffer
+	var buffer bytes.Buffer
 
-	enc := json.NewEncoder(&buf)
+	enc := json.NewEncoder(&buffer)
 	enc.SetIndent("", "  ")
 	enc.SetEscapeHTML(false)
 
@@ -158,7 +158,7 @@ func Marshal(m Manifest) ([]byte, error) {
 		return nil, fmt.Errorf("encoding manifest: %w", err)
 	}
 
-	return buf.Bytes(), nil
+	return buffer.Bytes(), nil
 }
 
 // Load reads a manifest from a provider root.

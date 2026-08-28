@@ -36,29 +36,31 @@ type kiotaBackend struct{}
 
 func (kiotaBackend) Name() string { return config.BackendKiota }
 
-func (kiotaBackend) RequiredVersion(cfg *config.Config) string { return cfg.SDK.BackendVersion }
+func (kiotaBackend) RequiredVersion(configuration *config.Config) string {
+	return configuration.SDK.BackendVersion
+}
 
-func (b kiotaBackend) CheckTool(ctx context.Context, cfg *config.Config) error {
+func (b kiotaBackend) CheckTool(ctx context.Context, configuration *config.Config) error {
 	if _, err := exec.LookPath("kiota"); err != nil {
 		return fmt.Errorf("kiota is not on PATH; install the pinned %s (e.g. `brew install kiota`, or the "+
 			"release archive from github.com/microsoft/kiota/releases) — the toolkit never downloads tools: %w",
-			b.RequiredVersion(cfg), err)
+			b.RequiredVersion(configuration), err)
 	}
 	have, err := toolVersion(ctx, "kiota", kiotaEnv, "--version")
 	if err != nil {
 		return err
 	}
-	return refuseVersionMismatch("kiota", have, b.RequiredVersion(cfg))
+	return refuseVersionMismatch("kiota", have, b.RequiredVersion(configuration))
 }
 
-func (kiotaBackend) Generate(ctx context.Context, revisedSpecPath string, cfg *config.Config, outDir string) error {
+func (kiotaBackend) Generate(ctx context.Context, revisedSpecPath string, configuration *config.Config, outDir string) error {
 	// The root namespace must be the import path the provider module gives
 	// the SDK tree, or kiota's generated cross-package imports ("<ns>/things",
 	// "<ns>/models") resolve nowhere. emit owns that spelling — module path
 	// plus internal/sdk — and deriving it here keeps one definition site.
 	// Without the flag kiota defaults to "ApiSdk", which type-checks in no
 	// provider repo.
-	pc, err := emit.FromConfig(cfg, "")
+	pc, err := emit.FromConfig(configuration, "")
 	if err != nil {
 		return err
 	}
@@ -68,7 +70,7 @@ func (kiotaBackend) Generate(ctx context.Context, revisedSpecPath string, cfg *c
 		"--language", "go",
 		"--openapi", revisedSpecPath,
 		"--output", outDir,
-		"--class-name", cfg.SDK.ClientTypeName,
+		"--class-name", configuration.SDK.ClientTypeName,
 		"--namespace-name", pc.SDKImport,
 		// The deprecated string indexers double the surface for nothing a
 		// generated provider would ever call.
@@ -77,10 +79,10 @@ func (kiotaBackend) Generate(ctx context.Context, revisedSpecPath string, cfg *c
 		// that a property of the invocation rather than of the caller.
 		"--clean-output",
 	}
-	for _, g := range cfg.SDK.IncludePaths {
+	for _, g := range configuration.SDK.IncludePaths {
 		args = append(args, "--include-path", g)
 	}
-	for _, g := range cfg.SDK.ExcludePaths {
+	for _, g := range configuration.SDK.ExcludePaths {
 		args = append(args, "--exclude-path", g)
 	}
 

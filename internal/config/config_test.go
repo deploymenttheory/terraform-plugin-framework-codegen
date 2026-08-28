@@ -108,12 +108,12 @@ func TestUnit_Config_GoldenTable(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cfg, err := Parse([]byte(tc.yaml), "tfpfgen.yaml")
+			configuration, err := Parse([]byte(tc.yaml), "tfpfgen.yaml")
 			if tc.wantErr == "" {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
-				if cfg == nil {
+				if configuration == nil {
 					t.Fatal("nil config without error")
 				}
 				return
@@ -182,28 +182,28 @@ auth:
 }
 
 func TestUnit_Config_DefaultsSurviveDecode(t *testing.T) {
-	cfg, err := Parse([]byte(valid), "tfpfgen.yaml")
+	configuration, err := Parse([]byte(valid), "tfpfgen.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.SDK.ClientTypeName != "APIClient" {
-		t.Errorf("client_type_name default = %q, want APIClient", cfg.SDK.ClientTypeName)
+	if configuration.SDK.ClientTypeName != "APIClient" {
+		t.Errorf("client_type_name default = %q, want APIClient", configuration.SDK.ClientTypeName)
 	}
-	if !cfg.Audit.Enabled || cfg.Audit.NamePrefix != "tfpfgen" || cfg.Audit.MaxObjects != 25 || cfg.Audit.RateLimitRPS != 2 {
-		t.Errorf("audit defaults = %+v", cfg.Audit)
+	if !configuration.Audit.Enabled || configuration.Audit.NamePrefix != "tfpfgen" || configuration.Audit.MaxObjects != 25 || configuration.Audit.RateLimitRPS != 2 {
+		t.Errorf("audit defaults = %+v", configuration.Audit)
 	}
 }
 
 func TestUnit_Config_ExplicitValuesOverrideDefaults(t *testing.T) {
-	cfg, err := Parse([]byte(valid+"audit:\n  enabled: false\n  max_objects: 3\n"), "tfpfgen.yaml")
+	configuration, err := Parse([]byte(valid+"audit:\n  enabled: false\n  max_objects: 3\n"), "tfpfgen.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Audit.Enabled {
+	if configuration.Audit.Enabled {
 		t.Error("audit.enabled: false did not override the default")
 	}
-	if cfg.Audit.MaxObjects != 3 {
-		t.Errorf("audit.max_objects = %d, want 3", cfg.Audit.MaxObjects)
+	if configuration.Audit.MaxObjects != 3 {
+		t.Errorf("audit.max_objects = %d, want 3", configuration.Audit.MaxObjects)
 	}
 }
 

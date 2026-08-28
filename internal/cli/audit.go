@@ -59,31 +59,31 @@ func newAuditRunCommand() *cobra.Command {
 			"responsibility.",
 		Args: exactArgs("tfpfgen audit run [--dir spec] [--config tfpfgen.yaml] [--out audit/observations] [--base-url URL] [--force-api-audit]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, p, doc, inputs, lock, err := auditPlan(dir, cfgFile)
+			configuration, p, doc, inputs, lock, err := auditPlan(dir, cfgFile)
 			if err != nil {
 				return err
 			}
-			base, err := auditBaseURL(baseURL, cfg, dir)
+			base, err := auditBaseURL(baseURL, configuration, dir)
 			if err != nil {
 				return err
 			}
-			if missing := config.MissingSecrets(cfg.Auth.Method, os.LookupEnv); len(missing) > 0 {
-				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", cfg.Auth.Method, missing)
+			if missing := config.MissingSecrets(configuration.Auth.Method, os.LookupEnv); len(missing) > 0 {
+				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", configuration.Auth.Method, missing)
 			}
 
 			obs, sum, runErr := auditrun.Run(cmd.Context(), auditrun.Options{
 				Plan:    p,
 				Doc:     doc,
-				Config:  cfg,
+				Config:  configuration,
 				Inputs:  inputs,
 				BaseURL: base,
 				Auth: auditrun.Auth{
-					Method:       cfg.Auth.Method,
-					APIKeyHeader: cfg.Auth.APIKeyHeader,
-					TokenURL:     cfg.Auth.TokenURL,
+					Method:       configuration.Auth.Method,
+					APIKeyHeader: configuration.Auth.APIKeyHeader,
+					TokenURL:     configuration.Auth.TokenURL,
 				},
-				NamePrefix:    cfg.Audit.NamePrefix,
-				RateLimitRPS:  cfg.Audit.RateLimitRPS,
+				NamePrefix:    configuration.Audit.NamePrefix,
+				RateLimitRPS:  configuration.Audit.RateLimitRPS,
 				RunsDir:       auditRunsDir,
 				SpecHash:      lock.SHA256,
 				ForceAPIAudit: forceAPIAudit,
@@ -153,31 +153,31 @@ func newAuditCleanupCommand() *cobra.Command {
 		Short: "delete the live test objects a previous audit left behind",
 		Args:  exactArgs("tfpfgen audit cleanup [--dir spec] [--config tfpfgen.yaml] [--base-url URL] [--prefix NAME]"),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, p, _, _, _, err := auditPlan(dir, cfgFile)
+			configuration, p, _, _, _, err := auditPlan(dir, cfgFile)
 			if err != nil {
 				return err
 			}
-			base, err := auditBaseURL(baseURL, cfg, dir)
+			base, err := auditBaseURL(baseURL, configuration, dir)
 			if err != nil {
 				return err
 			}
 			if prefix == "" {
-				prefix = cfg.Audit.NamePrefix
+				prefix = configuration.Audit.NamePrefix
 			}
-			if missing := config.MissingSecrets(cfg.Auth.Method, os.LookupEnv); len(missing) > 0 {
-				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", cfg.Auth.Method, missing)
+			if missing := config.MissingSecrets(configuration.Auth.Method, os.LookupEnv); len(missing) > 0 {
+				return fmt.Errorf("auth.method %s needs secrets that are not set: %v", configuration.Auth.Method, missing)
 			}
 
 			sum, err := auditrun.Cleanup(cmd.Context(), auditrun.Options{
 				Plan:    p,
 				BaseURL: base,
 				Auth: auditrun.Auth{
-					Method:       cfg.Auth.Method,
-					APIKeyHeader: cfg.Auth.APIKeyHeader,
-					TokenURL:     cfg.Auth.TokenURL,
+					Method:       configuration.Auth.Method,
+					APIKeyHeader: configuration.Auth.APIKeyHeader,
+					TokenURL:     configuration.Auth.TokenURL,
 				},
 				NamePrefix:   prefix,
-				RateLimitRPS: cfg.Audit.RateLimitRPS,
+				RateLimitRPS: configuration.Audit.RateLimitRPS,
 				RunsDir:      auditRunsDir,
 				Logger:       auditLogger(cmd.ErrOrStderr()),
 			})
@@ -206,11 +206,11 @@ func newAuditCleanupCommand() *cobra.Command {
 // skip from them, and their values reach the wire only through the run, which
 // rebuilds every body the plan derived.
 func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Document, *plan.Inputs, store.Lock, error) {
-	cfg, err := config.Load(cfgFile)
+	configuration, err := config.Load(cfgFile)
 	if err != nil {
 		return nil, nil, nil, nil, store.Lock{}, err
 	}
-	if !cfg.Audit.Enabled {
+	if !configuration.Audit.Enabled {
 		return nil, nil, nil, nil, store.Lock{}, fmt.Errorf("audit.enabled is false in %s; nothing to do", cfgFile)
 	}
 
@@ -237,21 +237,21 @@ func auditPlan(dir, cfgFile string) (*config.Config, *plan.Plan, *specmodel.Docu
 		return nil, nil, nil, nil, store.Lock{}, err
 	}
 
-	p, err := plan.Derive(doc, cfg, inputs)
+	p, err := plan.Derive(doc, configuration, inputs)
 	if err != nil {
 		return nil, nil, nil, nil, store.Lock{}, err
 	}
-	return cfg, p, doc, inputs, lock, nil
+	return configuration, p, doc, inputs, lock, nil
 }
 
 // auditBaseURL picks the audited API's root: the flag, then the config
 // override, then the document's first declared server.
-func auditBaseURL(flag string, cfg *config.Config, dir string) (string, error) {
+func auditBaseURL(flag string, configuration *config.Config, dir string) (string, error) {
 	if flag != "" {
 		return flag, nil
 	}
-	if cfg.Audit.BaseURLOverride != "" {
-		return cfg.Audit.BaseURLOverride, nil
+	if configuration.Audit.BaseURLOverride != "" {
+		return configuration.Audit.BaseURLOverride, nil
 	}
 	if data, _, err := auditSpecBytes(dir); err == nil {
 		if doc, err := specmodel.Load(data); err == nil && len(doc.Servers) > 0 && doc.Servers[0].URL != "" {

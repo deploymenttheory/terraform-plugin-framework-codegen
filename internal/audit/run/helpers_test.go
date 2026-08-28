@@ -148,10 +148,10 @@ func derivedPlan(t *testing.T) *plan.Plan {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	cfg := &config.Config{
+	configuration := &config.Config{
 		Audit: config.Audit{NamePrefix: "tfpfgen", MaxObjects: 25, RateLimitRPS: 2},
 	}
-	p, err := plan.Derive(doc, cfg, nil)
+	p, err := plan.Derive(doc, configuration, nil)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}

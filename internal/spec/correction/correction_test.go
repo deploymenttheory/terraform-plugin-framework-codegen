@@ -121,22 +121,22 @@ func TestUnit_Correction_OrdersManyContainerAddsBeforeTheirDescendants(t *testin
 		return Correction{File: file, Justification: "serverDefault",
 			Operations: []Operation{{Op: "add", Path: "/components/schemas/T/properties/" + name + "/default", Value: val}}}
 	}
-	prop := func(file, name string) Correction {
+	property := func(file, name string) Correction {
 		return Correction{File: file, Justification: "undocumentedFieldInSpec",
 			Operations: []Operation{{Op: "add", Path: "/components/schemas/T/properties/" + name, Value: map[string]any{"type": "string"}}}}
 	}
 	corrections := []Correction{
 		def("001-a", "a", "a-def"), def("002-b", "b", "b-def"), def("003-c", "c", "c-def"),
-		prop("010-a", "a"), prop("011-b", "b"), prop("012-c", "c"),
+		property("010-a", "a"), property("011-b", "b"), property("012-c", "c"),
 	}
 
 	out, err := Apply([]byte(containerSpec), corrections)
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
-	props := propsOf(t, decode(t, out))
+	properties := propsOf(t, decode(t, out))
 	for _, name := range []string{"a", "b", "c"} {
-		p, ok := props[name].(map[string]any)
+		p, ok := properties[name].(map[string]any)
 		if !ok {
 			t.Fatalf("property %s was not created", name)
 		}
@@ -186,12 +186,12 @@ components:
 	if err != nil {
 		t.Fatalf("Apply must keep the enum edit sequenced: %v", err)
 	}
-	props := propsOf(t, decode(t, out))
-	enum := props["color"].(map[string]any)["enum"].([]any)
+	properties := propsOf(t, decode(t, out))
+	enum := properties["color"].(map[string]any)["enum"].([]any)
 	if len(enum) != 2 || enum[0] != "a" || enum[1] != "c" {
 		t.Errorf("enum = %v, want [a c] — the index-sensitive removals were disturbed", enum)
 	}
-	newf := props["newf"].(map[string]any)
+	newf := properties["newf"].(map[string]any)
 	if newf["type"] != "string" || newf["default"] != "n" {
 		t.Errorf("newf = %v, want type string with default n", newf)
 	}
@@ -257,8 +257,8 @@ func TestUnit_Correction_ReplaceAndRemove(t *testing.T) {
 	if enum := enumOf(t, doc); enum[1] != "month" {
 		t.Errorf("enum[1] = %v after replace", enum[1])
 	}
-	props := doc["components"].(map[string]any)["schemas"].(map[string]any)["Window"].(map[string]any)["properties"].(map[string]any)
-	if _, ok := props["name"]; ok {
+	properties := doc["components"].(map[string]any)["schemas"].(map[string]any)["Window"].(map[string]any)["properties"].(map[string]any)
+	if _, ok := properties["name"]; ok {
 		t.Error("remove left the property behind")
 	}
 }

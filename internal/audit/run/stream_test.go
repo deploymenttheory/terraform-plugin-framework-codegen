@@ -116,10 +116,10 @@ func streamOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Opti
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	cfg := &config.Config{
+	configuration := &config.Config{
 		Audit: config.Audit{NamePrefix: "tfpfgen", MaxObjects: 25, RateLimitRPS: 2},
 	}
-	p, err := plan.Derive(doc, cfg, nil)
+	p, err := plan.Derive(doc, configuration, nil)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
@@ -130,7 +130,7 @@ func streamOptions(t *testing.T, s *quirkserver.Server, logs *bytes.Buffer) Opti
 	return Options{
 		Plan:         p,
 		Doc:          doc,
-		Config:       cfg,
+		Config:       configuration,
 		BaseURL:      s.BaseURL(),
 		Auth:         Auth{Method: config.AuthBearerToken},
 		NamePrefix:   "tfpfgen",
@@ -264,53 +264,53 @@ func TestUnit_ClassifyRefusal_GeneralizedFieldExtraction(t *testing.T) {
 		return out
 	}
 	cases := []struct {
-		name  string
-		msg   string
-		known map[string]strategy.SynthHint
-		want  []string
+		name    string
+		message string
+		known   map[string]strategy.SynthHint
+		want    []string
 	}{
 		{
-			name:  "real API dynamic-tag refusal",
-			msg:   "type: Dynamic tags are not supported for the provided object type",
-			known: known("type", "objectType", "name"),
-			want:  []string{"type"},
+			name:    "real API dynamic-tag refusal",
+			message: "type: Dynamic tags are not supported for the provided object type",
+			known:   known("type", "objectType", "name"),
+			want:    []string{"type"},
 		},
 		{
-			name:  "free-form value-conditional naming two fields",
-			msg:   "mode: streaming is not supported for the json format",
-			known: known("name", "format", "mode"),
-			want:  []string{"format", "mode"},
+			name:    "free-form value-conditional naming two fields",
+			message: "mode: streaming is not supported for the json format",
+			known:   known("name", "format", "mode"),
+			want:    []string{"format", "mode"},
 		},
 		{
-			name:  "an unknown field named is not a signal",
-			msg:   "serial number must be provided",
-			known: known("name", "mode"),
-			want:  nil,
+			name:    "an unknown field named is not a signal",
+			message: "serial number must be provided",
+			known:   known("name", "mode"),
+			want:    nil,
 		},
 		{
-			name:  "a field name is matched on word boundaries only",
-			msg:   "the model number is invalid",
-			known: known("mode"),
-			want:  nil,
+			name:    "a field name is matched on word boundaries only",
+			message: "the model number is invalid",
+			known:   known("mode"),
+			want:    nil,
 		},
 		{
-			name:  "underscore field names match whole",
-			msg:   "agent_id could not be resolved",
-			known: known("agent_id", "name"),
-			want:  []string{"agent_id"},
+			name:    "underscore field names match whole",
+			message: "agent_id could not be resolved",
+			known:   known("agent_id", "name"),
+			want:    []string{"agent_id"},
 		},
 		{
-			name:  "empty message names nothing",
-			msg:   "",
-			known: known("mode"),
-			want:  nil,
+			name:    "empty message names nothing",
+			message: "",
+			known:   known("mode"),
+			want:    nil,
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := namedKnownFields(tc.msg, tc.known)
+			got := namedKnownFields(tc.message, tc.known)
 			if !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("namedKnownFields(%q) = %v, want %v", tc.msg, got, tc.want)
+				t.Fatalf("namedKnownFields(%q) = %v, want %v", tc.message, got, tc.want)
 			}
 		})
 	}

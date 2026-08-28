@@ -314,7 +314,7 @@ func TestUnit_JoinTreeKeeping_ReportsOnlyWhatItKeptUnbound(t *testing.T) {
 
 	names := make([]string, 0, len(nodes))
 	for _, n := range nodes {
-		names = append(names, n.attr.Name)
+		names = append(names, n.attribute.Name)
 	}
 	if len(names) != 3 {
 		t.Fatalf("the join kept %v, want id, org and name", names)

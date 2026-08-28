@@ -19,12 +19,12 @@ func mustRead(t *testing.T, path string) []byte {
 // inferred edge kinds accept and refuse.
 func TestUnit_Observe_EdgeKindsRefuseMalformedValues(t *testing.T) {
 	cases := []struct {
-		name  string
-		kind  Kind
-		attr  string
-		value any
-		cond  *Condition
-		ok    bool
+		name      string
+		kind      Kind
+		attribute string
+		value     any
+		cond      *Condition
+		ok        bool
 	}{
 		{"validWhen non-bool", KindValidWhen, "f", "yes", &Condition{Attribute: "k", Equals: "v"}, false},
 		{"validWhen no condition", KindValidWhen, "f", true, nil, false},
@@ -42,7 +42,7 @@ func TestUnit_Observe_EdgeKindsRefuseMalformedValues(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			o := valid()
-			o.Kind, o.Attribute, o.Value, o.Condition = tc.kind, tc.attr, tc.value, tc.cond
+			o.Kind, o.Attribute, o.Value, o.Condition = tc.kind, tc.attribute, tc.value, tc.cond
 			o.ID = ComputeID(o.Entity, o.Attribute, o.Kind, o.Condition)
 			err := o.Validate()
 			if tc.ok && err != nil {

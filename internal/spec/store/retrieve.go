@@ -38,22 +38,22 @@ func download(url string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), retrieveTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("building the request for %s: %w", url, err)
 	}
 
-	resp, err := httpClient.Do(req)
+	response, err := httpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() { _ = response.Body.Close() }()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s answered %s", url, resp.Status)
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%s answered %s", url, response.Status)
 	}
 
-	doc, err := io.ReadAll(resp.Body)
+	doc, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading the response from %s: %w", url, err)
 	}

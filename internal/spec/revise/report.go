@@ -120,9 +120,9 @@ type proposal struct {
 // buildReport groups proposals by (entity, kind) and renders each one's
 // prose. Deterministic throughout: groups sort by entity then kind, findings
 // by attribute then observation ID, and every list inside is sorted.
-func buildReport(props []proposal) Report {
+func buildReport(properties []proposal) Report {
 	byKey := map[[2]string][]proposal{}
-	for _, p := range props {
+	for _, p := range properties {
 		byKey[[2]string{p.obs.Entity, string(p.obs.Kind)}] = append(byKey[[2]string{p.obs.Entity, string(p.obs.Kind)}], p)
 	}
 
@@ -247,8 +247,8 @@ func kebab(s string) string {
 	for i, c := range r {
 		upper := c >= 'A' && c <= 'Z'
 		if upper && i > 0 {
-			prev := r[i-1]
-			prevLower := (prev >= 'a' && prev <= 'z') || (prev >= '0' && prev <= '9')
+			previous := r[i-1]
+			prevLower := (previous >= 'a' && previous <= 'z') || (previous >= '0' && previous <= '9')
 			nextLower := i+1 < len(r) && r[i+1] >= 'a' && r[i+1] <= 'z'
 			if prevLower || nextLower {
 				b.WriteByte('-')
@@ -313,26 +313,26 @@ func describeValue(o observe.Observation) string {
 
 // describeValues renders a values record as the sentence the reviewer needs.
 func describeValues(v any) string {
-	var vals observe.Values
+	var values observe.Values
 	raw, err := json.Marshal(v)
 	if err == nil {
-		err = json.Unmarshal(raw, &vals)
+		err = json.Unmarshal(raw, &values)
 	}
 	if err != nil {
 		return ""
 	}
 	var parts []string
-	if len(vals.Rejected) > 0 {
-		rejected := append([]string(nil), vals.Rejected...)
+	if len(values.Rejected) > 0 {
+		rejected := append([]string(nil), values.Rejected...)
 		sort.Strings(rejected)
 		parts = append(parts, "it refused the documented "+plural(len(rejected), "value")+" "+codeList(rejected))
 	}
-	if len(vals.Accepted) > 0 {
-		accepted := append([]string(nil), vals.Accepted...)
+	if len(values.Accepted) > 0 {
+		accepted := append([]string(nil), values.Accepted...)
 		sort.Strings(accepted)
 		parts = append(parts, "it took "+codeList(accepted))
 	}
-	if vals.Closed != nil && !*vals.Closed {
+	if values.Closed != nil && !*values.Closed {
 		parts = append(parts, "and it took a value outside the documented set entirely")
 	}
 	if len(parts) == 0 {
@@ -397,14 +397,14 @@ func writeReport(proposedDir string, rep Report) error {
 	if err := os.MkdirAll(proposedDir, 0o750); err != nil {
 		return err
 	}
-	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
+	var buffer bytes.Buffer
+	enc := json.NewEncoder(&buffer)
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(rep); err != nil {
 		return fmt.Errorf("encoding the proposal report: %w", err)
 	}
-	return os.WriteFile(filepath.Join(proposedDir, ReportName), buf.Bytes(), 0o600)
+	return os.WriteFile(filepath.Join(proposedDir, ReportName), buffer.Bytes(), 0o600)
 }
 
 // removeReport clears the previous run's report, so a run that proposes

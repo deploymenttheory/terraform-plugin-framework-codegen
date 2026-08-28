@@ -162,16 +162,16 @@ func Reference() string {
 			fmt.Fprintf(&b, "| `%s` | %s | %s | %s |\n", l.path, l.typ, def, descriptions[l.path])
 		}
 		for _, l := range s.leaves {
-			vals, ok := enums[l.path]
+			values, ok := enums[l.path]
 			switch {
 			case !ok:
 			case strings.HasPrefix(l.typ, "list of"):
 				// A list key's closed set constrains each entry, not the
 				// whole value; saying so keeps the reference readable as a
 				// rule rather than as a required value.
-				fmt.Fprintf(&b, "\nEach `%s` entry is one of: %s.\n", l.path, backtickList(vals))
+				fmt.Fprintf(&b, "\nEach `%s` entry is one of: %s.\n", l.path, backtickList(values))
 			default:
-				fmt.Fprintf(&b, "\n`%s` is a closed set: %s.\n", l.path, backtickList(vals))
+				fmt.Fprintf(&b, "\n`%s` is a closed set: %s.\n", l.path, backtickList(values))
 			}
 		}
 	}
