@@ -82,7 +82,7 @@ components:
 `
 
 // pinnedComposite imports compositeSpec into <root>/spec.
-func pinnedComposite(t *testing.T) (root, specDir string, lock store.Lock) {
+func pinnedComposite(t *testing.T) (root, specDir string, lock store.Pin) {
 	t.Helper()
 	root = t.TempDir()
 	specDir = filepath.Join(root, "spec")

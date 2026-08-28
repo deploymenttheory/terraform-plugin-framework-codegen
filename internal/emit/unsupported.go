@@ -3,6 +3,7 @@ package emit
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 	"sort"
 	"strings"
 
@@ -194,7 +195,7 @@ func refusedAttributes(m *ir.Model) []Unsupported {
 		walk("datasource", m.Datasources[i].Names.Key, m.Datasources[i].Schema)
 	}
 	for i := range m.ListResources {
-		walk("list_resource", m.ListResources[i].Names.Key, m.ListResources[i].Schema)
+		walk(string(specmodel.KindListResource), m.ListResources[i].Names.Key, m.ListResources[i].Schema)
 	}
 	for i := range m.Actions {
 		walk("action", m.Actions[i].Names.Key, m.Actions[i].RequestSchema)

@@ -52,7 +52,7 @@ provider repo (a `git init` repo, so Go's `-buildvcs` stamping succeeds).
 |---|---|---|---|
 | 1 | `config validate --secrets` (secret unset) | 1 | Refused, naming `TFPFGEN_AUTH_TOKEN` — the preflight dies in milliseconds. |
 | 2 | `config validate --secrets` | 0 | `tfpfgen.yaml is valid: provider orbit, backend kiota@1.34.1, auth bearer_token`. |
-| 3 | `spec import ./monitor.openapi.yaml` | 0 | Pinned `spec/upstream.yaml`, sha256 `d47ccb0bcc54`, openapi 3.0.3. |
+| 3 | `spec import ./monitor.openapi.yaml` | 0 | Pinned `spec/imported.yaml`, sha256 `d47ccb0bcc54`, openapi 3.0.3. |
 | 4 | `spec revise` (no observations) | 0 | `spec/revised.yaml` = the upstream document, 0 corrections. |
 | 5 | `audit run --base-url …` | 0 | 54 observations; `monitor` and `assignment` exercised, `thing` blocked; 4 confirmed edges; cleanup left the tenant empty; token redacted. |
 | 6 | `spec revise` (observations present) | 1 | Proposed 10 corrections, then **hard-failed by design**, naming all 10 files. No ignore flag exists. |
@@ -146,7 +146,7 @@ array (`SuccessResponse(200, []map[string]any{object()})`), the datasource
 unit tests pass**. The defect is closed.
 
 The audit *does* record the server's true wrapped shape as a
-`listResponseShape` observation, but that kind still compiles to *no
+`listWrapper` observation, but that kind still compiles to *no
 correction* (`no correction form exists yet`), so the generated provider
 follows the document's declared bare-array shape rather than the observed
 wrapper. Reconciling the two — and the acceptance test that would exercise
@@ -222,7 +222,7 @@ template contract, so the provider-template repo needs no mirror.
   so it cannot self-heal the `mode=advanced` → `query` requirement. `thing`
   is not a v2 shape; its block is an artefact of mixing the old surface with
   the new executor.
-- **`listResponseShape` compiles to no correction** (above), so acceptance
+- **`listWrapper` compiles to no correction** (above), so acceptance
   against the live wrapped server is not yet possible for the datasources.
 - **`dependsOn` and `mutuallyExclusive`** are not exercised by this surface;
   their emission is proven only by unit tests, not by this rehearsal.

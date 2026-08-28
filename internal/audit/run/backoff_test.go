@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
+
 	"github.com/rs/zerolog"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/plan"
@@ -470,7 +472,7 @@ func TestUnit_Run_RateLimitedRequestsAreRetriedNotRecorded(t *testing.T) {
 	}
 
 	got := entityStatus(t, summary, "widget")
-	if got.Status != StatusAudited {
+	if got.Outcome != observe.OutcomeConfirmed {
 		t.Errorf("widget = %+v, want audited — a rate-limit refusal must not block an entity", got)
 	}
 

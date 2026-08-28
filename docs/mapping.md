@@ -158,7 +158,7 @@ That confines it to `create_with_crud_api` and `create_with_crd_api`. A
 Gap: the `List` emitted from
 `internal/templates/services/list-resource/list.go.tmpl` makes one call and
 streams what it returns, so a paged API yields only its first page. The audit
-records the pagination style in `x-tfpfgen-list-response-shape`, but nothing
+records the pagination style in `x-tfpfgen-list-pagination`, but nothing
 downstream reads it, and the style alone is not enough to build a loop — the
 request parameter carrying the page and the response field carrying the next
 one are recorded nowhere.

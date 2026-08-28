@@ -137,7 +137,7 @@ func TestUnit_Client_RunBudgetsExhaustRunWide(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 	got := entityStatus(t, summary, "thing")
-	if got.Status != StatusTimeoutExhausted || !strings.Contains(got.Reason, "request budget") {
+	if got.Outcome != observe.OutcomeTimeoutExhausted || !strings.Contains(got.Reason, "request budget") {
 		t.Fatalf("thing = %+v, want the run request budget named", got)
 	}
 	if len(s.Objects()) != 0 {
@@ -150,7 +150,7 @@ func TestUnit_Client_RunBudgetsExhaustRunWide(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if got := entityStatus(t, sum2, "thing"); got.Status != StatusTimeoutExhausted || !strings.Contains(got.Reason, "time budget") {
+	if got := entityStatus(t, sum2, "thing"); got.Outcome != observe.OutcomeTimeoutExhausted || !strings.Contains(got.Reason, "time budget") {
 		t.Fatalf("thing = %+v, want the time budget named", got)
 	}
 }
@@ -178,7 +178,7 @@ func TestUnit_Client_ObjectBudgetStopsCreates(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 	got := entityStatus(t, summary, "thing")
-	if got.Status != StatusTimeoutExhausted || !strings.Contains(got.Reason, "live-object") {
+	if got.Outcome != observe.OutcomeTimeoutExhausted || !strings.Contains(got.Reason, "live-object") {
 		t.Fatalf("thing = %+v, want the live-object budget named", got)
 	}
 	if len(s.Objects()) != 0 {

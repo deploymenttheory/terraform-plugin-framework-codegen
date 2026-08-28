@@ -135,21 +135,19 @@ const (
 	cleanupTimeLimit = 120 * time.Second
 )
 
-// Entity statuses a Summary reports.
-const (
-	StatusAudited          = "audited"
-	StatusBlocked          = "blocked"
-	StatusTimeoutExhausted = "timeoutExhausted"
-)
+// The outcomes a Summary reports per entity. They are observe's closed set,
+// not a parallel one: how far the audit got with an entity is the same
+// question it asks of a single claim, and two vocabularies for it meant a
+// reader had to know which was in play.
 
 // EntityResult is how far one entity got.
 type EntityResult struct {
-	Entity string `json:"entity"`
-	Status string `json:"status"`
-	// Reason is set when the status is not audited.
+	Entity  string          `json:"entity"`
+	Outcome observe.Outcome `json:"outcome"`
+	// Reason is set when the outcome is not confirmed.
 	Reason string `json:"reason,omitempty"`
-	// Refusal is the redacted request and response behind a status that is
-	// not audited, carrying the API's own words for why it stopped.
+	// Refusal is the redacted request and response behind an outcome that
+	// is not confirmed, carrying the API's own words for why it stopped.
 	//
 	// The reason names the step and the status; only the excerpt says what
 	// the API objected to, and an entity that produced no request body
@@ -576,12 +574,12 @@ func (r *runner) finishSummary(obs []observe.Observation) {
 		}
 	}
 	for _, e := range r.summary.Entities {
-		switch e.Status {
-		case StatusAudited:
+		switch e.Outcome {
+		case observe.OutcomeConfirmed:
 			r.summary.Audited++
-		case StatusBlocked:
+		case observe.OutcomeBlocked:
 			r.summary.Blocked++
-		case StatusTimeoutExhausted:
+		case observe.OutcomeTimeoutExhausted:
 			r.summary.TimedOut++
 		}
 	}

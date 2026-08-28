@@ -37,7 +37,7 @@ func TestUnit_Run_HappyPathDerivesTheExpectedObservations(t *testing.T) {
 	obs, summary := mustRun(t, testOptions(t, s, p, testEnv(), nil))
 
 	// The lifecycle completed and left nothing behind.
-	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("thing status = %+v, want audited", got)
 	}
 	if left := s.Objects(); len(left) != 0 {
@@ -163,7 +163,7 @@ func TestUnit_Run_EventuallyConsistentReadsMeasureTheLag(t *testing.T) {
 
 	obs, summary := mustRun(t, testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil))
 
-	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("thing status = %+v, want audited", got)
 	}
 	ra := wantConfirmed(t, obs, "thing", "", observe.KindReadAfterWrite)
@@ -287,11 +287,11 @@ func TestUnit_Run_MissingEnvVarBlocksTheEntityAndTheRunContinues(t *testing.T) {
 	if err != nil {
 		t.Fatalf("a blocked entity must not fail the run: %v", err)
 	}
-	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Outcome != observe.OutcomeConfirmed {
 		t.Errorf("thing status = %+v, want audited", got)
 	}
 	blocked := entityStatus(t, summary, "gadget")
-	if blocked.Status != StatusBlocked || !strings.Contains(blocked.Reason, "TFPFGEN_TEST_UNSET_VAR") {
+	if blocked.Outcome != observe.OutcomeBlocked || !strings.Contains(blocked.Reason, "TFPFGEN_TEST_UNSET_VAR") {
 		t.Errorf("gadget = %+v, want blocked naming the variable", blocked)
 	}
 	_ = obs
@@ -319,7 +319,7 @@ func TestUnit_Run_CreatedChainingRecreatesTheParent(t *testing.T) {
 
 	_, summary := mustRun(t, testOptions(t, s, p, testEnv(), nil))
 
-	if got := entityStatus(t, summary, "gadget"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "gadget"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("gadget = %+v, want audited via a re-created parent", got)
 	}
 	if summary.ObjectsCreated < 2 {
@@ -354,14 +354,14 @@ func TestUnit_Run_BudgetExhaustionRecordsAndMovesOn(t *testing.T) {
 		t.Fatalf("budget exhaustion must not fail the run: %v", err)
 	}
 	exhausted := entityStatus(t, summary, "thing")
-	if exhausted.Status != StatusTimeoutExhausted {
+	if exhausted.Outcome != observe.OutcomeTimeoutExhausted {
 		t.Fatalf("thing = %+v, want timeoutExhausted", exhausted)
 	}
 	o := findObs(obs, "thing", "", observe.KindDeleteNotFoundOK)
 	if o == nil || o.Outcome != observe.OutcomeTimeoutExhausted {
 		t.Errorf("deleteNotFoundOK = %+v, want a timeoutExhausted record", o)
 	}
-	if got := entityStatus(t, summary, "gadget"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "gadget"); got.Outcome != observe.OutcomeConfirmed {
 		t.Errorf("gadget = %+v, want audited after the exhausted entity", got)
 	}
 	// The end-of-run cleanup still removed the object the exhausted

@@ -105,7 +105,7 @@ components:
 
 // pinnedTree imports the fixture into <root>/spec and returns both paths
 // plus the pin, ready for observations to land beside it.
-func pinnedTree(t *testing.T) (root, specDir string, lock store.Lock) {
+func pinnedTree(t *testing.T) (root, specDir string, lock store.Pin) {
 	t.Helper()
 	root = t.TempDir()
 	specDir = filepath.Join(root, "spec")

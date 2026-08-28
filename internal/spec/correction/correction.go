@@ -245,13 +245,9 @@ func properPrefix(a, b []string) bool {
 // apply performs one operation against the document's top node.
 func apply(top *yaml.Node, operation Operation) error {
 	switch operation.Op {
-	case "strip-schema-defaults":
-		// Not expressible in RFC 6902: every schema in the document loses its
-		// `default`, wherever schemas nest. Whole-document by definition.
-		return stripSchemaDefaults(top)
 	case "add", "replace", "remove", "test":
 	default:
-		return fmt.Errorf("unsupported op %q (add, replace, remove, test and strip-schema-defaults exist)", operation.Op)
+		return fmt.Errorf("unsupported op %q (add, replace, remove and test exist)", operation.Op)
 	}
 
 	tokens, err := pointerTokens(operation.Path)
@@ -361,17 +357,6 @@ func applyToSequence(node *yaml.Node, token string, operation Operation) error {
 		if !nodeEqual(node.Content[index], operation.Value) {
 			return fmt.Errorf("test failed: index %d does not hold the expected value", index)
 		}
-	}
-	return nil
-}
-
-// stripSchemaDefaults removes the `default` key from every schema in the
-// document (see yamlwalk.StripSchemaDefaults for the walk and its reasons).
-// As a committed correction it must strip something: zero hits means the
-// vendor no longer declares defaults and the correction has gone stale.
-func stripSchemaDefaults(top *yaml.Node) error {
-	if yamlwalk.StripSchemaDefaults(top) == 0 {
-		return fmt.Errorf("the document declares no schema defaults; the correction is stale — delete it")
 	}
 	return nil
 }

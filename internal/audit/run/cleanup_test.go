@@ -99,7 +99,7 @@ func TestUnit_Cleanup_FailedDeletesReportOrphans(t *testing.T) {
 	if err == nil {
 		t.Fatal("orphans must fail the cleanup")
 	}
-	if len(summary.Orphans) == 0 {
+	if len(summary.UndeletedObjects) == 0 {
 		t.Fatal("no orphans were reported")
 	}
 	raw, _ := json.Marshal(summary)

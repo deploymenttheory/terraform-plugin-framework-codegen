@@ -44,11 +44,11 @@ var ErrUnsupportedFormat = errors.New("unsupported manifest format version")
 // value is the common case and keeps the committed file small.
 const OriginSDK = "sdk"
 
-// OriginPostcheck marks an entry the toolchain itself finalised after
+// OriginToolchain marks an entry the toolchain itself finalised after
 // install: `go mod tidy` writes go.sum, a file no template emits. Its
 // digest is recorded so the drift gate covers it, under its own origin so
 // neither generating verb's inventory replacement strands it.
-const OriginPostcheck = "postcheck"
+const OriginToolchain = "toolchain"
 
 // Entry is one file the manifest accounts for.
 type Entry struct {

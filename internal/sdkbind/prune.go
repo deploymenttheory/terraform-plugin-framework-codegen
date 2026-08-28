@@ -2,6 +2,7 @@ package sdkbind
 
 import (
 	"fmt"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 	"go/types"
 	"sort"
 )
@@ -98,7 +99,7 @@ func (p *pruner) remove(kind, key, attribute, reason string) {
 
 // resource resolves one resource's calls and fields; false removes it.
 func (p *pruner) resource(rb *ResourceBinding) bool {
-	const kind = "resource"
+	const kind = string(specmodel.KindResource)
 	calls := []struct {
 		name string
 		call *Call
@@ -269,7 +270,7 @@ func copyFieldBindings(fbs []FieldBinding) []FieldBinding {
 // datasource resolves a lookup's read or a companion's list; false
 // removes it.
 func (p *pruner) datasource(db *DatasourceBinding) bool {
-	const kind = "datasource"
+	const kind = string(specmodel.KindDatasource)
 	if db.Read != nil {
 		if why := p.resolveCall(db.Read); why != "" {
 			p.remove(kind, db.Key, "", fmt.Sprintf("its read call cannot be made: %s", why))
@@ -307,7 +308,7 @@ func (p *pruner) datasource(db *DatasourceBinding) bool {
 }
 
 func (p *pruner) listResource(lb *ListResourceBinding) bool {
-	const kind = "list_resource"
+	const kind = string(specmodel.KindListResource)
 	if lb.List == nil {
 		p.remove(kind, lb.Key, "", "it has no list call")
 		return false
@@ -326,7 +327,7 @@ func (p *pruner) listResource(lb *ListResourceBinding) bool {
 }
 
 func (p *pruner) action(ab *ActionBinding) bool {
-	const kind = "action"
+	const kind = string(specmodel.KindAction)
 	if ab.Invoke == nil {
 		p.remove(kind, ab.Key, "", "it has no invoke call")
 		return false

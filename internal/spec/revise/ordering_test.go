@@ -240,7 +240,7 @@ components:
 
 // pinnedSpec imports an arbitrary spec into <root>/spec, the multi-schema
 // counterpart to pinnedTree.
-func pinnedSpec(t *testing.T, spec string) (root, specDir string, lock store.Lock) {
+func pinnedSpec(t *testing.T, spec string) (root, specDir string, lock store.Pin) {
 	t.Helper()
 	root = t.TempDir()
 	specDir = filepath.Join(root, "spec")

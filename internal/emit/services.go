@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/specmodel"
 	"go/format"
 	"io/fs"
 	"path"
@@ -217,7 +218,7 @@ type serviceRenderer struct {
 const (
 	bindingKindResource     = "resource"
 	bindingKindDatasource   = "datasource"
-	bindingKindListResource = "list_resource"
+	bindingKindListResource = string(specmodel.KindListResource)
 	bindingKindAction       = "action"
 )
 

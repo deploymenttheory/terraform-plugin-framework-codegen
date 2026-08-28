@@ -198,7 +198,7 @@ func recordToolchainWritten(root string) error {
 			Path:   path,
 			SHA256: summary,
 			Source: "go mod tidy",
-			Origin: manifest.OriginPostcheck,
+			Origin: manifest.OriginToolchain,
 		})
 		changed = true
 	}

@@ -4,8 +4,8 @@
 // refers to one specific document the vendor published. If generation read
 // that document from the network, two runs a week apart could differ with no
 // committed evidence of why. So the document is imported once, deliberately:
-// stored byte-for-byte as published in spec/upstream.yaml, beside a lock
-// (spec/upstream.lock.json) recording where it came from, its SHA-256, and
+// stored byte-for-byte as published in spec/imported.yaml, beside a lock
+// (spec/imported.pin.json) recording where it came from, its SHA-256, and
 // when it was taken. The imported document is immutable evidence; a vendor
 // bump is a re-import that moves the pin visibly, never an edit in place.
 //
@@ -30,16 +30,16 @@ import (
 const (
 	// DocumentName is the pinned document's file name inside the spec
 	// directory, whatever format the vendor published in.
-	DocumentName = "upstream.yaml"
-	// LockName is the lock beside it.
-	LockName = "upstream.lock.json"
+	DocumentName = "imported.yaml"
+	// PinName is the lock beside it.
+	PinName = "imported.pin.json"
 )
 
-// Lock records what was pinned, from where, and when. Its JSON form is
+// Pin records what was pinned, from where, and when. Its JSON form is
 // deterministic — a fixed field order from this struct, two-space indent, a
 // trailing newline — so a re-import of identical content is a no-op in git
 // terms too.
-type Lock struct {
+type Pin struct {
 	// Source is the URL or file path the document was imported from, so a
 	// vendor bump does not depend on somebody remembering.
 	Source string `json:"source"`
@@ -56,7 +56,7 @@ type Lock struct {
 }
 
 // ShortSHA renders the pin the way messages quote it.
-func (l Lock) ShortSHA() string { return shortSHA(l.SHA256) }
+func (l Pin) ShortSHA() string { return shortSHA(l.SHA256) }
 
 // ImportAction is what an import did.
 type ImportAction int
@@ -75,12 +75,12 @@ const (
 // Result reports one import.
 type Result struct {
 	Outcome ImportAction
-	Lock    Lock
+	Lock    Pin
 	// Previous is the lock a repin replaced; nil otherwise.
-	Previous *Lock
+	Previous *Pin
 
 	DocumentPath string
-	LockPath     string
+	PinPath      string
 }
 
 // Import pins doc, as retrieved from source, into dir.
@@ -96,8 +96,8 @@ func Import(dir string, document []byte, source string) (Result, error) {
 
 	res := Result{
 		DocumentPath: filepath.Join(dir, DocumentName),
-		LockPath:     filepath.Join(dir, LockName),
-		Lock: Lock{
+		PinPath:      filepath.Join(dir, PinName),
+		Lock: Pin{
 			Source:          source,
 			SHA256:          digest(document),
 			FetchedAt:       time.Now().UTC().Truncate(time.Second),
@@ -107,7 +107,7 @@ func Import(dir string, document []byte, source string) (Result, error) {
 		},
 	}
 
-	previous, err := readLock(res.LockPath)
+	previous, err := readLock(res.PinPath)
 	switch {
 	case err == nil && previous.SHA256 == res.Lock.SHA256 && storedDigest(res.DocumentPath) == res.Lock.SHA256:
 		// Already pinned, and the stored bytes really are these bytes. (A
@@ -136,7 +136,7 @@ func Import(dir string, document []byte, source string) (Result, error) {
 		return Result{}, fmt.Errorf("encoding the lock: %w", err)
 	}
 	encoded = append(encoded, '\n')
-	if err := os.WriteFile(res.LockPath, encoded, 0o600); err != nil {
+	if err := os.WriteFile(res.PinPath, encoded, 0o600); err != nil {
 		return Result{}, fmt.Errorf("writing the lock: %w", err)
 	}
 
@@ -146,28 +146,28 @@ func Import(dir string, document []byte, source string) (Result, error) {
 // Verify recomputes the pinned document's digest and compares it to the
 // lock. It catches the one edit pinning exists to make impossible: the
 // stored document changing without the pin moving.
-func Verify(dir string) (Lock, error) {
+func Verify(dir string) (Pin, error) {
 	documentPath := filepath.Join(dir, DocumentName)
-	lockPath := filepath.Join(dir, LockName)
+	pinPath := filepath.Join(dir, PinName)
 
-	lock, err := readLock(lockPath)
+	lock, err := readLock(pinPath)
 	if errors.Is(err, os.ErrNotExist) {
-		return Lock{}, fmt.Errorf("%s does not exist; nothing is pinned yet — run `tfpfgen spec import <url|file>`", lockPath)
+		return Pin{}, fmt.Errorf("%s does not exist; nothing is pinned yet — run `tfpfgen spec import <url|file>`", pinPath)
 	}
 	if err != nil {
-		return Lock{}, err
+		return Pin{}, err
 	}
 
 	document, err := os.ReadFile(documentPath) //nolint:gosec // the fixed name under the operator-supplied dir
 	if errors.Is(err, os.ErrNotExist) {
-		return Lock{}, fmt.Errorf("%s does not exist but its lock does; restore the committed document or run `tfpfgen spec import %s`", documentPath, lock.Source)
+		return Pin{}, fmt.Errorf("%s does not exist but its lock does; restore the committed document or run `tfpfgen spec import %s`", documentPath, lock.Source)
 	}
 	if err != nil {
-		return Lock{}, err
+		return Pin{}, err
 	}
 
 	if got := digest(document); got != lock.SHA256 {
-		return Lock{}, fmt.Errorf("%s does not match its lock: the lock pins sha256 %s but the file is %s — "+
+		return Pin{}, fmt.Errorf("%s does not match its lock: the lock pins sha256 %s but the file is %s — "+
 			"the pinned document was edited in place; restore the committed bytes, or run `tfpfgen spec import %s` to move the pin deliberately",
 			documentPath, shortSHA(lock.SHA256), shortSHA(digest(document)), lock.Source)
 	}
@@ -177,14 +177,14 @@ func Verify(dir string) (Lock, error) {
 
 // readLock reads and decodes a lock, passing os.ErrNotExist through for the
 // callers that treat absence as a state rather than a failure.
-func readLock(path string) (Lock, error) {
+func readLock(path string) (Pin, error) {
 	data, err := os.ReadFile(path) //nolint:gosec // the fixed name under the operator-supplied dir
 	if err != nil {
-		return Lock{}, err
+		return Pin{}, err
 	}
-	var lock Lock
+	var lock Pin
 	if err := json.Unmarshal(data, &lock); err != nil {
-		return Lock{}, fmt.Errorf("parsing %s: %w", path, err)
+		return Pin{}, fmt.Errorf("parsing %s: %w", path, err)
 	}
 	return lock, nil
 }

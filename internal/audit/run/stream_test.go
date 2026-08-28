@@ -182,7 +182,7 @@ func TestUnit_Adaptive_StreamCyclesValueAndConfirmsConfiguration(t *testing.T) {
 	obs, summary := mustRun(t, streamOptions(t, s, nil))
 
 	got := entityStatus(t, summary, "stream")
-	if got.Status == StatusBlocked {
+	if got.Outcome == observe.OutcomeBlocked {
 		t.Fatalf("stream blocked despite value-cycling: %+v", got)
 	}
 
@@ -217,7 +217,7 @@ func TestUnit_Adaptive_StreamUnsatisfiableFormatRecordsInconclusive(t *testing.T
 
 	obs, summary := mustRun(t, streamOptions(t, s, nil))
 
-	if got := entityStatus(t, summary, "stream"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "stream"); got.Outcome != observe.OutcomeConfirmed {
 		t.Fatalf("stream = %+v, want audited despite the unsatisfiable locked format", got)
 	}
 	inc := validWhenFor(obs, "stream", "mode", "format", "locked")
