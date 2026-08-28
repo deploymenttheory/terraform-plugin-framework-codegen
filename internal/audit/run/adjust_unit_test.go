@@ -662,3 +662,20 @@ func TestUnit_Adjust_ANumberRefusedAsNotPositiveTakesTheSmallestPositiveValue(t 
 		t.Error("a positive value was replaced")
 	}
 }
+
+func TestUnit_Cycle_OnlyTheNamedEnumFieldsAreCycled(t *testing.T) {
+	t.Parallel()
+	hints := map[string]strategy.SyntheticValueRules{
+		"kind":     {Field: "kind", Enum: []any{"a", "b"}},
+		"protocol": {Field: "protocol", Enum: []any{"tcp", "udp"}},
+		"cert":     {Field: "cert"},
+	}
+	body := map[string]any{"kind": "a", "protocol": "tcp", "cert": "x"}
+	got := retryableSiblings(body, hints, "", []string{"cert", "protocol"})
+	if len(got) != 1 || got[0].Field != "protocol" {
+		t.Errorf("siblings = %+v, want protocol alone: the named enum field", got)
+	}
+	if got := retryableSiblings(body, hints, "protocol", []string{"protocol"}); len(got) != 0 {
+		t.Errorf("the held field was cycled: %+v", got)
+	}
+}

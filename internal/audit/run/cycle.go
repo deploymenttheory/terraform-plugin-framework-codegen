@@ -45,7 +45,8 @@ func (r *runner) retryAcrossValues(ctx context.Context, entity *entityState, rec
 	if hints == nil || refusal == nil {
 		return nil, nil, false, nil
 	}
-	if len(declaredFieldsNamedIn(refusalMessage(refusal.body), hints)) == 0 {
+	named := declaredFieldsNamedIn(refusalMessage(refusal.body), hints)
+	if len(named) == 0 {
 		// Nothing the entity declares is named: an unintelligible refusal, not a
 		// conditional constraint. Give up without spending a request.
 		return nil, nil, false, nil
@@ -54,7 +55,11 @@ func (r *runner) retryAcrossValues(ctx context.Context, entity *entityState, rec
 	if gate == "" {
 		gate = held
 	}
-	targets := retryableSiblings(body, hints, held)
+	// Only the enum fields the refusal names are cycled: a complaint about
+	// one field's value is not answered by changing another's, and cycling
+	// every enum in a wide body spends the budget on combinations the
+	// refusal said nothing about.
+	targets := retryableSiblings(body, hints, held, named)
 	attempts := 0
 	for i := range targets {
 		tgt := targets[i]
@@ -124,12 +129,15 @@ func valueOutcomeKey(body map[string]any, cycled, held, gate string) (discrimina
 }
 
 // retryableSiblings is the sorted set of enum-typed fields present in the body
-// that value-cycling may vary: every declared enum field with at least two
-// members, except the one the step holds fixed.
-func retryableSiblings(body map[string]any, hints map[string]strategy.SyntheticValueRules, held string) []strategy.SyntheticValueRules {
+// that value-cycling may vary: the declared enum fields the refusal named,
+// with at least two members, except the one the step holds fixed.
+func retryableSiblings(body map[string]any, hints map[string]strategy.SyntheticValueRules, held string, named []string) []strategy.SyntheticValueRules {
 	var out []strategy.SyntheticValueRules
-	for f := range body {
+	for _, f := range named {
 		if f == held {
+			continue
+		}
+		if _, present := body[f]; !present {
 			continue
 		}
 		h, ok := hints[f]
