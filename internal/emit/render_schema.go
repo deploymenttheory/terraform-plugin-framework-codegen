@@ -160,6 +160,20 @@ func (sb *schemaBuilder) validators(n node, depth int) []code.CustomValidator {
 		})
 	}
 
+	if len(n.attribute.OneOf) > 0 && n.attribute.Kind == ir.TypeList && n.attribute.ElementType == ir.TypeString {
+		quoted := make([]string, len(n.attribute.OneOf))
+		for i, v := range n.attribute.OneOf {
+			quoted[i] = strconv.Quote(v)
+		}
+		validators = append(validators, code.CustomValidator{
+			Imports: []code.Import{
+				{Path: "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"},
+				{Path: "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"},
+			},
+			SchemaDefinition: fmt.Sprintf("listvalidator.ValueStringsAre(stringvalidator.OneOf(%s))", strings.Join(quoted, ", ")),
+		})
+	}
+
 	validators = append(validators, constraintValidators(n)...)
 
 	if depth == sb.rootDepth {

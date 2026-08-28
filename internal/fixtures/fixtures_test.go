@@ -792,3 +792,18 @@ func TestUnit_Fixturespec_AReplayDropsAnObjectTheBodyCarriedEmpty(t *testing.T) 
 		}
 	}
 }
+
+func TestUnit_Fixturespec_AListTakesItsEnumOrItsExamplesFirstMember(t *testing.T) {
+	enumerated := ir.Attribute{Name: "modules", Kind: ir.TypeList, ElementType: ir.TypeString, OneOf: []string{"default", "extended"}}
+	if v, _ := scalarFor(enumerated.ElementType, enumerated, []string{"modules"}); v != "default" {
+		t.Errorf("an enumerated list element = %#v, want the first member", v)
+	}
+	exampled := ir.Attribute{Name: "modules", Kind: ir.TypeList, ElementType: ir.TypeString, Example: []any{"default"}}
+	if v, invented := scalarFor(exampled.ElementType, exampled, []string{"modules"}); v != "default" || invented == "" {
+		t.Errorf("an exampled list element = %#v (invented %q), want the example's first member with the name kept", v, invented)
+	}
+	bare := ir.Attribute{Name: "modules", Kind: ir.TypeList, ElementType: ir.TypeString, Example: []any{7}}
+	if v, _ := scalarFor(bare.ElementType, bare, []string{"modules"}); v != NamePrefix+"modules" {
+		t.Errorf("a list whose example is not strings = %#v, want the invented name", v)
+	}
+}

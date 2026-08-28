@@ -450,6 +450,13 @@ func scalarFor(kind ir.AttributeType, a ir.Attribute, path []string) (any, strin
 		if example, ok := a.Example.(string); ok && example != "" {
 			return example, name
 		}
+		// A list's example is a list; its first member is the example of
+		// the one element the fixture renders.
+		if examples, ok := a.Example.([]any); ok && len(examples) > 0 {
+			if example, ok := examples[0].(string); ok && example != "" {
+				return example, name
+			}
+		}
 		return name, ""
 	}
 }

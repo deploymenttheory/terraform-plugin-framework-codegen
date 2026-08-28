@@ -155,3 +155,15 @@ func TestUnit_ConstraintValidators_DeclareTheirOwnImports(t *testing.T) {
 		}
 	}
 }
+
+func TestUnit_Validators_AListOfEnumeratedStringsValidatesEachMember(t *testing.T) {
+	sb := &schemaBuilder{kind: schemaResource}
+	n := node{attribute: ir.Attribute{Name: "modules", Kind: ir.TypeList, ElementType: ir.TypeString, OneOf: []string{"default", "extended"}}}
+	got := sb.validators(n, 1)
+	if len(got) != 1 || got[0].SchemaDefinition != `listvalidator.ValueStringsAre(stringvalidator.OneOf("default", "extended"))` {
+		t.Fatalf("validators = %+v, want the member validator", got)
+	}
+	if len(got[0].Imports) != 2 {
+		t.Errorf("imports = %+v, want listvalidator and stringvalidator", got[0].Imports)
+	}
+}

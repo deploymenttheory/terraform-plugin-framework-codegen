@@ -42,8 +42,12 @@ func TestAttributes_TypeMapping(t *testing.T) {
 	if rules.ElementType != TypeObject || rules.Nested == nil {
 		t.Fatalf("rules = %+v, want a list of objects", rules)
 	}
-	if kind := attribute(t, rules.Nested, "kind"); kind.ComputedOptionalRequired != Required {
-		t.Errorf("kind inside rules = %+v, want required", kind)
+	// rules is server-filled, so its members are computed as well, the
+	// required one included: terraform core reads a non-computed member
+	// holding a value as one the configuration set, and clears the whole
+	// attribute when the configuration omits it.
+	if kind := attribute(t, rules.Nested, "kind"); kind.ComputedOptionalRequired != ComputedOptional {
+		t.Errorf("kind inside rules = %+v, want computed-optional under a server-filled parent", kind)
 	}
 	// Nested attributes take the same presence rule as top-level ones, and
 	// this response describes the create schema wholesale.
@@ -783,5 +787,63 @@ func TestUnit_BuildTree_UpdateDifferenceRecursesIntoNestedObjects(t *testing.T) 
 	}
 	if a := attribute(t, server.Nested, "host"); a.RequiresReplace {
 		t.Error("server.host is declared by the nested update schema, so it must not force replacement")
+	}
+}
+
+func TestUnit_BuildTree_MembersOfAServerFilledAttributeAreComputed(t *testing.T) {
+	attributes := []Attribute{
+		{Name: "name", ComputedOptionalRequired: Required},
+		{Name: "groupings", ComputedOptionalRequired: ComputedOptional, Nested: &AttributeTree{Attributes: []Attribute{
+			{Name: "title", ComputedOptionalRequired: Required},
+			{Name: "type", ComputedOptionalRequired: Optional},
+			{Name: "count", ComputedOptionalRequired: Computed},
+			{Name: "inner", ComputedOptionalRequired: Optional, Nested: &AttributeTree{Attributes: []Attribute{
+				{Name: "leaf", ComputedOptionalRequired: Required},
+			}}},
+		}}},
+		{Name: "settings", ComputedOptionalRequired: Optional, Nested: &AttributeTree{Attributes: []Attribute{
+			{Name: "mode", ComputedOptionalRequired: Required},
+		}}},
+	}
+	serverFilledMembersComputed(attributes, false)
+
+	if attributes[0].ComputedOptionalRequired != Required {
+		t.Errorf("a top-level required attribute changed: %s", attributes[0].ComputedOptionalRequired)
+	}
+	members := attributes[1].Nested.Attributes
+	for _, want := range []struct {
+		name string
+		cor  ComputedOptionalRequired
+	}{{"title", ComputedOptional}, {"type", ComputedOptional}, {"count", Computed}, {"inner", ComputedOptional}} {
+		for _, m := range members {
+			if m.Name == want.name && m.ComputedOptionalRequired != want.cor {
+				t.Errorf("%s under a server-filled attribute = %s, want %s", m.Name, m.ComputedOptionalRequired, want.cor)
+			}
+		}
+	}
+	if leaf := members[3].Nested.Attributes[0]; leaf.ComputedOptionalRequired != ComputedOptional {
+		t.Errorf("a member two levels down = %s, want computed-optional", leaf.ComputedOptionalRequired)
+	}
+	// A plain optional parent is the practitioner's whole object: its
+	// members keep what the document declares.
+	if mode := attributes[2].Nested.Attributes[0]; mode.ComputedOptionalRequired != Required {
+		t.Errorf("a member of an optional attribute = %s, want required", mode.ComputedOptionalRequired)
+	}
+}
+
+func TestUnit_DeriveListType_CarriesTheElementEnum(t *testing.T) {
+	attribute := Attribute{Name: "modules"}
+	items := &specmodel.Schema{Type: "string", Enum: []any{"default", "extended"}}
+	deriveListType(&attribute, &specmodel.Schema{Type: "array", Items: items}, nil, nil)
+	if attribute.Kind != TypeList || attribute.ElementType != TypeString {
+		t.Fatalf("attribute = %+v, want a list of strings", attribute)
+	}
+	if !reflect.DeepEqual(attribute.OneOf, []string{"default", "extended"}) {
+		t.Errorf("OneOf = %v, want the element enum", attribute.OneOf)
+	}
+	plain := Attribute{Name: "labels"}
+	deriveListType(&plain, &specmodel.Schema{Type: "array", Items: &specmodel.Schema{Type: "string"}}, nil, nil)
+	if len(plain.OneOf) != 0 {
+		t.Errorf("a list of free strings carries an enum: %v", plain.OneOf)
 	}
 }
