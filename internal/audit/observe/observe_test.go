@@ -1,6 +1,7 @@
 package observe
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -214,5 +215,23 @@ func TestUnit_Observe_SortIsByIdentityNotDiscoveryOrder(t *testing.T) {
 	}
 	if obs[4].Condition.Equals != "dynamic" || obs[5].Condition.Equals != "static" {
 		t.Error("conditional observations are not ordered by condition key")
+	}
+}
+
+func TestUnit_Observe_TheCeilingMeasuresTheCompactFragment(t *testing.T) {
+	// A committed file is indented for reading; a fragment that fits the
+	// ceiling compact still fits it indented.
+	items := make([]string, 0, 60)
+	for i := 0; i < 60; i++ {
+		items = append(items, fmt.Sprintf(`{"id": %d, "name": "object-%d"}`, i, i))
+	}
+	compact := "[" + strings.Join(items, ",") + "]"
+	indented := "[\n      " + strings.Join(items, ",\n      ") + "\n    ]"
+	if len(compact) > MaxFragmentBytes || len(indented) <= MaxFragmentBytes {
+		t.Fatalf("fixture sizes: compact %d, indented %d, ceiling %d", len(compact), len(indented), MaxFragmentBytes)
+	}
+	e := Excerpt{Method: "GET", ResponseFragment: []byte(indented)}
+	if err := e.validate(); err != nil {
+		t.Fatalf("an indented fragment under the compact ceiling was refused: %v", err)
 	}
 }

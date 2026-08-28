@@ -43,8 +43,14 @@ func (e *Excerpt) validate() error {
 		if !json.Valid(frag) {
 			return fmt.Errorf("%s is not valid JSON", name)
 		}
-		if len(frag) > MaxFragmentBytes {
-			return fmt.Errorf("%s is %d bytes, over the %d-byte ceiling", name, len(frag), MaxFragmentBytes)
+		// Measured compact: a committed file is indented for reading, and
+		// the indentation is not part of what the ceiling bounds.
+		var compact bytes.Buffer
+		if err := json.Compact(&compact, frag); err != nil {
+			return fmt.Errorf("%s is not valid JSON: %w", name, err)
+		}
+		if compact.Len() > MaxFragmentBytes {
+			return fmt.Errorf("%s is %d bytes, over the %d-byte ceiling", name, compact.Len(), MaxFragmentBytes)
 		}
 	}
 	return nil
