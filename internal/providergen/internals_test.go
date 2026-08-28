@@ -18,8 +18,8 @@ func TestUnit_FirstServerURL_EmptyWithoutServers(t *testing.T) {
 	if got := firstServerURL(&specmodel.Document{}); got != "" {
 		t.Errorf("firstServerURL on a serverless document = %q", got)
 	}
-	doc := &specmodel.Document{Servers: []specmodel.Server{{URL: "https://one.example.test"}, {URL: "https://two.example.test"}}}
-	if got := firstServerURL(doc); got != "https://one.example.test" {
+	document := &specmodel.Document{Servers: []specmodel.Server{{URL: "https://one.example.test"}, {URL: "https://two.example.test"}}}
+	if got := firstServerURL(document); got != "https://one.example.test" {
 		t.Errorf("firstServerURL = %q; the first declared server wins", got)
 	}
 }
@@ -202,7 +202,7 @@ func TestUnit_BindContext_UnreadableGoModFails(t *testing.T) {
 // for exactly this reason.
 func TestUnit_Run_ResourceWithoutListCannotEmitItsCompanion(t *testing.T) {
 	root, opts := curatedRepo(t, "kiota")
-	doc := `openapi: 3.0.3
+	document := `openapi: 3.0.3
 info:
   title: listless
   version: 1.0.0
@@ -257,7 +257,7 @@ components:
         callsign:
           type: string
 `
-	if err := os.WriteFile(filepath.Join(root, "spec", "revised.yaml"), []byte(doc), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "spec", "revised.yaml"), []byte(document), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

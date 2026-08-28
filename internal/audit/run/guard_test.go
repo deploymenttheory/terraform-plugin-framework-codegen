@@ -29,8 +29,8 @@ func TestUnit_Guard_ReadOnlyPlanNeedsNoRunsDir(t *testing.T) {
 
 	opts := testOptions(t, s, p, testEnv(), nil)
 	opts.RunsDir = ""
-	_, sum := mustRun(t, opts)
-	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
+	_, summary := mustRun(t, opts)
+	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
 		t.Fatalf("lookup entity = %+v, want audited without a runs directory", got)
 	}
 }
@@ -50,11 +50,11 @@ func TestUnit_Guard_SharedTenantRefusalBlocksMutation(t *testing.T) {
 	opts := testOptions(t, s, p, testEnv(), nil)
 	opts.Budgets = Budgets{Objects: 2}
 
-	obs, sum, err := Run(context.Background(), opts)
+	obs, summary, err := Run(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("a shared-tenant refusal blocks the entity, not the run: %v", err)
 	}
-	blocked := entityStatus(t, sum, "thing")
+	blocked := entityStatus(t, summary, "thing")
 	if blocked.Status != StatusBlocked || !strings.Contains(blocked.Reason, "--force-api-audit") {
 		t.Fatalf("thing = %+v, want blocked pointing at the flag", blocked)
 	}
@@ -78,8 +78,8 @@ func TestUnit_Guard_ForceAPIAuditProceeds(t *testing.T) {
 	opts.Budgets = Budgets{Objects: 2}
 	opts.ForceAPIAudit = true
 
-	_, sum := mustRun(t, opts)
-	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
+	_, summary := mustRun(t, opts)
+	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
 		t.Fatalf("thing = %+v, want audited under --force-api-audit", got)
 	}
 	if len(s.Objects()) != 3 {
@@ -112,14 +112,14 @@ func TestUnit_Guard_NamePrefixBounds(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
 
-	for _, tc := range []struct{ prefix, want string }{
+	for _, testCase := range []struct{ prefix, want string }{
 		{"tf", "shorter"},
 		{"mycompanyprefix", "tfpfgen"},
 	} {
 		opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
-		opts.NamePrefix = tc.prefix
-		if _, _, err := Run(context.Background(), opts); err == nil || !strings.Contains(err.Error(), tc.want) {
-			t.Errorf("prefix %q: err = %v, want a refusal mentioning %q", tc.prefix, err, tc.want)
+		opts.NamePrefix = testCase.prefix
+		if _, _, err := Run(context.Background(), opts); err == nil || !strings.Contains(err.Error(), testCase.want) {
+			t.Errorf("prefix %q: err = %v, want a refusal mentioning %q", testCase.prefix, err, testCase.want)
 		}
 	}
 }

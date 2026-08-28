@@ -118,12 +118,12 @@ func TestUnit_Standalone_RefusesAnUnusableAddress(t *testing.T) {
 // specmodel/strategy meet the v2 shape resources at all.
 func TestUnit_Spec_ClassifiesTheDocumentedSurface(t *testing.T) {
 	t.Parallel()
-	doc, err := specmodel.Load(Spec())
+	document, err := specmodel.Load(Spec())
 	if err != nil {
 		t.Fatalf("the embedded document does not load: %v", err)
 	}
 
-	cls := specmodel.Classify(doc)
+	cls := specmodel.Classify(document)
 	byPath := make(map[string]specmodel.Classification, len(cls.Entities))
 	for _, e := range cls.Entities {
 		byPath[e.CollectionPath] = e
@@ -136,10 +136,10 @@ func TestUnit_Spec_ClassifiesTheDocumentedSurface(t *testing.T) {
 			t.Errorf("the document declares no entity at %q", path)
 			continue
 		}
-		for role, op := range map[string]*specmodel.OperationReference{
+		for role, operation := range map[string]*specmodel.OperationReference{
 			"create": e.Create, "read": e.Read, "update": e.Update, "delete": e.Delete, "list": e.List,
 		} {
-			if op == nil {
+			if operation == nil {
 				t.Errorf("%s: the document declares no %s operation", path, role)
 			}
 		}

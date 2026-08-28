@@ -48,7 +48,7 @@ func names(key, service string) ir.Names {
 	}
 }
 
-func op(kind ir.OperationKind, method, path, opID string, parameters ...ir.Parameter) *ir.Operation {
+func operation(kind ir.OperationKind, method, path, opID string, parameters ...ir.Parameter) *ir.Operation {
 	return &ir.Operation{Kind: kind, Method: method, PathTemplate: path, OperationID: opID, PathParameters: parameters}
 }
 
@@ -130,18 +130,18 @@ func kiotaModel() *ir.Model {
 			{
 				Names: names("tags", "tags"),
 				Operations: ir.Operations{
-					Create: op(ir.OperationCreate, "POST", "/tags", ""),
-					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", tagID),
-					Update: op(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "", tagID),
-					Delete: op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", tagID),
+					Create: operation(ir.OperationCreate, "POST", "/tags", ""),
+					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "", tagID),
+					Update: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "", tagID),
+					Delete: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "", tagID),
 				},
 				Schema: tagSchema(),
 			},
 			{
 				Names: names("widgets", "widgets"),
 				Operations: ir.Operations{
-					Create: op(ir.OperationCreate, "POST", "/widgets", ""),
-					Read:   op(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
+					Create: operation(ir.OperationCreate, "POST", "/widgets", ""),
+					Read:   operation(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("id", "id", ir.TypeString, ir.Computed),
@@ -153,8 +153,8 @@ func kiotaModel() *ir.Model {
 			{
 				Names: names("tags", "tags"),
 				Operations: ir.Operations{
-					Read: op(ir.OperationRead, "GET", "/tags/{tagId}", "", tagID),
-					List: op(ir.OperationList, "GET", "/tags", ""),
+					Read: operation(ir.OperationRead, "GET", "/tags/{tagId}", "", tagID),
+					List: operation(ir.OperationList, "GET", "/tags", ""),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					filterAttr("id"),
@@ -166,7 +166,7 @@ func kiotaModel() *ir.Model {
 		Actions: []ir.Action{
 			{
 				Names:           names("tags_assign", "tags"),
-				InvokeOperation: *op(ir.OperationInvoke, "POST", "/tags/{tagId}/assign", "", tagID),
+				InvokeOperation: *operation(ir.OperationInvoke, "POST", "/tags/{tagId}/assign", "", tagID),
 				RequestSchema:   assignTree,
 				ParentEntity:    "tags",
 			},
@@ -207,10 +207,10 @@ func oagModel() *ir.Model {
 			{
 				Names: names("tags", "tag"),
 				Operations: ir.Operations{
-					Create: op(ir.OperationCreate, "POST", "/tags", "createTag"),
-					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", tagID),
-					Update: op(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "updateTag", tagID),
-					Delete: op(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", tagID),
+					Create: operation(ir.OperationCreate, "POST", "/tags", "createTag"),
+					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", tagID),
+					Update: operation(ir.OperationUpdate, "PATCH", "/tags/{tagId}", "updateTag", tagID),
+					Delete: operation(ir.OperationDelete, "DELETE", "/tags/{tagId}", "deleteTag", tagID),
 				},
 				Schema: schema,
 			},
@@ -219,8 +219,8 @@ func oagModel() *ir.Model {
 			{
 				Names: names("tags", "tag"),
 				Operations: ir.Operations{
-					Read: op(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", tagID),
-					List: op(ir.OperationList, "GET", "/tags", "listTags"),
+					Read: operation(ir.OperationRead, "GET", "/tags/{tagId}", "getTag", tagID),
+					List: operation(ir.OperationList, "GET", "/tags", "listTags"),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					filterAttr("id"),
@@ -232,7 +232,7 @@ func oagModel() *ir.Model {
 		ListResources: []ir.ListResource{
 			{
 				Names:         names("groups", "groups"),
-				ListOperation: *op(ir.OperationList, "GET", "/groups", "listGroups"),
+				ListOperation: *operation(ir.OperationList, "GET", "/groups", "listGroups"),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},

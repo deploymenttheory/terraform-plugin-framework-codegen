@@ -301,12 +301,12 @@ components:
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			doc := fmt.Sprintf(wrappedDoc, testCase.envelope)
-			r := resourceByKey(t, mustDerive(t, doc, testConfig()), "gizmo")
+			document := fmt.Sprintf(wrappedDoc, testCase.envelope)
+			r := resourceByKey(t, mustDerive(t, document, testConfig()), "gizmo")
 			if r.ListWrapperKey != testCase.want {
 				t.Errorf("resource envelope key = %q, want %q", r.ListWrapperKey, testCase.want)
 			}
-			d := datasourceByKey(t, mustDerive(t, doc, testConfig()), "gizmo")
+			d := datasourceByKey(t, mustDerive(t, document, testConfig()), "gizmo")
 			if d.ListEnvelopeKey != testCase.want {
 				t.Errorf("datasource envelope key = %q, want %q", d.ListEnvelopeKey, testCase.want)
 			}
@@ -647,22 +647,22 @@ func TestUnit_BuildTree_CarriesTheObjectsDescription(t *testing.T) {
 // create-minus-update rule: a create body, a read body, and an update body
 // declaring only some of what create takes.
 func updateBodySchema() (create, read, update *specmodel.Schema) {
-	str := func() *specmodel.Schema { return &specmodel.Schema{Type: "string"} }
+	text := func() *specmodel.Schema { return &specmodel.Schema{Type: "string"} }
 	create = &specmodel.Schema{Type: "object", Required: []string{"name"}, Properties: []specmodel.Property{
-		{Name: "name", Schema: str()},
-		{Name: "region", Schema: str()},
-		{Name: "description", Schema: str()},
+		{Name: "name", Schema: text()},
+		{Name: "region", Schema: text()},
+		{Name: "description", Schema: text()},
 	}}
 	read = &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
-		{Name: "id", Schema: str()},
-		{Name: "name", Schema: str()},
-		{Name: "region", Schema: str()},
-		{Name: "description", Schema: str()},
+		{Name: "id", Schema: text()},
+		{Name: "name", Schema: text()},
+		{Name: "region", Schema: text()},
+		{Name: "description", Schema: text()},
 		{Name: "createdAt", Schema: &specmodel.Schema{Type: "string", ReadOnly: true}},
 	}}
 	update = &specmodel.Schema{Type: "object", Properties: []specmodel.Property{
-		{Name: "name", Schema: str()},
-		{Name: "description", Schema: str()},
+		{Name: "name", Schema: text()},
+		{Name: "description", Schema: text()},
 	}}
 	return create, read, update
 }
@@ -733,11 +733,11 @@ func TestUnit_BuildTree_AbsentUpdateBodyIsSilence(t *testing.T) {
 // three sides are folded in parallel all the way down, so a nested property
 // the update body's own nested schema omits is found too.
 func TestUnit_BuildTree_UpdateDifferenceRecursesIntoNestedObjects(t *testing.T) {
-	str := func() *specmodel.Schema { return &specmodel.Schema{Type: "string"} }
+	text := func() *specmodel.Schema { return &specmodel.Schema{Type: "string"} }
 	block := func(names ...string) *specmodel.Schema {
 		s := &specmodel.Schema{Type: "object"}
 		for _, n := range names {
-			s.Properties = append(s.Properties, specmodel.Property{Name: n, Schema: str()})
+			s.Properties = append(s.Properties, specmodel.Property{Name: n, Schema: text()})
 		}
 		return s
 	}

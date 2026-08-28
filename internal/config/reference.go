@@ -121,11 +121,11 @@ func defaultValues() map[string]string {
 	setDefaults(v)
 	out := make(map[string]string, len(v.AllKeys()))
 	for _, key := range v.AllKeys() {
-		switch val := v.Get(key).(type) {
+		switch value := v.Get(key).(type) {
 		case string:
-			out[key] = fmt.Sprintf("`%q`", val)
+			out[key] = fmt.Sprintf("`%q`", value)
 		default:
-			out[key] = fmt.Sprintf("`%v`", val)
+			out[key] = fmt.Sprintf("`%v`", value)
 		}
 	}
 	return out

@@ -126,18 +126,18 @@ func redactValue(v any, secrets []string) any {
 	switch t := v.(type) {
 	case map[string]any:
 		out := make(map[string]any, len(t))
-		for k, val := range t {
+		for k, value := range t {
 			if sensitiveKey(k) {
 				out[redactString(k, secrets)] = redacted
 				continue
 			}
-			out[redactString(k, secrets)] = redactValue(val, secrets)
+			out[redactString(k, secrets)] = redactValue(value, secrets)
 		}
 		return out
 	case []any:
 		out := make([]any, len(t))
-		for i, val := range t {
-			out[i] = redactValue(val, secrets)
+		for i, value := range t {
+			out[i] = redactValue(value, secrets)
 		}
 		return out
 	case string:

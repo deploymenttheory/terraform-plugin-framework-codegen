@@ -254,7 +254,7 @@ func TestUnit_Report_AutoAcceptedCorrectionsAreNotNarrated(t *testing.T) {
 
 func TestUnit_Report_GroupBranchIsStableAndSanitised(t *testing.T) {
 	t.Parallel()
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		entity string
 		kind   observe.Kind
 		want   string
@@ -268,11 +268,11 @@ func TestUnit_Report_GroupBranchIsStableAndSanitised(t *testing.T) {
 		{"tag", observe.KindRequiredByAPI, "tfpfgen/correction-tag-required-by-api"},
 		{"a b/c..d", observe.KindValues, "tfpfgen/correction-a-b-c-d-values"},
 	} {
-		if got := GroupBranch(tc.entity, tc.kind); got != tc.want {
-			t.Errorf("GroupBranch(%q, %s) = %q, want %q", tc.entity, tc.kind, got, tc.want)
+		if got := GroupBranch(testCase.entity, testCase.kind); got != testCase.want {
+			t.Errorf("GroupBranch(%q, %s) = %q, want %q", testCase.entity, testCase.kind, got, testCase.want)
 		}
-		if got := GroupBranch(tc.entity, tc.kind); got != GroupBranch(tc.entity, tc.kind) {
-			t.Errorf("GroupBranch is not stable for %q/%s", tc.entity, tc.kind)
+		if got := GroupBranch(testCase.entity, testCase.kind); got != GroupBranch(testCase.entity, testCase.kind) {
+			t.Errorf("GroupBranch is not stable for %q/%s", testCase.entity, testCase.kind)
 		}
 	}
 }
@@ -280,7 +280,7 @@ func TestUnit_Report_GroupBranchIsStableAndSanitised(t *testing.T) {
 func TestUnit_Report_ValueSpellings(t *testing.T) {
 	t.Parallel()
 	closed := false
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		name string
 		obs  observe.Observation
 		want string
@@ -303,8 +303,8 @@ func TestUnit_Report_ValueSpellings(t *testing.T) {
 			Value: observe.ListResponseShape{Envelope: "bare", Pagination: "none"}},
 			"the items arrived as a bare array, with no pagination"},
 	} {
-		if got := describeValue(tc.obs); got != tc.want {
-			t.Errorf("%s: describeValue = %q, want %q", tc.name, got, tc.want)
+		if got := describeValue(testCase.obs); got != testCase.want {
+			t.Errorf("%s: describeValue = %q, want %q", testCase.name, got, testCase.want)
 		}
 	}
 }

@@ -113,13 +113,13 @@ func TestUnit_Observe_ValidateRefusesMalformedObservations(t *testing.T) {
 			o.Excerpts[0].ResponseFragment = []byte(`"` + strings.Repeat("x", MaxFragmentBytes) + `"`)
 		}, "over the 2048-byte ceiling"},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
 			o := valid()
-			tc.mut(&o)
+			testCase.mut(&o)
 			err := o.Validate()
-			if err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("Validate() = %v, want an error containing %q", err, tc.want)
+			if err == nil || !strings.Contains(err.Error(), testCase.want) {
+				t.Fatalf("Validate() = %v, want an error containing %q", err, testCase.want)
 			}
 		})
 	}
@@ -158,10 +158,10 @@ func TestUnit_Observe_ValidateAcceptsEveryKindsValueShape(t *testing.T) {
 		{KindListResponseShape, "", &ListResponseShape{Envelope: "bare", Pagination: "none"}, nil},
 		{KindListResponseShape, "", map[string]any{"envelope": "wrapped", "key": "data", "pagination": "offset"}, nil},
 	}
-	for _, tc := range cases {
-		t.Run(string(tc.kind), func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(string(testCase.kind), func(t *testing.T) {
 			o := valid()
-			o.Kind, o.Attribute, o.Value, o.Condition = tc.kind, tc.attribute, tc.value, tc.cond
+			o.Kind, o.Attribute, o.Value, o.Condition = testCase.kind, testCase.attribute, testCase.value, testCase.cond
 			if err := o.Validate(); err != nil {
 				t.Fatalf("Validate() = %v, want nil", err)
 			}

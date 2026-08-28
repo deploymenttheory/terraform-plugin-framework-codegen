@@ -53,13 +53,13 @@ func TestUnit_RenderServices_TheRenderedTreeCompiles(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			core, err := RenderProviderCore(tc.pc)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			core, err := RenderProviderCore(testCase.pc)
 			if err != nil {
 				t.Fatalf("RenderProviderCore: %v", err)
 			}
-			entities, err := RenderServices(tc.pc, tc.model, tc.bindings)
+			entities, err := RenderServices(testCase.pc, testCase.model, testCase.bindings)
 			if err != nil {
 				t.Fatalf("RenderServices: %v", err)
 			}
@@ -99,7 +99,7 @@ func TestUnit_RenderServices_TheRenderedTreeCompiles(t *testing.T) {
 				}
 			}
 
-			installEntityStubSDK(t, root, tc.stub)
+			installEntityStubSDK(t, root, testCase.stub)
 
 			runGo(t, root, "mod", "tidy")
 			runGo(t, root, "build", "./...")

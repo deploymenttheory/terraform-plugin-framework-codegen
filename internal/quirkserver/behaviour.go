@@ -44,13 +44,13 @@ func (s *Server) applySideEffects(obj, sent map[string]any) {
 // normalise applies the transforms that cause perpetual diffs.
 func (s *Server) normalise(field string, v any) any {
 	if contains(s.quirks.NormalisesCase, field) {
-		if str, ok := v.(string); ok {
-			v = strings.ToLower(str)
+		if text, ok := v.(string); ok {
+			v = strings.ToLower(text)
 		}
 	}
 	if contains(s.quirks.TrimsWhitespace, field) {
-		if str, ok := v.(string); ok {
-			v = strings.TrimSpace(str)
+		if text, ok := v.(string); ok {
+			v = strings.TrimSpace(text)
 		}
 	}
 	if contains(s.quirks.SortsLists, field) {
@@ -99,8 +99,8 @@ func (s *Server) rejectedEnumValue(body map[string]any) (string, any) {
 		if !ok {
 			continue
 		}
-		str := fmt.Sprint(v)
-		if !contains(allowed, str) {
+		text := fmt.Sprint(v)
+		if !contains(allowed, text) {
 			return field, v
 		}
 	}

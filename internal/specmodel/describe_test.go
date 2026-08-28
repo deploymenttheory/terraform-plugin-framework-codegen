@@ -7,7 +7,7 @@ import "testing"
 // than a guess for bytes it cannot read — a truncated download must not pass
 // as a document with a plausible shape.
 func TestUnit_Specmodel_DescribeMeasuresWhatAPinRecords(t *testing.T) {
-	const doc = `openapi: 3.0.3
+	const document = `openapi: 3.0.3
 info: {title: T, version: "4.5.6"}
 paths:
   /widgets:
@@ -22,7 +22,7 @@ paths:
       responses:
         "204": {description: gone}
 `
-	version, paths, operations := Describe([]byte(doc))
+	version, paths, operations := Describe([]byte(document))
 	if version != "4.5.6" || paths != 2 || operations != 3 {
 		t.Errorf("Describe = %q, %d paths, %d operations; want 4.5.6, 2, 3", version, paths, operations)
 	}

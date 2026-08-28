@@ -120,12 +120,12 @@ func TestUnit_Prenormalize_RefusesUnusableInput(t *testing.T) {
 }
 
 func TestUnit_FilterPaths_NoGlobsMeansUntouched(t *testing.T) {
-	doc := []byte(sampleRevised)
-	out, err := FilterPaths(doc, nil, nil)
+	document := []byte(sampleRevised)
+	out, err := FilterPaths(document, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(out, doc) {
+	if !bytes.Equal(out, document) {
 		t.Fatal("no globs should leave the document untouched")
 	}
 }

@@ -222,11 +222,11 @@ components:
 
 func loadDoc(t *testing.T, spec string) *specmodel.Document {
 	t.Helper()
-	doc, err := specmodel.Load([]byte(spec))
+	document, err := specmodel.Load([]byte(spec))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	return doc
+	return document
 }
 
 func testConfig() *config.Config {
@@ -245,9 +245,9 @@ func widgetInputs(t *testing.T) *Inputs {
 	return in
 }
 
-func mustDerive(t *testing.T, doc *specmodel.Document, configuration *config.Config, in *Inputs) *Plan {
+func mustDerive(t *testing.T, document *specmodel.Document, configuration *config.Config, in *Inputs) *Plan {
 	t.Helper()
-	p, err := Derive(doc, configuration, in)
+	p, err := Derive(document, configuration, in)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
@@ -580,7 +580,7 @@ func TestUnit_Plan_RunBudget(t *testing.T) {
 // live run: a resource whose create slot is empty because it is written
 // through its update call. One entity is refused; the rest of the run stands.
 func TestUnit_Plan_ASingletonIsRefusedNotPanicked(t *testing.T) {
-	doc := loadDoc(t, `
+	document := loadDoc(t, `
 openapi: 3.0.1
 info: {title: t, version: "1"}
 paths:
@@ -602,7 +602,7 @@ paths:
             application/json:
               schema: {type: object, properties: {name: {type: string}}}
 `)
-	p, err := Derive(doc, testConfig(), &Inputs{})
+	p, err := Derive(document, testConfig(), &Inputs{})
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}

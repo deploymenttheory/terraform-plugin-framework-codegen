@@ -43,11 +43,11 @@ func TestUnit_Config_RemainingRefusals(t *testing.T) {
 		{"empty auth method", replace(t, "method:", "method: \"\""), "auth.method: required"},
 		{"unknown key with no plausible neighbour", valid + "zzqqxxyy: true\n", `unknown key "zzqqxxyy"`},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := Parse([]byte(tc.yaml), "tfpfgen.yaml")
-			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
-				t.Fatalf("error = %v, want it to contain %q", err, tc.wantErr)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := Parse([]byte(testCase.yaml), "tfpfgen.yaml")
+			if err == nil || !strings.Contains(err.Error(), testCase.wantErr) {
+				t.Fatalf("error = %v, want it to contain %q", err, testCase.wantErr)
 			}
 		})
 	}

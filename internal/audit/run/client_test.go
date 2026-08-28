@@ -26,9 +26,9 @@ func TestUnit_Client_IdentifierOf(t *testing.T) {
 		{map[string]any{"name": "no id here"}, ""},
 		{map[string]any{"id": []any{"not scalar"}}, ""},
 	}
-	for _, tc := range cases {
-		if got := identifierOf(tc.obj); got != tc.want {
-			t.Errorf("identifierOf(%v) = %q, want %q", tc.obj, got, tc.want)
+	for _, testCase := range cases {
+		if got := identifierOf(testCase.obj); got != testCase.want {
+			t.Errorf("identifierOf(%v) = %q, want %q", testCase.obj, got, testCase.want)
 		}
 	}
 	if got := scalarString(float64(7.5)); got != "7.5" {
@@ -132,11 +132,11 @@ func TestUnit_Client_RunBudgetsExhaustRunWide(t *testing.T) {
 	s := quirkserver.New(t, quirkserver.Quirks{})
 	opts := testOptions(t, s, thingPlan(resourceSteps(), 60), testEnv(), nil)
 	opts.Budgets = Budgets{Requests: 3}
-	_, sum, err := Run(context.Background(), opts)
+	_, summary, err := Run(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	got := entityStatus(t, sum, "thing")
+	got := entityStatus(t, summary, "thing")
 	if got.Status != StatusTimeoutExhausted || !strings.Contains(got.Reason, "request budget") {
 		t.Fatalf("thing = %+v, want the run request budget named", got)
 	}
@@ -173,11 +173,11 @@ func TestUnit_Client_ObjectBudgetStopsCreates(t *testing.T) {
 	}
 	opts := testOptions(t, s, thingPlan(steps, 60), testEnv(), nil)
 	opts.Budgets = Budgets{Objects: 1}
-	_, sum, err := Run(context.Background(), opts)
+	_, summary, err := Run(context.Background(), opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	got := entityStatus(t, sum, "thing")
+	got := entityStatus(t, summary, "thing")
 	if got.Status != StatusTimeoutExhausted || !strings.Contains(got.Reason, "live-object") {
 		t.Fatalf("thing = %+v, want the live-object budget named", got)
 	}

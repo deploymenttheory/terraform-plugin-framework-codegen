@@ -27,10 +27,10 @@ func Write(root string, files []File) ([]manifest.Entry, error) {
 			return nil, fmt.Errorf("writing %s: %w", f.Path, err)
 		}
 
-		sum := sha256.Sum256(f.Content)
+		summary := sha256.Sum256(f.Content)
 		entries = append(entries, manifest.Entry{
 			Path:   f.Path,
-			SHA256: hex.EncodeToString(sum[:]),
+			SHA256: hex.EncodeToString(summary[:]),
 			Source: f.Source,
 		})
 	}

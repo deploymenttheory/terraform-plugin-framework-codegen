@@ -27,16 +27,16 @@ components:
 
 func decode(t *testing.T, data []byte) map[string]any {
 	t.Helper()
-	var doc map[string]any
-	if err := yaml.Unmarshal(data, &doc); err != nil {
+	var document map[string]any
+	if err := yaml.Unmarshal(data, &document); err != nil {
 		t.Fatalf("Apply returned unusable YAML: %v", err)
 	}
-	return doc
+	return document
 }
 
-func enumOf(t *testing.T, doc map[string]any) []any {
+func enumOf(t *testing.T, document map[string]any) []any {
 	t.Helper()
-	schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
+	schemas := document["components"].(map[string]any)["schemas"].(map[string]any)
 	return schemas["RepeatType"].(map[string]any)["enum"].([]any)
 }
 
@@ -72,9 +72,9 @@ components:
       properties: {}
 `
 
-func propsOf(t *testing.T, doc map[string]any) map[string]any {
+func propsOf(t *testing.T, document map[string]any) map[string]any {
 	t.Helper()
-	return doc["components"].(map[string]any)["schemas"].(map[string]any)["T"].(map[string]any)["properties"].(map[string]any)
+	return document["components"].(map[string]any)["schemas"].(map[string]any)["T"].(map[string]any)["properties"].(map[string]any)
 }
 
 // A correction sorting first adds a property's default; one sorting later adds
@@ -117,9 +117,9 @@ func TestUnit_Correction_AppliesAContainerAddBeforeItsDescendant(t *testing.T) {
 func TestUnit_Correction_OrdersManyContainerAddsBeforeTheirDescendants(t *testing.T) {
 	t.Parallel()
 
-	def := func(file, name, val string) Correction {
+	def := func(file, name, value string) Correction {
 		return Correction{File: file, Justification: "serverDefault",
-			Operations: []Operation{{Op: "add", Path: "/components/schemas/T/properties/" + name + "/default", Value: val}}}
+			Operations: []Operation{{Op: "add", Path: "/components/schemas/T/properties/" + name + "/default", Value: value}}}
 	}
 	property := func(file, name string) Correction {
 		return Correction{File: file, Justification: "undocumentedFieldInSpec",
@@ -253,11 +253,11 @@ func TestUnit_Correction_ReplaceAndRemove(t *testing.T) {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	doc := decode(t, out)
-	if enum := enumOf(t, doc); enum[1] != "month" {
+	document := decode(t, out)
+	if enum := enumOf(t, document); enum[1] != "month" {
 		t.Errorf("enum[1] = %v after replace", enum[1])
 	}
-	properties := doc["components"].(map[string]any)["schemas"].(map[string]any)["Window"].(map[string]any)["properties"].(map[string]any)
+	properties := document["components"].(map[string]any)["schemas"].(map[string]any)["Window"].(map[string]any)["properties"].(map[string]any)
 	if _, ok := properties["name"]; ok {
 		t.Error("remove left the property behind")
 	}
@@ -278,8 +278,8 @@ func TestUnit_Correction_MappingLevelOperations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
-	doc := decode(t, out)
-	if _, ok := doc["openapi"]; ok {
+	document := decode(t, out)
+	if _, ok := document["openapi"]; ok {
 		t.Error("remove left the top-level key behind")
 	}
 }
@@ -307,9 +307,9 @@ func TestUnit_Correction_RefusalTable(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name    string
-		op      Operation
-		wantErr string
+		name      string
+		operation Operation
+		wantErr   string
 	}{
 		{"unsupported op", Operation{Op: "move", Path: "/a"}, `unsupported op "move"`},
 		{"whole-document path", Operation{Op: "add", Path: "", Value: 1}, "not correctable"},
@@ -329,12 +329,12 @@ func TestUnit_Correction_RefusalTable(t *testing.T) {
 		{"test failed on sequence index", Operation{Op: "test", Path: "/components/schemas/RepeatType/enum/0", Value: "no"},
 			"test failed"},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			_, err := Apply([]byte(spec), []Correction{{Justification: "observation x", Operations: []Operation{tc.op}}})
-			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
-				t.Errorf("error = %v, want it to contain %q", err, tc.wantErr)
+			_, err := Apply([]byte(spec), []Correction{{Justification: "observation x", Operations: []Operation{testCase.operation}}})
+			if err == nil || !strings.Contains(err.Error(), testCase.wantErr) {
+				t.Errorf("error = %v, want it to contain %q", err, testCase.wantErr)
 			}
 		})
 	}
@@ -450,7 +450,7 @@ func TestUnit_Correction_LoadToleratesAMissingDirectory(t *testing.T) {
 func TestUnit_Correction_StripSchemaDefaults(t *testing.T) {
 	t.Parallel()
 
-	doc := `
+	document := `
 openapi: 3.0.1
 paths:
   /things:
@@ -488,7 +488,7 @@ components:
         type: string
         default: x
 `
-	out, err := Apply([]byte(doc), []Correction{{
+	out, err := Apply([]byte(document), []Correction{{
 		Justification: "live 400",
 		Operations:    []Operation{{Op: "strip-schema-defaults", Path: "/"}},
 	}})
@@ -513,8 +513,8 @@ components:
 func TestUnit_Correction_StripSchemaDefaultsRefusesWhenNoneExist(t *testing.T) {
 	t.Parallel()
 
-	doc := "openapi: 3.0.1\ncomponents:\n  schemas:\n    Thing:\n      type: object\n"
-	_, err := Apply([]byte(doc), []Correction{{
+	document := "openapi: 3.0.1\ncomponents:\n  schemas:\n    Thing:\n      type: object\n"
+	_, err := Apply([]byte(document), []Correction{{
 		Justification: "live 400",
 		Operations:    []Operation{{Op: "strip-schema-defaults", Path: "/"}},
 	}})
@@ -528,13 +528,13 @@ func TestUnit_Correction_StripSchemaDefaultsRefusesWhenNoneExist(t *testing.T) {
 func TestUnit_Correction_JSONSourceComesBackAsBlockYAML(t *testing.T) {
 	t.Parallel()
 
-	doc := []byte(`{"openapi": "3.0.3", "info": {"title": "T", "version": "1"},
+	document := []byte(`{"openapi": "3.0.3", "info": {"title": "T", "version": "1"},
 	  "paths": {"/a": {"get": {"responses": {"200": {"description": "ok"}}}},
 	            "/b": {"get": {"responses": {"200": {"description": "ok"}}}}},
 	  "components": {"schemas": {"S": {"type": "object",
 	    "properties": {"x": {"type": "string"}, "y": {"type": "integer"}}}}}}`)
 
-	out, err := Apply(doc, []Correction{{
+	out, err := Apply(document, []Correction{{
 		Justification: "observation x",
 		Operations:    []Operation{{Op: "add", Path: "/components/schemas/S/properties/x/maxLength", Value: 10}},
 	}})

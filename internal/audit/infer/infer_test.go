@@ -97,18 +97,18 @@ func TestUnit_Infer_MonitorConvergentEdges(t *testing.T) {
 		t.Errorf("validConfiguration values = %s, want the three gate values", got)
 	}
 
-	for _, tc := range []struct{ field, gate string }{
+	for _, testCase := range []struct{ field, gate string }{
 		{"target_host", "ping"}, {"web", "web"}, {"domain", "dns"}, {"dnssec", "dns"},
 	} {
-		o := findWhen(obs, tc.field, observe.KindValidWhen, tc.gate)
+		o := findWhen(obs, testCase.field, observe.KindValidWhen, testCase.gate)
 		if o == nil || o.Outcome != observe.OutcomeConfirmed || o.Value != true {
-			t.Errorf("validWhen(%s, kind=%s) = %+v, want confirmed true", tc.field, tc.gate, o)
+			t.Errorf("validWhen(%s, kind=%s) = %+v, want confirmed true", testCase.field, testCase.gate, o)
 		}
 		if o != nil && o.Condition.Attribute != "kind" {
-			t.Errorf("validWhen(%s) condition attribute = %q, want kind", tc.field, o.Condition.Attribute)
+			t.Errorf("validWhen(%s) condition attribute = %q, want kind", testCase.field, o.Condition.Attribute)
 		}
 		if o != nil && o.Provenance != observe.ProvenanceDerived {
-			t.Errorf("validWhen(%s) provenance = %q, want derived", tc.field, o.Provenance)
+			t.Errorf("validWhen(%s) provenance = %q, want derived", testCase.field, o.Provenance)
 		}
 	}
 
@@ -417,11 +417,11 @@ func TestUnit_Infer_ListShapeVariants(t *testing.T) {
 		{"ambiguous", `{"a":[],"b":[]}`, nil},
 		{"not-a-list", `{"id":"1"}`, nil},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := listShapeOf([][]byte{[]byte(tc.body)})
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("listShapeOf(%s) = %+v, want %+v", tc.body, got, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := listShapeOf([][]byte{[]byte(testCase.body)})
+			if !reflect.DeepEqual(got, testCase.want) {
+				t.Errorf("listShapeOf(%s) = %+v, want %+v", testCase.body, got, testCase.want)
 			}
 		})
 	}

@@ -38,7 +38,7 @@ const (
 // compiled is one observation's compilation: either operations plus the
 // justification they carry, or a category and reason explaining why not.
 type compiled struct {
-	ops           []correction.Operation
+	operations    []correction.Operation
 	justification string
 	category      category
 	reason        string
@@ -175,7 +175,7 @@ func (c *compiler) writable(loc *locator, cls specmodel.Classification, o observ
 		return stated("the document already declares the property readOnly")
 	}
 	return compiled{
-		ops: []correction.Operation{{Op: "add", Path: targetPtr + "/readOnly", Value: true}},
+		operations: []correction.Operation{{Op: "add", Path: targetPtr + "/readOnly", Value: true}},
 		justification: fmt.Sprintf("the audit confirmed a writable observation on %s.%s: "+
 			"the live API accepts the value and never stores it, so the property is readOnly", o.Entity, o.Attribute),
 	}
@@ -195,7 +195,7 @@ func (c *compiler) propertyFlag(loc *locator, cls specmodel.Classification, o ob
 		return stated(fmt.Sprintf("the document already declares %s", key))
 	}
 	return compiled{
-		ops: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + key, Value: true}},
+		operations: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + key, Value: true}},
 		justification: fmt.Sprintf("the audit confirmed %s %s observation on %s.%s: %s (%s)",
 			article(o.Kind), o.Kind, o.Entity, o.Attribute, finding, key),
 	}
@@ -230,12 +230,12 @@ func (c *compiler) requiredByAPI(loc *locator, cls specmodel.Classification, o o
 		return stated("the document already requires the property")
 	}
 
-	op := correction.Operation{Op: "add", Path: site.declarationPointer + "/required", Value: []any{o.Attribute}}
+	operation := correction.Operation{Op: "add", Path: site.declarationPointer + "/required", Value: []any{o.Attribute}}
 	if request := mapValue(site.declaration, "required"); request != nil {
-		op = correction.Operation{Op: "add", Path: site.declarationPointer + "/required/-", Value: o.Attribute}
+		operation = correction.Operation{Op: "add", Path: site.declarationPointer + "/required/-", Value: o.Attribute}
 	}
 	return compiled{
-		ops: []correction.Operation{op},
+		operations: []correction.Operation{operation},
 		justification: fmt.Sprintf("the audit confirmed a requiredByAPI observation on %s.%s: "+
 			"a create omitting the property is rejected whatever the document declares", o.Entity, o.Attribute),
 	}
@@ -259,7 +259,7 @@ func (c *compiler) requiredWhen(loc *locator, cls specmodel.Classification, o ob
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op:   "add",
 			Path: site.propPtr + "/" + specmodel.ExtRequiredWhen,
 			Value: map[string]string{
@@ -300,7 +300,7 @@ func (c *compiler) serverDefault(loc *locator, cls specmodel.Classification, o o
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + specmodel.ExtServerDefault, Value: o.Value}},
+		operations: []correction.Operation{{Op: "add", Path: site.propPtr + "/" + specmodel.ExtServerDefault, Value: o.Value}},
 		justification: fmt.Sprintf("the audit confirmed a serverDefault observation on %s.%s: omitting the "+
 			"property stores %s, so the generated attribute is Optional and Computed (%s)",
 			o.Entity, o.Attribute, literalSpelling(o.Value), specmodel.ExtServerDefault),
@@ -353,7 +353,7 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 		return -1
 	}
 
-	var ops []correction.Operation
+	var operations []correction.Operation
 	var parts []string
 
 	rejected := append([]string(nil), values.Rejected...)
@@ -365,7 +365,7 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 			continue
 		}
 		at := enumPtr + "/enum/" + strconv.Itoa(index)
-		ops = append(ops,
+		operations = append(operations,
 			correction.Operation{Op: "test", Path: at, Value: sim[index].value},
 			correction.Operation{Op: "remove", Path: at},
 		)
@@ -383,7 +383,7 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 		if indexOf(a) >= 0 {
 			continue
 		}
-		ops = append(ops, correction.Operation{Op: "add", Path: enumPtr + "/enum/-", Value: a})
+		operations = append(operations, correction.Operation{Op: "add", Path: enumPtr + "/enum/-", Value: a})
 		sim = append(sim, entry{text: a, value: a})
 		added = append(added, a)
 	}
@@ -393,16 +393,16 @@ func (c *compiler) values(loc *locator, cls specmodel.Classification, o observe.
 
 	if values.Closed != nil && !*values.Closed {
 		if extension := loc.extensionNode(site.property, site.propPtr, specmodel.ExtValuesOpen); extension == nil || extension.Value != "true" {
-			ops = append(ops, correction.Operation{Op: "add", Path: site.propPtr + "/" + specmodel.ExtValuesOpen, Value: true})
+			operations = append(operations, correction.Operation{Op: "add", Path: site.propPtr + "/" + specmodel.ExtValuesOpen, Value: true})
 			parts = append(parts, fmt.Sprintf("accepts values beyond the documented set (%s)", specmodel.ExtValuesOpen))
 		}
 	}
 
-	if len(ops) == 0 {
+	if len(operations) == 0 {
 		return stated("the document already agrees with the observed value set"), nil
 	}
 	return compiled{
-		ops: ops,
+		operations: operations,
 		justification: fmt.Sprintf("the audit confirmed a values observation on %s.%s: the live API %s",
 			o.Entity, o.Attribute, strings.Join(parts, "; ")),
 	}, nil
@@ -434,7 +434,7 @@ func (c *compiler) undocumentedField(loc *locator, cls specmodel.Classification,
 		value["items"] = map[string]any{}
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: sitePtr + "/properties/" + escapeToken(o.Attribute), Value: value,
 		}},
 		justification: fmt.Sprintf("the audit confirmed an undocumentedFieldInSpec observation on %s.%s: "+
@@ -481,7 +481,7 @@ func (c *compiler) updateStyle(loc *locator, cls specmodel.Classification, o obs
 		return stated("the document already declares this update style")
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPointer(cls.Update) + "/" + specmodel.ExtUpdateStyle, Value: style,
 		}},
 		justification: fmt.Sprintf("the audit confirmed an updateStyle observation on %s: "+
@@ -502,7 +502,7 @@ func (c *compiler) deleteNotFoundOK(loc *locator, cls specmodel.Classification, 
 		return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtDeleteNotFoundOK))
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPointer(cls.Delete) + "/" + specmodel.ExtDeleteNotFoundOK, Value: true,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a deleteNotFoundOK observation on %s: "+
@@ -532,18 +532,18 @@ func (c *compiler) readAfterWrite(loc *locator, cls specmodel.Classification, o 
 		return stated(fmt.Sprintf(
 			"the measured read-after-write lag is %s: reads never lagged a write, so there is nothing to declare", lag))
 	}
-	for _, op := range []*specmodel.OperationReference{cls.Create, cls.Read, cls.Update, cls.Delete} {
-		if op == nil {
+	for _, operation := range []*specmodel.OperationReference{cls.Create, cls.Read, cls.Update, cls.Delete} {
+		if operation == nil {
 			continue
 		}
-		if extension := mapValue(loc.nodeAt(opPointer(op)), specmodel.ExtEventualConsistency); extension != nil {
+		if extension := mapValue(loc.nodeAt(opPointer(operation)), specmodel.ExtEventualConsistency); extension != nil {
 			if existing, err := time.ParseDuration(extension.Value); err == nil && existing >= observed {
 				return stated("the document already declares a read-after-write lag at least this long")
 			}
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPointer(cls.Read) + "/" + specmodel.ExtEventualConsistency, Value: lag,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a readAfterWrite observation on %s: "+
@@ -609,7 +609,7 @@ func (c *compiler) listResponseShape(loc *locator, cls specmodel.Classification,
 		return stated("the document already declares this list response shape"), nil
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPtr + "/" + specmodel.ExtListResponseShape, Value: value,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a listResponseShape observation on %s: %s (%s)",
@@ -648,7 +648,7 @@ func (c *compiler) identifierProperty(loc *locator, cls specmodel.Classification
 		return stated("the document already names this identifying property"), nil
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: opPtr + "/" + specmodel.ExtIdentifierProperty, Value: property,
 		}},
 		justification: fmt.Sprintf("the audit confirmed an identifierProperty observation on %s: "+

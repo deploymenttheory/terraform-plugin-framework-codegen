@@ -25,11 +25,11 @@ func providerRepo(t *testing.T) string {
 	}
 	root := t.TempDir()
 
-	doc, err := os.ReadFile(filepath.Join(fixture, "openapi.yaml"))
+	document, err := os.ReadFile(filepath.Join(fixture, "openapi.yaml"))
 	if err != nil {
 		t.Fatalf("reading the curated document: %v", err)
 	}
-	if _, err := store.Import(filepath.Join(root, "spec"), doc, "testdata/curated/openapi.yaml"); err != nil {
+	if _, err := store.Import(filepath.Join(root, "spec"), document, "testdata/curated/openapi.yaml"); err != nil {
 		t.Fatalf("spec import: %v", err)
 	}
 	if _, err := revise.Materialize(filepath.Join(root, "spec")); err != nil {

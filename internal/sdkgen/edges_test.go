@@ -139,7 +139,7 @@ func TestUnit_OpenAPIGeneratorNormalize_SurfacesUndeletableScaffolding(t *testin
 }
 
 func TestUnit_CollapseAllOf_LeavesRealCompositionsAlone(t *testing.T) {
-	doc := `openapi: 3.0.3
+	document := `openapi: 3.0.3
 components:
   schemas:
     TwoMembers:
@@ -163,7 +163,7 @@ components:
                 deep:
                   type: string
 `
-	out, _, collapsed, err := Prenormalize([]byte(doc))
+	out, _, collapsed, err := Prenormalize([]byte(document))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -542,18 +542,18 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			root, specDir, lock := pinnedTree(t)
-			commitObs(t, root, confirmedObs(tc.attribute, tc.kind, tc.value, tc.cond, lock.SHA256))
+			commitObs(t, root, confirmedObs(testCase.attribute, testCase.kind, testCase.value, testCase.cond, lock.SHA256))
 
 			p, err := Propose(specDir)
 			if err != nil {
 				t.Fatalf("Propose: %v", err)
 			}
-			id := observe.ComputeID("tag", tc.attribute, tc.kind, tc.cond)
-			if got, want := readProposed(t, p), fmt.Sprintf(tc.want, id); got != want {
+			id := observe.ComputeID("tag", testCase.attribute, testCase.kind, testCase.cond)
+			if got, want := readProposed(t, p), fmt.Sprintf(testCase.want, id); got != want {
 				t.Errorf("proposed correction:\n got: %s\nwant: %s", got, want)
 			}
 			wantName := "001-tag.correction.json"

@@ -104,15 +104,15 @@ func TestSnakeCase(t *testing.T) {
 }
 
 func TestUnit_Names_PackageCarriesTheProviderPrefix(t *testing.T) {
-	for _, tc := range []struct{ provider, key, want string }{
+	for _, testCase := range []struct{ provider, key, want string }{
 		{"jamfpro", "computer_group", "jamfprocomputergroup"},
 		{"thousandeyes", "http_server", "thousandeyeshttpserver"},
 		{"github", "repository", "githubrepository"},
 		// A provider name may carry a hyphen; a package name may not.
 		{"my-api", "widget", "myapiwidget"},
 	} {
-		if got := packageName(tc.provider, tc.key); got != tc.want {
-			t.Fatalf("packageName(%q, %q) = %q, want %q", tc.provider, tc.key, got, tc.want)
+		if got := packageName(testCase.provider, testCase.key); got != testCase.want {
+			t.Fatalf("packageName(%q, %q) = %q, want %q", testCase.provider, testCase.key, got, testCase.want)
 		}
 	}
 }

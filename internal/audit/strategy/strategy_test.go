@@ -18,14 +18,14 @@ func defaultCfg() *config.Config {
 // compile loads a spec, classifies it, and compiles the named entity.
 func compile(t *testing.T, spec, key string, configuration *config.Config) *strategy.Strategy {
 	t.Helper()
-	doc, err := specmodel.Load([]byte(spec))
+	document, err := specmodel.Load([]byte(spec))
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	cls := specmodel.Classify(doc)
+	cls := specmodel.Classify(document)
 	for _, c := range cls.Entities {
 		if c.Key == key {
-			s, err := strategy.Compile(doc, c, configuration)
+			s, err := strategy.Compile(document, c, configuration)
 			if err != nil {
 				t.Fatalf("compile %q: %v", key, err)
 			}
@@ -673,11 +673,11 @@ func TestBudgetDeterministic(t *testing.T) {
 }
 
 func TestDeterministic(t *testing.T) {
-	doc, err := specmodel.Load([]byte(discriminatorSpec))
+	document, err := specmodel.Load([]byte(discriminatorSpec))
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	cls := specmodel.Classify(doc)
+	cls := specmodel.Classify(document)
 	var c specmodel.Classification
 	for _, e := range cls.Entities {
 		if e.Key == "test" {
@@ -685,11 +685,11 @@ func TestDeterministic(t *testing.T) {
 		}
 	}
 
-	s1, err := strategy.Compile(doc, c, defaultCfg())
+	s1, err := strategy.Compile(document, c, defaultCfg())
 	if err != nil {
 		t.Fatalf("compile 1: %v", err)
 	}
-	s2, err := strategy.Compile(doc, c, defaultCfg())
+	s2, err := strategy.Compile(document, c, defaultCfg())
 	if err != nil {
 		t.Fatalf("compile 2: %v", err)
 	}
@@ -713,8 +713,8 @@ func TestDeterministic(t *testing.T) {
 }
 
 func TestCompileErrors(t *testing.T) {
-	doc, _ := specmodel.Load([]byte(flatSpec))
-	cls := specmodel.Classify(doc)
+	document, _ := specmodel.Load([]byte(flatSpec))
+	cls := specmodel.Classify(document)
 	var widget specmodel.Classification
 	for _, e := range cls.Entities {
 		if e.Key == "widget" {
@@ -725,7 +725,7 @@ func TestCompileErrors(t *testing.T) {
 	if _, err := strategy.Compile(nil, widget, defaultCfg()); err == nil {
 		t.Fatal("nil doc should error")
 	}
-	if _, err := strategy.Compile(doc, widget, nil); err == nil {
+	if _, err := strategy.Compile(document, widget, nil); err == nil {
 		t.Fatal("nil cfg should error")
 	}
 	// An entity that is neither a resource nor readable.
@@ -734,7 +734,7 @@ func TestCompileErrors(t *testing.T) {
 		Kinds:  []specmodel.Kind{specmodel.KindAction},
 		Create: &specmodel.OperationReference{Method: "POST", Path: "/invoke"},
 	}
-	if _, err := strategy.Compile(doc, action, defaultCfg()); err == nil {
+	if _, err := strategy.Compile(document, action, defaultCfg()); err == nil {
 		t.Fatal("non-auditable entity should error")
 	}
 	// A resource whose create operation cannot be resolved to a body.
@@ -743,7 +743,7 @@ func TestCompileErrors(t *testing.T) {
 		Kinds:  []specmodel.Kind{specmodel.KindResource},
 		Create: &specmodel.OperationReference{Method: "POST", Path: "/nowhere"},
 	}
-	if _, err := strategy.Compile(doc, bad, defaultCfg()); err == nil {
+	if _, err := strategy.Compile(document, bad, defaultCfg()); err == nil {
 		t.Fatal("resource with no create body should error")
 	}
 }

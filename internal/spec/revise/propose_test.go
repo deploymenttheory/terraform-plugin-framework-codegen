@@ -392,12 +392,12 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var doc map[string]any
-	if err := yaml.Unmarshal(revised, &doc); err != nil {
+	var document map[string]any
+	if err := yaml.Unmarshal(revised, &document); err != nil {
 		t.Fatalf("revised.yaml is not usable YAML: %v", err)
 	}
 
-	tag := doc["components"].(map[string]any)["schemas"].(map[string]any)["Tag"].(map[string]any)
+	tag := document["components"].(map[string]any)["schemas"].(map[string]any)["Tag"].(map[string]any)
 	properties := tag["properties"].(map[string]any)
 	if request, ok := tag["required"].([]any); !ok || len(request) != 1 || request[0] != "name" {
 		t.Errorf("required = %v, want [name]", tag["required"])
@@ -422,7 +422,7 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	if open := color["x-tfpfgen-values-open"]; open != true {
 		t.Errorf("color values-open = %v, want true", open)
 	}
-	item := doc["paths"].(map[string]any)["/tags/{tagId}"].(map[string]any)
+	item := document["paths"].(map[string]any)["/tags/{tagId}"].(map[string]any)
 	if style := item["put"].(map[string]any)["x-tfpfgen-update-style"]; style != "put-full" {
 		t.Errorf("update style = %v, want put-full", style)
 	}

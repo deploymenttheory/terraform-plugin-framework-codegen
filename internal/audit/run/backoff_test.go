@@ -32,7 +32,7 @@ func fixedBackoff(random float64) (*backoff, *[]time.Duration) {
 
 func TestUnit_Backoff_RateLimitedRecognisesOnly429(t *testing.T) {
 	t.Parallel()
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		status int
 		want   bool
 	}{
@@ -45,8 +45,8 @@ func TestUnit_Backoff_RateLimitedRecognisesOnly429(t *testing.T) {
 		{http.StatusServiceUnavailable, false},
 		{http.StatusInternalServerError, false},
 	} {
-		if got := rateLimited(tc.status); got != tc.want {
-			t.Errorf("rateLimited(%d) = %v, want %v", tc.status, got, tc.want)
+		if got := rateLimited(testCase.status); got != testCase.want {
+			t.Errorf("rateLimited(%d) = %v, want %v", testCase.status, got, testCase.want)
 		}
 	}
 }
@@ -57,7 +57,7 @@ func TestUnit_Backoff_DelayDoublesUnderFullJitter(t *testing.T) {
 	// so the doubling is visible.
 	bo, _ := fixedBackoff(1)
 
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		attempt int
 		want    time.Duration
 	}{
@@ -66,8 +66,8 @@ func TestUnit_Backoff_DelayDoublesUnderFullJitter(t *testing.T) {
 		{3, 4 * time.Second},
 		{4, 8 * time.Second},
 	} {
-		if got := bo.delay(tc.attempt, http.Header{}); got != tc.want {
-			t.Errorf("delay(attempt %d) = %s, want %s", tc.attempt, got, tc.want)
+		if got := bo.delay(testCase.attempt, http.Header{}); got != testCase.want {
+			t.Errorf("delay(attempt %d) = %s, want %s", testCase.attempt, got, testCase.want)
 		}
 	}
 }
@@ -460,7 +460,7 @@ func TestUnit_Run_RateLimitedRequestsAreRetriedNotRecorded(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	_, sum, err := Run(ctx, opts)
+	_, summary, err := Run(ctx, opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -469,25 +469,25 @@ func TestUnit_Run_RateLimitedRequestsAreRetriedNotRecorded(t *testing.T) {
 		t.Fatalf("the server refused %d requests, want 4 — the test proves nothing otherwise", srv.refusedCount())
 	}
 
-	got := entityStatus(t, sum, "widget")
+	got := entityStatus(t, summary, "widget")
 	if got.Status != StatusAudited {
 		t.Errorf("widget = %+v, want audited — a rate-limit refusal must not block an entity", got)
 	}
 
-	if sum.RateLimited != 4 {
-		t.Errorf("summary counted %d rate-limit refusals, want 4", sum.RateLimited)
+	if summary.RateLimited != 4 {
+		t.Errorf("summary counted %d rate-limit refusals, want 4", summary.RateLimited)
 	}
 	// Four refusals, halving every slowdownEvery: the rate must have fallen.
-	if sum.Slowdowns < 1 {
-		t.Errorf("summary counted %d slowdowns after 4 refusals, want at least 1", sum.Slowdowns)
+	if summary.Slowdowns < 1 {
+		t.Errorf("summary counted %d slowdowns after 4 refusals, want at least 1", summary.Slowdowns)
 	}
-	if sum.RateLimitRPS >= opts.RateLimitRPS {
-		t.Errorf("run finished at %d rps, want below the configured %d", sum.RateLimitRPS, opts.RateLimitRPS)
+	if summary.RateLimitRPS >= opts.RateLimitRPS {
+		t.Errorf("run finished at %d rps, want below the configured %d", summary.RateLimitRPS, opts.RateLimitRPS)
 	}
 
 	// Every attempt is charged: a retried request is real load on the tenant.
-	if sum.Requests <= 3 {
-		t.Errorf("run charged %d requests; the retries are not being counted", sum.Requests)
+	if summary.Requests <= 3 {
+		t.Errorf("run charged %d requests; the retries are not being counted", summary.Requests)
 	}
 }
 
@@ -527,28 +527,28 @@ func TestUnit_Run_RelentlessRateLimitingGivesUpWithoutOrphaning(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	_, sum, err := Run(ctx, opts)
+	_, summary, err := Run(ctx, opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if sum.RateLimited < backoffAttempts {
+	if summary.RateLimited < backoffAttempts {
 		t.Errorf("summary counted %d refusals, want at least the %d attempts one request gets",
-			sum.RateLimited, backoffAttempts)
+			summary.RateLimited, backoffAttempts)
 	}
 	// One logical request earns backoffAttempts refusals, which is one
 	// halving, not a descent to the floor — the floor is reached by a run that
 	// keeps going, and this plan has nowhere left to go.
-	if sum.RateLimitRPS >= opts.RateLimitRPS {
-		t.Errorf("run finished at %d rps, want below the configured %d", sum.RateLimitRPS, opts.RateLimitRPS)
+	if summary.RateLimitRPS >= opts.RateLimitRPS {
+		t.Errorf("run finished at %d rps, want below the configured %d", summary.RateLimitRPS, opts.RateLimitRPS)
 	}
-	if sum.Slowdowns < 1 {
-		t.Errorf("summary counted %d slowdowns under relentless refusal, want at least 1", sum.Slowdowns)
+	if summary.Slowdowns < 1 {
+		t.Errorf("summary counted %d slowdowns under relentless refusal, want at least 1", summary.Slowdowns)
 	}
 	// The attempts are capped, so a server that never relents costs a bounded
 	// number of requests rather than spinning until the run's deadline.
-	if sum.Requests > backoffAttempts*2 {
+	if summary.Requests > backoffAttempts*2 {
 		t.Errorf("run charged %d requests for a single refused step; the attempt cap is not holding",
-			sum.Requests)
+			summary.Requests)
 	}
 }

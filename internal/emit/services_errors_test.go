@@ -259,9 +259,9 @@ func TestUnit_Emit_ValidatorHelperSpellings(t *testing.T) {
 		{[]string{"a", "b"}, `"a" or "b"`},
 		{[]string{"a", "b", "c"}, `"a", "b" or "c"`},
 	}
-	for _, tc := range orLists {
-		if got := orList(tc.in); got != tc.want {
-			t.Fatalf("orList(%v) = %q, want %q", tc.in, got, tc.want)
+	for _, testCase := range orLists {
+		if got := orList(testCase.in); got != testCase.want {
+			t.Fatalf("orList(%v) = %q, want %q", testCase.in, got, testCase.want)
 		}
 	}
 

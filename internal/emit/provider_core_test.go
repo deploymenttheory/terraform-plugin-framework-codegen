@@ -89,16 +89,16 @@ func TestUnit_FromConfig_RefusesWhatItCannotDerive(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
 			configuration := testConfig(config.BackendKiota, config.AuthBearerToken)
-			tc.mutate(configuration)
+			testCase.mutate(configuration)
 			_, err := FromConfig(configuration, "")
 			if err == nil {
 				t.Fatal("FromConfig accepted the broken config")
 			}
-			if !strings.Contains(err.Error(), tc.wantErr) {
-				t.Fatalf("error %q does not mention %q", err, tc.wantErr)
+			if !strings.Contains(err.Error(), testCase.wantErr) {
+				t.Fatalf("error %q does not mention %q", err, testCase.wantErr)
 			}
 		})
 	}

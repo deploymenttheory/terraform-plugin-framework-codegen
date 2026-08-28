@@ -560,9 +560,9 @@ func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdk
 
 // successStatus is an operation's declared success code, or the
 // conventional one.
-func successStatus(op *ir.Operation, fallback int) int {
-	if op != nil && op.SuccessCode > 0 {
-		return op.SuccessCode
+func successStatus(operation *ir.Operation, fallback int) int {
+	if operation != nil && operation.SuccessCode > 0 {
+		return operation.SuccessCode
 	}
 	return fallback
 }

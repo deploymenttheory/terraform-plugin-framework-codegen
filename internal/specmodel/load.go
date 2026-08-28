@@ -34,32 +34,32 @@ func Load(data []byte) (*Document, error) {
 	}
 
 	l := &loader{
-		doc:           &Document{Schemas: map[string]*Schema{}},
+		document:      &Document{Schemas: map[string]*Schema{}},
 		parameters:    map[string]Parameter{},
 		requestBodies: map[string]*Schema{},
 		responses:     map[string]*Schema{},
 	}
-	if err := l.document(top); err != nil {
+	if err := l.loadDocument(top); err != nil {
 		return nil, err
 	}
 	if err := l.resolve(); err != nil {
 		return nil, err
 	}
-	return l.doc, nil
+	return l.document, nil
 }
 
 // loader carries the partially built document plus the component objects
 // that exist only to be referenced, and the reference fixups the resolution
 // pass completes once every named schema exists.
 type loader struct {
-	doc           *Document
+	document      *Document
 	parameters    map[string]Parameter
 	requestBodies map[string]*Schema
 	responses     map[string]*Schema
 	refs          []pendingRef
 }
 
-func (l *loader) document(top *yaml.Node) error {
+func (l *loader) loadDocument(top *yaml.Node) error {
 	version := lookup(top, "openapi")
 	switch {
 	case version == nil && lookup(top, "swagger") != nil:
@@ -69,7 +69,7 @@ func (l *loader) document(top *yaml.Node) error {
 	case len(version.Value) < 2 || version.Value[:2] != "3.":
 		return fmt.Errorf("openapi version %q is not supported; only 3.x is", version.Value)
 	}
-	l.doc.OpenAPI = version.Value
+	l.document.OpenAPI = version.Value
 
 	if _, err := parseExtensions(top, "document"); err != nil {
 		return err
@@ -79,15 +79,15 @@ func (l *loader) document(top *yaml.Node) error {
 	if info == nil || lookup(info, "version") == nil {
 		return errors.New("the document declares no info.version")
 	}
-	l.doc.Info.Version = lookup(info, "version").Value
+	l.document.Info.Version = lookup(info, "version").Value
 	if title := lookup(info, "title"); title != nil {
-		l.doc.Info.Title = title.Value
+		l.document.Info.Title = title.Value
 	}
 
 	if servers := lookup(top, "servers"); servers != nil {
 		for _, s := range servers.Content {
 			if u := lookup(deref(s), "url"); u != nil {
-				l.doc.Servers = append(l.doc.Servers, Server{URL: u.Value})
+				l.document.Servers = append(l.document.Servers, Server{URL: u.Value})
 			}
 		}
 	}
@@ -112,7 +112,7 @@ func (l *loader) components(node *yaml.Node) error {
 				return err
 			}
 			s.Name = name
-			l.doc.Schemas[name] = s
+			l.document.Schemas[name] = s
 		}
 	}
 	if parameters := lookup(node, "parameters"); parameters != nil {
@@ -174,44 +174,44 @@ func (l *loader) paths(node *yaml.Node) error {
 			if opNode == nil {
 				continue
 			}
-			op, err := l.operation(method, path, deref(opNode), shared)
+			operation, err := l.operation(method, path, deref(opNode), shared)
 			if err != nil {
 				return err
 			}
-			p.Operations = append(p.Operations, op)
+			p.Operations = append(p.Operations, operation)
 		}
-		l.doc.Paths = append(l.doc.Paths, p)
+		l.document.Paths = append(l.document.Paths, p)
 	}
-	sort.Slice(l.doc.Paths, func(i, j int) bool { return l.doc.Paths[i].Path < l.doc.Paths[j].Path })
+	sort.Slice(l.document.Paths, func(i, j int) bool { return l.document.Paths[i].Path < l.document.Paths[j].Path })
 	return nil
 }
 
 func (l *loader) operation(method, path string, node *yaml.Node, shared []Parameter) (Operation, error) {
 	at := "paths." + path + "." + method
-	op := Operation{Method: httpMethod(method), Path: path}
+	operation := Operation{Method: httpMethod(method), Path: path}
 
 	extension, err := parseExtensions(node, at)
 	if err != nil {
 		return Operation{}, err
 	}
-	op.Extensions = extension
+	operation.Extensions = extension
 
 	if id := lookup(node, "operationId"); id != nil {
-		op.OperationID = id.Value
+		operation.OperationID = id.Value
 	}
 
 	own, err := l.parameterList(lookup(node, "parameters"), at)
 	if err != nil {
 		return Operation{}, err
 	}
-	op.Parameters = combineParameters(shared, own)
+	operation.Parameters = combineParameters(shared, own)
 
 	if rb := deref(lookup(node, "requestBody")); rb != nil {
 		schema, err := l.bodySchema(rb, at+".requestBody")
 		if err != nil {
 			return Operation{}, err
 		}
-		op.RequestBody = schema
+		operation.RequestBody = schema
 	}
 
 	if responses := deref(lookup(node, "responses")); responses != nil {
@@ -220,14 +220,14 @@ func (l *loader) operation(method, path string, node *yaml.Node, shared []Parame
 			if err != nil {
 				return Operation{}, err
 			}
-			op.Responses = append(op.Responses, Response{Status: status, Schema: schema})
+			operation.Responses = append(operation.Responses, Response{Status: status, Schema: schema})
 		}
-		sort.Slice(op.Responses, func(i, j int) bool {
-			return op.Responses[i].Status < op.Responses[j].Status
+		sort.Slice(operation.Responses, func(i, j int) bool {
+			return operation.Responses[i].Status < operation.Responses[j].Status
 		})
 	}
 
-	return op, nil
+	return operation, nil
 }
 
 // bodySchema reads a request body object, following a reference to a

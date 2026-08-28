@@ -12,16 +12,16 @@ import (
 )
 
 func TestDerive_RefusesMissingInputs(t *testing.T) {
-	doc := mustLoad(t, thingSpec)
+	document := mustLoad(t, thingSpec)
 	if _, err := Derive(nil, testConfig()); err == nil {
 		t.Errorf("a nil document derived")
 	}
-	if _, err := Derive(doc, nil); err == nil {
+	if _, err := Derive(document, nil); err == nil {
 		t.Errorf("a nil config derived")
 	}
 	empty := testConfig()
 	empty.Provider.Name = ""
-	if _, err := Derive(doc, empty); err == nil {
+	if _, err := Derive(document, empty); err == nil {
 		t.Errorf("an empty provider name derived")
 	}
 }

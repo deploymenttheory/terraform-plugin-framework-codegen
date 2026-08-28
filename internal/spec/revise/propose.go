@@ -220,7 +220,7 @@ func ProposeWith(dir string, opts Options) (Proposals, error) {
 		corr := correction.Correction{
 			Justification: res.justification,
 			Evidence:      "audit/observations/" + o.Entity + observe.FileSuffix + "#" + o.ID,
-			Operations:    res.ops,
+			Operations:    res.operations,
 		}
 		// Later compilations see this correction's effect, so two
 		// observations touching the same schema compose instead of
@@ -413,12 +413,12 @@ func revisedState(dir, correctionsDir string) ([]byte, map[string]specmodel.Clas
 		return nil, nil, err
 	}
 
-	doc, err := specmodel.Load(state)
+	document, err := specmodel.Load(state)
 	if err != nil {
 		return nil, nil, fmt.Errorf("the revised document is not loadable, so observations cannot be placed: %w", err)
 	}
 	entities := map[string]specmodel.Classification{}
-	for _, c := range specmodel.Classify(doc).Entities {
+	for _, c := range specmodel.Classify(document).Entities {
 		entities[c.Key] = c
 	}
 	return state, entities, nil

@@ -41,12 +41,12 @@ func TestUnit_SpecStore_FirstImportPinsDocumentAndLock(t *testing.T) {
 		t.Fatalf("a first import has nothing previous, got %+v", res.Previous)
 	}
 
-	doc, err := os.ReadFile(filepath.Join(dir, DocumentName))
+	document, err := os.ReadFile(filepath.Join(dir, DocumentName))
 	if err != nil {
 		t.Fatalf("the document was not written: %v", err)
 	}
-	if string(doc) != sampleYAML {
-		t.Fatalf("the stored document is not byte-for-byte what was published:\n%s", doc)
+	if string(document) != sampleYAML {
+		t.Fatalf("the stored document is not byte-for-byte what was published:\n%s", document)
 	}
 
 	lock, err := Verify(dir)
@@ -84,12 +84,12 @@ func TestUnit_SpecStore_JSONDocumentIsStoredAsFetchedNotConverted(t *testing.T) 
 		t.Errorf("lock versions = %q / %q", res.Lock.OpenAPI, res.Lock.DocumentVersion)
 	}
 
-	doc, err := os.ReadFile(res.DocumentPath)
+	document, err := os.ReadFile(res.DocumentPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(doc) != sampleJSON {
-		t.Fatalf("the JSON bytes were reformatted:\n%s", doc)
+	if string(document) != sampleJSON {
+		t.Fatalf("the JSON bytes were reformatted:\n%s", document)
 	}
 }
 

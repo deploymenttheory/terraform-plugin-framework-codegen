@@ -94,12 +94,12 @@ components:
 `
 
 func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
-	doc, err := Load([]byte(annotated))
+	document, err := Load([]byte(annotated))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 
-	thing := doc.Schemas["Thing"]
+	thing := document.Schemas["Thing"]
 	property := func(name string) Extensions {
 		s, ok := thing.Property(name)
 		if !ok {
@@ -144,8 +144,8 @@ func TestUnit_Specmodel_ExtensionAccessors(t *testing.T) {
 	}
 
 	byID := map[string]Operation{}
-	for _, op := range doc.Operations() {
-		byID[op.OperationID] = op
+	for _, operation := range document.Operations() {
+		byID[operation.OperationID] = operation
 	}
 	if d, ok := byID["createThing"].Extensions.EventualConsistency(); !ok || d != 90*time.Second {
 		t.Errorf("EventualConsistency = %v, %v", d, ok)
@@ -232,21 +232,21 @@ func TestUnit_Specmodel_ListResponseShapeForms(t *testing.T) {
 		{"bare without pagination", "envelope: bare",
 			ListResponseShape{Envelope: ListEnvelopeBare, Pagination: "none"}},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			doc, err := Load([]byte(listOp(tc.body)))
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			document, err := Load([]byte(listOp(testCase.body)))
 			if err != nil {
 				t.Fatalf("Load: %v", err)
 			}
-			ops := doc.Operations()
-			if len(ops) != 1 {
-				t.Fatalf("operations = %+v", ops)
+			operations := document.Operations()
+			if len(operations) != 1 {
+				t.Fatalf("operations = %+v", operations)
 			}
-			got, ok := ops[0].Extensions.ListResponseShape()
-			if !ok || got != tc.want {
-				t.Errorf("ListResponseShape = %+v, %v; want %+v", got, ok, tc.want)
+			got, ok := operations[0].Extensions.ListResponseShape()
+			if !ok || got != testCase.want {
+				t.Errorf("ListResponseShape = %+v, %v; want %+v", got, ok, testCase.want)
 			}
-			if got.Wrapped() != (tc.want.Envelope == ListEnvelopeWrapped) {
+			if got.Wrapped() != (testCase.want.Envelope == ListEnvelopeWrapped) {
 				t.Errorf("Wrapped() = %v for %+v", got.Wrapped(), got)
 			}
 		})
@@ -256,7 +256,7 @@ func TestUnit_Specmodel_ListResponseShapeForms(t *testing.T) {
 // Keys outside the x-tfpfgen- namespace belong to other tools and are
 // neither refused nor recorded.
 func TestUnit_Specmodel_ForeignExtensionsPassBy(t *testing.T) {
-	doc, err := Load([]byte(minimal(`components:
+	document, err := Load([]byte(minimal(`components:
   schemas:
     A:
       type: object
@@ -265,8 +265,8 @@ func TestUnit_Specmodel_ForeignExtensionsPassBy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if len(doc.Schemas["A"].Extensions) != 0 {
-		t.Errorf("Extensions = %+v; foreign keys should not be recorded", doc.Schemas["A"].Extensions)
+	if len(document.Schemas["A"].Extensions) != 0 {
+		t.Errorf("Extensions = %+v; foreign keys should not be recorded", document.Schemas["A"].Extensions)
 	}
 }
 
@@ -282,9 +282,9 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
 	}
 
 	cases := []struct {
-		name string
-		doc  string
-		want string
+		name     string
+		document string
+		want     string
 	}{
 		{"unknown key near a real one suggests it",
 			schemaWith("x-tfpfgen-create-onl: true"),
@@ -403,14 +403,14 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
 			"must be a non-empty scalar"},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := Load([]byte(tc.doc))
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := Load([]byte(testCase.document))
 			if err == nil {
-				t.Fatalf("Load accepted the document; want an error containing %q", tc.want)
+				t.Fatalf("Load accepted the document; want an error containing %q", testCase.want)
 			}
-			if !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("error = %q, want it to contain %q", err, tc.want)
+			if !strings.Contains(err.Error(), testCase.want) {
+				t.Fatalf("error = %q, want it to contain %q", err, testCase.want)
 			}
 		})
 	}
@@ -421,16 +421,16 @@ func TestUnit_Specmodel_ExtensionRefusals(t *testing.T) {
 func TestUnit_Specmodel_UpdateStyleAcceptsEachApprovedValue(t *testing.T) {
 	for _, style := range []string{"patch-merge", "put-full", "replace-only"} {
 		t.Run(style, func(t *testing.T) {
-			doc, err := Load([]byte(minimal(
+			document, err := Load([]byte(minimal(
 				"paths:\n  /a/{id}:\n    patch:\n      x-tfpfgen-update-style: " + style + "\n      responses: {}\n")))
 			if err != nil {
 				t.Fatalf("Load: %v", err)
 			}
-			ops := doc.Operations()
-			if len(ops) != 1 {
-				t.Fatalf("operations = %+v", ops)
+			operations := document.Operations()
+			if len(operations) != 1 {
+				t.Fatalf("operations = %+v", operations)
 			}
-			if s, ok := ops[0].Extensions.UpdateStyle(); !ok || s != style {
+			if s, ok := operations[0].Extensions.UpdateStyle(); !ok || s != style {
 				t.Errorf("UpdateStyle = %q, %v; want %q, true", s, ok, style)
 			}
 		})

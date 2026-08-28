@@ -403,14 +403,14 @@ func TestUnit_RenderProviderCore_ReportsTemplateProblemsByName(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := renderProviderCore(tc.fsys, validContext(t))
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := renderProviderCore(testCase.fsys, validContext(t))
 			if err == nil {
-				t.Fatalf("renderProviderCore accepted the %s tree", tc.name)
+				t.Fatalf("renderProviderCore accepted the %s tree", testCase.name)
 			}
-			if !strings.Contains(err.Error(), tc.wantErr) {
-				t.Fatalf("error %q does not mention %q", err, tc.wantErr)
+			if !strings.Contains(err.Error(), testCase.wantErr) {
+				t.Fatalf("error %q does not mention %q", err, testCase.wantErr)
 			}
 		})
 	}

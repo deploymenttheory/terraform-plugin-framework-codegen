@@ -61,16 +61,16 @@ func TestUnit_Observe_RedactFailsClosed(t *testing.T) {
 			RequestFragment: []byte(`{"note":"has \"` + secret + `\" quoted"}`),
 		}},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
 			sec := secret
-			if tc.name == "secret as a number" {
+			if testCase.name == "secret as a number" {
 				sec = "900190019001"
 			}
-			if tc.name == "secret with JSON-escaping characters" {
+			if testCase.name == "secret with JSON-escaping characters" {
 				sec = `"` + secret + `"`
 			}
-			got := Redact(tc.excerpt, []string{sec, ""})
+			got := Redact(testCase.excerpt, []string{sec, ""})
 			mustNotContain(t, got, sec)
 			mustNotContain(t, got, secret)
 		})

@@ -117,8 +117,8 @@ func TestUnit_Verify_WritesNothingUnderTheRepo(t *testing.T) {
 	if len(before) != len(after) {
 		t.Fatalf("Verify changed the file count: %d -> %d", len(before), len(after))
 	}
-	for path, sum := range before {
-		if after[path] != sum {
+	for path, summary := range before {
+		if after[path] != summary {
 			t.Errorf("Verify changed %s", path)
 		}
 	}

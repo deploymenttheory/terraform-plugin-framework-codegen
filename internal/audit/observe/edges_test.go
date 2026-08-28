@@ -39,17 +39,17 @@ func TestUnit_Observe_EdgeKindsRefuseMalformedValues(t *testing.T) {
 		{"listShape unknown key", KindListResponseShape, "", map[string]any{"envelope": "bare", "pagination": "none", "junk": 1}, nil, false},
 		{"listShape wrong type", KindListResponseShape, "", 42, nil, false},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
 			o := valid()
-			o.Kind, o.Attribute, o.Value, o.Condition = tc.kind, tc.attribute, tc.value, tc.cond
+			o.Kind, o.Attribute, o.Value, o.Condition = testCase.kind, testCase.attribute, testCase.value, testCase.cond
 			o.ID = ComputeID(o.Entity, o.Attribute, o.Kind, o.Condition)
 			err := o.Validate()
-			if tc.ok && err != nil {
+			if testCase.ok && err != nil {
 				t.Fatalf("Validate() = %v, want nil", err)
 			}
-			if !tc.ok && err == nil {
-				t.Fatalf("Validate() = nil, want an error for %s", tc.name)
+			if !testCase.ok && err == nil {
+				t.Fatalf("Validate() = nil, want an error for %s", testCase.name)
 			}
 		})
 	}

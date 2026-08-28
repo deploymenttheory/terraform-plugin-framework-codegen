@@ -175,11 +175,11 @@ func TestUnit_Observe_ReadRefusesWhatItCannotTrust(t *testing.T) {
 			"invalid character",
 		},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			dir := write(t, tc.file, tc.content)
-			if _, err := Read(dir); err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("Read = %v, want an error containing %q", err, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			dir := write(t, testCase.file, testCase.content)
+			if _, err := Read(dir); err == nil || !strings.Contains(err.Error(), testCase.want) {
+				t.Fatalf("Read = %v, want an error containing %q", err, testCase.want)
 			}
 		})
 	}

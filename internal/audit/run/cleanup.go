@@ -35,12 +35,12 @@ func Cleanup(ctx context.Context, opts Options) (CleanupSummary, error) {
 	}
 	defer r.ledger.close()
 	r.inCleanup = true
-	sum := r.cleanupDebris(ctx)
+	summary := r.cleanupDebris(ctx)
 	r.ledger.remove()
-	if len(sum.Orphans) > 0 {
-		return sum, fmt.Errorf("audit cleanup: %d object(s) could not be removed; see the orphan list", len(sum.Orphans))
+	if len(summary.Orphans) > 0 {
+		return summary, fmt.Errorf("audit cleanup: %d object(s) could not be removed; see the orphan list", len(summary.Orphans))
 	}
-	return sum, nil
+	return summary, nil
 }
 
 // cleanupDebris is the shared removal pass: prior activity ledgers first (delete by id, newest
@@ -52,33 +52,33 @@ func (r *runner) cleanupDebris(ctx context.Context) CleanupSummary {
 	r.inCleanup = true
 	defer func() { r.inCleanup = wasCleanup }()
 
-	var sum CleanupSummary
-	r.cleanupLedgers(ctx, &sum)
-	r.cleanupByPrefix(ctx, &sum)
-	return sum
+	var summary CleanupSummary
+	r.cleanupLedgers(ctx, &summary)
+	r.cleanupByPrefix(ctx, &summary)
+	return summary
 }
 
 // cleanupOwn is the end-of-run pass: this run's own ledger, newest first
 // so children go before the parents whose paths embed them, then the
 // prefix pass for anything that got past it.
 func (r *runner) cleanupOwn(ctx context.Context) CleanupSummary {
-	var sum CleanupSummary
+	var summary CleanupSummary
 	for _, e := range r.ledger.unresolved() {
-		r.cleanupLedgerEntry(ctx, e, &sum)
+		r.cleanupLedgerEntry(ctx, e, &summary)
 	}
-	r.cleanupByPrefix(ctx, &sum)
+	r.cleanupByPrefix(ctx, &summary)
 	for _, e := range r.ledger.unresolved() {
-		sum.Orphans = append(sum.Orphans, orphanLine(e))
+		summary.Orphans = append(summary.Orphans, orphanLine(e))
 	}
 	r.ledger.remove()
-	return sum
+	return summary
 }
 
 // cleanupLedgers replays every previous run's activity ledger in the runs
 // directory: unresolved entries with ids are deleted, and a file whose
 // entries all reconcile is removed. A file that still names possible
 // objects is kept — it is the only record of them.
-func (r *runner) cleanupLedgers(ctx context.Context, sum *CleanupSummary) {
+func (r *runner) cleanupLedgers(ctx context.Context, summary *CleanupSummary) {
 	if r.opts.RunsDir == "" {
 		return
 	}
@@ -100,19 +100,19 @@ func (r *runner) cleanupLedgers(ctx context.Context, sum *CleanupSummary) {
 		}
 		recorded, err := readActivityFile(path)
 		if err != nil {
-			sum.Orphans = append(sum.Orphans, fmt.Sprintf("ledger %s could not be read: %v", path, err))
+			summary.Orphans = append(summary.Orphans, fmt.Sprintf("ledger %s could not be read: %v", path, err))
 			continue
 		}
 		clean := true
 		for _, e := range unresolvedOf(recorded) {
-			if !r.cleanupLedgerEntry(ctx, e, sum) {
+			if !r.cleanupLedgerEntry(ctx, e, summary) {
 				clean = false
 			}
 		}
 		if clean {
 			_ = os.Remove(path)
 		} else {
-			sum.Orphans = append(sum.Orphans, fmt.Sprintf("ledger %s still names objects that may exist", path))
+			summary.Orphans = append(summary.Orphans, fmt.Sprintf("ledger %s still names objects that may exist", path))
 		}
 	}
 }
@@ -120,7 +120,7 @@ func (r *runner) cleanupLedgers(ctx context.Context, sum *CleanupSummary) {
 // cleanupLedgerEntry deletes one recorded object by id, reporting whether
 // the entry is settled. An entry with no id cannot be addressed — it is
 // the prefix pass's job, and settles only if that pass can run.
-func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, sum *CleanupSummary) bool {
+func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, summary *CleanupSummary) bool {
 	if e.ID == "" || e.ItemPath == "" {
 		// No identifier was ever learned; the prefix pass is this
 		// object's only chance.
@@ -132,17 +132,17 @@ func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, sum *C
 	}
 	res, err := r.do(ctx, nil, reqSpec{method: "DELETE", path: path})
 	if err != nil {
-		sum.Orphans = append(sum.Orphans, orphanLine(e)+": "+err.Error())
+		summary.Orphans = append(summary.Orphans, orphanLine(e)+": "+err.Error())
 		return false
 	}
 	if res.ok() || res.status == 404 {
 		r.ledger.resolve(e.Seq, activityDeleted, e.ID, res.status)
 		if res.ok() {
-			sum.LedgerDeletes++
+			summary.LedgerDeletes++
 		}
 		return true
 	}
-	sum.Orphans = append(sum.Orphans, fmt.Sprintf("%s: the delete answered %d", orphanLine(e), res.status))
+	summary.Orphans = append(summary.Orphans, fmt.Sprintf("%s: the delete answered %d", orphanLine(e), res.status))
 	return false
 }
 
@@ -150,7 +150,7 @@ func (r *runner) cleanupLedgerEntry(ctx context.Context, e activityEntry, sum *C
 // each object whose name-bearing fields carry the run prefix — the pass
 // that catches an object whose create response was never seen. Bounded by
 // the prefix, so it can never touch an object the audit did not make.
-func (r *runner) cleanupByPrefix(ctx context.Context, sum *CleanupSummary) {
+func (r *runner) cleanupByPrefix(ctx context.Context, summary *CleanupSummary) {
 	for _, ep := range r.opts.Plan.Entities {
 		rec := recipeOf(&ep)
 		if rec.minimalBody == nil || rec.collectionPath == "" || rec.itemPath == "" {
@@ -170,11 +170,11 @@ func (r *runner) cleanupByPrefix(ctx context.Context, sum *CleanupSummary) {
 		if referencesCreated(rec.collectionValues) || referencesCreated(parentValues) {
 			continue
 		}
-		r.cleanupCollection(ctx, rec, sum)
+		r.cleanupCollection(ctx, rec, summary)
 	}
 }
 
-func (r *runner) cleanupCollection(ctx context.Context, rec *entityRecipe, sum *CleanupSummary) {
+func (r *runner) cleanupCollection(ctx context.Context, rec *entityRecipe, summary *CleanupSummary) {
 	res, err := r.do(ctx, nil, reqSpec{method: "GET", path: rec.collectionPath, pathValues: rec.collectionValues})
 	if err != nil || !res.ok() {
 		return
@@ -193,7 +193,7 @@ func (r *runner) cleanupCollection(ctx context.Context, rec *entityRecipe, sum *
 		if id := identifierOf(obj); id != "" {
 			matches = append(matches, found{id: id, name: name})
 		} else {
-			sum.Orphans = append(sum.Orphans, fmt.Sprintf("%s %q carries the prefix but no recognisable id", rec.entity, name))
+			summary.Orphans = append(summary.Orphans, fmt.Sprintf("%s %q carries the prefix but no recognisable id", rec.entity, name))
 		}
 	}
 	sort.Slice(matches, func(i, j int) bool { return matches[i].id < matches[j].id })
@@ -202,17 +202,17 @@ func (r *runner) cleanupCollection(ctx context.Context, rec *entityRecipe, sum *
 			method: rec.deleteMethod, path: rec.itemPath, pathValues: itemValuesFor(rec, m.id),
 		})
 		if err != nil {
-			sum.Orphans = append(sum.Orphans, fmt.Sprintf("%s %s (%s): %v", rec.entity, m.id, m.name, err))
+			summary.Orphans = append(summary.Orphans, fmt.Sprintf("%s %s (%s): %v", rec.entity, m.id, m.name, err))
 			continue
 		}
 		if del.ok() || del.status == 404 {
 			if del.ok() {
-				sum.PrefixDeletes++
+				summary.PrefixDeletes++
 			}
 			r.resolveByName(m.name, m.id, del.status)
 			continue
 		}
-		sum.Orphans = append(sum.Orphans, fmt.Sprintf("%s %s (%s): the delete answered %d", rec.entity, m.id, m.name, del.status))
+		summary.Orphans = append(summary.Orphans, fmt.Sprintf("%s %s (%s): the delete answered %d", rec.entity, m.id, m.name, del.status))
 	}
 }
 

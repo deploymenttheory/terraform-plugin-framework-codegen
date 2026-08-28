@@ -38,8 +38,8 @@ const (
 // children whose paths embed them; classification's collection-path
 // ordering already guarantees that, because a parent's collection path is
 // a strict prefix of its child's.
-func Derive(doc *specmodel.Document, configuration *config.Config, inputs *Inputs) (*Plan, error) {
-	cls := specmodel.Classify(doc)
+func Derive(document *specmodel.Document, configuration *config.Config, inputs *Inputs) (*Plan, error) {
+	cls := specmodel.Classify(document)
 
 	byKey := make(map[string]specmodel.Classification, len(cls.Entities))
 	byCollection := make(map[string]string, len(cls.Entities))
@@ -60,7 +60,7 @@ func Derive(doc *specmodel.Document, configuration *config.Config, inputs *Input
 	}
 
 	d := &planBuilder{
-		doc:           doc,
+		document:      document,
 		configuration: configuration,
 		inputs:        inputs,
 		byKey:         byKey,
@@ -134,7 +134,7 @@ func checkInputEntities(inputs *Inputs, byKey map[string]specmodel.Classificatio
 
 // planBuilder carries the per-run derivation state.
 type planBuilder struct {
-	doc           *specmodel.Document
+	document      *specmodel.Document
 	configuration *config.Config
 	inputs        *Inputs
 	byKey         map[string]specmodel.Classification
@@ -225,8 +225,8 @@ func (d *planBuilder) operation(ref *specmodel.OperationReference) *specmodel.Op
 	if ref == nil {
 		return nil
 	}
-	for pi := range d.doc.Paths {
-		p := &d.doc.Paths[pi]
+	for pi := range d.document.Paths {
+		p := &d.document.Paths[pi]
 		if p.Path != ref.Path {
 			continue
 		}

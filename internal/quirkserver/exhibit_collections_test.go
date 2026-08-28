@@ -109,17 +109,17 @@ func TestUnit_Quirkserver_Monitor_VariantGrammar(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			status, body := post(t, monitorsURL(s), tc.body)
-			if status != tc.status {
-				t.Fatalf("status = %d, want %d (%v)", status, tc.status, body)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			status, body := post(t, monitorsURL(s), testCase.body)
+			if status != testCase.status {
+				t.Fatalf("status = %d, want %d (%v)", status, testCase.status, body)
 			}
-			if tc.detail == "" {
+			if testCase.detail == "" {
 				return
 			}
-			if got, _ := body["detail"].(string); got != tc.detail {
-				t.Errorf("detail = %q, want %q", got, tc.detail)
+			if got, _ := body["detail"].(string); got != testCase.detail {
+				t.Errorf("detail = %q, want %q", got, testCase.detail)
 			}
 		})
 	}

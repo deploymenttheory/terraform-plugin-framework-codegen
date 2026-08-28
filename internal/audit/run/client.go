@@ -291,11 +291,11 @@ func (r *runner) resolveValue(ctx context.Context, entity *entityState, v string
 	v = strings.ReplaceAll(v, plan.RunIDToken, r.runID)
 	if strings.HasPrefix(v, "${") && strings.HasSuffix(v, "}") {
 		name := v[2 : len(v)-1]
-		val, ok := r.opts.Lookup(name)
-		if !ok || val == "" {
+		value, ok := r.opts.Lookup(name)
+		if !ok || value == "" {
 			return "", blockedError{reason: fmt.Sprintf("the environment variable %s named by %s is not set", name, plan.InputsPath)}
 		}
-		return val, nil
+		return value, nil
 	}
 	if entityKey, ok := strings.CutPrefix(v, "$created:"); ok {
 		return r.resolveCreated(ctx, entity, entityKey)

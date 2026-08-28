@@ -88,8 +88,8 @@ type Result struct {
 // The same content twice is a no-op: nothing is rewritten, not even the
 // fetch timestamp, so an unchanged upstream leaves an unchanged tree.
 // Different content replaces the pin and reports what it replaced.
-func Import(dir string, doc []byte, source string) (Result, error) {
-	openAPI, docVersion, format, err := describe(doc)
+func Import(dir string, document []byte, source string) (Result, error) {
+	openAPI, docVersion, format, err := describe(document)
 	if err != nil {
 		return Result{}, err
 	}
@@ -99,7 +99,7 @@ func Import(dir string, doc []byte, source string) (Result, error) {
 		LockPath:     filepath.Join(dir, LockName),
 		Lock: Lock{
 			Source:          source,
-			SHA256:          digest(doc),
+			SHA256:          digest(document),
 			FetchedAt:       time.Now().UTC().Truncate(time.Second),
 			Format:          format,
 			OpenAPI:         openAPI,
@@ -127,7 +127,7 @@ func Import(dir string, doc []byte, source string) (Result, error) {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return Result{}, fmt.Errorf("creating %s: %w", dir, err)
 	}
-	if err := os.WriteFile(res.DocumentPath, doc, 0o600); err != nil {
+	if err := os.WriteFile(res.DocumentPath, document, 0o600); err != nil {
 		return Result{}, fmt.Errorf("writing the document: %w", err)
 	}
 
@@ -158,7 +158,7 @@ func Verify(dir string) (Lock, error) {
 		return Lock{}, err
 	}
 
-	doc, err := os.ReadFile(documentPath) //nolint:gosec // the fixed name under the operator-supplied dir
+	document, err := os.ReadFile(documentPath) //nolint:gosec // the fixed name under the operator-supplied dir
 	if errors.Is(err, os.ErrNotExist) {
 		return Lock{}, fmt.Errorf("%s does not exist but its lock does; restore the committed document or run `tfpfgen spec import %s`", documentPath, lock.Source)
 	}
@@ -166,10 +166,10 @@ func Verify(dir string) (Lock, error) {
 		return Lock{}, err
 	}
 
-	if got := digest(doc); got != lock.SHA256 {
+	if got := digest(document); got != lock.SHA256 {
 		return Lock{}, fmt.Errorf("%s does not match its lock: the lock pins sha256 %s but the file is %s — "+
 			"the pinned document was edited in place; restore the committed bytes, or run `tfpfgen spec import %s` to move the pin deliberately",
-			documentPath, shortSHA(lock.SHA256), shortSHA(digest(doc)), lock.Source)
+			documentPath, shortSHA(lock.SHA256), shortSHA(digest(document)), lock.Source)
 	}
 
 	return lock, nil
@@ -191,7 +191,7 @@ func readLock(path string) (Lock, error) {
 
 // describe validates that doc is an OpenAPI document and reports its
 // declared versions and published format.
-func describe(doc []byte) (openAPI, docVersion, format string, err error) {
+func describe(document []byte) (openAPI, docVersion, format string, err error) {
 	var head struct {
 		OpenAPI string `yaml:"openapi"`
 		Swagger string `yaml:"swagger"`
@@ -199,7 +199,7 @@ func describe(doc []byte) (openAPI, docVersion, format string, err error) {
 			Version string `yaml:"version"`
 		} `yaml:"info"`
 	}
-	if err := yaml.Unmarshal(doc, &head); err != nil {
+	if err := yaml.Unmarshal(document, &head); err != nil {
 		return "", "", "", fmt.Errorf("the document is not parseable as YAML or JSON: %w", err)
 	}
 	if head.Swagger != "" {
@@ -210,16 +210,16 @@ func describe(doc []byte) (openAPI, docVersion, format string, err error) {
 	}
 
 	format = "yaml"
-	if json.Valid(doc) {
+	if json.Valid(document) {
 		format = "json"
 	}
 	return head.OpenAPI, head.Info.Version, format, nil
 }
 
 // digest is the hex SHA-256 of the given bytes.
-func digest(doc []byte) string {
-	sum := sha256.Sum256(doc)
-	return hex.EncodeToString(sum[:])
+func digest(document []byte) string {
+	summary := sha256.Sum256(document)
+	return hex.EncodeToString(summary[:])
 }
 
 // storedDigest is the digest of the file at path, or "" when it cannot be

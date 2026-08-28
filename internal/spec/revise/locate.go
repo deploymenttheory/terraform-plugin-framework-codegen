@@ -74,8 +74,8 @@ func mapValue(n *yaml.Node, key string) *yaml.Node {
 }
 
 // opPointer addresses one operation object inside paths.
-func opPointer(op *specmodel.OperationReference) string {
-	return "/paths/" + escapeToken(op.Path) + "/" + strings.ToLower(op.Method)
+func opPointer(operation *specmodel.OperationReference) string {
+	return "/paths/" + escapeToken(operation.Path) + "/" + strings.ToLower(operation.Method)
 }
 
 // followSchemaRefs walks a $ref chain to the schema that actually carries
@@ -101,11 +101,11 @@ func (l *locator) followSchemaRefs(node *yaml.Node, pointer string) (*yaml.Node,
 // requestSchema finds an operation's request body schema, following a
 // component request-body reference and the schema's own $ref chain, choosing
 // a media type by the same fixed rule the document model uses.
-func (l *locator) requestSchema(op *specmodel.OperationReference) (*yaml.Node, string, bool) {
-	if op == nil {
+func (l *locator) requestSchema(operation *specmodel.OperationReference) (*yaml.Node, string, bool) {
+	if operation == nil {
 		return nil, "", false
 	}
-	pointer := opPointer(op) + "/requestBody"
+	pointer := opPointer(operation) + "/requestBody"
 	body := l.nodeAt(pointer)
 	if ref := mapValue(body, "$ref"); ref != nil {
 		name, ok := strings.CutPrefix(ref.Value, "#/components/requestBodies/")
@@ -121,11 +121,11 @@ func (l *locator) requestSchema(op *specmodel.OperationReference) (*yaml.Node, s
 // responseSchema finds an operation's success response schema: the first 2xx
 // declaring one, falling back to "default" — mirroring the document model's
 // SuccessSchema so a correction lands where classification read.
-func (l *locator) responseSchema(op *specmodel.OperationReference) (*yaml.Node, string, bool) {
-	if op == nil {
+func (l *locator) responseSchema(operation *specmodel.OperationReference) (*yaml.Node, string, bool) {
+	if operation == nil {
 		return nil, "", false
 	}
-	opPtr := opPointer(op)
+	opPtr := opPointer(operation)
 	responses := l.nodeAt(opPtr + "/responses")
 	if responses == nil || responses.Kind != yaml.MappingNode {
 		return nil, "", false

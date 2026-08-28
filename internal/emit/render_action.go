@@ -189,9 +189,9 @@ func (e *serviceRenderer) action(a *ir.Action, ab *sdkbind.ActionBinding) ([]Fil
 // actionParameterNodes synthesises the argument attributes an invocation's
 // path parameters need: the model does not carry them as schema, but the
 // caller must supply them somewhere.
-func actionParameterNodes(op *ir.Operation) []node {
+func actionParameterNodes(operation *ir.Operation) []node {
 	var out []node
-	for _, p := range op.PathParameters {
+	for _, p := range operation.PathParameters {
 		kind := p.Type
 		if kind == "" {
 			kind = ir.TypeString

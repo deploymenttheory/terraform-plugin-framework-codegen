@@ -316,11 +316,11 @@ func TestIntegration_Revise_TagConvergesAcrossRounds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var doc map[string]any
-	if err := yaml.Unmarshal(revised, &doc); err != nil {
+	var document map[string]any
+	if err := yaml.Unmarshal(revised, &document); err != nil {
 		t.Fatalf("revised.yaml is not usable YAML: %v", err)
 	}
-	tagInfo := doc["components"].(map[string]any)["schemas"].(map[string]any)["TagInfo"].(map[string]any)
+	tagInfo := document["components"].(map[string]any)["schemas"].(map[string]any)["TagInfo"].(map[string]any)
 	properties := tagInfo["properties"].(map[string]any)
 
 	// A value the server fills is recorded as x-tfpfgen-server-default on the
@@ -345,7 +345,7 @@ func TestIntegration_Revise_TagConvergesAcrossRounds(t *testing.T) {
 	if !ok || len(enum) != 1 || enum[0] != "static" {
 		t.Errorf("type.enum = %v, want [static] with dynamic removed", properties["type"].(map[string]any)["enum"])
 	}
-	put := doc["paths"].(map[string]any)["/tags/{tagId}"].(map[string]any)["put"].(map[string]any)
+	put := document["paths"].(map[string]any)["/tags/{tagId}"].(map[string]any)["put"].(map[string]any)
 	if style := put["x-tfpfgen-update-style"]; style != "put-full" {
 		t.Errorf("update style = %v, want put-full", style)
 	}

@@ -8,10 +8,10 @@ import (
 )
 
 // parse returns the document node and its top mapping.
-func parse(t *testing.T, doc string) (*yaml.Node, *yaml.Node) {
+func parse(t *testing.T, document string) (*yaml.Node, *yaml.Node) {
 	t.Helper()
 	var root yaml.Node
-	if err := yaml.Unmarshal([]byte(doc), &root); err != nil {
+	if err := yaml.Unmarshal([]byte(document), &root); err != nil {
 		t.Fatal(err)
 	}
 	return &root, root.Content[0]
@@ -76,7 +76,7 @@ paths:
 }
 
 func TestUnit_StripSchemaDefaults_LeavesDataNamedDefaultAlone(t *testing.T) {
-	doc := `
+	document := `
 components:
   schemas:
     Widget:
@@ -95,7 +95,7 @@ paths:
               example:
                 default: keep-me
 `
-	_, top := parse(t, doc)
+	_, top := parse(t, document)
 
 	if got := StripSchemaDefaults(top); got != 0 {
 		t.Fatalf("stripped %d, want 0 — property names and example keys are data", got)

@@ -38,7 +38,7 @@ func (c *compiler) validWhen(loc *locator, cls specmodel.Classification, o obser
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op:   "add",
 			Path: site.propPtr + "/" + specmodel.ExtValidWhen,
 			Value: map[string]string{
@@ -75,7 +75,7 @@ func (c *compiler) dependsOn(loc *locator, cls specmodel.Classification, o obser
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op:    "add",
 			Path:  site.propPtr + "/" + specmodel.ExtDependsOn,
 			Value: map[string]string{"requires": requires},
@@ -96,12 +96,12 @@ func (c *compiler) dependentRequired(site propertyLocation, o observe.Observatio
 	dr := mapValue(site.declaration, "dependentRequired")
 	switch {
 	case dr == nil:
-		return compiled{ops: []correction.Operation{{
+		return compiled{operations: []correction.Operation{{
 			Op: "add", Path: site.declarationPointer + "/dependentRequired",
 			Value: map[string]any{o.Attribute: []any{requires}},
 		}}, justification: just}
 	case mapValue(dr, o.Attribute) == nil:
-		return compiled{ops: []correction.Operation{{
+		return compiled{operations: []correction.Operation{{
 			Op: "add", Path: site.declarationPointer + "/dependentRequired/" + escapeToken(o.Attribute),
 			Value: []any{requires},
 		}}, justification: just}
@@ -112,7 +112,7 @@ func (c *compiler) dependentRequired(site propertyLocation, o observe.Observatio
 			return stated("the document already declares this dependency")
 		}
 	}
-	return compiled{ops: []correction.Operation{{
+	return compiled{operations: []correction.Operation{{
 		Op: "add", Path: site.declarationPointer + "/dependentRequired/" + escapeToken(o.Attribute) + "/-",
 		Value: requires,
 	}}, justification: just}
@@ -135,7 +135,7 @@ func (c *compiler) mutuallyExclusive(loc *locator, cls specmodel.Classification,
 		return stated(fmt.Sprintf("the document already declares %s", specmodel.ExtMutuallyExclusive))
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: pointer + "/" + specmodel.ExtMutuallyExclusive, Value: toAnyList(fields),
 		}},
 		justification: fmt.Sprintf("the audit confirmed a mutuallyExclusive observation on %s: "+
@@ -172,7 +172,7 @@ func (c *compiler) validConfiguration(loc *locator, cls specmodel.Classification
 		}
 	}
 	return compiled{
-		ops: []correction.Operation{{
+		operations: []correction.Operation{{
 			Op: "add", Path: site.declarationPointer + "/" + specmodel.ExtValidConfiguration, Value: value,
 		}},
 		justification: fmt.Sprintf("the audit confirmed a validConfiguration observation on %s.%s: "+

@@ -42,9 +42,9 @@ func TestUnit_RenderProviderCore_TheRenderedTreeCompiles(t *testing.T) {
 		{"openapi-generator with github app", config.BackendOpenAPIGenerator, config.AuthGitHubApp, "openapigenerator"},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			pc, err := FromConfig(testConfig(tc.backend, tc.method), "https://api.example.test")
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			pc, err := FromConfig(testConfig(testCase.backend, testCase.method), "https://api.example.test")
 			if err != nil {
 				t.Fatalf("FromConfig: %v", err)
 			}
@@ -57,7 +57,7 @@ func TestUnit_RenderProviderCore_TheRenderedTreeCompiles(t *testing.T) {
 			if _, err := Write(root, files); err != nil {
 				t.Fatalf("Write: %v", err)
 			}
-			installStubSDK(t, tc.stub, root)
+			installStubSDK(t, testCase.stub, root)
 
 			runGo(t, root, "mod", "tidy")
 			runGo(t, root, "build", "./...")

@@ -124,10 +124,10 @@ func TestUnit_LearnID(t *testing.T) {
 			want:   "",
 		},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := learnID(tc.entity, tc.res); got != tc.want {
-				t.Errorf("learnID(%q) = %q, want %q", tc.name, got, tc.want)
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := learnID(testCase.entity, testCase.res); got != testCase.want {
+				t.Errorf("learnID(%q) = %q, want %q", testCase.name, got, testCase.want)
 			}
 		})
 	}

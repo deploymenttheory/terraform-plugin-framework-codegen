@@ -35,8 +35,8 @@ import (
 // themselves, which the triangulating inference reads for the hypotheses each
 // run was meant to confirm. The input plan is left untouched: a new plan is
 // built so the caller's copy is never mutated.
-func strategize(p *plan.Plan, doc *specmodel.Document, configuration *config.Config, prefix string, inputs *plan.Inputs) (*plan.Plan, map[string]map[string]strategy.SynthHint, map[string]*strategy.Strategy) {
-	cls := specmodel.Classify(doc)
+func strategize(p *plan.Plan, document *specmodel.Document, configuration *config.Config, prefix string, inputs *plan.Inputs) (*plan.Plan, map[string]map[string]strategy.SynthHint, map[string]*strategy.Strategy) {
+	cls := specmodel.Classify(document)
 	byKey := make(map[string]specmodel.Classification, len(cls.Entities))
 	for _, c := range cls.Entities {
 		byKey[c.Key] = c
@@ -54,7 +54,7 @@ func strategize(p *plan.Plan, doc *specmodel.Document, configuration *config.Con
 			total += ep.Budget.Requests
 			continue
 		}
-		compiled, err := strategy.Compile(doc, class, configuration)
+		compiled, err := strategy.Compile(document, class, configuration)
 		if err != nil {
 			out.Entities = append(out.Entities, ep)
 			total += ep.Budget.Requests

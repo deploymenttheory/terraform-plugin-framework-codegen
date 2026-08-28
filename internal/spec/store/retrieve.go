@@ -23,14 +23,14 @@ func Retrieve(source string) ([]byte, error) {
 		return download(source)
 	}
 
-	doc, err := os.ReadFile(source) //nolint:gosec // the operator-supplied source by design
+	document, err := os.ReadFile(source) //nolint:gosec // the operator-supplied source by design
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %w", source, err)
 	}
-	if len(doc) == 0 {
+	if len(document) == 0 {
 		return nil, fmt.Errorf("%s is empty", source)
 	}
-	return doc, nil
+	return document, nil
 }
 
 // download performs one GET, refusing anything but a clean, non-empty 200.
@@ -53,15 +53,15 @@ func download(url string) ([]byte, error) {
 		return nil, fmt.Errorf("%s answered %s", url, response.Status)
 	}
 
-	doc, err := io.ReadAll(response.Body)
+	document, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading the response from %s: %w", url, err)
 	}
-	if len(doc) == 0 {
+	if len(document) == 0 {
 		return nil, fmt.Errorf("%s answered an empty document", url)
 	}
 
-	return doc, nil
+	return document, nil
 }
 
 // httpClient owns this package's connection pool. http.DefaultClient rides

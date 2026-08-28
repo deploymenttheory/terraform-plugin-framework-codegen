@@ -118,11 +118,11 @@ func (d *planBuilder) lookupPlan(c specmodel.Classification) (EntityPlan, *Skipp
 }
 
 // successSchemaOf is a nil-tolerant Operation.SuccessSchema.
-func successSchemaOf(op *specmodel.Operation) *specmodel.Schema {
-	if op == nil {
+func successSchemaOf(operation *specmodel.Operation) *specmodel.Schema {
+	if operation == nil {
 		return nil
 	}
-	return op.SuccessSchema()
+	return operation.SuccessSchema()
 }
 
 // declaredProperties flattens the given schemas into the sorted union of
@@ -305,11 +305,11 @@ func requiredWhenHint(s *specmodel.Schema) (specmodel.RequiredWhen, bool) {
 // otherwise.
 func pollSpec(readOp, createOp *specmodel.Operation) *Poll {
 	timeout := defaultPollTimeout
-	for _, op := range []*specmodel.Operation{readOp, createOp} {
-		if op == nil {
+	for _, operation := range []*specmodel.Operation{readOp, createOp} {
+		if operation == nil {
 			continue
 		}
-		if d, ok := op.Extensions.EventualConsistency(); ok {
+		if d, ok := operation.Extensions.EventualConsistency(); ok {
 			timeout = d
 			break
 		}

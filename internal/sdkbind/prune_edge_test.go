@@ -91,7 +91,7 @@ func TestPruneLookupDatasource(t *testing.T) {
 		Datasources: []ir.Datasource{{
 			Names: names("tags", "tags"),
 			Operations: ir.Operations{
-				Read: op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+				Read: operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attribute("id", "id", ir.TypeString, ir.Required),
@@ -122,14 +122,14 @@ func TestPruneKiotaListResource(t *testing.T) {
 		ListResources: []ir.ListResource{
 			{
 				Names:         names("tags", "tags"),
-				ListOperation: *op(ir.OperationList, "GET", "/tags", ""),
+				ListOperation: *operation(ir.OperationList, "GET", "/tags", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
 			},
 			{
 				Names:         names("widgets", "widgets"),
-				ListOperation: *op(ir.OperationList, "GET", "/widgets", ""),
+				ListOperation: *operation(ir.OperationList, "GET", "/widgets", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
@@ -159,7 +159,7 @@ func TestPruneDatasourceRemovals(t *testing.T) {
 		Datasources: []ir.Datasource{{
 			Names: names("widgets", "widgets"),
 			Operations: ir.Operations{
-				Read: op(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
+				Read: operation(ir.OperationRead, "GET", "/widgets/{widgetId}", "", ir.Parameter{Name: "widgetId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attribute("id", "id", ir.TypeString, ir.Required),
@@ -197,7 +197,7 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 			Provider: ir.Provider{Name: "example"},
 			Datasources: []ir.Datasource{{
 				Names:      names("gizmos", "gizmos"),
-				Operations: ir.Operations{List: op(ir.OperationList, "GET", "/gizmos", "")},
+				Operations: ir.Operations{List: operation(ir.OperationList, "GET", "/gizmos", "")},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("filter_type", "filter_type", ir.TypeString, ir.Required),
 					attribute("filter_value", "filter_value", ir.TypeString, ir.Optional),
@@ -226,7 +226,7 @@ func TestPruneKiotaWrappedList(t *testing.T) {
 			Provider: ir.Provider{Name: "example"},
 			ListResources: []ir.ListResource{{
 				Names:         names("gizmos", "gizmos"),
-				ListOperation: *op(ir.OperationList, "GET", "/gizmos", ""),
+				ListOperation: *operation(ir.OperationList, "GET", "/gizmos", ""),
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("name", "name", ir.TypeString, ir.Computed),
 				}},
@@ -252,7 +252,7 @@ func TestPruneKiotaAmbiguousWrapper(t *testing.T) {
 		Provider: ir.Provider{Name: "example"},
 		ListResources: []ir.ListResource{{
 			Names:         names("blobs", "blobs"),
-			ListOperation: *op(ir.OperationList, "GET", "/blobs", ""),
+			ListOperation: *operation(ir.OperationList, "GET", "/blobs", ""),
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attribute("name", "name", ir.TypeString, ir.Computed),
 			}},
@@ -276,7 +276,7 @@ func TestPruneActionRemovals(t *testing.T) {
 		Provider: ir.Provider{Name: "example"},
 		Actions: []ir.Action{{
 			Names:           names("tags_assign", "tags"),
-			InvokeOperation: *op(ir.OperationInvoke, "POST", "/tags/{tagId}/assign", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+			InvokeOperation: *operation(ir.OperationInvoke, "POST", "/tags/{tagId}/assign", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 			// No request schema: the drafted call passes (ctx, nil) where
 			// the SDK's Post takes three arguments.
 		}},
@@ -299,8 +299,8 @@ func TestPruneUnconstructibleBody(t *testing.T) {
 		Resources: []ir.Resource{{
 			Names: names("orphans", "orphans"),
 			Operations: ir.Operations{
-				Create: op(ir.OperationCreate, "POST", "/orphans", ""),
-				Read:   op(ir.OperationRead, "GET", "/orphans/{orphanId}", "", ir.Parameter{Name: "orphanId", Type: ir.TypeString}),
+				Create: operation(ir.OperationCreate, "POST", "/orphans", ""),
+				Read:   operation(ir.OperationRead, "GET", "/orphans/{orphanId}", "", ir.Parameter{Name: "orphanId", Type: ir.TypeString}),
 			},
 			Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 				attribute("name", "name", ir.TypeString, ir.Required),
@@ -326,8 +326,8 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 			Resources: []ir.Resource{{
 				Names: names("tags", "tags"),
 				Operations: ir.Operations{
-					Create: op(ir.OperationCreate, "POST", "/tags", ""),
-					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+					Create: operation(ir.OperationCreate, "POST", "/tags", ""),
+					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("legacy", "legacy", ir.TypeString, ir.Optional),
@@ -350,8 +350,8 @@ func TestPruneUnbuildableEntities(t *testing.T) {
 			Resources: []ir.Resource{{
 				Names: names("tags", "tags"),
 				Operations: ir.Operations{
-					Create: op(ir.OperationCreate, "POST", "/tags", ""),
-					Read:   op(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
+					Create: operation(ir.OperationCreate, "POST", "/tags", ""),
+					Read:   operation(ir.OperationRead, "GET", "/tags/{tagId}", "", ir.Parameter{Name: "tagId", Type: ir.TypeString}),
 				},
 				Schema: &ir.AttributeTree{Attributes: []ir.Attribute{
 					attribute("id", "id", ir.TypeString, ir.Computed),

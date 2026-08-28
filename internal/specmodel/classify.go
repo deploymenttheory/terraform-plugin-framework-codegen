@@ -156,29 +156,29 @@ type entity struct {
 // the collection creates, GET on the collection lists, GET/PUT/PATCH/DELETE
 // on the item read, update and delete. A second claimant for a role, or a
 // method in no role's position, lands in extra rather than being dropped.
-func (e *entity) assign(op *Operation, isItem bool) {
+func (e *entity) assign(operation *Operation, isItem bool) {
 	slot := func(destination **Operation) {
 		if *destination == nil {
-			*destination = op
+			*destination = operation
 			return
 		}
-		e.extra = append(e.extra, op)
+		e.extra = append(e.extra, operation)
 	}
 	switch {
-	case op.Method == "POST" && !isItem:
+	case operation.Method == "POST" && !isItem:
 		slot(&e.create)
-	case op.Method == "GET" && !isItem:
+	case operation.Method == "GET" && !isItem:
 		slot(&e.list)
-	case op.Method == "GET" && isItem:
+	case operation.Method == "GET" && isItem:
 		slot(&e.read)
-	case (op.Method == "PUT" || op.Method == "PATCH") && isItem:
+	case (operation.Method == "PUT" || operation.Method == "PATCH") && isItem:
 		slot(&e.update)
-	case op.Method == "PUT" || op.Method == "PATCH":
+	case operation.Method == "PUT" || operation.Method == "PATCH":
 		slot(&e.collectionWrite)
-	case op.Method == "DELETE" && isItem:
+	case operation.Method == "DELETE" && isItem:
 		slot(&e.del)
 	default:
-		e.extra = append(e.extra, op)
+		e.extra = append(e.extra, operation)
 	}
 }
 
@@ -336,13 +336,13 @@ func (e *entity) exclusionReason(hasResourceOperations, hasDatasourceOperations,
 func (e *entity) presentRoles() []string {
 	var out []string
 	for _, r := range []struct {
-		name string
-		op   *Operation
+		name      string
+		operation *Operation
 	}{
 		{"create", e.create}, {"read", e.read}, {"update", e.update},
 		{"delete", e.del}, {"list", e.list},
 	} {
-		if r.op != nil {
+		if r.operation != nil {
 			out = append(out, r.name)
 		}
 	}
@@ -351,29 +351,29 @@ func (e *entity) presentRoles() []string {
 
 // firstOf answers the first operation that is present, for the roles where
 // two positions can carry one operation and at most one of them does.
-func firstOf(ops ...*Operation) *Operation {
-	for _, op := range ops {
-		if op != nil {
-			return op
+func firstOf(operations ...*Operation) *Operation {
+	for _, operation := range operations {
+		if operation != nil {
+			return operation
 		}
 	}
 	return nil
 }
 
-func operationReferenceOf(op *Operation) *OperationReference {
-	if op == nil {
+func operationReferenceOf(operation *Operation) *OperationReference {
+	if operation == nil {
 		return nil
 	}
-	return &OperationReference{Method: op.Method, Path: op.Path, OperationID: op.OperationID}
+	return &OperationReference{Method: operation.Method, Path: operation.Path, OperationID: operation.OperationID}
 }
 
-func extraOperationReferences(ops []*Operation) []OperationReference {
-	if len(ops) == 0 {
+func extraOperationReferences(operations []*Operation) []OperationReference {
+	if len(operations) == 0 {
 		return nil
 	}
-	out := make([]OperationReference, 0, len(ops))
-	for _, op := range ops {
-		out = append(out, *operationReferenceOf(op))
+	out := make([]OperationReference, 0, len(operations))
+	for _, operation := range operations {
+		out = append(out, *operationReferenceOf(operation))
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Path != out[j].Path {

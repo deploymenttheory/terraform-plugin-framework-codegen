@@ -29,10 +29,10 @@ import (
 func TestUnit_Run_MonitorAndAssignmentCompleteWithoutExhaustion(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{})
-	_, sum := mustRun(t, strategyOptions(t, s, nil))
+	_, summary := mustRun(t, strategyOptions(t, s, nil))
 
 	for _, entity := range []string{"monitor", "assignment"} {
-		got := entityStatus(t, sum, entity)
+		got := entityStatus(t, summary, entity)
 		if got.Status == StatusTimeoutExhausted {
 			t.Errorf("%s = %+v, want audited (budget exhausted mid-program)", entity, got)
 		}
@@ -40,8 +40,8 @@ func TestUnit_Run_MonitorAndAssignmentCompleteWithoutExhaustion(t *testing.T) {
 			t.Errorf("%s = %+v, want audited", entity, got)
 		}
 	}
-	if sum.Requests > sum.RequestBudget {
-		t.Errorf("run spent %d of a %d budget", sum.Requests, sum.RequestBudget)
+	if summary.Requests > summary.RequestBudget {
+		t.Errorf("run spent %d of a %d budget", summary.Requests, summary.RequestBudget)
 	}
 }
 
@@ -90,23 +90,23 @@ components:
 // committable, and no immutable/ignored/update-style claim appears at all.
 func TestUnit_Run_NoUpdateOperationSkipsUpdateProbing(t *testing.T) {
 	t.Parallel()
-	doc, err := specmodel.Load([]byte(noUpdateSpec))
+	document, err := specmodel.Load([]byte(noUpdateSpec))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 	configuration := &config.Config{Audit: config.Audit{NamePrefix: "tfpfgen", MaxObjects: 25, RateLimitRPS: 2}}
 	s := quirkserver.New(t, quirkserver.Quirks{})
-	p, err := plan.Derive(doc, configuration, nil)
+	p, err := plan.Derive(document, configuration, nil)
 	if err != nil {
 		t.Fatalf("Derive: %v", err)
 	}
 	shrinkPolls(p)
 	opts := testOptions(t, s, p, testEnv(), nil)
-	opts.Doc = doc
+	opts.Doc = document
 	opts.Config = configuration
-	obs, sum := mustRun(t, opts)
+	obs, summary := mustRun(t, opts)
 
-	if got := entityStatus(t, sum, "thing"); got.Status != StatusAudited {
+	if got := entityStatus(t, summary, "thing"); got.Status != StatusAudited {
 		t.Fatalf("thing = %+v, want audited", got)
 	}
 	for i := range obs {
@@ -167,12 +167,12 @@ func TestUnit_Run_IdUnknownRecordsInconclusiveAndCleansByPrefix(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	obs, sum, err := Run(ctx, opts)
+	obs, summary, err := Run(ctx, opts)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
-	got := entityStatus(t, sum, "widget")
+	got := entityStatus(t, summary, "widget")
 	if got.Status != StatusAudited {
 		t.Fatalf("widget = %+v, want audited despite the unlearnable id", got)
 	}

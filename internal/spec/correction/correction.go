@@ -132,8 +132,8 @@ func Apply(specYAML []byte, corrections []Correction) ([]byte, error) {
 	}
 
 	for _, fo := range dependencyOrder(flatten(corrections)) {
-		if err := apply(root.Content[0], fo.op); err != nil {
-			return nil, fmt.Errorf("%s operation %d (%s %s): %w", fo.file, fo.opIndex, fo.op.Op, fo.op.Path, err)
+		if err := apply(root.Content[0], fo.operation); err != nil {
+			return nil, fmt.Errorf("%s operation %d (%s %s): %w", fo.file, fo.opIndex, fo.operation.Op, fo.operation.Path, err)
 		}
 	}
 
@@ -150,9 +150,9 @@ func Apply(specYAML []byte, corrections []Correction) ([]byte, error) {
 // origin — the file it came from and its 1-based index within that file — to
 // name it in an error exactly as before once ordering has moved it.
 type flatOperation struct {
-	file    string
-	opIndex int
-	op      Operation
+	file      string
+	opIndex   int
+	operation Operation
 }
 
 // flatten lists every correction's operations in file order, the order that
@@ -160,8 +160,8 @@ type flatOperation struct {
 func flatten(corrections []Correction) []flatOperation {
 	var flat []flatOperation
 	for _, c := range corrections {
-		for i, op := range c.Operations {
-			flat = append(flat, flatOperation{file: c.File, opIndex: i + 1, op: op})
+		for i, operation := range c.Operations {
+			flat = append(flat, flatOperation{file: c.File, opIndex: i + 1, operation: operation})
 		}
 	}
 	return flat
@@ -179,7 +179,7 @@ func dependencyOrder(flat []flatOperation) []flatOperation {
 	for i := range flat {
 		// A malformed path yields no tokens; it constrains nothing and
 		// surfaces its own error when apply reaches it.
-		if toks, err := pointerTokens(flat[i].op.Path); err == nil {
+		if toks, err := pointerTokens(flat[i].operation.Path); err == nil {
 			tokens[i] = toks
 		}
 	}
@@ -192,7 +192,7 @@ func dependencyOrder(flat []flatOperation) []flatOperation {
 				continue
 			}
 			// j must run before i when j creates a container i lives inside.
-			if flat[j].op.Op == "add" && len(tokens[j]) > 0 && properPrefix(tokens[j], tokens[i]) {
+			if flat[j].operation.Op == "add" && len(tokens[j]) > 0 && properPrefix(tokens[j], tokens[i]) {
 				dependents[j] = append(dependents[j], i)
 				indegree[i]++
 			}
@@ -243,23 +243,23 @@ func properPrefix(a, b []string) bool {
 }
 
 // apply performs one operation against the document's top node.
-func apply(top *yaml.Node, op Operation) error {
-	switch op.Op {
+func apply(top *yaml.Node, operation Operation) error {
+	switch operation.Op {
 	case "strip-schema-defaults":
 		// Not expressible in RFC 6902: every schema in the document loses its
 		// `default`, wherever schemas nest. Whole-document by definition.
 		return stripSchemaDefaults(top)
 	case "add", "replace", "remove", "test":
 	default:
-		return fmt.Errorf("unsupported op %q (add, replace, remove, test and strip-schema-defaults exist)", op.Op)
+		return fmt.Errorf("unsupported op %q (add, replace, remove, test and strip-schema-defaults exist)", operation.Op)
 	}
 
-	tokens, err := pointerTokens(op.Path)
+	tokens, err := pointerTokens(operation.Path)
 	if err != nil {
 		return err
 	}
 	if len(tokens) == 0 {
-		return fmt.Errorf("the whole-document path %q is not correctable", op.Path)
+		return fmt.Errorf("the whole-document path %q is not correctable", operation.Path)
 	}
 
 	parent, err := descend(top, tokens[:len(tokens)-1])
@@ -270,15 +270,15 @@ func apply(top *yaml.Node, op Operation) error {
 
 	switch parent.Kind {
 	case yaml.MappingNode:
-		return applyToMapping(parent, last, op)
+		return applyToMapping(parent, last, operation)
 	case yaml.SequenceNode:
-		return applyToSequence(parent, last, op)
+		return applyToSequence(parent, last, operation)
 	default:
 		return fmt.Errorf("the parent of %q is neither an object nor an array", last)
 	}
 }
 
-func applyToMapping(node *yaml.Node, key string, op Operation) error {
+func applyToMapping(node *yaml.Node, key string, operation Operation) error {
 	at := -1
 	for i := 0; i+1 < len(node.Content); i += 2 {
 		if node.Content[i].Value == key {
@@ -287,16 +287,16 @@ func applyToMapping(node *yaml.Node, key string, op Operation) error {
 		}
 	}
 
-	switch op.Op {
+	switch operation.Op {
 	case "add", "replace":
-		if op.Op == "replace" && at < 0 {
+		if operation.Op == "replace" && at < 0 {
 			return fmt.Errorf("nothing exists at %q to replace", key)
 		}
-		if op.Op == "add" && at >= 0 && nodeEqual(node.Content[at+1], op.Value) {
+		if operation.Op == "add" && at >= 0 && nodeEqual(node.Content[at+1], operation.Value) {
 			return fmt.Errorf("the document already contains this value; the correction is stale — " +
 				"the vendor has fixed the specification, so delete the correction")
 		}
-		value, err := encode(op.Value)
+		value, err := encode(operation.Value)
 		if err != nil {
 			return err
 		}
@@ -312,25 +312,25 @@ func applyToMapping(node *yaml.Node, key string, op Operation) error {
 		}
 		node.Content = append(node.Content[:at], node.Content[at+2:]...)
 	case "test":
-		if at < 0 || !nodeEqual(node.Content[at+1], op.Value) {
+		if at < 0 || !nodeEqual(node.Content[at+1], operation.Value) {
 			return fmt.Errorf("test failed: %q does not hold the expected value", key)
 		}
 	}
 	return nil
 }
 
-func applyToSequence(node *yaml.Node, token string, op Operation) error {
+func applyToSequence(node *yaml.Node, token string, operation Operation) error {
 	if token == "-" {
-		if op.Op != "add" {
+		if operation.Op != "add" {
 			return fmt.Errorf("only add can address the end of an array")
 		}
 		for _, v := range node.Content {
-			if nodeEqual(v, op.Value) {
+			if nodeEqual(v, operation.Value) {
 				return fmt.Errorf("the array already contains %v; the correction is stale — "+
-					"the vendor has fixed the specification, so delete the correction", op.Value)
+					"the vendor has fixed the specification, so delete the correction", operation.Value)
 			}
 		}
-		value, err := encode(op.Value)
+		value, err := encode(operation.Value)
 		if err != nil {
 			return err
 		}
@@ -342,13 +342,13 @@ func applyToSequence(node *yaml.Node, token string, op Operation) error {
 	if err != nil || index < 0 || index >= len(node.Content) {
 		return fmt.Errorf("%q is not an index inside an array of %d", token, len(node.Content))
 	}
-	switch op.Op {
+	switch operation.Op {
 	case "add", "replace":
-		value, encErr := encode(op.Value)
+		value, encErr := encode(operation.Value)
 		if encErr != nil {
 			return encErr
 		}
-		if op.Op == "replace" {
+		if operation.Op == "replace" {
 			node.Content[index] = value
 			return nil
 		}
@@ -358,7 +358,7 @@ func applyToSequence(node *yaml.Node, token string, op Operation) error {
 	case "remove":
 		node.Content = append(node.Content[:index], node.Content[index+1:]...)
 	case "test":
-		if !nodeEqual(node.Content[index], op.Value) {
+		if !nodeEqual(node.Content[index], operation.Value) {
 			return fmt.Errorf("test failed: index %d does not hold the expected value", index)
 		}
 	}

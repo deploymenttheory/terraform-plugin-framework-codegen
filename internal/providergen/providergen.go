@@ -180,7 +180,7 @@ func recordPostcheckOwned(root string) error {
 
 	changed := false
 	for _, path := range postcheckOwned {
-		sum, there, err := fileDigest(root, path)
+		summary, there, err := fileDigest(root, path)
 		if err != nil {
 			return err
 		}
@@ -188,15 +188,15 @@ func recordPostcheckOwned(root string) error {
 			continue
 		}
 		if i, ok := index[path]; ok {
-			if m.Files[i].SHA256 != sum {
-				m.Files[i].SHA256 = sum
+			if m.Files[i].SHA256 != summary {
+				m.Files[i].SHA256 = summary
 				changed = true
 			}
 			continue
 		}
 		m.Files = append(m.Files, manifest.Entry{
 			Path:   path,
-			SHA256: sum,
+			SHA256: summary,
 			Source: "go mod tidy",
 			Origin: manifest.OriginPostcheck,
 		})
@@ -238,7 +238,7 @@ type generation struct {
 // under Root is written; what becomes of the files is the caller's
 // question — Run installs them, Verify compares and discards them.
 func generate(opts Options) (*generation, error) {
-	doc, model, err := loadModel(opts)
+	document, model, err := loadModel(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func generate(opts Options) (*generation, error) {
 		return nil, err
 	}
 
-	pc, err := emit.FromConfig(opts.Config, firstServerURL(doc))
+	pc, err := emit.FromConfig(opts.Config, firstServerURL(document))
 	if err != nil {
 		return nil, err
 	}
@@ -351,15 +351,15 @@ func loadModel(opts Options) (*specmodel.Document, *ir.Model, error) {
 		return nil, nil, err
 	}
 
-	doc, err := specmodel.Load(data)
+	document, err := specmodel.Load(data)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", revisedPath, err)
 	}
-	model, err := ir.Derive(doc, opts.Config)
+	model, err := ir.Derive(document, opts.Config)
 	if err != nil {
 		return nil, nil, err
 	}
-	return doc, model, nil
+	return document, model, nil
 }
 
 // resolveSDK renders the SDK directory absolute — relative to Root unless
@@ -384,11 +384,11 @@ func resolveSDK(opts Options) (string, error) {
 
 // firstServerURL is the document's default endpoint: the first declared
 // server, empty when the document declares none.
-func firstServerURL(doc *specmodel.Document) string {
-	if len(doc.Servers) == 0 {
+func firstServerURL(document *specmodel.Document) string {
+	if len(document.Servers) == 0 {
 		return ""
 	}
-	return doc.Servers[0].URL
+	return document.Servers[0].URL
 }
 
 // registryFiles maps each sentinel kind to the provider-core registry file

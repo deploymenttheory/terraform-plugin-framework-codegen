@@ -28,11 +28,11 @@ func TestUnit_Evidence_NormalisedForm(t *testing.T) {
 		{"non-string", 1, 2, "", false},
 		{"string became number", "1", float64(1), "", false},
 	}
-	for _, tc := range cases {
-		got, ok := normalisedForm(tc.sent, tc.got)
-		if ok != tc.recognised || got != tc.want {
+	for _, testCase := range cases {
+		got, ok := normalisedForm(testCase.sent, testCase.got)
+		if ok != testCase.recognised || got != testCase.want {
 			t.Errorf("%s: normalisedForm(%v, %v) = %q, %v; want %q, %v",
-				tc.name, tc.sent, tc.got, got, ok, tc.want, tc.recognised)
+				testCase.name, testCase.sent, testCase.got, got, ok, testCase.want, testCase.recognised)
 		}
 	}
 }
@@ -148,10 +148,10 @@ func TestUnit_Evidence_StepClaims(t *testing.T) {
 		{plan.Step{Kind: plan.StepCreatePerEnumValue, Attribute: "q", Condition: cond}, observe.KindRequiredWhen, "q"},
 		{plan.Step{Kind: plan.StepCreatePerEnumValue, Attribute: "mode", Condition: cond}, observe.KindValues, "mode"},
 	}
-	for _, tc := range cases {
-		claims := stepClaims(&tc.step)
-		if len(claims) != 1 || claims[0].kind != tc.kind || claims[0].attribute != tc.attribute {
-			t.Errorf("stepClaims(%s %s) = %+v, want one %s claim on %q", tc.step.Kind, tc.step.Attribute, claims, tc.kind, tc.attribute)
+	for _, testCase := range cases {
+		claims := stepClaims(&testCase.step)
+		if len(claims) != 1 || claims[0].kind != testCase.kind || claims[0].attribute != testCase.attribute {
+			t.Errorf("stepClaims(%s %s) = %+v, want one %s claim on %q", testCase.step.Kind, testCase.step.Attribute, claims, testCase.kind, testCase.attribute)
 		}
 	}
 	for _, silent := range []plan.StepKind{plan.StepCreateMinimal, plan.StepCreateMaximal, plan.StepRead, plan.StepReadConsecutive, plan.StepCleanupDelete, plan.StepUndeclaredSpecField} {

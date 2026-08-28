@@ -24,16 +24,16 @@ func (b openAPIGeneratorBinder) Bind(m *ir.Model, info SDKInfo) (*Bindings, erro
 // operationId camelised the way the generator does it, or, when the
 // document declares none, the generator's own synthesis from the path and
 // method — "/tags/{tagId}" + GET becomes TagsTagIdGet.
-func opMethodName(op *ir.Operation) string {
-	if op.OperationID != "" {
-		return exportedName(op.OperationID)
+func opMethodName(operation *ir.Operation) string {
+	if operation.OperationID != "" {
+		return exportedName(operation.OperationID)
 	}
-	stripped := strings.NewReplacer("{", "", "}", "").Replace(op.PathTemplate)
+	stripped := strings.NewReplacer("{", "", "}", "").Replace(operation.PathTemplate)
 	var b strings.Builder
 	for _, seg := range pathSegments(stripped) {
 		b.WriteString(exportedName(seg))
 	}
-	b.WriteString(exportedName(strings.ToLower(op.Method)))
+	b.WriteString(exportedName(strings.ToLower(operation.Method)))
 	return b.String()
 }
 
@@ -47,15 +47,15 @@ func opMethodName(op *ir.Operation) string {
 // fully determine (the generator names services after spec tags and body
 // setters after parameter names), so Prune settles them against the real
 // client, repairing only where the SDK admits exactly one answer.
-func (openAPIGeneratorBinder) call(op *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call {
+func (openAPIGeneratorBinder) call(operation *ir.Operation, n ir.Names, hasBody bool, info SDKInfo) *Call {
 	args := []string{"ctx"}
-	for _, p := range callParameters(op) {
+	for _, p := range callParameters(operation) {
 		args = append(args, p.Local)
 	}
 
 	segs := []Segment{
 		{Name: exportedName(n.Service) + "API"},
-		{Name: opMethodName(op), Call: true, Args: args},
+		{Name: opMethodName(operation), Call: true, Args: args},
 	}
 	if hasBody {
 		// The generator's body setter takes the model by value; body is
@@ -67,11 +67,11 @@ func (openAPIGeneratorBinder) call(op *ir.Operation, n ir.Names, hasBody bool, i
 	c := &Call{
 		Segments:   segs,
 		Imports:    []string{info.ImportPath, "net/http"},
-		Parameters: callParameters(op),
+		Parameters: callParameters(operation),
 	}
 
 	model := "sdk." + exportedName(n.Key)
-	switch op.Kind {
+	switch operation.Kind {
 	case ir.OperationDelete:
 		c.Results = []string{"*http.Response", "error"}
 	case ir.OperationList:

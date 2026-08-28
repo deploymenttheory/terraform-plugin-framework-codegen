@@ -9,10 +9,10 @@ import (
 )
 
 // locatorFor parses a document and wraps its top node.
-func locatorFor(t *testing.T, doc string) *locator {
+func locatorFor(t *testing.T, document string) *locator {
 	t.Helper()
 	var root yaml.Node
-	if err := yaml.Unmarshal([]byte(doc), &root); err != nil {
+	if err := yaml.Unmarshal([]byte(document), &root); err != nil {
 		t.Fatalf("fixture is not YAML: %v", err)
 	}
 	return &locator{top: root.Content[0]}
@@ -72,8 +72,8 @@ paths:
               schema:
                 type: object
 `)
-	op := &specmodel.OperationReference{Method: "GET", Path: "/items/{id}"}
-	node, pointer, ok := loc.responseSchema(op)
+	operation := &specmodel.OperationReference{Method: "GET", Path: "/items/{id}"}
+	node, pointer, ok := loc.responseSchema(operation)
 	if !ok || node == nil {
 		t.Fatal("the default response's schema must be found")
 	}

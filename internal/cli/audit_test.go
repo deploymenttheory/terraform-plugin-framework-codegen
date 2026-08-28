@@ -116,11 +116,11 @@ func auditRepo(t *testing.T) {
 	if err := os.MkdirAll("spec", 0o750); err != nil {
 		t.Fatal(err)
 	}
-	doc := []byte(auditSpec)
-	if err := os.WriteFile(filepath.Join("spec", "upstream.yaml"), doc, 0o600); err != nil {
+	document := []byte(auditSpec)
+	if err := os.WriteFile(filepath.Join("spec", "upstream.yaml"), document, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	digest := sha256.Sum256(doc)
+	digest := sha256.Sum256(document)
 	lock, _ := json.Marshal(map[string]any{
 		"source":  "https://example.invalid/openapi.yaml",
 		"sha256":  hex.EncodeToString(digest[:]),
@@ -131,7 +131,7 @@ func auditRepo(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The revised spec is the upstream document verbatim: no corrections.
-	if err := os.WriteFile(filepath.Join("spec", "revised.yaml"), doc, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join("spec", "revised.yaml"), document, 0o600); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -308,11 +308,11 @@ func TestIntegration_AuditToRevise_UndocumentedFieldLandsInTheRevisedSpec(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	var doc map[string]any
-	if err := yaml.Unmarshal(revised, &doc); err != nil {
+	var document map[string]any
+	if err := yaml.Unmarshal(revised, &document); err != nil {
 		t.Fatalf("revised.yaml is not usable YAML: %v", err)
 	}
-	schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
+	schemas := document["components"].(map[string]any)["schemas"].(map[string]any)
 	properties := schemas["ThingCreate"].(map[string]any)["properties"].(map[string]any)
 	serial, ok := properties["serial"].(map[string]any)
 	if !ok {

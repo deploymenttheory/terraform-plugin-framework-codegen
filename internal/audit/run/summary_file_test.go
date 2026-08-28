@@ -14,7 +14,7 @@ func TestUnit_Run_SummaryKeepsWhyAnEntityProducedNothing(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "audit", SummaryFile)
-	sum := Summary{
+	summary := Summary{
 		RunID:   "abcd1234",
 		Blocked: 1,
 		Entities: []EntityResult{{
@@ -28,7 +28,7 @@ func TestUnit_Run_SummaryKeepsWhyAnEntityProducedNothing(t *testing.T) {
 		}},
 	}
 
-	if err := WriteSummary(path, sum); err != nil {
+	if err := WriteSummary(path, summary); err != nil {
 		t.Fatalf("WriteSummary: %v", err)
 	}
 
@@ -48,7 +48,7 @@ func TestUnit_Run_SummaryKeepsWhyAnEntityProducedNothing(t *testing.T) {
 	if len(back.Entities) != 1 || back.Entities[0].Refusal == nil {
 		t.Fatalf("the refusal did not round-trip: %+v", back.Entities)
 	}
-	if back.Entities[0].Refusal.Status != 400 || back.Entities[0].Reason != sum.Entities[0].Reason {
+	if back.Entities[0].Refusal.Status != 400 || back.Entities[0].Reason != summary.Entities[0].Reason {
 		t.Errorf("entity = %+v, want the status and reason as written", back.Entities[0])
 	}
 }

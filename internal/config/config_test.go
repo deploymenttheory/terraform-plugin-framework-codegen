@@ -106,10 +106,10 @@ func TestUnit_Config_GoldenTable(t *testing.T) {
 			`audit.auto_accept[1]: "nonsense" is not an observation kind`},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			configuration, err := Parse([]byte(tc.yaml), "tfpfgen.yaml")
-			if tc.wantErr == "" {
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			configuration, err := Parse([]byte(testCase.yaml), "tfpfgen.yaml")
+			if testCase.wantErr == "" {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -119,10 +119,10 @@ func TestUnit_Config_GoldenTable(t *testing.T) {
 				return
 			}
 			if err == nil {
-				t.Fatalf("parsed without error, want error containing %q", tc.wantErr)
+				t.Fatalf("parsed without error, want error containing %q", testCase.wantErr)
 			}
-			if !strings.Contains(err.Error(), tc.wantErr) {
-				t.Fatalf("error = %q, want it to contain %q", err, tc.wantErr)
+			if !strings.Contains(err.Error(), testCase.wantErr) {
+				t.Fatalf("error = %q, want it to contain %q", err, testCase.wantErr)
 			}
 		})
 	}

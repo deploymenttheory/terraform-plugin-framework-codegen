@@ -106,30 +106,30 @@ components:
 `
 
 func TestUnit_Specmodel_LoadReadsTheDocument(t *testing.T) {
-	doc, err := Load([]byte(tagSpec))
+	document, err := Load([]byte(tagSpec))
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
 
-	if doc.OpenAPI != "3.0.3" {
-		t.Errorf("OpenAPI = %q, want 3.0.3", doc.OpenAPI)
+	if document.OpenAPI != "3.0.3" {
+		t.Errorf("OpenAPI = %q, want 3.0.3", document.OpenAPI)
 	}
-	if doc.Info.Title != "Tag API" || doc.Info.Version != "1.2.3" {
-		t.Errorf("Info = %+v", doc.Info)
+	if document.Info.Title != "Tag API" || document.Info.Version != "1.2.3" {
+		t.Errorf("Info = %+v", document.Info)
 	}
-	if len(doc.Servers) != 1 || doc.Servers[0].URL != "https://api.example.invalid/v1" {
-		t.Errorf("Servers = %+v", doc.Servers)
+	if len(document.Servers) != 1 || document.Servers[0].URL != "https://api.example.invalid/v1" {
+		t.Errorf("Servers = %+v", document.Servers)
 	}
 
 	// Paths sort by template regardless of document order.
-	if len(doc.Paths) != 2 || doc.Paths[0].Path != "/tags" || doc.Paths[1].Path != "/tags/{tagId}" {
-		t.Fatalf("paths out of order: %+v", doc.Paths)
+	if len(document.Paths) != 2 || document.Paths[0].Path != "/tags" || document.Paths[1].Path != "/tags/{tagId}" {
+		t.Fatalf("paths out of order: %+v", document.Paths)
 	}
 
 	// Operations arrive in the fixed method order, not document order.
 	var methodsSeen []string
-	for _, op := range doc.Paths[1].Operations {
-		methodsSeen = append(methodsSeen, op.Method)
+	for _, operation := range document.Paths[1].Operations {
+		methodsSeen = append(methodsSeen, operation.Method)
 	}
 	if got := strings.Join(methodsSeen, ","); got != "GET,DELETE,PATCH" {
 		t.Errorf("item methods = %s, want GET,DELETE,PATCH", got)
@@ -138,7 +138,7 @@ func TestUnit_Specmodel_LoadReadsTheDocument(t *testing.T) {
 	// The item GET combines path-item and operation parameters, its own
 	// spelling of "expand" winning, and the path parameter is required
 	// even though the author never said so.
-	get := doc.Paths[1].Operations[0]
+	get := document.Paths[1].Operations[0]
 	if get.OperationID != "getTag" {
 		t.Fatalf("operationId = %q", get.OperationID)
 	}
@@ -156,7 +156,7 @@ func TestUnit_Specmodel_LoadReadsTheDocument(t *testing.T) {
 	}
 
 	// The unquoted `200:` response key reads as the string "200".
-	list := doc.Paths[0].Operations[0]
+	list := document.Paths[0].Operations[0]
 	if len(list.Responses) != 1 || list.Responses[0].Status != "200" {
 		t.Fatalf("list responses = %+v", list.Responses)
 	}
@@ -168,7 +168,7 @@ func TestUnit_Specmodel_LoadReadsTheDocument(t *testing.T) {
 	}
 
 	// The create request body resolves to the named schema.
-	create := doc.Paths[0].Operations[1]
+	create := document.Paths[0].Operations[1]
 	if create.RequestBody == nil || create.RequestBody.Ref != "Tag" {
 		t.Fatalf("create body = %+v", create.RequestBody)
 	}
@@ -209,19 +209,19 @@ func TestUnit_Specmodel_LoadReadsTheDocument(t *testing.T) {
 	}
 
 	// Flattened accessors.
-	if ops := doc.Operations(); len(ops) != 5 {
-		t.Errorf("Operations() = %d ops", len(ops))
+	if operations := document.Operations(); len(operations) != 5 {
+		t.Errorf("Operations() = %d ops", len(operations))
 	}
-	if _, ok := doc.Schema("Tag"); !ok {
+	if _, ok := document.Schema("Tag"); !ok {
 		t.Errorf("Schema(Tag) not found")
 	}
-	if _, ok := doc.Schema("Missing"); ok {
+	if _, ok := document.Schema("Missing"); ok {
 		t.Errorf("Schema(Missing) should not exist")
 	}
 }
 
 func TestUnit_Specmodel_LoadAcceptsJSON(t *testing.T) {
-	doc, err := Load([]byte(`{
+	document, err := Load([]byte(`{
 	  "openapi": "3.1.0",
 	  "info": {"title": "J", "version": "9"},
 	  "paths": {
@@ -236,16 +236,16 @@ func TestUnit_Specmodel_LoadAcceptsJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if doc.OpenAPI != "3.1.0" || doc.Info.Version != "9" {
-		t.Errorf("doc = %+v", doc)
+	if document.OpenAPI != "3.1.0" || document.Info.Version != "9" {
+		t.Errorf("doc = %+v", document)
 	}
-	if len(doc.Paths) != 1 || doc.Paths[0].Operations[0].OperationID != "listThings" {
-		t.Errorf("paths = %+v", doc.Paths)
+	if len(document.Paths) != 1 || document.Paths[0].Operations[0].OperationID != "listThings" {
+		t.Errorf("paths = %+v", document.Paths)
 	}
 }
 
 func TestUnit_Specmodel_ComponentReferencesAndCompositions(t *testing.T) {
-	doc, err := Load([]byte(`openapi: 3.0.3
+	document, err := Load([]byte(`openapi: 3.0.3
 info: {title: C, version: "1"}
 paths:
   /things:
@@ -305,19 +305,19 @@ components:
 		t.Fatalf("Load: %v", err)
 	}
 
-	op := doc.Paths[0].Operations[0]
-	if len(op.Parameters) != 1 || op.Parameters[0].Name != "verbose" || op.Parameters[0].Schema.Type != "boolean" {
-		t.Fatalf("parameters = %+v", op.Parameters)
+	operation := document.Paths[0].Operations[0]
+	if len(operation.Parameters) != 1 || operation.Parameters[0].Name != "verbose" || operation.Parameters[0].Schema.Type != "boolean" {
+		t.Fatalf("parameters = %+v", operation.Parameters)
 	}
-	if op.RequestBody == nil || op.RequestBody.Resolved().Name != "Thing" {
-		t.Fatalf("request body = %+v", op.RequestBody)
+	if operation.RequestBody == nil || operation.RequestBody.Resolved().Name != "Thing" {
+		t.Fatalf("request body = %+v", operation.RequestBody)
 	}
 	// application/hal+json still counts as JSON content.
-	if op.Responses[0].Schema == nil || op.Responses[0].Schema.Resolved().Name != "Thing" {
-		t.Fatalf("response = %+v", op.Responses[0])
+	if operation.Responses[0].Schema == nil || operation.Responses[0].Schema.Resolved().Name != "Thing" {
+		t.Fatalf("response = %+v", operation.Responses[0])
 	}
 
-	thing := doc.Schemas["Thing"]
+	thing := document.Schemas["Thing"]
 	if len(thing.AllOf) != 2 || thing.AllOf[0].Resolved().Name != "Base" {
 		t.Fatalf("allOf = %+v", thing.AllOf)
 	}
@@ -352,9 +352,9 @@ func minimal(fragment string) string {
 
 func TestUnit_Specmodel_LoadRefusals(t *testing.T) {
 	cases := []struct {
-		name string
-		doc  string
-		want string
+		name     string
+		document string
+		want     string
 	}{
 		{"garbage bytes", "\t{[", "parsing the document"},
 		{"empty document", "", "the document is empty"},
@@ -484,14 +484,14 @@ func TestUnit_Specmodel_LoadRefusals(t *testing.T) {
 `), "a schema must be a mapping"},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := Load([]byte(tc.doc))
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := Load([]byte(testCase.document))
 			if err == nil {
-				t.Fatalf("Load accepted the document; want an error containing %q", tc.want)
+				t.Fatalf("Load accepted the document; want an error containing %q", testCase.want)
 			}
-			if !strings.Contains(err.Error(), tc.want) {
-				t.Fatalf("error = %q, want it to contain %q", err, tc.want)
+			if !strings.Contains(err.Error(), testCase.want) {
+				t.Fatalf("error = %q, want it to contain %q", err, testCase.want)
 			}
 		})
 	}
@@ -503,7 +503,7 @@ func TestUnit_Specmodel_LoadRefusals(t *testing.T) {
 func TestUnit_Specmodel_ContentTypeSelection(t *testing.T) {
 	load := func(t *testing.T, content string) *Schema {
 		t.Helper()
-		doc, err := Load([]byte(minimal(`paths:
+		document, err := Load([]byte(minimal(`paths:
   /a:
     get:
       operationId: getA
@@ -514,7 +514,7 @@ func TestUnit_Specmodel_ContentTypeSelection(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Load: %v", err)
 		}
-		return doc.Paths[0].Operations[0].Responses[0].Schema
+		return document.Paths[0].Operations[0].Responses[0].Schema
 	}
 
 	// A +json suffix counts as JSON and beats the alphabetically earlier XML.
@@ -538,7 +538,7 @@ func TestUnit_Specmodel_ContentTypeSelection(t *testing.T) {
 
 // YAML anchors and aliases read as their targets.
 func TestUnit_Specmodel_AliasesDereference(t *testing.T) {
-	doc, err := Load([]byte(minimal(`paths:
+	document, err := Load([]byte(minimal(`paths:
   /a:
     get:
       operationId: getA
@@ -553,7 +553,7 @@ func TestUnit_Specmodel_AliasesDereference(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	rs := doc.Paths[0].Operations[0].Responses
+	rs := document.Paths[0].Operations[0].Responses
 	if len(rs) != 2 || rs[1].Schema == nil || rs[1].Schema.Type != "string" {
 		t.Errorf("responses = %+v; the alias should read as its anchor", rs)
 	}
@@ -562,7 +562,7 @@ func TestUnit_Specmodel_AliasesDereference(t *testing.T) {
 // A reference written before its target parses fine: resolution is a
 // separate pass over the completed document.
 func TestUnit_Specmodel_ForwardReferencesResolve(t *testing.T) {
-	doc, err := Load([]byte(minimal(`components:
+	document, err := Load([]byte(minimal(`components:
   schemas:
     Early:
       $ref: '#/components/schemas/Late'
@@ -572,14 +572,14 @@ func TestUnit_Specmodel_ForwardReferencesResolve(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if doc.Schemas["Early"].Resolved().Name != "Late" {
+	if document.Schemas["Early"].Resolved().Name != "Late" {
 		t.Errorf("Early should resolve to Late")
 	}
 }
 
 // An RFC 6901 escape in a reference decodes to the literal component name.
 func TestUnit_Specmodel_EscapedReferenceNamesDecode(t *testing.T) {
-	doc, err := Load([]byte(minimal(`components:
+	document, err := Load([]byte(minimal(`components:
   schemas:
     "a/b":
       type: object
@@ -589,7 +589,7 @@ func TestUnit_Specmodel_EscapedReferenceNamesDecode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if doc.Schemas["Uses"].Resolved().Name != "a/b" {
+	if document.Schemas["Uses"].Resolved().Name != "a/b" {
 		t.Errorf("escaped reference did not resolve to a/b")
 	}
 }
@@ -597,7 +597,7 @@ func TestUnit_Specmodel_EscapedReferenceNamesDecode(t *testing.T) {
 // default and example are read as decoded values, in whatever scalar or
 // structured shape the document wrote them.
 func TestUnit_Specmodel_LoadReadsDefaultAndExample(t *testing.T) {
-	doc, err := Load([]byte(minimal(`components:
+	document, err := Load([]byte(minimal(`components:
   schemas:
     Thing:
       type: object
@@ -619,7 +619,7 @@ func TestUnit_Specmodel_LoadReadsDefaultAndExample(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	thing := doc.Schemas["Thing"]
+	thing := document.Schemas["Thing"]
 
 	mode, _ := thing.Property("mode")
 	if mode.Default != "basic" || mode.Example != "advanced" {
@@ -661,7 +661,7 @@ func TestUnit_Specmodel_LoadRefusesUndecodableDefault(t *testing.T) {
 // component name and a bare-name mapping), dependentRequired and
 // dependentSchemas, each sorted by triggering property.
 func TestLoadStructuralFields(t *testing.T) {
-	doc, err := Load([]byte(`openapi: 3.0.3
+	document, err := Load([]byte(`openapi: 3.0.3
 info: {title: T, version: "1"}
 paths: {}
 components:
@@ -693,7 +693,7 @@ components:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	body := doc.Schemas["Body"]
+	body := document.Schemas["Body"]
 
 	code, _ := body.Property("code")
 	if code.Pattern != "^[a-z]+$" || code.Description != "A short code." {
@@ -738,7 +738,7 @@ components:
 // a probe lands wherever the synthesiser happens to put it — the live run sent
 // 2 into a field declaring minimum 5, and read the refusal as behaviour.
 func TestUnit_Specmodel_NumericBoundsAreLoaded(t *testing.T) {
-	doc, err := Load([]byte(`openapi: 3.0.3
+	document, err := Load([]byte(`openapi: 3.0.3
 info: {title: t, version: "1"}
 paths: {}
 components:
@@ -756,7 +756,7 @@ components:
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	s := doc.Schemas["Bounded"]
+	s := document.Schemas["Bounded"]
 	limit, ok := s.Property("limit")
 	if !ok {
 		t.Fatal("limit not loaded")
