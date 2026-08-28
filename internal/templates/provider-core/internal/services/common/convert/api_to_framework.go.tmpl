@@ -56,14 +56,32 @@ func Normalised(configured, answered types.String, kind string) types.String {
 	case "extended":
 		same = want != "" && strings.Contains(got, want)
 	case "same-instant":
+		// At the precision the API keeps: a value sent with seconds is
+		// stored as the minute it fell in by an API that stores minutes.
 		a, okA := parseTimestamp(want)
 		b, okB := parseTimestamp(got)
-		same = okA && okB && a.Equal(b)
+		same = okA && okB && a.Truncate(precisionOf(b)).Equal(b)
 	}
 	if same {
 		return configured
 	}
 	return answered
+}
+
+// precisionOf is the coarsest unit a timestamp is whole in: a day for
+// midnight, a minute for a whole minute, a second for a whole second, and
+// a nanosecond otherwise.
+func precisionOf(t time.Time) time.Duration {
+	switch {
+	case t.Nanosecond() != 0:
+		return time.Nanosecond
+	case t.Second() != 0:
+		return time.Second
+	case t.Minute() != 0 || t.Hour() != 0:
+		return time.Minute
+	default:
+		return 24 * time.Hour
+	}
 }
 
 // parseTimestamp reads a timestamp in any spelling an API answers: RFC 3339

@@ -88,12 +88,33 @@ var timestampLayouts = []string{
 }
 
 // SameInstant reports whether two strings both spell a timestamp and spell
-// the same one. A spelling without a zone is read as UTC, which is what an
-// API answering a zoned value without its zone has done.
-func SameInstant(a, b string) bool {
-	ta, okA := ParseTimestamp(a)
-	tb, okB := ParseTimestamp(b)
-	return okA && okB && ta.Equal(tb)
+// the same one at the precision the second keeps: an API that stores to
+// the minute answers a value sent with seconds as the minute it fell in.
+// A spelling without a zone is read as UTC, which is what an API answering
+// a zoned value without its zone has done.
+func SameInstant(sent, stored string) bool {
+	ts, okS := ParseTimestamp(sent)
+	tt, okT := ParseTimestamp(stored)
+	if !okS || !okT {
+		return false
+	}
+	return ts.Truncate(precisionOf(tt)).Equal(tt)
+}
+
+// precisionOf is the coarsest unit a timestamp is whole in: a day for
+// midnight, a minute for a whole minute, a second for a whole second, and
+// a nanosecond otherwise.
+func precisionOf(t time.Time) time.Duration {
+	switch {
+	case t.Nanosecond() != 0:
+		return time.Nanosecond
+	case t.Second() != 0:
+		return time.Second
+	case t.Minute() != 0 || t.Hour() != 0:
+		return time.Minute
+	default:
+		return 24 * time.Hour
+	}
 }
 
 // ParseTimestamp reads a timestamp in any of the spellings an API answers.

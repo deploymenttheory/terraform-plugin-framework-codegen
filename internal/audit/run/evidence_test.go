@@ -31,7 +31,7 @@ func TestUnit_Evidence_NormalisedForm(t *testing.T) {
 		{"timestamp respelt without zone", "2026-12-31T00:00:00Z", "2026-12-31 00:00:00", "2026-12-31 00:00:00", true},
 		{"timestamp respelt with fraction", "2026-12-31T10:14:28Z", "2026-12-31T10:14:28.000Z", "2026-12-31T10:14:28.000Z", true},
 		{"different instant", "2026-12-31T00:00:00Z", "2026-12-30 00:00:00", "", false},
-		{"date is not the instant", "2026-12-31T10:00:00Z", "2026-12-31", "", false},
+		{"stored to the day", "2026-12-31T10:00:00Z", "2026-12-31", "2026-12-31", true},
 	}
 	for _, testCase := range cases {
 		got, ok := normalisedForm(testCase.sent, testCase.got)
