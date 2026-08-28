@@ -185,15 +185,15 @@ func TestUnit_Propose_CompilesEachKindIntoItsExactCorrection(t *testing.T) {
 `,
 		},
 		{
-			name:      "writable false becomes readOnly",
+			name:      "writable false becomes writeOnly",
 			attribute: "size", kind: observe.KindWritable, value: false,
 			want: `{
-  "justification": "the audit confirmed a writable observation on tag.size: the live API accepts the value and never stores it, so the property is readOnly",
+  "justification": "the audit confirmed a writable observation on tag.size: the live API accepts the value and never returns it, so the property is writeOnly",
   "evidence": "audit/observations/tag.observations.json#%s",
   "operations": [
     {
       "op": "add",
-      "path": "/components/schemas/Tag/properties/size/readOnly",
+      "path": "/components/schemas/Tag/properties/size/writeOnly",
       "value": true
     }
   ]

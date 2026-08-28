@@ -402,8 +402,8 @@ func TestIntegration_Propose_FullLoopConverges(t *testing.T) {
 	if request, ok := tag["required"].([]any); !ok || len(request) != 1 || request[0] != "name" {
 		t.Errorf("required = %v, want [name]", tag["required"])
 	}
-	if ro := properties["size"].(map[string]any)["readOnly"]; ro != true {
-		t.Errorf("size.readOnly = %v, want true", ro)
+	if wo := properties["size"].(map[string]any)["writeOnly"]; wo != true {
+		t.Errorf("size.writeOnly = %v, want true", wo)
 	}
 	if co := properties["name"].(map[string]any)["x-tfpfgen-immutable"]; co != true {
 		t.Errorf("name create-only = %v, want true", co)

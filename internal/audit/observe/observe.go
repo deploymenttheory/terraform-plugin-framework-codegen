@@ -32,11 +32,14 @@ import (
 type Kind string
 
 const (
-	// KindWritable: the API accepts this attribute on write and stores it
-	// (true), or accepts and discards it (false). Learned by sending a
-	// value on create and reading it back. False becomes a correction
-	// marking the property readOnly, which downstream generates as
-	// Computed rather than Optional.
+	// KindWritable: the API accepts this attribute on write and returns it
+	// (true), or accepts it and never returns it — absent from the answer,
+	// or answered masked (false). Learned by sending a value on create and
+	// reading it back. False becomes a correction marking the property
+	// writeOnly, which downstream keeps configurable with state holding
+	// the configured value: the wire cannot tell a discarded value from
+	// one stored under another name, and readOnly would take a property
+	// the API may require away from the practitioner.
 	KindWritable Kind = "writable"
 
 	// KindImmutable: the API refuses to change this attribute after

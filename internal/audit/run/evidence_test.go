@@ -37,6 +37,29 @@ func TestUnit_Evidence_NormalisedForm(t *testing.T) {
 	}
 }
 
+func TestUnit_Evidence_MaskedEcho(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name      string
+		sent, got any
+		want      bool
+	}{
+		{"asterisks", "s3cret", "*****", true},
+		{"bullets", "s3cret", "••••••", true},
+		{"same", "*****", "*****", false},
+		{"short", "s3cret", "**", false},
+		{"plain change", "alpha", "omega", false},
+		{"not a string", 5, "*****", false},
+		{"masked object", map[string]any{"token": "abc", "type": "other-token"}, map[string]any{"token": "*****", "type": "other-token"}, false},
+		{"wholly masked object", map[string]any{"token": "abc", "key": "def"}, map[string]any{"token": "*****", "key": "*****"}, true},
+	}
+	for _, testCase := range cases {
+		if got := maskedEcho(testCase.sent, testCase.got); got != testCase.want {
+			t.Errorf("%s: maskedEcho(%v, %v) = %v, want %v", testCase.name, testCase.sent, testCase.got, got, testCase.want)
+		}
+	}
+}
+
 func TestUnit_Evidence_SmallHelpers(t *testing.T) {
 	t.Parallel()
 	if !equalJSON(1, float64(1)) || equalJSON("a", "b") {

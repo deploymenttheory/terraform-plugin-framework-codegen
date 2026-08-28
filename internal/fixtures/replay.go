@@ -77,6 +77,17 @@ func (s Fixture) FromAcceptedRequestBody(request, response map[string]any, requi
 	return out
 }
 
+// WithInventedNames answers a copy whose name-bearing entries carry the
+// invented, prefixed name in place of any declared example, for the
+// configurations a live API meets: an example name is a constant, and an
+// API that requires names to be unique refuses it on every run after the
+// first — and an object created under it carries nothing cleanup can match.
+func (s Fixture) WithInventedNames() Fixture {
+	out := s
+	out.Entries = restoredNames(s.Entries)
+	return out
+}
+
 // restoredNames puts back the invented name of every name-bearing entry a
 // declared example displaced.
 //
@@ -143,22 +154,35 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 				})
 				continue
 			}
-			// A property the API answers with a different value cannot live
-			// in a configuration either: terraform compares what it planned
-			// against what the provider answers, and a value the API rewrites
-			// — masked, normalised, or replaced outright — never matches the
-			// one that was sent.
+			// A property the API answers with a different value: terraform
+			// compares what it planned against what the provider answers, so
+			// the value sent cannot live in a configuration. The value
+			// answered can, where it is one of the same type and not a mask
+			// — the API's own spelling of what it stored is the one spelling
+			// it will not rewrite again. A mask is not a value at all, and
+			// the property goes with the reason recorded.
 			//
 			// Only a value the fixture carries whole is compared. An object
 			// recurses and its own fields are compared as leaves, and a list
 			// renders one element rather than the collection, so comparing
 			// the collection would judge a value no configuration carries.
 			if v.Nested == nil && v.Kind != ir.TypeList && !reflect.DeepEqual(carried, echoed) {
-				dropped = append(dropped, Omission{
-					Name:   strings.Join(at, "."),
-					Reason: "the API returned this property with a different value from the one it was sent, so no configuration can hold it",
-				})
-				continue
+				if text, ok := echoed.(string); ok && isMask(text) {
+					dropped = append(dropped, Omission{
+						Name:   strings.Join(at, "."),
+						Reason: "the API returns this property masked, so no configuration can hold a value it will read back",
+					})
+					continue
+				}
+				if sameScalarType(carried, echoed) {
+					carried = echoed
+				} else {
+					dropped = append(dropped, Omission{
+						Name:   strings.Join(at, "."),
+						Reason: "the API returned this property with a different value from the one it was sent, so no configuration can hold it",
+					})
+					continue
+				}
 			}
 		}
 		overlaid := overlayOne(v, carried, response, requiredWire, at, &dropped)
@@ -221,4 +245,37 @@ func nestedResponse(response map[string]any, wire string) map[string]any {
 		return inner
 	}
 	return nil
+}
+
+// sameScalarType reports whether two scalars are of one JSON type, so the
+// answered one can stand in a configuration where the sent one stood.
+func sameScalarType(sent, got any) bool {
+	switch sent.(type) {
+	case string:
+		_, ok := got.(string)
+		return ok
+	case bool:
+		_, ok := got.(bool)
+		return ok
+	case float64, int64, int:
+		switch got.(type) {
+		case float64, int64, int:
+			return true
+		}
+	}
+	return false
+}
+
+// isMask reports whether a string is made of mask characters alone — the
+// asterisks or bullets an API answers a secret with.
+func isMask(s string) bool {
+	if len(s) < 3 {
+		return false
+	}
+	for _, r := range s {
+		if r != '*' && r != '•' {
+			return false
+		}
+	}
+	return true
 }

@@ -167,8 +167,15 @@ func (c *compiler) writable(loc *locator, cls specmodel.Classification, o observ
 	if !ok {
 		return why
 	}
-	// readOnly must sit on a concrete schema: beside a $ref it is ignored,
+	// writeOnly must sit on a concrete schema: beside a $ref it is ignored,
 	// so the declaration the reference resolves to is the correctable spot.
+	//
+	// writeOnly rather than readOnly: the wire shows the value accepted and
+	// absent from the answer, which is what a property the API stores under
+	// another name looks like as much as one it discards, and readOnly would
+	// take a property the API requires away from the practitioner. Declared
+	// write-only, it stays configurable and the state keeps the configured
+	// value.
 	target, targetPtr, ok := loc.followSchemaRefs(site.property, site.propPtr)
 	if !ok {
 		return unplaceable(fmt.Sprintf("the schema of %s.%s resolves outside the document", o.Entity, o.Attribute))
@@ -176,10 +183,13 @@ func (c *compiler) writable(loc *locator, cls specmodel.Classification, o observ
 	if loc.readOnlyDeclared(target, targetPtr) {
 		return stated("the document already declares the property readOnly")
 	}
+	if loc.flagDeclared(target, targetPtr, "writeOnly") {
+		return stated("the document already declares the property writeOnly")
+	}
 	return compiled{
-		operations: []correction.Operation{{Op: "add", Path: targetPtr + "/readOnly", Value: true}},
+		operations: []correction.Operation{{Op: "add", Path: targetPtr + "/writeOnly", Value: true}},
 		justification: fmt.Sprintf("the audit confirmed a writable observation on %s.%s: "+
-			"the live API accepts the value and never stores it, so the property is readOnly", o.Entity, o.Attribute),
+			"the live API accepts the value and never returns it, so the property is writeOnly", o.Entity, o.Attribute),
 	}
 }
 

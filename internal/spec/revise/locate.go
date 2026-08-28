@@ -271,9 +271,16 @@ func (l *locator) requiredHas(node *yaml.Node, pointer, name string) bool {
 // readOnlyDeclared reports whether the schema — across refs and allOf —
 // already declares readOnly true.
 func (l *locator) readOnlyDeclared(node *yaml.Node, pointer string) bool {
+	return l.flagDeclared(node, pointer, "readOnly")
+}
+
+// flagDeclared reports whether a boolean schema keyword — readOnly,
+// writeOnly — is declared true on a schema, the node it resolves to, or its
+// allOf branches.
+func (l *locator) flagDeclared(node *yaml.Node, pointer, keyword string) bool {
 	return l.walkSchema(node, pointer, func(n *yaml.Node) bool {
-		ro := mapValue(n, "readOnly")
-		return ro != nil && ro.Value == "true"
+		flag := mapValue(n, keyword)
+		return flag != nil && flag.Value == "true"
 	})
 }
 

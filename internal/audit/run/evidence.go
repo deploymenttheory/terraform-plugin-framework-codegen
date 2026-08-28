@@ -307,6 +307,10 @@ func (r *runner) finalizeFields(entity string, ev *evidence, sent, got map[strin
 			r.record(entity, f, observe.KindWritable, nil, nil, observe.OutcomeInconclusive, proof...)
 		case wasSent && present && equalJSON(sentV, gotV):
 			r.record(entity, f, observe.KindWritable, true, nil, observe.OutcomeConfirmed, proof...)
+		case wasSent && present && maskedEcho(sentV, gotV):
+			// Answered as a run of mask characters: the value was taken and
+			// is never given back, which is the same fact as its absence.
+			r.record(entity, f, observe.KindWritable, false, nil, observe.OutcomeConfirmed, proof...)
 		case wasSent && present:
 			if norm, ok := normalisedForm(sentV, gotV); ok {
 				r.record(entity, f, observe.KindNormalisation, norm, nil, observe.OutcomeConfirmed, proof...)
@@ -499,6 +503,50 @@ func normalisedForm(sent, got any) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// maskedEcho reports whether a string went in and a mask came back: the
+// answer is nothing but asterisks or bullets, and is not what was sent. A
+// nested object is masked when every string in it is.
+func maskedEcho(sent, got any) bool {
+	switch g := got.(type) {
+	case string:
+		if _, ok := sent.(string); !ok || g == sent {
+			return false
+		}
+		return isMask(g)
+	case map[string]any:
+		s, ok := sent.(map[string]any)
+		if !ok {
+			return false
+		}
+		strings := 0
+		for k, v := range g {
+			text, isString := v.(string)
+			if !isString {
+				continue
+			}
+			strings++
+			if !maskedEcho(s[k], text) {
+				return false
+			}
+		}
+		return strings > 0
+	}
+	return false
+}
+
+// isMask reports whether a string is made of mask characters alone.
+func isMask(s string) bool {
+	if len(s) < 3 {
+		return false
+	}
+	for _, r := range s {
+		if r != '*' && r != '•' && r != 'x' && r != 'X' {
+			return false
+		}
+	}
+	return true
 }
 
 // scalarLike reports whether a value can be a serverDefault observation's

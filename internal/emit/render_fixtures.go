@@ -109,8 +109,8 @@ func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture
 			})
 		}
 	}
-	liveMinimal := accMinimal.WithRunSuffix()
-	liveMaximal := accMaximal.WithRunSuffix()
+	liveMinimal := accMinimal.WithInventedNames().WithRunSuffix()
+	liveMaximal := accMaximal.WithInventedNames().WithRunSuffix()
 	suites := []struct {
 		name     string
 		minimal  fixtures.Fixture
