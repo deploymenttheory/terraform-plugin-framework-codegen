@@ -56,14 +56,22 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Federation credentials are configured
+      # Fails here rather than opaquely inside the action. These are identifiers,
+      # not credentials — federation exists so no key is stored in this
+      # repository — so they are variables rather than secrets.
+      - name: Federation identifiers are configured
         env:
           RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
           ORG_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          if [ -z "$RULE_ID" ] || [ -z "$ORG_ID" ]; then
-            echo "::error::Set the ANTHROPIC_FEDERATION_RULE_ID and ANTHROPIC_ORGANIZATION_ID repository variables. See docs/diagrams/README.md."
+          missing=""
+          [ -n "$RULE_ID" ] || missing="$missing ANTHROPIC_FEDERATION_RULE_ID"
+          [ -n "$ORG_ID" ] || missing="$missing ANTHROPIC_ORGANIZATION_ID"
+          [ -n "$SERVICE_ACCOUNT_ID" ] || missing="$missing ANTHROPIC_SERVICE_ACCOUNT_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::Set these repository variables:$missing. The Connect workload wizard in the Claude Console issues all three. See docs/diagrams/README.md."
             exit 1
           fi
 
@@ -90,10 +98,20 @@ jobs:
           done
           git status --porcelain docs/diagrams/
 
+      # Authenticates by exchanging this run's GitHub OIDC token for a
+      # short-lived Anthropic token, so no key is stored here. The workspace ID
+      # is only needed when the federation rule spans more than one workspace,
+      # and an empty value is the same as omitting it.
+      #
+      # ANTHROPIC_API_KEY outranks federation in the SDK's credential order, so
+      # a key reaching this job's environment would silently shadow all of this.
+      # Nothing here sets one, and nothing here should.
       - uses: anthropics/claude-code-action@a60f3e1db3edbceed2b1e6c6a9d34c36b8a15eba
         with:
           anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
           anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          anthropic_workspace_id: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
           use_commit_signing: false
           claude_args: >-
             --allowedTools Read,Edit,Grep,Glob,Bash(git diff:*),Bash(git log:*)

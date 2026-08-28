@@ -102,12 +102,38 @@ belong to the workflow, so a diagram cannot reach a branch without passing the
 same checks `make diagrams` runs here. What no check covers is whether the new
 wording is *true* — that is what the pull request is for.
 
-It authenticates by workload identity federation, exchanging the workflow's
-GitHub OIDC token rather than holding a static key. Two repository variables
-must exist, or the run stops at its first step and says so:
+### Authentication
 
-    ANTHROPIC_FEDERATION_RULE_ID    fdrl_...
-    ANTHROPIC_ORGANIZATION_ID       the organisation UUID
+It authenticates by workload identity federation: the run exchanges its GitHub
+OIDC token for a short-lived Anthropic token, so no key is stored here. That
+needs `id-token: write`, which the job grants itself.
+
+Configure it once in the Claude Console under **Settings → Workload identity →
+Connect workload**, choosing the GitHub Actions provider. The wizard registers
+the issuer (`https://token.actions.githubusercontent.com`), creates a service
+account and a federation rule, and then waits 15 minutes for a real exchange to
+confirm the setup — so run this workflow by hand while that window is open.
+
+Match the rule to this repository rather than to the whole account. A GitHub
+Actions JWT carries `repo:<owner>/<name>:ref:refs/heads/main` as its subject,
+and a `subject_prefix` on that value stops any other repository federating
+against the same rule.
+
+The wizard then hands you three identifiers. They are identifiers, not
+credentials, so they go in **repository variables**, not secrets:
+
+    ANTHROPIC_FEDERATION_RULE_ID    fdrl_...      required
+    ANTHROPIC_ORGANIZATION_ID       a UUID        required
+    ANTHROPIC_SERVICE_ACCOUNT_ID    svac_...      required
+    ANTHROPIC_WORKSPACE_ID          wrkspc_...    only if the rule spans
+                                                  more than one workspace
+
+The run stops at its first step and names whichever of the three required ones
+is missing.
+
+One trap worth knowing: `ANTHROPIC_API_KEY` sits *above* federation in the
+SDK's credential order. If a key ever reaches this job's environment it wins
+silently, and the workflow keeps working while none of the above applies.
 
 ## One diagram is allowed to scroll
 
