@@ -225,6 +225,14 @@ func TestUnit_Evidence_ACompositeAnsweredDifferentlyIsNotServerForced(t *testing
 	if forced == nil || forced.Outcome != observe.OutcomeInconclusive {
 		t.Errorf("a list answered with members changed = %+v, want an inconclusive serverForced", forced)
 	}
+	// The member answered masked is one the answer never carries as sent,
+	// recorded on its own dotted path; the member answered as sent is not.
+	if o := wantConfirmed(t, obs, "thing", "headers.value", observe.KindWritable); o.Value != false {
+		t.Errorf("writable(headers.value) = %v, want false", o.Value)
+	}
+	if findObs(obs, "thing", "headers.name", observe.KindWritable) != nil {
+		t.Error("a member answered as sent was recorded")
+	}
 	// A host answered inside a longer spelling is the API's own form of the
 	// value sent, not another value.
 	if o := wantConfirmed(t, obs, "thing", "target", observe.KindNormalisation); o.Value != "https://www.example.invalid/" {

@@ -81,7 +81,7 @@ func suffixed(text string) string {
 // losing it, and no configuration can hold one.
 func (s Fixture) FromAcceptedRequestBody(request, response map[string]any, requiredWire map[string]bool) Fixture {
 	out := s
-	out.Entries, out.Omissions = overlayEntries(s.Entries, request, response, requiredWire, nil)
+	out.Entries, out.Omissions = overlayEntries(s.Entries, request, response, requiredWire, nil, false)
 	out.Omissions = append(out.Omissions, s.Omissions...)
 	out.Entries = restoredNames(out.Entries)
 	return out
@@ -143,7 +143,12 @@ func nameBearing(name string) bool {
 
 // overlayEntries keeps the entries the body carried, taking their values from
 // it, and reports the ones it dropped.
-func overlayEntries(values []Entry, request, response map[string]any, requiredWire map[string]bool, path []string) ([]Entry, []Omission) {
+//
+// retained marks a level under a root the configuration keeps whatever the
+// response says — a required one, or one whose state keeps the planned value
+// — so no member of it is judged against the echo either: the root is kept
+// or dropped whole.
+func overlayEntries(values []Entry, request, response map[string]any, requiredWire map[string]bool, path []string, retained bool) ([]Entry, []Omission) {
 	var kept []Entry
 	var dropped []Omission
 	for _, v := range values {
@@ -152,10 +157,11 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 		if !inRequest {
 			continue
 		}
+		keepWhole := retained || (path == nil && requiredWire[v.Wire])
 		// A field the API takes and never returns cannot live in a
 		// configuration; a required one has to be sent anyway, so it stays
 		// and the risk is the API's rather than the generator's.
-		if response != nil && !requiredWire[v.Wire] {
+		if response != nil && !keepWhole {
 			echoed, present := response[v.Wire]
 			if !present {
 				dropped = append(dropped, Omission{
@@ -195,7 +201,7 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 				}
 			}
 		}
-		overlaid := overlayOne(v, carried, response, requiredWire, at, &dropped)
+		overlaid := overlayOne(v, carried, response, requiredWire, at, &dropped, keepWhole)
 		// An object the body carried empty leaves nothing to render: no
 		// scalar, and no field of its own that survived the overlay. Rendered
 		// anyway it spells the absent value as a literal, and a configuration
@@ -214,12 +220,12 @@ func overlayEntries(values []Entry, request, response map[string]any, requiredWi
 
 // overlayOne sets one entry from the value the body carried, recursing into
 // the nested shapes a body spells as objects and arrays of objects.
-func overlayOne(v Entry, carried any, response map[string]any, requiredWire map[string]bool, at []string, dropped *[]Omission) Entry {
+func overlayOne(v Entry, carried any, response map[string]any, requiredWire map[string]bool, at []string, dropped *[]Omission, retained bool) Entry {
 	switch nested := carried.(type) {
 	case map[string]any:
 		if v.Nested != nil {
 			var inner []Omission
-			v.Nested, inner = overlayEntries(v.Nested, nested, nestedResponse(response, v.Wire), requiredWire, at)
+			v.Nested, inner = overlayEntries(v.Nested, nested, nestedResponse(response, v.Wire), requiredWire, at, retained)
 			*dropped = append(*dropped, inner...)
 			return v
 		}
@@ -227,7 +233,7 @@ func overlayOne(v Entry, carried any, response map[string]any, requiredWire map[
 		if v.Nested != nil && len(nested) > 0 {
 			if first, ok := nested[0].(map[string]any); ok {
 				var inner []Omission
-				v.Nested, inner = overlayEntries(v.Nested, first, nil, requiredWire, at)
+				v.Nested, inner = overlayEntries(v.Nested, first, nil, requiredWire, at, retained)
 				*dropped = append(*dropped, inner...)
 				return v
 			}

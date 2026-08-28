@@ -699,6 +699,29 @@ func TestUnit_Fixturespec_AReplayDropsWhatTheAPIReturnsMaskedOrRetyped(t *testin
 	}
 }
 
+func TestUnit_Fixturespec_AKeptRootKeepsItsMembersWhateverTheEchoSays(t *testing.T) {
+	spec := Derive(acceptedTree())
+	request := map[string]any{"name": "n", "settings": map[string]any{"retries": int64(3)}}
+	// The member is answered masked; under a root the configuration keeps
+	// whatever the response says, it stays as sent.
+	response := map[string]any{"name": "n", "settings": map[string]any{"retries": "*****"}}
+
+	got := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true, "settings": true})
+
+	settings := valueByName(t, got, "settings")
+	if len(settings.Nested) != 1 || settings.Nested[0].Scalar != int64(3) {
+		t.Errorf("settings = %#v, want the member as sent under a kept root", settings.Nested)
+	}
+	// Without the root kept, the masked member goes, and the object it
+	// leaves empty goes with it.
+	loose := spec.FromAcceptedRequestBody(request, response, map[string]bool{"name": true})
+	for _, e := range loose.Entries {
+		if e.Name == "settings" {
+			t.Errorf("a masked member survived under an unkept root: %#v", e.Nested)
+		}
+	}
+}
+
 func TestUnit_Fixturespec_TheLiveSuiteInventsEveryName(t *testing.T) {
 	s := Derive(exampleTree())
 	// Derivation keeps a declared example for a name where another string

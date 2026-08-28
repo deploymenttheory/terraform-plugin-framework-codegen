@@ -153,12 +153,12 @@ func (c *compiler) property(loc *locator, cls specmodel.Classification, o observ
 		return propertyLocation{}, unplaceable(fmt.Sprintf("a %s observation names no attribute", o.Kind)), false
 	}
 	if node, pointer, ok := loc.requestSchema(cls.Create); ok {
-		if site, ok := loc.findProperty(node, pointer, o.Attribute); ok {
+		if site, ok := loc.findPath(node, pointer, o.Attribute); ok {
 			return site, compiled{}, true
 		}
 	}
 	if node, pointer, ok := loc.responseSchema(cls.Read); ok {
-		if site, ok := loc.findProperty(node, pointer, o.Attribute); ok {
+		if site, ok := loc.findPath(node, pointer, o.Attribute); ok {
 			return site, compiled{}, true
 		}
 	}

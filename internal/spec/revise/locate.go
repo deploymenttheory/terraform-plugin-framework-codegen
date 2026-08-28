@@ -251,6 +251,32 @@ func (l *locator) findPropertyGuarded(node *yaml.Node, pointer, name string, see
 	return propertyLocation{}, false
 }
 
+// findPath locates a property named by a dotted path — "authentication.apiKey"
+// — descending through each object's declaration, and through the items of
+// an array of objects, so an observation about a nested member lands on the
+// member's own declaration.
+func (l *locator) findPath(node *yaml.Node, pointer, path string) (propertyLocation, bool) {
+	segments := strings.Split(path, ".")
+	site, ok := l.findProperty(node, pointer, segments[0])
+	if !ok {
+		return propertyLocation{}, false
+	}
+	for _, segment := range segments[1:] {
+		inner, innerPointer, ok := l.followSchemaRefs(site.property, site.propPtr)
+		if !ok {
+			return propertyLocation{}, false
+		}
+		if items := mapValue(inner, "items"); items != nil {
+			inner, innerPointer = items, innerPointer+"/items"
+		}
+		site, ok = l.findProperty(inner, innerPointer, segment)
+		if !ok {
+			return propertyLocation{}, false
+		}
+	}
+	return site, true
+}
+
 // requiredHas reports whether the schema — across its $ref chain and allOf
 // branches — already requires the named property.
 func (l *locator) requiredHas(node *yaml.Node, pointer, name string) bool {

@@ -318,8 +318,10 @@ func (r *runner) finalizeFields(entity string, ev *evidence, sent, got map[strin
 				// An object or list answered differently is not the server
 				// substituting a value: it is members added, masked or
 				// dropped, and which of those it was is not one fact about
-				// the field.
+				// the field. A member sent and answered masked or not at all
+				// is a fact about that member.
 				r.record(entity, f, observe.KindServerForced, nil, nil, observe.OutcomeInconclusive, proof...)
+				r.finalizeNestedMembers(entity, f, sentV, gotV, proof)
 			} else {
 				r.record(entity, f, observe.KindServerForced, true, nil, observe.OutcomeConfirmed, proof...)
 			}
@@ -329,6 +331,48 @@ func (r *runner) finalizeFields(entity string, ev *evidence, sent, got map[strin
 			r.finalizeDefault(entity, ev, f, gotV, proof)
 		}
 	}
+}
+
+// finalizeNestedMembers records, for the members of an object sent and
+// answered, the ones the answer never carries as they were sent: absent, or
+// a mask. Each lands on the member's dotted path, so the correction reaches
+// the nested property. A list of objects is read through its first element,
+// the one the body carried. Members answered as sent record nothing: the
+// object as a whole is what the top-level evidence speaks for.
+func (r *runner) finalizeNestedMembers(entity, field string, sent, got any, proof []observe.Excerpt) {
+	sentObject, gotObject := firstObject(sent), firstObject(got)
+	if sentObject == nil || gotObject == nil {
+		return
+	}
+	for _, member := range sortedFieldUnion(sentObject, nil) {
+		sentValue := sentObject[member]
+		gotValue, present := gotObject[member]
+		at := field + "." + member
+		switch {
+		case !present:
+			r.record(entity, at, observe.KindWritable, false, nil, observe.OutcomeConfirmed, proof...)
+		case maskedEcho(sentValue, gotValue):
+			r.record(entity, at, observe.KindWritable, false, nil, observe.OutcomeConfirmed, proof...)
+		case composite(sentValue) && composite(gotValue):
+			r.finalizeNestedMembers(entity, at, sentValue, gotValue, proof)
+		}
+	}
+}
+
+// firstObject answers a value as an object: the value itself, or the first
+// element of a list of objects; nil for anything else.
+func firstObject(value any) map[string]any {
+	switch v := value.(type) {
+	case map[string]any:
+		return v
+	case []any:
+		if len(v) > 0 {
+			if first, ok := v[0].(map[string]any); ok {
+				return first
+			}
+		}
+	}
+	return nil
 }
 
 // finalizeDefault decides constant versus derived for one unsent field
