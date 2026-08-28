@@ -220,6 +220,10 @@ type serviceRenderer struct {
 	// parentTypes is the terraform type of each ancestor block the fixture
 	// being rendered carries, gathered as the blocks are, nearest first.
 	parentTypes []string
+	// timeOffsets reports whether the fixture being rendered reads a
+	// timestamp from a time_offset block, which the acceptance test then
+	// takes the time provider for.
+	timeOffsets bool
 }
 
 // Binding kinds, spelled the way sdkbind.Removal spells them so a removal

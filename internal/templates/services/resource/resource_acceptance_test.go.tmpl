@@ -22,6 +22,9 @@ func TestAcc{{ .Pascal }}Resource_Lifecycle(t *testing.T) {
 		// behind. The provider supplying it is external to this one.
 		ExternalProviders: map[string]resource.ExternalProvider{
 			"random": {Source: "hashicorp/random"},
+{{- if .UsesTimeProvider }}
+			"time": {Source: "hashicorp/time"},
+{{- end }}
 		},
 		Steps: []resource.TestStep{
 			{

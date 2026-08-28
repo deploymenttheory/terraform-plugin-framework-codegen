@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"slices"
 	"text/template"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/fixtures"
@@ -205,6 +206,31 @@ func (e *serviceRenderer) resourceFixtures(r *ir.Resource, spec fixtures.Fixture
 	// takes its identifier from it: an invented parent id addresses nothing,
 	// live or mocked.
 	livePreamble, unitPreamble := fixtures.RunSuffixBlock, ""
+	// A timestamp the API wanted ahead of the request is taken from a
+	// time_offset block: the record's value was ahead of the run that made
+	// it, not of the run that replays it.
+	e.timeOffsets = false
+	if rec, ok := e.pc.AcceptedRequestBodies[r.Names.Key]; ok {
+		var rewritten []string
+		if rec.Minimal != nil {
+			liveMinimal, rewritten = liveMinimal.WithFutureDates(rec.Minimal.FutureDates)
+		}
+		if rec.Maximal != nil {
+			var more []string
+			liveMaximal, more = liveMaximal.WithFutureDates(rec.Maximal.FutureDates)
+			for _, name := range more {
+				if !slices.Contains(rewritten, name) {
+					rewritten = append(rewritten, name)
+				}
+			}
+		} else if rec.Minimal != nil {
+			liveMaximal, _ = liveMaximal.WithFutureDates(rec.Minimal.FutureDates)
+		}
+		for _, name := range rewritten {
+			livePreamble += "\n\n" + fixtures.FutureDateBlock(name)
+			e.timeOffsets = true
+		}
+	}
 	e.parentTypes = nil
 	if parents, attribute, reference := e.parentBlocks(r, 0, true); parents != "" {
 		liveMinimal = liveMinimal.WithExpression(attribute, reference)

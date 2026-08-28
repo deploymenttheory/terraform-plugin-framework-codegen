@@ -68,3 +68,24 @@ func TestUnit_Fixturespec_AListTakesItsEnumOrItsExamplesFirstMember(t *testing.T
 		t.Errorf("a list whose example is not strings = %#v, want the invented name", v)
 	}
 }
+
+func TestUnit_Fixturespec_AFutureDateRendersATimeOffset(t *testing.T) {
+	spec := Fixture{Entries: []Entry{
+		{Name: "name", Wire: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Scalar: "n"},
+		{Name: "start_date", Wire: "startDate", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required, Scalar: "2026-08-29T00:00:00Z"},
+		{Name: "count", Wire: "count", Kind: ir.TypeInt64, ComputedOptionalRequired: ir.Optional, Scalar: int64(3)},
+	}}
+	got, rewritten := spec.WithFutureDates([]string{"startDate", "count"})
+	if len(rewritten) != 1 || rewritten[0] != "start_date" {
+		t.Fatalf("rewritten = %v, want the string timestamp alone", rewritten)
+	}
+	if v := valueByName(t, got, "start_date").Expression; v != "time_offset.start_date.rfc3339" {
+		t.Errorf("expression = %q", v)
+	}
+	if spec.Entries[1].Expression != "" {
+		t.Error("WithFutureDates changed the fixture it was called on")
+	}
+	if !strings.Contains(FutureDateBlock("start_date"), `resource "time_offset" "start_date"`) {
+		t.Errorf("block = %q", FutureDateBlock("start_date"))
+	}
+}

@@ -36,14 +36,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"net/http"
 	"reflect"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/infer"
-	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/observe"
 	"github.com/deploymenttheory/terraform-plugin-framework-codegen/internal/audit/strategy"
 )
 
@@ -112,6 +113,9 @@ const (
 type revalueRule int
 
 const (
+	// futureValue replaces a timestamp the API wants ahead of now with one
+	// a day ahead, in the spelling the body already used.
+	futureValue revalueRule = iota + 100
 	// positiveValue replaces a number that is not positive with the
 	// smallest positive one the document admits.
 	positiveValue revalueRule = iota + 1
@@ -360,6 +364,30 @@ func (r *runner) addMember(entity *entityState, body map[string]any, container, 
 	return path, true
 }
 
+// timestampField names the body's top-level timestamp a refusal about time
+// is about, when the refusal does not say: the one whose name says it
+// starts, or the only one there is. Empty when the choice is not clear.
+func timestampField(body map[string]any) string {
+	var stamps []string
+	for field, value := range body {
+		if text, ok := value.(string); ok {
+			if _, isStamp := observe.ParseTimestamp(text); isStamp {
+				stamps = append(stamps, field)
+			}
+		}
+	}
+	sort.Strings(stamps)
+	for _, field := range stamps {
+		if strings.Contains(strings.ToLower(field), "start") {
+			return field
+		}
+	}
+	if len(stamps) == 1 {
+		return stamps[0]
+	}
+	return ""
+}
+
 // nextChoice answers the field a refused choice moves on to: the next one
 // the refusal offered that the entity declares and the body lacks. Empty
 // when the choice is exhausted.
@@ -507,16 +535,26 @@ func (r *runner) applyAdjustment(ctx context.Context, entity *entityState, body 
 		}
 		return nil, true
 	case adjustmentRevalue:
-		current, has := body[act.field]
-		if !has || applied["v:"+act.field] {
+		field := act.field
+		if field == "" {
+			field = timestampField(body)
+		}
+		current, has := body[field]
+		if !has || applied["v:"+field] {
 			return nil, false
 		}
-		replacement, ok := revalued(act.revalue, current, r.hints[entity.plan.Entity][act.field])
+		replacement, ok := revalued(act.revalue, current, r.hints[entity.plan.Entity][field])
 		if !ok {
 			return nil, false
 		}
-		body[act.field] = replacement
-		applied["v:"+act.field] = true
+		body[field] = replacement
+		applied["v:"+field] = true
+		if act.revalue == futureValue && entity != nil && entity.ev != nil {
+			if entity.ev.futureFields == nil {
+				entity.ev.futureFields = map[string]bool{}
+			}
+			entity.ev.futureFields[field] = true
+		}
 		return nil, true
 	case adjustmentRemove:
 		if applied["r:"+act.field] {
@@ -694,6 +732,19 @@ func splitIndex(segment string) (string, int, bool) {
 // and false where the rule does not apply to it.
 func revalued(rule revalueRule, current any, h strategy.SyntheticValueRules) (any, bool) {
 	switch rule {
+	case futureValue:
+		text, ok := current.(string)
+		if !ok {
+			return nil, false
+		}
+		if _, ok := observe.ParseTimestamp(text); !ok {
+			return nil, false
+		}
+		ahead := time.Now().UTC().Add(24 * time.Hour)
+		if len(text) == len("2006-01-02") {
+			return ahead.Format("2006-01-02"), true
+		}
+		return ahead.Format(time.RFC3339), true
 	case positiveValue:
 		n, ok := asFloat(current)
 		if !ok || n > 0 {

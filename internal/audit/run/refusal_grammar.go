@@ -52,6 +52,11 @@ var (
 	// rePositive matches a refusal of a number that is not positive: the
 	// field takes the smallest positive value instead.
 	rePositive = regexp.MustCompile(`(?i)\b([\w.]+) must be (?:a )?(?:positive|greater than (?:0|zero))`)
+	// reFutureDate matches a refusal of a timestamp that is not far enough
+	// ahead: "must start at least 2 minutes from now", "must be in the
+	// future", "cannot be in the past". The sentence rarely names the
+	// field; the body's timestamp is what moves.
+	reFutureDate = regexp.MustCompile(`(?i)\b(?:must (?:start|begin|be)(?: at least \d+ \w+)? (?:from now|in the future|after now)|(?:cannot|must not|may not|can't) be in the past)\b`)
 	// reBareAbsent matches the word before an absence complaint, in a
 	// sentence carrying no "field" marker: "endRepeat must be specified".
 	// The word before that is kept too: "repeat type must be specified"
@@ -85,6 +90,9 @@ func classifyRefusal(res *httpResult) parsedRefusal {
 	}
 	if m := rePositive.FindStringSubmatch(message); m != nil {
 		return parsedRefusal{kind: adjustmentRevalue, field: leafField(m[1]), revalue: positiveValue}
+	}
+	if reFutureDate.MatchString(message) {
+		return parsedRefusal{kind: adjustmentRevalue, revalue: futureValue}
 	}
 	// A choice of fields is read before the bare "the X is required", which
 	// would otherwise take "the following" for a field name.

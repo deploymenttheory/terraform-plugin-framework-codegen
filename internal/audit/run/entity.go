@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -102,13 +103,27 @@ func recordedRequestBodies(entityKey string, entity *entityState) observe.Reques
 	if entity.ev.sent != nil {
 		out.Minimal = &observe.AcceptedRequestBody{
 			Status: entity.ev.sentStatus, Request: entity.ev.sent, Response: entity.ev.got,
+			FutureDates: futureDatesIn(entity.ev.sent, entity.ev.futureFields),
 		}
 	}
 	if entity.ev.maximalSent != nil {
 		out.Maximal = &observe.AcceptedRequestBody{
 			Status: entity.ev.maximalStatus, Request: entity.ev.maximalSent, Response: entity.ev.maximalGot,
+			FutureDates: futureDatesIn(entity.ev.maximalSent, entity.ev.futureFields),
 		}
 	}
+	return out
+}
+
+// futureDatesIn names the fields of one body the run moved ahead of now.
+func futureDatesIn(body map[string]any, future map[string]bool) []string {
+	var out []string
+	for field := range future {
+		if _, carried := body[field]; carried {
+			out = append(out, field)
+		}
+	}
+	sort.Strings(out)
 	return out
 }
 

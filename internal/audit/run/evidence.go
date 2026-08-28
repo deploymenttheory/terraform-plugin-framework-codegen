@@ -68,8 +68,11 @@ type evidence struct {
 	// for carrying together — the mutual-exclusion signal, empty unless the
 	// refusal grammar names one.
 	acceptedRequestBodies []map[string]any
-	listBodies            [][]byte
-	combinedRefusals      []infer.FieldPair
+	// futureFields is every field the adjustment loop moved ahead of now
+	// because the API wanted it there: a replay must move it again.
+	futureFields     map[string]bool
+	listBodies       [][]byte
+	combinedRefusals []infer.FieldPair
 	// conditionalValues records the value-cycling outcomes the executor
 	// gathered correcting free-form conditional refusals — each (discriminator
 	// value, sibling field, sibling value) the API accepted or refused — the

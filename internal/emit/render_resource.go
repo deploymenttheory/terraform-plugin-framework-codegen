@@ -46,6 +46,10 @@ type resourceData struct {
 	// unit configuration carries, so the unit test activates their mocks
 	// beside the resource's own.
 	ParentTypes []string
+	// UsesTimeProvider reports whether the acceptance configuration reads a
+	// timestamp from a time_offset block, so the test declares the time
+	// provider beside random.
+	UsesTimeProvider bool
 	// ImportStateVerifyIgnore is the rendered tail of the attribute list an
 	// import verification leaves out — a leading comma and each name
 	// quoted — for the attributes an import cannot know: the ones whose
@@ -192,6 +196,7 @@ func (e *serviceRenderer) resource(r *ir.Resource, rb *sdkbind.ResourceBinding) 
 		return nil, err
 	}
 	d.ParentTypes = e.parentTypes
+	d.UsesTimeProvider = e.timeOffsets
 	var files []File
 
 	renderGo := func(tmpl, out string) error {

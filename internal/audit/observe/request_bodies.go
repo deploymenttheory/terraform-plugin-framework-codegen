@@ -56,6 +56,11 @@ type AcceptedRequestBody struct {
 	// carried and this does not is one the API accepts and never returns,
 	// which terraform cannot hold in state without losing it on the next read.
 	Response map[string]any `json:"response,omitempty"`
+	// FutureDates names the properties the API wanted ahead of the time of
+	// the request, whose values here were chosen a day ahead of the run: a
+	// configuration replaying the body must choose them ahead of its own
+	// run, not copy these.
+	FutureDates []string `json:"futureDates,omitempty"`
 }
 
 // Echoed reports whether the response carried the named wire property.

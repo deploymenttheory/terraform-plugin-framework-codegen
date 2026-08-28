@@ -207,3 +207,27 @@ func TestKiotaBindWalk(t *testing.T) {
 		t.Error("action with a body drafted no write model")
 	}
 }
+
+func TestUnit_Binder_AWriteOnlyRootLeavesItsComputedMembersOut(t *testing.T) {
+	tree := &ir.AttributeTree{Attributes: []ir.Attribute{
+		{Name: "agents", WireName: "agents", Kind: ir.TypeList, ElementType: ir.TypeObject, WriteOnly: true,
+			ComputedOptionalRequired: ir.Required, Nested: &ir.AttributeTree{Attributes: []ir.Attribute{
+				{Name: "agent_id", WireName: "agentId", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+				{Name: "agent_name", WireName: "agentName", Kind: ir.TypeString, ComputedOptionalRequired: ir.Computed},
+				{Name: "coordinates", WireName: "coordinates", Kind: ir.TypeObject, ComputedOptionalRequired: ir.Computed,
+					Nested: &ir.AttributeTree{Attributes: []ir.Attribute{{Name: "latitude", WireName: "latitude", Kind: ir.TypeFloat64, ComputedOptionalRequired: ir.Computed}}}},
+			}}},
+		{Name: "name", WireName: "name", Kind: ir.TypeString, ComputedOptionalRequired: ir.Required},
+	}}
+	got := fieldBindings(kiotaBinder{}, tree, accessReadWrite)
+	if len(got) != 2 || got[0].Attr != "agents" || !got[0].KeptFromPlan || got[0].Access.Get != "" || got[0].Access.Set == "" {
+		t.Fatalf("root bindings = %+v, want agents kept from plan with no getter", got)
+	}
+	members := got[0].Nested
+	if len(members) != 1 || members[0].Attr != "agent_id" || members[0].Access.Get != "" || members[0].Access.Set != "SetAgentId" {
+		t.Errorf("members = %+v, want the writable member alone, write-only", members)
+	}
+	if got[1].Access.Get != "GetName" {
+		t.Errorf("a sibling of the write-only root lost its getter: %+v", got[1])
+	}
+}

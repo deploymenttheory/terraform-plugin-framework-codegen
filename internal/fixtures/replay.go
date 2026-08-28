@@ -320,3 +320,39 @@ func (s Fixture) WithExpression(name, expression string) Fixture {
 	}
 	return out
 }
+
+// FutureDateExpr is the terraform expression a configuration takes for a
+// timestamp the API wants ahead of the time of the request, and
+// FutureDateBlock the block that supplies it, one per attribute: a literal
+// chosen ahead of the run that recorded it is behind the run that replays
+// it. The offset is stored in state, so it is the same on every plan.
+func FutureDateExpr(attribute string) string {
+	return "time_offset." + attribute + ".rfc3339"
+}
+
+// FutureDateBlock is the block FutureDateExpr reads from.
+func FutureDateBlock(attribute string) string {
+	return "resource \"time_offset\" \"" + attribute + "\" {\n  offset_days = 1\n}"
+}
+
+// WithFutureDates answers a copy whose root entries under the given wire
+// names render the future-date expression: the API wanted these ahead of
+// now, and the value the record carries was ahead of another run's now.
+// Answers the attribute names it rewrote, in entry order, for the blocks.
+func (s Fixture) WithFutureDates(wires []string) (Fixture, []string) {
+	wanted := make(map[string]bool, len(wires))
+	for _, wire := range wires {
+		wanted[wire] = true
+	}
+	out := s
+	out.Entries = make([]Entry, len(s.Entries))
+	copy(out.Entries, s.Entries)
+	var rewritten []string
+	for i := range out.Entries {
+		if wanted[out.Entries[i].Wire] && out.Entries[i].Nested == nil && out.Entries[i].Kind == ir.TypeString {
+			out.Entries[i].Expression = FutureDateExpr(out.Entries[i].Name)
+			rewritten = append(rewritten, out.Entries[i].Name)
+		}
+	}
+	return out, rewritten
+}

@@ -32,9 +32,16 @@ func APIToFrameworkString(value *string) types.String {
 // around it, the same text in another case or without its padding — and
 // the answer otherwise. kind is the x-tfpfgen-normalisation the document
 // declares for the property.
+//
+// An answer with no value at all keeps the configured one: a create's own
+// response routinely omits what the object's read carries, and a property
+// the API respells is one it stores rather than drops.
 func Normalised(configured, answered types.String, kind string) types.String {
-	if configured.IsNull() || configured.IsUnknown() || answered.IsNull() || answered.IsUnknown() {
+	if configured.IsNull() || configured.IsUnknown() {
 		return answered
+	}
+	if answered.IsNull() || answered.IsUnknown() {
+		return configured
 	}
 	want, got := configured.ValueString(), answered.ValueString()
 	if want == got {
