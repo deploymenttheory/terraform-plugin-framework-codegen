@@ -408,20 +408,26 @@ func TestUnit_Search_MaximalCulpritPrefersTheNamedField(t *testing.T) {
 	minimal := map[string]any{"name": "n"}
 
 	named := &httpResult{body: []byte(`{"detail":"colour is not valid here"}`)}
-	if got := r.refusedOptionalField(body, minimal, named); got != "colour" {
-		t.Errorf("refusedField = %q, want the field the refusal named", got)
+	if got := r.refusedOptionalFields(body, minimal, named); !reflect.DeepEqual(got, []string{"colour"}) {
+		t.Errorf("refusedFields = %v, want the field the refusal named", got)
+	}
+
+	// Several named at once are all dropped in one attempt.
+	several := &httpResult{body: []byte(`{"detail":"Invalid value for fields: colour, shape"}`)}
+	if got := r.refusedOptionalFields(body, minimal, several); !reflect.DeepEqual(got, []string{"colour", "shape"}) {
+		t.Errorf("refusedFields = %v, want every field the refusal named", got)
 	}
 
 	// Nothing named: the last optional field in order, never a field the
 	// minimal create needs.
 	silent := &httpResult{body: []byte(`{"detail":"bad request"}`)}
-	if got := r.refusedOptionalField(body, minimal, silent); got != "shape" {
-		t.Errorf("refusedField = %q, want the last optional field", got)
+	if got := r.refusedOptionalFields(body, minimal, silent); !reflect.DeepEqual(got, []string{"shape"}) {
+		t.Errorf("refusedFields = %v, want the last optional field", got)
 	}
 
 	// Only the minimal body left: there is nothing safe to drop.
-	if got := r.refusedOptionalField(minimal, minimal, silent); got != "" {
-		t.Errorf("refusedField = %q, want none", got)
+	if got := r.refusedOptionalFields(minimal, minimal, silent); got != nil {
+		t.Errorf("refusedFields = %v, want none", got)
 	}
 }
 

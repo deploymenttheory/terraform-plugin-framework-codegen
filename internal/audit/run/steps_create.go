@@ -533,13 +533,15 @@ func (r *runner) dropFieldsUntilAccepted(ctx context.Context, entity *entityStat
 	last := refusal
 
 	for i := 0; i < allowance; i++ {
-		refusedField := r.refusedOptionalField(body, minimal, last)
-		if refusedField == "" {
+		refusedFields := r.refusedOptionalFields(body, minimal, last)
+		if len(refusedFields) == 0 {
 			return nil
 		}
 		// The evidence for a refusal is bisectMaximal's to record; this only
 		// shapes the body, so a field dropped here is not claimed twice.
-		delete(body, refusedField)
+		for _, refusedField := range refusedFields {
+			delete(body, refusedField)
+		}
 
 		obj, res, err := r.createObject(ctx, entity, entity.recipe, body)
 		if err != nil {
@@ -565,13 +567,15 @@ func (r *runner) dropFieldsUntilAccepted(ctx context.Context, entity *entityStat
 	return nil
 }
 
-// refusedOptionalField names the optional field to drop next: the one the refusal
-// mentions, else the last in document order, which is deterministic and so
-// repeats the same reduction on a re-run.
+// refusedOptionalFields names the optional fields to drop next: every one the
+// refusal mentions, else the last in document order, which is deterministic
+// and so repeats the same reduction on a re-run. A refusal that names
+// several fields at once is answered in one attempt rather than one per
+// field.
 //
 // A field the minimal create needs is never a candidate — removing it would
 // trade a refused maximal for a refused minimal.
-func (r *runner) refusedOptionalField(body, minimal map[string]any, refusal *httpResult) string {
+func (r *runner) refusedOptionalFields(body, minimal map[string]any, refusal *httpResult) []string {
 	var optional []string
 	for k := range body {
 		if _, needed := minimal[k]; !needed {
@@ -579,15 +583,19 @@ func (r *runner) refusedOptionalField(body, minimal map[string]any, refusal *htt
 		}
 	}
 	if len(optional) == 0 {
-		return ""
+		return nil
 	}
 	sort.Strings(optional)
 	if refusal != nil {
+		var mentioned []string
 		for _, k := range optional {
 			if refusal.mentions(k) {
-				return k
+				mentioned = append(mentioned, k)
 			}
 		}
+		if len(mentioned) > 0 {
+			return mentioned
+		}
 	}
-	return optional[len(optional)-1]
+	return optional[len(optional)-1:]
 }
