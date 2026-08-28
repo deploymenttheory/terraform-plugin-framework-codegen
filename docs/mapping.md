@@ -120,7 +120,10 @@ so a constant is synthesised from the terraform type name. `Create` writes
 through the update call, which is also where the practitioner-settable
 attributes are read from, since there is no create body to read them from.
 `Delete` calls nothing: terraform stops managing the object and the API keeps
-it as it is. `PUT` and `PATCH` are the same scenario here, not two.
+it as it is. `PUT` and `PATCH` are the same scenario here, not two. A
+singleton's path names no item, so each of its path parameters addresses a
+parent and becomes a required addressing attribute — `/templates/{id}/sharing-settings`
+takes `template_id`, named after the parent because `id` is the resource's own.
 
 The classifier tells it from a collection by the response, not by the path: a
 `GET` with no item sibling whose body carries no array is one object rather
