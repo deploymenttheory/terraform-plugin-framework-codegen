@@ -22,11 +22,12 @@ var postcheckSteps = [][]string{
 	{"vet", "./..."},
 }
 
-// offlineSignatures are the toolchain messages that mean "no network", not
-// "broken tree". A postcheck failing with one of these skips rather than
+// offlineToolchainMessages are the toolchain messages that mean "no network",
+// not "broken tree". emit carries the same list for its own template compile:
+// it cannot import this package, because this package imports emit. A postcheck failing with one of these skips rather than
 // fails: a developer offline should not read a red run as a broken
 // generator, while CI, which is online, gets the real answer.
-var offlineSignatures = []string{
+var offlineToolchainMessages = []string{
 	"module lookup disabled",
 	"dial tcp",
 	"no such host",
@@ -70,7 +71,7 @@ func postcheck(ctx context.Context, root string, enabled bool) (PostcheckReport,
 			rep.Steps = append(rep.Steps, name)
 			continue
 		}
-		for _, signature := range offlineSignatures {
+		for _, signature := range offlineToolchainMessages {
 			if strings.Contains(out, signature) {
 				rep.SkippedReason = fmt.Sprintf("%s needs the network and cannot reach it:\n%s", name, out)
 				return rep, nil

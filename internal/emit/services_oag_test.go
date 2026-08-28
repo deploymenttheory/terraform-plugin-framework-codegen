@@ -186,7 +186,7 @@ func oagBindings() *sdkbind.Bindings {
 				List:             call("client.TagsAPI.ListTags(ctx).Execute()", nil, "*sdk.TagList", "*sdk.TagList", "*http.Response", "error"),
 				ElementType:      "sdk.Tag",
 				CollectionAccess: "Tags",
-				EnvelopeKey:      "tags",
+				ListWrapperKey:   "tags",
 				Fields: []sdkbind.FieldBinding{
 					{Attr: "id", Wire: "id", Kind: ir.TypeString,
 						Access: readOnly(oagAccess("Id", "string", "FromString", "", ""))},

@@ -131,37 +131,37 @@ func TestUnit_Manifest_LoadDistinguishesAbsentFromBroken(t *testing.T) {
 	}
 }
 
-func TestUnit_Manifest_OrphansOfFindsOnlyItsOwnLeftovers(t *testing.T) {
+func TestUnit_Manifest_UnproducedFilesOfFindsOnlyItsOwnLeftovers(t *testing.T) {
 	root := t.TempDir()
 
-	// Three files on disk: one still produced, one orphaned, one belonging
+	// Three files on disk: one still produced, one unproduced, one belonging
 	// to the other verb.
-	for _, p := range []string{"kept.go", "orphan.go", "sdk.go"} {
+	for _, p := range []string{"kept.go", "unproduced.go", "sdk.go"} {
 		if err := os.WriteFile(filepath.Join(root, p), []byte("x"), 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
 	m := New("v0.1.0", []Entry{
 		{Path: "kept.go", SHA256: "k"},
-		{Path: "orphan.go", SHA256: "o"},
-		{Path: "deleted.go", SHA256: "d"}, // recorded, not on disk: not an orphan
+		{Path: "unproduced.go", SHA256: "o"},
+		{Path: "deleted.go", SHA256: "d"}, // recorded, not on disk: still produced nothing to remove
 		{Path: "sdk.go", SHA256: "s", Origin: OriginSDK},
-		{Path: "audit/inputs.json", Authored: true}, // authored: never an orphan
+		{Path: "audit/inputs.json", Authored: true}, // authored: never removed
 	})
 
-	orphans, err := m.OrphansOf(root, "", map[string]bool{"kept.go": true})
+	unproduced, err := m.UnproducedFilesOf(root, "", map[string]bool{"kept.go": true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(orphans) != 1 || orphans[0] != "orphan.go" {
-		t.Fatalf("orphans = %v, want exactly orphan.go", orphans)
+	if len(unproduced) != 1 || unproduced[0] != "unproduced.go" {
+		t.Fatalf("unproduced = %v, want exactly unproduced.go", unproduced)
 	}
 
-	orphans, err = m.OrphansOf(root, OriginSDK, map[string]bool{})
+	unproduced, err = m.UnproducedFilesOf(root, OriginSDK, map[string]bool{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(orphans) != 1 || orphans[0] != "sdk.go" {
-		t.Fatalf("sdk orphans = %v, want exactly sdk.go", orphans)
+	if len(unproduced) != 1 || unproduced[0] != "sdk.go" {
+		t.Fatalf("sdk unproduced = %v, want exactly sdk.go", unproduced)
 	}
 }

@@ -200,12 +200,12 @@ func (sy synth) objectValue(r *specmodel.Schema, depth int) (any, bool) {
 	return out, true
 }
 
-// variant synthesizes a second, distinct value for an update: something
+// alternateValue synthesizes a second, distinct value for an update: something
 // the API should store differently from base. Scalars only — updating one
 // element of a nested object is a claim about the nested field, not the
-// attribute — and an enum with a single documented value has no variant,
+// attribute — and an enum with a single documented value has no alternateValue,
 // so the field yields no update step.
-func (sy synth) variant(field string, s *specmodel.Schema, base any) (any, bool) {
+func (sy synth) alternateValue(field string, s *specmodel.Schema, base any) (any, bool) {
 	r := s.Resolved()
 	if len(r.Enum) > 0 {
 		for _, v := range r.Enum {

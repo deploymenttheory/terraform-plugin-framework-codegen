@@ -302,9 +302,9 @@ type runner struct {
 	// inCleanup exempts the boundary cleanups from the run budgets.
 	inCleanup bool
 
-	// registry maps an entity to its live minimal object, for
+	// createdObjects maps an entity to its live minimal object, for
 	// $created:<entity> resolution.
-	registry map[string]*createdObject
+	createdObjects map[string]*createdObject
 	// recipes remembers how each executed entity creates and addresses
 	// its objects, for re-creation and end-of-run deletion.
 	recipes map[string]*entityRecipe
@@ -409,20 +409,20 @@ func newRunner(opts Options) (*runner, error) {
 	}
 
 	r := &runner{
-		opts:     opts,
-		log:      opts.Logger.With().Str("runId", runID).Logger(),
-		client:   &http.Client{Transport: newTransport()},
-		auth:     auth,
-		bucket:   newBucket(rps),
-		backoff:  newBackoff(),
-		ledger:   led,
-		base:     base,
-		runID:    runID,
-		budget:   budget,
-		registry: map[string]*createdObject{},
-		recipes:  map[string]*entityRecipe{},
-		evidence: map[string]*infer.Evidence{},
-		borrowed: map[string]string{},
+		opts:           opts,
+		log:            opts.Logger.With().Str("runId", runID).Logger(),
+		client:         &http.Client{Transport: newTransport()},
+		auth:           auth,
+		bucket:         newBucket(rps),
+		backoff:        newBackoff(),
+		ledger:         led,
+		base:           base,
+		runID:          runID,
+		budget:         budget,
+		createdObjects: map[string]*createdObject{},
+		recipes:        map[string]*entityRecipe{},
+		evidence:       map[string]*infer.Evidence{},
+		borrowed:       map[string]string{},
 		summary: Summary{
 			RunID:                runID,
 			ByKind:               map[observe.Kind]int{},

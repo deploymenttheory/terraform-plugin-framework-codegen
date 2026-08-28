@@ -87,8 +87,8 @@ func TestUnit_Standalone_ServesTheDocumentedLifecycle(t *testing.T) {
 		t.Fatalf("the created object carries no id: %v", created)
 	}
 
-	if status, listed := call(t, c, http.MethodGet, s.CollectionURL(), nil); status != http.StatusOK || listed[envelopeKey] == nil {
-		t.Fatalf("GET %s = %d %v, want 200 with %q", s.CollectionURL(), status, listed, envelopeKey)
+	if status, listed := call(t, c, http.MethodGet, s.CollectionURL(), nil); status != http.StatusOK || listed[listWrapperKey] == nil {
+		t.Fatalf("GET %s = %d %v, want 200 with %q", s.CollectionURL(), status, listed, listWrapperKey)
 	}
 	if status, _ := call(t, c, http.MethodGet, s.ItemURL(id), nil); status != http.StatusOK {
 		t.Fatalf("GET %s = %d, want 200", s.ItemURL(id), status)

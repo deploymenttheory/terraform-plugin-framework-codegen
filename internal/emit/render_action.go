@@ -35,7 +35,7 @@ type actionData struct {
 	ConstructReturnType string
 	WriteConstructor    string
 	ConstructBody       string
-	InvokePlan          callPlan
+	InvokePlan          finalisedAPIRequest
 
 	InvokeMethod     string
 	InvokeMatcher    string

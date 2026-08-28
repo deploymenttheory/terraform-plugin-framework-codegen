@@ -27,7 +27,7 @@ type ServiceFiles struct {
 	// Excluded lists every entity emission refused, with the reason, in the
 	// order the model declares them. It mirrors the model's own Excluded:
 	// an entity that yields nothing is reported, never silently absent.
-	Excluded []ir.Exclusion
+	Excluded []ir.UnsupportedEntity
 	// KeptUnbound is every attribute the join kept with no SDK field behind
 	// it — the id and the addressing attributes — keyed by keptUnboundKey.
 	// Pruning reports removing each of them and each of them reaches the
@@ -105,7 +105,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		files, err := e.resource(r, rb)
 		if err != nil {
 			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, ir.Exclusion{Key: r.Names.Key, Reason: reason})
+				out.Excluded = append(out.Excluded, ir.UnsupportedEntity{Key: r.Names.Key, Reason: reason})
 				continue
 			}
 			return nil, fmt.Errorf("resource %s: %w", r.Names.Key, err)
@@ -124,7 +124,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		files, err := e.datasource(ds, db)
 		if err != nil {
 			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, ir.Exclusion{Key: ds.Names.Key, Reason: reason})
+				out.Excluded = append(out.Excluded, ir.UnsupportedEntity{Key: ds.Names.Key, Reason: reason})
 				continue
 			}
 			return nil, fmt.Errorf("datasource %s: %w", ds.Names.Key, err)
@@ -145,7 +145,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		// bindings or emission already refused therefore takes its list
 		// resource with it.
 		if !served[lr.Names.Key] {
-			out.Excluded = append(out.Excluded, ir.Exclusion{
+			out.Excluded = append(out.Excluded, ir.UnsupportedEntity{
 				Key:    lr.Names.Key,
 				Reason: "list: the resource it lists is not served, and terraform refuses a provider whose list resource names no resource",
 			})
@@ -154,7 +154,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		files, err := e.listResource(lr, lb)
 		if err != nil {
 			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, ir.Exclusion{Key: lr.Names.Key, Reason: reason})
+				out.Excluded = append(out.Excluded, ir.UnsupportedEntity{Key: lr.Names.Key, Reason: reason})
 				continue
 			}
 			return nil, fmt.Errorf("list resource %s: %w", lr.Names.Key, err)
@@ -172,7 +172,7 @@ func RenderServices(pc ProviderCore, m *ir.Model, b *sdkbind.Bindings) (*Service
 		files, err := e.action(a, ab)
 		if err != nil {
 			if reason, refused := excludes(err); refused {
-				out.Excluded = append(out.Excluded, ir.Exclusion{Key: a.Names.Key, Reason: reason})
+				out.Excluded = append(out.Excluded, ir.UnsupportedEntity{Key: a.Names.Key, Reason: reason})
 				continue
 			}
 			return nil, fmt.Errorf("action %s: %w", a.Names.Key, err)

@@ -240,7 +240,7 @@ func TestUnit_Specmodel_ClassifyTable(t *testing.T) {
 			for _, c := range got.Entities {
 				classified[c.Key] = c
 			}
-			excluded := map[string]Exclusion{}
+			excluded := map[string]UnclassifiedEntity{}
 			for _, e := range got.Excluded {
 				excluded[e.Key] = e
 			}

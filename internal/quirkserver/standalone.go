@@ -40,7 +40,7 @@ func Standalone(addr string, q Quirks) (*Server, error) {
 		nextID:  1,
 		reads:   map[string]int{},
 	}
-	s.initShapes()
+	s.initCollections()
 
 	// httptest carries the URL bookkeeping New already relies on; only the
 	// listener is swapped for the caller's address.

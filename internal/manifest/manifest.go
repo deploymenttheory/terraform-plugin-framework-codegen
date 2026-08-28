@@ -4,14 +4,14 @@
 // It exists for two things nothing else can answer. First, which files
 // generation produced *last* time: comparing the revised spec against what
 // is on disk finds a file that changed and a file that went missing, but it
-// cannot find an orphan — a generated file the spec no longer produces.
+// cannot find a file the spec no longer produces at all.
 // Renaming an entity leaves one behind, it still compiles, it is registered
 // nowhere, and nothing complains. Second, which paths are authored: the
 // small set of committed data files (corrections, audit inputs,
 // tfpfgen.yaml) that generation may never write, enforced here rather than
 // by convention.
 //
-// CI catches orphans anyway by regenerating and diffing the whole worktree,
+// CI catches these anyway by regenerating and diffing the whole worktree,
 // which is strictly stronger. The manifest is what gives the same answer
 // locally, without requiring a clean git tree to interpret.
 package manifest
@@ -38,7 +38,7 @@ var ErrUnsupportedFormat = errors.New("unsupported manifest format version")
 // OriginSDK marks an entry written by `sdk generate`. The two generating
 // verbs share one manifest so the drift check covers everything the toolkit
 // owns, and the origin is what lets each verb replace its own inventory
-// without orphaning the other's.
+// without stranding the other's.
 //
 // `provider generate`'s own entries carry no origin, deliberately: the empty
 // value is the common case and keeps the committed file small.
@@ -47,7 +47,7 @@ const OriginSDK = "sdk"
 // OriginPostcheck marks an entry the toolchain itself finalised after
 // install: `go mod tidy` writes go.sum, a file no template emits. Its
 // digest is recorded so the drift gate covers it, under its own origin so
-// neither generating verb's inventory replacement orphans it.
+// neither generating verb's inventory replacement strands it.
 const OriginPostcheck = "postcheck"
 
 // Entry is one file the manifest accounts for.
@@ -165,7 +165,7 @@ func Marshal(m Manifest) ([]byte, error) {
 //
 // A missing manifest is not an error: it is the state of a tree that has
 // never been generated. It returns an empty manifest and false, so a caller
-// can tell "no orphans" apart from "cannot know".
+// can tell "nothing unproduced" apart from "cannot know".
 func Load(root string) (Manifest, bool, error) {
 	path := filepath.Join(root, Name)
 
@@ -205,14 +205,14 @@ func Save(root string, m Manifest) error {
 	return nil
 }
 
-// OrphansOf returns the paths one verb's entries record that the current run
+// UnproducedFilesOf returns the paths one verb's entries record that the current run
 // no longer produces and which still exist on disk. Authored entries are
-// never orphans — nothing produces them.
+// never unproduced — nothing produces them.
 //
-// A path recorded but already deleted is not an orphan: somebody removed it,
+// A path recorded but already deleted is not unproduced: somebody removed it,
 // the revised spec agrees it should not exist, and there is nothing to
 // report.
-func (m Manifest) OrphansOf(root, origin string, produced map[string]bool) ([]string, error) {
+func (m Manifest) UnproducedFilesOf(root, origin string, produced map[string]bool) ([]string, error) {
 	var out []string
 
 	for _, f := range m.Files {

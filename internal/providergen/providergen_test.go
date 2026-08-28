@@ -57,17 +57,17 @@ func TestUnit_Run_RefusesAuthoredPaths(t *testing.T) {
 	}
 }
 
-func TestUnit_Run_RemovesOrphansAndCarriesOtherOriginsForward(t *testing.T) {
+func TestUnit_Run_RemovesUnproducedFilesAndCarriesOtherOriginsForward(t *testing.T) {
 	root, opts := curatedRepo(t, "kiota")
 	if _, err := Run(context.Background(), opts); err != nil {
 		t.Fatalf("first Run: %v", err)
 	}
 
-	// Plant an orphan — a file a previous run supposedly produced that the
+	// Plant an unproduced file — one a previous run supposedly produced that the
 	// fixture no longer does — plus an sdk-origin entry and an authored
 	// entry the provider run must carry forward untouched.
-	orphan := "internal/services/resources/retired/v1/thing/resource.go"
-	full := filepath.Join(root, filepath.FromSlash(orphan))
+	unproduced := "internal/services/resources/retired/v1/thing/resource.go"
+	full := filepath.Join(root, filepath.FromSlash(unproduced))
 	if err := os.MkdirAll(filepath.Dir(full), 0o750); err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestUnit_Run_RemovesOrphansAndCarriesOtherOriginsForward(t *testing.T) {
 		t.Fatal(err)
 	}
 	seeded := manifest.New(version.Version(), append(current.Files,
-		manifest.Entry{Path: orphan, SHA256: "aa"},
+		manifest.Entry{Path: unproduced, SHA256: "aa"},
 		manifest.Entry{Path: "internal/sdk/client.go", SHA256: "bb", Origin: manifest.OriginSDK},
 		manifest.Entry{Path: "tfpfgen.yaml", Authored: true},
 	))
@@ -92,15 +92,15 @@ func TestUnit_Run_RemovesOrphansAndCarriesOtherOriginsForward(t *testing.T) {
 	}
 
 	if _, err := os.Stat(full); !os.IsNotExist(err) {
-		t.Errorf("the orphan %s survived regeneration", orphan)
+		t.Errorf("the unproduced file %s survived regeneration", unproduced)
 	}
 	next, _, err := manifest.Load(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	paths := next.Paths()
-	if paths[orphan] {
-		t.Errorf("the manifest still records the orphan %s", orphan)
+	if paths[unproduced] {
+		t.Errorf("the manifest still records %s", unproduced)
 	}
 	if !paths["internal/sdk/client.go"] {
 		t.Error("the sdk-origin entry was not carried forward")

@@ -208,11 +208,11 @@ func isJSONMedia(mediaType string) bool {
 	return false
 }
 
-// propSite is one property's location: the property node itself (where an
+// propertyLocation is one property's location: the property node itself (where an
 // x-tfpfgen-* annotation belongs — an annotation beside a $ref wins over the
 // target's own) and the object schema declaring it (whose required list and
 // resolved shape standard corrections address).
-type propSite struct {
+type propertyLocation struct {
 	prop               *yaml.Node
 	propPtr            string
 	declaration        *yaml.Node
@@ -222,19 +222,19 @@ type propSite struct {
 // findProperty locates a property's declaration inside a schema: its own
 // properties first, then allOf branches in order, following $refs — the
 // order the flattened downstream view reads them in.
-func (l *locator) findProperty(node *yaml.Node, ptr, name string) (propSite, bool) {
+func (l *locator) findProperty(node *yaml.Node, ptr, name string) (propertyLocation, bool) {
 	return l.findPropertyGuarded(node, ptr, name, map[string]bool{})
 }
 
-func (l *locator) findPropertyGuarded(node *yaml.Node, ptr, name string, seen map[string]bool) (propSite, bool) {
+func (l *locator) findPropertyGuarded(node *yaml.Node, ptr, name string, seen map[string]bool) (propertyLocation, bool) {
 	node, ptr, ok := l.followSchemaRefs(node, ptr)
 	if !ok || seen[ptr] {
-		return propSite{}, false
+		return propertyLocation{}, false
 	}
 	seen[ptr] = true
 
 	if prop := mapValue(mapValue(node, "properties"), name); prop != nil {
-		return propSite{
+		return propertyLocation{
 			prop:               prop,
 			propPtr:            ptr + "/properties/" + escapeToken(name),
 			declaration:        node,
@@ -248,7 +248,7 @@ func (l *locator) findPropertyGuarded(node *yaml.Node, ptr, name string, seen ma
 			}
 		}
 	}
-	return propSite{}, false
+	return propertyLocation{}, false
 }
 
 // requiredHas reports whether the schema — across its $ref chain and allOf

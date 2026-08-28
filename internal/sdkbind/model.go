@@ -173,11 +173,11 @@ type DatasourceBinding struct {
 	// a field name like "Items", or empty when the result is the slice
 	// itself.
 	CollectionAccess string `json:"collection_access,omitempty"`
-	// EnvelopeKey is the observed wire key the list response wraps its item
+	// ListWrapperKey is the observed wire key the list response wraps its item
 	// array under (the IR's ListEnvelopeKey), empty for a bare array. Prune
 	// reads it to pick the wrapper's getter or field by name rather than
 	// guessing among several slices.
-	EnvelopeKey string `json:"envelope_key,omitempty"`
+	ListWrapperKey string `json:"envelope_key,omitempty"`
 	// Fields are the element's field accesses, read direction only.
 	Fields []FieldBinding `json:"fields,omitempty"`
 }

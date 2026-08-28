@@ -199,8 +199,8 @@ func TestAttributes_ConditionalRequirement(t *testing.T) {
 // not a wrapper.
 func TestDerive_ListEnvelopeKey_BareArray(t *testing.T) {
 	r := resourceByKey(t, mustDerive(t, thingSpec, testConfig()), "thing")
-	if r.ListEnvelopeKey != "" {
-		t.Errorf("bare-array list derived envelope key %q, want empty", r.ListEnvelopeKey)
+	if r.ListWrapperKey != "" {
+		t.Errorf("bare-array list derived envelope key %q, want empty", r.ListWrapperKey)
 	}
 }
 
@@ -243,8 +243,8 @@ components:
         label: {type: string}
 `
 	r := resourceByKey(t, mustDerive(t, spec, testConfig()), "gizmo")
-	if r.ListEnvelopeKey != "gizmos" {
-		t.Errorf("wrapped list derived envelope key %q, want %q", r.ListEnvelopeKey, "gizmos")
+	if r.ListWrapperKey != "gizmos" {
+		t.Errorf("wrapped list derived envelope key %q, want %q", r.ListWrapperKey, "gizmos")
 	}
 }
 
@@ -303,8 +303,8 @@ components:
 		t.Run(testCase.name, func(t *testing.T) {
 			doc := fmt.Sprintf(wrappedDoc, testCase.envelope)
 			r := resourceByKey(t, mustDerive(t, doc, testConfig()), "gizmo")
-			if r.ListEnvelopeKey != testCase.want {
-				t.Errorf("resource envelope key = %q, want %q", r.ListEnvelopeKey, testCase.want)
+			if r.ListWrapperKey != testCase.want {
+				t.Errorf("resource envelope key = %q, want %q", r.ListWrapperKey, testCase.want)
 			}
 			d := datasourceByKey(t, mustDerive(t, doc, testConfig()), "gizmo")
 			if d.ListEnvelopeKey != testCase.want {
@@ -613,22 +613,22 @@ func TestUnit_BuildAttribute_CarriesTheDocumentsDescription(t *testing.T) {
 	described := &specmodel.Schema{Type: "string", Description: "  Name of the alert rule.  "}
 	bare := &specmodel.Schema{Type: "string"}
 
-	writable, _ := buildAttribute("ruleName", site{create: described, read: bare})
+	writable, _ := buildAttribute("ruleName", foldedProperty{create: described, read: bare})
 	if writable.Description != "Name of the alert rule." {
 		t.Fatalf("the create side's prose must carry, trimmed: %q", writable.Description)
 	}
 
-	fromRead, _ := buildAttribute("ruleName", site{create: bare, read: described})
+	fromRead, _ := buildAttribute("ruleName", foldedProperty{create: bare, read: described})
 	if fromRead.Description != "Name of the alert rule." {
 		t.Fatalf("the read side's prose must carry when the create side is bare: %q", fromRead.Description)
 	}
 
-	computed, _ := buildAttribute("ruleId", site{read: described})
+	computed, _ := buildAttribute("ruleId", foldedProperty{read: described})
 	if computed.Description != "Name of the alert rule." {
 		t.Fatalf("a response-only attribute keeps its prose: %q", computed.Description)
 	}
 
-	none, _ := buildAttribute("path", site{create: bare, read: bare})
+	none, _ := buildAttribute("path", foldedProperty{create: bare, read: bare})
 	if none.Description != "" {
 		t.Fatalf("an undescribed property carries nothing, got %q", none.Description)
 	}

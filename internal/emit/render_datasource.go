@@ -47,8 +47,8 @@ type datasourceData struct {
 	// "remote", or "*remote" when the read answers with a pointer to the
 	// element type.
 	ReadItem    string
-	ReadPlan    callPlan
-	ListPlan    callPlan
+	ReadPlan    finalisedAPIRequest
+	ListPlan    finalisedAPIRequest
 	Collection  string
 	ItemModel   string
 	ElementType string

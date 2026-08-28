@@ -6,27 +6,27 @@ import (
 	"net/http"
 )
 
-// Envelope names the shape an error body takes.
+// ErrorBodyShape names the shape an error body takes.
 //
 // The server and the auditor's error classifier must agree on the shapes:
 // an audit that assumed one shape could not tell "rejected because the field
 // is immutable" from "rejected because the token expired", and that
 // distinction is what makes the immutability protocol possible at all. When
 // the classifier lands it must recognise exactly these.
-type Envelope string
+type ErrorBodyShape string
 
 const (
-	// EnvelopeProblem is RFC 7807 application/problem+json, commonly used for
+	// ErrorBodyProblem is RFC 7807 application/problem+json, commonly used for
 	// validation errors.
-	EnvelopeProblem Envelope = "problem"
-	// EnvelopeOAuth is {"error","error_description"}, returned when a bearer
+	ErrorBodyProblem ErrorBodyShape = "problem"
+	// ErrorBodyOAuth is {"error","error_description"}, returned when a bearer
 	// token is rejected.
-	EnvelopeOAuth Envelope = "oauth"
-	// EnvelopeLegacy is {"errorMessage"}, returned when no credentials are
+	ErrorBodyOAuth ErrorBodyShape = "oauth"
+	// ErrorBodyLegacy is {"errorMessage"}, returned when no credentials are
 	// supplied.
-	EnvelopeLegacy Envelope = "legacy"
-	// EnvelopeEmpty is no body at all, which is what a real 404 returns.
-	EnvelopeEmpty Envelope = "empty"
+	ErrorBodyLegacy ErrorBodyShape = "legacy"
+	// ErrorBodyEmpty is no body at all, which is what a real 404 returns.
+	ErrorBodyEmpty ErrorBodyShape = "empty"
 )
 
 func (s *Server) notFound(w http.ResponseWriter) {
@@ -39,13 +39,13 @@ func (s *Server) notFound(w http.ResponseWriter) {
 
 // fail writes an error in whichever envelope the quirks select.
 func (s *Server) fail(w http.ResponseWriter, status int, title, detail string) {
-	switch s.quirks.ErrorEnvelope {
-	case EnvelopeEmpty:
+	switch s.quirks.ErrorBody {
+	case ErrorBodyEmpty:
 		// No body at all, which is what a real 404 returns and what the error
 		// classifier has to have a fallback for.
 		w.WriteHeader(status)
 
-	case EnvelopeOAuth:
+	case ErrorBodyOAuth:
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		_ = json.NewEncoder(w).Encode(map[string]any{
@@ -53,14 +53,14 @@ func (s *Server) fail(w http.ResponseWriter, status int, title, detail string) {
 			"error_description": joinDetail(title, detail),
 		})
 
-	case EnvelopeLegacy:
+	case ErrorBodyLegacy:
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"errorMessage": joinDetail(title, detail),
 		})
 
-	case EnvelopeProblem, "":
+	case ErrorBodyProblem, "":
 		w.Header().Set("Content-Type", "application/problem+json")
 		w.WriteHeader(status)
 		body := map[string]any{

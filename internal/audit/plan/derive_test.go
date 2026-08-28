@@ -408,11 +408,11 @@ func TestUnit_Plan_StepDetails(t *testing.T) {
 	}
 
 	undoc := steps[15]
-	if undoc.Attribute != "mode" || undoc.Body["mode"] != undocumentedEnumValue {
+	if undoc.Attribute != "mode" || undoc.Body["mode"] != UndocumentedEnumValue {
 		t.Errorf("undocumentedEnumValue = %+v", undoc)
 	}
 	unknown := steps[16]
-	if unknown.Body[undeclaredSpecFieldName] != true {
+	if unknown.Body[UndeclaredSpecFieldName] != true {
 		t.Errorf("undeclaredSpecField body = %v", unknown.Body)
 	}
 

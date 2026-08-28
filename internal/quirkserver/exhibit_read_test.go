@@ -49,23 +49,23 @@ var readExhibits = map[string]func(*testing.T){
 		}
 	},
 
-	"ErrorEnvelope": func(t *testing.T) {
+	"ErrorBody": func(t *testing.T) {
 		t.Parallel()
 
 		// All four declared shapes, plus an undeclared one that must still
 		// carry the status. An auditor that assumed one shape could not tell
 		// "rejected because immutable" from "rejected because the token
 		// expired".
-		tests := map[Envelope]func(map[string]any) bool{
-			EnvelopeProblem:     func(b map[string]any) bool { _, ok := b["title"]; return ok },
-			EnvelopeOAuth:       func(b map[string]any) bool { _, ok := b["error_description"]; return ok },
-			EnvelopeLegacy:      func(b map[string]any) bool { _, ok := b["errorMessage"]; return ok },
-			EnvelopeEmpty:       func(b map[string]any) bool { return len(b) == 0 },
-			Envelope("bizarre"): func(b map[string]any) bool { return len(b) == 0 },
+		tests := map[ErrorBodyShape]func(map[string]any) bool{
+			ErrorBodyProblem:          func(b map[string]any) bool { _, ok := b["title"]; return ok },
+			ErrorBodyOAuth:            func(b map[string]any) bool { _, ok := b["error_description"]; return ok },
+			ErrorBodyLegacy:           func(b map[string]any) bool { _, ok := b["errorMessage"]; return ok },
+			ErrorBodyEmpty:            func(b map[string]any) bool { return len(b) == 0 },
+			ErrorBodyShape("bizarre"): func(b map[string]any) bool { return len(b) == 0 },
 		}
 
 		for kind, check := range tests {
-			s := New(t, Quirks{ErrorEnvelope: kind})
+			s := New(t, Quirks{ErrorBody: kind})
 
 			status, body := get(t, s.ItemURL("absent"))
 			if status != http.StatusNotFound {

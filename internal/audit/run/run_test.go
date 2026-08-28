@@ -186,7 +186,7 @@ func TestUnit_Run_MaximalRefusalBisectsToTheCulprit(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{
 		RejectsDocumentedValue: map[string]string{"color": "sample-color"},
-		ErrorEnvelope:          quirkserver.EnvelopeEmpty,
+		ErrorBody:              quirkserver.ErrorBodyEmpty,
 	})
 
 	p := derivedPlan(t)

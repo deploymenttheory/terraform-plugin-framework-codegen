@@ -97,10 +97,10 @@ func toolVersion(ctx context.Context, name string, extraEnv []string, versionArg
 	return v, nil
 }
 
-// gate refuses a mismatched tool, naming both versions. A silent version
+// refuseVersionMismatch refuses a mismatched tool, naming both versions. A silent version
 // drift would rewrite the whole generated tree and present as an
 // inexplicable diff; the refusal makes the drift the headline.
-func gate(tool, have, want string) error {
+func refuseVersionMismatch(tool, have, want string) error {
 	if have == want {
 		return nil
 	}

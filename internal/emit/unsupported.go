@@ -85,7 +85,7 @@ func attributePath(kind, key, attribute string) string {
 // change that breaks fifteen entities becomes fifteen added lines in a
 // generation pull request instead of fifteen deleted directories among
 // thousands of regenerated ones.
-func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbind.Dropped, emissionRefusals []ir.Exclusion, keptUnbound map[string]bool) (File, []Unsupported, error) {
+func RenderUnsupported(m *ir.Model, removals []sdkbind.Removal, dropped []sdkbind.Dropped, emissionRefusals []ir.UnsupportedEntity, keptUnbound map[string]bool) (File, []Unsupported, error) {
 	report := UnsupportedReport{FormatVersion: unsupportedFormatVersion}
 
 	if m != nil {

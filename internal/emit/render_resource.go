@@ -78,10 +78,10 @@ type resourceData struct {
 	ReadModel string
 	StateBody string
 
-	CreatePlan         callPlan
-	ReadPlan           callPlan
-	UpdatePlan         callPlan
-	DeletePlan         callPlan
+	CreatePlan         finalisedAPIRequest
+	ReadPlan           finalisedAPIRequest
+	UpdatePlan         finalisedAPIRequest
+	DeletePlan         finalisedAPIRequest
 	CreateMapsResponse bool
 	// CreateIDFromResponse assigns the new object's id from a create
 	// response that is not the read model, and so is not mapped wholesale.
@@ -541,7 +541,7 @@ func (e *serviceRenderer) resourceMocks(d *resourceData, r *ir.Resource, rb *sdk
 	}
 	if r.Operations.List != nil {
 		d.HasList = true
-		d.ListPayload = listPayloadExpr(r.ListEnvelopeKey, "items")
+		d.ListPayload = listPayloadExpr(r.ListWrapperKey, "items")
 	}
 
 	imports := newImportSet(e.pc.Module)

@@ -257,7 +257,7 @@ func buildTree(create, read, update *specmodel.Schema, replaceAll bool) *Attribu
 	dependencies := map[string][]string{}
 
 	addAttribute := func(name string, createSide, readSide *specmodel.Schema) {
-		attribute, edges := buildAttribute(name, site{
+		attribute, edges := buildAttribute(name, foldedProperty{
 			create:         createSide,
 			read:           readSide,
 			update:         flatUpdate.findProperty(name),
@@ -400,8 +400,8 @@ func sortedUnique(names []string) []string {
 	return out
 }
 
-// site is one property seen from both sides of the create/read fold.
-type site struct {
+// foldedProperty is one property seen from both sides of the create/read fold.
+type foldedProperty struct {
 	create *specmodel.Schema // nil when response-only
 	read   *specmodel.Schema // nil when the response omits it
 	// update is the property as the update request declares it, nil when
@@ -428,7 +428,7 @@ type attributeEdges struct {
 
 // buildAttribute decides one attribute, returning the cross-attribute rules
 // declared on it for the tree to aggregate.
-func buildAttribute(wire string, attributeSite site) (Attribute, attributeEdges) {
+func buildAttribute(wire string, attributeSite foldedProperty) (Attribute, attributeEdges) {
 	attribute := Attribute{Name: snakeCase(wire), WireName: wire}
 
 	writable := attributeSite.create != nil

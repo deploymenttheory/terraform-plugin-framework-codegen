@@ -59,7 +59,7 @@ func Derive(doc *specmodel.Document, cfg *config.Config, inputs *Inputs) (*Plan,
 		excluded[e] = true
 	}
 
-	d := &deriver{
+	d := &planBuilder{
 		doc:          doc,
 		cfg:          cfg,
 		inputs:       inputs,
@@ -132,8 +132,8 @@ func checkInputEntities(inputs *Inputs, byKey map[string]specmodel.Classificatio
 	return nil
 }
 
-// deriver carries the per-run derivation state.
-type deriver struct {
+// planBuilder carries the per-run derivation state.
+type planBuilder struct {
 	doc          *specmodel.Document
 	cfg          *config.Config
 	inputs       *Inputs
@@ -146,7 +146,7 @@ type deriver struct {
 
 // adminSkip is the operator-decided exclusions, checked before any
 // derivation: the config's services.exclude, then the inputs' skip.
-func (d *deriver) adminSkip(key string, excluded map[string]bool) *Skipped {
+func (d *planBuilder) adminSkip(key string, excluded map[string]bool) *Skipped {
 	if excluded[key] {
 		return &Skipped{Entity: key, Reason: "excluded by services.exclude in tfpfgen.yaml"}
 	}
@@ -175,7 +175,7 @@ func pathParameters(path string) []string {
 // prefix. selfKey, when non-empty, resolves the trailing item parameter
 // to the entity's own created object. A parameter nothing can supply is
 // the returned reason.
-func (d *deriver) pathValues(path, selfKey string, ei EntityInputs) (map[string]string, []string, string) {
+func (d *planBuilder) pathValues(path, selfKey string, ei EntityInputs) (map[string]string, []string, string) {
 	parameters := pathParameters(path)
 	if len(parameters) == 0 {
 		return nil, nil, ""
@@ -210,7 +210,7 @@ func (d *deriver) pathValues(path, selfKey string, ei EntityInputs) (map[string]
 // parentFor maps a path parameter to the entity whose collection encloses
 // it: for "/projects/{projectId}/tags", parameter projectId's enclosing
 // prefix is "/projects", and the entity classified there is the parent.
-func (d *deriver) parentFor(path, parameter string) (string, bool) {
+func (d *planBuilder) parentFor(path, parameter string) (string, bool) {
 	idx := strings.Index(path, "{"+parameter+"}")
 	if idx <= 1 {
 		return "", false
@@ -221,7 +221,7 @@ func (d *deriver) parentFor(path, parameter string) (string, bool) {
 }
 
 // operation finds the loaded operation a classification role points at.
-func (d *deriver) operation(ref *specmodel.OperationReference) *specmodel.Operation {
+func (d *planBuilder) operation(ref *specmodel.OperationReference) *specmodel.Operation {
 	if ref == nil {
 		return nil
 	}

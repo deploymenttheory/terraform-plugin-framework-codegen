@@ -14,7 +14,7 @@ import (
 // element, and an entity that fits no kind.
 func unsupportedModel() *ir.Model {
 	return &ir.Model{
-		Excluded: []ir.Exclusion{
+		Excluded: []ir.UnsupportedEntity{
 			{Key: "orphan", Reason: "partial lifecycle (create, update) fits no kind"},
 		},
 		Resources: []ir.Resource{{
@@ -102,7 +102,7 @@ func TestUnit_RenderUnsupported_EveryStageIsRepresented(t *testing.T) {
 		{Kind: "datasource", Key: "gone", Reason: "the SDK carries no read call"},
 	}
 	dropped := []sdkbind.Dropped{{Key: "ruleset", Kind: "resource", Reason: "the generated SDK does not carry this resource's binding"}}
-	emission := []ir.Exclusion{{Key: "nested_path", Reason: "a path parameter no attribute answers"}}
+	emission := []ir.UnsupportedEntity{{Key: "nested_path", Reason: "a path parameter no attribute answers"}}
 
 	_, entries, err := RenderUnsupported(unsupportedModel(), removals, dropped, emission, nil)
 	if err != nil {

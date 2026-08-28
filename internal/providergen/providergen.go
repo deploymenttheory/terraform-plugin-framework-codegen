@@ -66,7 +66,7 @@ type Result struct {
 	// Excluded is every entity that yielded nothing, with the reason: the
 	// classification and configuration exclusions the model already carried,
 	// plus the shapes emission itself refused.
-	Excluded []ir.Exclusion
+	Excluded []ir.UnsupportedEntity
 	// Unsupported is everything unsupported.json records — the entity
 	// exclusions above plus the attribute refusals, which surface nowhere
 	// else.
@@ -120,7 +120,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 		return Result{}, fmt.Errorf("generation refuses to write authored paths: %s", strings.Join(refused, ", "))
 	}
 
-	orphans, err := current.OrphansOf(opts.Root, "", produced)
+	unproduced, err := current.UnproducedFilesOf(opts.Root, "", produced)
 	if err != nil {
 		return Result{}, err
 	}
@@ -128,7 +128,7 @@ func Run(ctx context.Context, opts Options) (Result, error) {
 	if err := install(staging, opts.Root, paths); err != nil {
 		return Result{}, err
 	}
-	removeOrphans(opts.Root, orphans)
+	removeUnproducedFiles(opts.Root, unproduced)
 
 	next := manifest.New(version.Version(), append(current.EntriesNotOf(""), entries...))
 	if err := manifest.Save(opts.Root, next); err != nil {
@@ -444,12 +444,12 @@ func install(staging, root string, paths []string) error {
 	return nil
 }
 
-// removeOrphans deletes the files a previous run produced that this one no
+// removeUnproducedFiles deletes the files a previous run produced that this one no
 // longer does, then sweeps any directories the deletions emptied. Both are
-// best-effort: an orphan that will not delete is left for `provider verify`
+// best-effort: a file that will not delete is left for `provider verify`
 // to report, not a reason to fail a run that already installed correctly.
-func removeOrphans(root string, orphans []string) {
-	for _, p := range orphans {
+func removeUnproducedFiles(root string, paths []string) {
+	for _, p := range paths {
 		full := filepath.Join(root, filepath.FromSlash(p))
 		if err := os.Remove(full); err != nil {
 			continue
@@ -465,11 +465,11 @@ func removeOrphans(root string, orphans []string) {
 // allExclusions gathers every reason an entity yielded nothing, in pipeline
 // order: refused by classification or configuration, then dropped because the
 // SDK could not answer its binding, then refused by emission.
-func allExclusions(derived []ir.Exclusion, dropped []sdkbind.Dropped, refused []ir.Exclusion) []ir.Exclusion {
-	out := make([]ir.Exclusion, 0, len(derived)+len(dropped)+len(refused))
+func allExclusions(derived []ir.UnsupportedEntity, dropped []sdkbind.Dropped, refused []ir.UnsupportedEntity) []ir.UnsupportedEntity {
+	out := make([]ir.UnsupportedEntity, 0, len(derived)+len(dropped)+len(refused))
 	out = append(out, derived...)
 	for _, d := range dropped {
-		out = append(out, ir.Exclusion{Key: d.Key, Reason: d.Reason})
+		out = append(out, ir.UnsupportedEntity{Key: d.Key, Reason: d.Reason})
 	}
 	return append(out, refused...)
 }

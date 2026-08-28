@@ -332,9 +332,9 @@ func reindent(block, extra string) string {
 	return strings.Join(lines, "\n")
 }
 
-// callPlan is one SDK invocation rendered for a template: the parameter
+// finalisedAPIRequest is one SDK invocation rendered for a template: the parameter
 // declarations, the assignment shape, and the expression.
-type callPlan struct {
+type finalisedAPIRequest struct {
 	// ParameterDeclarations declares the locals the expression references, one
 	// finished statement per line.
 	ParameterDeclarations string
@@ -397,8 +397,8 @@ func streamDiagnostics() parameterFailure {
 // buildCallPlan renders one bound call. payloadName names the success
 // payload local; nodes and modelVar say where parameter values come from;
 // fail says how a conversion that cannot succeed reports itself.
-func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVar string, fail parameterFailure) (callPlan, error) {
-	var plan callPlan
+func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVar string, fail parameterFailure) (finalisedAPIRequest, error) {
+	var plan finalisedAPIRequest
 
 	var declarations []string
 	for position, p := range call.Parameters {
@@ -410,11 +410,11 @@ func buildCallPlan(call *sdkbind.Call, payloadName string, nodes []node, modelVa
 		// takes two while still naming one object.
 		n, err := parameterNode(p, nodes, position == len(call.Parameters)-1)
 		if err != nil {
-			return callPlan{}, err
+			return finalisedAPIRequest{}, err
 		}
 		declaration, needs, err := parameterDeclaration(p, modelVar, ir.GoName(n.attr.Name), n.attr.Kind, n.attr.Name, fail)
 		if err != nil {
-			return callPlan{}, err
+			return finalisedAPIRequest{}, err
 		}
 		plan.Imports = append(plan.Imports, needs...)
 		declarations = append(declarations, declaration)
@@ -713,7 +713,7 @@ func isIntegerType(goType string) bool {
 // addPlanImports adds whatever standard-library packages a set of rendered
 // call plans reference in their parameter declarations. A plan that converts
 // nothing adds nothing, which is the common case.
-func addPlanImports(set *importSet, plans ...callPlan) {
+func addPlanImports(set *importSet, plans ...finalisedAPIRequest) {
 	for _, plan := range plans {
 		for _, name := range plan.Imports {
 			set.add("", name)

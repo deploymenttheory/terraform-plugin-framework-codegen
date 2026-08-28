@@ -134,7 +134,7 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 				}
 			}
 
-			assertBeaconListEnvelope(t, root)
+			assertBeaconListWrapper(t, root)
 
 			rep, err := Verify(context.Background(), opts)
 			if err != nil {
@@ -147,13 +147,13 @@ func TestUnit_Run_CuratedFixtureGeneratesTheCompleteTree(t *testing.T) {
 	}
 }
 
-// assertBeaconListEnvelope holds the generated beacon datasource to the
+// assertBeaconListWrapper holds the generated beacon datasource to the
 // envelope the fixture's x-tfpfgen-list-response-shape declares. The
 // document's own list response is a bare array, so a schema-derived envelope
 // would be empty: every wrapper below exists only because the extension
 // carried the audit's finding all the way through derivation into the
 // emitted list code.
-func assertBeaconListEnvelope(t *testing.T, root string) {
+func assertBeaconListWrapper(t *testing.T, root string) {
 	t.Helper()
 	read := func(parts ...string) string {
 		raw, err := os.ReadFile(filepath.Join(append([]string{root}, parts...)...))
@@ -166,15 +166,15 @@ func assertBeaconListEnvelope(t *testing.T, root string) {
 	ds := filepath.Join("internal", "services", "datasources", "beacons", "v1", "beacon")
 	if got := read(ds, "mocks", "responders.go"); !strings.Contains(got,
 		`map[string]any{"beacons": []map[string]any{object()}}`) {
-		t.Errorf("the beacon datasource list mock ignores the declared envelope:\n%s", got)
+		t.Errorf("the beacon datasource list mock ignores the declared list wrapper:\n%s", got)
 	}
 	if got := read(ds, "tests", "responses", "datasource.json"); !strings.Contains(got, `"beacons": [`) {
-		t.Errorf("the beacon datasource list fixture ignores the declared envelope:\n%s", got)
+		t.Errorf("the beacon datasource list fixture ignores the declared list wrapper:\n%s", got)
 	}
 	res := filepath.Join("internal", "services", "resources", "beacons", "v1", "beacon")
 	if got := read(res, "mocks", "responders.go"); !strings.Contains(got,
 		`map[string]any{"beacons": items}`) {
-		t.Errorf("the beacon resource list mock ignores the declared envelope:\n%s", got)
+		t.Errorf("the beacon resource list mock ignores the declared list wrapper:\n%s", got)
 	}
 }
 
@@ -286,7 +286,7 @@ func runGo(t *testing.T, dir string, args ...string) {
 	if err == nil {
 		return
 	}
-	for _, signature := range offlineSignatures {
+	for _, signature := range offlineToolchainMessages {
 		if strings.Contains(string(out), signature) {
 			t.Skipf("go %s needs the network and cannot reach it:\n%s", strings.Join(args, " "), out)
 		}

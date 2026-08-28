@@ -218,7 +218,7 @@ func TestUnit_Steps_RefusalWithoutTheFieldNameIsInconclusive(t *testing.T) {
 	t.Parallel()
 	s := quirkserver.New(t, quirkserver.Quirks{
 		RequiredButUndeclared: []string{"serial"},
-		ErrorEnvelope:         quirkserver.EnvelopeEmpty,
+		ErrorBody:             quirkserver.ErrorBodyEmpty,
 	})
 	item := map[string]string{"thingId": "$created:thing"}
 	steps := []plan.Step{

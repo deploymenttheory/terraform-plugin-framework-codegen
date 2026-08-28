@@ -39,7 +39,7 @@ type listResourceData struct {
 	// ResourceCtor builds the resource being listed, so the test can read
 	// the schema terraform would supply.
 	ResourceCtor string
-	ListPlan     callPlan
+	ListPlan     finalisedAPIRequest
 	Collection   string
 	ResultLines  string
 

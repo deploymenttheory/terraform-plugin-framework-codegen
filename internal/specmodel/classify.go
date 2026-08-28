@@ -80,10 +80,10 @@ type Classification struct {
 	LookupByKey bool
 }
 
-// Exclusion is one entity that classifies as nothing, and why. The reasons
+// UnclassifiedEntity is one entity that classifies as nothing, and why. The reasons
 // are for people: they surface in audit-planning output so a surprising
 // omission can be traced to the document instead of to a hunch.
-type Exclusion struct {
+type UnclassifiedEntity struct {
 	Key            string
 	CollectionPath string
 	ItemPath       string
@@ -95,7 +95,7 @@ type Classifications struct {
 	// Entities is sorted by collection path.
 	Entities []Classification
 	// Excluded is sorted by collection path.
-	Excluded []Exclusion
+	Excluded []UnclassifiedEntity
 }
 
 // Classify groups the document's operations into entities and decides what
@@ -183,25 +183,25 @@ func (e *entity) assign(op *Operation, isItem bool) {
 }
 
 // decide classifies a gathered entity, or explains why it is nothing.
-func (e *entity) decide() (Classification, *Exclusion) {
-	resourceShape := e.create != nil && e.read != nil && e.del != nil
-	resourceOK := resourceShape && e.create.RequestBody != nil && e.read.SuccessSchema() != nil
+func (e *entity) decide() (Classification, *UnclassifiedEntity) {
+	hasResourceOperations := e.create != nil && e.read != nil && e.del != nil
+	resourceOK := hasResourceOperations && e.create.RequestBody != nil && e.read.SuccessSchema() != nil
 
-	dsShape := e.list != nil && e.read != nil
-	dsOK := dsShape && e.read.SuccessSchema() != nil && e.list.SuccessSchema() != nil
+	hasDatasourceOperations := e.list != nil && e.read != nil
+	dsOK := hasDatasourceOperations && e.read.SuccessSchema() != nil && e.list.SuccessSchema() != nil
 
-	lookupShape := e.read != nil && e.list == nil
-	lookupOK := lookupShape && e.read.SuccessSchema() != nil
+	hasLookupOperations := e.read != nil && e.list == nil
+	lookupOK := hasLookupOperations && e.read.SuccessSchema() != nil
 
-	listOnlyShape := e.list != nil && e.read == nil
+	hasListOnlyOperations := e.list != nil && e.read == nil
 	// A collection-path GET whose response carries no array is not a
 	// collection: it is one object at a fixed path — an account's
 	// preferences, a tenant's enrolment settings. Classified as a
 	// collection it has no elements to reach and fails for saying so.
-	singletonShape := listOnlyShape && e.list.SuccessSchema() != nil && !carriesCollection(e.list.SuccessSchema())
+	hasSingletonOperations := hasListOnlyOperations && e.list.SuccessSchema() != nil && !carriesCollection(e.list.SuccessSchema())
 	// A collection the API enumerates but cannot address one member of. It
 	// is a datasource: terraform can read the collection and nothing else.
-	collectionOK := listOnlyShape && !singletonShape && e.list.SuccessSchema() != nil
+	collectionOK := hasListOnlyOperations && !hasSingletonOperations && e.list.SuccessSchema() != nil
 
 	// A list resource is the list capability of a managed resource, not a
 	// kind of entity: terraform matches it to a resource by type name, and
@@ -216,7 +216,7 @@ func (e *entity) decide() (Classification, *Exclusion) {
 	// fixed path, updated there, neither created nor destroyed. Terraform
 	// owns that shape by writing on create as well as update, and by
 	// forgetting the object on destroy rather than calling anything.
-	singletonOK := singletonShape && e.collectionWrite != nil && e.list.SuccessSchema() != nil
+	singletonOK := hasSingletonOperations && e.collectionWrite != nil && e.list.SuccessSchema() != nil
 
 	// A write with nothing to read it back, list it or remove it is an
 	// invocation: something happens, and nothing is left for terraform to
@@ -228,7 +228,7 @@ func (e *entity) decide() (Classification, *Exclusion) {
 	// both has two candidate invocations and no way to choose between them.
 	loneWrite := e.create == nil && e.read == nil && e.list == nil && e.del == nil &&
 		(e.update != nil) != (e.collectionWrite != nil)
-	actionShape := loneWrite || (e.create != nil &&
+	hasActionOperations := loneWrite || (e.create != nil &&
 		e.read == nil && e.list == nil && e.update == nil && e.del == nil)
 
 	var kinds []Kind
@@ -253,18 +253,18 @@ func (e *entity) decide() (Classification, *Exclusion) {
 				kinds = append(kinds, k)
 			}
 		case KindAction:
-			if actionShape {
+			if hasActionOperations {
 				kinds = append(kinds, k)
 			}
 		}
 	}
 
 	if len(kinds) == 0 {
-		return Classification{}, &Exclusion{
+		return Classification{}, &UnclassifiedEntity{
 			Key:            e.key,
 			CollectionPath: e.collection,
 			ItemPath:       e.item,
-			Reason:         e.exclusionReason(resourceShape, dsShape, listOnlyShape, singletonShape, lookupShape),
+			Reason:         e.exclusionReason(hasResourceOperations, hasDatasourceOperations, hasListOnlyOperations, hasSingletonOperations, hasLookupOperations),
 		}
 	}
 
@@ -306,20 +306,20 @@ func (e *entity) decide() (Classification, *Exclusion) {
 
 // exclusionReason says why nothing fit, most specific first: a shape that
 // matched but lacked schemas beats a recital of what was missing.
-func (e *entity) exclusionReason(resourceShape, dsShape, listOnlyShape, singletonShape, lookupShape bool) string {
+func (e *entity) exclusionReason(hasResourceOperations, hasDatasourceOperations, hasListOnlyOperations, hasSingletonOperations, hasLookupOperations bool) string {
 	switch {
-	case resourceShape:
+	case hasResourceOperations:
 		return "create, read and delete are present but the create request or read success response declares no schema"
-	case dsShape:
+	case hasDatasourceOperations:
 		return "list and read are present but a success response schema is missing"
-	case singletonShape:
+	case hasSingletonOperations:
 		// One object at a fixed path, and the API offers no way to write
-		// it. Its schema is present — a missing one is the listOnlyShape
+		// it. Its schema is present — a missing one is the hasListOnlyOperations
 		// case below — so what it lacks is a write, not a declaration.
 		return "one object at a fixed path with no operation that writes it, so terraform would own nothing"
-	case listOnlyShape:
+	case hasListOnlyOperations:
 		return "list is present but its success response declares no schema"
-	case lookupShape:
+	case hasLookupOperations:
 		// Any read reaching here lacks a schema: with one it would have
 		// classified as at least a lookup-by-key datasource.
 		return "readable by id but the read success response declares no schema"

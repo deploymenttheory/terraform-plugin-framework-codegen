@@ -20,7 +20,7 @@ import (
 // unambiguous. Genuine ambiguity — no envelope match and zero or several
 // candidates — is refused with the SDK's shape in the reason, because
 // guessing among several slices would be invention.
-func (p *pruner) resolveListElement(list *Call, elementType, access *string, envelopeKey string) (types.Type, string) {
+func (p *pruner) resolveListElement(list *Call, elementType, access *string, listWrapperKey string) (types.Type, string) {
 	if why := p.resolveCall(list); why != "" {
 		return nil, fmt.Sprintf("its list call cannot be made: %s", why)
 	}
@@ -53,8 +53,8 @@ func (p *pruner) resolveListElement(list *Call, elementType, access *string, env
 
 	// The observed envelope key names the wrapper's getter or field
 	// directly: kiota's Get<Key>, an openapi-generator field <Key>.
-	if envelopeKey != "" {
-		want := exportedName(envelopeKey)
+	if listWrapperKey != "" {
+		want := exportedName(listWrapperKey)
 		if c, ok := pickByName(getters, "Get"+want); ok {
 			return settle(c)
 		}
