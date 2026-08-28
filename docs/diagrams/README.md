@@ -135,6 +135,12 @@ One trap worth knowing: `ANTHROPIC_API_KEY` sits *above* federation in the
 SDK's credential order. If a key ever reaches this job's environment it wins
 silently, and the workflow keeps working while none of the above applies.
 
+Leave the rule's `token_lifetime_seconds` at its 3600 default rather than the
+wizard's prefilled 600. A GitHub Actions JWT is single-use — it carries a `jti`,
+and re-presenting one is refused as `jti_reused` — so a token that expires
+mid-run has to be refreshed against a JWT that may no longer be exchangeable.
+The job is capped at 30 minutes, which one hour comfortably covers.
+
 ## One diagram is allowed to scroll
 
 `ci.workflow` is exempt from the fit-on-screen check, via `DIAGRAMS_MAY_SCROLL`
